@@ -18,7 +18,12 @@ pub struct GraphqlDirective {
     #[serde(skip)]
     pub id: Option<u16>,
 
-    pub name: String,
+    /// The namespace within which the upstream GraphQL schema is embedded.
+    ///
+    /// If unset, a namespace is auto-generated based on the `id`, or an error is returned if no
+    /// `id` is defined.
+    pub name: Option<String>,
+
     pub url: Url,
     #[serde(default)]
     headers: Vec<Header>,
@@ -140,7 +145,70 @@ mod tests {
                 id: Some(
                     0,
                 ),
-                name: "countries",
+                name: Some(
+                    "countries",
+                ),
+                url: Url {
+                    scheme: "https",
+                    cannot_be_a_base: false,
+                    username: "",
+                    password: None,
+                    host: Some(
+                        Domain(
+                            "countries.trevorblades.com",
+                        ),
+                    ),
+                    port: None,
+                    path: "/",
+                    query: None,
+                    fragment: None,
+                },
+                headers: [
+                    Header {
+                        name: "authorization",
+                        value: "Bearer i_am_a_key",
+                    },
+                ],
+                introspection_headers: Some(
+                    [
+                        Header {
+                            name: "x-user-id",
+                            value: "root",
+                        },
+                    ],
+                ),
+            },
+        ]
+        "###);
+    }
+
+    #[test]
+    fn parsing_unnamed_graphql_directive() {
+        let variables = HashMap::from([
+            ("MY_API_KEY".to_owned(), "i_am_a_key".to_owned()),
+            ("ADMIN_USER_ID".to_owned(), "root".to_owned()),
+        ]);
+
+        let connector_parsers = MockConnectorParsers::default();
+
+        let schema = r#"
+            extend schema
+              @graphql(
+                url: "https://countries.trevorblades.com",
+                headers: [{ name: "authorization", value: "Bearer {{ env.MY_API_KEY }}"}],
+                introspectionHeaders: [{ name: "x-user-id", value: "{{ env.ADMIN_USER_ID }}"}]
+              )
+            "#;
+
+        block_on(crate::parse(schema, &variables, &connector_parsers)).unwrap();
+
+        insta::assert_debug_snapshot!(connector_parsers.graphql_directives.lock().unwrap(), @r###"
+        [
+            GraphqlDirective {
+                id: Some(
+                    0,
+                ),
+                name: None,
                 url: Url {
                     scheme: "https",
                     cannot_be_a_base: false,
@@ -197,11 +265,11 @@ mod tests {
             r#"
             extend schema
               @graphql(
-                url: "https://countries.trevorblades.com",
+                name: "countries",
                 headers: [{ name: "authorization", value: "..."}],
               )
             "#,
-            "missing field `name`"
+            "missing field `url`"
         );
     }
 
@@ -211,11 +279,12 @@ mod tests {
             r#"
             extend schema
               @graphql(
+                name: "countries",
                 url: "https://countries.trevorblades.com",
                 headers: [{ name: 12, value: "..."}],
               )
             "#,
-            "[5:26] invalid type: integer `12`, expected a string"
+            "[6:26] invalid type: integer `12`, expected a string"
         );
     }
 
@@ -225,11 +294,12 @@ mod tests {
             r#"
             extend schema
               @graphql(
+                name: "countries",
                 url: "https://countries.trevorblades.com",
                 introspectionHeaders: [{ name: 12, value: "..."}],
               )
             "#,
-            "[5:39] invalid type: integer `12`, expected a string"
+            "[6:39] invalid type: integer `12`, expected a string"
         );
     }
 

@@ -1,0 +1,7893 @@
+---
+source: common/parser-graphql/src/lib.rs
+expression: result
+---
+enum Connector1AccelerationUnit {
+	SECONDS_TO_100_KILOMETERS_PER_HOUR
+	SECONDS_TO_60_MILES_PER_HOUR
+}
+enum Connector1AccessType {
+	PUBLIC
+	RESTRICTED
+	PRIVATE
+}
+"""
+Returns 'OK'
+"""
+scalar Connector1Acknowledgement
+"""
+Information about an address
+"""
+type Connector1Address {
+	"""
+	Continent code (2 letters)
+	"""
+	continent: String
+	"""
+	Country code (2 letters)
+	"""
+	country: String
+	"""
+	County code (2 letters)
+	"""
+	county: String
+	"""
+	City
+	"""
+	city: String
+	"""
+	Street name
+	"""
+	street: String
+	"""
+	Street number
+	"""
+	number: String
+	"""
+	Postal code of a location
+	"""
+	postalCode: String
+	"""
+	String composed of 3 words which represent the location of an address on the globe. More details: http://w3w.co/<what3Words>
+	"""
+	what3Words: String
+	"""
+	Human-readable address of a location
+	"""
+	formattedAddress: [String]
+}
+enum Connector1AdhocAuthorisationMethod {
+	CREDIT_CARD
+	DEBIT_CARD
+	OTHER
+	OTHER_APPLE_PAY
+	OTHER_AUTHENTICATION_BY_CAR
+	OTHER_GOOGLE_PAY
+	QR_CODE
+	SMS
+}
+"""
+Amenities available near a station
+"""
+enum Connector1Amenities {
+	PARK
+	RESTAURANT
+	MUSEUM
+	COFFEE
+	HOTEL
+	SHOPPING
+	BATHROOM
+	SUPERMARKET
+	PLAYGROUND
+	PHARMACY
+}
+"""
+The amenity model
+"""
+type Connector1Amenity {
+	"""
+	Unique amenity ID
+	"""
+	id: ID
+	"""
+	ID provided by an amenity data source as the row ID
+	"""
+	externalId: String
+	"""
+	Name of an amenity
+	"""
+	name: String
+	"""
+	Geo location coordinates. This is a GeoJSON Point
+	"""
+	location: Connector1Point
+	"""
+	Embedded Address
+	"""
+	address: Connector1Address
+	"""
+	Type of amenity. An amenity can belong to multiple categories
+	"""
+	type: [String]
+	"""
+	Rating of an amenity, the value will be between 0.0 and 10.0. If no rating has been given, the value will be set to null
+	"""
+	rating: Float
+	"""
+	Computed distance between station and amenity
+	"""
+	distance: Int
+	"""
+	Full path URL to amenity foursquare page
+	"""
+	foursquareUrl: String
+	"""
+	Date and time when an amenity was created
+	"""
+	createdAt: String
+	"""
+	Date and time when an amenity was last updated
+	"""
+	updatedAt: String
+}
+"""
+Amenity preferences for a route
+"""
+input Connector1AmenityPreferencesInput {
+	"""
+	Desired amenities near all charge-stops along a route, with a 1 kilometer radius
+	"""
+	all_charge_stops: [Connector1AmenityType!]
+	"""
+	Scheduled charge stops, with a specified amenity and timeline
+	"""
+	scheduled_charge_stops: [Connector1ScheduledChargeStopInput!]
+}
+"""
+Amenities stats model
+"""
+type Connector1AmenityStats {
+	"""
+	The amenity type
+	"""
+	type: String
+	"""
+	The total number of stations with the specified amenity
+	"""
+	total: Int
+}
+"""
+A list of amenity types
+"""
+enum Connector1AmenityType {
+	PARK
+	RESTAURANT
+	MUSEUM
+	COFFEE
+	HOTEL
+	SHOPPING
+	BATHROOM
+	SUPERMARKET
+	PLAYGROUND
+	PHARMACY
+}
+input Connector1AuthorizeConnectedVehicleInput {
+	"""
+	Id from the connected vehicle
+	"""
+	id: ID!
+	"""
+	Provider specific options. See the developer portal for more details
+	"""
+	options: Connector1AuthorizeConnectedVehicleOptions!
+}
+input Connector1AuthorizeConnectedVehicleOptions {
+	"""
+	OAuth code returned as a query parameter on the OAuth callback
+	"""
+	code: Connector1PlainString
+}
+input Connector1AuxiliaryConsumptionInput {
+	"""
+	Value of the auxiliary power consumption of the vehicle
+	"""
+	value: Float!
+	"""
+	Type of auxiliary power consumption of the vehicle
+	"""
+	type: Connector1AuxiliaryConsumptionUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+enum Connector1AuxiliaryConsumptionUnit {
+	KILOWATT_HOUR
+}
+"""
+The type of the battery value
+"""
+enum Connector1BatteryInputType {
+	KWH
+	KM
+	MILES
+	PERCENTAGE
+}
+input Connector1BatteryTemperatureInput {
+	"""
+	Value of the temperature of the battery
+	"""
+	value: Float!
+	"""
+	Type of temperature of the battery
+	"""
+	type: Connector1TemperatureUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+"""
+Output of a car query
+"""
+type Connector1Car {
+	"""
+	Cars unique ID
+	"""
+	id: ID
+	"""
+	Naming of a car
+	"""
+	naming: Connector1CarNaming
+	"""
+	Available connectors for a car
+	"""
+	connectors: [Connector1CarPlug]
+	"""
+	List of adapters of connectors available for a car
+	"""
+	adapters: [Connector1CarPlug]
+	"""
+	Battery of a car
+	"""
+	battery: Connector1CarBattery
+	"""
+	Body of a car
+	"""
+	body: Connector1CarBody
+	"""
+	Availability of a car
+	"""
+	availability: Connector1CarAvailability
+	"""
+	Performance of a car
+	"""
+	performance: Connector1CarPerformance
+	"""
+	Range of a car
+	"""
+	range: Connector1CarRange
+	"""
+	Media of a car
+	"""
+	media: Connector1CarMedia
+	"""
+	Routing of a car
+	"""
+	routing: Connector1CarRouting
+	"""
+	Information about vehicle connectivity
+	"""
+	connect: Connector1Connect
+	"""
+	ID provided by a car data source as the row ID
+	"""
+	externalId: String
+	"""
+	Car manufacturer
+	"""
+	make: String
+	"""
+	Car model
+	"""
+	carModel: String
+	"""
+	Car edition
+	"""
+	edition: String
+	"""
+	Car model edition. Added by Chargetrip as an alternative for when a car manufacturer does not provide an edition name, or uses the same edition name across all trims or consecutive years
+	"""
+	chargetripEdition: String
+	"""
+	Car version
+	"""
+	version: String
+	"""
+	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
+	"""
+	chargetripRange: Connector1ChargetripRange
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fastChargingSupport: Boolean
+	"""
+	Current production mode of a car
+	"""
+	mode: Connector1CarMode
+	"""
+	Number of seats
+	"""
+	seats: Int
+	"""
+	Weight in kg
+	"""
+	weight: Float
+	"""
+	Height in mm
+	"""
+	height: Int
+	"""
+	Width in mm
+	"""
+	width: Int
+	"""
+	Usable battery capacity in kWh
+	"""
+	batteryUsableKwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	batteryFullKwh: Float
+	"""
+	Battery efficiency in the city, highway and combined depending on weather conditions
+	"""
+	batteryEfficiency: Connector1CarBatteryEfficiency
+	"""
+	Acceleration time from 0 to 100 km/h
+	"""
+	acceleration: Float
+	"""
+	Maximum car speed in km/h
+	"""
+	topSpeed: Float
+	"""
+	Power of a car in Kw
+	"""
+	power: Float
+	"""
+	Engine torque
+	"""
+	torque: Float
+	"""
+	Extra consumption model
+	"""
+	consumption: Connector1CarExtraConsumption
+	"""
+	Amount of petrol a similar petrol car would consume per 100 km
+	"""
+	petrolConsumption: Float
+	"""
+	A list of offset data for different charging speeds
+	"""
+	chargingOffset: Connector1JSON
+	"""
+	Images of a car
+	"""
+	images: [Connector1CarImage]
+	"""
+	Images of a car in structured data
+	"""
+	imagesData: Connector1CarImageData
+}
+type Connector1CarAvailability {
+	"""
+	Availability of car
+	
+	Values:
+	   - 0 = Car no longer for sale in any market / region
+	   - 1 = Car currently for sale in at least one market / region
+	   - 2 = Car expected in market from Date_From (estimated), pre-order open
+	   - 3 = Car expected in market from Date_From (estimated), pre-order unkown or not open
+	   - 12 = Concept car, nearing production and/or confirmed, pre-order open
+	   - 13 = Concept car, nearing production and/or confirmed, pre-order unknown or not open
+	   - 22 = Concept car, not close to production and/or unconfirmed, pre-order open
+	   - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
+	   - 91 = Status uncertain, introduction date and/or pricing unclear
+	"""
+	status: Int
+}
+type Connector1CarBattery {
+	"""
+	Usable battery capacity in kWh
+	"""
+	usable_kwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	full_kwh: Float
+}
+"""
+Deprecated
+"""
+type Connector1CarBatteryEfficiency {
+	"""
+	Average efficiency measured in kWh/100 km
+	"""
+	average: Float
+	"""
+	Worst conditions are based on -10°C and use of heating, measured in kWh/100 km
+	"""
+	worst: Connector1CarEstimationData
+	"""
+	Best conditions are based on 23°C and no use of A/C, measured in kWh/100 km
+	"""
+	best: Connector1CarEstimationData
+}
+"""
+Battery field estimated
+"""
+enum Connector1CarBatteryFieldEstimations {
+	B
+	F
+	N
+	U
+}
+type Connector1CarBody {
+	"""
+	Width with folded mirrors in mm
+	"""
+	width: Int
+	"""
+	Height (average height for adjustable suspensions) in mm
+	"""
+	height: Int
+	"""
+	Weight Unladen EU) in kg
+	"""
+	weight: Int
+	"""
+	Number of seats
+	"""
+	seats: Int
+}
+enum Connector1CarConnectivityProvider {
+	ENODE
+}
+"""
+Deprecated
+"""
+type Connector1CarConsumption {
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: Float
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: Float
+}
+"""
+The consumption of the car
+"""
+input Connector1CarConsumptionInput {
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: Float
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: Float
+}
+"""
+Drivetrain
+"""
+enum Connector1CarDrivetrain {
+	BEV
+	EREV
+}
+"""
+Deprecated
+"""
+type Connector1CarEstimationData {
+	"""
+	Estimated battery efficiency on a highway or express roads, in km
+	"""
+	highway: Float
+	"""
+	Estimated battery efficiency on city roads, in km
+	"""
+	city: Float
+	"""
+	Estimated battery efficiency on highway and city roads combined, in km
+	"""
+	combined: Float
+}
+"""
+Deprecated
+"""
+type Connector1CarExtraConsumption {
+	"""
+	Consumption, in kWh, of the auxiliaries
+	"""
+	aux: Connector1CarConsumption
+	"""
+	Consumption, in kWh, of the battery management system
+	"""
+	bms: Connector1CarConsumption
+	"""
+	Consumption, in kWh, of a car in idle mode
+	"""
+	idle: Connector1CarConsumption
+}
+"""
+Fuel type
+"""
+enum Connector1CarFuel {
+	E
+}
+type Connector1CarImage {
+	"""
+	Image id
+	"""
+	id: ID
+	"""
+	Image type
+	"""
+	type: Connector1CarImageType
+	"""
+	Full path URL of a large image
+	"""
+	url: String
+	"""
+	Height of a large image in pixels
+	"""
+	height: Int
+	"""
+	Width of a large image in pixels
+	"""
+	width: Int
+	"""
+	Full path URL of a thumbnail image
+	"""
+	thumbnail_url: String
+	"""
+	Height of a thumbnail image in pixels
+	"""
+	thumbnail_height: Int
+	"""
+	Width of a thumbnail image in pixels
+	"""
+	thumbnail_width: Int
+}
+"""
+Deprecated
+"""
+type Connector1CarImageData {
+	"""
+	Full size image of a car
+	"""
+	image: Connector1CarImage
+	"""
+	Thumbnail of a full size image
+	"""
+	image_thumbnail: Connector1CarImage
+	"""
+	Full size logo of the maker of a car
+	"""
+	brand: Connector1CarImage
+	"""
+	Thumbnail of a full size logo of the maker of a car
+	"""
+	brand_thumbnail: Connector1CarImage
+}
+"""
+Available types of images which can be found for a car. Each type has specific image sizes
+"""
+enum Connector1CarImageType {
+	PROVIDER
+	IMAGE
+	IMAGE_THUMBNAIL
+	BRAND
+	BRAND_THUMBNAIL
+	PLACEHOLDER
+}
+"""
+When uploading images to a car, you can select one of this types. The rest of the types are automatically generated by the system
+"""
+enum Connector1CarImageTypeUploadable {
+	IMAGE
+}
+"""
+The output element of the carList query
+"""
+type Connector1CarList {
+	"""
+	Cars unique ID
+	"""
+	id: ID
+	"""
+	Naming of a car
+	"""
+	naming: Connector1CarListNaming
+	"""
+	Connectors available for a car
+	"""
+	connectors: [Connector1CarPlug]
+	"""
+	Adapters of connectors available for a car
+	"""
+	adapters: [Connector1CarPlug]
+	"""
+	Battery of a car
+	"""
+	battery: Connector1CarListBattery
+	"""
+	Body of a car
+	"""
+	body: Connector1CarListBody
+	"""
+	Availability of a car
+	"""
+	availability: Connector1CarListAvailability
+	"""
+	Range of a car
+	"""
+	range: Connector1CarListRange
+	"""
+	Media of a car
+	"""
+	media: Connector1CarListMedia
+	"""
+	Routing of a car
+	"""
+	routing: Connector1CarListRouting
+	"""
+	Information about vehicle connectivity
+	"""
+	connect: Connector1Connect
+	"""
+	ID provided by a car data source as the row ID
+	"""
+	externalId: String
+	"""
+	Car manufacturer
+	"""
+	make: String
+	"""
+	Car model
+	"""
+	carModel: String
+	"""
+	Car edition
+	"""
+	edition: String
+	"""
+	Car model edition. Added by Chargetrip as an alternative for when a car manufacturer does not provide an edition name, or uses the same edition name across all trims or consecutive years
+	"""
+	chargetripEdition: String
+	"""
+	Car version
+	"""
+	version: String
+	"""
+	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
+	"""
+	chargetripRange: Connector1ChargetripRange
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fastChargingSupport: Boolean
+	"""
+	Current production mode of a car
+	"""
+	mode: Connector1CarMode
+	"""
+	Number of seats
+	"""
+	seats: Int
+	"""
+	Usable battery capacity in kWh
+	"""
+	batteryUsableKwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	batteryFullKwh: Float
+	"""
+	Images of a car in structured data
+	"""
+	imagesData: Connector1CarImageData
+	power: Float
+	acceleration: Float
+	topSpeed: Float
+	torque: Float
+	batteryEfficiency: Connector1CarBatteryEfficiency
+	weight: Float
+	height: Int
+	width: Int
+	consumption: Connector1CarExtraConsumption
+	petrolConsumption: Float
+	chargingOffset: Connector1JSON
+	auxConsumption: Float
+	bmsConsumption: Float
+	dragCoefficient: Float
+	tirePressure: Float
+	motorEfficiency: Float
+	drivelineEfficiency: Float
+	regenEfficiency: Float
+	images: [Connector1CarImage]
+}
+type Connector1CarListAvailability {
+	"""
+	Availability of car
+	
+	Values:
+	   - 0 = Car no longer for sale in any market / region
+	   - 1 = Car currently for sale in at least one market / region
+	   - 2 = Car expected in market from Date_From (estimated), pre-order open
+	   - 3 = Car expected in market from Date_From (estimated), pre-order unkown or not open
+	   - 12 = Concept car, nearing production and/or confirmed, pre-order open
+	   - 13 = Concept car, nearing production and/or confirmed, pre-order unknown or not open
+	   - 22 = Concept car, not close to production and/or unconfirmed, pre-order open
+	   - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
+	   - 91 = Status uncertain, introduction date and/or pricing unclear
+	"""
+	status: Int
+}
+type Connector1CarListBattery {
+	"""
+	Usable battery capacity in kWh
+	"""
+	usable_kwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	full_kwh: Float
+}
+type Connector1CarListBody {
+	"""
+	Number of seats in car
+	"""
+	seats: Int
+}
+input Connector1CarListFilter {
+	"""
+	Availability of car
+
+Values:
+   - 0 = Car no longer for sale in any market / region
+   - 1 = Car currently for sale in at least one market / region
+   - 2 = Car expected in market from Date_From (estimated), pre-order open
+   - 3 = Car expected in market from Date_From (estimated), pre-order unkown or not open
+   - 12 = Concept car, nearing production and/or confirmed, pre-order open
+   - 13 = Concept car, nearing production and/or confirmed, pre-order unknown or not open
+   - 22 = Concept car, not close to production and/or unconfirmed, pre-order open
+   - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
+   - 91 = Status uncertain, introduction date and/or pricing unclear
+	"""
+	availability: [Int]
+	"""
+	Information about vehicle connectivity
+	"""
+	connect: Connector1ConnectFilter
+}
+type Connector1CarListMedia {
+	"""
+	Latest image of the car
+	"""
+	image: Connector1CarImage
+	"""
+	Latest maker logo of the car
+	"""
+	brand: Connector1CarImage
+	"""
+	Latest video of the car
+	"""
+	video: Connector1CarVideo
+}
+type Connector1CarListNaming {
+	"""
+	Car manufacturer name
+	"""
+	make: String
+	"""
+	Car model name
+	"""
+	model: String
+	"""
+	Version, edition or submodel of car
+	"""
+	version: String
+	"""
+	Another submodel level of car
+	"""
+	edition: String
+	"""
+	Car model version. Added by Chargetrip as an alternative for when a car manufacturer does not provide an version name, or uses the same version name across all trims or consecutive years
+	"""
+	chargetrip_version: String
+}
+"""
+Deprecated
+"""
+input Connector1CarListQuery {
+	"""
+	Deprecated: Not used anymore
+	"""
+	make: String
+	"""
+	Deprecated: Not used anymore
+	"""
+	model: String
+	"""
+	Deprecated: Not used anymore
+	"""
+	version: String
+	"""
+	Deprecated: Not used anymore
+	"""
+	chargetrip_version: String
+	"""
+	Deprecated: Not used anymore
+	"""
+	mode: Connector1CarMode
+}
+type Connector1CarListRange {
+	"""
+	 Is an index value of what we consider to be the real-world range.
+	(Comparable to Range_Real from EV Database.) It is essentially a normalized range to display in the front-end.
+	"""
+	chargetrip_range: Connector1ChargetripRange
+	wltp: Float
+	worst: Connector1CarEstimationData
+	best: Connector1CarEstimationData
+}
+type Connector1CarListRouting {
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fast_charging_support: Boolean
+}
+type Connector1CarMedia {
+	"""
+	URL to detail page on EV database
+	"""
+	evdb_details_url: String
+	"""
+	Latest image
+	"""
+	image: Connector1CarImage
+	"""
+	Latest maker logo
+	"""
+	brand: Connector1CarImage
+	"""
+	All images
+	"""
+	image_list: [Connector1CarImage]
+	"""
+	Latest video
+	"""
+	video: Connector1CarVideo
+	"""
+	All videos
+	"""
+	video_list: [Connector1CarVideo]
+	"""
+	URL to detail page on EV database
+	"""
+	evdb_detail_url: String
+}
+"""
+Mode (state) of the current production
+"""
+enum Connector1CarMode {
+	INDEX_ONLY
+	PRODUCTION
+	CONCEPT
+}
+type Connector1CarNaming {
+	"""
+	Car manufacturer name
+	"""
+	make: String
+	"""
+	Car model name
+	"""
+	model: String
+	"""
+	Version, edition or submodel of car
+	"""
+	version: String
+	"""
+	Another submodel level of car
+	"""
+	edition: String
+	"""
+	Car model version. Added by Chargetrip as an alternative for when a car manufacturer does not provide an version name, or uses the same version name across all trims or consecutive years
+	"""
+	chargetrip_version: String
+}
+type Connector1CarPerformance {
+	"""
+	Acceleration 0-100 km/h in seconds
+	"""
+	acceleration: Float
+	"""
+	Top speed of car in km/h
+	"""
+	top_speed: Int
+}
+"""
+Car plug model
+"""
+type Connector1CarPlug {
+	"""
+	Plug type, known as connector standard in OCPI
+	"""
+	standard: Connector1ConnectorType
+	"""
+	Usable electric power in kW
+	"""
+	power: Float
+	"""
+	Maximum electric power in kW
+	"""
+	max_electric_power: Float
+	"""
+	Time it takes to charge from 10 to 80% with a fast charger, shown in minutes
+	"""
+	time: Int
+	"""
+	Charging speed in km/h
+	"""
+	speed: Int
+}
+"""
+The output element of the carPremium query
+"""
+type Connector1CarPremium {
+	"""
+	Unique ID of a car
+	"""
+	id: ID
+	"""
+	Internal ID of the successor car trim
+	"""
+	succesor_id: String
+	"""
+	Naming of a car
+	"""
+	naming: Connector1CarPremiumNaming
+	"""
+	Connectors available for a car
+	"""
+	connectors: [Connector1CarPlug]
+	"""
+	Charge details
+	"""
+	charge: Connector1CarPremiumCharge
+	"""
+	Fast charge details
+	"""
+	fast_charge: Connector1CarPremiumFastCharge
+	"""
+	Adapters of connectors available for a car
+	"""
+	adapters: [Connector1CarPlug]
+	"""
+	Battery of a car
+	"""
+	battery: Connector1CarPremiumBattery
+	"""
+	Body of a car
+	"""
+	body: Connector1CarPremiumBody
+	"""
+	Availability of a car
+	"""
+	availability: Connector1CarPremiumAvailability
+	"""
+	Pricing of a car
+	"""
+	price: Connector1CarPremiumPrice
+	"""
+	Drivetrain of a car
+	"""
+	drivetrain: Connector1CarPremiumDrivetrain
+	"""
+	Performance of a car
+	"""
+	performance: Connector1CarPremiumPerformance
+	"""
+	Range of a car
+	"""
+	range: Connector1CarPremiumRange
+	"""
+	Efficiency of a car
+	"""
+	efficiency: Connector1CarPremiumEfficiency
+	"""
+	Safety of a car
+	"""
+	safety: Connector1CarPremiumSafety
+	"""
+	Media of a car
+	"""
+	media: Connector1CarPremiumMedia
+	"""
+	Routing of a car
+	"""
+	routing: Connector1CarPremiumRouting
+	"""
+	Information about vehicle connectivity
+	"""
+	connect: Connector1Connect
+}
+type Connector1CarPremiumAvailability {
+	"""
+	Availability of car
+	
+	Values:
+	   - 0 = Car no longer for sale in any market/region
+	   - 1 = Car currently for sale in at least one market/region
+	   - 2 = Car expected in market from Date_From (estimated), pre-order open
+	   - 3 = Car expected in market from Date_From (estimated), pre-order unknown or not open
+	   - 12 = Concept car, nearing production and/or confirmed, pre-order open
+	   - 13 = Concept car, nearing production and/or confirmed, pre-order unknown or not open
+	   - 22 = Concept car, not close to production and/or unconfirmed, pre-order open
+	   - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
+	   - 91 = Status uncertain, introduction date and/or pricing unclear
+	"""
+	status: Int
+	"""
+	Date of introduction, mm-yyyy
+	"""
+	date_from: String
+	"""
+	Indicates if date from field is estimated
+	"""
+	date_from_is_estimated: Boolean
+	"""
+	Date last available, mm-yyyy
+	"""
+	date_to: String
+}
+type Connector1CarPremiumBattery {
+	"""
+	Usable battery capacity in kWh
+	"""
+	usable_kwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	full_kwh: Float
+	"""
+	Indicates which battery fields are estimated
+	"""
+	estimated_fields: Connector1CarBatteryFieldEstimations
+	"""
+	Battery thermal management system (active/passive, air/liquid)
+	"""
+	thermal_management_system: String
+	"""
+	Duration of battery warranty
+	"""
+	warranty_period: Float
+	"""
+	Mileage of battery warranty
+	"""
+	warranty_mileage: Float
+}
+type Connector1CarPremiumBody {
+	"""
+	Length in mm
+	"""
+	length: Int
+	"""
+	Width with folded mirrors in mm
+	"""
+	width: Int
+	"""
+	Width of vehicle in mm, including mirrors
+	"""
+	full_width: Int
+	"""
+	Height (average height for adjustable suspensions) in mm
+	"""
+	height: Int
+	"""
+	Indicates if length/width/height fields are estimations
+	"""
+	size_is_estimated: Boolean
+	"""
+	Wheelbase in mm
+	"""
+	wheelbase: Int
+	"""
+	Indicates if wheelbase field is estimated
+	"""
+	wheelbase_is_estimated: Boolean
+	"""
+	Weight (unladen EU) in kg
+	"""
+	weight: Int
+	"""
+	Indicates if weight field is estimated
+	"""
+	weight_is_estimated: Boolean
+	"""
+	Maximum payload allowed for vehicle in kg
+	"""
+	weight_max_payload: Int
+	"""
+	Gross Vehicle Weight (GVWR) - (max allowed vehicle weight with payload) in kg
+	"""
+	max_gross_vehicle_weight: Int
+	"""
+	Standard luggage capacity in l
+	"""
+	boot_capacity: Int
+	"""
+	Storage capacity of front trunk/under the hood (frunk)
+	"""
+	boot_front_capacity: Int
+	"""
+	Maximum luggage capacity in l
+	"""
+	boot_capacity_max: Int
+	"""
+	Indicates if a tow hitch/towbar can be fitted according to vehicle homologation
+	"""
+	tow_hitch_compatible: Boolean
+	"""
+	Maximum unbraked towing weight in kg
+	"""
+	tow_weight_unbraked: Int
+	"""
+	Maximum braked towing weight in kg
+	"""
+	tow_weight_braked: Int
+	"""
+	Indicates if tow weight fields are estimations
+	"""
+	tow_weight_is_estimated: Boolean
+	"""
+	Maximum vertical load / noseweight on tow hitch according to vehicle homologation
+	"""
+	tow_weight_vertical_load: Int
+	"""
+	Maximum load on roof of car in kg
+	"""
+	roof_load_max: Int
+	"""
+	Body type, listed in local naming convention where applicable
+	"""
+	body_type: String
+	"""
+	Segment, listed in local naming convention where applicable
+	"""
+	segment: String
+	"""
+	Number of seats
+	"""
+	seats: Int
+	"""
+	Indicates whether a car has roof rails as a standard
+	"""
+	has_roofrails: Boolean
+	"""
+	Turning circle of vehicle kerb-to-kerb
+	"""
+	turning_circle: Float
+	"""
+	Name of vehicle platform used for vehicle (often abbreviated to indicate group platforms)
+	"""
+	vehicle_platform: String
+	"""
+	Indicates if the vehicle platform used for vehicle is a dedicated battery electric vehicle platform
+	"""
+	vehicle_platform_is_dedicated: Boolean
+	"""
+	Indicates whether a car has roof rails as a standard
+	"""
+	rooftrails: Boolean
+}
+type Connector1CarPremiumCharge {
+	"""
+	Location of charge port
+	"""
+	plug: Connector1CarPremiumChargePlug
+	"""
+	Location of second charge port
+	"""
+	second_plug: Connector1CarPremiumChargeSecondPlug
+	"""
+	The car standard charge
+	"""
+	standard: Connector1CarPremiumChargeStandardOBC
+	"""
+	The car alternative charge
+	"""
+	alternative: Connector1CarPremiumChargeAlternativeOBC
+	"""
+	The car option charge
+	"""
+	option: Connector1CarPremiumChargeOptionOBC
+}
+type Connector1CarPremiumChargeAlternativeOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC)
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC)
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC)
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC)
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC)
+	"""
+	charge_speed: Int
+	"""
+	Charging details for the standard OBC at several charging points
+	"""
+	table: [Connector1CarPremiumChargeOBCTable]
+}
+type Connector1CarPremiumChargeOBCTable {
+	"""
+	Voltage between phase and neutral for this EVSE (phase voltage)
+	"""
+	evse_phase_voltage: Int
+	"""
+	Current per phase for this EVSE (phase current)
+	"""
+	evse_phase_amperage: Int
+	"""
+	Number of phases for this EVSE
+	"""
+	evse_phases: Int
+	"""
+	Voltage between phase and neutral used by standard OBC (phase voltage)
+	"""
+	charge_phase_voltage: Int
+	"""
+	Current per phase used by standard OBC (phase current)
+	"""
+	charge_phase_amperage: Float
+	"""
+	Number of phases used by standard OBC
+	"""
+	charge_phases: Int
+	"""
+	Power used by standard OBC (before OBC losses)
+	"""
+	charge_power: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC with this EVSE)
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC with this EVSE)
+	"""
+	charge_speed: Int
+}
+type Connector1CarPremiumChargeOptionOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC)
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC)
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC)
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC)
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC)
+	"""
+	charge_speed: Int
+	"""
+	Charging details for the standard OBC at several charging points
+	"""
+	table: [Connector1CarPremiumChargeOBCTable]
+}
+type Connector1CarPremiumChargePlug {
+	"""
+	Type of charge port on vehicle
+	"""
+	value: Connector1ConnectorType
+	"""
+	Indicates if value is an estimate
+	"""
+	is_estimated: Boolean
+	"""
+	Location of charge port
+	"""
+	location: String
+}
+type Connector1CarPremiumChargePower {
+	"""
+	Maximum value
+	"""
+	max: Float
+	"""
+	Average value
+	"""
+	average: Float
+}
+type Connector1CarPremiumChargeSecondPlug {
+	"""
+	Location of charge port
+	"""
+	location: String
+	"""
+	Indicates if second charge port is optional
+	"""
+	is_optional: Boolean
+}
+type Connector1CarPremiumChargeStandardOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC)
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC)
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC)
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC)
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC)
+	"""
+	charge_speed: Int
+	"""
+	Indicates if Charge_Standard fields are estimated
+	"""
+	is_estimated: Boolean
+	"""
+	Charging details for the standard OBC at several charging points
+	"""
+	table: [Connector1CarPremiumChargeOBCTable]
+}
+type Connector1CarPremiumDrivetrain {
+	"""
+	Type of drivetrain
+	"""
+	type: Connector1CarDrivetrain
+	"""
+	Fuel type
+	"""
+	fuel: Connector1CarFuel
+	"""
+	Propulsion type
+	"""
+	propulsion: Connector1CarPropulsion
+	"""
+	Indicates if propulsion field is estimated
+	"""
+	propulsion_is_estimated: Boolean
+	"""
+	Maximum (combined) power output in kw
+	"""
+	power: Int
+	"""
+	Indicates if power field is estimated
+	"""
+	power_is_estimated: Boolean
+	"""
+	Maximum (combined) power output in horsepower (PS)
+	"""
+	power_hp: Int
+	"""
+	Maximum (combined) torque output in newton meter
+	"""
+	torque: Int
+	"""
+	Indicates if torque field is estimated
+	"""
+	torque_is_estimated: Boolean
+}
+type Connector1CarPremiumEfficiency {
+	"""
+	Rated efficiency in WLTP combined cycle
+	"""
+	wltp: Connector1CarPremiumEfficiencyWLTP
+	"""
+	Rated efficiency in WLTP combined cycle (TEH / least efficient trim)
+	"""
+	wltp_teh: Connector1CarPremiumEfficiencyWLTPTEH
+	"""
+	Rated efficiency in NEDC combined cycle
+	"""
+	nedc: Connector1CarPremiumEfficiencyNEDC
+	"""
+	Car efficiency based on RealRange
+	"""
+	real: Connector1CarPremiumEfficiencyReal
+}
+type Connector1CarPremiumEfficiencyNEDC {
+	"""
+	Rated efficiency in NEDC combined cycle in kWh/100 km
+	"""
+	value: Float
+	"""
+	Rated efficiency in NEDC combined cycle presented in gas equivalent, in l/100 km
+	"""
+	fuel_equivalent: Float
+	"""
+	Rated vehicle efficiency in NEDC combined cycle (based on value) in kWh/100 km
+	"""
+	vehicle: Float
+	"""
+	Rated vehicle efficiency in NEDC combined cycle presented in gas equivalent in l/100 km
+	"""
+	vehicle_fuel_equivalent: Float
+	"""
+	Rated CO2 emissions in NEDC combined cycle in battery-only mode (NULL if not NEDC rated) in gr/km
+	"""
+	co2: Int
+}
+type Connector1CarPremiumEfficiencyReal {
+	"""
+	Car efficiency based on RealRange (useable battery/range) in kWh/100 km
+	"""
+	value: Float
+	"""
+	Car efficiency based on RealRange presented in gas equivalent, in l/100 km
+	"""
+	fuel_equivalent: Float
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: Connector1CarPremiumEfficiencyRealValue
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: Connector1CarPremiumEfficiencyRealValue
+}
+type Connector1CarPremiumEfficiencyRealValue {
+	"""
+	Estimated value on highway or express roads
+	"""
+	highway: Float
+	"""
+	Estimated value on city roads
+	"""
+	city: Float
+	"""
+	Estimated combined value
+	"""
+	combined: Float
+}
+type Connector1CarPremiumEfficiencyWLTP {
+	"""
+	Rated efficiency in WLTP combined cycle in kWh/100 km
+	"""
+	value: Float
+	"""
+	Rated efficiency in WLTP combined cycle presented in gas equivalent, in l/100 km
+	"""
+	fuel_equivalent: Float
+	"""
+	Rated vehicle efficiency in WLTP combined cycle (based on value) in kWh/100 km
+	"""
+	vehicle: Float
+	"""
+	Rated vehicle efficiency in WLTP combined cycle presented in gas equivalent, in l/100 km
+	"""
+	vehicle_fuel_equivalent: Float
+	"""
+	Rated CO2 emissions in WLTP combined cycle in battery-only mode (NULL if not WLTP rated) in gr/km
+	"""
+	co2: Int
+}
+type Connector1CarPremiumEfficiencyWLTPTEH {
+	"""
+	Rated efficiency in WLTP TEH combined cycle (TEH/least efficient trim)
+	"""
+	value: Float
+	"""
+	Rated efficiency in WLTP TEH combined cycle presented in gas equivalent, in l/100 km
+	"""
+	fuel_equivalent: Float
+	"""
+	Rated vehicle efficiency in WLTP TEH combined cycle (based on value) in kWh/100 km
+	"""
+	vehicle: Float
+	"""
+	Rated vehicle efficiency in WLTP TEH combined cycle presented in gas equivalent, in l/100 km
+	"""
+	vehicle_fuel_equivalent: Float
+	"""
+	Rated CO2 emissions in WLTP TEH combined cycle in battery-only mode (NULL if not WLTP TEH rated) in gr/km
+	"""
+	co2: Int
+}
+type Connector1CarPremiumFastCharge {
+	"""
+	Location of charge port
+	"""
+	plug: Connector1CarPremiumChargePlug
+	"""
+	Power during fast charging from 10% to 80% SoC (optimal conditions, fastest charger)
+	"""
+	power: Connector1CarPremiumChargePower
+	"""
+	Minutes needed to charge from 10% to 80%, with average charging power (optimal conditions, fastest charger)
+	"""
+	charge_time: Float
+	"""
+	Charging speed during fast charging from 10% to 80% (optimal conditions, fastest charger)
+	"""
+	charge_speed: Float
+	"""
+	Indicates if fast charge is optional in some markets/regions
+	"""
+	is_optional: Boolean
+	"""
+	Indicates what fields are estimated
+	"""
+	is_estimated: Boolean
+	"""
+	Charging details for fast charging
+	"""
+	table: [Connector1CarPremiumFastChargeTable]
+}
+type Connector1CarPremiumFastChargeTable {
+	"""
+	Charging details for fast charging (format: ChargerPlug-ChargerPower-AC/DC)
+	"""
+	format: String
+	"""
+	Fast charge power
+	"""
+	power: Connector1CarPremiumChargePower
+	"""
+	Minutes needed to charge from 10% to 80% (optimal conditions)
+	"""
+	charge_time: Int
+	"""
+	Charging speed during fast charging from 10% to 80% (optimal conditions)
+	"""
+	charge_speed: Int
+	"""
+	Indicates if maximum power during fast charging is limited by the vehicle
+	"""
+	is_limited: Boolean
+	"""
+	Indicates if average power during fast charging is limited by the vehicle
+	"""
+	average_is_limited: Boolean
+}
+type Connector1CarPremiumMedia {
+	"""
+	URL to detail page on EV database
+	"""
+	evdb_details_url: String
+	"""
+	Latest image
+	"""
+	image: Connector1CarImage
+	"""
+	Latest maker logo
+	"""
+	brand: Connector1CarImage
+	"""
+	All images
+	"""
+	image_list: [Connector1CarImage]
+	"""
+	Latest video
+	"""
+	video: Connector1CarVideo
+	"""
+	All videos
+	"""
+	video_list: [Connector1CarVideo]
+	"""
+	URL to detail page on EV database
+	"""
+	evdb_detail_url: String
+}
+type Connector1CarPremiumNaming {
+	"""
+	Car manufacturer name
+	"""
+	make: String
+	"""
+	Car model name
+	"""
+	model: String
+	"""
+	Version, edition or submodel of car
+	"""
+	version: String
+	"""
+	Another submodel level of car
+	"""
+	edition: String
+	"""
+	Car model version. Added by Chargetrip as an alternative for when a car manufacturer does not provide a version name, or uses the same version name across all trims or consecutive years
+	"""
+	chargetrip_version: String
+}
+type Connector1CarPremiumPerformance {
+	"""
+	Acceleration 0-100 km/h in seconds
+	"""
+	acceleration: Float
+	"""
+	Indicates if acceleration field is estimated
+	"""
+	acceleration_is_estimated: Boolean
+	"""
+	Top speed of car in km/h
+	"""
+	top_speed: Int
+	"""
+	Indicates if top_speed field is estimated
+	"""
+	top_speed_is_estimated: Boolean
+}
+type Connector1CarPremiumPrice {
+	"""
+	Starting price for German market
+	"""
+	de: Connector1CarPremiumPriceValue
+	"""
+	Starting price for Dutch market
+	"""
+	nl: Connector1CarPremiumPriceValue
+	"""
+	Starting price for British market
+	"""
+	uk: Connector1CarPremiumPriceValueWithGrant
+}
+type Connector1CarPremiumPriceValue {
+	"""
+	Starting price for local market
+	"""
+	value: Int
+	"""
+	Currency name for local market
+	"""
+	currency: String
+	"""
+	Indicates if price value is based on estimates
+	"""
+	is_estimated: Boolean
+	"""
+	Indicates if price value is based on estimates
+	"""
+	estimated: Boolean
+}
+type Connector1CarPremiumPriceValueWithGrant {
+	"""
+	Starting price for local market
+	"""
+	value: Int
+	"""
+	Currency name for local market
+	"""
+	currency: String
+	"""
+	Indicates if price value is based on estimates
+	"""
+	is_estimated: Boolean
+	"""
+	Grant is applied to value
+	"""
+	grant_applied: Int
+	"""
+	Indicates if price value is based on estimates
+	"""
+	estimated: Boolean
+}
+type Connector1CarPremiumRange {
+	"""
+	Rated range in WLTP combined cycle (NULL if not WLTP rated) in km
+	"""
+	wltp: Int
+	"""
+	Indicates if WLTP range is estimated (NULL if not WLTP rated)
+	"""
+	wltp_is_estimated: Boolean
+	"""
+	Rated range in WLTP (TEH/least efficient trim) combined cycle (NULL if not WLTP rated)
+	"""
+	wltp_teh: Int
+	"""
+	Rated range in NEDC combined cycle (NULL if not NEDC rated) in km
+	"""
+	nedc: Int
+	"""
+	Indicates if NEDC range is estimated (NULL if not NEDC rated)
+	"""
+	nedc_is_estimated: Boolean
+	"""
+	Index range in EV Database RealRange model in km
+	"""
+	real: Int
+	"""
+	Indicates if real is estimated
+	"""
+	real_is_estimated: Boolean
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: Connector1CarPremiumRangeValue
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: Connector1CarPremiumRangeValue
+	"""
+	Is an index value of what we consider to be the real-world range. (Comparable to Range_Real from EV Database.) It is essentially a normalized range to display on the front-end.
+	"""
+	chargetrip_range: Connector1ChargetripRange
+}
+type Connector1CarPremiumRangeValue {
+	"""
+	Estimated value on highway or express roads
+	"""
+	highway: Int
+	"""
+	Estimated value on city roads
+	"""
+	city: Int
+	"""
+	Estimated combined value
+	"""
+	combined: Int
+}
+type Connector1CarPremiumRouting {
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fast_charging_support: Boolean
+	"""
+	Drag coefficient
+	"""
+	drag_coefficient: Float
+	"""
+	Tire pressure recommended by manufacturer
+	"""
+	tire_pressure: Float
+	"""
+	Extra consumption model
+	"""
+	consumption: Connector1CarPremiumRoutingConsumption
+	"""
+	Amount of petrol that an equivalent petrol car would consume in l/100 km
+	"""
+	petrol_consumption: Float
+}
+type Connector1CarPremiumRoutingConsumption {
+	"""
+	Consumption, in kWh, of the auxiliaries
+	"""
+	aux: Connector1CarPremiumRoutingConsumptionValue
+	"""
+	Consumption, in kWh, of the battery management system
+	"""
+	bms: Connector1CarPremiumRoutingConsumptionValue
+	"""
+	Consumption, in kWh, of the car in idle mode
+	"""
+	idle: Connector1CarPremiumRoutingConsumptionValue
+}
+type Connector1CarPremiumRoutingConsumptionValue {
+	"""
+	Best (lowest) consumption in summer
+	"""
+	best: Float
+	"""
+	Best (lowest) consumption in winter
+	"""
+	worst: Float
+}
+type Connector1CarPremiumSafety {
+	"""
+	Number of seats equipped with ISOFIX
+	"""
+	isofix_seats: Int
+	"""
+	EuroNCAP results
+	"""
+	euro_ncap: Connector1CarPremiumSafetyEuroNcap
+}
+type Connector1CarPremiumSafetyEuroNcap {
+	"""
+	EuroNCAP rating (out of 5 stars)
+	"""
+	rating: Int
+	"""
+	EuroNCAP year of rating
+	"""
+	year: Int
+	"""
+	EuroNCAP rating of adult protection (out of 100%)
+	"""
+	adult: Int
+	"""
+	EuroNCAP rating of child protection (out of 100%)
+	"""
+	child: Int
+	"""
+	EuroNCAP rating of vulnerable road users (out of 100%)
+	"""
+	vru: Int
+	"""
+	EuroNCAP rating of safety assists (out of 100%)
+	"""
+	sa: Int
+}
+"""
+Propulsion
+"""
+enum Connector1CarPropulsion {
+	AWD
+	FRONT
+	REAR
+}
+type Connector1CarRange {
+	"""
+	Index range in EV Database RealRange model in km
+	"""
+	real: Int
+	"""
+	Indicates if real is estimated
+	"""
+	real_is_estimated: Boolean
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: Connector1CarRangeValue
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: Connector1CarRangeValue
+	"""
+	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
+	"""
+	chargetrip_range: Connector1ChargetripRange
+	wltp: Float
+}
+type Connector1CarRangeValue {
+	"""
+	Estimated value on the highway or express roads
+	"""
+	highway: Int
+	"""
+	Estimated value on the cities road
+	"""
+	city: Int
+	"""
+	Estimated combined value
+	"""
+	combined: Int
+}
+type Connector1CarRouting {
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fast_charging_support: Boolean
+}
+"""
+Status of a car
+"""
+enum Connector1CarStatus {
+	NEW
+	REVIEW
+	PUBLIC
+	REMOVED
+}
+type Connector1CarVideo {
+	"""
+	Video id
+	"""
+	id: ID
+	"""
+	Full path URL of a video
+	"""
+	url: String
+}
+"""
+Charging mode used at charging stations
+"""
+enum Connector1ChargeMode {
+	OPTIMIZE_TRAVEL_TIME
+	ALWAYS_TO_MAX_CHARGE
+}
+input Connector1ChargeSpeedInput {
+	"""
+	Value of the charge speed of the battery
+	"""
+	value: Float!
+	"""
+	Type of the charge speed of the battery
+	"""
+	type: Connector1ChargeSpeedUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+enum Connector1ChargeSpeedUnit {
+	KILOWATT_HOUR
+	KILOMETERS_PER_HOUR
+	MILES_PER_HOUR
+}
+input Connector1ChargeTotalInput {
+	"""
+	Value of the temperature of the battery
+	"""
+	value: Float!
+	"""
+	Type of total charge amount
+	"""
+	type: Connector1StateOfChargeUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+"""
+A groupped representation of EVSEs
+"""
+type Connector1Charger {
+	"""
+	Type of charger
+	"""
+	standard: Connector1ConnectorType
+	"""
+	Power of a charger
+	"""
+	power: Float
+	"""
+	Price of a charger
+	"""
+	price: String
+	"""
+	Charging speed
+	"""
+	speed: Connector1StationSpeedType
+	"""
+	Statuses of all the EVSEs grouped in a charger
+	"""
+	status: Connector1ChargerStatuses
+	"""
+	Total number of EVSEs grouped in a charger
+	"""
+	total: Int
+}
+enum Connector1ChargerStatus {
+	FREE
+	BUSY
+	UNKNOWN
+	ERROR
+}
+"""
+Groupping by status of the chargers
+"""
+type Connector1ChargerStatuses {
+	"""
+	How many are free
+	"""
+	free: Int
+	"""
+	How many are busy
+	"""
+	busy: Int
+	"""
+	How many are unknown
+	"""
+	unknown: Int
+	"""
+	How many are not available
+	"""
+	error: Int
+}
+"""
+Chargetrip's custom real-world range provides a carefully calculated display range for all electric vehicle models based on our own research and driving data.
+CT range is based on the theoretical distance driven using only the electric engine.
+Vehicles that do not have a full electric drivetrain type ( all except Battery Electric Vehicles / BEV) therefore return relatively small ranges
+"""
+type Connector1ChargetripRange {
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst(unit: Connector1DistanceUnit): Float
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best(unit: Connector1DistanceUnit): Float
+}
+type Connector1ChargingBehaviour {
+	"""
+	Charging behaviour of users divided in groups, based on real-time information
+	"""
+	code: Connector1ChargingBehaviourCode
+	"""
+	Description of charging behaviour
+	"""
+	description: String
+}
+enum Connector1ChargingBehaviourCode {
+	URBAN_CHARGING
+	FAST_CHARGING
+	MIXED_CHARGING
+	NOISE_CHARGING
+	OVERNIGHT_CHARGING
+	OFFICE_CHARGING
+}
+type Connector1Connect {
+	"""
+	List of connectivity providers to which the vehicle can connect. This field returns null for free users. Please contact customer success for more information.
+	"""
+	providers: [Connector1ConnectProvider!]
+}
+type Connector1ConnectBattery {
+	"""
+	Estimated range by OEM
+	"""
+	range: Float
+	"""
+	Percentage of the battery remaining
+	"""
+	percentage: Float
+	"""
+	Capacity of the battery, in kwh
+	"""
+	capacity: Float
+	"""
+	Date when the battery data was retrieved, as ISO-8601 date
+	"""
+	date: Connector1DateTime
+}
+type Connector1ConnectCharge {
+	"""
+	Vehicle is plugged in
+	"""
+	is_plugged_in: Boolean
+	"""
+	Vehicle is charging
+	"""
+	is_charging: Boolean
+	"""
+	Battery is fully charged
+	"""
+	is_fully_charged: Boolean
+	"""
+	Charge limit defined by vehicle owner
+	"""
+	limit: Int
+	"""
+	Charge speed, in kwh
+	"""
+	charge_speed: Float
+	"""
+	Estimation when charging is completed, as ISO-8601 date
+	"""
+	fully_charged_at: Connector1DateTime
+	"""
+	Estimated minutes till charged
+	"""
+	minutes_till_charged: Int
+	"""
+	Date when the charge data was retrieved, as ISO-8601 date
+	"""
+	date: Connector1DateTime
+}
+input Connector1ConnectFilter {
+	"""
+	List of connectivity providers to which a vehicle can connect
+	"""
+	providers: [Connector1ConnectProvider]
+}
+"""
+Location of the vehicle
+"""
+type Connector1ConnectLocation {
+	"""
+	Feature type
+	"""
+	type: Connector1FeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: Connector1GeometryPoint!
+	"""
+	Properties object containing meta data about the feature point
+	"""
+	properties: Connector1ConnectLocationProperties
+}
+"""
+Properties of a vehicle location
+"""
+type Connector1ConnectLocationProperties {
+	"""
+	Date when the location was retrieved, as ISO-8601 date
+	"""
+	date: Connector1DateTime!
+}
+type Connector1ConnectOdometer {
+	"""
+	Odometer value, distance driven, default in km
+	"""
+	distance: Float
+	"""
+	Date when the odometer data was retrieved, as ISO-8601 date
+	"""
+	date: Connector1DateTime
+}
+enum Connector1ConnectProvider {
+	ENODE
+}
+enum Connector1ConnectScope {
+	LOCATION
+	CHARGE_STATE
+	ODOMETER
+}
+type Connector1ConnectedVehicle {
+	"""
+	Unique ID of the connected vehicle
+	"""
+	id: ID!
+	"""
+	Unique ID of the vehicle
+	"""
+	vehicle_id: ID!
+	"""
+	Status of the connected vehicle
+	"""
+	status: Connector1ConnectedVehicleStatus!
+	"""
+	URL to connect the vehicle to the connectivity provider
+	"""
+	authorization_url: String
+	"""
+	Connectivity provider
+	"""
+	provider: Connector1CarConnectivityProvider!
+	"""
+	Scope for accessing the vehicle
+	"""
+	scope: [Connector1ConnectScope]
+	"""
+	Custom label for a connected vehicle that can be assigned by a user
+	"""
+	label: String
+	"""
+	Vehicle identification number, unique identifier for a vehicle
+	"""
+	vin: String
+}
+input Connector1ConnectedVehicleListFilter {
+	"""
+	Status of the connected vehicle
+	"""
+	status: [Connector1ConnectedVehicleStatus!] = "[pending_authorization, pending_removal, authorized]"
+}
+enum Connector1ConnectedVehicleStatus {
+	PENDING_AUTHORIZATION
+	AUTHORIZED
+	PENDING_REMOVAL
+	REMOVED
+}
+"""
+Connector data which extends OCPI Connector
+"""
+type Connector1Connector {
+	"""
+	Identifier of a connector within an EVSE. Two connectors may have the same ID as long as they do not belong to the same EVSE object.
+	"""
+	id: String
+	"""
+	Standard of an installed connector.
+	"""
+	standard: Connector1ConnectorType
+	"""
+	Format (socket/cable) of an installed connector.
+	"""
+	format: Connector1OCPIConnectorFormat
+	"""
+	Type of power of an installed connector. 
+	"""
+	power_type: Connector1OCPIPowerType
+	"""
+	Maximum voltage of an connector (line to neutral for AC_3_PHASE), in volt [V]. For example: DC Chargers might vary the voltage during charging when battery almost full.
+	"""
+	max_voltage: Int
+	"""
+	Maximum amperage of a connector, in ampere [A].
+	"""
+	max_amperage: Int
+	"""
+	Maximum electric power that can be delivered by a connector, in watt [W]. When the maximum electric power is lower than the calculated value from voltage and amperage, this value should be set.
+	For example: A DC Charge Point which can deliver up to 920V and up to 400A can be limited to a maximum of 150kW. Depending on the vehicle, it may supply maximum voltage or current, but not both at the same time.
+	For AC Charge Points, the amount of phases used can also have influence on the maximum power.
+	"""
+	max_electric_power: Int
+	"""
+	Maximum electric power in kW
+	"""
+	power: Float
+	"""
+	Identifiers of the currently valid charging tariffs. Multiple tariffs are possible, but only one of each Tariff.type can be active at the same time. Tariffs with the same type are only allowed, if they are not active at the same time: start_date_time and end_date_time period not overlapping.
+	When preference-based smart charging is supported, one tariff for every possible ProfileType should be provided. This tells the user about the options they have at this Connector, and what the tariff is for every option.
+	For a "free of charge" tariff, this field should be set and point to a defined "free of charge" tariff.
+	"""
+	tariff_ids: [String]
+	"""
+	URL to an operator’s terms and conditions.
+	"""
+	terms_and_conditions: String
+	"""
+	Timestamp when a connector was last updated (or created).
+	"""
+	last_updated: Connector1DateTime
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+	"""
+	List of valid charging tariffs
+	"""
+	tariff: [Connector1OCPITariff]
+	"""
+	Charging prices
+	"""
+	pricing: Connector1Pricing
+	"""
+	Custom properties of a connector. These are vendor specific and will return null values on the fields that are not supported by your station database
+	"""
+	custom_properties: Connector1ConnectorCustomProperties
+}
+"""
+Custom properties for connectors
+"""
+type Connector1ConnectorCustomProperties {
+	"""
+	Charging prices
+	"""
+	pricing: Connector1Pricing
+	"""
+	Custom connector properties for OICP databases. Station databases that not follow the OICP standard return null values
+	"""
+	oicp: Connector1OICPConnectorCustomProperties
+}
+"""
+The socket or plug standard of the charging point.
+"""
+enum Connector1ConnectorType {
+	CHADEMO
+	DOMESTIC_A
+	DOMESTIC_B
+	DOMESTIC_C
+	DOMESTIC_D
+	DOMESTIC_E
+	DOMESTIC_F
+	DOMESTIC_G
+	DOMESTIC_H
+	DOMESTIC_I
+	DOMESTIC_J
+	DOMESTIC_K
+	DOMESTIC_L
+	DOMESTIC_M
+	DOMESTIC_N
+	DOMESTIC_O
+	IEC_60309_2_SINGLE_16
+	IEC_60309_2_THREE_16
+	IEC_60309_2_THREE_32
+	IEC_60309_2_THREE_64
+	IEC_62196_T1
+	IEC_62196_T1_COMBO
+	IEC_62196_T2
+	IEC_62196_T2_COMBO
+	IEC_62196_T3A
+	IEC_62196_T3C
+	PANTOGRAPH_BOTTOM_UP
+	PANTOGRAPH_TOP_DOWN
+	TESLA_R
+	TESLA_S
+	GB_T
+	CHAOJI
+	NEMA_5_20
+	NEMA_6_30
+	NEMA_6_50
+	NEMA_10_30
+	NEMA_10_50
+	NEMA_14_30
+	NEMA_14_50
+}
+enum Connector1ConsumptionUnit {
+	KILOWATT_HOURS_PER_100_KILOMETERS
+	WATT_HOURS_PER_KILOMETER
+	KILOMETERS_PER_KILOWATT_HOUR
+	KILOWATT_HOURS_PER_100_MILES
+	WATT_HOURS_PER_MILE
+	MILES_PER_KILOWATT_HOUR
+}
+"""
+The complete contact information
+"""
+type Connector1Contact {
+	"""
+	The phone number in international format
+	"""
+	phone: String
+	"""
+	The email address
+	"""
+	email: String
+	"""
+	The absolute URL of the website
+	"""
+	website: String
+	"""
+	The absolute URL of the facebook profile page
+	"""
+	facebook: String
+	"""
+	The absolute URL of the twitter profile page
+	"""
+	twitter: String
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+}
+"""
+ISO-3166 alpha-2 country codes
+"""
+enum Connector1CountryCodeAlpha2 {
+	AD
+	AE
+	AF
+	AG
+	AI
+	AL
+	AM
+	AN
+	AO
+	AQ
+	AR
+	AS
+	AT
+	AU
+	AW
+	AX
+	AZ
+	BA
+	BB
+	BD
+	BE
+	BF
+	BG
+	BH
+	BI
+	BJ
+	BL
+	BM
+	BN
+	BO
+	BQ
+	BR
+	BS
+	BT
+	BV
+	BW
+	BY
+	BZ
+	CA
+	CC
+	CD
+	CF
+	CG
+	CH
+	CI
+	CK
+	CL
+	CM
+	CN
+	CO
+	CR
+	CS
+	CU
+	CV
+	CW
+	CX
+	CY
+	CZ
+	DE
+	DJ
+	DK
+	DM
+	DO
+	DZ
+	EC
+	EE
+	EG
+	EH
+	ER
+	ES
+	ET
+	FI
+	FJ
+	FK
+	FM
+	FO
+	FR
+	GA
+	GB
+	GD
+	GE
+	GF
+	GG
+	GH
+	GI
+	GL
+	GM
+	GN
+	GP
+	GQ
+	GR
+	GS
+	GT
+	GU
+	GW
+	GY
+	HK
+	HM
+	HN
+	HR
+	HT
+	HU
+	ID
+	IE
+	IL
+	IM
+	IN
+	IO
+	IQ
+	IR
+	IS
+	IT
+	JE
+	JM
+	JO
+	JP
+	KE
+	KG
+	KH
+	KI
+	KM
+	KN
+	KP
+	KR
+	KW
+	KY
+	KZ
+	LA
+	LB
+	LC
+	LI
+	LK
+	LR
+	LS
+	LT
+	LU
+	LV
+	LY
+	MA
+	MC
+	MD
+	ME
+	MF
+	MG
+	MH
+	MK
+	ML
+	MM
+	MN
+	MO
+	MP
+	MQ
+	MR
+	MS
+	MT
+	MU
+	MV
+	MW
+	MX
+	MY
+	MZ
+	NA
+	NC
+	NE
+	NF
+	NG
+	NI
+	NL
+	NO
+	NP
+	NR
+	NU
+	NZ
+	OM
+	PA
+	PE
+	PF
+	PG
+	PH
+	PK
+	PL
+	PM
+	PN
+	PR
+	PS
+	PT
+	PW
+	PY
+	QA
+	RE
+	RKS
+	RO
+	RS
+	RU
+	RW
+	SA
+	SB
+	SC
+	SD
+	SE
+	SG
+	SH
+	SI
+	SJ
+	SK
+	SL
+	SM
+	SN
+	SO
+	SR
+	SS
+	ST
+	SV
+	SX
+	SY
+	SZ
+	TC
+	TD
+	TF
+	TG
+	TH
+	TJ
+	TK
+	TL
+	TM
+	TN
+	TO
+	TR
+	TT
+	TV
+	TW
+	TZ
+	UA
+	UG
+	UM
+	US
+	UY
+	UZ
+	VA
+	VC
+	VE
+	VG
+	VI
+	VN
+	VU
+	WF
+	WS
+	YE
+	YT
+	ZA
+	ZM
+	ZW
+}
+input Connector1CreateConnectedVehicleInput {
+	"""
+	Id from the vehicle
+	"""
+	vehicle_id: ID!
+	"""
+	Connectivity provider used to retrieve data from the vehicle
+	"""
+	provider: Connector1CarConnectivityProvider!
+	"""
+	Label for a connected vehicle
+	"""
+	label: Connector1PlainString
+	"""
+	Provider specific options. See the developer portal for more details
+	"""
+	options: Connector1CreateConnectedVehicleOptions!
+}
+input Connector1CreateConnectedVehicleOptions {
+	"""
+	Redirect uri
+	"""
+	redirect_uri: Connector1PlainString
+	"""
+	Scope
+	"""
+	scope: [Connector1ConnectScope!]
+}
+"""
+Currency according to the ISO 4217 standard
+"""
+enum Connector1CurrencyUnit {
+	EUR
+	USD
+	GBP
+}
+"""
+The date and time scalar
+"""
+scalar Connector1DateTime
+enum Connector1DistanceUnit {
+	METER
+	FOOT
+	KILOMETER
+	MILE
+}
+"""
+EVSE data which extends OCPI EVSE
+"""
+type Connector1EVSE {
+	"""
+	Uniquely identifies an EVSE within the CPOs platform (and suboperator platforms). For example a database ID or the actual "EVSE ID". This field can never be changed, modified or renamed. This is the 'technical' identification of the EVSE, not to be used as 'human readable' identification, use the field evse_id for that.
+	This field is named uid instead of id, because id could be confused with evse_id which is an eMI3 defined field.
+	"""
+	uid: String
+	"""
+	Compliant with the following specification for EVSE ID from "eMI3 standard version V1.0" (http://emi3group.com/documents-links/) "Part 2: business objects." Optional because: if an evse_id is to be re-used in the real world, the evse_id can be removed from an EVSE object if the status is set to REMOVED.
+	"""
+	evse_id: String
+	"""
+	Indicates the current status of an EVSE.
+	"""
+	status: Connector1OCPIStatus
+	"""
+	Indicates a planned status update of a nEVSE.
+	"""
+	status_schedule: [Connector1OCPIStatusSchedule]
+	"""
+	List of functionalities that an EVSE is capable of.
+	"""
+	capabilities: [Connector1OCPICapability]
+	"""
+	List of available connectors on an EVSE.
+	"""
+	connectors: [Connector1Connector]
+	"""
+	Level on which a Charge Point is located (in garage buildings) in the locally displayed numbering scheme.
+	"""
+	floor_level: String
+	"""
+	Coordinates of a EVSE.
+	"""
+	coordinates: Connector1OCPIGeoLocation
+	"""
+	A number/string printed on the outside of an EVSE for visual identification.
+	"""
+	physical_reference: String
+	"""
+	Restrictions that apply to a parking spot.
+	"""
+	parking_restrictions: [Connector1OCPIParkingRestriction]
+	"""
+	Links to images related to an EVSE such as photos or logos.
+	"""
+	images: [Connector1OCPIImage]
+	"""
+	Timestamp when this EVSE or one of its Connectors was last updated (or created).
+	"""
+	last_updated: Connector1DateTime
+	"""
+	Indicates if parking is free or paid.
+	"""
+	parking_cost: Connector1ParkingCost
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+	"""
+	Custom properties of an EVSE
+	"""
+	custom_properties: Connector1EvseCustomProperties
+}
+input Connector1ElevationInput {
+	"""
+	Value of the elevation
+	"""
+	value: Float!
+	"""
+	Type of the value of elevation
+	"""
+	type: Connector1DistanceUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+enum Connector1ElevationUnit {
+	METER
+	FOOT
+}
+"""
+Email address scalar, email regex with HTML sanitization
+"""
+scalar Connector1Email
+enum Connector1EmissionRateUnit {
+	GRAMS_PER_KILOMETER
+	OUNCES_PER_MILE
+}
+enum Connector1EmissionUnit {
+	GRAM
+	OUNCE
+}
+"""
+Custom EVSE properties for OICP databases such as the global Hubject database. Station databases that not follow the OICP standard return null values
+"""
+type Connector1EvseCustomProperties {
+	"""
+	OICP standard custom properties
+	"""
+	oicp: Connector1OICPEvseCustomProperties
+}
+"""
+A GeoJSON Feature<LineString>
+"""
+type Connector1FeatureLineString {
+	"""
+	Feature type
+	"""
+	type: Connector1FeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: Connector1LineString!
+}
+"""
+A GeoJSON Feature<MultiPolygon>
+"""
+type Connector1FeatureMultiPolygon {
+	"""
+	Feature type
+	"""
+	type: Connector1FeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: Connector1MultiPolygon!
+	"""
+	Properties of the MultiPolygon Feature
+	"""
+	properties: Connector1PolygonProperties
+}
+"""
+A GeoJSON Feature<Point>
+"""
+type Connector1FeatureMultiPolygonPoint {
+	"""
+	Feature type
+	"""
+	type: Connector1FeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: Connector1Point!
+	"""
+	Optional object where you can store custom data you need in your application.
+	"""
+	properties: Connector1JSON
+}
+"""
+A GeoJSON Feature<Point>
+"""
+type Connector1FeaturePoint {
+	"""
+	Feature ID
+	"""
+	id: String
+	"""
+	Feature type
+	"""
+	type: Connector1FeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: Connector1Point!
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+}
+"""
+A GeoJSON Feature<Point> input
+"""
+input Connector1FeaturePointInput {
+	"""
+	The feature ID
+	"""
+	id: String
+	"""
+	Feature type
+	"""
+	type: Connector1FeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: Connector1PointInput!
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+}
+"""
+A GeoJSON Feature<Point> input
+"""
+input Connector1FeaturePointPolygonInput {
+	"""
+	Feature type
+	"""
+	type: Connector1FeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: Connector1PointInput!
+	"""
+	Optional object where you can store custom data you need in your application.
+	"""
+	properties: Connector1FeaturePointPolygonPropertiesInput
+}
+"""
+Properties for Feature<Point> input
+"""
+type Connector1FeaturePointPolygonProperties {
+	"""
+	Name of the location
+	"""
+	name: String
+}
+"""
+Properties for Feature<Point> input
+"""
+input Connector1FeaturePointPolygonPropertiesInput {
+	"""
+	Name of the location
+	"""
+	name: String
+}
+"""
+GeoJSON Feature type
+"""
+enum Connector1FeatureType {
+	FEATURE
+}
+enum Connector1FuelConsumptionUnit {
+	LITERS_PER_100_KILOMETERS
+	MILES_PER_GALLON
+}
+"""
+Geometry point with GPS coordinates
+"""
+type Connector1GeometryPoint {
+	type: Connector1PointType!
+	coordinates: [Float!]!
+}
+"""
+Navigation service providers available
+"""
+enum Connector1InstructionsFormat {
+	CHARGETRIP
+	MAPBOX_V5
+}
+type Connector1Isoline {
+	"""
+	Isoline id
+	"""
+	id: ID!
+	"""
+	Isoline status
+	"""
+	status: Connector1IsolineStatus!
+	"""
+	Shape of the isoline consisting in a list of multipolygons
+	"""
+	polygons: [Connector1FeatureMultiPolygon]
+	"""
+	List of the ferries uniting islands formed by the isoline
+	"""
+	ferries: [Connector1FeatureLineString]
+	"""
+	Origin point of the request
+	"""
+	origin: Connector1FeatureMultiPolygonPoint!
+	"""
+	Vehicle id
+	"""
+	vehicle_id: ID!
+	"""
+	Number of Isolines to be generated representing SoC (default: 1, maximum: 20)
+	"""
+	polygon_count: Int
+	"""
+	Season to be taken into account when generating the isoline. Default: current
+	"""
+	season: Connector1RouteSeason
+}
+enum Connector1IsolineFerryConnectionsType {
+	NONE
+	SINGLE
+}
+input Connector1IsolineInput {
+	"""
+	Vehicle id
+	"""
+	vehicle_id: ID!
+	"""
+	Origin point of the request
+	"""
+	origin: Connector1FeaturePointPolygonInput!
+	"""
+	Numbers of polygons to be generated (default: 1, maximum: 20)
+	"""
+	polygon_count: Int = "1"
+	"""
+	Vehicle should be able to return to the origin point from any point
+	"""
+	round_trip: Boolean = "false"
+	"""
+	Climate is on
+	"""
+	climate_control: Boolean = "true"
+	"""
+	Season to be taken into account when generating the isoline
+	"""
+	season: Connector1RouteSeason = "current"
+	"""
+	Polygons precision quality
+	"""
+	quality: Connector1IsolineQuality = "high"
+	"""
+	Include ferry connections. Single and multiple ferry connections increase the calculation time and the number of polygons.
+	"""
+	ferry_connections: Connector1IsolineFerryConnectionsType = "none"
+}
+"""
+Granularity of the isoline
+"""
+enum Connector1IsolineQuality {
+	HIGH
+	LOW
+}
+"""
+Status of the isoline label
+"""
+enum Connector1IsolineStatus {
+	DONE
+	PENDING
+	ERROR
+}
+"""
+Any JSON object
+"""
+scalar Connector1JSON
+"""
+Types of a leg
+"""
+enum Connector1LegType {
+	STATION
+	STATION_VIA
+	STATION_AMENITY
+	VIA
+	FINAL
+	STATION_FINAL
+}
+"""
+A GeoJSON LineString
+"""
+type Connector1LineString {
+	"""
+	LineString type
+	"""
+	type: Connector1LineStringType!
+	"""
+	List of coordinates arrays with longitude as first value and latitude as second one
+	"""
+	coordinates: [[Float!]]!
+}
+"""
+GeoJSON LineString type
+"""
+enum Connector1LineStringType {
+	LINE_STRING
+}
+"""
+Preferred language for the mapping
+"""
+enum Connector1MappingLanguage {
+	EN
+}
+"""
+Navigation service providers available
+"""
+enum Connector1MappingProvider {
+	CHARGETRIP
+	MAPBOX_V5
+}
+enum Connector1MeasurementUnit {
+	MILLIMETER
+	INCH
+}
+"""
+A GeoJSON Polygon
+"""
+type Connector1MultiPolygon {
+	"""
+	MultiPolygon type
+	"""
+	type: Connector1MultiPolygonType!
+	"""
+	List of coordinates representing a polygon
+	"""
+	coordinates: [[[[Float!]]]]!
+}
+"""
+GeoJSON MultiPolygon type
+"""
+enum Connector1MultiPolygonType {
+	MULTI_POLYGON
+}
+type Connector1Mutation {
+	"""
+	[BETA] Create a connected vehicle for a given vehicle id and a connectivity provider
+	"""
+	createConnectedVehicle(input: Connector1CreateConnectedVehicleInput): Connector1ConnectedVehicle
+	"""
+	[BETA] Authorize a connected vehicle
+	"""
+	authorizeConnectedVehicle(input: Connector1AuthorizeConnectedVehicleInput): Connector1ConnectedVehicle
+	"""
+	[BETA] Update a connected vehicle
+	"""
+	updateConnectedVehicle(input: Connector1UpdateConnectedVehicleInput!): Connector1ConnectedVehicle
+	"""
+	[BETA] Remove a connected vehicle and revoke access
+	"""
+	removeConnectedVehicle(input: Connector1RemoveConnectedVehicleInput!): Connector1ConnectedVehicle
+	"""
+	[BETA] Generate a set of consumption based Isolines
+	"""
+	createIsoline(input: Connector1IsolineInput!): ID
+	"""
+	[BETA] Start a new navigation session on top of an existing route
+	"""
+	startNavigation(input: Connector1NavigationStartInput!): ID
+	"""
+	[BETA] Update the navigation session
+	"""
+	updateNavigation(input: Connector1NavigationUpdateInput!): Connector1Acknowledgement
+	"""
+	[BETA] Recalculate the current navigation route
+	"""
+	recalculateNavigation(input: Connector1NavigationRecalculateInput!): Connector1Acknowledgement
+	"""
+	[BETA] End a navigation session
+	"""
+	finishNavigation(input: Connector1NavigationFinishInput!): Connector1Acknowledgement
+	"""
+	Add a new review.
+	If the `x-token` header is send for a valid user, the review will belong to it, otherwise will be added for an anonymouse user
+	"""
+	addReview(review: Connector1ReviewAdd!): Connector1Review!
+	"""
+	Remove a review added by an authenticated user.
+	The `x-token` header is mandatory in order to authorize the user who wants to remove a review.
+	In case it is not sent, an error will occur.
+	In case the review was not found or belongs to another user an error will occur.
+	This is a premium feature, contact Chargetrip for more information.
+	"""
+	deleteUserReview(id: ID!): Connector1Review!
+	"""
+	Create a new route from the route input and its ID
+	"""
+	newRoute(input: Connector1RequestInput): ID
+}
+"""
+The navigation session data
+"""
+type Connector1Navigation {
+	"""
+	ID of the navigation session
+	"""
+	id: ID!
+	"""
+	The current route used for navigation
+	"""
+	route_id: ID!
+	"""
+	The current route alternative used for navigation
+	"""
+	route_alternative_id: ID!
+	"""
+	The state of a navigation session. The status can be driving, charging, finished, or error
+	"""
+	state: Connector1NavigationState!
+	"""
+	State of charge at the last known location
+	"""
+	state_of_charge(unit: Connector1StateOfChargeUnit = "kilowatt_hour"): Float!
+	"""
+	Last known location
+	"""
+	last_known_location: Connector1Point!
+	"""
+	Next charging station
+	"""
+	next_station: Connector1NavigationStation
+	"""
+	A set of alternative charging stations to next station
+	"""
+	alternative_stations: [Connector1NavigationStation!]!
+	"""
+	Navigation instructions
+	"""
+	instructions: Connector1JSON
+}
+"""
+Input for the navigation recalculate
+"""
+input Connector1NavigationFinishInput {
+	"""
+	ID of the navigation session
+	"""
+	id: ID!
+	"""
+	Current coordinates
+	"""
+	current_location: Connector1PointInput!
+}
+input Connector1NavigationInstructionsInput {
+	"""
+	Turn by turn instructions format for a route
+	"""
+	instructions_format: Connector1InstructionsFormat!
+	"""
+	Preferred navigation instructions language. Default: en
+	"""
+	language: Connector1MappingLanguage = "en"
+	"""
+	Number of decimals used for the Google Polyline encoding Algorithm. Allowed values are 5 or 6, the default is 5
+	"""
+	precision: Int = "5"
+}
+"""
+Input for the navigation recalculate
+"""
+input Connector1NavigationRecalculateInput {
+	"""
+	ID of the navigation session
+	"""
+	id: ID!
+	"""
+	State of charge at origin
+	"""
+	state_of_charge: Connector1StateOfChargeInput
+	"""
+	Origin location of a new route
+	"""
+	current_location: Connector1PointInput!
+	"""
+	Via points of a new route. If this field is not sent, the original via points will be used
+	"""
+	via: [Connector1FeaturePointInput!]
+	"""
+	Telemetry data input
+	"""
+	telemetry: Connector1TelemetryInput
+}
+"""
+Input for the navigation start
+"""
+input Connector1NavigationStartInput {
+	"""
+	ID of the route of the navigation session
+	"""
+	route_id: ID!
+	"""
+	ID of the route alternative of the navigation session
+	"""
+	route_alternative_id: ID
+	"""
+	Current coordinates
+	"""
+	current_location: Connector1PointInput!
+	"""
+	Instruction input format
+	"""
+	instructions: Connector1NavigationInstructionsInput!
+}
+"""
+State of navigation session
+"""
+enum Connector1NavigationState {
+	DRIVING
+	CHARGING
+	FINISHED
+	ERROR
+}
+"""
+Navigation session station type
+"""
+type Connector1NavigationStation {
+	"""
+	The ID as string of the charging station
+	"""
+	station_id: ID!
+	"""
+	GPS location of the charging station
+	"""
+	station_location: Connector1Point!
+	"""
+	An array with all GPS locations of via points until the next charging station
+	"""
+	via: [Connector1Point!]!
+	"""
+	Estimated state of charge, at arrival on the next charging station
+	"""
+	estimated_state_of_charge(unit: Connector1StateOfChargeUnit = "kilowatt_hour"): Float!
+	"""
+	Estimated consumption, in kWh, from last the known location until the next charging station
+	"""
+	estimated_consumption: Float!
+	"""
+	Estimated duration, in seconds, from the last known location until the next charging station
+	"""
+	estimated_duration: Int!
+}
+"""
+Input for the navigation update
+"""
+input Connector1NavigationUpdateInput {
+	"""
+	ID of the navigation session
+	"""
+	id: ID!
+	"""
+	A list of locations that were collected since the last update
+	"""
+	location_data: [Connector1NavigationUpdateLocationsInput!]!
+	"""
+	Telemetry data input
+	"""
+	telemetry: Connector1TelemetryInput
+}
+"""
+Properties of the location
+"""
+input Connector1NavigationUpdateLocationPropertiesInput {
+	"""
+	Current route leg index corresponding to a location
+	"""
+	route_leg: Int!
+	"""
+	Speed at a location
+	"""
+	speed: Connector1VehicleSpeedInput
+	"""
+	UNIX timestamp at location, in seconds
+	"""
+	timestamp: Int!
+	"""
+	Elevation information
+	"""
+	elevation: Connector1ElevationInput
+}
+"""
+Input for the navigation update locations
+"""
+input Connector1NavigationUpdateLocationsInput {
+	"""
+	GPS location
+	"""
+	geometry: Connector1PointInput!
+	"""
+	Extra information about the location
+	"""
+	properties: Connector1NavigationUpdateLocationPropertiesInput!
+}
+"""
+The non empty string scalar
+"""
+scalar Connector1NonEmptyString
+"""
+This class defines an additional geo location that is relevant for the Charge Point. The geodetic system to be used is WGS 84.
+"""
+type Connector1OCPIAdditionalGeoLocation {
+	"""
+	Latitude of the point in decimal degree. Example: 50.770774. Decimal separator: "." Regex: -?[0-9]{1,2}\.[0-9]{5,7}
+	"""
+	latitude: String
+	"""
+	Longitude of the point in decimal degree. Example: -126.104965. Decimal separator: "." Regex: -?[0-9]{1,3}\.[0-9]{5,7}
+	"""
+	longitude: String
+	"""
+	Name of the point in local language or as written at the location. For example the street name of a parking lot entrance or it’s number.
+	"""
+	name: Connector1OCPIDisplayText
+}
+"""
+The capabilities of an EVSE.
+"""
+enum Connector1OCPICapability {
+	CHARGING_PROFILE_CAPABLE
+	CHARGING_PREFERENCES_CAPABLE
+	CHIP_CARD_SUPPORT
+	CONTACTLESS_CARD_SUPPORT
+	CREDIT_CARD_PAYABLE
+	DEBIT_CARD_PAYABLE
+	PED_TERMINAL
+	REMOTE_START_STOP_CAPABLE
+	RESERVABLE
+	RFID_READER
+	TOKEN_GROUP_CAPABLE
+	UNLOCK_CAPABLE
+	START_SESSION_CONNECTOR_REQUIRED
+}
+"""
+The format of the connector, whether it is a socket or a plug.
+"""
+enum Connector1OCPIConnectorFormat {
+	SOCKET
+	CABLE
+}
+"""
+Deprecated: Please use ConnectorType instead
+"""
+enum Connector1OCPIConnectorType {
+	CHADEMO
+	DOMESTIC_A
+	DOMESTIC_B
+	DOMESTIC_C
+	DOMESTIC_D
+	DOMESTIC_E
+	DOMESTIC_F
+	DOMESTIC_G
+	DOMESTIC_H
+	DOMESTIC_I
+	DOMESTIC_J
+	DOMESTIC_K
+	DOMESTIC_L
+	DOMESTIC_M
+	DOMESTIC_N
+	DOMESTIC_O
+	IEC_60309_2_SINGLE_16
+	IEC_60309_2_THREE_16
+	IEC_60309_2_THREE_32
+	IEC_60309_2_THREE_64
+	IEC_62196_T1
+	IEC_62196_T1_COMBO
+	IEC_62196_T2
+	IEC_62196_T2_COMBO
+	IEC_62196_T3A
+	IEC_62196_T3C
+	PANTOGRAPH_BOTTOM_UP
+	PANTOGRAPH_TOP_DOWN
+	TESLA_R
+	TESLA_S
+	GB_T
+	CHAOJI
+	NEMA_5_20
+	NEMA_6_30
+	NEMA_6_50
+	NEMA_10_30
+	NEMA_10_50
+	NEMA_14_30
+	NEMA_14_50
+}
+enum Connector1OCPIDayOfWeek {
+	MONDAY
+	TUESDAY
+	WEDNESDAY
+	THURSDAY
+	FRIDAY
+	SATURDAY
+	SUNDAY
+}
+type Connector1OCPIDisplayText {
+	"""
+	Language Code ISO 639-1
+	"""
+	language: String
+	"""
+	Text to be displayed to an end user. No markup, html etc. allowed.
+	"""
+	text: String
+}
+"""
+This type is used to specify the energy mix and environmental impact of the supplied energy at a location or in a tariff.
+"""
+type Connector1OCPIEnergyMix {
+	"""
+	True if the power is 100% from regenerative sources
+	"""
+	is_green_energy: Boolean
+	"""
+	Key-value pairs (enum + percentage) of energy sources of this location’s tariff.
+	"""
+	energy_sources: [Connector1OCPIEnergySource]
+	"""
+	Key-value pairs (enum + percentage) of nuclear waste and CO2 exhaust of this location’s tariff.
+	"""
+	environ_impact: [Connector1OCPIEnvironmentalImpact]
+	"""
+	Name of the energy supplier, delivering the energy for this location or tariff.*
+	"""
+	supplier_name: String
+	"""
+	Name of the energy suppliers product/tariff plan used at this location.*
+	"""
+	energy_product_name: String
+}
+type Connector1OCPIEnergySource {
+	"""
+	The type of energy source.
+	"""
+	source: Connector1OCPIEnergySourceCategory
+	"""
+	Percentage of this source (0-100) in the mix.
+	"""
+	percentage: Int
+}
+"""
+Categories of energy sources.
+"""
+enum Connector1OCPIEnergySourceCategory {
+	NUCLEAR
+	GENERAL_FOSSIL
+	COAL
+	GAS
+	GENERAL_GREEN
+	SOLAR
+	WIND
+	WATER
+}
+"""
+Amount of waste produced/emitted per kWh.
+"""
+type Connector1OCPIEnvironmentalImpact {
+	"""
+	The environmental impact category of this value.
+	"""
+	category: Connector1OCPIEnvironmentalImpactCategory
+	"""
+	Amount of this portion in g/kWh.
+	"""
+	amount: Float
+}
+"""
+Categories of environmental impact values.
+"""
+enum Connector1OCPIEnvironmentalImpactCategory {
+	NUCLEAR_WASTE
+	CARBON_DIOXIDE
+}
+"""
+Specifies one exceptional period for opening or access hours.
+"""
+type Connector1OCPIExceptionalPeriod {
+	"""
+	Begin of the exception. In UTC, time_zone field can be used to convert to local time.
+	"""
+	period_begin: Connector1DateTime
+	"""
+	End of the exception. In UTC, time_zone field can be used to convert to local time.
+	"""
+	period_end: Connector1DateTime
+}
+enum Connector1OCPIFacility {
+	HOTEL
+	RESTAURANT
+	CAFE
+	MALL
+	SUPERMARKET
+	SPORT
+	RECREATION_AREA
+	NATURE
+	MUSEUM
+	BIKE_SHARING
+	BUS_STOP
+	TAXI_STAND
+	TRAM_STOP
+	METRO_STATION
+	TRAIN_STATION
+	AIRPORT
+	PARKING_LOT
+	CARPOOL_PARKING
+	FUEL_STATION
+	WIFI
+}
+"""
+This class defines the geo location of the Charge Point. The geodetic system to be used is WGS 84.
+"""
+type Connector1OCPIGeoLocation {
+	"""
+	Latitude of the point in decimal degree. Example: 50.770774. Decimal separator: "." Regex: -?[0-9]{1,2}\.[0-9]{5,7}
+	"""
+	latitude: String
+	"""
+	Longitude of the point in decimal degree. Example: -126.104965. Decimal separator: "." Regex: -?[0-9]{1,3}\.[0-9]{5,7}
+	"""
+	longitude: String
+}
+"""
+Opening and access hours of the location.
+"""
+type Connector1OCPIHours {
+	"""
+	True to represent 24 hours a day and 7 days a week, except the given exceptions.
+	"""
+	twentyfourseven: Boolean
+	"""
+	Regular hours, weekday-based. Only to be used if twentyfourseven=false, then this field needs to contain at least one RegularHours object.
+	"""
+	regular_hours: [Connector1OCPIRegularHours]
+	"""
+	Exceptions for specified calendar dates, time-range based. Periods the station is operating/accessible. Additional to regular_hours. May overlap regular rules.
+	"""
+	exceptional_openings: [Connector1OCPIExceptionalPeriod]
+	"""
+	Exceptions for specified calendar dates, time-range based. Periods the station is not operating/accessible. Overwriting regular_hours and exceptional_openings. Should not overlap exceptional_openings.
+	"""
+	exceptional_closings: [Connector1OCPIExceptionalPeriod]
+}
+type Connector1OCPIImage {
+	"""
+	URL from where the image data can be fetched through a web browser.
+	"""
+	url: String
+	"""
+	URL from where a thumbnail of the image can be fetched through a webbrowser.
+	"""
+	thumbnail: String
+	"""
+	Category of an image
+	"""
+	category: Connector1OCPIImageCategory
+	"""
+	Image type: gif, jpeg, png, svg
+	"""
+	type: String
+	"""
+	Width of the full scale image
+	"""
+	width: Int
+	"""
+	Height of the full scale image
+	"""
+	height: Int
+}
+"""
+The category of an image to obtain the correct usage in a user presentation. The category has to be set accordingly to the image content in order to guarantee the right usage.
+"""
+enum Connector1OCPIImageCategory {
+	CHARGER
+	ENTRANCE
+	LOCATION
+	NETWORK
+	OPERATOR
+	OTHER
+	OWNER
+}
+"""
+This value, if provided, represents the restriction to the parking spot for different purposes.
+"""
+enum Connector1OCPIParkingRestriction {
+	EV_ONLY
+	PLUGGED
+	DISABLED
+	CUSTOMERS
+	MOTORCYCLES
+}
+"""
+Reflects the general type of the charge point’s location. May be used for user information.
+"""
+enum Connector1OCPIParkingType {
+	ALONG_MOTORWAY
+	PARKING_GARAGE
+	PARKING_LOT
+	ON_DRIVEWAY
+	ON_STREET
+	UNDERGROUND_GARAGE
+}
+enum Connector1OCPIPowerType {
+	AC_1_PHASE
+	AC_3_PHASE
+	AC_2_PHASE
+	AC_2_PHASE_SPLIT
+	DC
+}
+type Connector1OCPIPrice {
+	"""
+	Price/Cost excluding VAT.
+	"""
+	excl_vat: Float
+	"""
+	Price/Cost including VAT.
+	"""
+	incl_vat: Float
+}
+type Connector1OCPIPriceComponent {
+	"""
+	Type of tariff dimension.
+	"""
+	type: Connector1OCPITariffDimensionType
+	"""
+	Price per unit (excl. VAT) for this tariff dimension.
+	"""
+	price: Float
+	"""
+	Applicable VAT percentage for this tariff dimension. If omitted, no VAT is applicable. Not providing a VAT is different from 0% VAT, which would be a value of 0.0 here.
+	"""
+	vat: Float
+	"""
+	Minimum amount to be billed. This unit will be billed in this step_size blocks. For example: if type is TIME and step_size has a value of 300, then time will be billed in blocks of 5 minutes. If 6 minutes were used, 10 minutes (2 blocks of step_size) will be billed.
+	"""
+	step_size: Int
+}
+"""
+Regular recurring operation or access hours.
+"""
+type Connector1OCPIRegularHours {
+	"""
+	Number of days in the week, from Monday (1) till Sunday (7)
+	"""
+	weekday: Int
+	"""
+	Begin of the regular period, in local time, given in hours and minutes. Must be in 24h format with leading zeros. Example: "18:15". Hour/Minute separator: ":" Regex: ([0-1][0-9]|2[1-3]):[0-5][0-9].
+	"""
+	period_begin: String
+	"""
+	End of the regular period, in local time, syntax as for period_begin. Must be later than period_begin.
+	"""
+	period_end: String
+}
+enum Connector1OCPIReservationRestrictionType {
+	RESERVATION
+	RESERVATION_EXPIRES
+}
+"""
+The status of an EVSE.
+"""
+enum Connector1OCPIStatus {
+	AVAILABLE
+	BLOCKED
+	CHARGING
+	INOPERATIVE
+	OUTOFORDER
+	PLANNED
+	REMOVED
+	RESERVED
+	UNKNOWN
+}
+"""
+This type is used to schedule status periods in the future. The eMSP can provide this information to the EV user for trip planning purposes. A period MAY have no end. Example: "This station will be running as of tomorrow. Today it is still planned and under construction.
+"""
+type Connector1OCPIStatusSchedule {
+	"""
+	Begin of the scheduled period.
+	"""
+	period_begin: Connector1DateTime
+	"""
+	End of the scheduled period, if known.
+	"""
+	period_end: Connector1DateTime
+	"""
+	Status value during the scheduled period.
+	"""
+	status: Connector1OCPIStatus
+}
+type Connector1OCPITariff {
+	"""
+	ISO-3166 alpha-2 country code of the CPO that owns this tariff
+	"""
+	country_code: String
+	"""
+	CPO ID of the CPO that owns this tariff (following the ISO-15118 standard)
+	"""
+	party_id: String
+	"""
+	Uniquely identifies the tariff within the CPO’s platform (and suboperator platforms)
+	"""
+	id: String
+	"""
+	ISO-4217 code of the currency of this tariff.
+	"""
+	currency: String
+	"""
+	Defines the type of the tariff. This allows for distinction in case of given charging preferences. When omitted, this tariff is valid for all sessions
+	"""
+	type: Connector1OCPITariffType
+	"""
+	List of alternative tariff information texts, in multiple languages
+	"""
+	tariff_alt_text: [Connector1OCPIDisplayText]
+	"""
+	URL to a web page that contains an explanation of the tariff information in human readable form
+	"""
+	tariff_alt_url: String
+	"""
+	When this field is set, a charging session with this tariff will cost at least the amount shown. This is different from a FLAT fee (start tariff, transaction fee), as a FLAT fee is a fixed amount that must be paid for any charging session. A minimum price indicates that when the cost of a charging session is lower than this amount, the cost of the session will be equal to this amount
+	"""
+	min_price: Connector1OCPIPrice
+	"""
+	When this field is set, a charging session with this tariff will NOT cost more than this amount
+	"""
+	max_price: Connector1OCPIPrice
+	"""
+	List of tariff elements
+	"""
+	elements: [Connector1OCPITariffElement]
+	"""
+	Time when this tariff becomes active, in UTC, time_zone field of the Location can be used to convert to local time. Typically used for a new tariff that is already given with the location, before it becomes active
+	"""
+	start_date_time: Connector1DateTime
+	"""
+	Time after which this tariff is no longer valid, in UTC, time_zone field if the location can be used to convert to local time. Typically used when this tariff is going to be replaced with a different tariff in the near future
+	"""
+	end_date_time: Connector1DateTime
+	"""
+	Details about the energy supplied with this tariff
+	"""
+	energy_mix: Connector1OCPIEnergyMix
+	"""
+	Timestamp when this tariff was last updated (or created)
+	"""
+	last_updated: Connector1DateTime
+}
+enum Connector1OCPITariffDimensionType {
+	ENERGY
+	FLAT
+	PARKING_TIME
+	TIME
+}
+type Connector1OCPITariffElement {
+	"""
+	List of price components that describe the pricing of a tariff.
+	"""
+	price_components: [Connector1OCPIPriceComponent]
+	"""
+	Restrictions that describe the applicability of a tariff.
+	"""
+	restrictions: [Connector1OCPITariffRestrictions]
+}
+type Connector1OCPITariffRestrictions {
+	"""
+	Start time of day in local time, the time zone is defined in the time_zone field of the Location, for example 13:30, valid from this time of the day. Must be in 24h format with leading zeros. Hour/Minute separator: ":" Regex: ([0-1][0-9]|2[1-3]):[0-5][0-9]
+	"""
+	start_time: String
+	"""
+	End time of day in local time, the time zone is defined in the time_zone field of the Location, for example 19:45, valid until this time of the day. Same syntax as start_time.
+	"""
+	end_time: String
+	"""
+	Start date in local time, the time zone is defined in the time_zone field of the Location, for example: 2015-12-24, valid from this day. Regex: ([12][0-9]{3})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])
+	"""
+	start_date: String
+	"""
+	End date in local time, the time zone is defined in the time_zone field of the Location, for example: 2015-12-27, valid until this day (exclusive). Same syntax as start_date
+	"""
+	end_date: String
+	"""
+	Minimum consumed energy in kWh, for example 20, valid from this amount of energy being used
+	"""
+	min_kwh: Float
+	"""
+	Maximum consumed energy in kWh, for example 50, valid until this amount of energy being used
+	"""
+	max_kwh: Float
+	"""
+	Sum of the minimum current in over all phases, for example 5. When the EV is charging with more than the defined amount of current, this tariff element is/becomes active. If the charging current is or becomes lower, this tariff element is not or no longer valid and becomes inactive. This does not describe the minimum current over the entire charging session. This restriction can make a tariff element become active when the charging current is above the defined value, but the tariff element MUST no longer be active when the charging current drops below the defined value
+	"""
+	min_current: Float
+	"""
+	Sum of the maximum current in over all phases, for example 20. When the EV is charging with less than the defined amount of current, this tariff element becomes/is active. If the charging current is or becomes higher, this tariff element is not or no longer valid and becomes inactive. This describes NOT the maximum current over the entire Charging Session. This restriction can make a tariff element become active when the charging current is below this value, but the tariff element MUST  no longer be active when the charging current raises above the defined value
+	"""
+	max_current: Float
+	"""
+	Minimum power in kW, for example 5. When the EV is charging with more than the defined amount of power, this tariff element is/becomes active. If the charging power is or becomes lower, this tariff element is not or no longer valid and becomes inactive. This does not describe the minimum power over the entire charging session. This restriction can make a tariff element become active when the charging power is above this value, but the TariffElement MUST no longer be active when the charging power drops below the defined value
+	"""
+	min_power: Float
+	"""
+	Maximum power in kW, for example 20. When the EV is charging with less than the defined amount of power, this tariff element becomes/is active. If the charging power is or becomes higher, this tariff element is not or no longer valid and becomes inactive. This does not describe the maximum power over the entire charging session. This restriction can make a tariff element become active when the charging power is below this value, but the TariffElement MUST no longer be active when the charging power raises above the defined value
+	"""
+	max_power: Float
+	"""
+	Minimum duration in seconds the charging session MUST last (inclusive). When the duration of a charging session is longer than the defined value, this TariffElement is or becomes active. Before that moment, this tariff element is not yet active
+	"""
+	min_duration: Float
+	"""
+	Maximum duration in seconds the charging session MUST last (exclusive). When the duration of a charging session is shorter than the defined value, this tariff element is or becomes active. After that moment, this tariff element is no longer active
+	"""
+	max_duration: Float
+	"""
+	Which day(s) of the week this tariff element is active.
+	"""
+	day_of_week: Connector1OCPIDayOfWeek
+	"""
+	When this field is present, the tariff element describes reservation costs. A reservation starts when the reservation is made, and ends when the drivers starts charging on the reserved EVSE/Location, or when the reservation expires. A reservation can only have: FLAT and TIME TariffDimensions, where TIME is for the duration of the reservation
+	"""
+	reservation: Connector1OCPIReservationRestrictionType
+}
+enum Connector1OCPITariffType {
+	AD_HOC_PAYMENT
+	PROFILE_CHEAP
+	PROFILE_FAST
+	PROFILE_GREEN
+	REGULAR
+}
+"""
+List of charging modes that are supported
+"""
+enum Connector1OICPChargingModes {
+	MODE_1
+	MODE_2
+	MODE_3
+	MODE_4
+	CHADEMO
+}
+"""
+Custom connector properties for OICP databases. Station databases that not follow the OICP standard return null values
+"""
+type Connector1OICPConnectorCustomProperties {
+	"""
+	Returns whether the connector is able to deliver different power outputs
+	"""
+	dynamic_power_level: Boolean
+	"""
+	List of charging modes that are supported as specified by IEC 61851-1
+	"""
+	charging_modes: [Connector1OICPChargingModes!]
+}
+"""
+List of authentication modes that are supported
+"""
+enum Connector1OICPEvseAuthenticationMode {
+	NFC_RFID_CLASSIC
+	NFC_RFID_DESFIRE
+	PNC
+	REMOTE
+	DIRECT_PAYMENT
+	NO_AUTHENTICATION_REQUIRED
+}
+"""
+Custom EVSE properties for OICP databases such as the global Hubject database. Station databases that not follow the OICP standard return null values
+"""
+type Connector1OICPEvseCustomProperties {
+	"""
+	List of authentication modes that are supported
+	"""
+	authentication_modes: [Connector1OICPEvseAuthenticationMode!]!
+	"""
+	Returns a value if the EVSE has a limited capacity (e.g. built-in battery). Values are in kWh
+	"""
+	max_capacity: Int
+	"""
+	List of payment options that are supported
+	"""
+	payment_options: [Connector1OICPPaymentOptions!]!
+	"""
+	List of value added services that are supported
+	"""
+	value_added_services: [Connector1OICPValueAddedServices!]!
+	"""
+	List of additional info by locale
+	"""
+	additional_info: [Connector1OICPEvseCustomPropertiesAdditionalInfo!]
+	"""
+	When the value is set to false this station does not support remote start and stop by Hubject
+	"""
+	is_hubject_compatible: Boolean!
+	"""
+	Name of the charging point manufacturer
+	"""
+	hardware_manufacturer: String
+}
+type Connector1OICPEvseCustomPropertiesAdditionalInfo {
+	"""
+	The language in which the additional info text is provided
+	"""
+	lang: String
+	"""
+	Additional info text value
+	"""
+	value: String
+}
+"""
+List of payment options that are supported
+"""
+enum Connector1OICPPaymentOptions {
+	NO_PAYMENT
+	DIRECT
+	CONTRACT
+}
+"""
+Custom station properties for OICP databases such as the global Hubject database. Station databases that not follow the OICP standard return null values
+"""
+type Connector1OICPStationCustomProperties {
+	"""
+	Returns whether the station is a parking facility
+	"""
+	parking_facility: Boolean
+	"""
+	Returns an identifier for the precise parking spot. Eg. 36 or 12-1
+	"""
+	parking_spot: String
+	"""
+	Returns information on how the charging station provides metering law data
+	"""
+	calibration_law_data_availability: String!
+	"""
+	Identification of the corresponding clearing house in the event that roaming between different clearing houses must be processed in the future
+	"""
+	clearinghouse_id: String
+}
+"""
+List of value added services that are supported
+"""
+enum Connector1OICPValueAddedServices {
+	RESERVATION
+	DYNAMIC_PRICING
+	PARKING_SENSORS
+	MAXIMUM_POWER_CHARGING
+	PREDICTIVE_CHARGE_POINT_USAGE
+	CHARGING_PLANS
+	ROOF_PROVIDED
+	NONE
+}
+input Connector1OdometerInput {
+	"""
+	Value of the vehicle's odometer
+	"""
+	value: Float!
+	"""
+	Type of the value of the vehicle's odometer
+	"""
+	type: Connector1DistanceUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+"""
+The operator data which extends OCPI BusinessDetails
+"""
+type Connector1Operator {
+	"""
+	Unique operator ID
+	"""
+	id: ID
+	"""
+	External ID of an operator provided by the operator data source
+	"""
+	external_id: String
+	"""
+	Name of an operator
+	"""
+	name: String
+	"""
+	Link to an operator’s website
+	"""
+	website: String
+	"""
+	Image link to an operator’s logo
+	"""
+	logo: Connector1OCPIImage
+	"""
+	Deprecated: Not used anymore, please use countries property instead
+	"""
+	country: String
+	"""
+	ISO-3166 alpha-2 country codes an operator is active in.
+	"""
+	countries: [Connector1CountryCodeAlpha2!]
+	"""
+	Contact information
+	"""
+	contact: Connector1Contact
+	"""
+	Ranking level on which the operator is placed or null in case the operator is not on any ranking level
+	"""
+	ranking: Int
+	"""
+	Flag which indicates if the operator is in the excluded list
+	"""
+	excluded: Boolean
+}
+"""
+Filter which can be applied to retrieve the operator list action
+"""
+input Connector1OperatorListFilter {
+	"""
+	ISO-3166 alpha-2 country codes an operator is active in.
+	"""
+	countries: [Connector1CountryCodeAlpha2!]
+	"""
+	List of ranking level(s) to be retrieved. Valid values are 1 to 10
+	"""
+	ranking: [Int!]
+	"""
+	Only retrieve operators that are in the excluded list
+	"""
+	excluded: Boolean
+}
+"""
+Filter which can be applied to retrieve the operator list action
+"""
+input Connector1OperatorListQuery {
+	"""
+	Unique operator ID
+	"""
+	id: ID
+	"""
+	External ID of an operator provided by an operator data source
+	"""
+	external_id: String
+	"""
+	Exact name
+	"""
+	name: String
+	"""
+	Exact country code
+	"""
+	country: String
+}
+input Connector1OutsideTempInput {
+	"""
+	Value of the outside temperature
+	"""
+	value: Float!
+	"""
+	Type of the value of the outside temperature
+	"""
+	type: Connector1TemperatureUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+enum Connector1ParkingCost {
+	FREE
+	PAID
+}
+type Connector1PathSegment {
+	"""
+	Elevation (altitude) in meters
+	"""
+	elevation: Int
+	"""
+	Average speed, in km/h, for this route path segment
+	"""
+	averageSpeed: Float
+	"""
+	Consumption, in kWh, of a route path segment
+	"""
+	consumption: Float
+	"""
+	Consumption, in kWh per km, of a route path segment
+	"""
+	consumptionPerKm: Float
+	"""
+	Distance, in meters, of a route path segment
+	"""
+	distance: Float
+	"""
+	Duration, in seconds, of a route path segment
+	"""
+	duration: Float
+	"""
+	State of charge, in kWh, of a route path segment
+	"""
+	stateOfCharge: Float
+}
+"""
+The `PlainString` scalar type represents textual data, represented as UTF-8 character sequences.
+The PlainString type represents free-form human-readable text with HTML sanitization.
+"""
+scalar Connector1PlainString
+"""
+A GeoJSON Point
+"""
+type Connector1Point {
+	"""
+	Point type
+	"""
+	type: Connector1PointType!
+	"""
+	The coordinates array with longitude as first value and latitude as second one
+	"""
+	coordinates: [Float!]!
+}
+"""
+A GeoJSON Point input
+"""
+input Connector1PointInput {
+	"""
+	Point type
+	"""
+	type: Connector1PointType!
+	"""
+	Coordinates [longitude, latitude]
+	"""
+	coordinates: [Float!]!
+}
+"""
+GeoJSON Point type
+"""
+enum Connector1PointType {
+	POINT
+}
+"""
+Polygon properties
+"""
+type Connector1PolygonProperties {
+	"""
+	Index of the feature inside the list
+	"""
+	index: Int
+}
+input Connector1PowerInput {
+	"""
+	Value of the positive or negative power. When negative the vehicle is charging
+	"""
+	value: Float!
+	"""
+	Type of the value of the power
+	"""
+	type: Connector1PowerUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+"""
+The list of powers for the speed type
+"""
+type Connector1PowerList {
+	"""
+	The maximum power the plug provides in kW
+	"""
+	power: Float
+	"""
+	The total number of stations with the specified power
+	"""
+	total: Int
+}
+"""
+Power stats model
+"""
+type Connector1PowerStats {
+	"""
+	The charging speed type for the specified power
+	"""
+	type: Connector1StationSpeedType
+	"""
+	The list of powers for the speed type
+	"""
+	powers: [Connector1PowerList]
+}
+enum Connector1PowerUnit {
+	KILOWATT
+	HORSEPOWER
+}
+enum Connector1PressureUnit {
+	BAR
+	POUNDS_PER_SQUARE_INCH
+}
+"""
+The price model
+"""
+type Connector1Price {
+	"""
+	The value of the price
+	"""
+	value: String
+	"""
+	The currency of the price
+	"""
+	currency: String
+	"""
+	The pricing model
+	"""
+	model: String
+	"""
+	The value of the price which should be display by the frontend
+	"""
+	displayValue: String
+}
+type Connector1Pricing {
+	"""
+	Unique ID of a price
+	"""
+	id: String
+	"""
+	Price details
+	"""
+	price_list: [Connector1PricingList]
+}
+type Connector1PricingList {
+	"""
+	(MSP) Mobility Service Provider
+	"""
+	partner: String
+	"""
+	Product details
+	"""
+	product: Connector1PricingListProduct
+	"""
+	Price product elements
+	"""
+	elements: [Connector1PricingListElement]
+}
+type Connector1PricingListElement {
+	"""
+	Price element type.
+	"""
+	type: Connector1PricingListElementType
+	"""
+	Price of the element type without VAT.
+	"""
+	price_excl_vat: Float
+	"""
+	VAT percentage to apply
+	"""
+	vat: Float
+}
+enum Connector1PricingListElementType {
+	ENERGY
+	FLAT
+	TIME
+	PARKING_TIME
+}
+type Connector1PricingListProduct {
+	"""
+	Name of the payment card or subscription. If name is 'Adhoc price' the price is the CPO price
+	"""
+	name: String
+	"""
+	Description of the product
+	"""
+	description: String
+	"""
+	Subscription type
+	"""
+	subscription_type: String
+	"""
+	Subscription fee without VAT
+	"""
+	subscription_fee_excl_vat: Float
+	"""
+	Currency
+	"""
+	currency: String
+}
+type Connector1Query {
+	"""
+	Get a full list of amenities around a station
+	"""
+	amenityList(stationId: ID!): [Connector1Amenity]
+	"""
+	Get information about a car by its ID
+	"""
+	car(id: ID, externalId: Int): Connector1Car
+	"""
+	Car premium data provides even more information about your car: tire pressure, prices, drivetrain data, and more. Please contact us for access to premium data.
+	"""
+	carPremium(id: ID): Connector1CarPremium
+	"""
+	Get a full list of cars
+	"""
+	carList(query: Connector1CarListQuery, search: String, filter: Connector1CarListFilter, size: Int, page: Int): [Connector1CarList]
+	"""
+	[BETA] Get a connected vehicles by id
+	"""
+	connectedVehicle(id: ID!): Connector1ConnectedVehicle
+	"""
+	[BETA] Get the connected vehicles for the current user
+	"""
+	connectedVehicleList(filter: Connector1ConnectedVehicleListFilter, size: Int = "10", page: Int = "0"): [Connector1ConnectedVehicle]
+	"""
+	[BETA] Retrieve live vehicle data by connected vehicle id
+	"""
+	connectedVehicleData(id: ID!): Connector1VehicleData
+	"""
+	[BETA] Get an isoline by ID
+	"""
+	isoline(id: ID!): Connector1Isoline
+	"""
+	[BETA] Get a navigation session by ID
+	"""
+	navigation(id: ID!): Connector1Navigation
+	"""
+	Get a full list of operators
+	"""
+	operatorList(query: Connector1OperatorListQuery, search: String, filter: Connector1OperatorListFilter, size: Int, page: Int): [Connector1Operator]
+	"""
+	Get information about an operator by its ID
+	"""
+	operator(id: ID!): Connector1Operator
+	"""
+	Get all reviews of a station by the station ID
+	"""
+	reviewList(stationId: ID!, size: Int, page: Int): [Connector1Review!]
+	"""
+	Get all reviews of stations that were added by an authenticated user.
+	The `x-token` header is mandatory in order to authorize the user who wants to retrieve all the reviews added by him/her.
+	This is a premium feature, contact Chargetrip for more information.
+	"""
+	userReviewList(size: Int, page: Int): [Connector1Review!]
+	"""
+	Get a route by ID
+	"""
+	route(id: ID!): Connector1Route
+	"""
+	Retrieve information about a route path segment
+	"""
+	routePath(id: ID!, location: Connector1PointInput!, alternativeId: ID): Connector1RoutePath
+	"""
+	Get the station statistics
+	"""
+	stationStats: Connector1StationStats
+	"""
+	Get information about a station by its ID
+	"""
+	station(id: ID, evse_id: String): Connector1Station
+	"""
+	Get a full list of stations
+	"""
+	stationList(query: Connector1StationListQuery, filter: Connector1StationListFilter, search: String, size: Int, page: Int): [Connector1Station]
+	"""
+	Search for stations around a GeoJSON point with a specific distance in meters
+	"""
+	stationAround(query: Connector1StationAroundQuery, filter: Connector1StationAroundFilter, search: String, size: Int, page: Int): [Connector1Station]
+	"""
+	Get information about a tariff by the tariff ID
+	"""
+	tariff(id: ID!): Connector1OCPITariff
+	"""
+	Get the full list of tariffs
+	"""
+	tariffList(size: Int, page: Int): [Connector1OCPITariff]
+	"""
+	Deprecated: This query will be removed in favor of navigation query and subscription. Mapping can be retrieved via the instructions field.
+	"""
+	navigationMapping(id: ID!, provider: Connector1MappingProvider!, precision: Int, language: Connector1MappingLanguage): Connector1JSON
+	"""
+	[BETA] Get information about a vehicle by its ID.
+	"""
+	vehicle(id: ID!, country: Connector1CountryCodeAlpha2): Connector1Vehicle
+	"""
+	[BETA] Vehicle premium data provides even more information about your vehicle: tire pressure, prices, drivetrain data, and more. Please contact us for access to premium data.
+	"""
+	vehiclePremium(id: ID!, country: Connector1CountryCodeAlpha2): Connector1VehiclePremium
+	"""
+	[BETA] Get a full list of vehicles.
+	"""
+	vehicleList(search: String, filter: Connector1VehicleListFilter, country: Connector1CountryCodeAlpha2, size: Int = "10", page: Int = "0"): [Connector1VehicleList]
+}
+input Connector1RemoveConnectedVehicleInput {
+	"""
+	Id from the connected vehicle
+	"""
+	id: ID!
+}
+"""
+EV specific data for a route request
+"""
+type Connector1RequestEv {
+	"""
+	Internal ID of a Vehicle
+	"""
+	id: ID
+	"""
+	EV battery specific data
+	"""
+	battery: Connector1RequestEvBattery
+	"""
+	Supported plugs for an EV
+	"""
+	plugs: [Connector1RequestEvPlug]
+	"""
+	Supported adapters of plugs for an EV
+	"""
+	adapters: [Connector1RequestEvPlug]
+	"""
+	Minimum desired power of chargers
+	"""
+	minPower: Int
+	"""
+	Climate is on. The default is true
+	"""
+	climate: Boolean
+	"""
+	Cargo weight, in kg
+	"""
+	cargo: Float
+	"""
+	The number of passengers on board
+	"""
+	numberOfPassengers: Int
+	"""
+	Number of occupants
+	"""
+	occupants: Int
+	"""
+	Consumption specific to an EV or inputed by a request
+	"""
+	consumption: Connector1RequestEvConsumption
+}
+type Connector1RequestEvBattery {
+	"""
+	Usable capacity of the battery used to compute the route. If this in not filled in, value as the vehicle battery.usable_kwh
+	"""
+	capacity: Connector1RequestEvBatteryValue
+	"""
+	Usable capacity of a battery, in kWh. This value is computed from the provided capacity value
+	"""
+	capacityKwh: Float
+	"""
+	Current amount of energy in a battery. If this is not filled in, we assume the battery is full and it will be equal to the battery.usable_kwh
+	"""
+	stateOfCharge: Connector1RequestEvBatteryValue
+	"""
+	Current amount of energy in a battery, in kWh. This value is computed from the provided state of charge
+	"""
+	stateOfChargeKwh: Float
+	"""
+	Desired final amount of energy in a battery. If this is not filled in, it will be set to 20% of the vehicle battery.usable_kwh
+	"""
+	finalStateOfCharge: Connector1RequestEvBatteryValue
+	"""
+	Desired final amount of energy in a battery, in kWh. This value is computed from the provided final state of charge
+	"""
+	finalStateOfChargeKwh: Float
+}
+input Connector1RequestEvBatteryInput {
+	"""
+	Usable capacity of a battery used to compute a route. We recommend you stay between 50% and 150%. If this in not filled in, we assume it is the same value as the vehicle battery.usable_kwh
+	"""
+	capacity: Connector1RequestEvBatteryInputValue
+	"""
+	Current amount of energy in a battery. If this is not filled in, we assume the battery is full and we fill it in with vehicle battery.usable_kwh
+	"""
+	stateOfCharge: Connector1RequestEvBatteryInputValue
+	"""
+	Desired final amount of energy in a battery. The value should be between 0 and 80% of the vehicle battery.usable_kwh If this is not filled in, we assume it is 20% of the vehicle battery.usable_kwh
+	"""
+	finalStateOfCharge: Connector1RequestEvBatteryInputValue
+}
+input Connector1RequestEvBatteryInputValue {
+	"""
+	Value of a desired final amount of energy in a battery
+	"""
+	value: Float!
+	"""
+	Type of a desired final amount of energy in a battery
+	"""
+	type: Connector1BatteryInputType!
+}
+type Connector1RequestEvBatteryValue {
+	"""
+	Value of the desired final amount of energy in a battery
+	"""
+	value: Float!
+	"""
+	Type of the desired final amount of energy in a battery
+	"""
+	type: Connector1BatteryInputType!
+}
+type Connector1RequestEvConsumption {
+	"""
+	Consumption, in kWh, of the auxiliaries
+	"""
+	aux: Connector1CarConsumption
+	"""
+	The consumption, in kWh, of the battery management system
+	"""
+	bms: Connector1CarConsumption
+	"""
+	The consumption, in kWh, of the vehicle in idle mode
+	"""
+	idle: Connector1CarConsumption
+}
+input Connector1RequestEvConsumptionInput {
+	"""
+	Consumption, in kWh, of the auxiliaries
+	"""
+	aux: Connector1CarConsumptionInput
+	"""
+	Consumption, in kWh, of the battery management system
+	"""
+	bms: Connector1CarConsumptionInput
+	"""
+	Consumption, in kWh, of the vehicle in idle mode
+	"""
+	idle: Connector1CarConsumptionInput
+}
+input Connector1RequestEvInput {
+	"""
+	Internal ID of a Vehicle
+	"""
+	id: ID!
+	"""
+	The EV battery specific data
+	"""
+	battery: Connector1RequestEvBatteryInput
+	"""
+	Supported plugs of an EV
+	"""
+	plugs: [Connector1RequestEvPlugInput]
+	"""
+	Supported adapters of plugs of an EV
+	"""
+	adapters: [Connector1RequestEvPlugInput]
+	"""
+	Minimum desired power of chargers
+	"""
+	minPower: Int
+	"""
+	Flag which indicates if the climate is on. The default is true
+	"""
+	climate: Boolean
+	"""
+	Number of occupants
+	"""
+	occupants: Int
+	"""
+	Cargo weight, in kg
+	"""
+	cargo: Int
+	"""
+	Consumption specific to the EV or inputted by the request
+	"""
+	consumption: Connector1RequestEvConsumptionInput
+	"""
+	Deprecated
+	"""
+	auxConsumption: Float
+	"""
+	Deprecated
+	"""
+	bmsConsumption: Float
+}
+type Connector1RequestEvPlug {
+	"""
+	Type of the plug
+	"""
+	standard: Connector1ConnectorType
+	"""
+	Maximum charging speed for a plug
+	"""
+	chargingPower: Float
+}
+input Connector1RequestEvPlugInput {
+	"""
+	Type of a plug
+	"""
+	standard: Connector1ConnectorType!
+	"""
+	Maximum charging speed for this plug
+	"""
+	chargingPower: Float!
+}
+input Connector1RequestInput {
+	"""
+	EV specific data for a route request
+	"""
+	ev: Connector1RequestEvInput!
+	"""
+	Route request data
+	"""
+	routeRequest: Connector1RequestRouteInput!
+	"""
+	Telemetry data used to overwrite routing parameters
+	"""
+	telemetry: Connector1JSON
+}
+type Connector1RequestRoute {
+	"""
+	Requested amenities near the stations, within a 1 kilometer radius
+	"""
+	amenities: [String]
+	"""
+	Amenity preferences for a route
+	"""
+	amenity_preferences: Connector1RouteAmenityPreferences
+	"""
+	Requested operators
+	"""
+	operatorIds: [String]
+	"""
+	Preferred operators are required. In case there are no preferred operators the route cannot be calculated
+	"""
+	operatorRequired: Boolean
+	"""
+	Encourage the route to use preferred operators. In case there are no preferred operators the route can still be calculated
+	"""
+	operatorPrefer: Boolean
+	"""
+	Operator prioritization for a route
+	"""
+	operators: Connector1RouteOperators
+	"""
+	Season
+	"""
+	season: Connector1RouteSeason
+	"""
+	Percentage for the minimum limit of the battery capacity before a recharge. The value should be between 0 and 60, with a default of 10%
+	"""
+	safeRiskMargin: Int
+	"""
+	Origin of a route
+	"""
+	origin: Connector1FeaturePoint
+	"""
+	Destination of a route
+	"""
+	destination: Connector1FeaturePoint
+	"""
+	Locations where a route will stop
+	"""
+	via: [Connector1FeaturePoint]
+	"""
+	Radius in meters for alternative stations along a route (min 500 - max 5000)
+	"""
+	stationsAlongRouteRadius: Int
+	"""
+	Flag indicating wether the turn-by-turn navigation instructions should be prepared. Disclaimer: The functionality is under active development and the final API is a subject to change. Not ready for production
+	"""
+	instructions: Boolean
+	"""
+	Mode that indicates if we optimize the charging time or always charge to the maximum capacity
+	"""
+	chargeMode: Connector1ChargeMode
+}
+input Connector1RequestRouteInput {
+	"""
+	Deprecated: in favor of amenity preferences. A list of desired amenities near the stations, with a 1 kilometer radius
+	"""
+	amenities: [String]
+	"""
+	Amenity preferences for a route
+	"""
+	amenity_preferences: Connector1AmenityPreferencesInput
+	"""
+	Deprecated: in favor of operators. A list of requested operators
+	"""
+	operatorIds: [String]
+	"""
+	Deprecated: in favor of operators. Flag which indicates if the operators are required
+	"""
+	operatorRequired: Boolean
+	"""
+	Deprecated: in favor of operators. Flag which indicates if the preferred operators should be loaded
+	"""
+	operatorPrefer: Boolean
+	"""
+	Operator prioritization for a route
+	"""
+	operators: Connector1RouteOperatorsInput
+	"""
+	Optional flag to specify the season
+	"""
+	season: Connector1RouteSeason
+	"""
+	Percentage for a minimum limit of a battery capacity before a recharge. The value should be between 0 and 60, with a default of 10%
+	"""
+	safeRiskMargin: Int
+	"""
+	Mode that indicates if we optimize the charging time or always charge to the maximum capacity
+	"""
+	chargeMode: Connector1ChargeMode
+	"""
+	Origin of a route
+	"""
+	origin: Connector1FeaturePointInput!
+	"""
+	Destination of a route
+	"""
+	destination: Connector1FeaturePointInput!
+	"""
+	An optional list of locations where we should stop
+	"""
+	via: [Connector1FeaturePointInput]
+	"""
+	Alternative stations along a route within a specified radius in meters (minimum 500, maximum 5000)
+	"""
+	stationsAlongRouteRadius: Int
+	"""
+	Deprecated: all routes will have turn-by-turn instructions prepared. Boolean will be ignored
+	"""
+	instructions: Boolean
+}
+type Connector1RequestUser {
+	"""
+	ID of the user
+	"""
+	id: ID
+}
+"""
+The review model
+"""
+type Connector1Review {
+	"""
+	ID of a review
+	"""
+	id: ID!
+	"""
+	Station for which a review was provided
+	"""
+	station: Connector1Station
+	"""
+	User who added a review. If a review was added by an anonymous user, this will be null
+	"""
+	user: Connector1ReviewUser
+	"""
+	Rating of a review
+	"""
+	rating: Int
+	"""
+	Message of a review
+	"""
+	message: String
+	"""
+	Locale of a message
+	"""
+	locale: String
+	"""
+	Vehicle that was provided/selected by a user
+	"""
+	ev: Connector1Car
+	"""
+	Plug type that was provided/selected by a user
+	"""
+	plugType: Connector1ConnectorType
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+	"""
+	Boolean tags for a station review
+	"""
+	tags: Connector1ReviewTags
+	"""
+	Date and time when a review was created
+	"""
+	createdAt: String
+	"""
+	Date and time when a review was updated
+	"""
+	updatedAt: String
+}
+"""
+Form input to add a new review
+"""
+input Connector1ReviewAdd {
+	"""
+	Station ID for which a review is provided
+	"""
+	stationId: String!
+	"""
+	Rating of a review
+	"""
+	rating: Int!
+	"""
+	Review message
+	"""
+	message: String
+	"""
+	Locale of a message
+	"""
+	locale: String
+	"""
+	ID of the vehicle that was provided/selected by a user
+	"""
+	ev: String
+	"""
+	Plug type that was provided/selected by a user
+	"""
+	plugType: Connector1ConnectorType
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+	"""
+	Boolean tags for a station review
+	"""
+	tags: Connector1ReviewTagsInput
+}
+"""
+Form input for edit an existing review
+"""
+input Connector1ReviewEdit {
+	"""
+	Rating of a review
+	"""
+	rating: Int!
+	"""
+	Review message
+	"""
+	message: String
+	"""
+	Locale of a message
+	"""
+	locale: String
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+	"""
+	Boolean tags for a station review
+	"""
+	tags: Connector1ReviewTagsInput
+}
+"""
+Statistical information for reviews of a station
+"""
+type Connector1ReviewStats {
+	"""
+	Average of all reviews
+	"""
+	rating: Float
+	"""
+	'Total number of reviews
+	"""
+	count: Int
+}
+"""
+Boolean tags for the station review
+"""
+type Connector1ReviewTags {
+	"""
+	Flag which indicates if the station was working when the review was added
+	"""
+	working: Boolean
+	"""
+	Flag which indicates if the user recommended the station when the review was added
+	"""
+	recommended: Boolean
+}
+"""
+Boolean tags for a station review
+"""
+input Connector1ReviewTagsInput {
+	"""
+	Flag which indicates if a station was working when the review was added
+	"""
+	working: Boolean
+	"""
+	Flag which indicates if a user recommended a station when the review was added
+	"""
+	recommended: Boolean
+}
+"""
+Special format for the user of a review
+"""
+type Connector1ReviewUser {
+	"""
+	User full name. If a review was added by an anonymous user, this will be null
+	"""
+	name: String
+	"""
+	User ID
+	"""
+	id: ID
+	"""
+	First name
+	"""
+	firstName: String
+	"""
+	Last name
+	"""
+	lastName: String
+}
+type Connector1Route {
+	"""
+	Recommended route
+	"""
+	route: Connector1RouteAlternative
+	"""
+	Available alternatives
+	"""
+	alternatives: [Connector1RouteAlternative]
+	"""
+	EV specific data for a route request
+	"""
+	ev: Connector1RequestEv
+	"""
+	Route telemetry data
+	"""
+	telemetry: Connector1JSON
+	user: Connector1RequestUser
+	"""
+	Route request data
+	"""
+	routeRequest: Connector1RequestRoute
+	"""
+	Application who requested a route
+	"""
+	app: Connector1RouteApp
+	"""
+	Route status
+	"""
+	status: Connector1RouteStatus
+}
+type Connector1RouteAlternative {
+	"""
+	ID of a route alternative
+	"""
+	id: ID
+	"""
+	Type of alternative route
+	"""
+	type: Connector1RouteAlternativeType
+	"""
+	Number of charges along a route
+	"""
+	charges: Int
+	"""
+	Number of available charges along a route
+	"""
+	chargesAvailable: Int
+	"""
+	Number of occupied charges along a route
+	"""
+	chargesOccupied: Int
+	"""
+	Number of unknown charges along a route
+	"""
+	chargesUnknown: Int
+	"""
+	Number of out of order charges along a route
+	"""
+	chargesOutOfOrder: Int
+	"""
+	Total distance of a route in meters
+	"""
+	distance: Int
+	"""
+	Total duration of a route, including charge time, in seconds
+	"""
+	duration: Int
+	"""
+	Total energy used for a route in kWh
+	"""
+	consumption: Float
+	"""
+	Total time required to charge for an entire route, in seconds
+	"""
+	chargeTime: Float
+	"""
+	Amenity ranking for an alternative
+	"""
+	amenityRanking: Int
+	"""
+	Range, in meters, available at the beginning of a trip
+	"""
+	rangeStart: Int
+	"""
+	Total energy in a battery at the beginning of a trip, in kWh
+	"""
+	rangeStartKwh: Float
+	"""
+	Total energy in a battery at the beginning of a trip, in percentage
+	"""
+	rangeStartPercentage: Int
+	"""
+	Remaining range, in meters, at the end of a trip
+	"""
+	rangeEnd: Int
+	"""
+	Remaining range, energy in kWh, at the end of a trip
+	"""
+	rangeEndKwh: Float
+	"""
+	Remaining range, energy in percentage, at the end of a trip
+	"""
+	rangeEndPercentage: Int
+	"""
+	Text information about a route direction
+	"""
+	via: String
+	"""
+	Polyline containing encoded coordinates
+	"""
+	polyline(decimals: Int): String
+	"""
+	Path elevation, distance, duration, consumption and speed values, grouped into 100 segments
+	"""
+	pathPlot: [Connector1PathSegment]
+	"""
+	Elevation values. Each elevationPlot has a hundred points, independent of the length of a route
+	"""
+	elevationPlot: [Float]
+	"""
+	Total number of meters which are going up on a route
+	"""
+	elevationUp: Float
+	"""
+	Total number of meters which are going down on a route
+	"""
+	elevationDown: Float
+	"""
+	Highest value from the elevation array
+	"""
+	elevationMax: Float
+	"""
+	Money and CO2 saving information
+	"""
+	saving: Connector1RouteAlternativeSaving
+	"""
+	Legs of the route
+	"""
+	legs: [Connector1RouteLeg]
+	"""
+	List of raw turn-by-turn navigation instructions
+	"""
+	instructions: [Connector1RouteInstruction]
+	"""
+	Alternative stations along a route within specified radius in meters. Only if it was provided at newRoute mutation
+	"""
+	stationsAlongRoute: [Connector1RouteStationsAlong]
+	"""
+	Tags of a route alternative. Values: road, highway, toll, ferry, etc.
+	"""
+	tags: [Connector1RouteTagType]
+}
+type Connector1RouteAlternativeSaving {
+	"""
+	Total amount of CO2, in grams, which would be used with a petrol vehicle
+	"""
+	co2: String
+	"""
+	Money saved by a user driving this route with the electric vehicle
+	"""
+	money: String
+	"""
+	Currency
+	"""
+	currency: String
+	"""
+	Average gas price with which the calculation was made
+	"""
+	averageGasPrice: String
+	"""
+	Average energy price with which the calculation was made
+	"""
+	averageEnergyPrice: String
+}
+"""
+Types of an alternative route
+"""
+enum Connector1RouteAlternativeType {
+	FASTEST
+	BEST_MATCHING
+	ALTERNATIVE
+}
+"""
+Amenity preferences for a route
+"""
+type Connector1RouteAmenityPreferences {
+	"""
+	Desired amenities near all charge-stops along a route, with a 1 kilometer radius
+	"""
+	all_charge_stops: [Connector1AmenityType!]
+	"""
+	Scheduled charge stops, with a specified amenity and timeline
+	"""
+	scheduled_charge_stops: [Connector1RouteScheduledChargeStop!]
+}
+type Connector1RouteApp {
+	"""
+	ID of the app who requested a route
+	"""
+	id: ID
+}
+type Connector1RouteInstruction {
+	"""
+	Information about the points on the polyline
+	"""
+	points: Connector1RouteInstructionPoints
+	"""
+	Sign of the instruction. See `RouteInstructionSign`
+	"""
+	sign: Connector1RouteInstructionSign
+	"""
+	Name of the street on which the instruction is
+	"""
+	name: String
+	"""
+	Distance, in meters, of the current route instruction
+	"""
+	distance: Int
+	"""
+	Duration, in seconds, of the current route instruction
+	"""
+	time: Int
+	"""
+	Exit number on a roundabout. This field exists only on sign `USE_ROUNDABOUT` (6), otherwise is null
+	"""
+	exit_number: Int
+	"""
+	Curvature angle between the roundabout and street you exit the roundabout. This field exists only on sign USE_ROUNDABOUT (6), otherwise is null
+	"""
+	turn_angle: Float
+}
+type Connector1RouteInstructionPoints {
+	"""
+	Number of polyline points which are included in this instruction
+	"""
+	size: Int
+	"""
+	The interval of points that are included in this instruction, an array with 2 values, where the first value is the index of the polyline where the interval starts. The second value is where it ends
+	"""
+	interval: [Int]
+}
+"""
+Sign belonging to the instruction indicating the main maneuver
+"""
+enum Connector1RouteInstructionSign {
+	UNKNOWN
+	U_TURN_UNKNOWN
+	U_TURN_LEFT
+	KEEP_LEFT
+	LEAVE_ROUNDABOUT
+	TURN_SHARP_LEFT
+	TURN_LEFT
+	TURN_SLIGHT_LEFT
+	CONTINUE_ON_STREET
+	TURN_SLIGHT_RIGHT
+	TURN_RIGHT
+	TURN_SHARP_RIGHT
+	FINISH
+	REACHED_VIA
+	REACHED_CHARGING_STATION
+	USE_ROUNDABOUT
+	KEEP_RIGHT
+	U_TURN_RIGHT
+	PT_START_TRIP
+	PT_TRANSFER
+	PT_END_TRIP
+	IGNORE
+}
+type Connector1RouteLeg {
+	"""
+	ID of a leg
+	"""
+	id: ID
+	"""
+	Distance from the start to the end of a leg, in meters
+	"""
+	distance: Int
+	"""
+	Total drive time from the start to the end of a leg, in seconds
+	"""
+	duration: Int
+	"""
+	Total energy used in a leg in kWh
+	"""
+	consumption: Float
+	"""
+	Range, in meters, available at the beginning of a leg
+	"""
+	rangeStart: Int
+	"""
+	Total energy in a battery at the beginning of a leg, in kWh
+	"""
+	rangeStartKwh: Float
+	"""
+	Total energy in a battery at the beginning of a trip, in percentage
+	"""
+	rangeStartPercentage: Int
+	"""
+	Range, in meters, available at the end of a leg
+	"""
+	rangeEnd: Int
+	"""
+	Total energy left in a battery at the end of a leg, in kWh
+	"""
+	rangeEndKwh: Float
+	"""
+	Remaining range, energy in percentage, at the end of a trip
+	"""
+	rangeEndPercentage: Int
+	"""
+	Origin point location
+	"""
+	origin: Connector1FeaturePoint
+	"""
+	Destination point location
+	"""
+	destination: Connector1FeaturePoint
+	"""
+	Type of a leg
+	"""
+	type: Connector1LegType
+	"""
+	Name of a destination. This is the station name in case a user should charge or the name of the location in case this was provided
+	"""
+	name: String
+	"""
+	ID of a station
+	"""
+	stationId: String
+	"""
+	ID of an operator
+	"""
+	operatorId: String
+	"""
+	Name of an operator
+	"""
+	operatorName: String
+	"""
+	Ranking of an operator
+	"""
+	operatorRanking: Int
+	"""
+	Total time required to charge a battery until 80%, in seconds
+	"""
+	chargeTime: Int
+	"""
+	Recommended EVSE where to charge
+	"""
+	evse: Connector1EVSE
+	"""
+	Recommended connector for charging
+	"""
+	connector: Connector1Connector
+	"""
+	Number of compatible plugs available at a charge station
+	"""
+	plugsAvailable: Int
+	"""
+	Number of compatible plugs occupied at a charge station
+	"""
+	plugsOccupied: Int
+	"""
+	Number of compatible plugs unknown at a charge station
+	"""
+	plugsUnknown: Int
+	"""
+	Number of compatible plugs out of order at a charge station
+	"""
+	plugsOutOfOrder: Int
+	"""
+	Total number of compatible plugs at a charge station
+	"""
+	plugsCount: Int
+	"""
+	Polyline containing encoded coordinates
+	"""
+	polyline(decimals: Int): String
+	"""
+	Steps of a leg
+	"""
+	steps: [Connector1RouteStep]
+	"""
+	Tags of a leg. Values: road, highway, toll, ferry
+	"""
+	tags: [Connector1RouteTagType]
+	"""
+	Cargo weight in a vehicle for the duration of a leg, in kg
+	"""
+	cargo: Float
+	"""
+	Number of occupants in a vehicle for the duration of a leg
+	"""
+	occupants: Int
+}
+"""
+Prioritized operators for a route calculation
+"""
+type Connector1RouteOperators {
+	"""
+	Flag indicating if the operators ranking should be preferred or required
+	"""
+	type: Connector1RouteOperatorsType
+	"""
+	Ranking of an operator with multiple levels, each level having it's own penalty value
+	"""
+	ranking: Connector1RouteOperatorsRanking
+	"""
+	Operator IDs which should be excluded from a route
+	"""
+	exclude: [ID]
+}
+"""
+Prioritized operators for a route calculation
+"""
+input Connector1RouteOperatorsInput {
+	"""
+	Flag indicating if the operators ranking should be preferred or required
+	"""
+	type: Connector1RouteOperatorsType
+	"""
+	Ranking of an operator with multiple levels, each level having it's own penalty value
+	"""
+	ranking: Connector1RouteOperatorsRankingInput
+	"""
+	Operator IDs which should be excluded from a route
+	"""
+	exclude: [ID]
+}
+"""
+Ranking configuration for prioritized operators
+"""
+type Connector1RouteOperatorsRanking {
+	"""
+	Level 1 (most significant) for operator ranking
+	"""
+	level1: [ID]
+	"""
+	Level 2 for operator ranking
+	"""
+	level2: [ID]
+	"""
+	Level 3 for operator ranking
+	"""
+	level3: [ID]
+	"""
+	Level 4 for operator ranking
+	"""
+	level4: [ID]
+	"""
+	Level 5 for operator ranking
+	"""
+	level5: [ID]
+	"""
+	Level 6 for operator ranking
+	"""
+	level6: [ID]
+	"""
+	Level 7 for operator ranking
+	"""
+	level7: [ID]
+	"""
+	Level 8 for operator ranking
+	"""
+	level8: [ID]
+	"""
+	Level 9 for operator ranking
+	"""
+	level9: [ID]
+	"""
+	Level 10 (least significant) for operator ranking
+	"""
+	level10: [ID]
+}
+"""
+Ranking configuration for prioritized operators
+"""
+input Connector1RouteOperatorsRankingInput {
+	"""
+	Level 1 (most significant) for operator ranking
+	"""
+	level1: [ID]
+	"""
+	Level 2 for operator ranking
+	"""
+	level2: [ID]
+	"""
+	Level 3 for operator ranking
+	"""
+	level3: [ID]
+	"""
+	Level 4 for operator ranking
+	"""
+	level4: [ID]
+	"""
+	Level 5 for operator ranking
+	"""
+	level5: [ID]
+	"""
+	Level 6 for operator ranking
+	"""
+	level6: [ID]
+	"""
+	Level 7 for operator ranking
+	"""
+	level7: [ID]
+	"""
+	Level 8 for operator ranking
+	"""
+	level8: [ID]
+	"""
+	Level 9 for operator ranking
+	"""
+	level9: [ID]
+	"""
+	Level 10 (least significant) for operator ranking
+	"""
+	level10: [ID]
+}
+"""
+Type of operator prioritization for a route
+"""
+enum Connector1RouteOperatorsType {
+	NONE
+	PREFERRED
+	REQUIRED
+}
+type Connector1RoutePath {
+	"""
+	GeoJSON location of a route path segment
+	"""
+	location: Connector1Point
+	"""
+	Elevation (altitude) in meters
+	"""
+	elevation: Int
+	"""
+	Average speed, in km/h, for this route path segment
+	"""
+	averageSpeed: Float
+	"""
+	Recommended speed, in km/h for this route path segment to optimise the consumption
+	"""
+	recommendedSpeed: Float
+	"""
+	Consumption, in kWh, of a route path segment
+	"""
+	consumption: Float
+	"""
+	Consumption, in kWh per km, of a route path segment
+	"""
+	consumptionPerKm: Float
+	"""
+	Distance, in meters, of a route path segment
+	"""
+	distance: Float
+	"""
+	Duration, in seconds, of a route path segment
+	"""
+	duration: Float
+	"""
+	State of charge, in kWh, of a route path segment
+	"""
+	stateOfCharge: Float
+}
+"""
+Scheduled charge stop along a route
+"""
+type Connector1RouteScheduledChargeStop {
+	"""
+	List of amenity types
+	"""
+	types: [Connector1AmenityType]
+	"""
+	Duration at the amenity, in seconds
+	"""
+	duration: Int
+	"""
+	Maximum allowed offset from the stop_after value in seconds. Default is 1800
+	"""
+	offset: Int
+	"""
+	Desired drive time before a scheduled stop after leaving the previous stop, in seconds
+	"""
+	stop_after: Int
+	"""
+	Maximum distance from a station to an amenity, in meters
+	"""
+	max_distance_from_station: Int
+}
+"""
+The season of the route
+"""
+enum Connector1RouteSeason {
+	SUMMER
+	WINTER
+	CURRENT
+}
+type Connector1RouteStationsAlong {
+	"""
+	The ID of station
+	"""
+	id: String
+	"""
+	Geojson location of a station
+	"""
+	location: Connector1Point
+	"""
+	Speed of a station. A station along a route can be either fast or turbo
+	"""
+	speed: Connector1StationSpeedType
+	"""
+	Status of a station
+	"""
+	status: Connector1ChargerStatus
+	"""
+	The station uses a preferred operator
+	"""
+	preferredOperator: Boolean
+	"""
+	Distance in meters between station and route path
+	"""
+	distance: Int
+}
+"""
+The status of a route. The status can be pending, processing, done, not_found or error
+"""
+enum Connector1RouteStatus {
+	PENDING
+	PROCESSING
+	DONE
+	NOT_FOUND
+	ERROR
+}
+type Connector1RouteStep {
+	"""
+	ID of a step
+	"""
+	id: ID
+	"""
+	Type of a step
+	"""
+	type: Connector1StepType
+	"""
+	Polyline containing encoded coordinates
+	"""
+	polyline(decimals: Int): String
+	"""
+	Distance from the start to the end of a step, in meters
+	"""
+	distance: Int
+	"""
+	Total drive time from the start to the end of a step, in seconds
+	"""
+	duration: Int
+	"""
+	Total energy used in a step in kWh
+	"""
+	consumption: Float
+}
+"""
+Tags of a route
+"""
+enum Connector1RouteTagType {
+	ROAD
+	HIGHWAY
+	TOLL
+	FERRY
+	WALKING
+	CROSSBORDER
+}
+"""
+Scheduled charge stop along a route
+"""
+input Connector1ScheduledChargeStopInput {
+	"""
+	List of amenity types
+	"""
+	types: [Connector1AmenityType!]!
+	"""
+	Duration at the amenity, in seconds. The value should be between 900 and 86400
+	"""
+	duration: Int!
+	"""
+	Maximum allowed offset from the stop_after value in seconds. Default is 1800
+	"""
+	offset: Int = "1800"
+	"""
+	Desired drive time for a scheduled stop after leaving the origin point, in seconds
+	"""
+	stop_after: Int!
+	"""
+	Maximum distance from a station to an amenity, in meters. The value should be between 0 and 1000. Default is 1000
+	"""
+	max_distance_from_station: Int = "1000"
+}
+enum Connector1SpeedUnit {
+	KILOMETERS_PER_HOUR
+	MILES_PER_HOUR
+}
+"""
+Standards(plug type) stats model
+"""
+type Connector1StandardStats {
+	"""
+	The plug type
+	"""
+	type: Connector1ConnectorType
+	"""
+	The total number of stations with the specified plug
+	"""
+	total: Int
+}
+input Connector1StateOfChargeInput {
+	"""
+	Value of the state of charge of the vehicle
+	"""
+	value: Float!
+	"""
+	Type of the state of charge of the vehicle
+	"""
+	type: Connector1StateOfChargeUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+enum Connector1StateOfChargeUnit {
+	KILOMETER
+	MILE
+	KILOWATT_HOUR
+	PERCENTAGE
+}
+"""
+Station data which extends OCPI Location
+"""
+type Connector1Station {
+	"""
+	Review of a station
+	"""
+	review: Connector1ReviewStats
+	"""
+	Unique ID of a station
+	"""
+	id: ID!
+	"""
+	ISO-3166 alpha-2 country code of a station
+	"""
+	country_code: String
+	"""
+	CPO ID of a CPO that 'owns' this station (following the ISO-15118 standard)
+	"""
+	party_id: String
+	"""
+	Defines if a location may be published on a website or app etc.
+	When this is set to false, only tokens identified in the field: publish_allowed_to are allowed to show this location.
+	When the same location has EVSEs that may be published and may not be published, two 'locations' should be created
+	"""
+	publish: Boolean
+	"""
+	Name of a charging station
+	"""
+	name: String
+	"""
+	Street/block name and house number if available
+	"""
+	address: String
+	"""
+	City or town
+	"""
+	city: String
+	"""
+	Postal code of a location, may only be omitted when a location has no postal code: in some countries charging locations at highways don’t have postal codes.
+	"""
+	postal_code: String
+	"""
+	State or province of a location, only to be used when relevant
+	"""
+	state: String
+	"""
+	ISO 3166-1 alpha-3 code for the country of this station
+	"""
+	country: String
+	"""
+	Coordinates of a location
+	"""
+	coordinates: Connector1OCPIGeoLocation
+	"""
+	Geographical location of related points relevant to a user
+	"""
+	related_locations: [Connector1OCPIAdditionalGeoLocation]
+	"""
+	Type of parking at a charge point location
+	"""
+	parking_type: Connector1OCPIParkingType
+	"""
+	EVSEs that belong to a station
+	"""
+	evses: [Connector1EVSE]
+	"""
+	Human-readable directions on how to reach a station
+	"""
+	directions: [Connector1OCPIDisplayText]
+	"""
+	Information about an operator
+	"""
+	operator: Connector1Operator
+	"""
+	Information about a suboperator if applicable
+	"""
+	suboperator: Connector1Operator
+	"""
+	Information about an owner if available
+	"""
+	owner: Connector1Operator
+	"""
+	Facilities a charging station belongs to
+	"""
+	facilities: [Connector1OCPIFacility]
+	"""
+	Value from the IANA time zone database representing the time zone of a location. Examples: "Europe/Oslo", "Europe/Zurich". (http://www.iana.org/time-zones)
+	"""
+	time_zone: String
+	"""
+	Times when an EVSEs at a location can be accessed for charging
+	"""
+	opening_times: Connector1OCPIHours
+	"""
+	Indicates if the EVSEs are still charging outside the opening hours. E.g. when a parking garage closes its barriers overnight, is it allowed to charge till the next morning? Default: true
+	"""
+	charging_when_closed: Boolean
+	"""
+	Links to images related to a location such as photos or logos
+	"""
+	images: [Connector1OCPIImage]
+	"""
+	Details of the energy supplied at a location
+	"""
+	energy_mix: Connector1OCPIEnergyMix
+	"""
+	Timestamp when a location, or one of its EVSEs or Connectors were last updated (or created)
+	"""
+	last_updated: Connector1DateTime
+	"""
+	ID provided by a station data source
+	"""
+	external_id: String
+	"""
+	GeoJSON location of a charging station
+	"""
+	location: Connector1Point
+	"""
+	Elevation (altitude) level
+	"""
+	elevation: Int
+	"""
+	Groups of EVSEs by power and type
+	"""
+	chargers: [Connector1Charger]
+	"""
+	Amenities located at this location
+	"""
+	amenities: Connector1JSON
+	"""
+	Enriched information about the physical address of a station
+	"""
+	physical_address: Connector1Address
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: Connector1JSON
+	"""
+	A flag that indicates if a station has real-time information about the availability of its connectors
+	"""
+	realtime: Boolean
+	"""
+	A flag that indicates if a station is on private property
+	"""
+	private: Boolean
+	"""
+	Connectors grouped by power
+	"""
+	power: Connector1JSON
+	"""
+	Station availability
+	"""
+	predicted_availability: [Connector1StationPredictedAvailability]
+	"""
+	Predicted station occupancy
+	"""
+	predicted_occupancy: [Connector1StationPredictedOccupancy]
+	"""
+	Charging speed for a station
+	"""
+	speed: Connector1StationSpeedType
+	"""
+	Global status for a station
+	"""
+	status: Connector1ChargerStatus
+	"""
+	Custom properties of a station. These are vendor specific and will return null values on the fields that are not supported by your station database
+	"""
+	custom_properties: Connector1StationCustomProperties
+}
+"""
+Filter which can be applied to retrieve the station around list action
+"""
+input Connector1StationAroundFilter {
+	"""
+	The GeoJSON Point of the center of the around me circle
+	"""
+	location: Connector1PointInput
+	"""
+	Distance, in meters, to search around
+	"""
+	distance: Int
+	"""
+	Powers in kWh
+	"""
+	powers: [Float]
+	"""
+	Amenities available near a station
+	"""
+	amenities: [Connector1Amenities]
+	"""
+	Station speed
+	"""
+	power_groups: [Connector1StationSpeedType]
+	"""
+	Station socket or plug standards
+	"""
+	connectors: [Connector1ConnectorType]
+	"""
+	Flag that allows you to return only available stations
+	"""
+	available_only: Boolean
+	"""
+	Flag indicating if only stations that are owned by an operator from a clients ranking list are returned
+	"""
+	preferred_operator: Boolean
+}
+"""
+Deprecated: Replaced by filter & search params
+"""
+input Connector1StationAroundQuery {
+	"""
+	The GeoJSON Point of the center of the around me circle
+	"""
+	location: Connector1PointInput
+	"""
+	Distance, in meters, to search around
+	"""
+	distance: Int
+	"""
+	Power in kWh
+	"""
+	power: [Float]
+	"""
+	Amenities available near a station. Values: restaurant, bathroom, supermarket, playground, coffee, shopping, museum, hotel, park
+	"""
+	amenities: [String]
+}
+type Connector1StationCustomProperties {
+	"""
+	List of eMSP cards accepted at a charging station
+	"""
+	roaming: [Connector1StationRoaming]
+	"""
+	Phone number for assistance at a charging station
+	"""
+	support_phone_number: String
+	"""
+	Charging behavior of a station
+	"""
+	charging_behaviour: Connector1ChargingBehaviour
+	"""
+	Shows how reliable a charging station is (1 to 5; 1 = unreliable, 5 = reliable), taking into account the charging behaviour history and error values
+	"""
+	reliability_score: Int
+	"""
+	List of available ad hoc payment methods
+	"""
+	adhoc_authorisation_method: [Connector1AdhocAuthorisationMethod]
+	"""
+	Predicted station occupancy
+	"""
+	predicted_occupancy: [Connector1StationPredictedOccupancy]
+	"""
+	Type of access to the charging station
+	"""
+	access_type: Connector1AccessType
+	"""
+	Custom station properties for OICP databases such as the global Hubject database. Station databases that not follow the OICP standard return null values
+	"""
+	oicp: Connector1OICPStationCustomProperties
+}
+"""
+Filter which can be applied to retrieve the station list action
+"""
+input Connector1StationListFilter {
+	"""
+	Powers in kWh
+	"""
+	powers: [Float]
+	"""
+	Amenities available near a station
+	"""
+	amenities: [Connector1Amenities]
+	"""
+	Station speed
+	"""
+	power_groups: [Connector1StationSpeedType]
+	"""
+	Station socket or plug standards
+	"""
+	connectors: [Connector1ConnectorType]
+	"""
+	Flag that allows you to return only available stations
+	"""
+	available_only: Boolean
+	"""
+	Flag indicating if only stations that are owned by an operator from a clients ranking list are returned
+	"""
+	preferred_operator: Boolean
+}
+"""
+Deprecated: Replaced by filter & search params
+"""
+input Connector1StationListQuery {
+	"""
+	ID of the station
+	"""
+	id: ID
+	"""
+	External ID of the station provided by the station data source
+	"""
+	external_id: String
+	"""
+	Exact name
+	"""
+	name: String
+}
+"""
+Station availability for each weekday and hour
+"""
+type Connector1StationPredictedAvailability {
+	"""
+	Number of weekday from 1 (monday) to 7 (sunday)
+	"""
+	weekday: Int
+	"""
+	The prediction for each hour 0-23 from 1 to 5 (1 - very busy ... 5 very quiet (free))
+	"""
+	prediction: [Int]
+}
+"""
+Station occupancy for each weekday and hour
+"""
+type Connector1StationPredictedOccupancy {
+	"""
+	Number of weekday from 1 (monday) to 7 (sunday)
+	"""
+	weekday: Int
+	"""
+	Occupancy on a scale from 1 to 10, where 1 means free for charging and 10 means fully occupied
+	"""
+	occupancy: Int
+	"""
+	Start of the period of the occupancy prediction (string of 'hh-mmZ' format)
+	"""
+	period_begin: String
+	"""
+	End of the period of the occupancy prediction (string of 'hh-mmZ' format)
+	"""
+	period_end: String
+}
+type Connector1StationRoaming {
+	"""
+	Name of the EMSP provider
+	"""
+	emsp: String
+	"""
+	Name of the card accepted at a charging station
+	"""
+	card: String
+	"""
+	Link to native Android app for card accepted at a charging station
+	"""
+	android_app_link: String
+	"""
+	Link to native iOS app for card accepted at a charging station
+	"""
+	ios_app_link: String
+}
+"""
+The station speed type
+"""
+enum Connector1StationSpeedType {
+	SLOW
+	FAST
+	TURBO
+}
+"""
+The station stats model
+"""
+type Connector1StationStats {
+	"""
+	Stations count grouped by standards
+	"""
+	standards: [Connector1StandardStats]
+	"""
+	Stations count grouped by power
+	"""
+	power: [Connector1PowerStats]
+	"""
+	Stations count grouped by amenities
+	"""
+	amenities: [Connector1AmenityStats]
+}
+"""
+Types of a route step
+"""
+enum Connector1StepType {
+	ROAD
+	HIGHWAY
+	TOLL
+	FERRY
+	WALKING
+	CROSSBORDER
+}
+type Connector1Subscription {
+	"""
+	[BETA] Subscribe to a connected vehicle.
+	"""
+	connectedVehicle(id: ID!): Connector1ConnectedVehicle
+	"""
+	[BETA] Subscribe to an isoline label in order to receive updates
+	"""
+	isoline(id: ID!): Connector1Isoline
+	"""
+	[BETA] Subscribe to navigation session system event updates. We strongly recommend using this at all times to not miss any updates
+	"""
+	navigationUpdatedById(id: ID!): Connector1Navigation
+	"""
+	Subscription for a specific route was updated in the system event
+	"""
+	routeUpdatedById(id: ID!): Connector1Route
+}
+type Connector1Telemetry {
+	"""
+	Value of the auxiliary power consumption of the vehicle
+	"""
+	auxiliary_consumption(unit: Connector1AuxiliaryConsumptionUnit = "kilowatt_hour"): Float
+	"""
+	Battery current in ampere
+	"""
+	battery_current: Float
+	"""
+	Value of the temperature of the battery
+	"""
+	battery_temperature(unit: Connector1TemperatureUnit = "Celsius"): Float
+	"""
+	Battery voltage in volts
+	"""
+	battery_voltage: Float
+	"""
+	Is the vehicle currently charging
+	"""
+	is_charging: Boolean
+	"""
+	Value of the rate of charge of the battery
+	"""
+	charge_speed(unit: Connector1ChargeSpeedUnit = "kilowatt_hour"): Float
+	"""
+	Value of the amount of battery charged
+	"""
+	charge_total(unit: Connector1StateOfChargeUnit = "kilowatt_hour"): Float
+	"""
+	Value of the current weight of the occupants
+	"""
+	total_occupant_weight(unit: Connector1WeightUnit = "kilogram"): Float
+	"""
+	Value of the current weight of the cargo
+	"""
+	total_cargo_weight(unit: Connector1WeightUnit = "kilogram"): Float
+	"""
+	Value of the current elevation
+	"""
+	elevation(unit: Connector1ElevationUnit = "meter"): Float
+	"""
+	Current heading in degrees
+	"""
+	heading: Float
+	"""
+	RPM of the motor
+	"""
+	motor_rpm: Int
+	"""
+	Number of occupants present in the vehicle
+	"""
+	occupants: Int
+	"""
+	Value of the vehicle's odometer
+	"""
+	odometer(unit: Connector1DistanceUnit = "kilometer"): Float
+	"""
+	Value of the outside temperature
+	"""
+	outside_temperature(unit: Connector1TemperatureUnit = "Celsius"): Float
+	"""
+	Vehicle is in park, neutral or turned off
+	"""
+	is_parked: Boolean
+	"""
+	Value of the positive or negative power. When negative the vehicle is charging
+	"""
+	power(unit: Connector1PowerUnit = "kilowatt"): Float
+	"""
+	Value of the state of charge of the vehicle
+	"""
+	state_of_charge(unit: Connector1StateOfChargeUnit = "kilowatt_hour"): Float
+	"""
+	Values for the average tire pressures of all wheels, starting from the front side right to left and to the rear
+	"""
+	tire_pressure(unit: Connector1PressureUnit = "bar"): [Float!]
+	"""
+	UNIX timestamp in seconds
+	"""
+	timestamp: Int
+	"""
+	Value of the vehicle speed
+	"""
+	vehicle_speed(unit: Connector1SpeedUnit = "kilometers_per_hour"): Float
+	"""
+	Custom input fields can be added based on telemetry architecture
+	"""
+	custom: Connector1JSON
+}
+input Connector1TelemetryInput {
+	"""
+	Average auxiliary power consumption
+	"""
+	auxiliary_consumption: Connector1AuxiliaryConsumptionInput
+	"""
+	Battery current in ampere
+	"""
+	battery_current: Float
+	"""
+	Battery temperature
+	"""
+	battery_temperature: Connector1BatteryTemperatureInput
+	"""
+	Battery voltage in volts
+	"""
+	battery_voltage: Float
+	"""
+	Is the vehicle currently charging
+	"""
+	is_charging: Boolean
+	"""
+	Rate of charge
+	"""
+	charge_speed: Connector1ChargeSpeedInput
+	"""
+	Amount charged
+	"""
+	charge_total: Connector1ChargeTotalInput
+	"""
+	Cumulated weight of the occupants
+	"""
+	total_occupant_weight: Connector1TotalOccupantWeightInput
+	"""
+	Weight of the cargo
+	"""
+	total_cargo_weight: Connector1TotalCargoWeightInput
+	"""
+	Current elevation
+	"""
+	elevation: Connector1ElevationInput
+	"""
+	Current heading in degrees
+	"""
+	heading: Float
+	"""
+	RPM of the motor
+	"""
+	motor_rpm: Int
+	"""
+	Number of occupants in the vehicle
+	"""
+	occupants: Int
+	"""
+	Mileage or odometer reading
+	"""
+	odometer: Connector1OdometerInput
+	"""
+	Outside temperature
+	"""
+	outside_temperature: Connector1OutsideTempInput
+	"""
+	Vehicle is in park, neutral or turned off
+	"""
+	is_parked: Boolean
+	"""
+	Vehicle power
+	"""
+	power: Connector1PowerInput
+	"""
+	Battery state of charge
+	"""
+	state_of_charge: Connector1StateOfChargeInput
+	"""
+	Average tire pressures of all wheels, starting from the front side right to left and to the rear
+	"""
+	tire_pressure: Connector1TirePressureInput
+	"""
+	UNIX timestamp in seconds
+	"""
+	timestamp: Int
+	"""
+	Vehicle speed
+	"""
+	vehicle_speed: Connector1VehicleSpeedInput
+	"""
+	Custom input fields can be added based on telemetry architecture
+	"""
+	custom: Connector1JSON
+}
+enum Connector1TelemetryInputSource {
+	MANUAL
+	TELEMETRY
+}
+enum Connector1TemperatureUnit {
+	CELSIUS
+	FAHRENHEIT
+}
+input Connector1TirePressureInput {
+	"""
+	Values for the tire pressure, starting from the front side right to left and to the rear
+	"""
+	value: [Float!]!
+	"""
+	Type of the value of pressure
+	"""
+	type: Connector1PressureUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+enum Connector1TorqueUnit {
+	NEWTON_METER
+	FOOT_POUND
+}
+input Connector1TotalCargoWeightInput {
+	"""
+	Value of the current weight of the cargo
+	"""
+	value: Float!
+	"""
+	Type of the current weight of the cargo
+	"""
+	type: Connector1WeightUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+input Connector1TotalOccupantWeightInput {
+	"""
+	Value of the current weight of the occupants
+	"""
+	value: Float!
+	"""
+	Type of the current weight of the occupants
+	"""
+	type: Connector1WeightUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+enum Connector1TurningCircleUnit {
+	METER
+	FOOT
+}
+input Connector1UpdateConnectedVehicleInput {
+	"""
+	Id from the connected vehicle
+	"""
+	id: ID!
+	"""
+	New label for a connected vehicle
+	"""
+	label: Connector1PlainString
+}
+"""
+The File Upload scalar
+"""
+scalar Connector1Upload
+"""
+Output of a vehicle query.
+"""
+type Connector1Vehicle {
+	"""
+	Vehicles unique ID.
+	"""
+	id: ID!
+	"""
+	Naming of the vehicle.
+	"""
+	naming: Connector1VehicleNaming!
+	"""
+	Drivetrain of the vehicle.
+	"""
+	drivetrain: Connector1VehicleDrivetrain!
+	"""
+	Available connectors for the vehicle.
+	"""
+	connectors: [Connector1VehicleConnector!]!
+	"""
+	Adapters for the connectors of the vehicle.
+	"""
+	adapters: [Connector1VehicleConnector!]!
+	"""
+	Battery of the vehicle.
+	"""
+	battery: Connector1VehicleBattery!
+	"""
+	Body of the vehicle.
+	"""
+	body: Connector1VehicleBody!
+	"""
+	Availability of the vehicle.
+	"""
+	availability: Connector1VehicleAvailability!
+	"""
+	Performance of the vehicle.
+	"""
+	performance: Connector1VehiclePerformance
+	"""
+	Range of the vehicle.
+	"""
+	range: Connector1VehicleRange!
+	"""
+	Media of the vehicle.
+	"""
+	media: Connector1VehicleMedia!
+	"""
+	Routing of the vehicle.
+	"""
+	routing: Connector1VehicleRouting!
+	"""
+	Information about vehicle connectivity.
+	"""
+	connect: Connector1Connect!
+	"""
+	Regions in which the vehicle is available. Based on the continent code (CC) standard.
+	"""
+	region: [Connector1VehicleRegion!]!
+	"""
+	Vehicle intended use. Can be passenger, cargo, or utility.
+	"""
+	purpose: Connector1VehiclePurpose!
+	"""
+	Type of vehicle.
+	"""
+	type: Connector1VehicleType!
+}
+type Connector1VehicleAvailability {
+	"""
+	Availability of the vehicle.
+	"""
+	status: Connector1VehicleAvailabilityStatus!
+}
+"""
+Availability status of a vehicle.
+"""
+enum Connector1VehicleAvailabilityStatus {
+	NO_LONGER_AVAILABLE
+	AVAILABLE
+	RELEASE_DATE_ANNOUNCED_PREORDERABLE
+	RELEASE_DATE_ANNOUNCED
+	CONCEPT_VEHICLE_PREORDERABLE
+	CONCEPT_VEHICLE
+	CONCEPT_VEHICLE_RELEASE_DATE_TBA_PREORDERABLE
+	CONCEPT_VEHICLE_RELEASE_DATE_TBA
+	UNCERTAIN
+}
+type Connector1VehicleBattery {
+	"""
+	Full battery capacity in kWh.
+	"""
+	full_kwh: Float!
+	"""
+	Usable battery capacity in kWh.
+	"""
+	usable_kwh: Float!
+}
+"""
+Battery field estimated.
+"""
+enum Connector1VehicleBatteryFieldEstimations {
+	B
+	F
+	N
+	U
+}
+type Connector1VehicleBody {
+	"""
+	Width with folded mirrors, default in mm.
+	"""
+	width(unit: Connector1MeasurementUnit): Float!
+	"""
+	Height (average height for adjustable suspensions), default in mm.
+	"""
+	height(unit: Connector1MeasurementUnit): Float!
+	"""
+	Weight (unladen), default in kg.
+	"""
+	weight: Connector1VehicleBodyWeight!
+	"""
+	Number of seats.
+	"""
+	seats: Int!
+}
+type Connector1VehicleBodyWeight {
+	"""
+	Minimum weight, default in kg.
+	"""
+	minimum(unit: Connector1WeightUnit): Float
+	"""
+	Nominal weight, default in kg.
+	"""
+	nominal(unit: Connector1WeightUnit): Float
+	"""
+	Maximal weight, default in kg.
+	"""
+	maximal(unit: Connector1WeightUnit): Float
+}
+"""
+Vehicle plug model.
+"""
+type Connector1VehicleConnector {
+	"""
+	Connector type, known as connector standard in OCPI.
+	"""
+	standard: Connector1ConnectorType!
+	"""
+	Usable electric power in kW.
+	"""
+	power: Float!
+	"""
+	Maximum electric power in kW.
+	"""
+	max_electric_power: Float!
+	"""
+	Time it takes to charge from 10 to 80% with a fast charger, shown in minutes.
+	"""
+	time: Int!
+	"""
+	Charging speed, default in kmph.
+	"""
+	speed(unit: Connector1SpeedUnit): Float!
+}
+"""
+The consumption of the vehicle.
+"""
+input Connector1VehicleConsumptionInput {
+	"""
+	Worst conditions are based on -10°C and use of heating.
+	"""
+	worst: Float
+	"""
+	Best conditions are based on 23°C and no use of A/C.
+	"""
+	best: Float
+}
+type Connector1VehicleData {
+	"""
+	Battery data
+	"""
+	battery: Connector1ConnectBattery
+	"""
+	Charge data
+	"""
+	charge: Connector1ConnectCharge
+	"""
+	Location data
+	"""
+	location: Connector1ConnectLocation
+	"""
+	Odometer data
+	"""
+	odometer: Connector1ConnectOdometer
+}
+enum Connector1VehicleDataProvider {
+	CHARGETRIP
+	EVDATABASE
+}
+type Connector1VehicleDrivetrain {
+	"""
+	Type of drivetrain.
+	"""
+	type: Connector1VehicleDrivetrainType!
+}
+"""
+Drivetrain.
+"""
+enum Connector1VehicleDrivetrainType {
+	BEV
+	EREV
+	HEV
+	PHEV
+}
+"""
+Fuel type.
+"""
+enum Connector1VehicleFuel {
+	D
+	E
+	P
+}
+type Connector1VehicleImage {
+	"""
+	Image id.
+	"""
+	id: ID
+	"""
+	Image type.
+	"""
+	type: Connector1VehicleImageType!
+	"""
+	Full path URL of a large image.
+	"""
+	url: String!
+	"""
+	Height of a large image in pixels.
+	"""
+	height: Int!
+	"""
+	Width of a large image in pixels.
+	"""
+	width: Int!
+	"""
+	Full path URL of a thumbnail image.
+	"""
+	thumbnail_url: String!
+	"""
+	Height of a thumbnail image in pixels.
+	"""
+	thumbnail_height: Int!
+	"""
+	Width of a thumbnail image in pixels.
+	"""
+	thumbnail_width: Int!
+}
+"""
+Available types of images which can be found for a vehicle. Each type has specific image sizes.
+"""
+enum Connector1VehicleImageType {
+	PROVIDER
+	IMAGE
+	IMAGE_THUMBNAIL
+	IMAGE_PREMIUM
+	PREMIUM_IMAGE_THUMBNAIL
+	BRAND
+	BRAND_THUMBNAIL
+	PLACEHOLDER
+}
+"""
+When uploading images to a vehicle, you can select one of this types. The rest of the types are automatically generated by the system.
+"""
+enum Connector1VehicleImageTypeUploadable {
+	IMAGE
+	IMAGE_PREMIUM
+}
+"""
+The output element of the vehicleList query.
+"""
+type Connector1VehicleList {
+	"""
+	Vehicles unique ID.
+	"""
+	id: ID!
+	"""
+	Naming of the vehicle.
+	"""
+	naming: Connector1VehicleListNaming!
+	"""
+	Drivetrain of the vehicle.
+	"""
+	drivetrain: Connector1VehicleDrivetrain!
+	"""
+	Connectors available for the vehicle.
+	"""
+	connectors: [Connector1VehicleConnector!]!
+	"""
+	Adapters available for the vehicle.
+	"""
+	adapters: [Connector1VehicleConnector!]!
+	"""
+	Battery of the vehicle.
+	"""
+	battery: Connector1VehicleListBattery!
+	"""
+	Body of the vehicle.
+	"""
+	body: Connector1VehicleListBody!
+	"""
+	Availability of the vehicle.
+	"""
+	availability: Connector1VehicleListAvailability!
+	"""
+	Range of the vehicle.
+	"""
+	range: Connector1VehicleListRange!
+	"""
+	Media of the vehicle.
+	"""
+	media: Connector1VehicleListMedia!
+	"""
+	Routing of the vehicle.
+	"""
+	routing: Connector1VehicleListRouting!
+	"""
+	Information about vehicle connectivity.
+	"""
+	connect: Connector1Connect!
+	"""
+	Regions in which the vehicle is available. Based on the continent code (CC) standard.
+	"""
+	region: [Connector1VehicleRegion!]!
+	"""
+	Vehicle intended use. Can be passenger, cargo, or utility.
+	"""
+	purpose: Connector1VehiclePurpose!
+	"""
+	Type of vehicle.
+	"""
+	type: Connector1VehicleType!
+}
+type Connector1VehicleListAvailability {
+	"""
+	Availability of the vehicle.
+	"""
+	status: Connector1VehicleAvailabilityStatus!
+}
+type Connector1VehicleListBattery {
+	"""
+	Full battery capacity in kWh.
+	"""
+	full_kwh: Float!
+	"""
+	Usable battery capacity in kWh.
+	"""
+	usable_kwh: Float!
+}
+type Connector1VehicleListBody {
+	"""
+	Number of seats in a vehicle.
+	"""
+	seats: Int!
+}
+input Connector1VehicleListFilter {
+	"""
+	Availability of a vehicle.
+	"""
+	availability: [Connector1VehicleAvailabilityStatus!]
+	"""
+	Drivetrain type of a vehicle.
+	"""
+	drivetrain: [Connector1VehicleDrivetrainType!]
+	"""
+	Information about vehicle connectivity.
+	"""
+	connect: Connector1ConnectFilter
+	"""
+	Regions in which the vehicle is available. Based on the continent code (CC) standard.
+	"""
+	region: [Connector1VehicleRegion!]
+	"""
+	Vehicle intended use. Can be passenger, cargo, or utility.
+	"""
+	purpose: [Connector1VehiclePurpose!]
+	"""
+	Type of vehicle.
+	"""
+	type: [Connector1VehicleType!]
+}
+type Connector1VehicleListMedia {
+	"""
+	Featured image of the vehicle from a 45-degree angle.
+	"""
+	image: Connector1VehicleImage!
+	"""
+	Latest maker logo of the vehicle.
+	"""
+	brand: Connector1VehicleImage!
+	"""
+	Latest video of the vehicle.
+	"""
+	video: Connector1VehicleVideo
+}
+type Connector1VehicleListNaming {
+	"""
+	Vehicle manufacturer name.
+	"""
+	make: String!
+	"""
+	Vehicle model name.
+	"""
+	model: String!
+	"""
+	Version, edition or submodel of the vehicle.
+	"""
+	version: String
+	"""
+	Another submodel level of the vehicle.
+	"""
+	edition: String
+	"""
+	Vehicle model version. Added by Chargetrip as an alternative for when a vehicle manufacturer does not provide an version name, or uses the same version name across all trims or consecutive years.
+	"""
+	chargetrip_version: String!
+}
+type Connector1VehicleListRange {
+	"""
+	Chargetrip's custom real-world range provides a carefully calculated display range for all electric vehicle models based on our own research and driving data.
+	CT range is based on the theoretical distance driven using only the electric engine.
+	Vehicles that do not have a full electric drivetrain type ( all except Battery Electric Vehicles / BEV) therefore return relatively small ranges.
+	"""
+	chargetrip_range: Connector1ChargetripRange!
+}
+type Connector1VehicleListRouting {
+	"""
+	Vehicles that support fast charging have a minimum charging speed of 43 kWh.
+	"""
+	fast_charging_support: Boolean!
+}
+type Connector1VehicleMedia {
+	"""
+	Featured image of the vehicle from a 45-degree angle.
+	"""
+	image: Connector1VehicleImage!
+	"""
+	Latest maker logo.
+	"""
+	brand: Connector1VehicleImage!
+	"""
+	All images of the vehicle.
+	"""
+	image_list: [Connector1VehicleImage!]!
+	"""
+	Latest video.
+	"""
+	video: Connector1VehicleVideo
+	"""
+	All videos of the vehicle.
+	"""
+	video_list: [Connector1VehicleVideo!]
+}
+"""
+Mode (state) of the current production.
+"""
+enum Connector1VehicleMode {
+	INDEX_ONLY
+	PRODUCTION
+	CONCEPT
+}
+type Connector1VehicleNaming {
+	"""
+	Vehicle manufacturer name.
+	"""
+	make: String!
+	"""
+	Vehicle model name.
+	"""
+	model: String!
+	"""
+	Version, edition or submodel of the vehicle.
+	"""
+	version: String
+	"""
+	Another submodel level of the vehicle.
+	"""
+	edition: String
+	"""
+	Vehicle model version. Added by Chargetrip as an alternative for when a vehicle manufacturer does not provide an version name, or uses the same version name across all trims or consecutive years.
+	"""
+	chargetrip_version: String!
+}
+type Connector1VehiclePerformance {
+	"""
+	Acceleration in seconds, default in kmph to 100.
+	"""
+	acceleration(unit: Connector1AccelerationUnit): Float
+	"""
+	Top speed of the vehicle, default in kmph.
+	"""
+	top_speed(unit: Connector1SpeedUnit): Float
+}
+"""
+The output element of the vehiclePremium query.
+"""
+type Connector1VehiclePremium {
+	"""
+	Vehicles unique ID.
+	"""
+	id: ID!
+	"""
+	Internal ID of the successor vehicle trim.
+	"""
+	succesor_id: String
+	"""
+	Naming of the vehicle.
+	"""
+	naming: Connector1VehiclePremiumNaming!
+	"""
+	Connectors available for the vehicle.
+	"""
+	connectors: [Connector1VehicleConnector!]!
+	"""
+	Charge details.
+	"""
+	charge: Connector1VehiclePremiumCharge!
+	"""
+	Fast charge details.
+	"""
+	fast_charge: Connector1VehiclePremiumFastCharge!
+	"""
+	Adapters of connectors available for a connectors of the vehicle.
+	"""
+	adapters: [Connector1VehicleConnector!]!
+	"""
+	Battery of the vehicle.
+	"""
+	battery: Connector1VehiclePremiumBattery!
+	"""
+	Body of the vehicle.
+	"""
+	body: Connector1VehiclePremiumBody!
+	"""
+	Availability of the vehicle.
+	"""
+	availability: Connector1VehiclePremiumAvailability!
+	"""
+	Pricing of the vehicle.
+	"""
+	price: Connector1VehiclePremiumPrice!
+	"""
+	Drivetrain of the vehicle.
+	"""
+	drivetrain: Connector1VehiclePremiumDrivetrain!
+	"""
+	Performance of the vehicle.
+	"""
+	performance: Connector1VehiclePremiumPerformance
+	"""
+	Range of the vehicle.
+	"""
+	range: Connector1VehiclePremiumRange!
+	"""
+	Efficiency of the vehicle.
+	"""
+	efficiency: Connector1VehiclePremiumEfficiency!
+	"""
+	Safety of the vehicle.
+	"""
+	safety: Connector1VehiclePremiumSafety
+	"""
+	Media of the vehicle.
+	"""
+	media: Connector1VehiclePremiumMedia!
+	"""
+	Routing of the vehicle.
+	"""
+	routing: Connector1VehiclePremiumRouting!
+	"""
+	Information about vehicle connectivity.
+	"""
+	connect: Connector1Connect!
+	"""
+	Regions in which the vehicle is available. Based on the continent code (CC) standard.
+	"""
+	region: [Connector1VehicleRegion!]!
+	"""
+	Vehicle intended use. Can be passenger, cargo, or utility.
+	"""
+	purpose: Connector1VehiclePurpose!
+	"""
+	Type of vehicle.
+	"""
+	type: Connector1VehicleType!
+}
+type Connector1VehiclePremiumAvailability {
+	"""
+	Availability of the vehicle.
+	"""
+	status: Connector1VehicleAvailabilityStatus!
+	"""
+	Date of introduction, mm-yyyy.
+	"""
+	date_from: String
+	"""
+	Indicates if date from field is estimated.
+	"""
+	date_from_is_estimated: Boolean
+	"""
+	Date last available, mm-yyyy.
+	"""
+	date_to: String
+}
+type Connector1VehiclePremiumBattery {
+	"""
+	Usable battery capacity in kWh.
+	"""
+	usable_kwh: Float!
+	"""
+	Full battery capacity in kWh.
+	"""
+	full_kwh: Float!
+	"""
+	Indicates which battery fields are estimated.
+	"""
+	estimated_fields: Connector1VehicleBatteryFieldEstimations
+	"""
+	Battery thermal management system (active/passive, air/liquid).
+	"""
+	thermal_management_system: String
+	"""
+	Duration of battery warranty.
+	"""
+	warranty_period: Float
+	"""
+	Mileage of battery warranty.
+	"""
+	warranty_mileage: Float
+	"""
+	Chemistry of the battery.
+	"""
+	chemistry: String
+	"""
+	Manufacturer of the battery.
+	"""
+	manufacturer: String
+	"""
+	Number of battery modules.
+	"""
+	modules: Float
+	"""
+	Number of cells in the battery pack, can include configuration (s = serial, p = parallel).
+	"""
+	cells: String
+	"""
+	Weight of the battery pack.
+	"""
+	weight: Float
+	"""
+	Nominal voltage of battery.
+	"""
+	nominal_voltage: Float
+}
+type Connector1VehiclePremiumBody {
+	"""
+	Length, default in mm.
+	"""
+	length(unit: Connector1MeasurementUnit): Float
+	"""
+	Width with folded mirrors, default in mm.
+	"""
+	width(unit: Connector1MeasurementUnit): Float!
+	"""
+	Width of vehicle including mirrors, default in mm.
+	"""
+	full_width(unit: Connector1MeasurementUnit): Float
+	"""
+	Height (average height for adjustable suspensions), default in mm.
+	"""
+	height(unit: Connector1MeasurementUnit): Float!
+	"""
+	Indicates if length/width/height fields are estimations.
+	"""
+	size_is_estimated: Boolean
+	"""
+	Wheelbase, default in mm.
+	"""
+	wheelbase(unit: Connector1MeasurementUnit): Float
+	"""
+	Indicates if wheelbase field is estimated.
+	"""
+	wheelbase_is_estimated: Boolean
+	"""
+	Weight (unladen EU).
+	"""
+	weight: Connector1VehicleBodyWeight!
+	"""
+	Maximum allowed vehicle weight with payload.
+	"""
+	weight_gvwr: Connector1VehicleBodyWeight
+	"""
+	Maximum allowed vehicle and trailer weight with payload.
+	"""
+	weight_gtw: Connector1VehicleBodyWeight
+	"""
+	Allowed payload weight.
+	"""
+	weight_payload: Connector1VehicleBodyWeight
+	"""
+	Indicates if weight field is estimated.
+	"""
+	weight_is_estimated: Boolean
+	"""
+	Maximum payload allowed for the vehicle, default in kg.
+	"""
+	weight_max_payload(unit: Connector1WeightUnit): Float
+	"""
+	Gross Vehicle Weight (GVWR) - (max allowed vehicle weight with payload), default in kg.
+	"""
+	max_gross_vehicle_weight(unit: Connector1WeightUnit): Float
+	"""
+	Standard luggage capacity, default in l.
+	"""
+	boot_capacity(unit: Connector1VolumeUnit): Float
+	"""
+	Storage capacity of front trunk/under the hood (frunk), default in l.
+	"""
+	boot_front_capacity: Float
+	"""
+	Maximum luggage capacity, default in l.
+	"""
+	boot_capacity_max(unit: Connector1VolumeUnit): Float
+	"""
+	Indicates if a tow hitch/towbar can be fitted according to vehicle homologation.
+	"""
+	tow_hitch_compatible: Boolean
+	"""
+	Maximum unbraked towing weight, default in kg.
+	"""
+	tow_weight_unbraked(unit: Connector1WeightUnit): Float
+	"""
+	Maximum braked towing weight, default in kg.
+	"""
+	tow_weight_braked(unit: Connector1WeightUnit): Float
+	"""
+	Indicates if tow weight fields are estimations.
+	"""
+	tow_weight_is_estimated: Boolean
+	"""
+	Maximum vertical load / noseweight on tow hitch according to vehicle homologation, default in kg.
+	"""
+	tow_weight_vertical_load(unit: Connector1WeightUnit): Float
+	"""
+	Maximum load on roof of the vehicle, default in kg.
+	"""
+	roof_load_max(unit: Connector1WeightUnit): Float
+	"""
+	Body type, listed in local naming convention where applicable.
+	"""
+	body_type: String
+	"""
+	Segment, listed in local naming convention where applicable.
+	"""
+	segment: String
+	"""
+	Number of seats.
+	"""
+	seats: Int!
+	"""
+	Indicates whether a vehicle has roof rails as a standard.
+	"""
+	has_roofrails: Boolean
+	"""
+	Turning circle of the vehicle kerb-to-kerb, default in meters.
+	"""
+	turning_circle(unit: Connector1TurningCircleUnit): Float
+	"""
+	Name of the vehicle platform used for vehicle (often abbreviated to indicate group platforms).
+	"""
+	vehicle_platform: String
+	"""
+	Indicates if the vehicle platform used for vehicle is a dedicated battery electric vehicle platform.
+	"""
+	vehicle_platform_is_dedicated: Boolean
+}
+type Connector1VehiclePremiumCharge {
+	"""
+	Information about the main connector.
+	"""
+	plug: Connector1VehiclePremiumChargePlug
+	"""
+	Information about vehicles secondary onboard charger.
+	"""
+	second_plug: Connector1VehiclePremiumChargeSecondPlug
+	"""
+	Information about the vehicle standard onboard charger.
+	"""
+	standard: Connector1VehiclePremiumChargeStandardOBC
+	"""
+	Optional upgrade for the standard onboard charger when available.
+	"""
+	option: Connector1VehiclePremiumChargeOptionOBC
+	"""
+	Alternative upgrade for the standard onboard charger when available.
+	"""
+	alternative: Connector1VehiclePremiumChargeAlternativeOBC
+}
+type Connector1VehiclePremiumChargeAlternativeOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC).
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC).
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC).
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC).
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC), default in kmph.
+	"""
+	charge_speed(unit: Connector1ChargeSpeedUnit): Float
+	"""
+	Charging details for the standard OBC at several charging points.
+	"""
+	table: [Connector1VehiclePremiumChargeOBCTable]
+}
+type Connector1VehiclePremiumChargeOBCTable {
+	"""
+	Voltage between phase and neutral for this EVSE (phase voltage).
+	"""
+	evse_phase_voltage: Int
+	"""
+	Current per phase for this EVSE (phase current).
+	"""
+	evse_phase_amperage: Int
+	"""
+	Number of phases for this EVSE.
+	"""
+	evse_phases: Int
+	"""
+	Voltage between phase and neutral used by standard OBC (phase voltage).
+	"""
+	charge_phase_voltage: Int
+	"""
+	Current per phase used by standard OBC (phase current).
+	"""
+	charge_phase_amperage: Float
+	"""
+	Number of phases used by standard OBC.
+	"""
+	charge_phases: Int
+	"""
+	Power used by standard OBC (before OBC losses).
+	"""
+	charge_power: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC with this EVSE).
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC with this EVSE), default in kmph.
+	"""
+	charge_speed(unit: Connector1ChargeSpeedUnit): Float
+}
+type Connector1VehiclePremiumChargeOptionOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC).
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC).
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC).
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC).
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC), default in kmph.
+	"""
+	charge_speed(unit: Connector1ChargeSpeedUnit): Float
+	"""
+	Charging details for the standard OBC at several charging points.
+	"""
+	table: [Connector1VehiclePremiumChargeOBCTable]
+}
+type Connector1VehiclePremiumChargePlug {
+	"""
+	Type of charge port on vehicle.
+	"""
+	value: Connector1ConnectorType
+	"""
+	Indicates if value is an estimate.
+	"""
+	is_estimated: Boolean
+	"""
+	Location of charge port.
+	"""
+	location: String
+}
+type Connector1VehiclePremiumChargePower {
+	"""
+	Maximum value.
+	"""
+	max: Float
+	"""
+	Average value.
+	"""
+	average: Float
+}
+type Connector1VehiclePremiumChargeSecondPlug {
+	"""
+	Location of charge port.
+	"""
+	location: String
+	"""
+	Indicates if second charge port is optional.
+	"""
+	is_optional: Boolean
+}
+type Connector1VehiclePremiumChargeStandardOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC).
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC).
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC).
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC).
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC), default in kmph.
+	"""
+	charge_speed(unit: Connector1ChargeSpeedUnit): Float
+	"""
+	Indicates if Charge_Standard fields are estimated.
+	"""
+	is_estimated: Boolean
+	"""
+	Charging details for the standard OBC at several charging points.
+	"""
+	table: [Connector1VehiclePremiumChargeOBCTable]
+}
+type Connector1VehiclePremiumDrivetrain {
+	"""
+	Type of drivetrain.
+	"""
+	type: Connector1VehicleDrivetrainType!
+	"""
+	Fuel type.
+	"""
+	fuel: Connector1VehicleFuel
+	"""
+	Propulsion type.
+	"""
+	propulsion: Connector1VehiclePropulsion
+	"""
+	Indicates if propulsion field is estimated.
+	"""
+	propulsion_is_estimated: Boolean
+	"""
+	Maximum (combined) power output, default in kw.
+	"""
+	power(unit: Connector1PowerUnit): Float
+	"""
+	Indicates if power field is estimated.
+	"""
+	power_is_estimated: Boolean
+	"""
+	Maximum (combine) power output, default in horsepower (PS).
+	"""
+	power_hp(unit: Connector1PowerUnit): Float
+	"""
+	Maximum (combine) torque output, default in newton meter.
+	"""
+	torque(unit: Connector1TorqueUnit): Float
+	"""
+	Indicates if torque field is estimated.
+	"""
+	torque_is_estimated: Boolean
+}
+type Connector1VehiclePremiumEfficiency {
+	"""
+	Rated efficiency in WLTP combined cycle.
+	"""
+	wltp: Connector1VehiclePremiumEfficiencyWLTP
+	"""
+	Rated efficiency in WLTP combined cycle (TEH / least efficient trim).
+	"""
+	wltp_teh: Connector1VehiclePremiumEfficiencyWLTPTEH
+	"""
+	Rated efficiency in NEDC combined cycle.
+	"""
+	nedc: Connector1VehiclePremiumEfficiencyNEDC
+	"""
+	Vehicle efficiency based on provider range.
+	"""
+	provider: Connector1VehiclePremiumEfficiencyProvider
+}
+type Connector1VehiclePremiumEfficiencyNEDC {
+	"""
+	Rated efficiency in NEDC combined cycle, default in kWh/100 km.
+	"""
+	value(unit: Connector1ConsumptionUnit): Float
+	"""
+	Rated efficiency in NEDC combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	fuel_equivalent(unit: Connector1FuelConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in NEDC combined cycle (based on value), default in kWh/100 km.
+	"""
+	vehicle(unit: Connector1ConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in NEDC combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	vehicle_fuel_equivalent(unit: Connector1FuelConsumptionUnit): Float
+	"""
+	Rated CO2 emissions in NEDC combined cycle in battery-only mode (NULL if not NEDC rated), default in gr/km.
+	"""
+	co2(unit: Connector1EmissionRateUnit): Float
+}
+type Connector1VehiclePremiumEfficiencyProvider {
+	"""
+	Vehicle efficiency based on RealRange (usable battery/range), default in kWh/100 km.
+	"""
+	value(unit: Connector1ConsumptionUnit): Float
+	"""
+	Vehicle efficiency based on RealRange presented in gas equivalent, default in l/100 km.
+	"""
+	fuel_equivalent(unit: Connector1FuelConsumptionUnit): Float
+	"""
+	Worst conditions are based on -10°C and use of heating.
+	"""
+	worst: Connector1VehiclePremiumEfficiencyProviderValue
+	"""
+	Best conditions are based on 23°C and no use of A/C.
+	"""
+	best: Connector1VehiclePremiumEfficiencyProviderValue
+}
+type Connector1VehiclePremiumEfficiencyProviderValue {
+	"""
+	Estimated value on highway or express roads, default in km.
+	"""
+	highway(unit: Connector1DistanceUnit): Float
+	"""
+	Estimated value on city roads, default in km.
+	"""
+	city(unit: Connector1DistanceUnit): Float
+	"""
+	Estimated combined value, default in km.
+	"""
+	combined(unit: Connector1DistanceUnit): Float
+}
+type Connector1VehiclePremiumEfficiencyWLTP {
+	"""
+	Rated efficiency in WLTP combined cycle, default in kWh/100 km.
+	"""
+	value(unit: Connector1ConsumptionUnit): Float
+	"""
+	Rated efficiency in WLTP combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	fuel_equivalent(unit: Connector1FuelConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in WLTP combined cycle (based on value), default in kWh/100 km.
+	"""
+	vehicle(unit: Connector1ConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in WLTP combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	vehicle_fuel_equivalent(unit: Connector1FuelConsumptionUnit): Float
+	"""
+	Rated CO2 emissions in WLTP combined cycle in battery-only mode (NULL if not WLTP rated), default in gr/km.
+	"""
+	co2(unit: Connector1EmissionRateUnit): Float
+}
+type Connector1VehiclePremiumEfficiencyWLTPTEH {
+	"""
+	Rated efficiency in WLTP TEH combined cycle (TEH/least efficient trim).
+	"""
+	value(unit: Connector1ConsumptionUnit): Float
+	"""
+	Rated efficiency in WLTP TEH combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	fuel_equivalent(unit: Connector1FuelConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in WLTP TEH combined cycle (based on value), default in kWh/100 km.
+	"""
+	vehicle(unit: Connector1ConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in WLTP TEH combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	vehicle_fuel_equivalent(unit: Connector1FuelConsumptionUnit): Float
+	"""
+	Rated CO2 emissions in WLTP TEH combined cycle in battery-only mode (NULL if not WLTP TEH rated), default in gr/km.
+	"""
+	co2(unit: Connector1EmissionRateUnit): Float
+}
+type Connector1VehiclePremiumFastCharge {
+	"""
+	Details about the connector.
+	"""
+	plug: Connector1VehiclePremiumChargePlug
+	"""
+	Power during fast charging from 10% to 80% SoC (optimal conditions, fastest charger).
+	"""
+	power: Connector1VehiclePremiumChargePower
+	"""
+	Minutes needed to charge from 10% to 80%, with average charging power (optimal conditions, fastest charger).
+	"""
+	charge_time: Float
+	"""
+	Charging speed during fast charging from 10% to 80% (optimal conditions, fastest charger), default is kmph.
+	"""
+	charge_speed(unit: Connector1ChargeSpeedUnit): Float
+	"""
+	Indicates if fast charge is optional in some markets/regions.
+	"""
+	is_optional: Boolean
+	"""
+	Indicates what fields are estimated.
+	"""
+	is_estimated: Boolean
+	"""
+	Charging details for fast charging.
+	"""
+	table: [Connector1VehiclePremiumFastChargeTable]
+}
+type Connector1VehiclePremiumFastChargeTable {
+	"""
+	Charging details for fast charging (format: ChargerConnector-ChargerPower-AC/DC).
+	"""
+	format: String
+	"""
+	Fast charge power.
+	"""
+	power: Connector1VehiclePremiumChargePower
+	"""
+	Minutes needed to charge from 10% to 80% (optimal conditions).
+	"""
+	charge_time: Int
+	"""
+	Charging speed during fast charging from 10% to 80% (optimal conditions), default is kmph.
+	"""
+	charge_speed(unit: Connector1ChargeSpeedUnit): Float
+	"""
+	Indicates if maximum power during fast charging is limited by the vehicle.
+	"""
+	is_limited: Boolean
+	"""
+	Indicates if average power during fast charging is limited by the vehicle.
+	"""
+	average_is_limited: Boolean
+}
+type Connector1VehiclePremiumMedia {
+	"""
+	URL for more details.
+	"""
+	provider_details_url: String
+	"""
+	Featured image of the vehicle from a 45-degree angle.
+	"""
+	image: Connector1VehicleImage!
+	"""
+	Latest maker logo.
+	"""
+	brand: Connector1VehicleImage!
+	"""
+	All images of the vehicle.
+	"""
+	image_list: [Connector1VehicleImage!]!
+	"""
+	Latest video.
+	"""
+	video: Connector1VehicleVideo
+	"""
+	All videos of the vehicle.
+	"""
+	video_list: [Connector1VehicleVideo!]
+	"""
+	URL of the OEM page for this vehicle.
+	"""
+	oem_details_url: String
+}
+type Connector1VehiclePremiumNaming {
+	"""
+	Vehicle manufacturer name.
+	"""
+	make: String!
+	"""
+	Vehicle model name.
+	"""
+	model: String!
+	"""
+	Version, edition or submodel of the vehicle.
+	"""
+	version: String
+	"""
+	Another submodel level of the vehicle.
+	"""
+	edition: String
+	"""
+	Vehicle model version. Added by Chargetrip as an alternative for when a vehicle manufacturer does not provide a version name, or uses the same version name across all trims or consecutive years.
+	"""
+	chargetrip_version: String!
+	"""
+	Vehicle model length version.
+	"""
+	length_version: String
+	"""
+	Vehicle model height version.
+	"""
+	height_version: String
+}
+type Connector1VehiclePremiumPerformance {
+	"""
+	Acceleration 0-100 km/h, default in seconds.
+	"""
+	acceleration(unit: Connector1AccelerationUnit): Float
+	"""
+	Indicates if acceleration field is estimated.
+	"""
+	acceleration_is_estimated: Boolean
+	"""
+	Top speed of the vehicle, default in km/h.
+	"""
+	top_speed(unit: Connector1SpeedUnit): Float
+	"""
+	Indicates if top_speed field is estimated.
+	"""
+	top_speed_is_estimated: Boolean
+}
+type Connector1VehiclePremiumPrice {
+	"""
+	Starting price for German market.
+	"""
+	DE: Connector1VehiclePremiumPriceValueWithGrant
+	"""
+	Starting price for Dutch market.
+	"""
+	NL: Connector1VehiclePremiumPriceValueWithGrant
+	"""
+	Starting price for British market.
+	"""
+	GB: Connector1VehiclePremiumPriceValueWithGrant
+}
+type Connector1VehiclePremiumPriceValueWithGrant {
+	"""
+	Starting price for local market expressed in the currency in the field currency.
+	"""
+	value(unit: Connector1CurrencyUnit): Float
+	"""
+	Currency in which the value without optional field conversion is expressed.
+	"""
+	currency: Connector1CurrencyUnit
+	"""
+	Indicates if price value is based on estimates.
+	"""
+	is_estimated: Boolean
+	"""
+	Grant is applied to value.
+	"""
+	grant_applied: Int
+}
+type Connector1VehiclePremiumRange {
+	"""
+	Rated range in WLTP combined cycle (NULL if not WLTP rated), default in km.
+	"""
+	wltp(unit: Connector1ConsumptionUnit): Float
+	"""
+	Indicates if WLTP range is estimated (NULL if not WLTP rated).
+	"""
+	wltp_is_estimated: Boolean
+	"""
+	Rated range in WLTP (TEH/least efficient trim) combined cycle (NULL if not WLTP rated).
+	"""
+	wltp_teh: Int
+	"""
+	Rated range in NEDC combined cycle (NULL if not NEDC rated), default in km.
+	"""
+	nedc(unit: Connector1ConsumptionUnit): Float
+	"""
+	Indicates if NEDC range is estimated (NULL if not NEDC rated).
+	"""
+	nedc_is_estimated: Boolean
+	"""
+	Index range, default in km.
+	"""
+	provider(unit: Connector1ConsumptionUnit): Float
+	"""
+	Indicates if index range is estimated.
+	"""
+	provider_is_estimated: Boolean
+	"""
+	Worst conditions are based on -10°C and use of heating.
+	"""
+	worst: Connector1VehiclePremiumRangeValue!
+	"""
+	Best conditions are based on 23°C and no use of A/C.
+	"""
+	best: Connector1VehiclePremiumRangeValue!
+	"""
+	Chargetrip's custom real-world range provides a carefully calculated display range for all electric vehicle models based on our own research and driving data.
+	CT range is based on the theoretical distance driven using only the electric engine.
+	Vehicles that do not have a full electric drivetrain type ( all except Battery Electric Vehicles / BEV) therefore return relatively small ranges.
+	"""
+	chargetrip_range: Connector1ChargetripRange!
+}
+type Connector1VehiclePremiumRangeValue {
+	"""
+	Estimated value on highway or express roads, default in km.
+	"""
+	highway(unit: Connector1DistanceUnit): Float!
+	"""
+	Estimated value on city roads, default in km.
+	"""
+	city(unit: Connector1DistanceUnit): Float!
+	"""
+	Estimated combined value, default in km.
+	"""
+	combined(unit: Connector1DistanceUnit): Float!
+}
+type Connector1VehiclePremiumRouting {
+	"""
+	Vehicles that support fast charging have a minimum charging speed of 43 kWh.
+	"""
+	fast_charging_support: Boolean!
+	"""
+	Drag coefficient.
+	"""
+	drag_coefficient: Float!
+	"""
+	Tire pressure recommended by manufacturer, default in bar.
+	"""
+	tire_pressure(unit: Connector1PressureUnit): Float!
+	"""
+	Extra consumption model.
+	"""
+	consumption: Connector1VehiclePremiumRoutingConsumption
+	"""
+	Amount of petrol that an equivalent petrol vehicle would consume, default in l/100 km.
+	"""
+	fuel_consumption(unit: Connector1FuelConsumptionUnit): Float
+}
+type Connector1VehiclePremiumRoutingConsumption {
+	"""
+	Consumption, in kWh, of the auxiliaries.
+	"""
+	aux: Connector1VehiclePremiumRoutingConsumptionValue
+	"""
+	Consumption, in kWh, of the battery management system.
+	"""
+	bms: Connector1VehiclePremiumRoutingConsumptionValue
+	"""
+	Consumption, in kWh, of the vehicle in idle mode.
+	"""
+	idle: Connector1VehiclePremiumRoutingConsumptionValue
+}
+type Connector1VehiclePremiumRoutingConsumptionValue {
+	"""
+	Best (lowest) consumption in summer.
+	"""
+	best: Float
+	"""
+	Best (lowest) consumption in winter.
+	"""
+	worst: Float
+}
+type Connector1VehiclePremiumSafety {
+	"""
+	Number of seats equipped with ISOFIX.
+	"""
+	isofix_seats: Int
+	"""
+	EuroNCAP results.
+	"""
+	euro_ncap: Connector1VehiclePremiumSafetyEuroNcap
+}
+type Connector1VehiclePremiumSafetyEuroNcap {
+	"""
+	EuroNCAP rating (out of 5 stars).
+	"""
+	rating: Int
+	"""
+	EuroNCAP year of rating.
+	"""
+	year: Int
+	"""
+	EuroNCAP rating of adult protection (out of 100%).
+	"""
+	adult: Int
+	"""
+	EuroNCAP rating of child protection (out of 100%).
+	"""
+	child: Int
+	"""
+	EuroNCAP rating of vulnerable road users (out of 100%).
+	"""
+	vru: Int
+	"""
+	EuroNCAP rating of safety assists (out of 100%).
+	"""
+	sa: Int
+}
+"""
+Propulsion.
+"""
+enum Connector1VehiclePropulsion {
+	AWD
+	FRONT
+	REAR
+}
+"""
+Status of a vehicle provider.
+"""
+enum Connector1VehicleProviderStatus {
+	NEW
+	ATTACHED
+	DETACHED
+	ARCHIVED
+}
+enum Connector1VehiclePurpose {
+	PASSENGER
+	CARGO
+	UTILITY
+}
+type Connector1VehicleRange {
+	"""
+	Index range, default in km.
+	"""
+	provider(unit: Connector1DistanceUnit): Float
+	"""
+	Indicates if index range is estimated.
+	"""
+	provider_is_estimated: Boolean
+	"""
+	Worst conditions are based on -10°C and use of heating.
+	"""
+	worst: Connector1VehicleRangeValue!
+	"""
+	Best conditions are based on 23°C and no use of A/C.
+	"""
+	best: Connector1VehicleRangeValue!
+	"""
+	Chargetrip's custom real-world range provides a carefully calculated display range for all electric vehicle models based on our own research and driving data.
+	CT range is based on the theoretical distance driven using only the electric engine.
+	Vehicles that do not have a full electric drivetrain type ( all except Battery Electric Vehicles / BEV) therefore return relatively small ranges.
+	"""
+	chargetrip_range: Connector1ChargetripRange!
+}
+type Connector1VehicleRangeValue {
+	"""
+	Estimated value on the highway or express roads, default in km.
+	"""
+	highway(unit: Connector1DistanceUnit): Float!
+	"""
+	Estimated value on the cities road, default in km.
+	"""
+	city(unit: Connector1DistanceUnit): Float!
+	"""
+	Estimated combined value, default in km.
+	"""
+	combined(unit: Connector1DistanceUnit): Float!
+}
+enum Connector1VehicleRegion {
+	AF
+	AS
+	EU
+	NA
+	OC
+	SA
+}
+type Connector1VehicleRouting {
+	"""
+	Vehicles that support fast charging have a minimum charging speed of 43 kWh.
+	"""
+	fast_charging_support: Boolean!
+}
+input Connector1VehicleSpeedInput {
+	"""
+	Value of the vehicle speed
+	"""
+	value: Float!
+	"""
+	Type of the vehicle speed
+	"""
+	type: Connector1SpeedUnit!
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: Connector1TelemetryInputSource = "manual"
+}
+"""
+Status of a vehicle.
+"""
+enum Connector1VehicleStatus {
+	DRAFT
+	PUBLIC
+	PRIVATE
+	ARCHIVED
+}
+enum Connector1VehicleType {
+	MOTORCYCLE
+	MICROCAR
+	CAR
+	PICKUP
+	VAN
+	BUS
+	TRUCK
+	UTILITY
+}
+type Connector1VehicleVideo {
+	"""
+	Video id.
+	"""
+	id: ID
+	"""
+	Full path URL of a video.
+	"""
+	url: String
+}
+enum Connector1VolumeUnit {
+	LITER
+	CUBIC_METER
+	CUBIC_FOOT
+}
+enum Connector1WeightUnit {
+	KILOGRAM
+	POUND
+}
+type Mutation {
+	"""
+	Access to embedded Connector1 API.
+	"""
+	connector1: Connector1Mutation
+}
+type Query {
+	"""
+	Access to embedded Connector1 API.
+	"""
+	connector1: Connector1Query
+}
+schema {
+	query: Query
+	mutation: Mutation
+	subscription: Subscription
+}
+

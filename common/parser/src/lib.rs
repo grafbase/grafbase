@@ -69,8 +69,8 @@ pub enum Error {
     ),
     #[error("{0:?}")]
     Validation(Vec<RuleError>),
-    #[error("Errors parsing {0} connector: \n\n{}", .1.join("\n"))]
-    ConnectorErrors(String, Vec<String>, Pos),
+    #[error("Errors parsing {} connector: \n\n{}", .0.as_deref().unwrap_or("unnamed"), .1.join("\n"))]
+    ConnectorErrors(Option<String>, Vec<String>, Pos),
 }
 
 impl From<Vec<RuleError>> for Error {
@@ -164,7 +164,7 @@ async fn parse_connectors<'a>(
             Ok(registry) => {
                 connector_parsers::merge_registry(ctx, registry, position);
             }
-            Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),
+            Err(errors) => return Err(Error::ConnectorErrors(Some(directive_name), errors, position)),
         }
     }
 

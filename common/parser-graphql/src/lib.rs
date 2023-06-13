@@ -90,7 +90,7 @@ static BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
 pub async fn parse_schema(
     id: u16,
     client: reqwest::Client,
-    namespace: &str,
+    namespace: Option<&str>,
     url: &Url,
     headers: impl ExactSizeIterator<Item = (&str, &str)>,
     introspection_headers: impl ExactSizeIterator<Item = (&str, &str)>,
@@ -118,7 +118,7 @@ pub async fn parse_schema(
 
     let parser = Parser {
         id,
-        prefix: namespace.to_string(),
+        prefix: namespace.map_or_else(|| format!("Connector{id}"), ToOwned::to_owned),
         url: url.clone(),
     };
 
@@ -388,7 +388,10 @@ mod tests {
     use std::collections::BTreeMap;
 
     use serde_json::json;
-    use wiremock::{matchers::method, Mock, MockServer, ResponseTemplate};
+    use wiremock::{
+        matchers::{header, method},
+        Mock, MockServer, ResponseTemplate,
+    };
 
     use super::*;
 
@@ -399,11 +402,20 @@ mod tests {
             ("x-app-id", "623996f3c35130073829b252"),
         ];
 
+        let data = include_str!("../tests/chargetrip_introspection.json");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(header(introspection_headers[0].0, introspection_headers[0].1))
+            .and(header(introspection_headers[1].0, introspection_headers[1].1))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(data, "application/json"))
+            .mount(&server)
+            .await;
+
         let result = parse_schema(
             1,
             reqwest::Client::new(),
-            "FooBar",
-            &Url::parse("https://api.chargetrip.io/graphql").unwrap(),
+            Some("FooBar"),
+            &Url::parse(&server.uri()).unwrap(),
             std::iter::empty(),
             introspection_headers.iter().copied(),
         )
@@ -441,7 +453,7 @@ mod tests {
         let result = parse_schema(
             1,
             reqwest::Client::new(),
-            "FooBar",
+            Some("FooBar"),
             &Url::parse(&server.uri()).unwrap(),
             headers.iter().copied(),
             std::iter::empty(),
@@ -460,5 +472,29 @@ mod tests {
                     .collect::<Vec<_>>()
             )])
         );
+    }
+
+    #[tokio::test]
+    async fn test_unnamed_connector() {
+        let data = include_str!("../tests/chargetrip_introspection.json");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(data, "application/json"))
+            .mount(&server)
+            .await;
+
+        let result = parse_schema(
+            1,
+            reqwest::Client::new(),
+            None,
+            &Url::parse(&server.uri()).unwrap(),
+            std::iter::empty(),
+            std::iter::empty(),
+        )
+        .await
+        .unwrap()
+        .export_sdl(false);
+
+        insta::assert_snapshot!(result);
     }
 }
