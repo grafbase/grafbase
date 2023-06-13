@@ -398,7 +398,7 @@ export class GrafbaseSchema {
   public env(variableName: string): string {
     const value = process.env[variableName]
 
-    if (!value) {
+    if (value === undefined || value === null) {
       throw `Environment variable ${variableName} is not set`
     }
 
