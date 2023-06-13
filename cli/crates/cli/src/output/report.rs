@@ -2,7 +2,7 @@ use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
-use backend::project::{ConfigType, ProjectTemplate};
+use backend::project::{ConfigType, Template};
 use colored::Colorize;
 use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, types::ResolverMessageLevel};
 use common::{
@@ -42,11 +42,11 @@ pub fn start_server(resolvers_reported: bool, port: u16, start_port: u16) {
     );
 }
 
-pub fn project_created(name: Option<&str>, template: ProjectTemplate<'_>) {
+pub fn project_created(name: Option<&str>, template: Template<'_>) {
     let slash = std::path::MAIN_SEPARATOR.to_string();
 
     let schema_file_name = match template {
-        ProjectTemplate::FromDefault(ConfigType::TypeScript) => GRAFBASE_TS_CONFIG_FILE_NAME,
+        Template::FromDefault(ConfigType::TypeScript) => GRAFBASE_TS_CONFIG_FILE_NAME,
         _ => GRAFBASE_SCHEMA_FILE_NAME,
     };
 
@@ -70,7 +70,7 @@ pub fn project_created(name: Option<&str>, template: ProjectTemplate<'_>) {
         );
     }
 
-    if let ProjectTemplate::FromDefault(ConfigType::TypeScript) = template {
+    if let Template::FromDefault(ConfigType::TypeScript) = template {
         println!(
             "We've added our SDK to your {}, make sure to install dependencies before continuing.",
             watercolor!("package.json", @BrightBlue)

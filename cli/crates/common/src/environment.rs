@@ -40,11 +40,6 @@ impl GrafbaseSchemaPath {
         &self.location
     }
 
-    /// True, if the project uses typescript config
-    pub fn uses_typescript_config(&self) -> bool {
-        matches!(&self.location, SchemaLocation::TsConfig(_))
-    }
-
     fn ts_config(path: PathBuf) -> Self {
         Self {
             location: SchemaLocation::TsConfig(path),
@@ -330,14 +325,11 @@ pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, ver
     let package_json_path = project_dir.join(PACKAGE_JSON_NAME);
     let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;
 
-    let mut package_json = match serde_json::from_reader(&file) {
-        Ok(Value::Object(obj)) => obj,
-        _ => {
-            return Err(CommonError::AccessPackageJson(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "the file is not a JSON object",
-            )));
-        }
+    let Ok(Value::Object(mut package_json)) = serde_json::from_reader(&file) else {
+        return Err(CommonError::AccessPackageJson(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "the file is not a JSON object",
+        )));
     };
 
     match package_json

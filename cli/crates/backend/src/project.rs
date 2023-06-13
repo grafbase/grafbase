@@ -50,7 +50,7 @@ impl ConfigType {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum ProjectTemplate<'a> {
+pub enum Template<'a> {
     FromUrl(&'a str),
     FromDefault(ConfigType),
 }
@@ -97,7 +97,7 @@ pub enum ProjectTemplate<'a> {
 ///
 /// - returns [`BackendError::ReadRepositoryInformation`] if the request to get the information for a repository returned a response that could not be parsed
 #[tokio::main]
-pub async fn init(name: Option<&str>, template: ProjectTemplate<'_>) -> Result<(), BackendError> {
+pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), BackendError> {
     let project_path = to_project_path(name)?;
     let grafbase_path = project_path.join(GRAFBASE_DIRECTORY_NAME);
 
@@ -106,7 +106,7 @@ pub async fn init(name: Option<&str>, template: ProjectTemplate<'_>) -> Result<(
     }
 
     match template {
-        ProjectTemplate::FromUrl(template) => {
+        Template::FromUrl(template) => {
             // as directory names cannot contain slashes, and URLs with no scheme or path cannot
             // be differentiated from a valid template name,
             // anything with a slash is treated as a URL
@@ -127,7 +127,7 @@ pub async fn init(name: Option<&str>, template: ProjectTemplate<'_>) -> Result<(
                 .await?;
             }
         }
-        ProjectTemplate::FromDefault(config_type) => {
+        Template::FromDefault(config_type) => {
             tokio::fs::create_dir_all(&grafbase_path)
                 .await
                 .map_err(BackendError::CreateGrafbaseDirectory)?;
@@ -147,7 +147,7 @@ pub async fn init(name: Option<&str>, template: ProjectTemplate<'_>) -> Result<(
 
                     let write_schema = fs::write(schema_path, DEFAULT_SCHEMA_TS).map_err(BackendError::WriteSchema);
 
-                    add_sdk.and_then(|_| write_schema)
+                    add_sdk.and(write_schema)
                 }
                 ConfigType::GraphQL => {
                     let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
