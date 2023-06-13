@@ -337,18 +337,6 @@ describe('Model generator', () => {
     `)
   })
 
-  it('generates a length with minimum', () => {
-    const model = g.model('User', {
-      name: g.string().length({ min: 2 })
-    })
-
-    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
-      "type User @model {
-        name: String! @length(min: 2)
-      }"
-    `)
-  })
-
   it('generates a length with minimum and unique + search', () => {
     const model = g.model('User', {
       name: g.string().length({ min: 2 }).unique().search()
@@ -357,6 +345,18 @@ describe('Model generator', () => {
     expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @length(min: 2) @unique @search
+      }"
+    `)
+  })
+
+  it('generates a length with minimum', () => {
+    const model = g.model('User', {
+      name: g.string().length({ min: 2 })
+    })
+
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @length(min: 2)
       }"
     `)
   })
@@ -381,6 +381,42 @@ describe('Model generator', () => {
     expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @length(min: 2, max: 255)
+      }"
+    `)
+  })
+
+  it('generates a list length with minimum', () => {
+    const model = g.model('User', {
+      name: g.string().list().length({ min: 2 })
+    })
+
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
+      "type User @model {
+        name: [String!]! @length(min: 2)
+      }"
+    `)
+  })
+
+  it('generates a list length with maximum', () => {
+    const model = g.model('User', {
+      name: g.string().list().length({ max: 255 })
+    })
+
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
+      "type User @model {
+        name: [String!]! @length(max: 255)
+      }"
+    `)
+  })
+
+  it('generates a list length with minimum and maximum', () => {
+    const model = g.model('User', {
+      name: g.string().list().length({ min: 2, max: 255 })
+    })
+
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
+      "type User @model {
+        name: [String!]! @length(min: 2, max: 255)
       }"
     `)
   })
