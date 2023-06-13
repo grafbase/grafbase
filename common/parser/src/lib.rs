@@ -170,7 +170,7 @@ async fn parse_connectors<'a>(
 
     for (mut directive, position) in std::mem::take(&mut ctx.graphql_directives) {
         directive.id = Some(ctx.connector_id_generator.new_id());
-        let directive_name = directive.name.clone();
+        let directive_name = directive.namespace().map(ToOwned::to_owned);
         match connector_parsers.fetch_and_parse_graphql(directive).await {
             Ok(registry) => {
                 connector_parsers::merge_registry(ctx, registry, position);

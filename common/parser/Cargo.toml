@@ -22,6 +22,7 @@ secrecy = "0.8"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
+tracing = { workspace = true, features = ["log"] }
 url = { version = "2" }
 thiserror = { workspace = true }
 tuple = "0.5"

@@ -1,4 +1,5 @@
 use dynaql_parser::types::SchemaDefinition;
+use tracing::warn;
 use url::Url;
 
 use crate::directive_de::parse_directive;
@@ -22,13 +23,43 @@ pub struct GraphqlDirective {
     ///
     /// If unset, a namespace is auto-generated based on the `id`, or an error is returned if no
     /// `id` is defined.
-    pub name: Option<String>,
+    namespace: Option<String>,
+
+    /// The name of the connector.
+    ///
+    /// See the `namespace` field for more details.
+    ///
+    /// # Deprecation
+    ///
+    /// This field was renamed to `namespace`, to better align with its intent.
+    ///
+    /// If this field exists in the schema, a warning is logged, until a future date at which point
+    /// an error is returned.
+    ///
+    /// If both fields exist, `namespace` is used over `name`, a warning is logged, `namespace` is
+    /// used over `name`, until a future date, at which point an error is returned.
+    #[serde(default)]
+    #[serde(deserialize_with = "deprecated_name")]
+    name: Option<String>,
 
     pub url: Url,
     #[serde(default)]
     headers: Vec<Header>,
     #[serde(default)]
     introspection_headers: Option<Vec<Header>>,
+}
+
+fn deprecated_name<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    let name: Option<String> = serde::de::Deserialize::deserialize(deserializer)?;
+
+    if name.is_some() {
+        warn!("`name` field on `@graphql` directive is deprecated. Use `namespace` instead.");
+    }
+
+    Ok(name)
 }
 
 impl GraphqlDirective {
@@ -44,6 +75,14 @@ impl GraphqlDirective {
             .unwrap_or(&self.headers)
             .iter()
             .map(|header| (header.name.as_str(), header.value.as_str()))
+    }
+
+    /// The optional *namespace* for the given GraphQL directive.
+    ///
+    /// This will default to the `namespace` field if present, or the (deprecated) `name` field
+    /// otherwise.
+    pub fn namespace(&self) -> Option<&str> {
+        self.namespace.as_deref().or(self.name.as_deref())
     }
 }
 
@@ -145,6 +184,7 @@ mod tests {
                 id: Some(
                     0,
                 ),
+                namespace: None,
                 name: Some(
                     "countries",
                 ),
@@ -208,6 +248,7 @@ mod tests {
                 id: Some(
                     0,
                 ),
+                namespace: None,
                 name: None,
                 url: Url {
                     scheme: "https",
