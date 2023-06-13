@@ -88,8 +88,9 @@ static BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
 ///
 /// See [`Error`] for more details.
 pub async fn parse_schema(
+    id: u16,
     client: reqwest::Client,
-    namespace: &str,
+    namespace: Option<&str>,
     url: &Url,
     headers: impl ExactSizeIterator<Item = (&str, &str)>,
     introspection_headers: impl ExactSizeIterator<Item = (&str, &str)>,
@@ -116,13 +117,14 @@ pub async fn parse_schema(
     let schema = data.into_schema().map_err(|err| vec![err.into()])?;
 
     let parser = Parser {
-        prefix: namespace.to_string(),
+        id,
+        prefix: namespace.map_or_else(|| format!("Connector{id}"), ToOwned::to_owned),
         url: url.clone(),
     };
 
     let mut registry = parser.into_registry(schema);
     registry.http_headers.insert(
-        namespace.to_string(),
+        format!("Connector{id}"),
         headers.map(|(k, v)| (k.to_string(), v.to_string())).collect(),
     );
 
@@ -130,6 +132,7 @@ pub async fn parse_schema(
 }
 
 struct Parser {
+    id: u16,
     prefix: String,
     url: Url,
 }
@@ -293,6 +296,7 @@ impl Parser {
                 resolve: Some(Resolver {
                     id: None,
                     r#type: ResolverType::Graphql(graphql::Resolver {
+                        id: self.id,
                         url: self.url.clone(),
                         api_name: self.prefix.clone(),
                     }),
@@ -340,6 +344,7 @@ impl Parser {
                 resolve: Some(Resolver {
                     id: None,
                     r#type: ResolverType::Graphql(graphql::Resolver {
+                        id: self.id,
                         url: self.url.clone(),
                         api_name: self.prefix.clone(),
                     }),
@@ -380,6 +385,14 @@ pub struct ApiMetadata {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
+    use serde_json::json;
+    use wiremock::{
+        matchers::{header, method},
+        Mock, MockServer, ResponseTemplate,
+    };
+
     use super::*;
 
     #[tokio::test]
@@ -389,12 +402,94 @@ mod tests {
             ("x-app-id", "623996f3c35130073829b252"),
         ];
 
+        let data = include_str!("../tests/chargetrip_introspection.json");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(header(introspection_headers[0].0, introspection_headers[0].1))
+            .and(header(introspection_headers[1].0, introspection_headers[1].1))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(data, "application/json"))
+            .mount(&server)
+            .await;
+
         let result = parse_schema(
+            1,
             reqwest::Client::new(),
-            "FooBar",
-            &Url::parse("https://api.chargetrip.io/graphql").unwrap(),
+            Some("FooBar"),
+            &Url::parse(&server.uri()).unwrap(),
             std::iter::empty(),
             introspection_headers.iter().copied(),
+        )
+        .await
+        .unwrap()
+        .export_sdl(false);
+
+        insta::assert_snapshot!(result);
+    }
+
+    #[tokio::test]
+    async fn test_headers() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "data": {
+                    "__schema": {
+                        "queryType": {"name":""},
+                        "mutationType": {"name":""},
+                        "subscriptionType": {"name":""},
+                        "types": [],
+                        "directives": [],
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let headers = &[
+            ("x-client-id", "5ed1175bad06853b3aa1e492"),
+            ("x-app-id", "623996f3c35130073829b252"),
+        ];
+
+        let result = parse_schema(
+            1,
+            reqwest::Client::new(),
+            Some("FooBar"),
+            &Url::parse(&server.uri()).unwrap(),
+            headers.iter().copied(),
+            std::iter::empty(),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            result.http_headers,
+            BTreeMap::from([(
+                "Connector1".to_owned(),
+                headers
+                    .iter()
+                    .copied()
+                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                    .collect::<Vec<_>>()
+            )])
+        );
+    }
+
+    #[tokio::test]
+    async fn test_unnamed_connector() {
+        let data = include_str!("../tests/chargetrip_introspection.json");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(data, "application/json"))
+            .mount(&server)
+            .await;
+
+        let result = parse_schema(
+            1,
+            reqwest::Client::new(),
+            None,
+            &Url::parse(&server.uri()).unwrap(),
+            std::iter::empty(),
+            std::iter::empty(),
         )
         .await
         .unwrap()
