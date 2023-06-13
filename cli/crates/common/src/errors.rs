@@ -25,4 +25,8 @@ pub enum CommonError {
     /// returned if ~/.grafbase could not be created
     #[error("could not create '~/.grafbase'\nCaused by: {0}")]
     CreateUserDotGrafbaseFolder(std::io::Error),
+    #[error("could not open the project 'package.json':\nCaused by: {0}")]
+    AccessPackageJson(std::io::Error),
+    #[error("could not serialize the project 'package.json':\nCaused by: {0}")]
+    SerializePackageJson(serde_json::Error),
 }

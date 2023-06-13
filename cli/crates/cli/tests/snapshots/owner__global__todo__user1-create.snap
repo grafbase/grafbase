@@ -6,9 +6,9 @@ expression: todo_created
   "data": {
     "todoCreate": {
       "todo": {
-        "complete": false,
         "id": "[id]",
-        "title": "1"
+        "title": "1",
+        "complete": false
       }
     }
   }

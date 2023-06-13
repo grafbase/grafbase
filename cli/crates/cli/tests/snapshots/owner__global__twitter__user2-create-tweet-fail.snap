@@ -6,13 +6,13 @@ expression: "client.gql::<Value>(OWNER_TWITTER_TWEET_CREATE).bearer(USER2).varia
   "data": null,
   "errors": [
     {
+      "message": "An issue happened while applying the transaction.",
       "locations": [
         {
-          "column": 3,
-          "line": 2
+          "line": 2,
+          "column": 3
         }
       ],
-      "message": "An issue happened while applying the transaction.",
       "path": [
         "tweetCreate"
       ]

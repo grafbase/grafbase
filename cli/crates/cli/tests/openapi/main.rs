@@ -6,6 +6,7 @@ mod remote_unions;
 
 use std::net::SocketAddr;
 
+use backend::project::ConfigType;
 use crossbeam_channel::{Receiver, Sender};
 use serde_json::{json, Value};
 use utils::{async_client::AsyncClient, environment::Environment};
@@ -139,7 +140,7 @@ impl Match for RequestBodySpy {
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);
     env.grafbase_dev_watch();

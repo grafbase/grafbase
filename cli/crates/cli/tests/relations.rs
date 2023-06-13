@@ -1,5 +1,6 @@
 mod utils;
 
+use backend::project::ConfigType;
 use serde_json::{json, Value};
 use utils::consts::{
     REALTIONS_LINK_SECONDARY_AUTHOR_TO_BLOG, REALTIONS_RENAME_AUTHOR, RELATIONS_LINK_BLOG_TO_AUTHOR,
@@ -12,7 +13,7 @@ use utils::environment::Environment;
 fn relations() {
     let mut env = Environment::init();
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
 
     env.write_schema(RELATIONS_SCHEMA);
 
@@ -122,7 +123,7 @@ fn test_relation_unlinking() {
 
     let mut env = Environment::init();
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
 
     env.write_schema(SCHEMA);
 
@@ -228,7 +229,7 @@ fn test_relation_unlink_and_create() {
 
     let mut env = Environment::init();
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
 
     env.write_schema(SCHEMA);
 
