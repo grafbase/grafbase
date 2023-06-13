@@ -182,11 +182,6 @@ impl Parser {
 
     fn update_enum(&self, v: &mut cynic_introspection::EnumType) {
         v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
-        v.values.iter_mut().for_each(Self::update_enum_value);
-    }
-
-    fn update_enum_value(v: &mut cynic_introspection::EnumValue) {
-        v.name = v.name.to_screaming_snake_case();
     }
 
     fn update_interface(&self, v: &mut cynic_introspection::InterfaceType) {
@@ -477,6 +472,30 @@ mod tests {
     #[tokio::test]
     async fn test_unnamed_connector() {
         let data = include_str!("../tests/chargetrip_introspection.json");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(data, "application/json"))
+            .mount(&server)
+            .await;
+
+        let result = parse_schema(
+            1,
+            reqwest::Client::new(),
+            None,
+            &Url::parse(&server.uri()).unwrap(),
+            std::iter::empty(),
+            std::iter::empty(),
+        )
+        .await
+        .unwrap()
+        .export_sdl(false);
+
+        insta::assert_snapshot!(result);
+    }
+
+    #[tokio::test]
+    async fn test_custom_enum_values() {
+        let data = include_str!("../tests/enum_value.json");
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .respond_with(ResponseTemplate::new(200).set_body_raw(data, "application/json"))
