@@ -109,11 +109,11 @@ pub enum ApiError {
     ReadArchive(io::Error),
 
     /// returned if a project file could not be read
-    #[error("could not read a project file\ncaused by: {0}")]
+    #[error("could not read a project file\nCaused by: {0}")]
     ReadProjectFile(walkdir::Error),
 
     /// returned if a project file could not be opened
-    #[error("could not open a project file\ncaused by: {0}")]
+    #[error("could not open a project file\nCaused by: {0}")]
     OpenProjectFile(io::Error),
 
     /// returned if a file or directory could not be appended to the upload archive
@@ -121,7 +121,7 @@ pub enum ApiError {
     AppendToArchive(io::Error),
 
     /// returned if the upload archive could not be written
-    #[error("could not write the upload archive\ncaused by: {0}")]
+    #[error("could not write the upload archive\nCaused by: {0}")]
     WriteArchive(io::Error),
 
     /// returned if a temporary file for the upload archive could not be created
