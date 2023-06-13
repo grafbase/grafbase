@@ -12,9 +12,14 @@ use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};
 use reqwest::{header, Body, Client};
+use std::ffi::OsStr;
+use std::path::PathBuf;
 use tokio::fs::read_to_string;
 use tokio_util::codec::{BytesCodec, FramedRead};
 use tokio_util::compat::TokioAsyncReadCompatExt;
+use walkdir::{DirEntry, WalkDir};
+
+const ENTRY_BLACKLIST: [&str; 2] = ["node_modules", ".env"];
 
 /// # Errors
 ///
@@ -53,9 +58,32 @@ pub async fn deploy() -> Result<(), ApiError> {
             .map_err(ApiError::AppendToArchive)?;
     }
 
-    tar.append_dir_all(GRAFBASE_DIRECTORY_NAME, &project.grafbase_directory_path)
-        .await
-        .map_err(ApiError::AppendToArchive)?;
+    let walker = WalkDir::new(&project.grafbase_directory_path).into_iter();
+    for entry in walker.filter_entry(|entry| entry_not_in_blacklist(entry, &project.path)) {
+        let entry = entry.map_err(ApiError::ReadProjectFile)?;
+
+        let entry_path = entry.path().to_owned();
+        let path_in_tar = PathBuf::from(GRAFBASE_DIRECTORY_NAME).join(
+            entry_path
+                .strip_prefix(&project.path)
+                .expect("must include prefix")
+                .strip_prefix(GRAFBASE_DIRECTORY_NAME)
+                .expect("must include grafbase dir name"),
+        );
+        let entry_metadata = entry.metadata().map_err(ApiError::ReadProjectFile)?;
+        if entry_metadata.is_file() {
+            tar.append_path_with_name(entry_path, path_in_tar)
+                .await
+                .map_err(ApiError::AppendToArchive)?;
+        } else {
+            // as we don't follow links, anything else will be a directory
+            tar.append_dir(path_in_tar, entry_path)
+                .await
+                .map_err(ApiError::AppendToArchive)?;
+        }
+    }
+
+    tar.finish().await.map_err(ApiError::WriteArchive)?;
 
     let tar_file = tokio::fs::File::open(&tar_file_path)
         .await
@@ -110,4 +138,14 @@ pub async fn deploy() -> Result<(), ApiError> {
         }) => Err(DeployError::DailyDeploymentCountLimitExceeded { limit }.into()),
         DeploymentCreatePayload::Unknown(error) => Err(DeployError::Unknown(error).into()),
     }
+}
+
+fn entry_not_in_blacklist(entry: &DirEntry, root_path: &PathBuf) -> bool {
+    entry
+        .path()
+        .strip_prefix(root_path)
+        .expect("must contain the project directory")
+        .file_name()
+        .and_then(OsStr::to_str)
+        .is_some_and(|entry_name| !ENTRY_BLACKLIST.contains(&entry_name))
 }

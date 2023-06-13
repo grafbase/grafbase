@@ -34,6 +34,7 @@ tokio-util = { version = "0.7", features = ["futures-io", "compat"] }
 tower-http = { version = "0.4", features = ["trace"] }
 url = "2"
 urlencoding = "2"
+walkdir = "2"
 webbrowser = "0.8"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.22.0" }
