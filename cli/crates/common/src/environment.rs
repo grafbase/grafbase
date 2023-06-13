@@ -3,8 +3,8 @@
 use crate::{
     consts::{
         DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
-        GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME,
-        WRANGLER_DIRECTORY_NAME,
+        GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_NAME, REGISTRY_FILE,
+        RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
@@ -326,22 +326,22 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
     }
 }
 
-pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), io::Error> {
+pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), CommonError> {
     let package_json_path = project_dir.join(PACKAGE_JSON_NAME);
-    let file = fs::File::open(&package_json_path)?;
+    let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;
 
     let mut package_json = match serde_json::from_reader(&file) {
         Ok(Value::Object(obj)) => obj,
         _ => {
-            return Err(io::Error::new(
+            return Err(CommonError::AccessPackageJson(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "the given package.json file is in an incorrect format",
-            ));
+                "the file is not a JSON object",
+            )));
         }
     };
 
     match package_json
-        .entry("devDependencies")
+        .entry(PACKAGE_JSON_DEV_DEPENDENCIES)
         .or_insert_with(|| Value::Object(Map::new()))
     {
         Value::Object(ref mut obj) if !obj.contains_key(package) => {
@@ -349,15 +349,15 @@ pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, ver
         }
         Value::Object(_) => return Ok(()),
         _ => {
-            return Err(io::Error::new(
+            return Err(CommonError::AccessPackageJson(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "data in package.json is in a wrong format",
-            ));
+                "the devDependencies value is not an object",
+            )));
         }
     }
 
-    let file = fs::File::create(&package_json_path)?;
-    serde_json::to_writer_pretty(&file, &package_json)?;
+    let file = fs::File::create(&package_json_path).map_err(CommonError::AccessPackageJson)?;
+    serde_json::to_writer_pretty(&file, &package_json).map_err(CommonError::SerializePackageJson)?;
 
     Ok(())
 }

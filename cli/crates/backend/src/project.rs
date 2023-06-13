@@ -143,7 +143,7 @@ pub async fn init(name: Option<&str>, template: ProjectTemplate<'_>) -> Result<(
                         GRAFBASE_SDK_PACKAGE_NAME,
                         GRAFBASE_SDK_PACKAGE_VERSION,
                     )
-                    .map_err(BackendError::DependencyInstallFailure);
+                    .map_err(Into::into);
 
                     let write_schema = fs::write(schema_path, DEFAULT_SCHEMA_TS).map_err(BackendError::WriteSchema);
 

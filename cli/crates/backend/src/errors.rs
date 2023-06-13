@@ -1,3 +1,4 @@
+use common::errors::CommonError;
 pub use server::errors::ServerError;
 use std::{io, path::PathBuf};
 use thiserror::Error;
@@ -107,6 +108,7 @@ pub enum BackendError {
     #[error("could not read the repository information for {0}")]
     ReadRepositoryInformation(String),
 
-    #[error("could not add required dependency to project 'package.json':\nCaused by: {0}")]
-    DependencyInstallFailure(io::Error),
+    // wraps a [`CommonError`]
+    #[error(transparent)]
+    CommonError(#[from] CommonError),
 }

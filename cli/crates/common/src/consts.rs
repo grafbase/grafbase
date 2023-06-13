@@ -38,3 +38,5 @@ pub const GRAFBASE_SDK_PACKAGE_NAME: &str = "@grafbase/sdk";
 pub const GRAFBASE_SDK_PACKAGE_VERSION: &str = "~0.0.20";
 /// the package.json file name
 pub const PACKAGE_JSON_NAME: &str = "package.json";
+/// the package.json dev dependencies key
+pub const PACKAGE_JSON_DEV_DEPENDENCIES: &str = "devDependencies";
