@@ -6,11 +6,11 @@ expression: user_created
   "data": {
     "userCreate": {
       "user": {
-        "avatar": "http://example.com/",
-        "email": "user1@example.com",
         "id": "[id]",
-        "url": "http://example.com/",
-        "username": "user1"
+        "username": "user1",
+        "email": "user1@example.com",
+        "avatar": "http://example.com/",
+        "url": "http://example.com/"
       }
     }
   }
