@@ -1,7 +1,7 @@
 use dynaql::indexmap::IndexMap;
 use dynaql::model::__Schema;
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{ConnectorIdGenerator, MetaField, Registry, SchemaID, SchemaIDGenerator};
+use dynaql::registry::{MetaField, Registry, SchemaID, SchemaIDGenerator};
 use dynaql::{Name, OutputType, Pos, Positioned, Schema};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
@@ -40,15 +40,6 @@ pub struct VisitorContext<'a> {
     /// Relations by name
     pub(crate) relations: IndexMap<String, MetaRelation>,
     pub schema_id_generator: SchemaIDGenerator,
-
-    /// A generator used to generate unique identifiers for each connector present in the schema.
-    ///
-    /// This identifier is stable for the duration of the schema, but does not persist beyond
-    /// schema generation. It can be used to pass along when referencing data stored within the
-    /// schema (such as global headers), but *MUST NOT* be used for anything that requires a stable
-    /// identifier across schema generations.
-    pub connector_id_generator: ConnectorIdGenerator,
-
     /// Each schema to build should contains a SchemaID -> MetaType String to be
     /// able to construct the whole SchemaRegistry at the end of the parsing.
     pub schema_to_build: RwLock<HashMap<SchemaID, String>>,
@@ -147,7 +138,6 @@ impl<'a> VisitorContext<'a> {
             queries: Default::default(),
             relations: Default::default(),
             schema_to_build: Default::default(),
-            connector_id_generator: Default::default(),
             schema_id_generator: Default::default(),
             variables,
             required_resolvers: Default::default(),
