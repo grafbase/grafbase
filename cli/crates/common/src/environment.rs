@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
-use serde_json::{Map, Value};
-
 use crate::{
     consts::{
         DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
-        GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
+        GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME,
+        WRANGLER_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
+use serde_json::{Map, Value};
 use std::{
     borrow::Cow,
     env, fs, io,
@@ -327,7 +327,7 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
 }
 
 pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), io::Error> {
-    let package_json_path = project_dir.join("package.json");
+    let package_json_path = project_dir.join(PACKAGE_JSON_NAME);
     let file = fs::File::open(&package_json_path)?;
 
     let mut package_json = match serde_json::from_reader(&file) {
@@ -335,7 +335,7 @@ pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, ver
         _ => {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "data in package.json is in a wrong format",
+                "the given package.json file is in an incorrect format",
             ));
         }
     };

@@ -36,3 +36,5 @@ pub const GRAFBASE_HOME: &str = "GRAFBASE_HOME";
 pub const GRAFBASE_SDK_PACKAGE_NAME: &str = "@grafbase/sdk";
 /// the version string of the Grafbase SDK npm package
 pub const GRAFBASE_SDK_PACKAGE_VERSION: &str = "~0.0.20";
+/// the package.json file name
+pub const PACKAGE_JSON_NAME: &str = "package.json";

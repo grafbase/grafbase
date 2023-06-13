@@ -71,7 +71,10 @@ pub fn project_created(name: Option<&str>, template: ProjectTemplate<'_>) {
     }
 
     if let ProjectTemplate::FromDefault(ConfigType::TypeScript) = template {
-        println!("Install the added dependencies by running your project's package manager.");
+        println!(
+            "We've added our SDK to your {}, make sure to install dependencies before continuing.",
+            watercolor!("package.json", @BrightBlue)
+        );
     }
 }
 

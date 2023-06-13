@@ -9,7 +9,7 @@ pub fn init(name: Option<&str>, template: Option<&str>, config_format: Option<Co
         (None, Some(ConfigFormat::GraphQL)) => ProjectTemplate::FromDefault(ConfigType::GraphQL),
         (None, None) => {
             let config_type = Select::new(
-                "In which format the project schema and configuration should be written?",
+                "What configuration format would you like to use?",
                 ConfigType::VARIANTS.to_vec(),
             )
             .prompt()

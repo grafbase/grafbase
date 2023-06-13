@@ -18,7 +18,6 @@ fn init() {
     assert!(std::str::from_utf8(&output.stderr).unwrap().contains("already exists"));
 
     env.remove_grafbase_dir(None);
-    env.remove_grafbase_dir(None);
 
     env.grafbase_init_template(None, "todo");
 

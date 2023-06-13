@@ -59,11 +59,11 @@ pub struct CompletionsCommand {
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub enum ConfigFormat {
-    /// The configuration is written in TypeScript, using the '@grafbase/sdk' library
+    /// Adds a TypeScript configuration file
     #[value(name = "typescript")]
     TypeScript,
     #[value(name = "graphql")]
-    /// The configuration is written in GraphQL SDL
+    /// Adds a GraphQL configuration file
     GraphQL,
 }
 
@@ -74,7 +74,7 @@ pub struct InitCommand {
     /// The name or GitHub URL of the template to use for the new project
     #[arg(short, long)]
     pub template: Option<String>,
-    /// The format the Grafbase config is written
+    /// The format used for the Grafbase configuration file
     #[arg(short, long)]
     pub config_format: Option<ConfigFormat>,
 }

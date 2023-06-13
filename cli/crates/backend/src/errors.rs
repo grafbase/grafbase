@@ -107,6 +107,6 @@ pub enum BackendError {
     #[error("could not read the repository information for {0}")]
     ReadRepositoryInformation(String),
 
-    #[error("could not add required dependency to project 'package.json': {0}")]
+    #[error("could not add required dependency to project 'package.json':\nCaused by: {0}")]
     DependencyInstallFailure(io::Error),
 }
