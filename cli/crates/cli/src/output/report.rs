@@ -2,8 +2,9 @@ use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
+use backend::project::{ConfigType, ProjectTemplate};
 use colored::Colorize;
-use common::types::ResolverMessageLevel;
+use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, types::ResolverMessageLevel};
 use common::{
     consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
     environment::Warning,
@@ -41,12 +42,18 @@ pub fn start_server(resolvers_reported: bool, port: u16, start_port: u16) {
     );
 }
 
-pub fn project_created(name: Option<&str>) {
+pub fn project_created(name: Option<&str>, template: ProjectTemplate<'_>) {
     let slash = std::path::MAIN_SEPARATOR.to_string();
+
+    let schema_file_name = match template {
+        ProjectTemplate::FromDefault(ConfigType::TypeScript) => GRAFBASE_TS_CONFIG_FILE_NAME,
+        _ => GRAFBASE_SCHEMA_FILE_NAME,
+    };
+
     if let Some(name) = name {
         watercolor::output!(r#"✨ {name} was successfully initialized!"#, @BrightBlue);
 
-        let schema_path = &[".", name, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME].join(&slash);
+        let schema_path = &[".", name, GRAFBASE_DIRECTORY_NAME, schema_file_name].join(&slash);
 
         println!(
             "The schema for your new project can be found at {}",
@@ -55,12 +62,16 @@ pub fn project_created(name: Option<&str>) {
     } else {
         watercolor::output!(r#"✨ Your project was successfully set up for Grafbase!"#, @BrightBlue);
 
-        let schema_path = &[".", GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME].join(&slash);
+        let schema_path = &[".", GRAFBASE_DIRECTORY_NAME, schema_file_name].join(&slash);
 
         println!(
             "Your new schema can be found at {}",
             watercolor!("{schema_path}", @BrightBlue)
         );
+    }
+
+    if let ProjectTemplate::FromDefault(ConfigType::TypeScript) = template {
+        println!("Install the added dependencies by running your project's package manager.");
     }
 }
 

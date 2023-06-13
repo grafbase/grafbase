@@ -1,6 +1,7 @@
 #![allow(clippy::too_many_lines)]
 mod utils;
 
+use backend::project::ConfigType;
 use serde_json::Value;
 use utils::environment::Environment;
 
@@ -265,7 +266,7 @@ fn test_field_resolver(
     #[case] package_json: Option<&str>,
 ) {
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     std::fs::write(env.directory.join("grafbase/.env"), "MY_OWN_VARIABLE=test_value").unwrap();
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
@@ -373,7 +374,7 @@ fn test_query_mutation_resolver(
     #[case] queries: &[(&str, &str)],
 ) {
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
     env.grafbase_dev();

@@ -1,5 +1,6 @@
 mod utils;
 
+use backend::project::ConfigType;
 use serde_json::{json, Value};
 use utils::consts::{COERCION_CREATE_DUMMY, COERCION_SCHEMA};
 use utils::environment::Environment;
@@ -7,7 +8,7 @@ use utils::environment::Environment;
 #[test]
 fn coercion() {
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(COERCION_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

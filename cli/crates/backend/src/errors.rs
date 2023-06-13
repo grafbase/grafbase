@@ -106,4 +106,7 @@ pub enum BackendError {
     /// returned if the request to get the information for a repository returned a response that could not be parsed
     #[error("could not read the repository information for {0}")]
     ReadRepositoryInformation(String),
+
+    #[error("could not add required dependency to project 'package.json': {0}")]
+    DependencyInstallFailure(io::Error),
 }

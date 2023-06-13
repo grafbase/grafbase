@@ -1,5 +1,6 @@
 mod utils;
 
+use backend::project::ConfigType;
 use json_dotpath::DotPaths;
 use serde_json::{json, Value};
 use utils::consts::{
@@ -14,7 +15,7 @@ use utils::{client::Client, environment::Environment};
 fn unique() {
     let mut env = Environment::init();
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
 
     env.write_schema(UNIQUE_SCHEMA);
 
@@ -196,7 +197,7 @@ pub const ACCOUNT_QUERY_PAGINATED: &str = include_str!("graphql/unique/multiple-
 fn unique_with_multiple_fields() {
     let mut env = Environment::init();
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
 
     env.write_schema(UNIQUE_SCHEMA);
 

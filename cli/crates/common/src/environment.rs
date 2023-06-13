@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use serde_json::{Map, Value};
+
 use crate::{
     consts::{
         DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
@@ -7,11 +9,11 @@ use crate::{
     },
     errors::CommonError,
 };
-use std::sync::OnceLock;
 use std::{
     borrow::Cow,
-    env,
+    env, fs, io,
     path::{Path, PathBuf},
+    sync::OnceLock,
 };
 
 #[derive(Debug)]
@@ -36,6 +38,11 @@ impl GrafbaseSchemaPath {
     #[must_use]
     pub fn location(&self) -> &SchemaLocation {
         &self.location
+    }
+
+    /// True, if the project uses typescript config
+    pub fn uses_typescript_config(&self) -> bool {
+        matches!(&self.location, SchemaLocation::TsConfig(_))
     }
 
     fn ts_config(path: PathBuf) -> Self {
@@ -317,4 +324,40 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
         (false, true) => Some(GrafbaseSchemaPath::graphql(gql)),
         (false, false) => None,
     }
+}
+
+pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), io::Error> {
+    let package_json_path = project_dir.join("package.json");
+    let file = fs::File::open(&package_json_path)?;
+
+    let mut package_json = match serde_json::from_reader(&file) {
+        Ok(Value::Object(obj)) => obj,
+        _ => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "data in package.json is in a wrong format",
+            ));
+        }
+    };
+
+    match package_json
+        .entry("devDependencies")
+        .or_insert_with(|| Value::Object(Map::new()))
+    {
+        Value::Object(ref mut obj) if !obj.contains_key(package) => {
+            obj.insert(package.to_string(), Value::String(version.to_string()));
+        }
+        Value::Object(_) => return Ok(()),
+        _ => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "data in package.json is in a wrong format",
+            ));
+        }
+    }
+
+    let file = fs::File::create(&package_json_path)?;
+    serde_json::to_writer_pretty(&file, &package_json)?;
+
+    Ok(())
 }

@@ -3,6 +3,7 @@
 use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
+use backend::project::ConfigType;
 use cfg_if::cfg_if;
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use duct::{cmd, Handle};
@@ -165,22 +166,42 @@ impl Environment {
         self.write_file("grafbase.config.ts", config);
     }
 
+    #[track_caller]
     pub fn write_resolver(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
         self.write_file(Path::new("resolvers").join(path.as_ref()), contents);
     }
 
+    #[track_caller]
     pub fn write_file(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
         let target_path = self.schema_path.parent().unwrap().join(path.as_ref());
         fs::create_dir_all(target_path.parent().unwrap()).unwrap();
         fs::write(target_path, contents.as_ref()).unwrap();
     }
 
-    pub fn grafbase_init(&self) {
-        cmd!(cargo_bin("grafbase"), "init").dir(&self.directory).run().unwrap();
+    #[track_caller]
+    pub fn write_json_file_to_project(&self, path: impl AsRef<Path>, contents: &serde_json::Value) {
+        let contents = serde_json::to_string_pretty(contents).unwrap();
+        let target_path = self.temp_dir.path().join(path.as_ref());
+        fs::create_dir_all(target_path.parent().unwrap()).unwrap();
+        fs::write(target_path, contents).unwrap();
     }
 
-    pub fn grafbase_init_output(&self) -> Output {
-        cmd!(cargo_bin("grafbase"), "init")
+    #[track_caller]
+    pub fn load_file_from_project(&self, path: impl AsRef<Path>) -> String {
+        fs::read_to_string(self.temp_dir.path().join(path.as_ref())).unwrap()
+    }
+
+    #[track_caller]
+    pub fn grafbase_init(&self, config_format: ConfigType) {
+        cmd!(cargo_bin("grafbase"), "init", "-c", config_format.as_ref())
+            .dir(&self.directory)
+            .run()
+            .unwrap();
+    }
+
+    #[track_caller]
+    pub fn grafbase_init_output(&self, config_format: ConfigType) -> Output {
+        cmd!(cargo_bin("grafbase"), "init", "-c", config_format.as_ref())
             .dir(&self.directory)
             .stderr_capture()
             .unchecked()

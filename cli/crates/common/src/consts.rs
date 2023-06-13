@@ -32,3 +32,7 @@ pub const EPHEMERAL_PORT_RANGE: Range<u16> = 49152..65535;
 pub const DATABASE_DIRECTORY: &str = "database";
 /// an environment variable that sets the path of the home directory
 pub const GRAFBASE_HOME: &str = "GRAFBASE_HOME";
+/// the name of the Grafbase SDK npm package
+pub const GRAFBASE_SDK_PACKAGE_NAME: &str = "@grafbase/sdk";
+/// the version string of the Grafbase SDK npm package
+pub const GRAFBASE_SDK_PACKAGE_VERSION: &str = "~0.0.20";

@@ -62,13 +62,14 @@ mod global {
         };
         use crate::utils::environment::Environment;
         use crate::{ADMIN, USER1, USER2, USER3};
+        use backend::project::ConfigType;
         use json_dotpath::DotPaths;
         use serde_json::{json, Value};
 
         #[test]
         fn entity_should_be_visible_only_to_the_owner() {
             let mut env = Environment::init();
-            env.grafbase_init();
+            env.grafbase_init(ConfigType::GraphQL);
             env.write_schema(OWNER_TODO_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -158,7 +159,7 @@ mod global {
         #[test]
         fn owner_create_group_all_should_work() {
             let mut env = Environment::init();
-            env.grafbase_init();
+            env.grafbase_init(ConfigType::GraphQL);
             env.write_schema(OWNER_TODO_OWNER_CREATE_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -226,7 +227,7 @@ mod global {
         #[test]
         fn group_should_supercede_owner_when_listing_entities() {
             let mut env = Environment::init();
-            env.grafbase_init();
+            env.grafbase_init(ConfigType::GraphQL);
             env.write_schema(OWNER_TODO_MIXED_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -299,13 +300,14 @@ mod global {
         };
         use crate::utils::environment::Environment;
         use crate::{USER1, USER2};
+        use backend::project::ConfigType;
         use json_dotpath::DotPaths;
         use serde_json::{json, Value};
 
         #[test]
         fn get_by_id_should_be_filtered_by_the_owner() {
             let mut env = Environment::init();
-            env.grafbase_init();
+            env.grafbase_init(ConfigType::GraphQL);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -349,7 +351,7 @@ mod global {
         #[test]
         fn get_by_email_should_be_filtered_by_the_owner() {
             let mut env = Environment::init();
-            env.grafbase_init();
+            env.grafbase_init(ConfigType::GraphQL);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -389,7 +391,7 @@ mod global {
         #[test]
         fn test_linking() {
             let mut env = Environment::init();
-            env.grafbase_init();
+            env.grafbase_init(ConfigType::GraphQL);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();

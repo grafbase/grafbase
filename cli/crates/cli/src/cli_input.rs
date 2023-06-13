@@ -1,5 +1,5 @@
 use crate::create::CreateArguments;
-use clap::{arg, command, CommandFactory, Parser};
+use clap::{arg, command, CommandFactory, Parser, ValueEnum};
 use clap_complete::{shells, Generator};
 use common::consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER};
 use std::{fmt, path::PathBuf};
@@ -57,6 +57,16 @@ pub struct CompletionsCommand {
     pub shell: Shell,
 }
 
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum ConfigFormat {
+    /// The configuration is written in TypeScript, using the '@grafbase/sdk' library
+    #[value(name = "typescript")]
+    TypeScript,
+    #[value(name = "graphql")]
+    /// The configuration is written in GraphQL SDL
+    GraphQL,
+}
+
 #[derive(Debug, Parser)]
 pub struct InitCommand {
     /// The name of the project to create
@@ -64,6 +74,9 @@ pub struct InitCommand {
     /// The name or GitHub URL of the template to use for the new project
     #[arg(short, long)]
     pub template: Option<String>,
+    /// The format the Grafbase config is written
+    #[arg(short, long)]
+    pub config_format: Option<ConfigFormat>,
 }
 
 impl InitCommand {
