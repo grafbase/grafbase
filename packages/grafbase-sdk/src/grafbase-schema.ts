@@ -47,7 +47,7 @@ export class Datasources {
 }
 
 export interface IntrospectParams {
-  namespace: string
+  namespace?: string
 }
 
 export class GrafbaseSchema {
@@ -79,8 +79,8 @@ export class GrafbaseSchema {
    * @param datasource - The datasource to add.
    * @param params - The introspection parameters.
    */
-  public datasource(datasource: PartialDatasource, params: IntrospectParams) {
-    this.datasources.push(datasource.finalize(params.namespace))
+  public datasource(datasource: PartialDatasource, params?: IntrospectParams) {
+    this.datasources.push(datasource.finalize(params?.namespace))
   }
 
   /**
