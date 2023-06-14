@@ -16,12 +16,26 @@ export type DefaultFieldShape =
   | EnumDefinition<any, any>
 
 export class DefaultDefinition {
-  private defaultValue: DefaultValueType
-  private scalar: DefaultFieldShape
+  protected _defaultValue: DefaultValueType
+  protected _scalar: DefaultFieldShape
 
   constructor(scalar: DefaultFieldShape, defaultValue: DefaultValueType) {
-    this.defaultValue = defaultValue
-    this.scalar = scalar
+    this._defaultValue = defaultValue
+    this._scalar = scalar
+  }
+
+  /**
+   * The default value.
+   */
+  public get defaultValue(): DefaultValueType {
+    return this._defaultValue
+  }
+
+  /**
+   * The default type of the default value.
+   */
+  public get scalar(): DefaultFieldShape {
+    return this._scalar
   }
 
   /**
@@ -50,9 +64,9 @@ export class DefaultDefinition {
   }
 
   public toString(): string {
-    return `${this.scalar} @default(value: ${renderDefault(
-      this.defaultValue,
-      this.scalar.fieldTypeVal()
+    return `${this._scalar} @default(value: ${renderDefault(
+      this._defaultValue,
+      this._scalar.fieldTypeVal()
     )})`
   }
 }

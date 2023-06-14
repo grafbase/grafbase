@@ -46,6 +46,20 @@ describe('Query generator', () => {
     `)
   })
 
+  it('generates a resolver with input default value', () => {
+    g.query('greet', {
+      args: { name: g.string().default('Bob') },
+      returns: g.string(),
+      resolver: 'hello'
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "extend type Query {
+        greet(name: String! = "Bob"): String! @resolver(name: "hello")
+      }"
+    `)
+  })
+
   it('generates a resolver with optional input and output', () => {
     g.query('greet', {
       args: { name: g.string().optional() },
