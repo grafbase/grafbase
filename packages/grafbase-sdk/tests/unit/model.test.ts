@@ -509,6 +509,23 @@ describe('Model generator', () => {
     `)
   })
 
+  it('generates a single public auth rule', () => {
+    g.model('User', {
+      name: g.string()
+    }).auth((rules) => {
+      rules.public().read()
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User @model @auth(
+          rules: [
+            { allow: public, operations: [read] }
+          ]) {
+        name: String!
+      }"
+    `)
+  })
+
   it('generates a single auth rule', () => {
     g.model('User', {
       name: g.string()
@@ -541,6 +558,20 @@ describe('Model generator', () => {
             { allow: groups, groups: ["admin"] }
           ]) {
         name: String!
+      }"
+    `)
+  })
+
+  it('generates a field with a public auth rule', () => {
+    g.model('User', {
+      name: g.string().auth((rules) => {
+        rules.public()
+      })
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @auth(rules: [ { allow: public } ])
       }"
     `)
   })
