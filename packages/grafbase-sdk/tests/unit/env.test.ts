@@ -33,7 +33,7 @@ describe('Env var accessor', () => {
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
-          name: "GitHub"
+          namespace: "GitHub"
           url: "https://api.github.com/graphql"
           headers: [
             { name: "Authorization", value: "Bearer test_token" }

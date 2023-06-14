@@ -10,12 +10,11 @@ describe('GraphQL connector', () => {
       url: 'https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}'
     })
 
-    g.datasource(contentful, { namespace: 'Contentful' })
+    g.datasource(contentful)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
-          name: "Contentful"
           url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
         )"
     `)
@@ -36,7 +35,7 @@ describe('GraphQL connector', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
-          name: "Contentful"
+          namespace: "Contentful"
           url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
           headers: [
             { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
@@ -64,11 +63,11 @@ describe('GraphQL connector', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
-          name: "Contentful"
+          namespace: "Contentful"
           url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
         )
         @graphql(
-          name: "GitHub"
+          namespace: "GitHub"
           url: "https://api.github.com/graphql"
         )"
     `)

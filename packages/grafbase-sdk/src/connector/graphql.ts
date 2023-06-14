@@ -22,27 +22,27 @@ export class PartialGraphQLAPI {
     this.introspectionHeaders = headers.introspectionHeaders
   }
 
-  finalize(namespace: string): GraphQLAPI {
+  finalize(namespace?: string): GraphQLAPI {
     return new GraphQLAPI(
-      namespace,
       this.apiUrl,
       this.headers,
-      this.introspectionHeaders
+      this.introspectionHeaders,
+      namespace
     )
   }
 }
 
 export class GraphQLAPI {
-  private namespace: string
+  private namespace?: string
   private url: string
   private headers: Header[]
   private introspectionHeaders: Header[]
 
   constructor(
-    namespace: string,
     url: string,
     headers: Header[],
-    introspectionHeaders: Header[]
+    introspectionHeaders: Header[],
+    namespace?: string
   ) {
     this.namespace = namespace
     this.url = url
@@ -52,7 +52,7 @@ export class GraphQLAPI {
 
   public toString(): string {
     const header = '  @graphql(\n'
-    const namespace = this.namespace ? `    name: "${this.namespace}"\n` : ''
+    const namespace = this.namespace ? `    namespace: "${this.namespace}"\n` : ''
     const url = this.url ? `    url: "${this.url}"\n` : ''
 
     var headers = this.headers.map((header) => `      ${header}`).join('\n')

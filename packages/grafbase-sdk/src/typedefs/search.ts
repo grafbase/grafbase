@@ -3,7 +3,6 @@ import { ListDefinition } from './list'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { LengthLimitedStringDefinition } from './length-limited-string'
-import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
@@ -18,7 +17,6 @@ export type Searchable =
   | LengthLimitedStringDefinition
   | CacheDefinition
   | AuthDefinition
-  | ResolverDefinition
   | EnumDefinition<any, any>
 
 export class SearchDefinition {
