@@ -27,7 +27,7 @@ var fullChangelog = "# Changelog\n\n"
 
 fs.readdirSync('changelog/').sort().reverse().forEach(file => {
   const stat = fs.statSync(`changelog/${file}`)
-  const modified = stat.mtime.toDateString()
+  const modified = stat.ctime.toDateString()
   const version = file.replace('.md', '')
 
   fullChangelog += `## [${version}] - ${modified}\n\n[CHANGELOG](changelog/${file})\n\n`
