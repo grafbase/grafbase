@@ -299,7 +299,7 @@ impl Operation {
                     let input_name = param.graphql_name(graph).unwrap().to_string();
                     http::PathParameter {
                         name,
-                        variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
+                        variable_resolve_definition: VariableResolveDefinition::ConnectorInputTypeName(input_name),
                     }
                 })
                 .collect(),
@@ -310,7 +310,7 @@ impl Operation {
                     let input_name = param.graphql_name(graph).unwrap().to_string();
                     http::QueryParameter {
                         name,
-                        variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
+                        variable_resolve_definition: VariableResolveDefinition::ConnectorInputTypeName(input_name),
                         encoding_style: param.encoding_style(graph).unwrap(),
                     }
                 })
@@ -318,7 +318,7 @@ impl Operation {
             request_body: self
                 .request_body(graph)
                 .map(|request_body| dynaql::registry::resolvers::http::RequestBody {
-                    variable_resolve_definition: VariableResolveDefinition::InputTypeName(
+                    variable_resolve_definition: VariableResolveDefinition::ConnectorInputTypeName(
                         request_body.argument_name().to_owned(),
                     ),
                     content_type: request_body.content_type(graph).clone(),
@@ -350,7 +350,14 @@ impl RequestBody {
 
 impl InputField<'_> {
     fn to_meta_input_value(&self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
-        self.value_type.to_meta_input_value(&self.name.to_string(), graph)
+        let graphql_name = self.name.to_string();
+        let openapi_name = self.name.openapi_name();
+        let meta_input_value = self
+            .value_type
+            .to_meta_input_value(&graphql_name, graph)?
+            .with_rename((openapi_name != graphql_name).then(|| openapi_name.to_string()));
+
+        Some(meta_input_value)
     }
 }
 

@@ -33,7 +33,7 @@ use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::{ResolvedValue, Resolver};
 use crate::registry::{get_basic_type, MetaInputValue, MetaType};
 use crate::registry::{Registry, SchemaID};
-use crate::resolver_utils::resolve_input;
+use crate::resolver_utils::{resolve_input, InputResolveMode};
 use crate::schema::SchemaEnv;
 use crate::{
     CacheInvalidation, Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result,
@@ -879,7 +879,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             VariableResolveDefinition::InputTypeName(value) => {
                 // The issue here is: we should be able to infer if the value will be nullable or
                 // not, but we don't do it right now, so TODO.
-                let resolved_value = self.param_value_dynamic(&value)?.prepare_container(value);
+                let resolved_value = self.param_value_dynamic(&value, InputResolveMode::Default)?.prepare_container(value);
                 let schema = resolved_value.to_schema().map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?;
                 let values = resolved_value.arrow().map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?;
 
@@ -891,6 +891,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
                 Ok(LogicalPlanBuilder::empty().build())
             },
+            VariableResolveDefinition::ConnectorInputTypeName(_) => {
+                todo!("query planning doesn't support connectors so this can be done later")
+            }
             #[allow(deprecated)] // Only temporary while we move to the new resolution engine.
             VariableResolveDefinition::ResolverData(_) => unreachable!("Shouldn't be used anymore"),
             VariableResolveDefinition::LocalData(value) => match previous_plan {
@@ -918,7 +921,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             VariableResolveDefinition::InputTypeName(value) => {
                 // The issue here is: we should be able to infer if the value will be nullable or
                 // not, but we don't do it right now, so TODO.
-                let resolved_value = self.param_value_dynamic(&value)?;
+                let resolved_value = self.param_value_dynamic(&value, InputResolveMode::Default)?;
 
                 match resolved_value {
                     Value::Object(map) => {
@@ -943,6 +946,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                         Some(pos),
                     )),
                 }
+            }
+            VariableResolveDefinition::ConnectorInputTypeName(_) => {
+                todo!("query planning doesn't support connectors so this can be done later")
             }
             #[allow(deprecated)] // Only temporary while we move to the new resolution engine.
             VariableResolveDefinition::ResolverData(_) => unreachable!("Shouldn't be used anymore"),
@@ -1321,7 +1327,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         self.get_param_value(&self.item.node.arguments, name, default)
     }
 
-    pub fn param_value_dynamic(&self, name: &str) -> ServerResult<Value> {
+    pub fn param_value_dynamic(&self, name: &str, mode: InputResolveMode) -> ServerResult<Value> {
         let meta = self
             .resolver_node
             .as_ref()
@@ -1346,7 +1352,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 Some(value) => self.resolve_input_value(value)?,
                 None => Value::Null,
             };
-            resolve_input(self, name, meta_input_value, const_value)
+            resolve_input(self, name, meta_input_value, const_value, mode)
         } else {
             Err(ServerError::new(
                 &format!("Internal Error: Unknown argument '{name}'"),

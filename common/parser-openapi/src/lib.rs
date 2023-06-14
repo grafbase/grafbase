@@ -194,10 +194,8 @@ mod tests {
             url: None,
             ..metadata("stripe")
         };
-        let json =
-            serde_json::to_string(&build_registry("test_data/stripe.openapi.json", Format::Json, metadata).unwrap())
-                .unwrap();
-        insta::assert_snapshot!(json);
+        let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata).unwrap();
+        insta::assert_json_snapshot!(registry);
     }
 
     #[test]

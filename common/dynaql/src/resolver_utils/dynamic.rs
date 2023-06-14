@@ -6,11 +6,19 @@ use crate::registry::{MetaEnumValue, MetaInputValue, MetaType, MetaTypeName, Reg
 
 use crate::{Context, Error, ServerResult};
 
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
+pub enum InputResolveMode {
+    #[default]
+    Default,
+    ApplyConnectorTransforms,
+}
+
 pub fn resolve_input(
     ctx_field: &Context<'_>,
     arg_name: &str,
     meta_input_value: &MetaInputValue,
     value: ConstValue,
+    mode: InputResolveMode,
 ) -> ServerResult<ConstValue> {
     // We do keep serde_json::Value::Null here contrary to resolver_input_inner
     // as it allows casting to either T or Option<T> later.
@@ -19,6 +27,7 @@ pub fn resolve_input(
         &mut vec![arg_name.to_string()],
         &meta_input_value.into(),
         value,
+        mode,
     )
     .map_err(|err| err.into_server_error(ctx_field.item.pos))
 }
@@ -51,6 +60,7 @@ pub fn resolve_input_inner(
     path: &mut Vec<String>,
     ctx: &InputContext<'_>,
     mut value: ConstValue,
+    mode: InputResolveMode,
 ) -> Result<ConstValue, Error> {
     if value == ConstValue::Null {
         // Propagating default value to resolve enums, etc.
@@ -79,6 +89,7 @@ pub fn resolve_input_inner(
                         path,
                         &input_context,
                         element,
+                        mode,
                     )?);
                     path.pop();
                 }
@@ -93,6 +104,7 @@ pub fn resolve_input_inner(
                         default_value: None,
                     },
                     value,
+                    mode,
                 )?]))
             } else {
                 Err(input_error("Expected a List", path))
@@ -108,6 +120,7 @@ pub fn resolve_input_inner(
                 ..ctx.clone()
             },
             value,
+            mode,
         ),
         MetaTypeName::Named(type_name) => {
             match registry
@@ -129,16 +142,21 @@ pub fn resolve_input_inner(
                                 path,
                                 &meta_input_value.into(),
                                 fields.remove(&Name::new(name)).unwrap_or(ConstValue::Null),
+                                mode,
                             )?;
                             path.pop();
                             // Not adding NULLs for now makes it easier to work with later.
                             // TODO: Keep NULL, they might be relevant in the future. Currently
                             // it's just not ideal with how we manipulate @oneof inputs
                             if field_value != ConstValue::Null {
-                                map.insert(
-                                    Name::new(meta_input_value.rename.as_ref().unwrap_or(name)),
-                                    field_value,
-                                );
+                                let mut field_name = name;
+                                if let (InputResolveMode::ApplyConnectorTransforms, Some(rename)) =
+                                    (mode, meta_input_value.rename.as_ref())
+                                {
+                                    field_name = rename;
+                                }
+
+                                map.insert(Name::new(field_name), field_value);
                             }
                         }
                         if *oneof && map.len() != 1 {
@@ -153,7 +171,9 @@ pub fn resolve_input_inner(
                         Err(input_error("Expected an Object", path))
                     }
                 }
-                MetaType::Enum { enum_values, .. } => resolve_input_enum(value, enum_values, path),
+                MetaType::Enum { enum_values, .. } => {
+                    resolve_input_enum(value, enum_values, path, mode)
+                }
                 // TODO: this conversion ConstValue -> serde_json -> ConstValue is sad...
                 // we need an intermediate representation between the database & dynaql
                 MetaType::Scalar { .. } => Ok(ConstValue::from_json(
@@ -173,6 +193,7 @@ fn resolve_input_enum(
     value: ConstValue,
     values: &IndexMap<String, MetaEnumValue>,
     path: &[String],
+    mode: InputResolveMode,
 ) -> Result<ConstValue, Error> {
     let str_value = match &value {
         ConstValue::Enum(name) => name.as_str(),
@@ -188,7 +209,7 @@ fn resolve_input_enum(
         .get(str_value)
         .ok_or_else(|| input_error("Unknown enum value: {name}", path))?;
 
-    if let Some(value) = &meta_value.value {
+    if let (InputResolveMode::ApplyConnectorTransforms, Some(value)) = (mode, &meta_value.value) {
         return Ok(ConstValue::String(value.clone()));
     }
 

@@ -1,5 +1,6 @@
 ---
 source: common/parser-openapi/src/lib.rs
+assertion_line: 206
 expression: registry
 ---
 Registry {
@@ -339,7 +340,7 @@ Registry {
                                     query_parameters: [],
                                     request_body: Some(
                                         RequestBody {
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "input",
                                             ),
                                             content_type: Json,
@@ -395,7 +396,7 @@ Registry {
                                     query_parameters: [],
                                     request_body: Some(
                                         RequestBody {
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "input",
                                             ),
                                             content_type: Json,
@@ -458,7 +459,7 @@ Registry {
                                     path_parameters: [
                                         PathParameter {
                                             name: "petId",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "petId",
                                             ),
                                         },
@@ -466,7 +467,7 @@ Registry {
                                     query_parameters: [
                                         QueryParameter {
                                             name: "additionalMetadata",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "additionalMetadata",
                                             ),
                                             encoding_style: FormExploded,
@@ -523,7 +524,7 @@ Registry {
                                     query_parameters: [],
                                     request_body: Some(
                                         RequestBody {
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "input",
                                             ),
                                             content_type: Json,
@@ -579,7 +580,7 @@ Registry {
                                     query_parameters: [],
                                     request_body: Some(
                                         RequestBody {
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "input",
                                             ),
                                             content_type: Json,
@@ -1267,7 +1268,7 @@ Registry {
                                     query_parameters: [
                                         QueryParameter {
                                             name: "status",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "status",
                                             ),
                                             encoding_style: FormExploded,
@@ -1324,7 +1325,7 @@ Registry {
                                     query_parameters: [
                                         QueryParameter {
                                             name: "tags",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "tags",
                                             ),
                                             encoding_style: FormExploded,
@@ -1380,7 +1381,7 @@ Registry {
                                     path_parameters: [
                                         PathParameter {
                                             name: "petId",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "petId",
                                             ),
                                         },
@@ -1476,7 +1477,7 @@ Registry {
                                     path_parameters: [
                                         PathParameter {
                                             name: "orderId",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "orderId",
                                             ),
                                         },
@@ -1541,14 +1542,14 @@ Registry {
                                     query_parameters: [
                                         QueryParameter {
                                             name: "password",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "password",
                                             ),
                                             encoding_style: FormExploded,
                                         },
                                         QueryParameter {
                                             name: "username",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "username",
                                             ),
                                             encoding_style: FormExploded,
@@ -1604,7 +1605,7 @@ Registry {
                                     path_parameters: [
                                         PathParameter {
                                             name: "username",
-                                            variable_resolve_definition: InputTypeName(
+                                            variable_resolve_definition: ConnectorInputTypeName(
                                                 "username",
                                             ),
                                         },

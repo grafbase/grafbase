@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 
 use dynaql::registry::{MetaType, Registry};
-use dynaql::resolver_utils::resolve_input_inner;
+use dynaql::resolver_utils::{resolve_input_inner, InputResolveMode};
 use dynaql::{Error, Value};
 
 fn resolve(registry: &Registry, type_name: &str, value: serde_json::Value) -> Result<serde_json::Value, Error> {
@@ -15,6 +15,7 @@ fn resolve(registry: &Registry, type_name: &str, value: serde_json::Value) -> Re
                         &mut vec![name.clone()],
                         &input_type.into(),
                         Value::from_json(input.remove(name).unwrap_or(serde_json::Value::Null)).unwrap(),
+                        InputResolveMode::Default,
                     )
                     .map(|value| (name.clone(), value.into_json().unwrap()))
                 })

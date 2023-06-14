@@ -5,6 +5,7 @@
 //! When you need a Variable inside a Resolver, you can use a
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
+use crate::resolver_utils::InputResolveMode;
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
 use crate::{Error, ServerError, ServerResult};
 use dynaql_value::{ConstValue, Name};
@@ -28,6 +29,9 @@ pub enum VariableResolveDefinition {
     /// Check the last Resolver in the Query Graph and try to resolve the
     /// variable defined in this field.
     InputTypeName(String),
+    /// Check the last Resolver in the Query Graph, try to resolve the
+    /// variable defined in this field and then apply connector transforms
+    ConnectorInputTypeName(String),
     /// Resolve a Value by querying the ResolverContextData with a key_id.
     /// What is store in the ResolverContextData is described on each Resolver
     /// implementation.
@@ -46,7 +50,12 @@ impl VariableResolveDefinition {
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<Value>, ServerError> {
         match self {
-            Self::InputTypeName(name) => ctx.param_value_dynamic(name).map(Some),
+            Self::InputTypeName(name) => ctx
+                .param_value_dynamic(name, InputResolveMode::Default)
+                .map(Some),
+            Self::ConnectorInputTypeName(name) => ctx
+                .param_value_dynamic(name, InputResolveMode::ApplyConnectorTransforms)
+                .map(Some),
             #[allow(deprecated)]
             Self::ResolverData(key) => Ok(resolver_data_get_opt_ref::<Value>(
                 &ctx.resolvers_data.read().expect("handle"),
