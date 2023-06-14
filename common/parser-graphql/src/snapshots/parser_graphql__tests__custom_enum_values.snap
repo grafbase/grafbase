@@ -5,17 +5,13 @@ expression: result
 """
 Amenities available near a station
 """
-enum Connector1Amenities {
+enum Amenities {
 	GB_BLOCK_POST_GRID_LANDSCAPE
 	THUMBNAIL
 	_2048X2048
 	_1536X1536
 }
 type Query {
-	"""
-	Access to embedded Connector1 API.
-	"""
-	connector1: Connector1Query
 }
 schema {
 	query: Query

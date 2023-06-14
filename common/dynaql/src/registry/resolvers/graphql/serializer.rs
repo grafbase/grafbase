@@ -20,7 +20,7 @@ use dynaql_value::{Name, Value};
 /// fields into queries that need it for the resolver to properly parse the returned data.
 pub struct Serializer<'a, 'b, W> {
     /// The prefix string to strip from any global type, before serializing the query.
-    prefix: &'a str,
+    prefix: Option<&'a str>,
 
     /// Buffer used to write operation string to.
     buf: &'a mut W,
@@ -45,7 +45,7 @@ pub struct Serializer<'a, 'b, W> {
 
 impl<'a, 'b, W> Serializer<'a, 'b, W> {
     pub fn new(
-        prefix: &'a str,
+        prefix: Option<&'a str>,
         fragment_definitions: HashMap<&'b Name, &'b FragmentDefinition>,
         buf: &'a mut W,
     ) -> Self {
@@ -301,7 +301,9 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
 
             // We remove the `prefix` from condition types, as these are local to Grafbase, and
             // should not be sent to the upstream server.
-            self.write_str(condition.on.as_str().replace(self.prefix, ""))?;
+            if let Some(prefix) = self.prefix {
+                self.write_str(condition.on.as_str().replace(prefix, ""))?;
+            }
         }
 
         self.serialize_directives(directives)?;
@@ -441,7 +443,7 @@ mod tests {
         let (selections, fragment_definitions) = input_to_selections(input);
         let fragments = fragment_definitions.iter().map(|(k, v)| (k, v)).collect();
 
-        let mut serializer = Serializer::new("Github", fragments, &mut buf);
+        let mut serializer = Serializer::new(Some("Github"), fragments, &mut buf);
 
         if input.trim_start().starts_with("query") {
             serializer.query(selections.iter()).unwrap();

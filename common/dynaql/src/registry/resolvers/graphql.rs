@@ -63,7 +63,7 @@ pub struct Resolver {
     ///
     /// Note that this *only* affects global types. Anything that's scoped at a lower level is kept
     /// as-is.
-    pub api_name: String,
+    pub namespace: Option<String>,
 
     /// The URL of the upstream GraphQL API.
     ///
@@ -104,10 +104,11 @@ impl Resolver {
         }
 
         let mut query = String::new();
-        let prefix = self.api_name.to_pascal_case();
+        let prefix = self.namespace.clone().map(|n| n.to_pascal_case());
 
         Box::pin(SendWrapper::new(async move {
-            let mut serializer = Serializer::new(&prefix, fragment_definitions, &mut query);
+            let mut serializer =
+                Serializer::new(prefix.as_deref(), fragment_definitions, &mut query);
             match operation {
                 OperationType::Query => serializer.query(selection_set)?,
                 OperationType::Mutation => serializer.mutation(selection_set)?,
@@ -149,7 +150,9 @@ impl Resolver {
 
             let is_null = data.is_null();
 
-            prefix_result_typename(&mut data, &prefix);
+            if let Some(prefix) = prefix {
+                prefix_result_typename(&mut data, &prefix);
+            }
             let mut resolved_value = ResolvedValue::new(Arc::new(data));
 
             if is_null {
@@ -262,7 +265,7 @@ mod tests {
 
         let resolver = Resolver {
             id: 0,
-            api_name: "myApi".to_owned(),
+            namespace: Some("myApi".to_owned()),
             url: Url::parse(&server.uri()).unwrap(),
         };
 

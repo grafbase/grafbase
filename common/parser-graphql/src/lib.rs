@@ -118,7 +118,7 @@ pub async fn parse_schema(
 
     let parser = Parser {
         id,
-        prefix: namespace.map_or_else(|| format!("Connector{id}"), ToOwned::to_owned),
+        namespace: namespace.map(ToOwned::to_owned),
         url: url.clone(),
     };
 
@@ -133,7 +133,7 @@ pub async fn parse_schema(
 
 struct Parser {
     id: u16,
-    prefix: String,
+    namespace: Option<String>,
     url: Url,
 }
 
@@ -155,11 +155,28 @@ impl Parser {
         }
 
         let mut registry = schema.into();
-        self.add_root_query_field(&mut registry);
 
-        if registry.mutation_type.is_some() {
-            self.add_root_mutation_field(&mut registry);
-        }
+        match self.namespace {
+            // If we don't have a namespace, we need to update the fields in the `Query` object, to
+            // attach the GraphQL resolver.
+            None => {
+                self.update_root_query_fields(&mut registry);
+
+                if registry.mutation_type.is_some() {
+                    self.update_root_mutation_fields(&mut registry);
+                }
+            }
+
+            // If we *do* have a namespace, we'll add a new `<namespace>Query` object, and point to
+            // it from the `<namespace>` field in the root `Query` object.
+            Some(ref prefix) => {
+                self.add_root_query_field(&mut registry, prefix);
+
+                if registry.mutation_type.is_some() {
+                    self.add_root_mutation_field(&mut registry, prefix);
+                }
+            }
+        };
 
         Self::add_field_resolvers(&mut registry);
 
@@ -170,36 +187,54 @@ impl Parser {
     ///
     /// Then, iterate all fields within the object, and perform any needed actions.
     fn update_object(&self, v: &mut cynic_introspection::ObjectType) {
-        v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
+        if let Some(prefix) = &self.namespace {
+            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
+        }
+
         v.fields.iter_mut().for_each(|v| self.update_field(v));
     }
 
     /// Similar to [`Parser::update_object()`], but for `InputObjectType`.
     fn update_input_object(&self, v: &mut cynic_introspection::InputObjectType) {
-        v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
+        if let Some(prefix) = &self.namespace {
+            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
+        }
+
         v.fields.iter_mut().for_each(|v| self.update_input_value(v));
     }
 
     fn update_enum(&self, v: &mut cynic_introspection::EnumType) {
-        v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
+        if let Some(prefix) = &self.namespace {
+            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
+        }
     }
 
     fn update_interface(&self, v: &mut cynic_introspection::InterfaceType) {
-        v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
+        if let Some(prefix) = &self.namespace {
+            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
+        }
+
         v.fields.iter_mut().for_each(|v| self.update_field(v));
     }
 
     fn update_union(&self, v: &mut cynic_introspection::UnionType) {
-        v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
+        if let Some(prefix) = &self.namespace {
+            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
+        }
+
         v.possible_types.iter_mut().for_each(|v| self.update_union_member(v));
     }
 
     fn update_union_member(&self, v: &mut String) {
-        *v = format!("{} {}", self.prefix, v).to_pascal_case();
+        if let Some(prefix) = &self.namespace {
+            *v = format!("{prefix} {v}").to_pascal_case();
+        }
     }
 
     fn update_scalar(&self, v: &mut cynic_introspection::ScalarType) {
-        v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
+        if let Some(prefix) = &self.namespace {
+            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
+        }
     }
 
     fn update_field(&self, v: &mut cynic_introspection::Field) {
@@ -217,7 +252,9 @@ impl Parser {
             return;
         }
 
-        ty.name = format!("{} {}", self.prefix, ty).to_pascal_case();
+        if let Some(prefix) = &self.namespace {
+            ty.name = format!("{prefix} {ty}").to_pascal_case();
+        }
     }
 
     fn add_field_resolvers(registry: &mut Registry) {
@@ -258,7 +295,7 @@ impl Parser {
     }
 
     /// Add a new `Query` type with an `upstream` field to access the upstream API.
-    fn add_root_query_field(&self, registry: &mut Registry) {
+    fn add_root_query_field(&self, registry: &mut Registry, prefix: &str) {
         let root = registry
             .types
             .entry(registry.query_type.clone())
@@ -281,11 +318,11 @@ impl Parser {
         };
 
         fields.insert(
-            self.prefix.to_camel_case(),
+            prefix.to_camel_case(),
             MetaField {
-                name: self.prefix.to_camel_case(),
-                description: Some(format!("Access to embedded {} API.", &self.prefix)),
-                ty: format!("{} {}!", self.prefix, &registry.query_type).to_pascal_case(),
+                name: prefix.to_camel_case(),
+                description: Some(format!("Access to embedded {prefix} API.")),
+                ty: format!("{} {}!", prefix, &registry.query_type).to_pascal_case(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolve: Some(Resolver {
@@ -293,7 +330,7 @@ impl Parser {
                     r#type: ResolverType::Graphql(graphql::Resolver {
                         id: self.id,
                         url: self.url.clone(),
-                        api_name: self.prefix.clone(),
+                        namespace: Some(prefix.to_owned()),
                     }),
                 }),
                 ..Default::default()
@@ -301,8 +338,46 @@ impl Parser {
         );
     }
 
+    /// Add a new `Query` type with an `upstream` field to access the upstream API.
+    fn update_root_query_fields(&self, registry: &mut Registry) {
+        let root = registry
+            .types
+            .entry(registry.query_type.clone())
+            .or_insert_with(|| MetaType::Object {
+                name: registry.query_type.clone(),
+                description: None,
+                fields: IndexMap::new(),
+                cache_control: CacheControl::default(),
+                extends: false,
+                keys: None,
+                visible: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: registry.query_type.clone(),
+                constraints: vec![],
+            });
+
+        let Some(fields) = root.fields_mut() else {
+            return
+        };
+
+        // There should always be fields for us to iterate, as we're mutating the `Query` object
+        // fields from the upstream API. No fields, means no API access exposed by the upstream
+        // server.
+        for (_name, field) in fields {
+            field.resolve = Some(Resolver {
+                id: None,
+                r#type: ResolverType::Graphql(graphql::Resolver {
+                    id: self.id,
+                    url: self.url.clone(),
+                    namespace: None,
+                }),
+            });
+        }
+    }
+
     /// Add an optional `Mutate` type with an `upstream` field to access the upstream API.
-    fn add_root_mutation_field(&self, registry: &mut Registry) {
+    fn add_root_mutation_field(&self, registry: &mut Registry, prefix: &str) {
         let Some(mutation_type) = registry.mutation_type.clone() else {
             return;
         };
@@ -329,11 +404,11 @@ impl Parser {
         };
 
         fields.insert(
-            self.prefix.to_camel_case(),
+            prefix.to_camel_case(),
             MetaField {
-                name: self.prefix.to_camel_case(),
-                description: Some(format!("Access to embedded {} API.", &self.prefix)),
-                ty: format!("{} {}!", self.prefix, mutation_type).to_pascal_case(),
+                name: prefix.to_camel_case(),
+                description: Some(format!("Access to embedded {prefix} API.")),
+                ty: format!("{prefix} {mutation_type}!").to_pascal_case(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolve: Some(Resolver {
@@ -341,12 +416,54 @@ impl Parser {
                     r#type: ResolverType::Graphql(graphql::Resolver {
                         id: self.id,
                         url: self.url.clone(),
-                        api_name: self.prefix.clone(),
+                        namespace: Some(prefix.to_owned()),
                     }),
                 }),
                 ..Default::default()
             },
         );
+    }
+
+    /// Add a new `Mutation` type with an `upstream` field to access the upstream API.
+    fn update_root_mutation_fields(&self, registry: &mut Registry) {
+        let Some(mutation_type) = registry.mutation_type.clone() else {
+            return;
+        };
+
+        let root = registry
+            .types
+            .entry(mutation_type.clone())
+            .or_insert_with(|| MetaType::Object {
+                name: mutation_type.clone(),
+                description: None,
+                fields: IndexMap::new(),
+                cache_control: CacheControl::default(),
+                extends: false,
+                keys: None,
+                visible: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: mutation_type.clone(),
+                constraints: vec![],
+            });
+
+        let Some(fields) = root.fields_mut() else {
+            return
+        };
+
+        // There should always be fields for us to iterate, as we're mutating the `Mutation` object
+        // fields from the upstream API. No fields, means no API access exposed by the upstream
+        // server.
+        for (_name, field) in fields {
+            field.resolve = Some(Resolver {
+                id: None,
+                r#type: ResolverType::Graphql(graphql::Resolver {
+                    id: self.id,
+                    url: self.url.clone(),
+                    namespace: None,
+                }),
+            });
+        }
     }
 }
 
