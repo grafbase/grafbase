@@ -197,6 +197,7 @@ use utils::environment::Environment;
     ],
     Some(r#"
         {
+            "name": "my-package",
             "dependencies": {
                 "is-palindrome": "^0.3.0"
             }

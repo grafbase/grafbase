@@ -16,14 +16,21 @@ async fn run_command<P: AsRef<Path>>(
     tracing: bool,
     environment: &[(&'static str, &str)],
 ) -> Result<(), JavascriptPackageManagerComamndError> {
-    trace!("running '{command_type} {}'", arguments.iter().format(" "));
+    let command_string = format!("{command_type} {}", arguments.iter().format(" "));
 
-    let command = Command::new(command_type.to_string())
+    trace!("running '{command_string}'");
+
+    // Use `which` to work-around weird path search issues on Windows.
+    // See https://github.com/rust-lang/rust/issues/37519.
+    let program_path = which::which(command_type.to_string())
+        .map_err(|err| JavascriptPackageManagerComamndError::NotFound(command_type, err))?;
+
+    let command = Command::new(program_path)
         .envs(environment.iter().copied())
         .args(arguments)
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
-        .current_dir(current_directory.as_ref())
+        .current_dir(current_directory)
         .spawn()
         .map_err(|err| JavascriptPackageManagerComamndError::CommandError(command_type, err))?;
 
@@ -32,11 +39,11 @@ async fn run_command<P: AsRef<Path>>(
         .await
         .map_err(|err| JavascriptPackageManagerComamndError::CommandError(command_type, err))?;
 
-    trace!("command '{command_type} {}' completed", arguments.iter().format(" "));
-
     if output.status.success() {
+        trace!("'{command_string}' succeeded");
         Ok(())
     } else {
+        trace!("'{command_string}' failed");
         Err(JavascriptPackageManagerComamndError::OutputError(
             command_type,
             String::from_utf8_lossy(&output.stderr).into_owned(),
@@ -118,6 +125,7 @@ pub async fn build_resolver(
     tracing: bool,
 ) -> Result<(PathBuf, PathBuf), ResolverBuildError> {
     use futures_util::StreamExt;
+    use path_slash::PathBufExt as _;
 
     const EXTENSIONS: [&str; 2] = ["js", "ts"];
 
@@ -186,6 +194,11 @@ pub async fn build_resolver(
 
     let resolver_build_package_json_path = resolver_build_artifact_directory_path.join("package.json");
 
+    let artifact_directory_modules_path = resolver_build_artifact_directory_path.join("node_modules");
+    let artifact_directory_modules_path_string = artifact_directory_modules_path
+        .to_str()
+        .expect("must be valid if `artifact_directory_path_string` is valid");
+
     if let Some(package_json_file_path) = package_json_path.as_deref() {
         trace!("copying package.json from {}", package_json_file_path.display());
         tokio::fs::copy(package_json_file_path, &resolver_build_package_json_path)
@@ -195,11 +208,6 @@ pub async fn build_resolver(
         let artifact_directory_path_string = resolver_build_artifact_directory_path.to_str().ok_or_else(|| {
             ResolverBuildError::PathError(resolver_build_artifact_directory_path.to_string_lossy().to_string())
         })?;
-
-        let artifact_directory_modules_path = resolver_build_artifact_directory_path.join("node_modules");
-        let artifact_directory_modules_path_string = artifact_directory_modules_path
-            .to_str()
-            .expect("must be valid if `artifact_directory_path_string` is valid");
 
         let arguments = match package_manager {
             JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "install"],
@@ -231,7 +239,7 @@ pub async fn build_resolver(
 
     let entrypoint_contents = resolver_wrapper_worker_contents.replace(
         "${RESOLVER_MAIN_FILE_PATH}",
-        resolver_js_file_path.to_str().expect("must be valid utf-8"),
+        resolver_js_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
     );
     tokio::fs::write(&resolver_build_entrypoint_path, entrypoint_contents)
         .await
@@ -292,6 +300,7 @@ pub async fn build_resolver(
         let wrangler_environment = &[
             ("CLOUDFLARE_API_TOKEN", "STUB"),
             ("FORCE_COLOR", "0"),
+            ("NODE_PATH", artifact_directory_modules_path_string),
             ("WRANGLER_LOG", if tracing { "warn" } else { "error" }),
             ("WRANGLER_SEND_METRICS", "false"),
         ];
@@ -307,7 +316,7 @@ pub async fn build_resolver(
             JavascriptPackageManagerComamndError::OutputError(_, output) => {
                 ResolverBuildError::ResolverBuild(resolver_name.to_owned(), output)
             }
-            other @ JavascriptPackageManagerComamndError::CommandError(..) => other.into(),
+            other => other.into(),
         })?;
     }
 
