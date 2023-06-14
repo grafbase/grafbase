@@ -187,54 +187,36 @@ impl Parser {
     ///
     /// Then, iterate all fields within the object, and perform any needed actions.
     fn update_object(&self, v: &mut cynic_introspection::ObjectType) {
-        if let Some(prefix) = &self.namespace {
-            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
-        }
-
+        self.prefixed(&mut v.name);
         v.fields.iter_mut().for_each(|v| self.update_field(v));
     }
 
     /// Similar to [`Parser::update_object()`], but for `InputObjectType`.
     fn update_input_object(&self, v: &mut cynic_introspection::InputObjectType) {
-        if let Some(prefix) = &self.namespace {
-            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
-        }
-
+        self.prefixed(&mut v.name);
         v.fields.iter_mut().for_each(|v| self.update_input_value(v));
     }
 
     fn update_enum(&self, v: &mut cynic_introspection::EnumType) {
-        if let Some(prefix) = &self.namespace {
-            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
-        }
+        self.prefixed(&mut v.name);
     }
 
     fn update_interface(&self, v: &mut cynic_introspection::InterfaceType) {
-        if let Some(prefix) = &self.namespace {
-            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
-        }
-
+        self.prefixed(&mut v.name);
         v.fields.iter_mut().for_each(|v| self.update_field(v));
     }
 
     fn update_union(&self, v: &mut cynic_introspection::UnionType) {
-        if let Some(prefix) = &self.namespace {
-            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
-        }
-
+        self.prefixed(&mut v.name);
         v.possible_types.iter_mut().for_each(|v| self.update_union_member(v));
     }
 
     fn update_union_member(&self, v: &mut String) {
-        if let Some(prefix) = &self.namespace {
-            *v = format!("{prefix} {v}").to_pascal_case();
-        }
+        self.prefixed(v);
     }
 
     fn update_scalar(&self, v: &mut cynic_introspection::ScalarType) {
-        if let Some(prefix) = &self.namespace {
-            v.name = format!("{} {}", prefix, v.name).to_pascal_case();
-        }
+        self.prefixed(&mut v.name);
     }
 
     fn update_field(&self, v: &mut cynic_introspection::Field) {
@@ -252,9 +234,7 @@ impl Parser {
             return;
         }
 
-        if let Some(prefix) = &self.namespace {
-            ty.name = format!("{prefix} {ty}").to_pascal_case();
-        }
+        self.prefixed(&mut ty.name);
     }
 
     fn add_field_resolvers(registry: &mut Registry) {
@@ -322,7 +302,7 @@ impl Parser {
             MetaField {
                 name: prefix.to_camel_case(),
                 description: Some(format!("Access to embedded {prefix} API.")),
-                ty: format!("{} {}!", prefix, &registry.query_type).to_pascal_case(),
+                ty: format!("{}{}!", prefix.to_pascal_case(), &registry.query_type),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolve: Some(Resolver {
@@ -408,7 +388,7 @@ impl Parser {
             MetaField {
                 name: prefix.to_camel_case(),
                 description: Some(format!("Access to embedded {prefix} API.")),
-                ty: format!("{prefix} {mutation_type}!").to_pascal_case(),
+                ty: format!("{}{mutation_type}!", prefix.to_pascal_case()),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolve: Some(Resolver {
@@ -463,6 +443,12 @@ impl Parser {
                     namespace: None,
                 }),
             });
+        }
+    }
+
+    fn prefixed(&self, s: &mut String) {
+        if let Some(namespace) = &self.namespace {
+            *s = format!("{}{}", namespace.to_pascal_case(), s);
         }
     }
 }
@@ -623,6 +609,30 @@ mod tests {
             1,
             reqwest::Client::new(),
             None,
+            &Url::parse(&server.uri()).unwrap(),
+            std::iter::empty(),
+            std::iter::empty(),
+        )
+        .await
+        .unwrap()
+        .export_sdl(false);
+
+        insta::assert_snapshot!(result);
+    }
+
+    #[tokio::test]
+    async fn test_preservation_of_type_casing() {
+        let data = include_str!("../tests/casing.json");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(data, "application/json"))
+            .mount(&server)
+            .await;
+
+        let result = parse_schema(
+            1,
+            reqwest::Client::new(),
+            Some("pre_fix"),
             &Url::parse(&server.uri()).unwrap(),
             std::iter::empty(),
             std::iter::empty(),

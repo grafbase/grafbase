@@ -7877,13 +7877,13 @@ type Mutation {
 	"""
 	Access to embedded FooBar API.
 	"""
-	fooBar: FooBarMutation
+	fooBar: FooBarMutation!
 }
 type Query {
 	"""
 	Access to embedded FooBar API.
 	"""
-	fooBar: FooBarQuery
+	fooBar: FooBarQuery!
 }
 schema {
 	query: Query
