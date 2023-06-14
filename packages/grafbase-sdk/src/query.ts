@@ -1,4 +1,9 @@
-import { DefaultDefinition, DefaultFieldShape, DefaultValueType, renderDefault } from './typedefs/default'
+import {
+  DefaultDefinition,
+  DefaultFieldShape,
+  DefaultValueType,
+  renderDefault
+} from './typedefs/default'
 import { InputDefinition } from './typedefs/input'
 import { ListDefinition } from './typedefs/list'
 import { ReferenceDefinition } from './typedefs/reference'
@@ -6,7 +11,11 @@ import { ScalarDefinition } from './typedefs/scalar'
 import { validateIdentifier } from './validation'
 
 /** The possible types of an input parameters of a query. */
-export type InputType = ScalarDefinition | ListDefinition | InputDefinition | InputDefaultDefinition
+export type InputType =
+  | ScalarDefinition
+  | ListDefinition
+  | InputDefinition
+  | InputDefaultDefinition
 
 /** The possible types of an output parameters of a query. */
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
@@ -20,7 +29,10 @@ export class InputDefaultDefinition extends DefaultDefinition {
   }
 
   public toString(): string {
-    const defaultValue = renderDefault(this._defaultValue, this._scalar.fieldTypeVal())
+    const defaultValue = renderDefault(
+      this._defaultValue,
+      this._scalar.fieldTypeVal()
+    )
     return `${this._scalar} = ${defaultValue}`
   }
 }
