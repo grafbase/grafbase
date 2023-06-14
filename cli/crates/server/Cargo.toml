@@ -28,7 +28,7 @@ integer-encoding = "3"
 ipnet = "2"
 itertools = "0.10"
 log = "0.4"
-notify = { version = "5", default-features = false, features = [
+notify = { version = "6", default-features = false, features = [
   "macos_fsevent",
 ] }
 notify-debouncer-mini = { version = "0.2", default-features = false }
