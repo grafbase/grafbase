@@ -27,7 +27,7 @@ describe('OpenAPI generator', () => {
       schema:
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
       url: 'https://api.stripe.com',
-      transforms: 'SCHEMA_NAME',
+      transforms: { queryNaming: 'OPERATION_ID' },
       headers: (headers) => {
         headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
         headers.static('Method', 'POST')
@@ -44,7 +44,7 @@ describe('OpenAPI generator', () => {
           name: "Stripe"
           url: "https://api.stripe.com"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
-          transforms: { queryNaming: SCHEMA_NAME }
+          transforms: { queryNaming: OPERATION_ID }
           headers: [
             { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
             { name: "Method", value: "POST" }
