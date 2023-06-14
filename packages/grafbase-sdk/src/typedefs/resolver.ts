@@ -1,7 +1,6 @@
 import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
-import { SearchDefinition } from './search'
 import { DefaultDefinition } from './default'
 import { ReferenceDefinition } from './reference'
 import { ScalarDefinition } from './scalar'
@@ -35,13 +34,6 @@ export class ResolverDefinition {
    */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**
