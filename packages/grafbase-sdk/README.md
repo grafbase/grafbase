@@ -4,8 +4,16 @@ A TypeScript library to generate a Grafbase configuration. It replaces the `sche
 
 ## Get Started
 
+Adding to an existing project:
+
 ```bash
-npx grafbase init --config-format typescript
+npm install @grafbase/sdk --save-dev
+```
+
+Initializing a new project
+
+```bash
+grafbase init --config-format typescript
 ```
 
 ## Example
