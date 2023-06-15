@@ -13,7 +13,7 @@ use super::operations::Operations;
 #[serde(deny_unknown_fields)]
 #[non_exhaustive]
 pub enum AuthRule {
-    /// Signed-in user data access via OIDC
+    /// Signed-in user data access with a valid JWT token.
     // Ex: { allow: private }
     //     { allow: private, operations: [create, read] }
     #[serde(rename_all = "camelCase")]
@@ -22,7 +22,16 @@ pub enum AuthRule {
         operations: Operations,
     },
 
-    /// User group-based data access via OIDC
+    /// Public data access
+    // Ex: { allow: public }
+    //     { allow: public, operations: [read] }
+    #[serde(rename_all = "camelCase")]
+    Public {
+        #[serde(default)]
+        operations: Operations,
+    },
+
+    /// Group-based data access. Access is allowed when a group is found in the JWT token.
     // Ex: { allow: groups, groups: ["admin"] }
     //     { allow: groups, groups: ["admin"], operations: [update, delete] }
     #[serde(rename_all = "camelCase")]
@@ -34,7 +43,7 @@ pub enum AuthRule {
         operations: Operations,
     },
 
-    /// Owner-based data access via OIDC
+    /// Owner-based data access - document(row) based security. Owner can only see their own documents.
     // Ex: { allow: owner }
     //     { allow: owner, operations: [create, read] }
     #[serde(rename_all = "camelCase")]

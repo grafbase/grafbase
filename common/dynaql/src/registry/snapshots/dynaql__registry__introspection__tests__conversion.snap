@@ -3083,6 +3083,7 @@ expression: "Registry::from(schema)"
   "federation_subscription": false,
   "auth": {
     "allowed_private_ops": 0,
+    "allowed_public_ops": 0,
     "allowed_group_ops": {},
     "allowed_owner_ops": 0,
     "provider": null

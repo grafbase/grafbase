@@ -29,9 +29,6 @@ impl<'a> AuthContext<'a> {
     /// You can get the associated [`AuthContext`] from anywhere you have access to the
     /// [`Context`].
     pub fn new(ctx: &'_ Context<'a>) -> Self {
-        // global_ops and groups_from_token are set early on when authorizing
-        // the API request. global_ops is based on the top-level auth directive
-        // and may be overriden here on the model and field level.
         let exec = ctx.data::<ExecutionAuth>().ok();
         let trace_id = ctx.trace_id();
 
@@ -44,24 +41,22 @@ impl<'a> AuthContext<'a> {
         ctx: &'_ Context<'a>,
         root: &MetaType,
     ) -> ServerResult<()> {
-        if let Some(exec) = self.exec {
+        if let Some(execution_auth) = self.exec {
             let field_name = ctx.item.node.name.node.as_str();
             let meta_field = root.field_by_name(field_name);
             let auth = meta_field.and_then(|f| f.auth.as_ref());
             let required_operation = meta_field.and_then(|f| f.required_operation.as_ref());
             let parent_type = root.name();
 
-            let global_ops = exec.global_ops();
-            let groups_from_token = match exec {
-                ExecutionAuth::ApiKey => None,
-                ExecutionAuth::Token(token) => Some(token.groups_from_token()),
-            };
-
-            let model_ops = auth
-                .map(|auth| auth.allowed_ops(groups_from_token))
-                .unwrap_or(global_ops); // Fall back to global auth if model auth is not configured
-                                        //
+            let auth_ops = auth.map(|auth| match execution_auth {
+                ExecutionAuth::ApiKey => grafbase::auth::API_KEY_OPS,
+                ExecutionAuth::Token(token) => {
+                    auth.private_public_and_group_based_ops(token.groups_from_token())
+                }
+                ExecutionAuth::Public { .. } => auth.allowed_public_ops,
+            });
             if let Some(required_op) = required_operation {
+                let model_ops = auth_ops.unwrap_or(execution_auth.global_ops()); // Fall back to global auth if model auth is not configured
                 if !model_ops.contains(*required_op) {
                     let msg = format!(
                     "Unauthorized to access {parent_type}.{field_name} (missing {required_op} operation)"
@@ -80,9 +75,7 @@ impl<'a> AuthContext<'a> {
                 // Assume we're resolving a field to be returned by a query or
                 // mutation when `required_op` is None (objects are agnostic to
                 // operations) and auth is set.
-            } else if let Some(auth) = auth {
-                let field_ops = auth.allowed_ops(groups_from_token);
-
+            } else if let Some(field_ops) = auth_ops {
                 if !field_ops.intersects(Operations::READ) {
                     let msg = format!("Unauthorized to access {parent_type}.{field_name}");
                     #[cfg(feature = "tracing_worker")]

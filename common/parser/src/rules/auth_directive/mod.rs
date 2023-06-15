@@ -177,7 +177,7 @@ mod tests {
           query: Query
         }
         "#,
-        "auth rule: unknown variant `anonymous`, expected one of `private`, `groups`, `owner`"
+        "auth rule: unknown variant `anonymous`, expected one of `private`, `public`, `groups`, `owner`"
     );
 
     parse_fail!(
@@ -189,7 +189,7 @@ mod tests {
           query: Query
         }
         "#,
-        "auth rule: unknown variant `anonymous`, expected one of `private`, `groups`, `owner`"
+        "auth rule: unknown variant `anonymous`, expected one of `private`, `public`, `groups`, `owner`"
     );
 
     parse_test!(
@@ -721,6 +721,37 @@ query: Query
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
             })),
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        public_rule,
+        r#"
+        schema @auth(
+          rules: [ { allow: public } ],
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::AuthConfig {
+            allowed_public_ops: Operations::all(),
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        public_rule_combined_with_private,
+        r#"
+      schema @auth(
+        rules: [ { allow: public, operations: [ get ] }, { allow: private } ],
+      ){
+        query: Query
+      }
+      "#,
+        dynaql::AuthConfig {
+            allowed_public_ops: Operations::GET,
+            allowed_private_ops: Operations::all(),
             ..Default::default()
         }
     );

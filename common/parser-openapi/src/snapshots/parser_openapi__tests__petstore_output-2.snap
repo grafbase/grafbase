@@ -2145,6 +2145,9 @@ Registry {
         allowed_private_ops: Operations(
             0x0,
         ),
+        allowed_public_ops: Operations(
+            0x0,
+        ),
         allowed_group_ops: {},
         allowed_owner_ops: Operations(
             0x0,

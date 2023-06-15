@@ -6,18 +6,17 @@
 //! The Auth is going to be injected inside dynaql instead of just living as an
 //! Extension as it's adding complexity without much gain.
 //! ----------------------------------------------------------------------------
-use std::collections::HashSet;
-use std::sync::Arc;
-
-use dynaql::extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo};
+use dynaql::extensions::{Extension, ExtensionContext, ExtensionFactory, NextParseQuery, NextResolve, ResolveInfo};
 use dynaql::graph_entities::ResponseNodeId;
+use dynaql::parser::types::{ExecutableDocument, OperationType, Selection};
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::Registry;
-use dynaql::{ServerError, ServerResult};
+use dynaql::Variables;
+use dynaql::{AuthConfig, ServerError, ServerResult};
 use dynaql_value::{indexmap::IndexMap, ConstValue};
 use grafbase::auth::{ExecutionAuth, Operations};
-
-use log::warn;
+use log::{trace, warn};
+use std::sync::Arc;
 
 const INPUT_ARG: &str = "input";
 const CREATE_FIELD: &str = "create";
@@ -38,9 +37,57 @@ impl ExtensionFactory for AuthExtension {
     }
 }
 
-// Use ExecutionAuth and AuthConfig to allow/deny the request
+// Use ExecutionAuth from ctx and AuthConfig from ResolveInfo (global) or MetaField  to allow/deny the request.
 #[async_trait::async_trait]
 impl Extension for AuthExtension {
+    // Deny access if the query contains introspection and using Public access in the cloud.
+    // If Ok is returned, the query will then be verified using `resolve`
+    async fn parse_query(
+        &self,
+        ctx: &ExtensionContext<'_>,
+        query: &str,
+        variables: &Variables,
+        next: NextParseQuery<'_>,
+    ) -> ServerResult<ExecutableDocument> {
+        let document = next.run(ctx, query, variables).await?;
+        // if type starts with `__` it is part of introspection system, see http://spec.graphql.org/October2021/#sec-Names.Reserved-Names
+        let contains_introspection = document.operations.iter().all(|(_, operation)| {
+            operation.node.ty == OperationType::Query
+                && operation.node.selection_set.node.items.iter().all(|selection| {
+                    matches!(
+                            &selection.node,
+                            Selection::Field(field) if field.node.name.node.starts_with("__"))
+                })
+        });
+        // Currently the introspection query auth is not configurable.
+        // Locally we allow it with Public access as well when using a JWT token or an API key.
+        // In the cloud we only allow it when using API key or a JWT token.
+        if contains_introspection {
+            match ctx
+                .data::<ExecutionAuth>()
+                .expect("auth must be injected into the context")
+            {
+                ExecutionAuth::ApiKey | ExecutionAuth::Token(_) => Ok(document),
+                ExecutionAuth::Public { .. } => {
+                    cfg_if::cfg_if! {
+                        if #[cfg(feature = "local")] {
+                            Ok(document)
+                        } else {
+                            Err(dynaql::ServerError::new(
+                                "Unauthorized. Please set 'authorization' header with a JWT token or \
+                                    'x-api-key' header with an API key from the project settings page. \
+                                    More info: https://grafbase.com/docs/auth",
+                                None,
+                            ))
+                        }
+                    }
+                }
+            }
+        } else {
+            Ok(document)
+        }
+    }
+
     async fn resolve(
         &self,
         ctx: &ExtensionContext<'_>,
@@ -51,25 +98,35 @@ impl Extension for AuthExtension {
             static ref EMPTY_INDEX_MAP: IndexMap<dynaql_value::Name, ConstValue> = IndexMap::new();
         }
 
-        // global_ops and groups_from_token are set early on when authorizing
-        // the API request. global_ops is based on the top-level auth directive
-        // and may be overriden here on the model and field level.
+        if info.parent_type.starts_with("__") || info.parent_type.starts_with("[__") || info.name.starts_with("__") {
+            return next.run(ctx, info).await;
+        }
+
         let execution_auth = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
-
-        let global_ops = execution_auth.global_ops();
-        let groups_from_token = match execution_auth {
-            ExecutionAuth::ApiKey => None,
-            ExecutionAuth::Token(token) => Some(token.groups_from_token()),
+        let auth_fn = |auth: Option<&AuthConfig>, default_ops: Operations| {
+            auth.map(|auth| match execution_auth {
+                ExecutionAuth::ApiKey => grafbase::auth::API_KEY_OPS,
+                ExecutionAuth::Token(token) => auth.private_public_and_group_based_ops(token.groups_from_token()),
+                ExecutionAuth::Public { .. } => auth.allowed_public_ops,
+            })
+            .unwrap_or(default_ops)
         };
-        let model_ops = info
-            .auth
-            .map(|auth| auth.allowed_ops(groups_from_token))
-            .unwrap_or(global_ops); // Fall back to global auth if model auth is not configured
+        // Get the allowed operation from the parsed schema.
+        let model_allowed_ops = auth_fn(info.auth, execution_auth.global_ops()); // Fall back to global auth if model auth is not configured
+        trace!(
+            self.trace_id,
+            "Resolving {parent_type}.{name}, auth: {auth:?} allowed ops as {model_allowed_ops:?}, required {required_op:?}",
+            parent_type = info.parent_type,
+            name = info.name,
+            auth = info.auth,
+            required_op = info.required_operation
+        );
 
+        // Required operation is inferred from the current request.
         if let Some(required_op) = info.required_operation {
-            if !model_ops.contains(required_op) {
+            if !model_allowed_ops.contains(required_op) {
                 let msg = format!(
                     "Unauthorized to access {parent_type}.{name} (missing {required_op} operation)",
                     parent_type = info.parent_type,
@@ -99,9 +156,9 @@ impl Extension for AuthExtension {
                         mutation_name: info.name,
                         registry: &ctx.schema_env.registry,
                         required_op,
-                        model_ops,
-                        global_ops,
-                        groups_from_token,
+                        model_allowed_ops,
+                        global_allowed_ops: execution_auth.global_ops(),
+                        auth_fn: &auth_fn,
                     })?;
                 }
                 (MUTATION_TYPE, Operations::DELETE) => {
@@ -109,8 +166,8 @@ impl Extension for AuthExtension {
                         guess_type_name(&info, required_op),
                         info.name,
                         &ctx.schema_env.registry,
-                        model_ops,
-                        groups_from_token,
+                        model_allowed_ops,
+                        &auth_fn,
                     )?;
                 }
                 _ => {}
@@ -119,8 +176,8 @@ impl Extension for AuthExtension {
         // mutation when required_op is None (objects are agnostic to
         // operations) and auth is set.
         } else if let Some(auth) = info.auth {
-            let field_ops = auth.allowed_ops(groups_from_token);
-
+            let field_ops = auth_fn(Some(auth), Operations::empty());
+            trace!(self.trace_id, "Field level auth. field_ops:{field_ops}");
             if !field_ops.intersects(Operations::READ) {
                 let msg = format!(
                     "Unauthorized to access {type_name}.{field_name}",
@@ -136,15 +193,15 @@ impl Extension for AuthExtension {
     }
 }
 
-struct CheckInputOptions<'a> {
+struct CheckInputOptions<'a, F: Fn(Option<&AuthConfig>, Operations) -> Operations> {
     input_fields: &'a IndexMap<dynaql_value::Name, ConstValue>,
     type_name: &'a str,
     mutation_name: &'a str,
     registry: &'a Registry,
     required_op: Operations,
-    model_ops: Operations,
-    global_ops: Operations,
-    groups_from_token: Option<&'a HashSet<String>>,
+    model_allowed_ops: Operations,
+    global_allowed_ops: Operations,
+    auth_fn: &'a F,
 }
 
 impl AuthExtension {
@@ -153,7 +210,10 @@ impl AuthExtension {
     }
 
     // Only allow create/update when the user is authorized to access ALL fields passed as input
-    fn check_input(&self, opts: CheckInputOptions<'_>) -> Result<(), ServerError> {
+    fn check_input<F: Fn(Option<&AuthConfig>, Operations) -> Operations>(
+        &self,
+        opts: CheckInputOptions<'_, F>,
+    ) -> Result<(), ServerError> {
         let type_fields = opts
             .registry
             .types
@@ -165,11 +225,7 @@ impl AuthExtension {
         for (field_name, field_value) in opts.input_fields {
             let field = type_fields.get(field_name.as_str()).expect("field must exist");
 
-            let field_ops = field
-                .auth
-                .as_ref()
-                .map(|auth| auth.allowed_ops(opts.groups_from_token))
-                .unwrap_or(opts.model_ops);
+            let field_ops = (opts.auth_fn)(field.auth.as_ref(), opts.model_allowed_ops);
 
             log::trace!(self.trace_id, "check_input.{field_name} ${field_ops}");
 
@@ -208,8 +264,8 @@ impl AuthExtension {
                                 target_type,
                                 opts.mutation_name,
                                 opts.registry,
-                                opts.global_ops,
-                                opts.groups_from_token,
+                                opts.global_allowed_ops,
+                                opts.auth_fn,
                             )?;
                         }
                     }
@@ -231,8 +287,8 @@ impl AuthExtension {
                                         target_type,
                                         opts.mutation_name,
                                         opts.registry,
-                                        opts.global_ops,
-                                        opts.groups_from_token,
+                                        opts.global_allowed_ops,
+                                        opts.auth_fn,
                                     )?;
                                 }
                             }
@@ -247,13 +303,13 @@ impl AuthExtension {
     }
 
     // Only allow (un)link when the user can read the target type's id
-    fn check_link_or_unlink(
+    fn check_link_or_unlink<F: Fn(Option<&AuthConfig>, Operations) -> Operations>(
         &self,
         type_name: &str,
         mutation_name: &str,
         registry: &Registry,
         global_ops: Operations,
-        groups_from_token: Option<&HashSet<String>>,
+        auth_fn: &F,
     ) -> Result<(), ServerError> {
         self.check_input(CheckInputOptions {
             input_fields: &vec![(dynaql::Name::new("id"), ConstValue::String("ignored".to_string()))]
@@ -263,21 +319,21 @@ impl AuthExtension {
             mutation_name,
             registry,
             required_op: Operations::GET,
-            model_ops: global_ops, // Fall back to global ops because id has inherited model-level auth already
-            global_ops,
-            groups_from_token,
+            model_allowed_ops: global_ops, // Fall back to global ops because id has inherited model-level auth already
+            global_allowed_ops: global_ops,
+            auth_fn,
         })
     }
 
     // Only allow delete when the user is authorized to delete ALL fields of the type
     // TODO: Check fields of nested types once we support cascading deletes
-    fn check_delete(
+    fn check_delete<F: Fn(Option<&AuthConfig>, Operations) -> Operations>(
         &self,
         type_name: &str,
         mutation_name: &str,
         registry: &Registry,
         model_ops: Operations,
-        groups_from_token: Option<&HashSet<String>>,
+        auth_fn: &F,
     ) -> Result<(), ServerError> {
         let type_fields = registry
             .types
@@ -287,11 +343,7 @@ impl AuthExtension {
             .expect("type must have fields");
 
         for (name, field) in type_fields {
-            let field_ops = field
-                .auth
-                .as_ref()
-                .map(|auth| auth.allowed_ops(groups_from_token))
-                .unwrap_or(model_ops);
+            let field_ops = auth_fn(field.auth.as_ref(), model_ops);
 
             if !field_ops.contains(Operations::DELETE) {
                 let msg = format!(

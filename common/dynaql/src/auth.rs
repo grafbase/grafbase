@@ -7,6 +7,9 @@ use std::collections::{HashMap, HashSet};
 pub struct AuthConfig {
     pub allowed_private_ops: Operations,
 
+    #[serde(default)]
+    pub allowed_public_ops: Operations,
+
     #[serde(with = "::serde_with::rust::maps_duplicate_key_is_error")]
     pub allowed_group_ops: HashMap<String, Operations>,
 
@@ -74,6 +77,8 @@ impl Default for AuthConfig {
         AuthConfig {
             allowed_private_ops: Operations::empty(),
 
+            allowed_public_ops: Operations::empty(),
+
             allowed_group_ops: HashMap::new(),
 
             allowed_owner_ops: Operations::empty(),
@@ -84,25 +89,22 @@ impl Default for AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn private_and_group_based_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
+    pub fn private_public_and_group_based_ops(
+        &self,
+        groups_from_token: &HashSet<String>,
+    ) -> Operations {
         // Add ops for each group contained in ID token
-        // Minimum ops are that of any signed-in user, if present
+        // Minimum ops are that of any signed-in user union public ops.
+        let minimum_ops = self.allowed_public_ops.union(self.allowed_private_ops);
         let groups = self.allowed_group_ops.clone().into_keys().collect();
         groups_from_token
             .intersection(&groups)
-            .fold(self.allowed_private_ops, |ops, group| {
+            .fold(minimum_ops, |ops, group| {
                 ops.union(self.allowed_group_ops[group])
             })
     }
 
     pub fn owner_based_ops(&self) -> Operations {
         self.allowed_owner_ops
-    }
-
-    pub fn allowed_ops(&self, groups_from_token: Option<&HashSet<String>>) -> Operations {
-        match groups_from_token {
-            Some(groups) => self.private_and_group_based_ops(groups),
-            None => grafbase::auth::API_KEY_OPS,
-        }
     }
 }

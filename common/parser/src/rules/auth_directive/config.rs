@@ -11,6 +11,8 @@ use crate::VisitorContext;
 struct InternalAuthConfig {
     allowed_private_ops: Operations,
 
+    allowed_public_ops: Operations,
+
     allowed_group_ops: HashMap<String, Operations>,
 
     allowed_owner_ops: Operations,
@@ -72,6 +74,15 @@ pub fn parse_auth_config(
         .flatten()
         .collect();
 
+    let allowed_public_ops: Operations = rules
+        .iter()
+        .filter_map(|rule| match rule {
+            AuthRule::Public { operations, .. } => Some(operations.values().clone()),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+
     let allowed_group_ops = rules
         .iter()
         .filter_map(|rule| match rule {
@@ -106,6 +117,7 @@ pub fn parse_auth_config(
 
     Ok(dynaql::AuthConfig::from(InternalAuthConfig {
         allowed_private_ops,
+        allowed_public_ops,
         allowed_group_ops,
         allowed_owner_ops,
         provider,
@@ -116,6 +128,8 @@ impl From<InternalAuthConfig> for dynaql::AuthConfig {
     fn from(auth: InternalAuthConfig) -> Self {
         Self {
             allowed_private_ops: auth.allowed_private_ops.into(),
+
+            allowed_public_ops: auth.allowed_public_ops.into(),
 
             allowed_group_ops: auth
                 .allowed_group_ops

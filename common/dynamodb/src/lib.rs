@@ -191,7 +191,7 @@ quick_error! {
 #[derive(Debug)]
 pub enum OperationAuthorization<'a> {
     OwnerBased(&'a str),
-    PrivateOrGroupBased,
+    PublicOrPrivateOrGroupBased,
     ApiKey,
 }
 
@@ -199,7 +199,7 @@ pub enum OperationAuthorization<'a> {
 #[error("unauthorized")]
 pub struct OperationAuthorizationError {
     requested_op: RequestedOperation,
-    private_and_group_ops: Operations,
+    private_public_and_group_ops: Operations,
     owner_ops: Operations,
 }
 
@@ -274,28 +274,32 @@ impl DynamoDBContext {
                         // Owner based auth is enabled and JWT contains the `sub` claim.
                         if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
                             Ok(OperationAuthorization::OwnerBased(subject.as_str()))
-                        } else if token.private_and_group_ops().contains(Operations::from(requested_op)) {
+                        } else if token
+                            .private_public_and_group_ops()
+                            .contains(Operations::from(requested_op))
+                        {
                             // private_group_ops have precedence over owner in all other operations.
-                            Ok(OperationAuthorization::PrivateOrGroupBased)
+                            Ok(OperationAuthorization::PublicOrPrivateOrGroupBased)
                         } else if owner_ops.contains(Operations::from(requested_op)) {
                             Ok(OperationAuthorization::OwnerBased(subject.as_str()))
                         } else {
                             Err(OperationAuthorizationError {
                                 requested_op,
-                                private_and_group_ops: token.private_and_group_ops(),
+                                private_public_and_group_ops: token.private_public_and_group_ops(),
                                 owner_ops: token.owner_ops(),
                             })
                         }
                     }
                     None => {
                         // The owner-based auth is not enabled or JWT does not contain the `sub` claim.
-                        // Therefore only private/group-based auth might be applicable.
+                        // Therefore only public/private/group-based auth might be applicable.
                         // Since model and field level is not supported by the low level auth yet,
                         // allow everything to continue with the old behavior.
-                        Ok(OperationAuthorization::PrivateOrGroupBased)
+                        Ok(OperationAuthorization::PublicOrPrivateOrGroupBased)
                     }
                 }
             }
+            ExecutionAuth::Public { .. } => Ok(OperationAuthorization::PublicOrPrivateOrGroupBased),
         };
         log::trace!(self.trace_id, "authorize_operation({requested_op:?}) = {res:?}");
         res
