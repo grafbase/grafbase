@@ -496,24 +496,24 @@ async fn type_field_resolver_mixed() {
     private_client.poll_endpoint(30, 300).await;
     let public_client = env.create_async_client();
     insta::assert_json_snapshot!(
-        "type_field_resolver_mixed::public_mutation_should_fail",
+        "type_field_resolver_mixed__public_mutation_should_fail",
         public_client.gql::<Value>(AUTH_CREATE_MUTATION).await
     );
 
     insta::assert_json_snapshot!(
-        "type_field_resolver_mixed::private_mutation_should_succeed",
+        "type_field_resolver_mixed__private_mutation_should_succeed",
         private_client.gql::<Value>(AUTH_CREATE_MUTATION).await
     );
     insta::assert_json_snapshot!(
-        "type_field_resolver_mixed::private_query_should_succeed",
+        "type_field_resolver_mixed__private_query_should_succeed",
         private_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await
     );
     insta::assert_json_snapshot!(
-        "type_field_resolver_mixed::public_query_should_fail",
+        "type_field_resolver_mixed__public_query_should_fail",
         public_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await
     );
     insta::assert_json_snapshot!(
-        "type_field_resolver_mixed::public_partial_query_should_succeed",
+        "type_field_resolver_mixed__public_partial_query_should_succeed",
         public_client.gql::<Value>(JWT_PROVIDER_QUERY).await
     );
 }
@@ -536,11 +536,11 @@ async fn entrypoint_query_field_resolver() {
     private_client.poll_endpoint(30, 300).await;
     let public_client = env.create_async_client();
     insta::assert_json_snapshot!(
-        "entrypoint_query_field_resolver::private_entrypoint_field_query_should_succeed",
+        "entrypoint_query_field_resolver__private_entrypoint_field_query_should_succeed",
         private_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
     );
     insta::assert_json_snapshot!(
-        "entrypoint_query_field_resolver::public_entrypoint_field_query_should_fail",
+        "entrypoint_query_field_resolver__public_entrypoint_field_query_should_fail",
         public_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
     );
 }
@@ -563,11 +563,11 @@ async fn entrypoint_mutation_field_resolver_mixed() {
     private_client.poll_endpoint(30, 300).await;
     let public_client = env.create_async_client();
     insta::assert_json_snapshot!(
-        "entrypoint_mutation_field_resolver_mixed::private_entrypoint_field_mutation_should_succeed",
+        "entrypoint_mutation_field_resolver_mixed__private_entrypoint_field_mutation_should_succeed",
         private_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
     );
     insta::assert_json_snapshot!(
-        "entrypoint_mutation_field_resolver_mixed::public_entrypoint_field_mutation_should_fail",
+        "entrypoint_mutation_field_resolver_mixed__public_entrypoint_field_mutation_should_fail",
         public_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
     );
 }
