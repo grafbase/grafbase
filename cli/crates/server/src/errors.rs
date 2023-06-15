@@ -14,8 +14,23 @@ use tokio::task::JoinError;
 use crate::custom_resolvers::JavaScriptPackageManager;
 
 #[derive(Error, Debug)]
+pub enum JavascriptPackageManagerComamndError {
+    /// returned if npm/pnpm/yarn cannot be found
+    #[error("could not find {0}: {1}")]
+    NotFound(JavaScriptPackageManager, which::Error),
+
+    /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
+    #[error("{0} encountered an error: {1}")]
+    CommandError(JavaScriptPackageManager, IoError),
+
+    /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
+    #[error("{0} failed with output:\n{1}")]
+    OutputError(JavaScriptPackageManager, String),
+}
+
+#[derive(Error, Debug)]
 pub enum ServerError {
-    /// returned if the current directory path cannot be read
+    /// returned if the directory cannot be read
     #[error("could not create path '{0}' for the embedded server files")]
     CreateDir(PathBuf),
 
@@ -75,21 +90,13 @@ pub enum ServerError {
     #[error("could not create a temporary file: {0}")]
     CreateTemporaryFile(IoError),
 
-    /// returned if `tempfile::NamedTempFile::new()` fails.
+    /// returned if a write to a temporary file fails.
     #[error("could not write to a temporary file '{0}': {1}")]
     CreateNotWriteToTemporaryFile(PathBuf, IoError),
 
-    /// returned if a write to a resolver artifact file fails
-    #[error("could not create a file {0} during a resolver build: {1}")]
-    CreateResolverArtifactFile(PathBuf, IoError),
-
-    /// returned if a write to a resolver artifact file fails
+    /// returned if a read operation from a file fails
     #[error("could not read the file {0}: {1}")]
     ReadFile(PathBuf, IoError),
-
-    /// returned if the schema parser command exits unsuccessfully
-    #[error("could not extract the resolver wrapper worker contents")]
-    ExtractResolverWrapperWorkerContents(String),
 
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not parse grafbase/schema.graphql\n{0}")]
@@ -102,13 +109,9 @@ pub enum ServerError {
     #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
     ResolverDoesNotExist(PathBuf),
 
-    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
-    #[error("{0} encountered an error: {1}")]
-    ResolverPackageManagerCommandError(JavaScriptPackageManager, IoError),
-
-    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
-    #[error("{0} failed with output:\n{1}")]
-    ResolverPackageManagerError(JavaScriptPackageManager, String),
+    /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
+    #[error("command error: {0}")]
+    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("resolver {0} failed to build:\n{1}")]
@@ -160,6 +163,52 @@ pub enum ServerError {
 
     #[error("Could not create a lock for the wrangler installation: {0}")]
     Lock(#[from] fslock::Error),
+}
+
+#[derive(Debug, Error)]
+pub enum ResolverBuildError {
+    /// returned if `tempfile::NamedTempFile::new()` fails.
+    #[error("could not create a temporary file for the parser result: {0}")]
+    CreateTemporaryFile(IoError),
+
+    /// path is invalid.
+    #[error("path is invalid: {0}")]
+    PathError(String),
+
+    /// returned if a write to a resolver artifact file fails
+    #[error("could not create a file {0} during a resolver build: {1}")]
+    CreateResolverArtifactFile(PathBuf, IoError),
+
+    /// returned if the directory cannot be created
+    #[error("could not create path '{0}' for resolver build artifacts")]
+    CreateDir(PathBuf),
+
+    /// returned if a read operation from a file fails
+    #[error("could not read the file {0}: {1}")]
+    ReadFile(PathBuf, IoError),
+
+    /// returned if the schema parser command exits unsuccessfully
+    #[error("could not extract the resolver wrapper worker contents")]
+    ExtractResolverWrapperWorkerContents(IoError),
+
+    /// returned if a write to a temporary file fails.
+    #[error("could not write to a temporary file '{0}': {1}")]
+    CreateNotWriteToTemporaryFile(PathBuf, IoError),
+
+    #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
+    ResolverDoesNotExist(PathBuf),
+
+    /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
+    #[error("command error: {0}")]
+    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("resolver {0} failed to build:\n{1}")]
+    ResolverBuild(String, String),
+
+    /// returned if a spawned task panics
+    #[error(transparent)]
+    SpawnedTaskPanic(#[from] JoinError),
 }
 
 impl From<SqlxError> for ServerError {

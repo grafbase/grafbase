@@ -41,6 +41,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.2
 cfg-if = "1"
 chrono = "0.4"
 crossbeam-channel = "0.5"
+derive_builder = "0.12"
 dirs = "5"
 duct = "0.13"
 fslock = "0.2"

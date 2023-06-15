@@ -197,6 +197,7 @@ use utils::environment::Environment;
     ],
     Some(r#"
         {
+            "name": "my-package",
             "dependencies": {
                 "is-palindrome": "^0.3.0"
             }
@@ -257,7 +258,6 @@ use utils::environment::Environment;
         }
     "#)
 )]
-#[cfg_attr(target_os = "windows", ignore)]
 fn test_field_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
@@ -275,8 +275,10 @@ fn test_field_resolver(
         env.write_file("package.json", package_json);
     }
     env.grafbase_dev();
-    let client = env.create_client().with_api_key();
-    client.poll_endpoint(60, 300);
+    let client = env
+        .create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build())
+        .with_api_key();
+    client.poll_endpoint(120, 250);
 
     // Create.
     let response = client
@@ -366,7 +368,6 @@ fn test_field_resolver(
         ),
     ],
 )]
-#[cfg_attr(target_os = "windows", ignore)]
 fn test_query_mutation_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
