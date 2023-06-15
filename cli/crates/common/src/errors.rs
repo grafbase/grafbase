@@ -29,4 +29,6 @@ pub enum CommonError {
     AccessPackageJson(std::io::Error),
     #[error("could not serialize the project 'package.json':\nCaused by: {0}")]
     SerializePackageJson(serde_json::Error),
+    #[error("could not execute 'npm init':\nCaused by: {0}")]
+    NpmInitError(std::io::Error),
 }
