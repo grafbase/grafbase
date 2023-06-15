@@ -54,10 +54,9 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                         );
                         continue;
                     };
-                let field_collection = match type_name.as_str() {
-                    "Query" => &mut ctx.queries,
-                    "Mutation" => &mut ctx.mutations,
-                    _ => return,
+                let field_collection = match entry_point {
+                    EntryPoint::Query => &mut ctx.queries,
+                    EntryPoint::Mutation => &mut ctx.mutations,
                 };
                 field_collection.push(MetaField {
                     name: name.clone(),
