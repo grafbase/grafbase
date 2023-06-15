@@ -361,7 +361,7 @@ const stripe = connector.OpenAPI({
 Connectors can be added to the schema using `g.datasource()`, including an optional `namespace`:
 
 ```typescript
-g.datasource(stripe)
+g.datasource(stripe, { namespace: 'Stripe' })
 g.datasource(openai, { namespace: 'OpenAI' })
 ```
 
@@ -386,7 +386,7 @@ const github = connector.GraphQL({
 Connectors can be added to the schema using `g.datasource()`, including an optional `namespace`:
 
 ```typescript
-g.datasource(contentful)
+g.datasource(contentful, { namespace: 'Contentful' })
 g.datasource(github, { namespace: 'GitHub' })
 ```
 
@@ -471,10 +471,12 @@ const derp = auth.JWKS({
 Everywhere where one can define authentication rules, it happens through a lambda with a rules builder.
 
 ```typescript
-;(rules) => {
-  rules.private().read()
-  rules.owner().create()
-  rules.groups(['admin', 'root']).delete()
+{
+  rules: (rules) => {
+    rules.private().read()
+    rules.owner().create()
+    rules.groups(['admin', 'root']).delete()
+  }
 }
 ```
 
