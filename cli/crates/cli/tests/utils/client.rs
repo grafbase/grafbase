@@ -12,20 +12,40 @@ use crate::utils::consts::INTROSPECTION_QUERY;
 pub struct Client {
     endpoint: String,
     playground_endpoint: String,
-    headers: HeaderMap,
     client: reqwest::blocking::Client,
+    headers: HeaderMap,
     snapshot: Option<String>,
 }
 
+#[allow(clippy::module_name_repetitions)]
+#[derive(derive_builder::Builder, Clone, Copy)]
+#[builder(build_fn(name = "build_fallible"))]
+pub struct ClientOptions {
+    #[builder(default = "5")]
+    http_timeout: u64,
+}
+
+impl Default for ClientOptions {
+    fn default() -> Self {
+        ClientOptionsBuilder::default().build()
+    }
+}
+
+impl ClientOptionsBuilder {
+    pub fn build(&mut self) -> ClientOptions {
+        self.build_fallible().unwrap()
+    }
+}
+
 impl Client {
-    pub fn new(endpoint: String, playground_endpoint: String) -> Self {
+    pub fn new(endpoint: String, playground_endpoint: String, client_options: ClientOptions) -> Self {
         Self {
             endpoint,
             playground_endpoint,
             headers: HeaderMap::new(),
             client: reqwest::blocking::Client::builder()
                 .connect_timeout(Duration::from_secs(1))
-                .timeout(Duration::from_secs(5))
+                .timeout(Duration::from_secs(client_options.http_timeout))
                 .build()
                 .unwrap(),
             snapshot: None,

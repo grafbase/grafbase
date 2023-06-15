@@ -23,6 +23,11 @@ pub enum ApiError {
     ServerError,
     #[error("resolver {0} is invalid")]
     ResolverInvalid(String),
+    #[error("could not find a free point for a resolver worker")]
+    CouldNotFindPortForResolverWorker,
+    /// returned if the miniflare command returns an error
+    #[error("resolver could not be spawned")]
+    ResolverSpawnError,
 }
 
 #[derive(Serialize, Debug)]
@@ -49,9 +54,11 @@ impl IntoResponse for ApiError {
         match self {
             ApiError::User(user_error) => (StatusCode::CONFLICT, Json(user_error)).into_response(),
 
-            ApiError::SqlError(_) | ApiError::ServerError | ApiError::ResolverInvalid(_) => {
-                StatusCode::INTERNAL_SERVER_ERROR.into_response()
-            }
+            ApiError::SqlError(_)
+            | ApiError::ServerError
+            | ApiError::ResolverInvalid(_)
+            | ApiError::CouldNotFindPortForResolverWorker
+            | ApiError::ResolverSpawnError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         }
     }
 }

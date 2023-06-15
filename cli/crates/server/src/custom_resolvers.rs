@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::mpsc::Sender;
 
 use common::environment::{Environment, Project};
 use futures_util::pin_mut;
@@ -9,9 +7,7 @@ use itertools::Itertools;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
-use crate::errors::ServerError;
-use crate::servers::DetectedResolver;
-use crate::types::ServerMessage;
+use crate::errors::{JavascriptPackageManagerComamndError, ResolverBuildError, ServerError};
 
 async fn run_command<P: AsRef<Path>>(
     command_type: JavaScriptPackageManager,
@@ -19,7 +15,7 @@ async fn run_command<P: AsRef<Path>>(
     current_directory: P,
     tracing: bool,
     environment: &[(&'static str, &str)],
-) -> Result<(), ServerError> {
+) -> Result<(), JavascriptPackageManagerComamndError> {
     trace!("running '{command_type} {}'", arguments.iter().format(" "));
 
     let command = Command::new(command_type.to_string())
@@ -29,17 +25,19 @@ async fn run_command<P: AsRef<Path>>(
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(current_directory.as_ref())
         .spawn()
-        .map_err(|err| ServerError::ResolverPackageManagerCommandError(command_type, err))?;
+        .map_err(|err| JavascriptPackageManagerComamndError::CommandError(command_type, err))?;
 
     let output = command
         .wait_with_output()
         .await
-        .map_err(|err| ServerError::ResolverPackageManagerCommandError(command_type, err))?;
+        .map_err(|err| JavascriptPackageManagerComamndError::CommandError(command_type, err))?;
+
+    trace!("command '{command_type} {}' completed", arguments.iter().format(" "));
 
     if output.status.success() {
         Ok(())
     } else {
-        Err(ServerError::ResolverPackageManagerError(
+        Err(JavascriptPackageManagerComamndError::OutputError(
             command_type,
             String::from_utf8_lossy(&output.stderr).into_owned(),
         ))
@@ -99,39 +97,51 @@ async fn guess_package_manager_from_package_root(path: impl AsRef<Path>) -> Opti
     .next()
 }
 
+async fn extract_resolver_wrapper_worker_contents() -> Result<String, ResolverBuildError> {
+    trace!("extracting resolver wrapper worker contents");
+    let environment = Environment::get();
+    tokio::fs::read_to_string(
+        environment
+            .user_dot_grafbase_path
+            .join(crate::consts::WRAPPER_WORKER_JS_PATH),
+    )
+    .await
+    .map_err(ResolverBuildError::ExtractResolverWrapperWorkerContents)
+}
+
 #[allow(clippy::too_many_lines)]
-async fn build_resolver(
+pub async fn build_resolver(
     environment: &Environment,
     project: &Project,
     environment_variables: &std::collections::HashMap<String, String>,
     resolver_name: &str,
-    resolver_wrapper_worker_contents: &str,
-    resolver_build_artifact_directory_path: &Path,
     tracing: bool,
-) -> Result<(), ServerError> {
+) -> Result<(PathBuf, PathBuf), ResolverBuildError> {
+    use futures_util::StreamExt;
+
     const EXTENSIONS: [&str; 2] = ["js", "ts"];
 
-    use futures_util::StreamExt;
+    let resolver_wrapper_worker_contents = extract_resolver_wrapper_worker_contents().await?;
 
     trace!("building resolver {resolver_name}");
 
     let package_root_path = project.grafbase_directory_path.as_path();
     let resolver_input_file_path_without_extension = project.resolvers_source_path.join(resolver_name);
 
-    let resolver_paths = futures_util::stream::iter(
-        EXTENSIONS
-            .iter()
-            .map(|extension| resolver_input_file_path_without_extension.with_extension(*extension)),
-    )
-    .filter(|path| {
-        let path = path.as_path().to_owned();
-        async move { tokio::fs::try_exists(path).await.expect("must succeed") }
-    });
-    futures_util::pin_mut!(resolver_paths);
-    let resolver_input_file_path = resolver_paths
-        .next()
-        .await
-        .ok_or_else(|| ServerError::ResolverDoesNotExist(resolver_input_file_path_without_extension.clone()))?;
+    let resolver_build_artifact_directory_path = project.resolvers_build_artifact_path.join(resolver_name);
+
+    let mut resolver_input_file_path = None;
+    for extension in EXTENSIONS {
+        let possible_resolver_input_file_path = resolver_input_file_path_without_extension.with_extension(extension);
+        if tokio::fs::try_exists(&possible_resolver_input_file_path)
+            .await
+            .expect("must succeed")
+        {
+            resolver_input_file_path = Some(possible_resolver_input_file_path);
+        }
+    }
+    let resolver_input_file_path = resolver_input_file_path
+        .ok_or_else(|| ResolverBuildError::ResolverDoesNotExist(resolver_input_file_path_without_extension.clone()))?;
 
     trace!("locating package.json…");
 
@@ -171,7 +181,7 @@ async fn build_resolver(
 
     tokio::fs::create_dir_all(&resolver_build_artifact_directory_path)
         .await
-        .map_err(|_err| ServerError::CreateDir(resolver_build_artifact_directory_path.to_owned()))?;
+        .map_err(|_err| ResolverBuildError::CreateDir(resolver_build_artifact_directory_path.clone()))?;
     let resolver_build_entrypoint_path = resolver_build_artifact_directory_path.join("entrypoint.js");
 
     let resolver_build_package_json_path = resolver_build_artifact_directory_path.join("package.json");
@@ -180,15 +190,16 @@ async fn build_resolver(
         trace!("copying package.json from {}", package_json_file_path.display());
         tokio::fs::copy(package_json_file_path, &resolver_build_package_json_path)
             .await
-            .map_err(|err| ServerError::CreateResolverArtifactFile(package_json_file_path.to_owned(), err))?;
+            .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(package_json_file_path.to_owned(), err))?;
 
-        let artifact_directory_path_string = resolver_build_artifact_directory_path
-            .to_str()
-            .ok_or(ServerError::CachePath)?;
+        let artifact_directory_path_string = resolver_build_artifact_directory_path.to_str().ok_or_else(|| {
+            ResolverBuildError::PathError(resolver_build_artifact_directory_path.to_string_lossy().to_string())
+        })?;
 
         let artifact_directory_modules_path = resolver_build_artifact_directory_path.join("node_modules");
-        let artifact_directory_modules_path_string =
-            artifact_directory_modules_path.to_str().ok_or(ServerError::CachePath)?;
+        let artifact_directory_modules_path_string = artifact_directory_modules_path
+            .to_str()
+            .expect("must be valid if `artifact_directory_path_string` is valid");
 
         let arguments = match package_manager {
             JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "install"],
@@ -200,7 +211,7 @@ async fn build_resolver(
         run_command(
             package_manager,
             &arguments,
-            resolver_build_artifact_directory_path,
+            &resolver_build_artifact_directory_path,
             tracing,
             &[],
         )
@@ -216,7 +227,7 @@ async fn build_resolver(
 
     tokio::fs::copy(&resolver_input_file_path, &resolver_js_file_path)
         .await
-        .map_err(|err| ServerError::CreateResolverArtifactFile(resolver_input_file_path, err))?;
+        .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(resolver_input_file_path, err))?;
 
     let entrypoint_contents = resolver_wrapper_worker_contents.replace(
         "${RESOLVER_MAIN_FILE_PATH}",
@@ -224,7 +235,7 @@ async fn build_resolver(
     );
     tokio::fs::write(&resolver_build_entrypoint_path, entrypoint_contents)
         .await
-        .map_err(|err| ServerError::CreateResolverArtifactFile(resolver_build_entrypoint_path.clone(), err))?;
+        .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(resolver_build_entrypoint_path.clone(), err))?;
 
     let wrangler_output_directory_path = resolver_build_artifact_directory_path.join("wrangler");
     let outdir_argument = format!(
@@ -237,7 +248,7 @@ async fn build_resolver(
     let mut package_json = if package_json_path.is_some() {
         let package_json_contents = tokio::fs::read(&resolver_build_package_json_path)
             .await
-            .map_err(|err| ServerError::ReadFile(resolver_build_package_json_path.clone(), err))?;
+            .map_err(|err| ResolverBuildError::ReadFile(resolver_build_package_json_path.clone(), err))?;
         serde_json::from_slice(&package_json_contents).expect("must be valid JSON")
     } else {
         serde_json::json!({})
@@ -246,13 +257,17 @@ async fn build_resolver(
         "module".to_owned(),
         serde_json::Value::String("wrangler/entrypoint.js".to_owned()),
     );
+    package_json
+        .as_object_mut()
+        .expect("must be an object")
+        .insert("type".to_owned(), serde_json::Value::String("module".to_owned()));
 
     let new_package_json_contents = serde_json::to_string_pretty(&package_json).expect("must be valid JSON");
     trace!("new package.json contents:\n{new_package_json_contents}");
 
     tokio::fs::write(&resolver_build_package_json_path, new_package_json_contents)
         .await
-        .map_err(|err| ServerError::CreateResolverArtifactFile(resolver_build_package_json_path, err))?;
+        .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(resolver_build_package_json_path.clone(), err))?;
 
     let wrangler_toml_file_path = resolver_build_artifact_directory_path.join("wrangler.toml");
 
@@ -277,6 +292,7 @@ async fn build_resolver(
         let wrangler_environment = &[
             ("CLOUDFLARE_API_TOKEN", "STUB"),
             ("FORCE_COLOR", "0"),
+            ("WRANGLER_LOG", if tracing { "warn" } else { "error" }),
             ("WRANGLER_SEND_METRICS", "false"),
         ];
         run_command(
@@ -288,10 +304,10 @@ async fn build_resolver(
         )
         .await
         .map_err(|err| match err {
-            ServerError::ResolverPackageManagerError(_, output) => {
-                ServerError::ResolverBuild(resolver_name.to_owned(), output)
+            JavascriptPackageManagerComamndError::OutputError(_, output) => {
+                ResolverBuildError::ResolverBuild(resolver_name.to_owned(), output)
             }
-            other => other,
+            other @ JavascriptPackageManagerComamndError::CommandError(..) => other.into(),
         })?;
     }
 
@@ -302,14 +318,14 @@ async fn build_resolver(
 
     let (temp_file, temp_file_path) = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
         .await?
-        .map_err(ServerError::CreateTemporaryFile)?
+        .map_err(ResolverBuildError::CreateTemporaryFile)?
         .into_parts();
     {
         let mut temp_file: tokio::fs::File = temp_file.into();
         temp_file
             .write_all(process_env_prelude.as_bytes())
             .await
-            .map_err(|err| ServerError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
+            .map_err(|err| ResolverBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
         temp_file
             .write_all(
                 &tokio::fs::read(wrangler_output_directory_path.join("entrypoint.js"))
@@ -317,42 +333,30 @@ async fn build_resolver(
                     .expect("must succeed"),
             )
             .await
-            .map_err(|err| ServerError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
+            .map_err(|err| ResolverBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
     let entrypoint_js_path = wrangler_output_directory_path.join("entrypoint.js");
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
-        .map_err(|err| ServerError::CreateResolverArtifactFile(entrypoint_js_path, err))?;
+        .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(entrypoint_js_path.clone(), err))?;
 
     let slugified_resolver_name = slug::slugify(resolver_name);
     tokio::fs::write(
-        wrangler_toml_file_path,
+        &wrangler_toml_file_path,
         format!(
             r#"
                 name = "{slugified_resolver_name}"
                 [build.upload]
                 format = "modules"
                 [miniflare]
-                routes = ["127.0.0.1/resolver/{resolver_name}/invoke"]
+                routes = ["127.0.0.1/invoke"]
             "#,
         ),
     )
     .await
-    .map_err(ServerError::CreateTemporaryFile)?;
+    .map_err(ResolverBuildError::CreateTemporaryFile)?;
 
-    Ok(())
-}
-
-async fn extract_resolver_wrapper_worker_contents() -> Result<String, ServerError> {
-    trace!("extracting resolver wrapper worker contents");
-    let environment = Environment::get();
-    tokio::fs::read_to_string(
-        environment
-            .user_dot_grafbase_path
-            .join("custom-resolvers/wrapper-worker.js"),
-    )
-    .await
-    .map_err(ServerError::SchemaParserResultRead)
+    Ok((resolver_build_package_json_path, wrangler_toml_file_path))
 }
 
 pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
@@ -392,69 +396,16 @@ pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Resul
     Ok(())
 }
 
-pub async fn build_resolvers(
-    sender: &Sender<ServerMessage>,
+pub async fn maybe_install_wrangler(
     environment: &Environment,
-    environment_variables: &std::collections::HashMap<String, String>,
     resolvers: impl IntoIterator<Item = crate::servers::DetectedResolver>,
     tracing: bool,
-) -> Result<HashMap<String, PathBuf>, ServerError> {
-    use futures_util::{StreamExt, TryStreamExt};
-
-    const RESOLVER_BUILD_CONCURRENCY: usize = 8;
-
-    let project = Project::get();
-
+) -> Result<(), ServerError> {
     let mut resolvers_iterator = resolvers.into_iter().peekable();
-    if resolvers_iterator.peek().is_none() {
-        return Ok(HashMap::new());
+    if resolvers_iterator.peek().is_some() {
+        // Install wrangler once and for all.
+        install_wrangler(environment, tracing).await?;
     }
 
-    // Install wrangler once and for all.
-    install_wrangler(environment, tracing).await?;
-
-    let resolver_wrapper_worker_contents = extract_resolver_wrapper_worker_contents().await?;
-
-    let resolvers_build_artifact_directory_path = project.resolvers_build_artifact_path.as_path();
-
-    futures_util::stream::iter(resolvers_iterator)
-        .map(Ok)
-        .map_ok(|DetectedResolver { resolver_name, fresh }| {
-            let resolver_wrapper_worker_contents = resolver_wrapper_worker_contents.as_str();
-
-            async move {
-                let resolver_build_artifact_directory_path =
-                    resolvers_build_artifact_directory_path.join(&resolver_name);
-                if fresh {
-                    let wrangler_toml_path = resolver_build_artifact_directory_path.join("wrangler.toml");
-                    // Only touch the file to ensure the modified time relation is preserved.
-                    tokio::task::spawn_blocking(|| {
-                        filetime::set_file_mtime(wrangler_toml_path, filetime::FileTime::now()).expect("must succeed");
-                    })
-                    .await
-                    .expect("must succeed");
-                } else {
-                    let start = std::time::Instant::now();
-                    let _: Result<_, _> = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
-                    build_resolver(
-                        environment,
-                        project,
-                        environment_variables,
-                        resolver_name.as_str(),
-                        resolver_wrapper_worker_contents,
-                        &resolver_build_artifact_directory_path,
-                        tracing,
-                    )
-                    .await?;
-                    let _: Result<_, _> = sender.send(ServerMessage::CompleteResolverBuild {
-                        name: resolver_name.clone(),
-                        duration: start.elapsed(),
-                    });
-                }
-                Ok((resolver_name, resolver_build_artifact_directory_path))
-            }
-        })
-        .try_buffer_unordered(RESOLVER_BUILD_CONCURRENCY)
-        .try_collect()
-        .await
+    Ok(())
 }
