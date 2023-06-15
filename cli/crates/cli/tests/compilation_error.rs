@@ -18,8 +18,6 @@ fn compilation_error_schema() {
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(COMPILATION_ERROR_SCHEMA);
 
-    std::thread::sleep(std::time::Duration::from_secs_f64(0.5));
-
     env.grafbase_dev_watch();
     let mut client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
@@ -83,8 +81,6 @@ fn compilation_error_resolvers() {
             }
         "#,
     );
-
-    std::thread::sleep(std::time::Duration::from_secs_f64(0.5));
 
     // For now without watching before we investigate the issue.
     env.grafbase_dev();
