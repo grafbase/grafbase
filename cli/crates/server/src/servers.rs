@@ -258,7 +258,7 @@ async fn spawn_servers(
     miniflare
         // Unbounded worker limit
         .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-        .args(miniflare_arguments.iter().map(|argument| argument.as_ref()))
+        .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(&environment.user_dot_grafbase_path)
