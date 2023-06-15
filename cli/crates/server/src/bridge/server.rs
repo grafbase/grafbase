@@ -155,10 +155,10 @@ async fn invoke_resolver_endpoint(
                 ResolverBuild::Succeeded { worker_port, .. } => break *worker_port,
                 ResolverBuild::Failed => return Err(ApiError::ResolverSpawnError),
                 ResolverBuild::InProgress { notify } => {
+                    // If the resolver build happening within another invocation has been cancelled
+                    // due to the invocation having been interrupted by the HTTP client, start a new build.
                     if Arc::strong_count(notify) == 1 {
-                        let notify = notify.clone();
-                        resolver_builds.remove(&payload.resolver_name);
-                        notify
+                        notify.clone()
                     } else {
                         let notify = notify.clone();
                         drop(resolver_builds);
@@ -168,13 +168,14 @@ async fn invoke_resolver_endpoint(
                 }
             }
         } else {
-            Arc::new(Notify::new())
+            let notify = Arc::new(Notify::new());
+            resolver_builds.insert(
+                payload.resolver_name.clone(),
+                ResolverBuild::InProgress { notify: notify.clone() },
+            );
+            notify
         };
 
-        resolver_builds.insert(
-            payload.resolver_name.clone(),
-            ResolverBuild::InProgress { notify: notify.clone() },
-        );
         let start = std::time::Instant::now();
         handler_state
             .bridge_sender

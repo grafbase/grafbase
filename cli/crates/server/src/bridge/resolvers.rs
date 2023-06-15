@@ -32,30 +32,33 @@ struct ResolverResponse {
     rest: serde_json::Value,
 }
 
-async fn wait_until_resolver_ready(resolver_worker_port: u16, resolver_name: &str) -> bool {
-    const RESOLVER_WORKER_MINIFLARE_READY_RETRY_COUNT: usize = 30 * 4;
-    const RESOLVER_WORKER_MINIFLARE_READY_RETRY_INTERVAL: std::time::Duration = std::time::Duration::from_millis(250);
+async fn wait_until_resolver_ready(resolver_worker_port: u16, resolver_name: &str) -> Result<bool, reqwest::Error> {
+    const RESOLVER_WORKER_MINIFLARE_READY_RETRY_COUNT: usize = 50;
+    const RESOLVER_WORKER_MINIFLARE_READY_RETRY_INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 
     for _ in 0..RESOLVER_WORKER_MINIFLARE_READY_RETRY_COUNT {
         trace!("readiness check of resolver '{resolver_name}' under port {resolver_worker_port}");
-        if is_resolver_ready(resolver_worker_port).await {
+        if is_resolver_ready(resolver_worker_port).await? {
             trace!("resolver '{resolver_name}' ready under port {resolver_worker_port}");
-            return true;
+            return Ok(true);
         }
         tokio::time::sleep(RESOLVER_WORKER_MINIFLARE_READY_RETRY_INTERVAL).await;
     }
-    false
+    Ok(false)
 }
 
-async fn is_resolver_ready(resolver_worker_port: u16) -> bool {
-    reqwest::get(format!("http://127.0.0.1:{resolver_worker_port}/health"))
+async fn is_resolver_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error> {
+    match reqwest::get(format!("http://127.0.0.1:{resolver_worker_port}/health"))
         .await
         .and_then(reqwest::Response::error_for_status)
         .map_err(|err| {
             trace!("error: {err}");
             err
-        })
-        .is_ok()
+        }) {
+        Ok(_) => Ok(true),
+        Err(err) if err.is_connect() => Ok(false),
+        Err(other) => Err(other),
+    }
 }
 
 pub async fn spawn_miniflare(
@@ -118,7 +121,10 @@ pub async fn spawn_miniflare(
         );
     });
 
-    if wait_until_resolver_ready(resolver_worker_port, resolver_name).await {
+    if wait_until_resolver_ready(resolver_worker_port, resolver_name)
+        .await
+        .map_err(|_| ApiError::ResolverSpawnError)?
+    {
         Ok((join_handle, resolver_worker_port))
     } else {
         Err(ApiError::ResolverSpawnError)

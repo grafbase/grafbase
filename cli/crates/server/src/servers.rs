@@ -104,19 +104,13 @@ async fn server_loop(
             result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
-            event = wait_for_event_and_match(receiver, |event| match event {
-                Event::Reload(_) => Some(event),
+            path = wait_for_event_and_match(receiver, |event| match event {
+                Event::Reload(path) => Some(path),
                 Event::BridgeReady => None
             }) => {
-                match event {
-                    Event::Reload(path) => {
-                        trace!("reload");
-                        let _: Result<_, _> = sender.send(ServerMessage::Reload(path.clone()));
-                        path_changed = Some(path);
-                    }
-                    Event::BridgeReady => unreachable!()
-                }
-
+                trace!("reload");
+                let _: Result<_, _> = sender.send(ServerMessage::Reload(path.clone()));
+                path_changed = Some(path);
             }
         }
     }
