@@ -183,51 +183,47 @@ async fn invoke_resolver_endpoint(
             .unwrap();
 
         let tracing = handler_state.tracing;
-        match crate::custom_resolvers::build_resolver(
+        if let Ok((package_json_path, wrangler_toml_path)) = crate::custom_resolvers::build_resolver(
             environment,
             environment.project.as_ref().expect("must be present"),
             &handler_state.environment_variables,
             &payload.resolver_name,
             tracing,
         )
-        .await
-        {
-            Ok((package_json_path, wrangler_toml_path)) => {
-                let (miniflare_handle, worker_port) = super::resolvers::spawn_miniflare(
-                    &payload.resolver_name,
-                    handler_state.worker_port,
-                    package_json_path,
-                    wrangler_toml_path,
-                    tracing,
-                )
-                .await?;
+        .await {
+            let (miniflare_handle, worker_port) = super::resolvers::spawn_miniflare(
+                &payload.resolver_name,
+                handler_state.worker_port,
+                package_json_path,
+                wrangler_toml_path,
+                tracing,
+            )
+            .await?;
 
-                resolver_builds.insert(
-                    payload.resolver_name.clone(),
-                    ResolverBuild::Succeeded {
-                        miniflare_handle,
-                        worker_port,
-                    },
-                );
-                notify.notify_waiters();
+            resolver_builds.insert(
+                payload.resolver_name.clone(),
+                ResolverBuild::Succeeded {
+                    miniflare_handle,
+                    worker_port,
+                },
+            );
+            notify.notify_waiters();
 
-                handler_state
-                    .bridge_sender
-                    .send(ServerMessage::CompleteResolverBuild {
-                        name: payload.resolver_name.clone(),
-                        duration: start.elapsed(),
-                    })
-                    .await
-                    .unwrap();
+            handler_state
+                .bridge_sender
+                .send(ServerMessage::CompleteResolverBuild {
+                    name: payload.resolver_name.clone(),
+                    duration: start.elapsed(),
+                })
+                .await
+                .unwrap();
 
-                break worker_port;
-            }
-            Err(_) => {
-                resolver_builds.insert(payload.resolver_name.clone(), ResolverBuild::Failed);
-                notify.notify_waiters();
-                return Err(ApiError::ResolverSpawnError);
-            }
+            break worker_port;
         }
+
+        resolver_builds.insert(payload.resolver_name.clone(), ResolverBuild::Failed);
+        notify.notify_waiters();
+        return Err(ApiError::ResolverSpawnError);
     };
 
     super::resolvers::invoke_resolver(
