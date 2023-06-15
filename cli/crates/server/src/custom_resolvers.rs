@@ -103,7 +103,7 @@ async fn extract_resolver_wrapper_worker_contents() -> Result<String, ResolverBu
     tokio::fs::read_to_string(
         environment
             .user_dot_grafbase_path
-            .join("custom-resolvers/wrapper-worker.js"),
+            .join(crate::consts::WRAPPER_WORKER_JS_PATH),
     )
     .await
     .map_err(ResolverBuildError::ExtractResolverWrapperWorkerContents)

@@ -216,7 +216,7 @@ async fn spawn_servers(
     let miniflare_arguments = &[
         // used by miniflare when running normally as well
         "--experimental-vm-modules",
-        "./node_modules/miniflare/dist/src/cli.js",
+        crate::consts::MINIFLARE_CLI_JS_PATH,
         "--modules",
         "--host",
         "127.0.0.1",
