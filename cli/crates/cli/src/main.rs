@@ -1,3 +1,4 @@
+#![cfg_attr(test, allow(unused_crate_dependencies))]
 #![forbid(unsafe_code)]
 
 mod cli_input;

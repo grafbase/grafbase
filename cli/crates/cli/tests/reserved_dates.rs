@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 mod utils;
 
 use crate::utils::consts::{

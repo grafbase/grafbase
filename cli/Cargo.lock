@@ -1641,7 +1641,6 @@ dependencies = [
  "grafbase-local-backend",
  "grafbase-local-common",
  "hex-literal",
- "humantime",
  "indicatif",
  "indoc",
  "inquire",
@@ -1684,7 +1683,6 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "dirs 5.0.0",
- "exitcode",
  "grafbase-local-common",
  "grafbase-local-server",
  "http-cache-reqwest",
@@ -1701,7 +1699,6 @@ dependencies = [
  "url",
  "urlencoding",
  "walkdir",
- "webbrowser",
 ]
 
 [[package]]
@@ -1711,11 +1708,9 @@ dependencies = [
  "chrono",
  "derivative",
  "dirs 5.0.0",
- "exitcode",
  "rudderanalytics",
  "serde",
  "serde_json",
- "strum",
  "thiserror",
  "ulid",
 ]
@@ -1724,14 +1719,11 @@ dependencies = [
 name = "grafbase-local-server"
 version = "0.23.0-rc.1"
 dependencies = [
- "anyhow",
- "async-trait",
  "axum",
  "base64 0.21.0",
  "chrono",
  "combine 4.6.6",
  "dotenv",
- "exitcode",
  "filetime",
  "flate2",
  "fslock",
@@ -1739,12 +1731,10 @@ dependencies = [
  "grafbase-local-common",
  "hyper",
  "integer-encoding",
- "ipnet",
  "itertools",
  "log",
  "notify",
  "notify-debouncer-mini",
- "regex",
  "reqwest",
  "serde",
  "serde_json",

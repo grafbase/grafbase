@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 #![allow(clippy::too_many_lines, clippy::panic)]
 
 mod utils;
