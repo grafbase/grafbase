@@ -2,6 +2,14 @@
 
 A TypeScript library to generate a Grafbase configuration. It replaces the `schema.graphql` file with `grafbase.config.ts`, which should be placed into the project's `grafbase` directory.
 
+## Get Started
+
+```bash
+npx grafbase init --config-format typescript
+```
+
+## Example
+
 The configuration should define the schema, exporting the config as `default`:
 
 ```typescript
@@ -161,18 +169,19 @@ Notice how one doesn't need to type the fields to the type: they are inferred to
 
 Fields are generated from the `g` object:
 
-- String: `g.string()`
 - ID: `g.id()`
-- Email: `g.email()`
+- String: `g.string()`
 - Int: `g.int()`
 - Float: `g.float()`
 - Boolean: `g.boolean()`
 - Date: `g.date()`
 - DateTime: `g.datetime()`
+- Email: `g.email()`
 - IPAddress: `g.ipAddress()`
 - Timestamp: `g.timestamp()`
 - URL: `g.url()`
 - JSON: `g.json()`
+- PhoneNumber: `g.phoneNumber()`
 
 ## Enum fields
 
@@ -342,17 +351,17 @@ const stripe = connector.OpenAPI({
     'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
   headers: (headers) => {
     // used in client and introspection requests
-    headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
+    headers.static('Authorization', `Bearer ${g.env('STRIPE_API_KEY')}`)
     // used only in introspection requests
     headers.introspection('foo', 'bar')
   }
 })
 ```
 
-Introspecting the connector namespace to the schema happens with the `datasource` method of the schema:
+Connectors can be added to the schema using `g.datasource()`, including an optional `namespace`:
 
 ```typescript
-g.datasource(stripe, { namespace: 'Stripe' })
+g.datasource(stripe)
 g.datasource(openai, { namespace: 'OpenAI' })
 ```
 
@@ -362,9 +371,9 @@ The GraphQL connector can be created with the `GraphQL` method:
 
 ```typescript
 const contentful = connector.GraphQL({
-  url: 'https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}',
+  url: g.env('CONTENTFUL_API_URL'),
   headers: (headers) => {
-    headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
+    headers.static('Authorization', `Bearer ${g.env('CONTENTFUL_API_KEY')}`)
     headers.static('Method', 'POST')
   }
 })
@@ -374,10 +383,10 @@ const github = connector.GraphQL({
 })
 ```
 
-Introspecting the connector namespace to the schema happens with the `introspect` method of the schema:
+Connectors can be added to the schema using `g.datasource()`, including an optional `namespace`:
 
 ```typescript
-g.datasource(contentful, { namespace: 'Contentful' })
+g.datasource(contentful)
 g.datasource(github, { namespace: 'GitHub' })
 ```
 
@@ -403,7 +412,7 @@ Optional fields:
 ```typescript
 // first create the provider
 const clerk = auth.OpenIDConnect({
-  issuer: '{{ env.ISSUER_URL }}'
+  issuer: g.env('ISSUER_URL')
 })
 
 // add it to the config with the rules
@@ -432,8 +441,8 @@ Optional fields:
 
 ```typescript
 const derp = auth.JWT({
-  issuer: '{{ env.ISSUER_URL }}',
-  secret: '{{ env.JWT_SECRET }}'
+  issuer: g.env('ISSUER_URL'),
+  secret: g.env('JWT_SECRET')
 })
 ```
 
@@ -453,7 +462,7 @@ A JWKS provider has to define _either_ `issuer` or `jwksEndpoint`
 
 ```typescript
 const derp = auth.JWKS({
-  issuer: '{{ env.ISSUER_URL }}'
+  issuer: g.env('ISSUER_URL')
 })
 ```
 
@@ -462,7 +471,7 @@ const derp = auth.JWKS({
 Everywhere where one can define authentication rules, it happens through a lambda with a rules builder.
 
 ```typescript
-(rules) => {
+;(rules) => {
   rules.private().read()
   rules.owner().create()
   rules.groups(['admin', 'root']).delete()
@@ -475,7 +484,7 @@ Global rules are defined through the auth definition in the configuration.
 
 ```typescript
 const clerk = auth.OpenIDConnect({
-  issuer: '{{ env.ISSUER_URL }}'
+  issuer: g.env('ISSUER_URL')
 })
 
 const cfg = config({
