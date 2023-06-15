@@ -9,7 +9,7 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use self::{custom::CustomResolver, debug::DebugResolver};
+use self::{custom::CustomResolver, debug::DebugResolver, graphql::Target};
 use crate::{Context, Error};
 use context_data::ContextDataResolver;
 use derivative::Derivative;
@@ -359,15 +359,19 @@ impl ResolverType {
                     .map(|(k, v)| (k, v.as_ref().node))
                     .collect();
 
-                let selection_set = ctx
-                    .item
-                    .node
-                    .selection_set
-                    .node
-                    .items
-                    .as_slice()
-                    .iter()
-                    .map(|v| &v.node);
+                let target = match resolver.namespace {
+                    Some(_) => Target::SelectionSet(Box::new(
+                        ctx.item
+                            .node
+                            .selection_set
+                            .node
+                            .items
+                            .as_slice()
+                            .iter()
+                            .map(|v| &v.node),
+                    )),
+                    None => Target::Field(&ctx.item),
+                };
 
                 let operation = ctx.query_env.operation.node.ty;
                 let error_handler = |error| ctx.add_error(error);
@@ -378,7 +382,7 @@ impl ResolverType {
                         operation,
                         headers,
                         fragment_definitions,
-                        selection_set,
+                        target,
                         error_handler,
                         variables,
                     )

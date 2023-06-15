@@ -13,6 +13,8 @@ use dynaql_parser::{
 };
 use dynaql_value::{Name, Value};
 
+use super::Target;
+
 /// Serialize a list of [`Selection`]s into a GraphQL query string.
 ///
 /// The serializer is specifically tailored for the [`graphql::Resolver`](super::Resolver), as it
@@ -74,9 +76,17 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
     /// # Errors
     ///
     /// Returns an error if writing to the buffer fails.
-    pub fn query(&mut self, selections: impl Iterator<Item = &'c Selection>) -> Result<(), Error> {
+    pub fn query(&mut self, target: Target<'c>) -> Result<(), Error> {
         self.write_str("query")?;
-        self.serialize_selections(selections)?;
+        match target {
+            Target::SelectionSet(selections) => self.serialize_selections(selections)?,
+            Target::Field(field) => {
+                self.open_object()?;
+                self.serialize_field(field)?;
+                self.close_object()?;
+            }
+        }
+
         self.serialize_fragment_definitions()
     }
 
@@ -85,12 +95,17 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
     /// # Errors
     ///
     /// Returns an error if writing to the buffer fails.
-    pub fn mutation(
-        &mut self,
-        selections: impl Iterator<Item = &'c Selection>,
-    ) -> Result<(), Error> {
+    pub fn mutation(&mut self, target: Target<'c>) -> Result<(), Error> {
         self.write_str("mutation")?;
-        self.serialize_selections(selections)?;
+        match target {
+            Target::SelectionSet(selections) => self.serialize_selections(selections)?,
+            Target::Field(field) => {
+                self.open_object()?;
+                self.serialize_field(field)?;
+                self.close_object()?;
+            }
+        }
+
         self.serialize_fragment_definitions()
     }
 
@@ -183,30 +198,13 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
             return Ok(());
         }
 
-        self.write_str(" {\n")?;
-        self.indent += 1;
-
-        // We always inject `__typename` into every selection set (except for the root). This is
-        // needed in specific cases for Grafbase to correctly link responses back to known types.
-        //
-        // While we technically don't need to embed the field in _every_ selection set for Grafbase
-        // to function properly, it's simpler to do so, and follows precedence set by clients such
-        // as Apollo[1].
-        //
-        // [1]: https://www.apollographql.com/docs/ios/fetching/type-conditions/#type-conversion
-        if self.indent > 1 {
-            self.indent()?;
-            self.write_str("__typename\n")?;
-        }
+        self.open_object()?;
 
         for selection in selections {
             self.serialize_selection(selection)?;
         }
 
-        // Clean-up before closing the set.
-        self.indent = self.indent.saturating_sub(1);
-
-        self.writeln_str("}\n")
+        self.close_object()
     }
 
     fn serialize_directives(
@@ -323,6 +321,33 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
     fn write_str(&mut self, s: impl AsRef<str>) -> Result<(), Error> {
         self.buf.write_str(s.as_ref())?;
         Ok(())
+    }
+
+    fn open_object(&mut self) -> Result<(), Error> {
+        self.write_str(" {\n")?;
+        self.indent += 1;
+
+        // We always inject `__typename` into every selection set (except for the root). This is
+        // needed in specific cases for Grafbase to correctly link responses back to known types.
+        //
+        // While we technically don't need to embed the field in _every_ selection set for Grafbase
+        // to function properly, it's simpler to do so, and follows precedence set by clients such
+        // as Apollo[1].
+        //
+        // [1]: https://www.apollographql.com/docs/ios/fetching/type-conditions/#type-conversion
+        if self.indent > 1 {
+            self.indent()?;
+            self.write_str("__typename\n")?;
+        }
+
+        Ok(())
+    }
+
+    fn close_object(&mut self) -> Result<(), Error> {
+        // Clean-up before closing the set.
+        self.indent = self.indent.saturating_sub(1);
+
+        self.writeln_str("}\n")
     }
 }
 
@@ -446,9 +471,13 @@ mod tests {
         let mut serializer = Serializer::new(Some("Github"), fragments, &mut buf);
 
         if input.trim_start().starts_with("query") {
-            serializer.query(selections.iter()).unwrap();
+            serializer
+                .query(Target::SelectionSet(Box::new(selections.iter())))
+                .unwrap();
         } else if input.trim_start().starts_with("mutation") {
-            serializer.mutation(selections.iter()).unwrap();
+            serializer
+                .mutation(Target::SelectionSet(Box::new(selections.iter())))
+                .unwrap();
         } else {
             panic!("invalid input data");
         }

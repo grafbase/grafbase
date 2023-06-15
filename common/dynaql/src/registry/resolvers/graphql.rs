@@ -33,7 +33,7 @@ use std::{
     sync::Arc,
 };
 
-use dynaql_parser::types::{FragmentDefinition, OperationType, Selection};
+use dynaql_parser::types::{Field, FragmentDefinition, OperationType, Selection};
 use dynaql_value::{ConstValue, Name, Variables};
 use futures_util::Future;
 use http::header::USER_AGENT;
@@ -78,6 +78,11 @@ struct Query {
     variables: BTreeMap<Name, ConstValue>,
 }
 
+pub enum Target<'a> {
+    SelectionSet(Box<dyn Iterator<Item = &'a Selection> + Send + 'a>),
+    Field(&'a Field),
+}
+
 impl Resolver {
     /// Resolve the given list of [`Selection`]s at the upstream server, returning the final
     /// result.
@@ -90,7 +95,7 @@ impl Resolver {
         operation: OperationType,
         headers: &[(String, String)],
         fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
-        selection_set: impl Iterator<Item = &'a Selection> + 'a,
+        target: Target<'a>,
         error_handler: impl FnMut(ServerError) + 'a,
         variables: Variables,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
@@ -106,12 +111,17 @@ impl Resolver {
         let mut query = String::new();
         let prefix = self.namespace.clone().map(|n| n.to_pascal_case());
 
+        let wrapping_field = match &target {
+            Target::SelectionSet(_) => None,
+            Target::Field(field) => Some(field.name.node.to_string()),
+        };
+
         Box::pin(SendWrapper::new(async move {
             let mut serializer =
                 Serializer::new(prefix.as_deref(), fragment_definitions, &mut query);
             match operation {
-                OperationType::Query => serializer.query(selection_set)?,
-                OperationType::Mutation => serializer.mutation(selection_set)?,
+                OperationType::Query => serializer.query(target)?,
+                OperationType::Mutation => serializer.mutation(target)?,
                 OperationType::Subscription => {
                     return Err(Error::UnsupportedOperation("subscription"))
                 }
@@ -153,7 +163,14 @@ impl Resolver {
             if let Some(prefix) = prefix {
                 prefix_result_typename(&mut data, &prefix);
             }
-            let mut resolved_value = ResolvedValue::new(Arc::new(data));
+
+            let mut resolved_value = ResolvedValue::new(Arc::new(match wrapping_field {
+                Some(field) => data
+                    .as_object_mut()
+                    .and_then(|m| m.get_mut(&field).map(serde_json::Value::take))
+                    .unwrap_or(serde_json::Value::Null),
+                None => data,
+            }));
 
             if is_null {
                 resolved_value.early_return_null = true;
@@ -240,7 +257,10 @@ mod tests {
             }
         });
 
-        let result = run_resolve(&server, query, response).await.unwrap();
+        let mut errors = vec![];
+        let result = run_resolve(&server, query, response, &mut errors)
+            .await
+            .unwrap();
 
         insta::assert_json_snapshot!(result);
     }
@@ -249,6 +269,7 @@ mod tests {
         server: &MockServer,
         query: &str,
         response: Value,
+        errors: &mut Vec<ServerError>,
     ) -> Result<Value, Error> {
         use dynaql_parser::parse_query;
         use wiremock::matchers::{header, method, path};
@@ -287,15 +308,16 @@ mod tests {
             .clone()
             .into_inner();
 
-        let selection_set = operation
-            .selection_set
-            .node
-            .items
-            .as_slice()
-            .iter()
-            .map(|v| &v.node);
+        let target = Target::SelectionSet(Box::new(
+            operation
+                .selection_set
+                .node
+                .items
+                .as_slice()
+                .iter()
+                .map(|v| &v.node),
+        ));
 
-        let mut errors: Vec<ServerError> = vec![];
         let error_handler = |error| errors.push(error);
 
         let value = resolver
@@ -303,7 +325,7 @@ mod tests {
                 OperationType::Query,
                 &headers,
                 fragment_definitions,
-                selection_set,
+                target,
                 error_handler,
                 Variables::default(),
             )
