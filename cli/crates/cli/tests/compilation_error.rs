@@ -85,7 +85,9 @@ fn compilation_error_resolvers() {
     // For now without watching before we investigate the issue.
     env.grafbase_dev();
 
-    let client = env.create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build()).with_api_key();
+    let client = env
+        .create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build())
+        .with_api_key();
     client.poll_endpoint(30, 300);
 
     let response = client.gql::<Value>(COMPILATION_ERROR_RESOLVER_QUERY).send();

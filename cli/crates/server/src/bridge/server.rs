@@ -190,7 +190,8 @@ async fn invoke_resolver_endpoint(
             &payload.resolver_name,
             tracing,
         )
-        .await {
+        .await
+        {
             let (miniflare_handle, worker_port) = super::resolvers::spawn_miniflare(
                 &payload.resolver_name,
                 handler_state.worker_port,

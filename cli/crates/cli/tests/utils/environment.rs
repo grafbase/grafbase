@@ -142,7 +142,11 @@ impl Environment {
     }
 
     pub fn create_client(&self) -> Client {
-        Client::new(self.endpoint.clone(), self.playground_endpoint.clone(), super::client::ClientOptions::default())
+        Client::new(
+            self.endpoint.clone(),
+            self.playground_endpoint.clone(),
+            super::client::ClientOptions::default(),
+        )
     }
 
     pub fn create_async_client(&self) -> AsyncClient {
