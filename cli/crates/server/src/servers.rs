@@ -207,27 +207,31 @@ async fn spawn_servers(
     let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
     let registry_text_blob_string = format!("REGISTRY={registry_path}");
 
-    let miniflare_arguments = &[
-        // used by miniflare when running normally as well
-        "--experimental-vm-modules",
-        crate::consts::MINIFLARE_CLI_JS_PATH,
-        "--modules",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        &worker_port_string,
-        "--no-update-check",
-        "--no-cf-fetch",
-        "--do-persist",
-        "--wrangler-config",
-        "./wrangler.toml",
-        "--binding",
-        &bridge_port_binding_string,
-        "--text-blob",
-        &registry_text_blob_string,
-        "--mount",
-        "stream-router=./stream-router",
-    ];
+    #[allow(unused_mut)]
+    let mut miniflare_arguments = Vec::from(
+        [
+            // used by miniflare when running normally as well
+            "--experimental-vm-modules",
+            crate::consts::MINIFLARE_CLI_JS_PATH,
+            "--modules",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            &worker_port_string,
+            "--no-update-check",
+            "--no-cf-fetch",
+            "--do-persist",
+            "--wrangler-config",
+            "./wrangler.toml",
+            "--binding",
+            &bridge_port_binding_string,
+            "--text-blob",
+            &registry_text_blob_string,
+            "--mount",
+            "stream-router=./stream-router",
+        ]
+        .map(Cow::Borrowed),
+    );
 
     #[cfg(feature = "dynamodb")]
     {
@@ -246,9 +250,7 @@ async fn spawn_servers(
             ]
             .iter()
             .map(|key| get_env(key))
-            .flat_map(|env| {
-                std::iter::once(std::borrow::Cow::Borrowed("--binding")).chain(std::iter::once(env.into()))
-            }),
+            .flat_map(|env| ["--binding".into(), env.into()]),
         );
     }
 
@@ -256,7 +258,7 @@ async fn spawn_servers(
     miniflare
         // Unbounded worker limit
         .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-        .args(miniflare_arguments)
+        .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(&environment.user_dot_grafbase_path)
