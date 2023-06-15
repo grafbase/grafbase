@@ -1,6 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
+use backend::project::ConfigType;
 use jwt_compact::alg::{Hs512, Hs512Key};
 use jwt_compact::alg::{Rsa, RsaPrivateKey, RsaPublicKey, StrongAlg, StrongKey};
 use jwt_compact::jwk::JsonWebKey;
@@ -27,7 +28,7 @@ const JWT_SECRET: &str = "topsecret";
 #[test]
 fn jwt_provider() {
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(JWT_PROVIDER_SCHEMA);
     env.set_variables(HashMap::from([
         ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
@@ -217,7 +218,7 @@ async fn set_up_oidc_with_path(path: Option<&str>) -> SetUpOidc {
     };
     set_up_oidc_server(&issuer_url, &server, key_set).await;
     let mut env = Environment::init_async().await;
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(OIDC_PROVIDER_SCHEMA);
     env.set_variables(HashMap::from([("ISSUER_URL".to_string(), issuer_url.to_string())]));
     env.grafbase_dev();
@@ -245,7 +246,7 @@ async fn set_up_jwks<F: Fn(&Url) -> HashMap<String, String>>(
     let jwks_uri = issuer_url.join(jwks_path).unwrap();
     set_up_jwks_server(jwks_uri.path(), &server, key_set).await;
     let mut env = Environment::init_async().await;
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(schema);
     env.set_variables(variables_fn(&issuer_url));
     env.grafbase_dev();

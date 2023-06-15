@@ -54,11 +54,79 @@ interface Account {
   slug: String!
   name: String!
   createdAt: DateTime!
+  status: AccountStatus!
   projects(after: String, before: String, first: Int, last: Int): ProjectConnection!
+  projectsCountStatus: ResourceStatus!
+  resources: AccountResources!
+  usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
+  resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
+}
+
+input AccountCreationValidateInput {
+  slug: String!
+}
+
+type AccountCreationValidatePayload {
+  slugAvailable: Boolean!
 }
 
 type AccountDoesNotExistError {
   query: Query!
+}
+
+type AccountResources {
+  projects: ResourceStatus!
+}
+
+type AccountResourcesStatus {
+  requestCount: ResourceStatus!
+  dbReads: ResourceStatus!
+  dbWrites: ResourceStatus!
+  dbSize: ResourceStatus!
+  buildDuration: ResourceStatus!
+  execUnits: ResourceStatus!
+}
+
+type AccountResourcesUsage {
+  requestCount: TimeSeries!
+  dbReads: TimeSeries!
+  dbWrites: TimeSeries!
+  dbSize: TimeSeries!
+  buildDuration: TimeSeries!
+  execUnits: TimeSeries!
+  granularity: TimeAggregationGranularity!
+}
+
+# 'limit_cycle_choice' is exclusive with all other options. It's the only case
+# where we'll show account limit status (used/limit)
+input AccountResourcesUsageDashboardFilter {
+  projectIds: [ID!]
+  limitCycleChoice: LimitCycleChoice
+  startDate: DateTime
+  endDate: DateTime
+}
+
+type AccountResourcesUsageDashboardInvalidFilterCombinationError {
+  message: String!
+  query: Query!
+}
+
+union AccountResourcesUsageDashboardPayload =
+    AccountResourcesUsageDashboardSuccess
+  | AccountResourcesUsageDashboardInvalidFilterCombinationError
+
+type AccountResourcesUsageDashboardSuccess {
+  periodStart: DateTime!
+  periodEnd: DateTime!
+  usage: AccountResourcesUsage!
+  status: AccountResourcesStatus
+}
+
+type AccountStatus {
+  isEnabled: Boolean!
+  inArrearsCause: InArrearsCause
+  hasExceededLimits: Boolean!
+  isHobbyPlanEnforced: Boolean!
 }
 
 type AlreadyMemberError {
@@ -140,6 +208,8 @@ type DatabaseUsage {
   dbReads: Distribution!
   dbWrites: Distribution!
   dbSize: Distribution!
+  buildDuration: Distribution!
+  execUnits: Distribution!
   granularity: DatabaseUsageGranularity!
 }
 
@@ -239,6 +309,10 @@ enum DeploymentStatus {
   FAILED
 }
 
+type DisabledAccountError {
+  query: Query!
+}
+
 type Distribution {
   unit: UnitType!
   values: [DistributionValue!]!
@@ -277,6 +351,10 @@ type EnvironmentVariableConnection {
 
   # A list of nodes.
   nodes: [EnvironmentVariable!]!
+}
+
+type EnvironmentVariableCountLimitExceededError {
+  query: Query!
 }
 
 input EnvironmentVariableCreateInput {
@@ -324,6 +402,11 @@ type EnvironmentVariableEdge {
 
   # The item at the end of the edge
   node: EnvironmentVariable!
+}
+
+input EnvironmentVariableSpecification {
+  name: String!
+  value: String!
 }
 
 input EnvironmentVariableUpdateInput {
@@ -396,6 +479,15 @@ type GitRepository {
   branches: [String!]!
 }
 
+type HasAlreadyPaymentMethodError {
+  query: Query!
+}
+
+enum InArrearsCause {
+  NEVER_PAID
+  UNPAID_INVOICE
+}
+
 type InvalidAccountError {
   query: Query!
 }
@@ -403,6 +495,23 @@ type InvalidAccountError {
 type InvalidDatabaseRegionsError {
   invalid: [String!]!
   query: Query!
+}
+
+type InvalidEnvironmentVariableError {
+  variableName: String!
+  error: InvalidEnvironmentVariableErrorType!
+}
+
+enum InvalidEnvironmentVariableErrorType {
+  NAME_TOO_LONG
+  NAME_CONTAINS_INVALID_CHARACTERS
+  VALUE_TOO_LONG
+  RESERVED_PREFIX
+  DUPLICATE
+}
+
+type InvalidEnvironmentVariablesError {
+  errors: [InvalidEnvironmentVariableError!]!
 }
 
 type Invite {
@@ -499,6 +608,14 @@ type KeyLimitExceededError {
   query: Query!
 }
 
+# Users can select the previous/current "limit cycle" which defines the cycle on which limits
+# applies. For hobby it's monthly starting the first of each month and for pro it matches the
+# billing cycle.
+enum LimitCycleChoice {
+  CURRENT
+  PREVIOUS
+}
+
 type Member {
   id: ID!
   role: MemberRole!
@@ -573,6 +690,7 @@ type Mutation {
   organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
   organizationSlugUpdate(input: OrganizationSlugUpdateInput!): OrganizationSlugUpdatePayload!
   personalAccountSlugUpdate(input: PersonalAccountSlugUpdateInput!): PersonalAccountSlugUpdatePayload!
+  organizationSetupPaymentMethod(accountId: ID!, stripePaymentMethodId: String!): OrganizationSetupPaymentMethod!
   organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
   personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload!
   personalAccountDelete: PersonalAccountDeletePayload!
@@ -622,6 +740,7 @@ type Mutation {
   projectCreateFromTemplate(input: ProjectCreateFromTemplateInput!): ProjectCreateFromTemplatePayload!
   projectUpdate(input: ProjectUpdateInput!): ProjectUpdatePayload!
   projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
+  stripeSetupIntentCreate: StripeSetupIntentCreatePayload!
 }
 
 type NameAlreadyExistsError {
@@ -662,14 +781,239 @@ type NotAllowedToUpdateOrganizationError {
   query: Query!
 }
 
+type OnlyOwnerCanUpgradeToProError {
+  query: Query!
+}
+
+type OrbBillingAddress {
+  city: String
+  country: String
+  line1: String
+  line2: String
+  postalCode: String
+  state: String
+}
+
+input OrbBillingAddressInput {
+  city: String
+  country: String
+  line1: String
+  line2: String
+  postalCode: String
+  state: String
+}
+
+type OrbCustomer {
+  id: String!
+  name: String!
+  email: String!
+  taxId: OrbTaxId
+  billingAddress: OrbBillingAddress
+  subscriptions(cursor: String): OrbPaginatedSubscriptions!
+}
+
+input OrbCustomerUpdateInput {
+  name: String
+  email: String
+  billingAddress: OrbBillingAddressInput
+  taxId: OrbTaxIdInput
+}
+
+type OrbInvoice {
+  id: String!
+  dueDate: DateTime!
+  invoiceDate: DateTime!
+  status: OrbInvoiceStatus!
+  total: String!
+  currency: String!
+  lineItems: [OrbInvoiceLineItem!]!
+  invoicePdf: Url!
+  invoiceNumber: String!
+}
+
+type OrbInvoiceLineItem {
+  id: String!
+  name: String!
+  quantity: Float!
+  amount: String!
+  price: OrbPrice!
+  startDate: DateTime!
+  endDate: DateTime!
+}
+
+enum OrbInvoiceStatus {
+  ISSUED
+  PAID
+  SYNCED
+  VOID
+  DRAFT
+}
+
+type OrbPaginatedInvoices {
+  data: [OrbInvoice!]!
+  paginationMetadata: OrbPaginationMetadata!
+}
+
+type OrbPaginatedSubscriptions {
+  data: [OrbSubscription!]!
+  paginationMetadata: OrbPaginationMetadata!
+}
+
+type OrbPaginationMetadata {
+  nextCursor: String
+}
+
+type OrbPlan {
+  externalPlanId: String
+}
+
+type OrbPrice {
+  currency: String!
+  modelType: OrbPriceModelType!
+  unitConfig: OrbPriceUnitConfig
+  packageConfig: OrbPricePackageConfig
+}
+
+enum OrbPriceModelType {
+  UNIT
+  TIERED
+  BULK
+  PACKAGE
+  BPS
+  TIERED_BPS
+  BULK_BPS
+  MATRIX
+}
+
+type OrbPricePackageConfig {
+  packageAmount: String!
+  packageSize: Float!
+}
+
+type OrbPriceUnitConfig {
+  unitAmount: String!
+}
+
+type OrbSubscription {
+  id: String!
+  status: OrbSubscriptionStatus!
+  plan: OrbPlan!
+  currentBillingPeriodStartDate: DateTime
+  currentBillingPeriodEndDate: DateTime
+  invoices(cursor: String): OrbPaginatedInvoices!
+  upcomingInvoice: OrbUpcomingInvoice!
+}
+
+enum OrbSubscriptionStatus {
+  ACTIVE
+  ENDED
+  UPCOMING
+}
+
+type OrbTaxId {
+  type: OrbTaxIdType!
+  value: String!
+  country: String!
+}
+
+input OrbTaxIdInput {
+  type: OrbTaxIdType!
+  value: String!
+  country: String!
+}
+
+enum OrbTaxIdType {
+  AE_TRN
+  AU_ABN
+  AU_ARN
+  BG_UIC
+  BR_CNPJ
+  BR_CPF
+  CA_BN
+  CA_GST_HST
+  CA_PST_BC
+  CA_PST_MB
+  CA_PST_SK
+  CA_QST
+  CH_VAT
+  CL_TIN
+  EG_TIN
+  ES_CIF
+  EU_OSS_VAT
+  EU_VAT
+  GB_VAT
+  GE_VAT
+  HK_BR
+  HU_TIN
+  ID_NPWP
+  IL_VAT
+  IN_GST
+  IS_VAT
+  JP_CN
+  JP_RN
+  JP_TRN
+  KE_PIN
+  KR_BRN
+  LI_UID
+  MX_RFC
+  MY_FRP
+  MY_ITN
+  MY_SST
+  NO_VAT
+  NZ_GST
+  PH_TIN
+  RU_INN
+  RU_KPP
+  SA_VAT
+  SG_GST
+  SG_UEN
+  SI_TIN
+  TH_VAT
+  TR_TIN
+  TW_VAT
+  UA_VAT
+  US_EIN
+  ZA_VAT
+}
+
+type OrbUpcomingInvoice {
+  targetDate: DateTime!
+  subtotal: String!
+  currency: String!
+  lineItems: [OrbUpcomingInvoiceLineItem!]!
+}
+
+type OrbUpcomingInvoiceLineItem {
+  name: String!
+  quantity: Float!
+  amount: String!
+  startDate: DateTime!
+  endDate: DateTime!
+  price: OrbPrice!
+}
+
+type OrbValidationError {
+  errors: [String!]!
+  query: Query!
+}
+
 type Organization implements Account {
   id: ID!
   slug: String!
   name: String!
   createdAt: DateTime!
+  status: AccountStatus!
+  stripeCustomer: StripeCustomer
+  orbCustomer: OrbCustomer
+  orbActiveSubscription: OrbSubscription
   projects(after: String, before: String, first: Int, last: Int): ProjectConnection!
   invites(after: String, before: String, first: Int, last: Int): InviteConnection!
   members(after: String, before: String, first: Int, last: Int): MemberConnection!
+  projectsCountStatus: ResourceStatus!
+  usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
+    @deprecated(reason: "Use resources_usage_dashboard")
+  resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
+  resources: AccountResources! @deprecated(reason: "Not relevant for organizations")
 }
 
 type OrganizationConnection {
@@ -686,6 +1030,8 @@ type OrganizationConnection {
 input OrganizationCreateInput {
   slug: String!
   name: String!
+  email: String
+  stripePaymentMethodId: String!
 }
 
 union OrganizationCreatePayload =
@@ -733,6 +1079,12 @@ type OrganizationOwnershipNotTransferredError {
   query: Query!
 }
 
+union OrganizationSetupPaymentMethod =
+    OrganizationUpgradeToProSuccess
+  | HasAlreadyPaymentMethodError
+  | OrganizationDoesNotExistError
+  | OnlyOwnerCanUpgradeToProError
+
 input OrganizationSlugUpdateInput {
   id: ID!
   slug: String!
@@ -754,7 +1106,8 @@ type OrganizationSlugUpdateSuccess {
 
 input OrganizationUpdateInput {
   id: ID!
-  name: String!
+  name: String
+  orbCustomer: OrbCustomerUpdateInput
 }
 
 union OrganizationUpdatePayload =
@@ -762,8 +1115,14 @@ union OrganizationUpdatePayload =
   | OrganizationDoesNotExistError
   | NameSizeCheckError
   | NotAllowedToUpdateOrganizationError
+  | OrbValidationError
 
 type OrganizationUpdateSuccess {
+  organization: Organization!
+  query: Query!
+}
+
+type OrganizationUpgradeToProSuccess {
   organization: Organization!
   query: Query!
 }
@@ -788,7 +1147,13 @@ type PersonalAccount implements Account {
   slug: String!
   name: String!
   createdAt: DateTime!
+  status: AccountStatus!
   projects(after: String, before: String, first: Int, last: Int): ProjectConnection!
+  projectsCountStatus: ResourceStatus!
+  usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
+    @deprecated(reason: "Use resources_usage_dashboard")
+  resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
+  resources: AccountResources! @deprecated(reason: "use projects_count_status")
 }
 
 union PersonalAccountDeletePayload = PersonalAccountDeleteSuccess | OrganizationOwnershipNotTransferredError
@@ -924,11 +1289,13 @@ input ProjectCreateFromRepositoryInput {
   gitAccountId: String!
   productionBranch: String!
   databaseRegions: [String!]!
+  environmentVariables: [EnvironmentVariableSpecification!]! = []
 }
 
 union ProjectCreateFromRepositoryPayload =
     ProjectCreateFromRepositorySuccess
   | SlugAlreadyExistsError
+  | DisabledAccountError
   | SlugInvalidError
   | SlugTooLongError
   | RepositoryContainsNoBranchesError
@@ -937,6 +1304,8 @@ union ProjectCreateFromRepositoryPayload =
   | EmptyDatabaseRegionsError
   | DuplicateDatabaseRegionsError
   | InvalidDatabaseRegionsError
+  | EnvironmentVariableCountLimitExceededError
+  | InvalidEnvironmentVariablesError
 
 type ProjectCreateFromRepositorySuccess {
   project: Project!
@@ -948,11 +1317,13 @@ input ProjectCreateFromSchemaInput {
   projectSlug: String!
   schema: String!
   databaseRegions: [String!]!
+  environmentVariables: [EnvironmentVariableSpecification!]! = []
 }
 
 union ProjectCreateFromSchemaPayload =
     ProjectCreateFromSchemaSuccess
   | SlugAlreadyExistsError
+  | DisabledAccountError
   | SlugInvalidError
   | SlugTooLongError
   | AccountDoesNotExistError
@@ -960,6 +1331,8 @@ union ProjectCreateFromSchemaPayload =
   | EmptyDatabaseRegionsError
   | DuplicateDatabaseRegionsError
   | InvalidDatabaseRegionsError
+  | EnvironmentVariableCountLimitExceededError
+  | InvalidEnvironmentVariablesError
 
 type ProjectCreateFromSchemaSuccess {
   project: Project!
@@ -974,11 +1347,13 @@ input ProjectCreateFromTemplateInput {
   repoSlug: String!
   repoPrivate: Boolean!
   databaseRegions: [String!]!
+  environmentVariables: [EnvironmentVariableSpecification!]! = []
 }
 
 union ProjectCreateFromTemplatePayload =
     ProjectCreateFromTemplateSuccess
   | SlugAlreadyExistsError
+  | DisabledAccountError
   | SlugInvalidError
   | SlugTooLongError
   | RepositorySlugInUseError
@@ -988,6 +1363,8 @@ union ProjectCreateFromTemplatePayload =
   | EmptyDatabaseRegionsError
   | DuplicateDatabaseRegionsError
   | InvalidDatabaseRegionsError
+  | EnvironmentVariableCountLimitExceededError
+  | InvalidEnvironmentVariablesError
 
 type ProjectCreateFromTemplateSuccess {
   project: Project!
@@ -998,11 +1375,13 @@ input ProjectCreateInput {
   accountId: ID!
   projectSlug: String!
   databaseRegions: [String!]!
+  environmentVariables: [EnvironmentVariableSpecification!]! = []
 }
 
 union ProjectCreatePayload =
     ProjectCreateSuccess
   | SlugAlreadyExistsError
+  | DisabledAccountError
   | SlugInvalidError
   | SlugTooLongError
   | AccountDoesNotExistError
@@ -1010,6 +1389,8 @@ union ProjectCreatePayload =
   | EmptyDatabaseRegionsError
   | DuplicateDatabaseRegionsError
   | InvalidDatabaseRegionsError
+  | EnvironmentVariableCountLimitExceededError
+  | InvalidEnvironmentVariablesError
 
 type ProjectCreateSuccess {
   project: Project!
@@ -1073,6 +1454,7 @@ type Query {
     # slug of the account
     slug: String!
   ): Account
+  accountCreationValidate(input: AccountCreationValidateInput!): AccountCreationValidatePayload!
   metricsByBranch(
     accountSlug: String!
     projectSlug: String!
@@ -1148,6 +1530,14 @@ type ReservedSlugsCheckError {
   query: Query!
 }
 
+type ResourceStatus {
+  unit: UnitType!
+  used: Int!
+  limit: Int
+  remaining: Int
+  percentage: Float
+}
+
 type SlugAlreadyExistsError {
   query: Query!
 }
@@ -1174,8 +1564,104 @@ type SlugTooLongError {
   query: Query!
 }
 
+type StripeCard {
+  brand: String!
+  funding: String!
+  expMonth: Int!
+  expYear: Int!
+  last4: String!
+}
+
+type StripeCustomer {
+  id: String!
+  paymentMethods(
+    type: StripePaymentMethodType
+    endingBefore: String
+    startingAfter: String
+    limit: Int
+  ): StripePaginatedPaymentMethods!
+}
+
+type StripePaginatedPaymentMethods {
+  data: [StripePaymentMethod!]!
+  hasMore: Boolean!
+}
+
+type StripePaymentMethod {
+  id: String!
+  created: DateTime!
+  card: StripeCard
+  type: StripePaymentMethodType!
+}
+
+enum StripePaymentMethodType {
+  ACSS_DEBIT
+  AFFIRM
+  AFTERPAY_CLEARPAY
+  ALIPAY
+  AU_BECS_DEBIT
+  BACS_DEBIT
+  BANCONTACT
+  BLIK
+  BOLETO
+  CARD
+  CASHAPP
+  CUSTOMER_BALANCE
+  EPS
+  FPX
+  GIROPAY
+  GRABPAY
+  IDEAL
+  KLARNA
+  KONBINI
+  LINK
+  OXXO
+  P24
+  PAYNOW
+  PIX
+  PROMPTPAY
+  SEPA_DEBIT
+  SOFORT
+  US_BANK_ACCOUNT
+  WECHAT_PAY
+}
+
+type StripeSetupIntent {
+  id: String!
+  clientSecret: String!
+}
+
+union StripeSetupIntentCreatePayload = StripeSetupIntentCreateSuccess
+
+type StripeSetupIntentCreateSuccess {
+  setupIntent: StripeSetupIntent!
+  query: Query!
+}
+
 type TemplateDoesNotExistError {
   query: Query!
+}
+
+enum TimeAggregationGranularity {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+type TimeSeries {
+  unit: UnitType!
+  data: [TimeSeriesDataPoint!]!
+  statistics: TimeSeriesStatistics!
+}
+
+type TimeSeriesDataPoint {
+  datetime: DateTime!
+  value: Int!
+}
+
+type TimeSeriesStatistics {
+  sum: Int!
 }
 
 type TokenDoesNotExistError {
@@ -1204,7 +1690,7 @@ type User {
   organizations(after: String, before: String, first: Int, last: Int): OrganizationConnection!
   organizationMemberships: [Member!]!
   personalAccount: PersonalAccount
-  limits: ViewerLimits!
+  limits: ViewerLimits! @deprecated(reason: "Moved to account level")
 }
 
 type ValueTooLongError {

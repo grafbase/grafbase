@@ -1,6 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
+use backend::project::ConfigType;
 use utils::consts::ENVIRONMENT_SCHEMA;
 use utils::environment::Environment;
 
@@ -8,7 +9,7 @@ use utils::environment::Environment;
 fn environment_process() {
     let mut env = Environment::init();
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
 
     env.write_schema(ENVIRONMENT_SCHEMA);
 

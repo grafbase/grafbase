@@ -337,18 +337,6 @@ describe('Model generator', () => {
     `)
   })
 
-  it('generates a length with minimum', () => {
-    const model = g.model('User', {
-      name: g.string().length({ min: 2 })
-    })
-
-    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
-      "type User @model {
-        name: String! @length(min: 2)
-      }"
-    `)
-  })
-
   it('generates a length with minimum and unique + search', () => {
     const model = g.model('User', {
       name: g.string().length({ min: 2 }).unique().search()
@@ -357,6 +345,18 @@ describe('Model generator', () => {
     expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @length(min: 2) @unique @search
+      }"
+    `)
+  })
+
+  it('generates a length with minimum', () => {
+    const model = g.model('User', {
+      name: g.string().length({ min: 2 })
+    })
+
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @length(min: 2)
       }"
     `)
   })
@@ -381,6 +381,42 @@ describe('Model generator', () => {
     expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @length(min: 2, max: 255)
+      }"
+    `)
+  })
+
+  it('generates a list length with minimum', () => {
+    const model = g.model('User', {
+      name: g.string().list().length({ min: 2 })
+    })
+
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
+      "type User @model {
+        name: [String!]! @length(min: 2)
+      }"
+    `)
+  })
+
+  it('generates a list length with maximum', () => {
+    const model = g.model('User', {
+      name: g.string().list().length({ max: 255 })
+    })
+
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
+      "type User @model {
+        name: [String!]! @length(max: 255)
+      }"
+    `)
+  })
+
+  it('generates a list length with minimum and maximum', () => {
+    const model = g.model('User', {
+      name: g.string().list().length({ min: 2, max: 255 })
+    })
+
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
+      "type User @model {
+        name: [String!]! @length(min: 2, max: 255)
       }"
     `)
   })
@@ -473,6 +509,23 @@ describe('Model generator', () => {
     `)
   })
 
+  it('generates a single public auth rule', () => {
+    g.model('User', {
+      name: g.string()
+    }).auth((rules) => {
+      rules.public().read()
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User @model @auth(
+          rules: [
+            { allow: public, operations: [read] }
+          ]) {
+        name: String!
+      }"
+    `)
+  })
+
   it('generates a single auth rule', () => {
     g.model('User', {
       name: g.string()
@@ -505,6 +558,20 @@ describe('Model generator', () => {
             { allow: groups, groups: ["admin"] }
           ]) {
         name: String!
+      }"
+    `)
+  })
+
+  it('generates a field with a public auth rule', () => {
+    g.model('User', {
+      name: g.string().auth((rules) => {
+        rules.public()
+      })
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @auth(rules: [ { allow: public } ])
       }"
     `)
   })

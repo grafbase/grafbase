@@ -119,8 +119,10 @@ struct Edge<N> {
 #[cfg(not(feature = "dynamodb"))] // GB-3636
 #[test]
 fn search_enums() {
+    use backend::project::ConfigType;
+
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
@@ -176,8 +178,10 @@ fn search_enums() {
 #[case("requiredFields", SEARCH_CREATE_REQUIRED, SEARCH_SEARCH_REQUIRED)]
 #[case("listFields", SEARCH_CREATE_LIST, SEARCH_SEARCH_LIST)]
 fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_query: &str) {
+    use backend::project::ConfigType;
+
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
@@ -454,8 +458,10 @@ fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_q
 #[cfg(not(feature = "dynamodb"))] // GB-3636
 #[test]
 fn search_created_updated_at() {
+    use backend::project::ConfigType;
+
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
@@ -516,8 +522,10 @@ fn search_created_updated_at() {
 #[cfg(not(feature = "dynamodb"))] // GB-3636
 #[test]
 fn search_pagination_and_total_hits() {
+    use backend::project::ConfigType;
+
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

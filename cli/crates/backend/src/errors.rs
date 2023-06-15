@@ -1,3 +1,4 @@
+use common::errors::CommonError;
 pub use server::errors::ServerError;
 use std::{io, path::PathBuf};
 use thiserror::Error;
@@ -30,27 +31,27 @@ pub enum BackendError {
     ReadCurrentDirectory,
 
     /// returned if the grafbase directory could not be created
-    #[error("could not create the 'grafbase' directory\ncaused by: {0}")]
+    #[error("could not create the 'grafbase' directory\nCaused by: {0}")]
     CreateGrafbaseDirectory(io::Error),
 
     /// returned if the project directory could not be created
-    #[error("could not create the project directory\ncaused by: {0}")]
+    #[error("could not create the project directory\nCaused by: {0}")]
     CreateProjectDirectory(io::Error),
 
     /// returned if a schema.graphql file could not be created
-    #[error("could not create a schema.graphql file\ncaused by: {0}")]
+    #[error("could not create a schema.graphql file\nCaused by: {0}")]
     WriteSchema(io::Error),
 
     /// returned if a .env file could not be created
-    #[error("could not create a .env file\ncaused by: {0}")]
+    #[error("could not create a .env file\nCaused by: {0}")]
     WriteEnvFile(io::Error),
 
     /// returned if .grafbase/database could not be deleted
-    #[error("could not delete '.grafbase/database'\ncaused by: {0}")]
+    #[error("could not delete '.grafbase/database'\nCaused by: {0}")]
     DeleteDatabaseDirectory(io::Error),
 
     /// returned if the grafbase directory for the project could not be deleted
-    #[error("could not delete the grafbase directory\ncaused by: {0}")]
+    #[error("could not delete the grafbase directory\nCaused by: {0}")]
     DeleteGrafbaseDirectory(io::Error),
 
     /// returned if a template URL is not supported
@@ -62,7 +63,7 @@ pub enum BackendError {
     MalformedTemplateURL(String),
 
     /// returned if a repo tar could not be downloaded (on a non 200-299 status)
-    #[error("could not download the archive for '{0}'\ncaused by: {1}")]
+    #[error("could not download the archive for '{0}'\nCaused by: {1}")]
     StartDownloadRepoArchive(String, reqwest_middleware::Error),
 
     /// returned if a repo tar could not be downloaded
@@ -80,7 +81,7 @@ pub enum BackendError {
     TemplateNotFound,
 
     /// returned if the extracted files from the template repository could not be moved
-    #[error("could not move the extracted files from the template repository\ncaused by: {0}")]
+    #[error("could not move the extracted files from the template repository\nCaused by: {0}")]
     MoveExtractedFiles(io::Error),
 
     /// returned if the entries of the template repository archive could not be read
@@ -88,11 +89,11 @@ pub enum BackendError {
     ReadArchiveEntries,
 
     /// returned if one of the entries of the template repository archive could not be extracted
-    #[error("could not extract an entry from the template repository archive\ncaused by: {0}")]
+    #[error("could not extract an entry from the template repository archive\nCaused by: {0}")]
     ExtractArchiveEntry(io::Error),
 
     /// returned if the files extracted from the template repository archive could not be cleaned
-    #[error("could not clean the files extracted from the repository archive\ncaused by: {0}")]
+    #[error("could not clean the files extracted from the repository archive\nCaused by: {0}")]
     CleanExtractedFiles(io::Error),
 
     /// returned if the request to get the information for a repository could not be sent
@@ -106,4 +107,8 @@ pub enum BackendError {
     /// returned if the request to get the information for a repository returned a response that could not be parsed
     #[error("could not read the repository information for {0}")]
     ReadRepositoryInformation(String),
+
+    // wraps a [`CommonError`]
+    #[error(transparent)]
+    CommonError(#[from] CommonError),
 }

@@ -1,18 +1,19 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
+use backend::project::ConfigType;
 use utils::environment::Environment;
 
 #[test]
 fn init() {
     let env = Environment::init();
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
 
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("schema.graphql").exists());
 
-    let output = env.grafbase_init_output();
+    let output = env.grafbase_init_output(ConfigType::GraphQL);
 
     assert!(!output.stderr.is_empty());
     assert!(std::str::from_utf8(&output.stderr).unwrap().contains("already exists"));

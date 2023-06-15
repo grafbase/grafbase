@@ -1,11 +1,9 @@
 import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
-import { SearchDefinition } from './search'
 import { DefaultDefinition } from './default'
 import { ReferenceDefinition } from './reference'
 import { ScalarDefinition } from './scalar'
-import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
 
 /**
@@ -13,7 +11,6 @@ import { EnumDefinition } from './enum'
  */
 export type Resolvable =
   | ScalarDefinition
-  | UniqueDefinition
   | DefaultDefinition
   | ReferenceDefinition
   | CacheDefinition
@@ -35,22 +32,6 @@ export class ResolverDefinition {
    */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
-  }
-
-  /**
-   * Make the field unique.
-   *
-   * @param scope - Additional fields to be added to the constraint.
-   */
-  public unique(scope?: string[]): UniqueDefinition {
-    return new UniqueDefinition(this, scope)
   }
 
   /**

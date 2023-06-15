@@ -1,22 +1,59 @@
-use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA, USER_AGENT};
+use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_SDL, DEFAULT_SCHEMA_TS, USER_AGENT};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use async_tar::Archive;
-use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME};
-use common::environment::Project;
+use common::consts::{
+    GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_SDK_PACKAGE_NAME,
+    GRAFBASE_SDK_PACKAGE_VERSION, GRAFBASE_TS_CONFIG_FILE_NAME,
+};
+use common::environment::{self, Project};
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
 use reqwest::{header, Client};
 use reqwest_middleware::ClientBuilder;
 use serde::Deserialize;
-use std::env;
 use std::fs;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::iter::Iterator;
 use std::path::PathBuf;
+use std::{env, fmt};
 use tokio_stream::StreamExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::io::StreamReader;
 use url::Url;
+
+#[derive(Debug, Clone, Copy)]
+pub enum ConfigType {
+    TypeScript,
+    GraphQL,
+}
+
+impl AsRef<str> for ConfigType {
+    fn as_ref(&self) -> &str {
+        match self {
+            ConfigType::TypeScript => "typescript",
+            ConfigType::GraphQL => "graphql",
+        }
+    }
+}
+
+impl fmt::Display for ConfigType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ConfigType::TypeScript => f.write_str("TypeScript"),
+            ConfigType::GraphQL => f.write_str("GraphQL"),
+        }
+    }
+}
+
+impl ConfigType {
+    pub const VARIANTS: &'static [ConfigType] = &[Self::TypeScript, Self::GraphQL];
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Template<'a> {
+    FromUrl(&'a str),
+    FromDefault(ConfigType),
+}
 
 /// initializes a new project in the current or a new directory, optionally from a template
 ///
@@ -60,53 +97,78 @@ use url::Url;
 ///
 /// - returns [`BackendError::ReadRepositoryInformation`] if the request to get the information for a repository returned a response that could not be parsed
 #[tokio::main]
-pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendError> {
+pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), BackendError> {
     let project_path = to_project_path(name)?;
     let grafbase_path = project_path.join(GRAFBASE_DIRECTORY_NAME);
-    let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
 
     if grafbase_path.exists() {
-        Err(BackendError::AlreadyAProject(grafbase_path))
-    } else if let Some(template) = template {
-        // as directory names cannot contain slashes, and URLs with no scheme or path cannot
-        // be differentiated from a valid template name,
-        // anything with a slash is treated as a URL
-        if template.contains('/') {
-            if let Ok(repo_url) = Url::parse(template) {
-                match repo_url.host_str() {
-                    Some("github.com") => handle_github_repo_url(grafbase_path, &repo_url).await,
-                    _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
+        return Err(BackendError::AlreadyAProject(grafbase_path));
+    }
+
+    match template {
+        Template::FromUrl(template) => {
+            // as directory names cannot contain slashes, and URLs with no scheme or path cannot
+            // be differentiated from a valid template name,
+            // anything with a slash is treated as a URL
+            if template.contains('/') {
+                if let Ok(repo_url) = Url::parse(template) {
+                    match repo_url.host_str() {
+                        Some("github.com") => handle_github_repo_url(grafbase_path, &repo_url).await?,
+                        _ => return Err(BackendError::UnsupportedTemplateURL(template.to_string())),
+                    }
+                } else {
+                    return Err(BackendError::MalformedTemplateURL(template.to_owned()));
                 }
             } else {
-                return Err(BackendError::MalformedTemplateURL(template.to_owned()));
+                download_github_template(
+                    grafbase_path,
+                    GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template }),
+                )
+                .await?;
             }
-        } else {
-            download_github_template(
-                grafbase_path,
-                GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template }),
-            )
-            .await
         }
-    } else {
-        tokio::fs::create_dir_all(&grafbase_path)
-            .await
-            .map_err(BackendError::CreateGrafbaseDirectory)?;
-
-        let dot_env_path = grafbase_path.join(GRAFBASE_ENV_FILE_NAME);
-        let schema_write_result = fs::write(schema_path, DEFAULT_SCHEMA).map_err(BackendError::WriteSchema);
-        let dot_env_write_result = fs::write(dot_env_path, DEFAULT_DOT_ENV).map_err(BackendError::WriteSchema);
-
-        if schema_write_result.is_err() || dot_env_write_result.is_err() {
-            tokio::fs::remove_dir_all(&grafbase_path)
+        Template::FromDefault(config_type) => {
+            tokio::fs::create_dir_all(&grafbase_path)
                 .await
-                .map_err(BackendError::DeleteGrafbaseDirectory)?;
+                .map_err(BackendError::CreateGrafbaseDirectory)?;
+
+            let dot_env_path = grafbase_path.join(GRAFBASE_ENV_FILE_NAME);
+
+            let schema_write_result = match config_type {
+                ConfigType::TypeScript => {
+                    let schema_path = grafbase_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
+
+                    let add_sdk = environment::add_dev_dependency_to_package_json(
+                        &project_path,
+                        GRAFBASE_SDK_PACKAGE_NAME,
+                        GRAFBASE_SDK_PACKAGE_VERSION,
+                    )
+                    .map_err(Into::into);
+
+                    let write_schema = fs::write(schema_path, DEFAULT_SCHEMA_TS).map_err(BackendError::WriteSchema);
+
+                    add_sdk.and(write_schema)
+                }
+                ConfigType::GraphQL => {
+                    let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
+                    fs::write(schema_path, DEFAULT_SCHEMA_SDL).map_err(BackendError::WriteSchema)
+                }
+            };
+
+            let dot_env_write_result = fs::write(dot_env_path, DEFAULT_DOT_ENV).map_err(BackendError::WriteSchema);
+
+            if schema_write_result.is_err() || dot_env_write_result.is_err() {
+                tokio::fs::remove_dir_all(&grafbase_path)
+                    .await
+                    .map_err(BackendError::DeleteGrafbaseDirectory)?;
+            }
+
+            schema_write_result?;
+            dot_env_write_result?;
         }
+    };
 
-        schema_write_result?;
-        dot_env_write_result?;
-
-        Ok(())
-    }
+    Ok(())
 }
 
 async fn handle_github_repo_url(grafbase_path: PathBuf, repo_url: &Url) -> Result<(), BackendError> {

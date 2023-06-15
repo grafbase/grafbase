@@ -1,12 +1,12 @@
 [package]
 name = "grafbase-local-common"
 description = "Common code used in multiple crates in the CLI workspace"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 keywords.workspace = true
-readme.workspace = true
 repository.workspace = true
 
 [dependencies]
@@ -17,6 +17,6 @@ rudderanalytics = { version = "1", features = [
     "rustls-tls",
 ], default-features = false }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
 thiserror = "1"
 ulid = { version = "1", features = ["serde"] }

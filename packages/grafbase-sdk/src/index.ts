@@ -6,6 +6,9 @@ import { OpenIDAuth, OpenIDParams } from './auth/openid'
 import { JWTAuth, JWTParams } from './auth/jwt'
 import { JWKSAuth, JWKSParams } from './auth/jwks'
 import { RequireAtLeastOne } from 'type-fest'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 export type AtLeastOne<T> = [T, ...T[]]
 

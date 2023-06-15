@@ -591,3 +591,16 @@ g.extend('StripeCustomer', {
   }
 })
 ```
+
+### Environment variables
+
+Node's `process.env` return nullable strings, which are a bit annoying to use in fields requiring non-nullable values. The schema has a helper `g.env()` that throws if the variable is not set, and returns a guaranteed string.
+
+```ts
+const github = connector.GraphQL({
+  url: 'https://api.github.com/graphql',
+  headers: (headers) => {
+    headers.static('Authorization', `Bearer ${g.env('GITHUB_TOKEN')}`)
+  }
+})
+```

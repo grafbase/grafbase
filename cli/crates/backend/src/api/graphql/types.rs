@@ -95,19 +95,37 @@ pub mod mutations {
         pub __typename: String,
     }
 
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct DisabledAccountError {
+        pub __typename: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct EnvironmentVariableCountLimitExceededError {
+        pub __typename: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct InvalidEnvironmentVariablesError {
+        pub __typename: String,
+    }
+
     #[derive(cynic::InlineFragments, Debug)]
     pub enum ProjectCreatePayload {
         ProjectCreateSuccess(ProjectCreateSuccess),
         SlugAlreadyExistsError(SlugAlreadyExistsError),
+        DisabledAccountError(DisabledAccountError),
         SlugInvalidError(SlugInvalidError),
-        AccountDoesNotExistError(AccountDoesNotExistError),
         SlugTooLongError(SlugTooLongError),
+        AccountDoesNotExistError(AccountDoesNotExistError),
         CurrentPlanLimitReachedError(CurrentPlanLimitReachedError),
-        EmptyDatabaseRegionsError(EmptyDatabaseRegionsError),
-        DuplicateDatabaseRegionsError(DuplicateDatabaseRegionsError),
+        InvalidEnvironmentVariablesError(InvalidEnvironmentVariablesError),
+        EnvironmentVariableCountLimitExceededError(EnvironmentVariableCountLimitExceededError),
         InvalidDatabaseRegionsError(InvalidDatabaseRegionsError),
+        DuplicateDatabaseRegionsError(DuplicateDatabaseRegionsError),
+        EmptyDatabaseRegionsError(EmptyDatabaseRegionsError),
         #[cynic(fallback)]
-        Unknown,
+        Unknown(String),
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -160,7 +178,7 @@ pub mod mutations {
         ArchiveFileSizeLimitExceededError(ArchiveFileSizeLimitExceededError),
         DailyDeploymentCountLimitExceededError(DailyDeploymentCountLimitExceededError),
         #[cynic(fallback)]
-        Unknown,
+        Unknown(String),
     }
 }
 

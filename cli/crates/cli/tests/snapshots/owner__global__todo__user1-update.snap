@@ -6,8 +6,8 @@ expression: "client.gql::<Value>(OWNER_TODO_UPDATE).bearer(USER1).variables(json
   "data": {
     "todoUpdate": {
       "todo": {
-        "complete": true,
-        "title": "1"
+        "title": "1",
+        "complete": true
       }
     }
   }

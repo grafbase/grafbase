@@ -3,6 +3,7 @@ mod utils;
 
 use std::collections::HashMap;
 
+use backend::project::ConfigType;
 use serde_json::Value;
 use utils::consts::{
     COMPILATION_ERROR_QUERY, COMPILATION_ERROR_RESOLVER_MUTATION, COMPILATION_ERROR_RESOLVER_SCHEMA,
@@ -14,7 +15,7 @@ use utils::environment::Environment;
 #[cfg_attr(target_os = "windows", ignore)]
 fn compilation_error() {
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(COMPILATION_ERROR_SCHEMA);
     env.grafbase_dev_watch();
     let mut client = env.create_client().with_api_key();

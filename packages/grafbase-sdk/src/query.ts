@@ -1,3 +1,9 @@
+import {
+  DefaultDefinition,
+  DefaultFieldShape,
+  DefaultValueType,
+  renderDefault
+} from './typedefs/default'
 import { InputDefinition } from './typedefs/input'
 import { ListDefinition } from './typedefs/list'
 import { ReferenceDefinition } from './typedefs/reference'
@@ -5,10 +11,31 @@ import { ScalarDefinition } from './typedefs/scalar'
 import { validateIdentifier } from './validation'
 
 /** The possible types of an input parameters of a query. */
-export type InputType = ScalarDefinition | ListDefinition | InputDefinition
+export type InputType =
+  | ScalarDefinition
+  | ListDefinition
+  | InputDefinition
+  | InputDefaultDefinition
 
 /** The possible types of an output parameters of a query. */
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
+
+/**
+ * Defaults are rendered differently in input types, which we do in this specialization
+ */
+export class InputDefaultDefinition extends DefaultDefinition {
+  constructor(scalar: DefaultFieldShape, defaultValue: DefaultValueType) {
+    super(scalar, defaultValue)
+  }
+
+  public toString(): string {
+    const defaultValue = renderDefault(
+      this._defaultValue,
+      this._scalar.fieldTypeVal()
+    )
+    return `${this._scalar} = ${defaultValue}`
+  }
+}
 
 /**
  * Parameters to create a new query definition.
@@ -30,7 +57,12 @@ export class QueryArgument {
     validateIdentifier(name)
 
     this.name = name
-    this.type = type
+
+    if ('scalar' in type && 'defaultValue' in type) {
+      this.type = new InputDefaultDefinition(type.scalar, type.defaultValue)
+    } else {
+      this.type = type
+    }
   }
 
   public toString(): string {

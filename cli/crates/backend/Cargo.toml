@@ -1,12 +1,12 @@
 [package]
 name = "grafbase-local-backend"
 description = "The local backend for grafbase developer tools"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 keywords.workspace = true
-readme.workspace = true
 repository.workspace = true
 
 [dependencies]
@@ -33,9 +33,10 @@ tokio-util = { version = "0.7", features = ["futures-io", "compat"] }
 tower-http = { version = "0.4", features = ["trace"] }
 url = "2"
 urlencoding = "2"
+walkdir = "2"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.22.0" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.22.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.23.0-rc.1" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.23.0-rc.1" }
 
 [build-dependencies]
 cynic-codegen = { version = "3", features = ["rkyv"] }
