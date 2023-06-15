@@ -275,7 +275,7 @@ fn test_field_resolver(
         env.write_file("package.json", package_json);
     }
     env.grafbase_dev();
-    let client = env.create_client_with_longer_timeout().with_api_key();
+    let client = env.create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build()).with_api_key();
     client.poll_endpoint(120, 250);
 
     // Create.

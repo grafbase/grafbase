@@ -137,12 +137,12 @@ impl Environment {
         }
     }
 
-    pub fn create_client_with_longer_timeout(&self) -> Client {
-        Client::new(self.endpoint.clone(), self.playground_endpoint.clone(), 60)
+    pub fn create_client_with_options(&self, options: super::client::ClientOptions) -> Client {
+        Client::new(self.endpoint.clone(), self.playground_endpoint.clone(), options)
     }
 
     pub fn create_client(&self) -> Client {
-        Client::new(self.endpoint.clone(), self.playground_endpoint.clone(), 5)
+        Client::new(self.endpoint.clone(), self.playground_endpoint.clone(), super::client::ClientOptions::default())
     }
 
     pub fn create_async_client(&self) -> AsyncClient {
