@@ -197,6 +197,7 @@ use utils::environment::Environment;
     ],
     Some(r#"
         {
+            "name": "my-package",
             "dependencies": {
                 "is-palindrome": "^0.3.0"
             }
@@ -257,7 +258,6 @@ use utils::environment::Environment;
         }
     "#)
 )]
-#[cfg_attr(target_os = "windows", ignore)]
 fn test_field_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
@@ -368,7 +368,6 @@ fn test_field_resolver(
         ),
     ],
 )]
-#[cfg_attr(target_os = "windows", ignore)]
 fn test_query_mutation_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,

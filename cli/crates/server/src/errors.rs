@@ -15,11 +15,15 @@ use crate::custom_resolvers::JavaScriptPackageManager;
 
 #[derive(Error, Debug)]
 pub enum JavascriptPackageManagerComamndError {
-    /// returned if any of the npm commands exits unsuccessfully
+    /// returned if npm/pnpm/yarn cannot be found
+    #[error("could not find {0}: {1}")]
+    NotFound(JavaScriptPackageManager, which::Error),
+
+    /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
     #[error("{0} encountered an error: {1}")]
     CommandError(JavaScriptPackageManager, IoError),
 
-    /// returned if any of the npm commands exits unsuccessfully
+    /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
     #[error("{0} failed with output:\n{1}")]
     OutputError(JavaScriptPackageManager, String),
 }
