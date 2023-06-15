@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 #[path = "../utils/mod.rs"]
 mod utils;
 

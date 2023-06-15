@@ -13,12 +13,10 @@ repository.workspace = true
 chrono = "0.4.24"
 derivative = "2.2.0"
 dirs = "5"
-exitcode = "1"
 rudderanalytics = { version = "1", features = [
     "rustls-tls",
 ], default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-strum = { version = "0.24", features = ["derive"] }
 thiserror = "1"
 ulid = { version = "1", features = ["serde"] }
