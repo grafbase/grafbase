@@ -121,7 +121,8 @@ pub async fn spawn_miniflare(
                 futures_util::future::ready(Ok(line
                     .split("Listening on")
                     .skip(1)
-                    .flat_map(|bound_address| bound_address.split(':')).nth(1)
+                    .flat_map(|bound_address| bound_address.split(':'))
+                    .nth(1)
                     .and_then(|value| value.trim().parse::<u16>().ok())))
             });
             pin_mut!(filtered_lines_stream);
