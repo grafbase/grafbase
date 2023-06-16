@@ -162,7 +162,10 @@ pub enum ServerError {
     FileWatcher(#[from] NotifyError),
 
     #[error("Could not create a lock for the wrangler installation: {0}")]
-    Lock(#[from] fslock::Error),
+    Lock(fslock::Error),
+
+    #[error("Could not release the lock for the wrangler installation: {0}")]
+    Unlock(fslock::Error),
 }
 
 #[derive(Debug, Error)]
