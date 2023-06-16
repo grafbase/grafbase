@@ -41,7 +41,6 @@ enum ResolverBuild {
 }
 
 struct HandlerState {
-    worker_port: u16,
     pool: SqlitePool,
     bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
     resolver_builds: Mutex<std::collections::HashMap<String, ResolverBuild>>,
@@ -197,7 +196,6 @@ async fn invoke_resolver_endpoint(
         {
             let (miniflare_handle, worker_port) = super::resolvers::spawn_miniflare(
                 &payload.resolver_name,
-                handler_state.worker_port,
                 package_json_path,
                 wrangler_toml_path,
                 tracing,
@@ -283,7 +281,6 @@ pub async fn start(
     query(PREPARE).execute(&pool).await?;
 
     let handler_state = Arc::new(HandlerState {
-        worker_port,
         pool,
         bridge_sender,
         resolver_builds: Mutex::default(),

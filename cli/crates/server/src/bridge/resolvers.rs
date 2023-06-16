@@ -3,6 +3,7 @@ use std::{collections::HashMap, process::Stdio};
 use crate::types::ServerMessage;
 
 use common::{environment::Environment, types::ResolverMessageLevel};
+use futures_util::{pin_mut, TryStreamExt};
 use tokio::process::Command;
 
 use super::errors::ApiError;
@@ -63,16 +64,14 @@ async fn is_resolver_ready(resolver_worker_port: u16) -> Result<bool, reqwest::E
 
 pub async fn spawn_miniflare(
     resolver_name: &str,
-    main_worker_port: u16,
     package_json_path: std::path::PathBuf,
     wrangler_toml_path: std::path::PathBuf,
-    tracing: bool,
+    _tracing: bool,
 ) -> Result<(tokio::task::JoinHandle<()>, u16), ApiError> {
-    let environment = Environment::get();
+    use tokio::io::AsyncBufReadExt;
+    use tokio_stream::wrappers::LinesStream;
 
-    let resolver_worker_port = crate::servers::find_available_port_for_internal_use(main_worker_port)
-        .map_err(|_| ApiError::CouldNotFindPortForResolverWorker)?;
-    let resolver_worker_port_string = resolver_worker_port.to_string();
+    let environment = Environment::get();
 
     let miniflare_path = environment
         .user_dot_grafbase_path
@@ -81,7 +80,7 @@ pub async fn spawn_miniflare(
         .unwrap();
 
     let resolver_name_cloned = resolver_name.to_owned();
-    let join_handle = tokio::spawn(async move {
+    let (join_handle, resolver_worker_port) = {
         let miniflare_arguments = &[
             // used by miniflare when running normally as well
             "--experimental-vm-modules",
@@ -91,7 +90,7 @@ pub async fn spawn_miniflare(
             "--host",
             "127.0.0.1",
             "--port",
-            &resolver_worker_port_string,
+            "0",
             "--package",
             package_json_path.to_str().unwrap(),
             "--no-update-check",
@@ -106,20 +105,47 @@ pub async fn spawn_miniflare(
             // Unbounded worker limit
             .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
             .args(miniflare_arguments)
-            .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
-            .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .current_dir(wrangler_toml_path.parent().unwrap())
             .kill_on_drop(true);
         trace!("Spawning resolver '{resolver_name_cloned}': {miniflare_command}");
-        let miniflare = miniflare.spawn().unwrap();
-        let output = miniflare.wait_with_output().await.unwrap();
 
-        assert!(
-            output.status.success(),
-            "resolver worker failed: '{}'",
-            String::from_utf8_lossy(&output.stderr).into_owned()
-        );
-    });
+        let mut miniflare = miniflare.spawn().unwrap();
+        let bound_port = {
+            let stdout = miniflare.stdout.as_mut().unwrap();
+            let lines_stream = LinesStream::new(tokio::io::BufReader::new(stdout).lines())
+                .inspect_ok(|line| trace!("miniflare: {line}"));
+
+            let filtered_lines_stream = lines_stream.try_filter_map(|line| {
+                futures_util::future::ready(Ok(line
+                    .split("Listening on")
+                    .skip(1)
+                    .flat_map(|bound_address| bound_address.split(':'))
+                    .skip(1)
+                    .next()
+                    .and_then(|value| value.trim().parse::<u16>().ok())))
+            });
+            pin_mut!(filtered_lines_stream);
+            filtered_lines_stream
+                .try_next()
+                .await
+                .ok()
+                .flatten()
+                .expect("must be present")
+        };
+        trace!("Bound to port: {bound_port}");
+        let join_handle = tokio::spawn(async move {
+            let outcome = miniflare.wait_with_output().await.unwrap();
+            assert!(
+                outcome.status.success(),
+                "resolver worker failed: '{}'",
+                String::from_utf8_lossy(&outcome.stderr).into_owned()
+            );
+        });
+
+        (join_handle, bound_port)
+    };
 
     if wait_until_resolver_ready(resolver_worker_port, resolver_name)
         .await
