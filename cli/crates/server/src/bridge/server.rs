@@ -148,32 +148,34 @@ async fn invoke_resolver_endpoint(
     let environment = Environment::get();
 
     let resolver_worker_port = loop {
-        let mut resolver_builds = handler_state.resolver_builds.lock().await;
+        let notify = {
+            let mut resolver_builds = handler_state.resolver_builds.lock().await;
 
-        let notify = if let Some(resolver_build) = resolver_builds.get(&payload.resolver_name) {
-            match resolver_build {
-                ResolverBuild::Succeeded { worker_port, .. } => break *worker_port,
-                ResolverBuild::Failed => return Err(ApiError::ResolverSpawnError),
-                ResolverBuild::InProgress { notify } => {
-                    // If the resolver build happening within another invocation has been cancelled
-                    // due to the invocation having been interrupted by the HTTP client, start a new build.
-                    if Arc::strong_count(notify) == 1 {
-                        notify.clone()
-                    } else {
-                        let notify = notify.clone();
-                        drop(resolver_builds);
-                        notify.notified().await;
-                        continue;
+            if let Some(resolver_build) = resolver_builds.get(&payload.resolver_name) {
+                match resolver_build {
+                    ResolverBuild::Succeeded { worker_port, .. } => break *worker_port,
+                    ResolverBuild::Failed => return Err(ApiError::ResolverSpawnError),
+                    ResolverBuild::InProgress { notify } => {
+                        // If the resolver build happening within another invocation has been cancelled
+                        // due to the invocation having been interrupted by the HTTP client, start a new build.
+                        if Arc::strong_count(notify) == 1 {
+                            notify.clone()
+                        } else {
+                            let notify = notify.clone();
+                            drop(resolver_builds);
+                            notify.notified().await;
+                            continue;
+                        }
                     }
                 }
+            } else {
+                let notify = Arc::new(Notify::new());
+                resolver_builds.insert(
+                    payload.resolver_name.clone(),
+                    ResolverBuild::InProgress { notify: notify.clone() },
+                );
+                notify
             }
-        } else {
-            let notify = Arc::new(Notify::new());
-            resolver_builds.insert(
-                payload.resolver_name.clone(),
-                ResolverBuild::InProgress { notify: notify.clone() },
-            );
-            notify
         };
 
         let start = std::time::Instant::now();
@@ -202,7 +204,7 @@ async fn invoke_resolver_endpoint(
             )
             .await?;
 
-            resolver_builds.insert(
+            handler_state.resolver_builds.lock().await.insert(
                 payload.resolver_name.clone(),
                 ResolverBuild::Succeeded {
                     miniflare_handle,
@@ -223,7 +225,11 @@ async fn invoke_resolver_endpoint(
             break worker_port;
         }
 
-        resolver_builds.insert(payload.resolver_name.clone(), ResolverBuild::Failed);
+        handler_state
+            .resolver_builds
+            .lock()
+            .await
+            .insert(payload.resolver_name.clone(), ResolverBuild::Failed);
         notify.notify_waiters();
         return Err(ApiError::ResolverSpawnError);
     };

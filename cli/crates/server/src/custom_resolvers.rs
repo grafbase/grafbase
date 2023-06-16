@@ -400,7 +400,9 @@ pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Resul
     )
     .await?;
 
-    tokio::task::spawn_blocking(move || lock_file.unlock());
+    tokio::task::spawn_blocking(move || lock_file.unlock())
+        .await?
+        .map_err(ServerError::Unlock)?;
 
     Ok(())
 }
