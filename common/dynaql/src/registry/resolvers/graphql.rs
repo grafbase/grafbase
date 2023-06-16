@@ -158,8 +158,6 @@ impl Resolver {
                 None => serde_json::Value::Null,
             };
 
-            let is_null = data.is_null();
-
             if let Some(prefix) = prefix {
                 prefix_result_typename(&mut data, &prefix);
             }
@@ -172,7 +170,7 @@ impl Resolver {
                 None => data,
             }));
 
-            if is_null {
+            if resolved_value.data_resolved.is_null() {
                 resolved_value.early_return_null = true;
             }
 
