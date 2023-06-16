@@ -173,12 +173,12 @@ export class AuthRules {
 }
 
 export interface AuthParams {
-  providers: FixedLengthArray<AuthProvider, 1>
+  providers?: FixedLengthArray<AuthProvider, 1>
   rules: AuthRuleF
 }
 
 export class Authentication {
-  private providers: FixedLengthArray<AuthProvider, 1>
+  private providers?: FixedLengthArray<AuthProvider, 1>
   private rules: AuthRules
 
   constructor(params: AuthParams) {
@@ -191,15 +191,18 @@ export class Authentication {
   }
 
   public toString(): string {
-    const providers = this.providers.map(String).join('\n      ')
+    var providers = this.providers ? this.providers.map(String).join('\n      ') : ''
+
+    if (providers) {
+      providers = `\n    providers: [\n      ${providers}\n    ]`
+    }
+
     var rules = this.rules.toString()
 
     if (rules) {
       rules = `\n    rules: ${rules}`
-    } else {
-      rules = ''
     }
 
-    return `extend schema\n  @auth(\n    providers: [\n      ${providers}\n    ]${rules}\n  )`
+    return `extend schema\n  @auth(${providers}${rules}\n  )`
   }
 }

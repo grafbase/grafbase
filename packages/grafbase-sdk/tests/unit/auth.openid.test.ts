@@ -5,17 +5,12 @@ import { renderGraphQL } from '../utils'
 describe('OpenID auth provider', () => {
   beforeEach(() => g.clear())
 
-  it('renders a provider with public access', () => {
-    const clerk = auth.OpenIDConnect({
-      issuer: '{{ env.ISSUER_URL }}'
-    })
-
+  it('public access', () => {
     const cfg = config({
       schema: g,
       auth: {
-        providers: [clerk],
         rules: (rules) => {
-          rules.public().read()
+          rules.public()
         }
       }
     })
@@ -23,11 +18,8 @@ describe('OpenID auth provider', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @auth(
-          providers: [
-            { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
-          ]
           rules: [
-            { allow: public, operations: [read] }
+            { allow: public }
           ]
         )"
     `)
