@@ -1,0 +1,12 @@
+---
+source: crates/cli/tests/auth.rs
+expression: resp
+---
+{
+  "data": {
+    "todoCollection": {
+      "__typename": "TodoConnection",
+      "edges": []
+    }
+  }
+}

@@ -1,0 +1,19 @@
+---
+source: crates/cli/tests/auth.rs
+expression: "private_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await"
+---
+{
+  "data": {
+    "todoCollection": {
+      "__typename": "TodoConnection",
+      "edges": [
+        {
+          "node": {
+            "title": "1",
+            "text": "Lorem ipsum dolor sit amet"
+          }
+        }
+      ]
+    }
+  }
+}

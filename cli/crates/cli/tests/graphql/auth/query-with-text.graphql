@@ -4,6 +4,7 @@ query {
     edges {
       node {
         title
+        text
       }
     }
   }

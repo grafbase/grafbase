@@ -15,12 +15,18 @@ use std::collections::HashMap;
 use url::Url;
 use utils::async_client::AsyncClient;
 use utils::consts::{
-    INTROSPECTION_QUERY, JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA, JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA,
-    JWKS_PROVIDER_WITH_ISSUER_SCHEMA, JWT_PROVIDER_QUERY, JWT_PROVIDER_SCHEMA, OIDC_PROVIDER_SCHEMA,
+    AUTH_PUBLIC_GLOBAL_SCHEMA, AUTH_PUBLIC_TYPE_SCHEMA, AUTH_TYPE_FIELD_RESOLVER_SCHEMA, INTROSPECTION_QUERY,
+    JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA, JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA, JWKS_PROVIDER_WITH_ISSUER_SCHEMA,
+    JWT_PROVIDER_QUERY, JWT_PROVIDER_SCHEMA, OIDC_PROVIDER_SCHEMA,
 };
 use utils::environment::Environment;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
+
+use crate::utils::consts::{
+    AUTH_CREATE_MUTATION, AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA, AUTH_ENTRYPOINT_MUTATION_TEXT,
+    AUTH_ENTRYPOINT_QUERY_TEXT, AUTH_QUERY_WITH_TEXT,
+};
 
 const JWT_ISSUER_URL: &str = "https://some.issuer.test";
 const JWT_SECRET: &str = "topsecret";
@@ -433,4 +439,135 @@ async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
     let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn public_global() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTH_PUBLIC_GLOBAL_SCHEMA);
+    env.set_variables(HashMap::from([
+        ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
+        ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
+    ]));
+    env.grafbase_dev();
+    let client = env.create_async_client();
+    client.poll_endpoint(30, 300).await;
+    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    insta::assert_json_snapshot!("public_global", resp);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn public_type() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTH_PUBLIC_TYPE_SCHEMA);
+    env.set_variables(HashMap::from([
+        ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
+        ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
+    ]));
+    env.grafbase_dev();
+    let client = env.create_async_client();
+    client.poll_endpoint(30, 300).await;
+    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    insta::assert_json_snapshot!("public_type", resp);
+}
+
+const RESOLVER_FILE_NAME: &str = "return-text.js";
+const RESOLVER_CONTENT: &str = r#"export default function Resolver(parent, args, context, info) {
+    return "Lorem ipsum dolor sit amet";
+}"#;
+
+#[tokio::test(flavor = "multi_thread")]
+async fn type_field_resolver_mixed() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTH_TYPE_FIELD_RESOLVER_SCHEMA);
+    env.write_resolver(RESOLVER_FILE_NAME, RESOLVER_CONTENT);
+    env.set_variables(HashMap::from([
+        ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
+        ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
+    ]));
+    env.grafbase_dev();
+    let token = generate_hs512_token("cli_user", &[]);
+    let private_client = env
+        .create_async_client()
+        .with_header("Authorization", &format!("Bearer {token}"));
+    private_client.poll_endpoint(30, 300).await;
+    let public_client = env.create_async_client();
+    insta::assert_json_snapshot!(
+        "type_field_resolver_mixed__public_mutation_should_fail",
+        public_client.gql::<Value>(AUTH_CREATE_MUTATION).await
+    );
+
+    insta::assert_json_snapshot!(
+        "type_field_resolver_mixed__private_mutation_should_succeed",
+        private_client.gql::<Value>(AUTH_CREATE_MUTATION).await
+    );
+    insta::assert_json_snapshot!(
+        "type_field_resolver_mixed__private_query_should_succeed",
+        private_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await
+    );
+    insta::assert_json_snapshot!(
+        "type_field_resolver_mixed__public_query_should_fail",
+        public_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await
+    );
+    insta::assert_json_snapshot!(
+        "type_field_resolver_mixed__public_partial_query_should_succeed",
+        public_client.gql::<Value>(JWT_PROVIDER_QUERY).await
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn entrypoint_query_field_resolver() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA);
+    env.write_resolver(RESOLVER_FILE_NAME, RESOLVER_CONTENT);
+    env.set_variables(HashMap::from([
+        ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
+        ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
+    ]));
+    env.grafbase_dev();
+    let token = generate_hs512_token("cli_user", &[]);
+    let private_client = env
+        .create_async_client()
+        .with_header("Authorization", &format!("Bearer {token}"));
+    private_client.poll_endpoint(30, 300).await;
+    let public_client = env.create_async_client();
+    insta::assert_json_snapshot!(
+        "entrypoint_query_field_resolver__private_entrypoint_field_query_should_succeed",
+        private_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
+    );
+    insta::assert_json_snapshot!(
+        "entrypoint_query_field_resolver__public_entrypoint_field_query_should_fail",
+        public_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn entrypoint_mutation_field_resolver_mixed() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA);
+    env.write_resolver(RESOLVER_FILE_NAME, RESOLVER_CONTENT);
+    env.set_variables(HashMap::from([
+        ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
+        ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
+    ]));
+    env.grafbase_dev();
+    let token = generate_hs512_token("cli_user", &[]);
+    let private_client = env
+        .create_async_client()
+        .with_header("Authorization", &format!("Bearer {token}"));
+    private_client.poll_endpoint(30, 300).await;
+    let public_client = env.create_async_client();
+    insta::assert_json_snapshot!(
+        "entrypoint_mutation_field_resolver_mixed__private_entrypoint_field_mutation_should_succeed",
+        private_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
+    );
+    insta::assert_json_snapshot!(
+        "entrypoint_mutation_field_resolver_mixed__public_entrypoint_field_mutation_should_fail",
+        public_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
+    );
 }
