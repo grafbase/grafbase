@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.0.24] - Fri Jun 16 2023
+
+[CHANGELOG](changelog/0.0.24.md)
+
 ## [0.0.23] - Wed Jun 14 2023
 
 [CHANGELOG](changelog/0.0.23.md)
