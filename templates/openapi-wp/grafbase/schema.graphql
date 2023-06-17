@@ -1,0 +1,5 @@
+extend schema
+  @openapi(
+    name: "WordpressOpenAPI"
+    schema: " {{ env.WP_OPEN_API_SCHEMA }}"
+  )
