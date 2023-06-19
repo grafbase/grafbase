@@ -88,7 +88,7 @@ export class OpenAPI {
 
   public toString(): string {
     const header = '  @openapi(\n'
-    const namespace = this.namespace ? `    namespace: "${this.namespace}"\n` : ''
+    const namespace = this.namespace ? `    name: "${this.namespace}"\n` : ''
     const url = this.apiUrl ? `    url: "${this.apiUrl}"\n` : ''
     const schema = `    schema: "${this.schema}"\n`
 
@@ -103,7 +103,7 @@ export class OpenAPI {
       .map((header) => `      ${header}`)
       .join('\n')
 
-    introspectionHeaders = headers
+    introspectionHeaders = introspectionHeaders
       ? `    introspectionHeaders: [\n${introspectionHeaders}\n    ]\n`
       : ''
 
