@@ -28,9 +28,7 @@ pub enum CacheReadStatus {
     Stale { is_updating: bool },
 }
 
-#[derive(
-    Debug, Default, Eq, PartialEq, Hash, strum_macros::Display, strum_macros::EnumString, strum_macros::IntoStaticStr,
-)]
+#[derive(Debug, Default, Eq, PartialEq, Hash, strum::Display, strum::EnumString, strum::IntoStaticStr)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum CacheEntryState {
     Fresh,
