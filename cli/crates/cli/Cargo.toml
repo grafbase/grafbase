@@ -45,7 +45,7 @@ derive_builder = "0.12"
 dirs = "5"
 duct = "0.13"
 fslock = "0.2"
-insta = { version = "1.28", features = ["json", "redactions", "yaml"] }
+insta = { version = "1.29", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.7", default-features = false, features = [
   "clock",
@@ -57,9 +57,9 @@ reqwest = { version = "0.11", features = [
   "json",
   "blocking",
 ], default-features = false }
-rsa = "0.8"
+rsa = "0.9"
 serde = { version = "1", features = ["derive"] }
-sysinfo = "0.28"
+sysinfo = "0.29"
 tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 url = "2"
