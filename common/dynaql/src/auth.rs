@@ -23,6 +23,7 @@ pub enum AuthProvider {
     Oidc(OidcProvider),
     Jwks(JwksProvider),
     Jwt(JwtProvider),
+    Authorizer(AuthorizerProvider),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -51,6 +52,11 @@ pub struct JwtProvider {
 
     #[serde(serialize_with = "serialize_secret_string")]
     pub secret: SecretString,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuthorizerProvider {
+    pub name: String,
 }
 
 fn serialize_secret_string<S>(secret: &SecretString, serializer: S) -> Result<S::Ok, S::Error>

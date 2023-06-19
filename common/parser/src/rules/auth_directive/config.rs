@@ -125,62 +125,64 @@ pub fn parse_auth_config(
 }
 
 impl From<InternalAuthConfig> for dynaql::AuthConfig {
-    fn from(auth: InternalAuthConfig) -> Self {
+    fn from(internal_auth: InternalAuthConfig) -> Self {
         Self {
-            allowed_private_ops: auth.allowed_private_ops.into(),
+            allowed_private_ops: internal_auth.allowed_private_ops.into(),
 
-            allowed_public_ops: auth.allowed_public_ops.into(),
+            allowed_public_ops: internal_auth.allowed_public_ops.into(),
 
-            allowed_group_ops: auth
+            allowed_group_ops: internal_auth
                 .allowed_group_ops
                 .into_iter()
                 .map(|(group, ops)| (group, ops.into()))
                 .collect(),
 
-            allowed_owner_ops: auth.allowed_owner_ops.into(),
+            allowed_owner_ops: internal_auth.allowed_owner_ops.into(),
 
-            provider: match auth.provider {
-                Some(AuthProvider::Oidc {
+            provider: internal_auth.provider.map(|provider| match provider {
+                AuthProvider::Oidc {
                     issuer,
                     groups_claim,
                     client_id,
-                }) => {
+                } => {
                     let issuer_base_url = issuer.parse().expect("issuer format must have been validated");
-                    Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
+                    dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
                         issuer,
                         issuer_base_url,
                         groups_claim,
                         client_id,
-                    }))
+                    })
                 }
-                Some(AuthProvider::Jwks {
+                AuthProvider::Jwks {
                     issuer,
                     jwks_endpoint,
                     groups_claim,
                     client_id,
-                }) => {
+                } => {
                     let jwks_endpoint = jwks_endpoint.as_ref().expect("must have been set");
                     let jwks_endpoint = jwks_endpoint.parse::<url::Url>().expect("must be a valid URL");
-                    Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+                    dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
                         jwks_endpoint,
                         issuer,
                         groups_claim,
                         client_id,
-                    }))
+                    })
                 }
-                Some(AuthProvider::Jwt {
+                AuthProvider::Jwt {
                     issuer,
                     groups_claim,
                     client_id,
                     secret,
-                }) => Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
+                } => dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
                     issuer,
                     groups_claim,
                     client_id,
                     secret: secrecy::SecretString::new(secret),
-                })),
-                None => None,
-            },
+                }),
+                AuthProvider::Authorizer { name } => {
+                    dynaql::AuthProvider::Authorizer(dynaql::AuthorizerProvider { name })
+                }
+            }),
         }
     }
 }
