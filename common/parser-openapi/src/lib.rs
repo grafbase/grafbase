@@ -32,14 +32,14 @@ pub fn parse_spec(
 
     output::output(&graph, registry);
 
-    registry.http_headers.insert(metadata.name, metadata.headers);
+    registry.http_headers.insert(metadata.namespace, metadata.headers);
 
     Ok(())
 }
 
 #[derive(Clone, Debug)]
 pub struct ApiMetadata {
-    pub name: String,
+    pub namespace: String,
     pub url: Option<Url>,
     pub headers: Vec<(String, String)>,
     pub query_naming: QueryNamingStrategy,
@@ -48,7 +48,7 @@ pub struct ApiMetadata {
 impl From<parser::OpenApiDirective> for ApiMetadata {
     fn from(val: parser::OpenApiDirective) -> Self {
         ApiMetadata {
-            name: val.name.clone(),
+            namespace: val.namespace.clone(),
             url: val.url.clone(),
             headers: val.headers(),
             query_naming: val.transforms.query_naming,
@@ -291,7 +291,7 @@ mod tests {
 
     fn metadata(name: &str) -> ApiMetadata {
         ApiMetadata {
-            name: name.into(),
+            namespace: name.into(),
             url: Some(Url::parse("http://example.com").unwrap()),
             headers: vec![],
             query_naming: QueryNamingStrategy::SchemaName,

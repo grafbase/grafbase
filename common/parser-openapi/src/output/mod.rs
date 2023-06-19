@@ -290,7 +290,7 @@ impl Operation {
         Some(ResolverType::Http(HttpResolver {
             method: self.http_method(graph),
             url: self.url(graph),
-            api_name: graph.metadata.name.clone(),
+            api_name: graph.metadata.namespace.clone(),
             expected_status: self.expected_status(graph)?,
             path_parameters: path_parameters
                 .iter()

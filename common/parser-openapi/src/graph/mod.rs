@@ -381,14 +381,14 @@ impl OpenApiGraph {
 
                 let root_name = self.graph[named_node].name().unwrap();
                 name_components.push(root_name.as_str());
-                name_components.push(&self.metadata.name);
+                name_components.push(&self.metadata.namespace);
                 name_components.reverse();
 
                 Some(name_components.join("_").to_pascal_case())
             }
             Node::Scalar(kind) => Some(kind.type_name()),
             Node::UnionWrappedScalar(kind) => {
-                Some(format!("{}{}", self.metadata.name, kind.type_name()).to_pascal_case())
+                Some(format!("{}{}", self.metadata.namespace, kind.type_name()).to_pascal_case())
             }
             Node::Union => {
                 // First we check if this union has an immediate schema parent.
@@ -399,7 +399,7 @@ impl OpenApiGraph {
                     .find(|edge| matches!(edge.weight(), Edge::HasType { .. }))
                     .and_then(|edge| self.graph[edge.target()].name())
                 {
-                    return Some(format!("{}_{name}", self.metadata.name).to_pascal_case());
+                    return Some(format!("{}_{name}", self.metadata.namespace).to_pascal_case());
                 }
 
                 // Unions are named based on the names of their constituent types.
@@ -412,7 +412,7 @@ impl OpenApiGraph {
                     })
                     .collect::<Vec<_>>();
 
-                let prefix = self.metadata.name.to_string().to_pascal_case();
+                let prefix = self.metadata.namespace.to_string().to_pascal_case();
                 let name_components = name_components
                     .iter()
                     .map(|name| name.strip_prefix(&prefix).unwrap_or(name))
