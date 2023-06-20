@@ -14,6 +14,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    dynein-nixpkgs.url = "github:pimeys/nixpkgs/dynein-0.2.1";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs = {
@@ -28,6 +29,7 @@
     nixpkgs,
     flake-utils,
     rust-overlay,
+    dynein-nixpkgs,
     ...
   }: let
     inherit
@@ -35,12 +37,18 @@
       optional
       ;
     systems = flake-utils.lib.system;
+    
   in
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
         overlays = [(import rust-overlay)];
       };
+
+      dyneinPkgs = import dynein-nixpkgs {
+        inherit system;
+      };
+
       x86_64LinuxPkgs = import nixpkgs {
         inherit system;
         crossSystem = {
@@ -77,6 +85,9 @@
 
             # Versioning
             nodePackages.semver
+
+            # Local DynamoDB handling
+            dyneinPkgs.dynein
           ]
           ++ optional (system == systems.aarch64-darwin) [
             darwin.apple_sdk.frameworks.Security
@@ -121,3 +132,4 @@
       };
     });
 }
+
