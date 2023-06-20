@@ -7,7 +7,14 @@ use super::{directive::Directive, visitor::Visitor};
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenApiDirective {
-    pub namespace: String,
+    /// A unique identifier for the given directive.
+    ///
+    /// This ID *MUST NOT* be persisted (and defaults to `None` when deserializing), as the ID is
+    /// re-generated whenever the schema is parsed.
+    #[serde(skip)]
+    pub id: Option<u16>,
+    #[serde(alias = "name")]
+    pub namespace: Option<String>,
     pub url: Option<Url>,
     #[serde(rename = "schema")]
     pub schema_url: String,
@@ -63,7 +70,7 @@ impl Directive for OpenApiDirective {
         r#"
         directive @openapi(
           "The namespace of this OpenAPI source"
-          namespace: String!
+          namespace: String
           "The URL of the API"
           url: Url!,
           "The URL of this APIs schema"
@@ -146,7 +153,12 @@ mod tests {
         insta::assert_debug_snapshot!(connector_parsers.openapi_directives.lock().unwrap(), @r###"
         [
             OpenApiDirective {
-                namespace: "stripe",
+                id: Some(
+                    0,
+                ),
+                namespace: Some(
+                    "stripe",
+                ),
                 url: Some(
                     Url {
                         scheme: "https",

@@ -1,6 +1,5 @@
 ---
 source: common/parser-openapi/src/lib.rs
-assertion_line: 206
 expression: registry
 ---
 Registry {
@@ -2156,7 +2155,7 @@ Registry {
     },
     schemas: {},
     http_headers: {
-        "petstore": [],
+        "OpenAPIConnector1": [],
     },
     search_config: Config {
         indices: {},

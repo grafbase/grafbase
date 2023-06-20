@@ -124,7 +124,7 @@ pub async fn parse_schema(
 
     let mut registry = parser.into_registry(schema);
     registry.http_headers.insert(
-        format!("Connector{id}"),
+        format!("GraphQLConnector{id}"),
         headers.map(|(k, v)| (k.to_string(), v.to_string())).collect(),
     );
 
@@ -562,7 +562,7 @@ mod tests {
         assert_eq!(
             result.http_headers,
             BTreeMap::from([(
-                "Connector1".to_owned(),
+                String::from("GraphQLConnector1"),
                 headers
                     .iter()
                     .copied()

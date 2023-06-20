@@ -124,6 +124,7 @@ pub async fn parse<'a>(
         PossibleScalar::sdl(),
         directives.to_definition(),
     );
+
     let schema = parse_schema(schema)?;
 
     let mut ctx = VisitorContext::new_with_variables(&schema, variables);
@@ -158,13 +159,14 @@ async fn parse_connectors<'a>(
 
     // We could probably parallelise this, but the schemas and the associated
     // processing use a reasonable amount of memory so going to keep it sequential
-    for (directive, position) in std::mem::take(&mut ctx.openapi_directives) {
+    for (mut directive, position) in std::mem::take(&mut ctx.openapi_directives) {
+        directive.id = Some(ctx.connector_id_generator.new_id());
         let directive_name = directive.namespace.clone();
         match connector_parsers.fetch_and_parse_openapi(directive).await {
             Ok(registry) => {
                 connector_parsers::merge_registry(ctx, registry, position);
             }
-            Err(errors) => return Err(Error::ConnectorErrors(Some(directive_name), errors, position)),
+            Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),
         }
     }
 
