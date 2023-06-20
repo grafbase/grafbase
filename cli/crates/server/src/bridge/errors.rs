@@ -21,11 +21,11 @@ pub enum ApiError {
     SqlError(#[from] SqlxError),
     #[error("server error")]
     ServerError,
-    #[error("resolver {0} is invalid")]
-    ResolverInvalid(String),
+    #[error("user-defined function invocation error")]
+    UdfInvocation,
     /// returned if the miniflare command returns an error
-    #[error("resolver could not be spawned")]
-    ResolverSpawnError,
+    #[error("user-defined function could not be spawned")]
+    UdfSpawnError,
 }
 
 #[derive(Serialize, Debug)]
@@ -52,10 +52,9 @@ impl IntoResponse for ApiError {
         match self {
             ApiError::User(user_error) => (StatusCode::CONFLICT, Json(user_error)).into_response(),
 
-            ApiError::SqlError(_)
-            | ApiError::ServerError
-            | ApiError::ResolverInvalid(_)
-            | ApiError::ResolverSpawnError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            ApiError::SqlError(_) | ApiError::ServerError | ApiError::UdfInvocation | ApiError::UdfSpawnError => {
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
         }
     }
 }

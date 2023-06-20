@@ -10,7 +10,7 @@ pub enum LocalAddressType {
 
 #[derive(Clone, Copy, Debug, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ResolverMessageLevel {
+pub enum UdfMessageLevel {
     Debug,
     Error,
     Info,
@@ -24,5 +24,17 @@ impl LocalAddressType {
             Self::Localhost => Ipv4Addr::LOCALHOST,
             Self::Unspecified => Ipv4Addr::UNSPECIFIED,
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, serde::Deserialize, strum::Display)]
+pub enum UdfKind {
+    Resolver,
+}
+
+// FIXME: remove after api repo is updated
+impl Default for UdfKind {
+    fn default() -> Self {
+        Self::Resolver
     }
 }

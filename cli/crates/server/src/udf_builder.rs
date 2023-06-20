@@ -2,12 +2,13 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use common::environment::{Environment, Project};
+use common::types::UdfKind;
 use futures_util::pin_mut;
 use itertools::Itertools;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
-use crate::errors::{JavascriptPackageManagerComamndError, ResolverBuildError, ServerError};
+use crate::errors::{JavascriptPackageManagerComamndError, ServerError, UdfBuildError};
 
 async fn run_command<P: AsRef<Path>>(
     command_type: JavaScriptPackageManager,
@@ -104,8 +105,8 @@ async fn guess_package_manager_from_package_root(path: impl AsRef<Path>) -> Opti
     .next()
 }
 
-async fn extract_resolver_wrapper_worker_contents() -> Result<String, ResolverBuildError> {
-    trace!("extracting resolver wrapper worker contents");
+async fn extract_udf_wrapper_worker_contents(udf_kind: UdfKind) -> Result<String, UdfBuildError> {
+    trace!("extracting {udf_kind} wrapper worker contents");
     let environment = Environment::get();
     tokio::fs::read_to_string(
         environment
@@ -113,49 +114,54 @@ async fn extract_resolver_wrapper_worker_contents() -> Result<String, ResolverBu
             .join(crate::consts::WRAPPER_WORKER_JS_PATH),
     )
     .await
-    .map_err(ResolverBuildError::ExtractResolverWrapperWorkerContents)
+    .map_err(|err| UdfBuildError::ExtractUdfWrapperWorkerContents(udf_kind, err))
 }
 
 #[allow(clippy::too_many_lines)]
-pub async fn build_resolver(
+pub async fn build(
     environment: &Environment,
     project: &Project,
     environment_variables: &std::collections::HashMap<String, String>,
-    resolver_name: &str,
+    udf_kind: UdfKind,
+    udf_name: &str,
     tracing: bool,
-) -> Result<(PathBuf, PathBuf), ResolverBuildError> {
+) -> Result<(PathBuf, PathBuf), UdfBuildError> {
     use futures_util::StreamExt;
     use path_slash::PathBufExt as _;
 
     const EXTENSIONS: [&str; 2] = ["js", "ts"];
 
-    let resolver_wrapper_worker_contents = extract_resolver_wrapper_worker_contents().await?;
+    let udf_wrapper_worker_contents = extract_udf_wrapper_worker_contents(udf_kind).await?;
 
-    trace!("building resolver {resolver_name}");
+    trace!("building {udf_kind} '{udf_name}'");
 
     let package_root_path = project.grafbase_directory_path.as_path();
-    let resolver_input_file_path_without_extension = project.resolvers_source_path.join(resolver_name);
+    let udf_input_file_path_without_extension = match udf_kind {
+        UdfKind::Resolver => project.resolvers_source_path.join(udf_name),
+    };
 
-    let resolver_build_artifact_directory_path = project.resolvers_build_artifact_path.join(resolver_name);
+    let udf_build_artifact_directory_path = match udf_kind {
+        UdfKind::Resolver => project.resolvers_build_artifact_path.join(udf_name),
+    };
 
-    let mut resolver_input_file_path = None;
+    let mut udf_input_file_path = None;
     for extension in EXTENSIONS {
-        let possible_resolver_input_file_path = resolver_input_file_path_without_extension.with_extension(extension);
-        if tokio::fs::try_exists(&possible_resolver_input_file_path)
+        let possible_udf_input_file_path = udf_input_file_path_without_extension.with_extension(extension);
+        if tokio::fs::try_exists(&possible_udf_input_file_path)
             .await
             .expect("must succeed")
         {
-            resolver_input_file_path = Some(possible_resolver_input_file_path);
+            udf_input_file_path = Some(possible_udf_input_file_path);
         }
     }
-    let resolver_input_file_path = resolver_input_file_path
-        .ok_or_else(|| ResolverBuildError::ResolverDoesNotExist(resolver_input_file_path_without_extension.clone()))?;
+    let udf_input_file_path = udf_input_file_path
+        .ok_or_else(|| UdfBuildError::UdfDoesNotExist(udf_kind, udf_input_file_path_without_extension.clone()))?;
 
     trace!("locating package.json…");
 
     let package_json_path = {
         let paths = futures_util::stream::iter(
-            resolver_input_file_path
+            udf_input_file_path
                 .ancestors()
                 .skip(1)
                 .take_while(|path| path.starts_with(&project.path))
@@ -187,27 +193,27 @@ pub async fn build_resolver(
     .await
     .unwrap_or(JavaScriptPackageManager::Npm);
 
-    tokio::fs::create_dir_all(&resolver_build_artifact_directory_path)
+    tokio::fs::create_dir_all(&udf_build_artifact_directory_path)
         .await
-        .map_err(|_err| ResolverBuildError::CreateDir(resolver_build_artifact_directory_path.clone()))?;
-    let resolver_build_entrypoint_path = resolver_build_artifact_directory_path.join("entrypoint.js");
+        .map_err(|_err| UdfBuildError::CreateDir(udf_build_artifact_directory_path.clone(), udf_kind))?;
+    let udf_build_entrypoint_path = udf_build_artifact_directory_path.join("entrypoint.js");
 
-    let resolver_build_package_json_path = resolver_build_artifact_directory_path.join("package.json");
+    let udf_build_package_json_path = udf_build_artifact_directory_path.join("package.json");
 
-    let artifact_directory_modules_path = resolver_build_artifact_directory_path.join("node_modules");
+    let artifact_directory_modules_path = udf_build_artifact_directory_path.join("node_modules");
     let artifact_directory_modules_path_string = artifact_directory_modules_path
         .to_str()
         .expect("must be valid if `artifact_directory_path_string` is valid");
 
     if let Some(package_json_file_path) = package_json_path.as_deref() {
         trace!("copying package.json from {}", package_json_file_path.display());
-        tokio::fs::copy(package_json_file_path, &resolver_build_package_json_path)
+        tokio::fs::copy(package_json_file_path, &udf_build_package_json_path)
             .await
-            .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(package_json_file_path.to_owned(), err))?;
+            .map_err(|err| UdfBuildError::CreateUdfArtifactFile(package_json_file_path.to_owned(), udf_kind, err))?;
 
-        let artifact_directory_path_string = resolver_build_artifact_directory_path.to_str().ok_or_else(|| {
-            ResolverBuildError::PathError(resolver_build_artifact_directory_path.to_string_lossy().to_string())
-        })?;
+        let artifact_directory_path_string = udf_build_artifact_directory_path
+            .to_str()
+            .ok_or_else(|| UdfBuildError::PathError(udf_build_artifact_directory_path.to_string_lossy().to_string()))?;
 
         let arguments = match package_manager {
             JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "install"],
@@ -219,7 +225,7 @@ pub async fn build_resolver(
         run_command(
             package_manager,
             &arguments,
-            &resolver_build_artifact_directory_path,
+            &udf_build_artifact_directory_path,
             tracing,
             &[],
         )
@@ -227,36 +233,43 @@ pub async fn build_resolver(
     }
 
     // FIXME: This is probably rather fragile. Need to re-check why the wrangler build isn't propagating search paths properly.
-    let resolver_js_file_path = resolver_build_artifact_directory_path
-        .join("resolver")
-        .with_extension(resolver_input_file_path.extension().unwrap());
+    let udf_js_file_path = match udf_kind {
+        UdfKind::Resolver => udf_build_artifact_directory_path
+            .join("resolver")
+            .with_extension(udf_input_file_path.extension().unwrap()),
+    };
 
-    trace!("Copying the main file of the resolver");
+    trace!("Copying the main file of the {udf_kind}");
 
-    tokio::fs::copy(&resolver_input_file_path, &resolver_js_file_path)
+    tokio::fs::copy(&udf_input_file_path, &udf_js_file_path)
         .await
-        .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(resolver_input_file_path, err))?;
+        .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_input_file_path, udf_kind, err))?;
 
-    let entrypoint_contents = resolver_wrapper_worker_contents.replace(
-        "${RESOLVER_MAIN_FILE_PATH}",
-        resolver_js_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
+    let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
+        "${UDF_MAIN_FILE_PATH}",
+        udf_js_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
     );
-    tokio::fs::write(&resolver_build_entrypoint_path, entrypoint_contents)
+    // TODO: remove after wrapper-worker.js in api repo is updated.
+    let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
+        "${RESOLVER_MAIN_FILE_PATH}",
+        udf_js_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
+    );
+    tokio::fs::write(&udf_build_entrypoint_path, udf_wrapper_worker_contents)
         .await
-        .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(resolver_build_entrypoint_path.clone(), err))?;
+        .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_entrypoint_path.clone(), udf_kind, err))?;
 
-    let wrangler_output_directory_path = resolver_build_artifact_directory_path.join("wrangler");
+    let wrangler_output_directory_path = udf_build_artifact_directory_path.join("wrangler");
     let outdir_argument = format!(
         "--outdir={}",
         wrangler_output_directory_path.to_str().expect("must be valid utf-8"),
     );
 
-    trace!("writing the package.json file for '{resolver_name}' used by wrangler");
+    trace!("writing the package.json file for '{udf_name}' used by wrangler");
 
     let mut package_json = if package_json_path.is_some() {
-        let package_json_contents = tokio::fs::read(&resolver_build_package_json_path)
+        let package_json_contents = tokio::fs::read(&udf_build_package_json_path)
             .await
-            .map_err(|err| ResolverBuildError::ReadFile(resolver_build_package_json_path.clone(), err))?;
+            .map_err(|err| UdfBuildError::ReadFile(udf_build_package_json_path.clone(), err))?;
         serde_json::from_slice(&package_json_contents).expect("must be valid JSON")
     } else {
         serde_json::json!({})
@@ -273,15 +286,15 @@ pub async fn build_resolver(
     let new_package_json_contents = serde_json::to_string_pretty(&package_json).expect("must be valid JSON");
     trace!("new package.json contents:\n{new_package_json_contents}");
 
-    tokio::fs::write(&resolver_build_package_json_path, new_package_json_contents)
+    tokio::fs::write(&udf_build_package_json_path, new_package_json_contents)
         .await
-        .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(resolver_build_package_json_path.clone(), err))?;
+        .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
 
-    let wrangler_toml_file_path = resolver_build_artifact_directory_path.join("wrangler.toml");
+    let wrangler_toml_file_path = udf_build_artifact_directory_path.join("wrangler.toml");
 
     let _: Result<_, _> = tokio::fs::remove_file(&wrangler_toml_file_path).await;
 
-    // Not great. We use wrangler to produce the JS file that is then used as the input for the resolver-specific worker.
+    // Not great. We use wrangler to produce the JS file that is then used as the input for the udf-specific worker.
     // FIXME: Swap out for the internal logic that wrangler effectively uses under the hood.
     {
         let wrangler_arguments = &[
@@ -295,7 +308,7 @@ pub async fn build_resolver(
             "2023-05-14",
             "--name",
             "STUB",
-            resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
+            udf_build_entrypoint_path.to_str().expect("must be valid utf-8"),
         ];
         let wrangler_environment = &[
             ("CLOUDFLARE_API_TOKEN", "STUB"),
@@ -314,7 +327,7 @@ pub async fn build_resolver(
         .await
         .map_err(|err| match err {
             JavascriptPackageManagerComamndError::OutputError(_, output) => {
-                ResolverBuildError::ResolverBuild(resolver_name.to_owned(), output)
+                UdfBuildError::UdfBuild(udf_kind, udf_name.to_owned(), output)
             }
             other => other.into(),
         })?;
@@ -327,14 +340,14 @@ pub async fn build_resolver(
 
     let (temp_file, temp_file_path) = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
         .await?
-        .map_err(ResolverBuildError::CreateTemporaryFile)?
+        .map_err(UdfBuildError::CreateTemporaryFile)?
         .into_parts();
     {
         let mut temp_file: tokio::fs::File = temp_file.into();
         temp_file
             .write_all(process_env_prelude.as_bytes())
             .await
-            .map_err(|err| ResolverBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
+            .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
         temp_file
             .write_all(
                 &tokio::fs::read(wrangler_output_directory_path.join("entrypoint.js"))
@@ -342,19 +355,19 @@ pub async fn build_resolver(
                     .expect("must succeed"),
             )
             .await
-            .map_err(|err| ResolverBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
+            .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
     let entrypoint_js_path = wrangler_output_directory_path.join("entrypoint.js");
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
-        .map_err(|err| ResolverBuildError::CreateResolverArtifactFile(entrypoint_js_path.clone(), err))?;
+        .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
 
-    let slugified_resolver_name = slug::slugify(resolver_name);
+    let slugified_udf_name = slug::slugify(udf_name);
     tokio::fs::write(
         &wrangler_toml_file_path,
         format!(
             r#"
-                name = "{slugified_resolver_name}"
+                name = "{slugified_udf_name}"
                 [build.upload]
                 format = "modules"
                 [miniflare]
@@ -363,12 +376,12 @@ pub async fn build_resolver(
         ),
     )
     .await
-    .map_err(ResolverBuildError::CreateTemporaryFile)?;
+    .map_err(UdfBuildError::CreateTemporaryFile)?;
 
-    Ok((resolver_build_package_json_path, wrangler_toml_file_path))
+    Ok((udf_build_package_json_path, wrangler_toml_file_path))
 }
 
-pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
+async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
     let lock_file_path = environment.user_dot_grafbase_path.join(".wrangler.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
         let mut file = fslock::LockFile::open(&lock_file_path)?;

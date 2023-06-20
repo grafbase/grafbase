@@ -1,46 +1,37 @@
-use std::{collections::HashMap, process::Stdio};
+use std::process::Stdio;
 
 use crate::types::ServerMessage;
 
-use common::{environment::Environment, types::ResolverMessageLevel};
+use common::types::UdfKind;
+use common::{environment::Environment, types::UdfMessageLevel};
 use futures_util::{pin_mut, TryStreamExt};
 use tokio::process::Command;
 
 use super::errors::ApiError;
 
-#[derive(serde::Serialize)]
-struct ResolverContext<'a> {
-    env: &'a HashMap<String, String>,
-}
-
-#[derive(serde::Serialize)]
-struct ResolverArgs<'a> {
-    context: ResolverContext<'a>,
-}
-
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ResolverMessage {
+struct UdfMessage {
     message: String,
-    level: ResolverMessageLevel,
+    level: UdfMessageLevel,
 }
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ResolverResponse {
-    log_entries: Vec<ResolverMessage>,
+struct UdfResponse {
+    log_entries: Vec<UdfMessage>,
     #[serde(flatten)]
     rest: serde_json::Value,
 }
 
-async fn wait_until_resolver_ready(resolver_worker_port: u16, resolver_name: &str) -> Result<bool, reqwest::Error> {
+async fn wait_until_udf_ready(worker_port: u16, udf_kind: UdfKind, udf_name: &str) -> Result<bool, reqwest::Error> {
     const RESOLVER_WORKER_MINIFLARE_READY_RETRY_COUNT: usize = 50;
     const RESOLVER_WORKER_MINIFLARE_READY_RETRY_INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 
     for _ in 0..RESOLVER_WORKER_MINIFLARE_READY_RETRY_COUNT {
-        trace!("readiness check of resolver '{resolver_name}' under port {resolver_worker_port}");
-        if is_resolver_ready(resolver_worker_port).await? {
-            trace!("resolver '{resolver_name}' ready under port {resolver_worker_port}");
+        trace!("readiness check of {udf_kind} '{udf_name}' under port {worker_port}");
+        if is_udf_ready(worker_port).await? {
+            trace!("{udf_kind} '{udf_name}' ready under port {worker_port}");
             return Ok(true);
         }
         tokio::time::sleep(RESOLVER_WORKER_MINIFLARE_READY_RETRY_INTERVAL).await;
@@ -48,7 +39,7 @@ async fn wait_until_resolver_ready(resolver_worker_port: u16, resolver_name: &st
     Ok(false)
 }
 
-async fn is_resolver_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error> {
+async fn is_udf_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error> {
     match reqwest::get(format!("http://127.0.0.1:{resolver_worker_port}/health"))
         .await
         .and_then(reqwest::Response::error_for_status)
@@ -63,7 +54,8 @@ async fn is_resolver_ready(resolver_worker_port: u16) -> Result<bool, reqwest::E
 }
 
 pub async fn spawn_miniflare(
-    resolver_name: &str,
+    udf_kind: UdfKind,
+    udf_name: &str,
     package_json_path: std::path::PathBuf,
     wrangler_toml_path: std::path::PathBuf,
     _tracing: bool,
@@ -79,7 +71,6 @@ pub async fn spawn_miniflare(
         .canonicalize()
         .unwrap();
 
-    let resolver_name_cloned = resolver_name.to_owned();
     let (join_handle, resolver_worker_port) = {
         let miniflare_arguments = &[
             // used by miniflare when running normally as well
@@ -109,7 +100,7 @@ pub async fn spawn_miniflare(
             .stderr(Stdio::piped())
             .current_dir(wrangler_toml_path.parent().unwrap())
             .kill_on_drop(true);
-        trace!("Spawning resolver '{resolver_name_cloned}': {miniflare_command}");
+        trace!("Spawning {udf_kind} '{udf_name}': {miniflare_command}");
 
         let mut miniflare = miniflare.spawn().unwrap();
         let bound_port = {
@@ -134,11 +125,12 @@ pub async fn spawn_miniflare(
                 .expect("must be present")
         };
         trace!("Bound to port: {bound_port}");
+        let udf_name = udf_name.to_owned();
         let join_handle = tokio::spawn(async move {
             let outcome = miniflare.wait_with_output().await.unwrap();
             assert!(
                 outcome.status.success(),
-                "resolver worker failed: '{}'",
+                "udf worker {udf_kind} '{udf_name}' failed: '{}'",
                 String::from_utf8_lossy(&outcome.stderr).into_owned()
             );
         });
@@ -146,45 +138,47 @@ pub async fn spawn_miniflare(
         (join_handle, bound_port)
     };
 
-    if wait_until_resolver_ready(resolver_worker_port, resolver_name)
+    if wait_until_udf_ready(resolver_worker_port, udf_kind, udf_name)
         .await
-        .map_err(|_| ApiError::ResolverSpawnError)?
+        .map_err(|_| ApiError::UdfSpawnError)?
     {
         Ok((join_handle, resolver_worker_port))
     } else {
-        Err(ApiError::ResolverSpawnError)
+        Err(ApiError::UdfSpawnError)
     }
 }
 
-pub async fn invoke_resolver(
+pub async fn invoke(
     bridge_sender: &tokio::sync::mpsc::Sender<ServerMessage>,
-    resolver_worker_port: u16,
-    resolver_name: &str,
+    udf_worker_port: u16,
+    udf_kind: UdfKind,
+    udf_name: &str,
     payload: &serde_json::Value,
 ) -> Result<serde_json::Value, ApiError> {
     use futures_util::TryFutureExt;
-    trace!("resolver invocation of '{resolver_name}'");
+    trace!("Invocation of {udf_kind} '{udf_name}'");
     let json_string = reqwest::Client::new()
-        .post(format!("http://127.0.0.1:{resolver_worker_port}/invoke"))
+        .post(format!("http://127.0.0.1:{udf_worker_port}/invoke"))
         .json(&payload)
         .send()
-        .inspect_err(|err| error!("resolver worker error: {err:?}"))
+        .inspect_err(|err| error!("{udf_kind} '{udf_name}' worker error: {err:?}"))
         .await
-        .map_err(|_| ApiError::ServerError)?
+        .map_err(|_| ApiError::UdfInvocation)?
         .text()
-        .inspect_err(|err| error!("resolver worker error: {err:?}"))
+        .inspect_err(|err| error!("{udf_kind} '{udf_name}' worker error: {err:?}"))
         .await
-        .map_err(|_| ApiError::ServerError)?;
+        .map_err(|_| ApiError::UdfInvocation)?;
 
-    let ResolverResponse { log_entries, rest } = serde_json::from_str(&json_string).map_err(|err| {
-        error!("deserialisation from '{json_string}' failed: {err:?}");
-        ApiError::ServerError
+    let UdfResponse { log_entries, rest } = serde_json::from_str(&json_string).map_err(|err| {
+        error!("deserialization from '{json_string}' failed: {err:?}");
+        ApiError::UdfInvocation
     })?;
 
-    for ResolverMessage { level, message } in log_entries {
+    for UdfMessage { level, message } in log_entries {
         bridge_sender
-            .send(ServerMessage::ResolverMessage {
-                resolver_name: resolver_name.to_owned(),
+            .send(ServerMessage::UdfMessage {
+                udf_kind,
+                udf_name: udf_name.to_owned(),
                 level,
                 message,
             })

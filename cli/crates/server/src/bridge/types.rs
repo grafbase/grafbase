@@ -1,3 +1,4 @@
+use common::types::UdfKind;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::vec::IntoIter;
@@ -68,7 +69,10 @@ pub struct RecordDocument {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct ResolverInvocation {
-    pub resolver_name: String,
+pub struct UdfInvocation {
+    #[serde(alias = "resolver_name")] // FIXME: remove after api repo is updated
+    pub name: String,
     pub payload: serde_json::Value,
+    #[serde(default)] // FIXME: remove after api repo is updated
+    pub udf_kind: UdfKind,
 }

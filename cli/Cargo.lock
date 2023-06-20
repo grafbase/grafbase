@@ -1749,6 +1749,7 @@ dependencies = [
  "rudderanalytics",
  "serde",
  "serde_json",
+ "strum",
  "thiserror",
  "ulid",
 ]
