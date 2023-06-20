@@ -22,7 +22,14 @@ fn init_ts_existing_package_json() {
         }),
     );
 
-    env.grafbase_init_output(ConfigType::TypeScript);
+    let output = env.grafbase_init_output(ConfigType::TypeScript);
+    println!("stdout: `{}`", String::from_utf8_lossy(&output.stdout));
+    assert!(
+        output.stderr.is_empty(),
+        "stderr should be empty, got: `{}`",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.status.success());
 
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
@@ -49,8 +56,14 @@ fn init_ts_existing_package_json() {
 #[cfg_attr(target_os = "windows", ignore)]
 fn init_ts_new_project() {
     let env = Environment::init();
-
-    env.grafbase_init_output(ConfigType::TypeScript);
+    let output = env.grafbase_init_output(ConfigType::TypeScript);
+    println!("stdout: `{}`", String::from_utf8_lossy(&output.stdout));
+    assert!(
+        output.stderr.is_empty(),
+        "stderr should be empty, got: `{}`",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.status.success());
 
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
