@@ -5,7 +5,8 @@
   "scripts": {
     "cli-app:dev": "vite",
     "cli-app:build": "tsc && vite build",
-    "cli-app:preview": "vite preview"
+    "cli-app:preview": "vite preview",
+    "types": "tsc --noEmit"
   },
   "dependencies": {
     "react": "^18.2.0",
