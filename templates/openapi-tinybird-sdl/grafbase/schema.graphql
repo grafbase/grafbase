@@ -6,4 +6,5 @@ extend schema
     headers: [
       { name: "Authorization", value: "Bearer {{ env.TINYBIRD_API_TOKEN }}" }
     ]
+    transforms: { queryNaming: OPERATION_ID }
   )
