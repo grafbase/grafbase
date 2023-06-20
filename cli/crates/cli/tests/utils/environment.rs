@@ -7,11 +7,12 @@ use backend::project::ConfigType;
 use cfg_if::cfg_if;
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use duct::{cmd, Handle};
-use std::io;
+use std::env::VarError;
 use std::path::Path;
 use std::process::Output;
 use std::sync::Arc;
 use std::{env, fs, io::Write, path::PathBuf};
+use std::{io, mem};
 use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
@@ -19,7 +20,7 @@ pub struct Environment {
     pub playground_endpoint: String,
     pub directory: PathBuf,
     pub port: u16,
-    temp_dir: Arc<TempDir>,
+    temp_dir: Option<Arc<TempDir>>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
     home: Option<PathBuf>,
@@ -84,7 +85,7 @@ impl Environment {
     }
 
     fn init_internal(port: u16, #[cfg(feature = "dynamodb")] dynamodb_env: dynamodb::DynamoDbEnvironment) -> Self {
-        let temp_dir = Arc::new(tempdir().unwrap());
+        let temp_dir = tempdir().unwrap();
         env::set_current_dir(temp_dir.path()).unwrap();
 
         let schema_path = temp_dir
@@ -96,6 +97,15 @@ impl Environment {
         let commands = vec![];
         let endpoint = format!("http://127.0.0.1:{port}/graphql");
         let playground_endpoint = format!("http://127.0.0.1:{port}");
+        let keep_temp_dir = std::env::var("KEEP_TEMP_DIR")
+            .and_then(|val| val.parse().map_err(|_| VarError::NotPresent))
+            .unwrap_or_default();
+        let temp_dir = if keep_temp_dir {
+            mem::forget(temp_dir);
+            None
+        } else {
+            Some(Arc::new(temp_dir))
+        };
         Self {
             endpoint,
             playground_endpoint,
@@ -189,32 +199,47 @@ impl Environment {
     #[track_caller]
     pub fn write_json_file_to_project(&self, path: impl AsRef<Path>, contents: &serde_json::Value) {
         let contents = serde_json::to_string_pretty(contents).unwrap();
-        let target_path = self.temp_dir.path().join(path.as_ref());
+        let target_path = self.directory.join(path.as_ref());
         fs::create_dir_all(target_path.parent().unwrap()).unwrap();
         fs::write(target_path, contents).unwrap();
     }
 
     #[track_caller]
     pub fn load_file_from_project(&self, path: impl AsRef<Path>) -> String {
-        fs::read_to_string(self.temp_dir.path().join(path.as_ref())).unwrap()
+        fs::read_to_string(self.directory.join(path.as_ref())).unwrap()
     }
 
     #[track_caller]
     pub fn grafbase_init(&self, config_format: ConfigType) {
-        cmd!(cargo_bin("grafbase"), "init", "-c", config_format.as_ref())
-            .dir(&self.directory)
-            .run()
-            .unwrap();
+        cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "init",
+            "-c",
+            config_format.as_ref()
+        )
+        .dir(&self.directory)
+        .run()
+        .unwrap();
     }
 
     #[track_caller]
     pub fn grafbase_init_output(&self, config_format: ConfigType) -> Output {
-        cmd!(cargo_bin("grafbase"), "init", "-c", config_format.as_ref())
-            .dir(&self.directory)
-            .stderr_capture()
-            .unchecked()
-            .run()
-            .unwrap()
+        cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "init",
+            "-c",
+            config_format.as_ref()
+        )
+        .dir(&self.directory)
+        .stdout_capture()
+        .stderr_capture()
+        .unchecked()
+        .run()
+        .unwrap()
     }
 
     pub fn grafbase_init_template_output(&self, name: Option<&str>, template: &str) -> Output {

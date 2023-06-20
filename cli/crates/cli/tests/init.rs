@@ -14,7 +14,7 @@ fn init() {
     assert!(env.directory.join("grafbase").join("schema.graphql").exists());
 
     let output = env.grafbase_init_output(ConfigType::GraphQL);
-
+    assert!(!output.status.success());
     assert!(!output.stderr.is_empty());
     assert!(std::str::from_utf8(&output.stderr).unwrap().contains("already exists"));
 
