@@ -2,7 +2,7 @@ use super::api_counterfeit::registry::Registry;
 use super::api_counterfeit::search::{QueryExecutionRequest, QueryExecutionResponse};
 use super::consts::{DATABASE_FILE, DATABASE_URL_PREFIX, PREPARE};
 use super::search::Index;
-use super::types::{Mutation, Operation, Record, ResolverInvocation};
+use super::types::{Mutation, Operation, Record, UdfInvocation};
 use crate::bridge::api_counterfeit::registry::VersionedRegistry;
 use crate::bridge::errors::ApiError;
 use crate::bridge::listener;
@@ -28,7 +28,7 @@ use std::sync::Arc;
 
 use tower_http::trace::TraceLayer;
 
-enum ResolverBuild {
+enum UdfBuild {
     InProgress {
         notify: Arc<Notify>,
     },
@@ -43,7 +43,7 @@ enum ResolverBuild {
 struct HandlerState {
     pool: SqlitePool,
     bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
-    resolver_builds: Mutex<std::collections::HashMap<String, ResolverBuild>>,
+    udf_builds: Mutex<std::collections::HashMap<String, UdfBuild>>,
     environment_variables: HashMap<String, String>,
     tracing: bool,
 }
@@ -138,30 +138,32 @@ async fn search_endpoint(
 }
 
 #[allow(clippy::too_many_lines)]
-async fn invoke_resolver_endpoint(
+async fn invoke_udf_endpoint(
     State(handler_state): State<Arc<HandlerState>>,
-    Json(payload): Json<ResolverInvocation>,
+    Json(payload): Json<UdfInvocation>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
-    trace!("resolver invocation\n\n{:#?}\n", payload);
+    trace!("UDF invocation\n\n{:#?}\n", payload);
 
     let environment = Environment::get();
+    let udf_kind = payload.udf_kind;
 
-    let resolver_worker_port = loop {
+    let udf_worker_port = loop {
         let notify = {
-            let mut resolver_builds = handler_state.resolver_builds.lock().await;
+            let mut udf_builds: tokio::sync::MutexGuard<'_, HashMap<String, UdfBuild>> =
+                handler_state.udf_builds.lock().await;
 
-            if let Some(resolver_build) = resolver_builds.get(&payload.resolver_name) {
-                match resolver_build {
-                    ResolverBuild::Succeeded { worker_port, .. } => break *worker_port,
-                    ResolverBuild::Failed => return Err(ApiError::ResolverSpawnError),
-                    ResolverBuild::InProgress { notify } => {
+            if let Some(udf_build) = udf_builds.get(&payload.name) {
+                match udf_build {
+                    UdfBuild::Succeeded { worker_port, .. } => break *worker_port,
+                    UdfBuild::Failed => return Err(ApiError::UdfSpawnError),
+                    UdfBuild::InProgress { notify } => {
                         // If the resolver build happening within another invocation has been cancelled
                         // due to the invocation having been interrupted by the HTTP client, start a new build.
                         if Arc::strong_count(notify) == 1 {
                             notify.clone()
                         } else {
                             let notify = notify.clone();
-                            drop(resolver_builds);
+                            drop(udf_builds);
                             notify.notified().await;
                             continue;
                         }
@@ -169,10 +171,7 @@ async fn invoke_resolver_endpoint(
                 }
             } else {
                 let notify = Arc::new(Notify::new());
-                resolver_builds.insert(
-                    payload.resolver_name.clone(),
-                    ResolverBuild::InProgress { notify: notify.clone() },
-                );
+                udf_builds.insert(payload.name.clone(), UdfBuild::InProgress { notify: notify.clone() });
                 notify
             }
         };
@@ -180,31 +179,31 @@ async fn invoke_resolver_endpoint(
         let start = std::time::Instant::now();
         handler_state
             .bridge_sender
-            .send(ServerMessage::StartResolverBuild(payload.resolver_name.clone()))
+            .send(ServerMessage::StartUdfBuild {
+                udf_kind,
+                udf_name: payload.name.clone(),
+            })
             .await
             .unwrap();
 
         let tracing = handler_state.tracing;
-        if let Ok((package_json_path, wrangler_toml_path)) = crate::custom_resolvers::build_resolver(
+        if let Ok((package_json_path, wrangler_toml_path)) = crate::udf_builder::build(
             environment,
             environment.project.as_ref().expect("must be present"),
             &handler_state.environment_variables,
-            &payload.resolver_name,
+            udf_kind,
+            &payload.name,
             tracing,
         )
         .await
         {
-            let (miniflare_handle, worker_port) = super::resolvers::spawn_miniflare(
-                &payload.resolver_name,
-                package_json_path,
-                wrangler_toml_path,
-                tracing,
-            )
-            .await?;
+            let (miniflare_handle, worker_port) =
+                super::udf::spawn_miniflare(udf_kind, &payload.name, package_json_path, wrangler_toml_path, tracing)
+                    .await?;
 
-            handler_state.resolver_builds.lock().await.insert(
-                payload.resolver_name.clone(),
-                ResolverBuild::Succeeded {
+            handler_state.udf_builds.lock().await.insert(
+                payload.name.clone(),
+                UdfBuild::Succeeded {
                     miniflare_handle,
                     worker_port,
                 },
@@ -213,8 +212,9 @@ async fn invoke_resolver_endpoint(
 
             handler_state
                 .bridge_sender
-                .send(ServerMessage::CompleteResolverBuild {
-                    name: payload.resolver_name.clone(),
+                .send(ServerMessage::CompleteUdfBuild {
+                    udf_kind,
+                    udf_name: payload.name.clone(),
                     duration: start.elapsed(),
                 })
                 .await
@@ -224,22 +224,22 @@ async fn invoke_resolver_endpoint(
         }
 
         handler_state
-            .resolver_builds
+            .udf_builds
             .lock()
             .await
-            .insert(payload.resolver_name.clone(), ResolverBuild::Failed);
+            .insert(payload.name.clone(), UdfBuild::Failed);
         notify.notify_waiters();
-        return Err(ApiError::ResolverSpawnError);
+        return Err(ApiError::UdfSpawnError);
     };
 
-    super::resolvers::invoke_resolver(
+    super::udf::invoke(
         &handler_state.bridge_sender,
-        resolver_worker_port,
-        &payload.resolver_name,
+        udf_worker_port,
+        udf_kind,
+        &payload.name,
         &payload.payload,
     )
     .await
-    .map_err(|_| ApiError::ResolverInvalid(payload.resolver_name.clone()))
     .map(Json)
 }
 
@@ -283,7 +283,7 @@ pub async fn start(
     let handler_state = Arc::new(HandlerState {
         pool,
         bridge_sender,
-        resolver_builds: Mutex::default(),
+        udf_builds: Mutex::default(),
         environment_variables,
         tracing,
     });
@@ -292,7 +292,8 @@ pub async fn start(
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
         .route("/search", post(search_endpoint))
-        .route("/invoke-resolver", post(invoke_resolver_endpoint))
+        .route("/invoke-resolver", post(invoke_udf_endpoint)) // FIXME: remove after API repo is switched.
+        .route("/invoke-udf", post(invoke_udf_endpoint))
         .with_state(handler_state.clone())
         .layer(TraceLayer::new_for_http());
 

@@ -1,4 +1,4 @@
-use common::types::ResolverMessageLevel;
+use common::types::{UdfKind, UdfMessageLevel};
 use std::path::PathBuf;
 
 pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
@@ -7,14 +7,19 @@ pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
 pub enum ServerMessage {
     Ready(u16),
     Reload(PathBuf),
-    StartResolverBuild(String),
-    CompleteResolverBuild {
-        name: String,
+    StartUdfBuild {
+        udf_kind: UdfKind,
+        udf_name: String,
+    },
+    CompleteUdfBuild {
+        udf_kind: UdfKind,
+        udf_name: String,
         duration: std::time::Duration,
     },
-    ResolverMessage {
-        resolver_name: String,
-        level: ResolverMessageLevel,
+    UdfMessage {
+        udf_kind: UdfKind,
+        udf_name: String,
+        level: UdfMessageLevel,
         message: String,
     },
     CompilationError(String),

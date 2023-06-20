@@ -2,6 +2,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::Json;
+use common::types::UdfKind;
 use hyper::Error as HyperError;
 use notify::Error as NotifyError;
 use serde_json::json;
@@ -11,7 +12,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 use tokio::task::JoinError;
 
-use crate::custom_resolvers::JavaScriptPackageManager;
+use crate::udf_builder::JavaScriptPackageManager;
 
 #[derive(Error, Debug)]
 pub enum JavascriptPackageManagerComamndError {
@@ -169,7 +170,7 @@ pub enum ServerError {
 }
 
 #[derive(Debug, Error)]
-pub enum ResolverBuildError {
+pub enum UdfBuildError {
     /// returned if `tempfile::NamedTempFile::new()` fails.
     #[error("could not create a temporary file for the parser result: {0}")]
     CreateTemporaryFile(IoError),
@@ -178,36 +179,36 @@ pub enum ResolverBuildError {
     #[error("path is invalid: {0}")]
     PathError(String),
 
-    /// returned if a write to a resolver artifact file fails
-    #[error("could not create a file {0} during a resolver build: {1}")]
-    CreateResolverArtifactFile(PathBuf, IoError),
+    /// returned if a write to a UDF artifact file fails
+    #[error("could not create a file {0} during a {1} build: {2}")]
+    CreateUdfArtifactFile(PathBuf, UdfKind, IoError),
 
     /// returned if the directory cannot be created
-    #[error("could not create path '{0}' for resolver build artifacts")]
-    CreateDir(PathBuf),
+    #[error("could not create path '{0}' for {1} build artifacts")]
+    CreateDir(PathBuf, UdfKind),
 
     /// returned if a read operation from a file fails
     #[error("could not read the file {0}: {1}")]
     ReadFile(PathBuf, IoError),
 
     /// returned if the schema parser command exits unsuccessfully
-    #[error("could not extract the resolver wrapper worker contents")]
-    ExtractResolverWrapperWorkerContents(IoError),
+    #[error("could not extract the {0} wrapper worker contents")]
+    ExtractUdfWrapperWorkerContents(UdfKind, IoError),
 
     /// returned if a write to a temporary file fails.
     #[error("could not write to a temporary file '{0}': {1}")]
     CreateNotWriteToTemporaryFile(PathBuf, IoError),
 
-    #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
-    ResolverDoesNotExist(PathBuf),
+    #[error("could not find a {0} referenced in the schema under the path {1}.{{js,ts}}")]
+    UdfDoesNotExist(UdfKind, PathBuf),
 
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
     WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
-    #[error("resolver {0} failed to build:\n{1}")]
-    ResolverBuild(String, String),
+    #[error("{0} {1} failed to build:\n{2}")]
+    UdfBuild(UdfKind, String, String),
 
     /// returned if a spawned task panics
     #[error(transparent)]

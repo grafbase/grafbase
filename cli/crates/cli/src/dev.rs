@@ -30,19 +30,24 @@ pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Resu
                     READY.call_once(|| report::start_server(resolvers_reported, port, external_port));
                 }
                 ServerMessage::Reload(path) => report::reload(path),
-                ServerMessage::StartResolverBuild(resolver_name) => {
-                    report::start_resolver_build(&resolver_name);
+                ServerMessage::StartUdfBuild { udf_kind, udf_name } => {
+                    report::start_udf_build(udf_kind, &udf_name);
                 }
-                ServerMessage::CompleteResolverBuild { name, duration } => {
+                ServerMessage::CompleteUdfBuild {
+                    udf_kind,
+                    udf_name,
+                    duration,
+                } => {
                     resolvers_reported = true;
-                    report::complete_resolver_build(&name, duration);
+                    report::complete_udf_build(udf_kind, &udf_name, duration);
                 }
-                ServerMessage::ResolverMessage {
-                    resolver_name,
+                ServerMessage::UdfMessage {
+                    udf_kind,
+                    udf_name,
                     message,
                     level,
                 } => {
-                    report::resolver_message(&resolver_name, &message, level);
+                    report::udf_message(udf_kind, &udf_name, &message, level);
                 }
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }
