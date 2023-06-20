@@ -3,15 +3,18 @@
 use crate::{
     consts::{
         DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
-        GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
+        GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_NAME, REGISTRY_FILE,
+        RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
-use std::sync::OnceLock;
+use serde_json::{Map, Value};
 use std::{
     borrow::Cow,
-    env,
+    env, fs, io,
     path::{Path, PathBuf},
+    process::Command,
+    sync::OnceLock,
 };
 
 #[derive(Debug)]
@@ -317,4 +320,51 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
         (false, true) => Some(GrafbaseSchemaPath::graphql(gql)),
         (false, false) => None,
     }
+}
+
+pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), CommonError> {
+    let package_json_path = project_dir.join(PACKAGE_JSON_NAME);
+
+    if !package_json_path.exists() {
+        run_npm_init(project_dir)?;
+    }
+
+    let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;
+
+    let Ok(Value::Object(mut package_json)) = serde_json::from_reader(&file) else {
+        return Err(CommonError::AccessPackageJson(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "the file is not a JSON object",
+        )));
+    };
+
+    match package_json
+        .entry(PACKAGE_JSON_DEV_DEPENDENCIES)
+        .or_insert_with(|| Value::Object(Map::new()))
+    {
+        Value::Object(ref mut obj) if !obj.contains_key(package) => {
+            obj.insert(package.to_string(), Value::String(version.to_string()));
+        }
+        Value::Object(_) => return Ok(()),
+        _ => {
+            return Err(CommonError::AccessPackageJson(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "the devDependencies value is not an object",
+            )));
+        }
+    }
+
+    let file = fs::File::create(&package_json_path).map_err(CommonError::AccessPackageJson)?;
+    serde_json::to_writer_pretty(&file, &package_json).map_err(CommonError::SerializePackageJson)?;
+
+    Ok(())
+}
+
+fn run_npm_init(project_dir: &Path) -> Result<(), CommonError> {
+    Command::new("npm")
+        .args(["init", "-y"])
+        .current_dir(project_dir)
+        .output()
+        .map_err(CommonError::NpmInitError)
+        .map(|_| ())
 }

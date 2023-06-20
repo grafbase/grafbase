@@ -1,5 +1,10 @@
 query {
   todoCollection(first: 1) {
     __typename
+    edges {
+      node {
+        title
+      }
+    }
   }
 }

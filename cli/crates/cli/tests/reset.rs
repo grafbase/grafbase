@@ -1,12 +1,14 @@
+#![allow(unused_crate_dependencies)]
 mod utils;
 
+use backend::project::ConfigType;
 use utils::environment::Environment;
 
 #[test]
 fn reset() {
     let mut env = Environment::init();
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.grafbase_dev();
 
     let client = env.create_client();

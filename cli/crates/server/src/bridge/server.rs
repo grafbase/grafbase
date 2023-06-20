@@ -13,12 +13,14 @@ use crate::types::ServerMessage;
 use axum::extract::State;
 use axum::Json;
 use axum::{http::StatusCode, routing::post, Router};
-use common::environment::Project;
+use common::environment::{Environment, Project};
 
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use tokio::fs;
+use tokio::sync::{Mutex, Notify};
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -26,10 +28,24 @@ use std::sync::Arc;
 
 use tower_http::trace::TraceLayer;
 
+enum ResolverBuild {
+    InProgress {
+        notify: Arc<Notify>,
+    },
+    Succeeded {
+        #[allow(dead_code)]
+        miniflare_handle: tokio::task::JoinHandle<()>,
+        worker_port: u16,
+    },
+    Failed,
+}
+
 struct HandlerState {
-    worker_port: u16,
     pool: SqlitePool,
     bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
+    resolver_builds: Mutex<std::collections::HashMap<String, ResolverBuild>>,
+    environment_variables: HashMap<String, String>,
+    tracing: bool,
 }
 
 async fn query_endpoint(
@@ -121,14 +137,104 @@ async fn search_endpoint(
     Ok(Json(response))
 }
 
+#[allow(clippy::too_many_lines)]
 async fn invoke_resolver_endpoint(
     State(handler_state): State<Arc<HandlerState>>,
     Json(payload): Json<ResolverInvocation>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     trace!("resolver invocation\n\n{:#?}\n", payload);
+
+    let environment = Environment::get();
+
+    let resolver_worker_port = loop {
+        let notify = {
+            let mut resolver_builds = handler_state.resolver_builds.lock().await;
+
+            if let Some(resolver_build) = resolver_builds.get(&payload.resolver_name) {
+                match resolver_build {
+                    ResolverBuild::Succeeded { worker_port, .. } => break *worker_port,
+                    ResolverBuild::Failed => return Err(ApiError::ResolverSpawnError),
+                    ResolverBuild::InProgress { notify } => {
+                        // If the resolver build happening within another invocation has been cancelled
+                        // due to the invocation having been interrupted by the HTTP client, start a new build.
+                        if Arc::strong_count(notify) == 1 {
+                            notify.clone()
+                        } else {
+                            let notify = notify.clone();
+                            drop(resolver_builds);
+                            notify.notified().await;
+                            continue;
+                        }
+                    }
+                }
+            } else {
+                let notify = Arc::new(Notify::new());
+                resolver_builds.insert(
+                    payload.resolver_name.clone(),
+                    ResolverBuild::InProgress { notify: notify.clone() },
+                );
+                notify
+            }
+        };
+
+        let start = std::time::Instant::now();
+        handler_state
+            .bridge_sender
+            .send(ServerMessage::StartResolverBuild(payload.resolver_name.clone()))
+            .await
+            .unwrap();
+
+        let tracing = handler_state.tracing;
+        if let Ok((package_json_path, wrangler_toml_path)) = crate::custom_resolvers::build_resolver(
+            environment,
+            environment.project.as_ref().expect("must be present"),
+            &handler_state.environment_variables,
+            &payload.resolver_name,
+            tracing,
+        )
+        .await
+        {
+            let (miniflare_handle, worker_port) = super::resolvers::spawn_miniflare(
+                &payload.resolver_name,
+                package_json_path,
+                wrangler_toml_path,
+                tracing,
+            )
+            .await?;
+
+            handler_state.resolver_builds.lock().await.insert(
+                payload.resolver_name.clone(),
+                ResolverBuild::Succeeded {
+                    miniflare_handle,
+                    worker_port,
+                },
+            );
+            notify.notify_waiters();
+
+            handler_state
+                .bridge_sender
+                .send(ServerMessage::CompleteResolverBuild {
+                    name: payload.resolver_name.clone(),
+                    duration: start.elapsed(),
+                })
+                .await
+                .unwrap();
+
+            break worker_port;
+        }
+
+        handler_state
+            .resolver_builds
+            .lock()
+            .await
+            .insert(payload.resolver_name.clone(), ResolverBuild::Failed);
+        notify.notify_waiters();
+        return Err(ApiError::ResolverSpawnError);
+    };
+
     super::resolvers::invoke_resolver(
         &handler_state.bridge_sender,
-        handler_state.worker_port,
+        resolver_worker_port,
         &payload.resolver_name,
         &payload.payload,
     )
@@ -142,10 +248,13 @@ pub async fn start(
     worker_port: u16,
     bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
     event_bus: tokio::sync::broadcast::Sender<Event>,
+    tracing: bool,
 ) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
 
     let project = Project::get();
+
+    let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
 
     match project.database_directory_path.try_exists() {
         Ok(true) => {}
@@ -172,9 +281,11 @@ pub async fn start(
     query(PREPARE).execute(&pool).await?;
 
     let handler_state = Arc::new(HandlerState {
-        worker_port,
         pool,
         bridge_sender,
+        resolver_builds: Mutex::default(),
+        environment_variables,
+        tracing,
     });
 
     let router = Router::new()
@@ -190,14 +301,14 @@ pub async fn start(
     let server = axum::Server::bind(&socket_address)
         .serve(router.into_make_service())
         .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
-            matches!(event, Event::Reload(_))
+            event.should_restart_servers()
         }));
 
     event_bus.send(Event::BridgeReady).expect("cannot fail");
 
     tokio::select! {
         server_result = server => { server_result? }
-        listener_result = listener::start(worker_port, event_bus) => { listener_result? }
+        listener_result = listener::start(worker_port, event_bus.clone()) => { listener_result? }
     };
 
     handler_state.pool.close().await;

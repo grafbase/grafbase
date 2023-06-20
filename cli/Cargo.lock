@@ -50,6 +50,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 
 [[package]]
+name = "android-tzdata"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e999941b234f3131b00bc13c22d06e8c5ff726d1b6318ac7eb276997bbb4fef0"
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -573,13 +579,13 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.24"
+version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e3c5919066adf22df73762e50cffcde3a758f2a848b113b586d1f86728b673b"
+checksum = "ec837a71355b28f6556dbd569b37b3f363091c0bd4b2e735674521b4c5fd9bc5"
 dependencies = [
+ "android-tzdata",
  "iana-time-zone",
  "js-sys",
- "num-integer",
  "num-traits",
  "serde",
  "time 0.1.45",
@@ -1093,6 +1099,37 @@ checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
 dependencies = [
  "proc-macro2",
  "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "derive_builder"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d67778784b508018359cbc8696edb3db78160bab2c2a28ba7f56ef6932997f8"
+dependencies = [
+ "derive_builder_macro",
+]
+
+[[package]]
+name = "derive_builder_core"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c11bdc11a0c47bc7d37d582b5285da6849c96681023680b906673c5707af7b0f"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "derive_builder_macro"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebcda35c7a396850a55ffeac740804b40ffec779b98fffbb1738f4033f0ee79e"
+dependencies = [
+ "derive_builder_core",
  "syn 1.0.109",
 ]
 
@@ -1624,7 +1661,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "backtrace",
  "cfg-if",
@@ -1634,6 +1671,7 @@ dependencies = [
  "colored",
  "crossbeam-channel",
  "ctrlc",
+ "derive_builder",
  "dirs 5.0.0",
  "duct",
  "exitcode",
@@ -1641,7 +1679,6 @@ dependencies = [
  "grafbase-local-backend",
  "grafbase-local-common",
  "hex-literal",
- "humantime",
  "indicatif",
  "indoc",
  "inquire",
@@ -1675,7 +1712,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -1684,7 +1721,6 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "dirs 5.0.0",
- "exitcode",
  "grafbase-local-common",
  "grafbase-local-server",
  "http-cache-reqwest",
@@ -1700,17 +1736,16 @@ dependencies = [
  "tower-http",
  "url",
  "urlencoding",
- "webbrowser",
+ "walkdir",
 ]
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "chrono",
  "derivative",
  "dirs 5.0.0",
- "exitcode",
  "rudderanalytics",
  "serde",
  "serde_json",
@@ -1720,29 +1755,24 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
- "anyhow",
- "async-trait",
  "axum",
  "base64 0.21.0",
  "chrono",
  "combine 4.6.6",
  "dotenv",
- "exitcode",
- "filetime",
  "flate2",
  "fslock",
  "futures-util",
  "grafbase-local-common",
  "hyper",
  "integer-encoding",
- "ipnet",
  "itertools",
  "log",
  "notify",
  "notify-debouncer-mini",
- "regex",
+ "path-slash",
  "reqwest",
  "serde",
  "serde_json",
@@ -1755,6 +1785,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tower-http",
  "tracing",
  "unicode-normalization",
@@ -2963,6 +2994,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f746c4065a8fa3fe23974dd82f15431cc8d40779821001404d10d2e79ca7d79"
 
 [[package]]
+name = "path-slash"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e91099d4268b0e11973f036e885d652fb0b21fedcf69738c627f94db6a44f42"
+
+[[package]]
 name = "pem-rfc7468"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3795,6 +3832,7 @@ version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d721eca97ac802aa7777b701877c8004d950fc142651367300d21c1cc0194744"
 dependencies = [
+ "indexmap",
  "itoa",
  "ryu",
  "serde",

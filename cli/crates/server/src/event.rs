@@ -11,6 +11,15 @@ pub enum Event {
     BridgeReady,
 }
 
+impl Event {
+    pub fn should_restart_servers(&self) -> bool {
+        match self {
+            Self::Reload(_) => true,
+            Self::BridgeReady => false,
+        }
+    }
+}
+
 /// returns a future that resolves when given event is sent
 #[allow(clippy::module_name_repetitions)]
 pub async fn wait_for_event_and_match<F, O>(mut receiver: Receiver<Event>, f: F) -> O

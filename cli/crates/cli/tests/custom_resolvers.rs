@@ -1,6 +1,8 @@
+#![allow(unused_crate_dependencies)]
 #![allow(clippy::too_many_lines)]
 mod utils;
 
+use backend::project::ConfigType;
 use serde_json::Value;
 use utils::environment::Environment;
 
@@ -195,6 +197,7 @@ use utils::environment::Environment;
     ],
     Some(r#"
         {
+            "name": "my-package",
             "dependencies": {
                 "is-palindrome": "^0.3.0"
             }
@@ -255,7 +258,6 @@ use utils::environment::Environment;
         }
     "#)
 )]
-#[cfg_attr(target_os = "windows", ignore)]
 fn test_field_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
@@ -265,7 +267,7 @@ fn test_field_resolver(
     #[case] package_json: Option<&str>,
 ) {
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     std::fs::write(env.directory.join("grafbase/.env"), "MY_OWN_VARIABLE=test_value").unwrap();
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
@@ -273,8 +275,10 @@ fn test_field_resolver(
         env.write_file("package.json", package_json);
     }
     env.grafbase_dev();
-    let client = env.create_client().with_api_key();
-    client.poll_endpoint(60, 300);
+    let client = env
+        .create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build())
+        .with_api_key();
+    client.poll_endpoint(120, 250);
 
     // Create.
     let response = client
@@ -364,7 +368,6 @@ fn test_field_resolver(
         ),
     ],
 )]
-#[cfg_attr(target_os = "windows", ignore)]
 fn test_query_mutation_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
@@ -373,7 +376,7 @@ fn test_query_mutation_resolver(
     #[case] queries: &[(&str, &str)],
 ) {
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
     env.grafbase_dev();

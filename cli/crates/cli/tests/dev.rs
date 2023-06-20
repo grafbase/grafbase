@@ -1,5 +1,7 @@
+#![allow(unused_crate_dependencies)]
 mod utils;
 
+use backend::project::ConfigType;
 use serde_json::{json, Value};
 use utils::consts::{DEFAULT_CREATE, DEFAULT_QUERY, DEFAULT_SCHEMA, DEFAULT_UPDATE};
 use utils::environment::Environment;
@@ -7,7 +9,7 @@ use utils::environment::Environment;
 #[test]
 fn dev() {
     let mut env = Environment::init();
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(DEFAULT_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

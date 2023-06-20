@@ -17,7 +17,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: release/08ee7a1-2023-06-05
+  ASSETS_VERSION: release/f7f8871-2023-06-16
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
   CARGO_PROFILE_DEV_DEBUG: 0
@@ -122,7 +122,7 @@ jobs:
           # However, each package is published individually, so we're checking that all packages compile
           # with only their defined features.
           # See: https://github.com/rust-lang/cargo/issues/4463
-          cd ${{ matrix.package }} && cargo check
+          cd ${{ matrix.package }} && cargo check --all-features
 
   windows:
     needs: [lint]

@@ -27,7 +27,7 @@ export type AuthOperation =
 /**
  * A list of supported authentication strategies.
  */
-export type AuthStrategy = 'private' | 'owner' | AuthGroups
+export type AuthStrategy = 'public' | 'private' | 'owner' | AuthGroups
 
 /**
  * A builder to greate auth groups.
@@ -114,6 +114,17 @@ export class AuthRules {
   }
 
   /**
+   * Allow public access.
+   */
+  public public(): AuthRule {
+    const rule = new AuthRule('public')
+
+    this.rules.push(rule)
+
+    return rule
+  }
+
+  /**
    * Allow access to any signed-in user.
    */
   public private(): AuthRule {
@@ -162,12 +173,12 @@ export class AuthRules {
 }
 
 export interface AuthParams {
-  providers: FixedLengthArray<AuthProvider, 1>
+  providers?: FixedLengthArray<AuthProvider, 1>
   rules: AuthRuleF
 }
 
 export class Authentication {
-  private providers: FixedLengthArray<AuthProvider, 1>
+  private providers?: FixedLengthArray<AuthProvider, 1>
   private rules: AuthRules
 
   constructor(params: AuthParams) {
@@ -180,15 +191,18 @@ export class Authentication {
   }
 
   public toString(): string {
-    const providers = this.providers.map(String).join('\n      ')
+    var providers = this.providers ? this.providers.map(String).join('\n      ') : ''
+
+    if (providers) {
+      providers = `\n    providers: [\n      ${providers}\n    ]`
+    }
+
     var rules = this.rules.toString()
 
     if (rules) {
       rules = `\n    rules: ${rules}`
-    } else {
-      rules = ''
     }
 
-    return `extend schema\n  @auth(\n    providers: [\n      ${providers}\n    ]${rules}\n  )`
+    return `extend schema\n  @auth(${providers}${rules}\n  )`
   }
 }

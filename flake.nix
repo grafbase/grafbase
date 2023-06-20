@@ -60,6 +60,7 @@
             rustup
             sccache
             pkg-config
+            openssl.dev
             # for sqlx-macros
             libiconv
 

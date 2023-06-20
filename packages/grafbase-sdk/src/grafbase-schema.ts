@@ -47,7 +47,7 @@ export class Datasources {
 }
 
 export interface IntrospectParams {
-  namespace: string
+  namespace?: string
 }
 
 export class GrafbaseSchema {
@@ -79,8 +79,8 @@ export class GrafbaseSchema {
    * @param datasource - The datasource to add.
    * @param params - The introspection parameters.
    */
-  public datasource(datasource: PartialDatasource, params: IntrospectParams) {
-    this.datasources.push(datasource.finalize(params.namespace))
+  public datasource(datasource: PartialDatasource, params?: IntrospectParams) {
+    this.datasources.push(datasource.finalize(params?.namespace))
   }
 
   /**
@@ -387,6 +387,22 @@ export class GrafbaseSchema {
     })
 
     this.extendedTypes.push(extension)
+  }
+
+  /**
+   * Returns the environment variable with the given variableName.
+   * Throws, if the variable is not set.
+   *
+   * @param variableName - The name of the environment variable.
+   */
+  public env(variableName: string): string {
+    const value = process.env[variableName]
+
+    if (value === undefined || value === null) {
+      throw `Environment variable ${variableName} is not set`
+    }
+
+    return value
   }
 
   /**

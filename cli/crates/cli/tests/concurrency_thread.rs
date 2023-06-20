@@ -1,7 +1,9 @@
+#![allow(unused_crate_dependencies)]
 mod utils;
 
 use std::future::IntoFuture;
 
+use backend::project::ConfigType;
 use serde_json::Value;
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
@@ -10,7 +12,7 @@ use utils::environment::Environment;
 async fn concurrency_thread() {
     let mut env = Environment::init_async().await;
 
-    env.grafbase_init();
+    env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(CONCURRENCY_SCHEMA);
     env.grafbase_dev();
 
