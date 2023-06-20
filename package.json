@@ -9,14 +9,14 @@
     "types": "tsc --noEmit"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@types/react": "^18.0.28",
-    "@types/react-dom": "^18.0.11",
+    "@types/react": "18.2.13",
+    "@types/react-dom": "18.0.11",
     "@vitejs/plugin-react": "^4.0.0",
-    "monaco-editor": "0.38.0",
+    "monaco-editor": "0.39.0",
     "monaco-graphql": "1.2.3",
     "pathfinder": "workspace:*",
     "ui": "workspace:*",
