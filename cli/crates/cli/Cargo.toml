@@ -47,7 +47,7 @@ duct = "0.13"
 fslock = "0.2"
 insta = { version = "1.29", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
-jwt-compact = { version = "0.7", default-features = false, features = [
+jwt-compact = { version = "0.8.0-beta.1", default-features = false, features = [
   "clock",
   "rsa",
 ] }
