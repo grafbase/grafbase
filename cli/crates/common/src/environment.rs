@@ -324,11 +324,19 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
 pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), CommonError> {
     let package_json_path = project_dir.join(PACKAGE_JSON_NAME);
 
-    let mut package_json = if !package_json_path.exists() {
+    let mut package_json = if package_json_path.exists() {
+        let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;
+        let Ok(Value::Object(package_json)) = serde_json::from_reader(&file) else {
+        return Err(CommonError::AccessPackageJson(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "the file is not a JSON object",
+        )));
+    };
+        package_json
+    } else {
         let name = project_dir
             .file_name()
-            .map(|it| it.to_string_lossy())
-            .unwrap_or(Cow::Borrowed("grafbase-project"));
+            .map_or(Cow::Borrowed("grafbase-project"), std::ffi::OsStr::to_string_lossy);
         match serde_json::json!(
         {
           "name": name,
@@ -346,15 +354,6 @@ pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, ver
             Value::Object(package_json) => package_json,
             _ => unreachable!("must be an object"),
         }
-    } else {
-        let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;
-        let Ok(Value::Object(package_json)) = serde_json::from_reader(&file) else {
-        return Err(CommonError::AccessPackageJson(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "the file is not a JSON object",
-        )));
-    };
-        package_json
     };
 
     match package_json
