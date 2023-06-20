@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "dynein-nixpkgs": {
+      "locked": {
+        "lastModified": 1687268242,
+        "narHash": "sha256-0gYllY4mfZZvo215N2WjYTTvTd8TXxxi68cpUDerGa0=",
+        "owner": "pimeys",
+        "repo": "nixpkgs",
+        "rev": "160d929d06fd4c29c3f82b441aa5b335002231cd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "pimeys",
+        "ref": "dynein-0.2.1",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -36,6 +52,7 @@
     },
     "root": {
       "inputs": {
+        "dynein-nixpkgs": "dynein-nixpkgs",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
         "rust-overlay": "rust-overlay"
