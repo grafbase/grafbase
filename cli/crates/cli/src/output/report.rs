@@ -170,16 +170,16 @@ pub fn logout() {
 
 // TODO change this to a spinner that is removed on success
 pub fn deploy() {
-    watercolor::output!("🕒 Your project is being deployed", @BrightBlue);
+    watercolor::output!("🕒 Your project is being deployed...", @BrightBlue);
 }
 
 // TODO change this to a spinner that is removed on success
 pub fn create() {
-    watercolor::output!("🕒 Your project is being created", @BrightBlue);
+    watercolor::output!("🕒 Your project is being created...", @BrightBlue);
 }
 
 pub fn deploy_success() {
-    watercolor::output!("\n✨ Your project has been deployed successfully!", @BrightBlue);
+    watercolor::output!("\n✨ Your project was successfully deployed!", @BrightBlue);
 }
 
 pub fn linked(name: &str) {
