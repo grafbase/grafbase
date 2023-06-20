@@ -279,8 +279,8 @@ importers:
         specifier: 3.0.4
         version: 3.0.4
       '@urql/core':
-        specifier: 4.0.6
-        version: 4.0.6(graphql@16.6.0)
+        specifier: 4.0.10
+        version: 4.0.10(graphql@16.6.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -288,8 +288,8 @@ importers:
         specifier: 1.6.2
         version: 1.6.2
       wonka:
-        specifier: 6.3.1
-        version: 6.3.1
+        specifier: 6.3.2
+        version: 6.3.2
     devDependencies:
       eslint:
         specifier: ^8.0.0
@@ -301,8 +301,8 @@ importers:
         specifier: workspace:*
         version: link:../tsconfig
       tsup:
-        specifier: 6.6.3
-        version: 6.6.3(postcss@8.4.19)(typescript@5.0.4)
+        specifier: 6.7.0
+        version: 6.7.0(typescript@5.0.4)
       typescript:
         specifier: ^5.0.0
         version: 5.0.4
@@ -2131,11 +2131,11 @@ packages:
       '@typescript-eslint/types': 5.59.2
       eslint-visitor-keys: 3.4.0
 
-  /@urql/core@4.0.6(graphql@16.6.0):
-    resolution: {integrity: sha512-RxlX5nxWZsvS1lPCvOdgdYbIVVfih/DrjPzGZ0ThP1GuVycaxw5t0O7XEXXYHICeXNKj95HJBxW0o/37zg+z6Q==}
+  /@urql/core@4.0.10(graphql@16.6.0):
+    resolution: {integrity: sha512-Vs3nOSAnYftqOCg034Ostp/uSqWlQg5ryLIzcOrm8+O43s4M+Ew4GQAuemIH7ZDB8dek6h61zzWI3ujd8FH3NA==}
     dependencies:
       '@0no-co/graphql.web': 1.0.1(graphql@16.6.0)
-      wonka: 6.3.1
+      wonka: 6.3.2
     transitivePeerDependencies:
       - graphql
     dev: false
@@ -6653,8 +6653,8 @@ packages:
     dependencies:
       isexe: 2.0.0
 
-  /wonka@6.3.1:
-    resolution: {integrity: sha512-nJyGPcjuBiaLFn8QAlrHd+QjV9AlPO7snOWAhgx6aX0nQLMV6Wi0nqfrkmsXIH0efngbDOroOz2QyLnZMF16Hw==}
+  /wonka@6.3.2:
+    resolution: {integrity: sha512-2xXbQ1LnwNS7egVm1HPhW2FyKrekolzhpM3mCwXdQr55gO+tAiY76rhb32OL9kKsW8taj++iP7C6hxlVzbnvrw==}
     dev: false
 
   /word-wrap@1.2.3:
