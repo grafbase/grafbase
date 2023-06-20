@@ -319,6 +319,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
         let full_path = &environment.user_dot_grafbase_path;
         archive
             .unpack(full_path)
+            .map_err(|err| error!("unpack error: {err}"))
             .map_err(|_| ServerError::WriteFile(full_path.to_string_lossy().into_owned()))?;
 
         if fs::write(&version_path, current_version).is_err() {
