@@ -257,9 +257,12 @@ impl<'a> VisitorContext<'a> {
         registry.schemas = result;
 
         ParseResult {
-            registry,
-            required_resolvers: self.required_resolvers,
             global_cache_rules: self.global_cache_rules,
+            #[cfg(feature = "local")]
+            requires_udf: !self.required_resolvers.is_empty()
+                || matches!(registry.auth.provider, Some(dynaql::AuthProvider::Authorizer(_))),
+            required_resolvers: self.required_resolvers,
+            registry,
         }
     }
 

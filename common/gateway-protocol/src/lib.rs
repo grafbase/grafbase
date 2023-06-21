@@ -12,12 +12,6 @@ pub struct VersionedRegistry<'a> {
     pub deployment_id: std::borrow::Cow<'a, str>,
 }
 
-#[derive(serde::Serialize)]
-pub struct ParserResult<'a> {
-    pub versioned_registry: VersionedRegistry<'a>,
-    pub required_resolvers: Vec<String>,
-}
-
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct GatewayRequest {
     pub body: Option<Vec<u8>>,

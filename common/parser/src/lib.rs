@@ -95,6 +95,8 @@ pub struct ParseResult<'a> {
     pub registry: Registry,
     pub required_resolvers: HashSet<String>,
     pub global_cache_rules: GlobalCacheRules<'a>,
+    #[cfg(feature = "local")]
+    pub requires_udf: bool,
 }
 
 /// Transform the input into a Registry
