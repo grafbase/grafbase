@@ -22,4 +22,6 @@ pub enum VerificationError {
     JwkFormat,
     #[error("{0}")]
     IssuerFormat(url::ParseError),
+    #[error("authorizer verification failed")]
+    Authorizer,
 }
