@@ -113,6 +113,97 @@ async fn openapi_test() {
     "###);
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn openapi_flat_namespace() {
+    let mock_server = wiremock::MockServer::start().await;
+    mount_petstore_spec(&mock_server).await;
+
+    let mut env = Environment::init_async().await;
+    let client = start_grafbase(&mut env, no_namespace_schema(mock_server.address())).await;
+
+    Mock::given(method("GET"))
+        .and(path("/pet/123"))
+        .and(header("authorization", "Bearer BLAH"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(doggie()))
+        .mount(&mock_server)
+        .await;
+
+    insta::assert_yaml_snapshot!(
+        client
+            .gql::<Value>(
+                r#"
+                    query {
+                        pet(petId: 123) {
+                            id
+                            name
+                            status
+                        }
+                    }
+                "#,
+            )
+            .await,
+        @r###"
+    ---
+    data:
+      pet:
+        id: 123
+        name: doggie
+        status: AVAILABLE
+    "###
+    );
+
+    let request_body_spy = RequestBodySpy::new();
+
+    Mock::given(method("PUT"))
+        .and(path("/pet"))
+        .and(header("authorization", "Bearer BLAH"))
+        .and(request_body_spy.clone())
+        .respond_with(ResponseTemplate::new(200).set_body_json(doggie()))
+        .mount(&mock_server)
+        .await;
+
+    insta::assert_yaml_snapshot!(
+        client
+            .gql::<Value>(
+                r#"
+                    mutation {
+                        updatePet(input: {
+                            id: 123
+                            name: "Doggie"
+                            status: AVAILABLE
+                            tags: []
+                            photoUrls: []
+                            category: {}
+                        }) {
+                            id
+                            name
+                            status
+                        }
+                    }
+                "#,
+            )
+            .await,
+        @r###"
+    ---
+    data:
+      updatePet:
+        id: 123
+        name: doggie
+        status: AVAILABLE
+    "###
+    );
+
+    insta::assert_yaml_snapshot!(request_body_spy.drain_requests(), @r###"
+    ---
+    - category: {}
+      id: 123
+      name: Doggie
+      photoUrls: []
+      status: available
+      tags: []
+    "###);
+}
+
 #[derive(Clone)]
 struct RequestBodySpy {
     receiver: Receiver<Value>,
@@ -158,9 +249,21 @@ fn petstore_schema(address: &SocketAddr) -> String {
         r#"
           extend schema
           @openapi(
-            name: "petstore",
+            namespace: "petstore",
             url: "http://{address}",
-            # TODO: This should probably be spec rather than schema, fix that.
+            schema: "http://{address}/spec.json",
+            headers: [{{ name: "authorization", value: "Bearer {{{{ env.API_KEY }}}}" }}],
+          )
+        "#
+    )
+}
+
+fn no_namespace_schema(address: &SocketAddr) -> String {
+    format!(
+        r#"
+          extend schema
+          @openapi(
+            url: "http://{address}",
             schema: "http://{address}/spec.json",
             headers: [{{ name: "authorization", value: "Bearer {{{{ env.API_KEY }}}}" }}],
           )

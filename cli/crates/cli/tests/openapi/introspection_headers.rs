@@ -34,7 +34,7 @@ fn schema(address: &SocketAddr) -> String {
         r#"
           extend schema
           @openapi(
-            name: "petstore",
+            namespace: "petstore",
             url: "http://{address}",
             schema: "http://{address}/spec.json",
             introspectionHeaders: [{{ name: "day", value: "friday" }}]

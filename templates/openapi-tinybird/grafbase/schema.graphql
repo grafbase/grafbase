@@ -1,6 +1,6 @@
 extend schema
   @openapi(
-    name: "Tinybird"
+    namespace: "Tinybird"
     url: "{{ env.TINYBIRD_API_URL }}"
     schema: "{{ env.TINYBIRD_API_SCHEMA }}"
     headers: [

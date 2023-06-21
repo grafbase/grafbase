@@ -1,6 +1,6 @@
 extend schema
   @openapi(
-    name: "Stripe"
+    namespace: "Stripe"
     url: "https://api.stripe.com/"
     schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
     headers: [
