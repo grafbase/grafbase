@@ -5,7 +5,7 @@ use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase_runtime::custom_resolvers::{
     CustomResolverRequest, CustomResolverRequestContext, CustomResolverRequestContextRequest,
-    CustomResolverRequestInfo, CustomResolverRequestPayload, CustomResolversEngine,
+    CustomResolverRequestInfo, CustomResolverRequestPayload, CustomResolversEngine, UdfKind,
 };
 
 use send_wrapper::SendWrapper;
@@ -99,7 +99,7 @@ impl ResolverTrait for CustomResolver {
         let future = SendWrapper::new(custom_resolvers_engine.invoke(
             ctx.data()?,
             CustomResolverRequest {
-                resolver_name: self.resolver_name.clone(),
+                name: self.resolver_name.clone(),
                 payload: CustomResolverRequestPayload {
                     arguments,
                     parent: Some(value),
@@ -110,6 +110,7 @@ impl ResolverTrait for CustomResolver {
                     },
                     info: CustomResolverRequestInfo {},
                 },
+                udf_kind: UdfKind::Resolver,
             },
         ));
         let value = Box::pin(future).await?;

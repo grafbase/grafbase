@@ -27,7 +27,7 @@ impl CustomResolversEngineInner for CustomResolvers {
         ctx: &GraphqlRequestExecutionContext,
         request: CustomResolverRequest,
     ) -> Result<CustomResolverResponse, CustomResolverError> {
-        self.bridge.request("/invoke-resolver", request).await.map_err(|error| {
+        self.bridge.request("/invoke-udf", request).await.map_err(|error| {
             log::error!(ctx.ray_id, "Resolver invocation failed with: {}", error);
             CustomResolverError::ServerError
         })
