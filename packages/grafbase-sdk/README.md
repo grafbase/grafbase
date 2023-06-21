@@ -195,12 +195,7 @@ Fields are generated from the `g` object:
 
 ```typescript
 // first greate an enum
-enum Fruits {
-  Apples,
-  Oranges
-}
-
-const fruits = g.enumType('Fruits', Fruits)
+const fruits = g.enumType('Fruits', ['Apples', 'Oranges'])
 
 // then use it e.g. in a model
 g.model('User', {
