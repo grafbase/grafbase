@@ -18,20 +18,30 @@ async fn run_command<P: AsRef<Path>>(
     environment: &[(&'static str, &str)],
 ) -> Result<(), JavascriptPackageManagerComamndError> {
     let command_string = format!("{command_type} {}", arguments.iter().format(" "));
-
-    trace!("running '{command_string}'");
+    let current_directory = current_directory.as_ref();
+    if !current_directory.exists() {
+        return Err(JavascriptPackageManagerComamndError::NotFound(
+            None,
+            format!("Working directory not found: {current_directory:?}"),
+        ));
+    }
+    debug!("running '{command_string}'");
 
     // Use `which` to work-around weird path search issues on Windows.
     // See https://github.com/rust-lang/rust/issues/37519.
     let program_path = which::which(command_type.to_string())
-        .map_err(|err| JavascriptPackageManagerComamndError::NotFound(command_type, err))?;
+        .map_err(|err| JavascriptPackageManagerComamndError::NotFound(Some(command_type), err.to_string()))?;
 
-    let command = Command::new(program_path)
+    let mut command = Command::new(program_path);
+    command
         .envs(environment.iter().copied())
         .args(arguments)
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
-        .current_dir(current_directory)
+        .current_dir(current_directory);
+
+    trace!("Spawning {command:?}");
+    let command = command
         .spawn()
         .map_err(|err| JavascriptPackageManagerComamndError::CommandError(command_type, err))?;
 
@@ -381,7 +391,7 @@ pub async fn build(
     Ok((udf_build_package_json_path, wrangler_toml_file_path))
 }
 
-async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
+pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
     let lock_file_path = environment.user_dot_grafbase_path.join(".wrangler.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
         let mut file = fslock::LockFile::open(&lock_file_path)?;
@@ -416,20 +426,6 @@ async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<()
     tokio::task::spawn_blocking(move || lock_file.unlock())
         .await?
         .map_err(ServerError::Unlock)?;
-
-    Ok(())
-}
-
-pub async fn maybe_install_wrangler(
-    environment: &Environment,
-    resolvers: impl IntoIterator<Item = crate::servers::DetectedResolver>,
-    tracing: bool,
-) -> Result<(), ServerError> {
-    let mut resolvers_iterator = resolvers.into_iter().peekable();
-    if resolvers_iterator.peek().is_some() {
-        // Install wrangler once and for all.
-        install_wrangler(environment, tracing).await?;
-    }
 
     Ok(())
 }

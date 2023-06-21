@@ -17,8 +17,8 @@ use crate::udf_builder::JavaScriptPackageManager;
 #[derive(Error, Debug)]
 pub enum JavascriptPackageManagerComamndError {
     /// returned if npm/pnpm/yarn cannot be found
-    #[error("could not find {0}: {1}")]
-    NotFound(JavaScriptPackageManager, which::Error),
+    #[error("could not find {0:?}: {1}")]
+    NotFound(Option<JavaScriptPackageManager>, String),
 
     /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
     #[error("{0} encountered an error: {1}")]
