@@ -1,0 +1,13 @@
+schema
+  @auth(
+    providers: [{ type: authorizer, name: "{{ env.AUTHORIZER_NAME }}" }]
+    rules: [{ allow: groups, groups: ["backend"] }]
+  ) {
+  query: Query
+}
+
+type Todo @model {
+  id: ID!
+  title: String!
+  complete: Boolean!
+}

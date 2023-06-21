@@ -86,6 +86,8 @@ pub const AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA: &str =
 pub const AUTH_ENTRYPOINT_QUERY_TEXT: &str = include_str!("../graphql/auth/entrypoint-query-text.graphql");
 pub const AUTH_ENTRYPOINT_MUTATION_TEXT: &str = include_str!("../graphql/auth/entrypoint-mutation-text.graphql");
 
+pub const AUTHORIZER_SCHEMA: &str = include_str!("../graphql/auth/authorizer/authorizer.graphql");
+
 pub const INTROSPECTION_QUERY: &str = include_str!("../graphql/introspection.graphql");
 
 pub const RESERVED_DATES_SCHEMA: &str = include_str!("../graphql/reserved_dates/schema.graphql");

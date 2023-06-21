@@ -23,7 +23,7 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use crate::utils::consts::{
-    AUTH_CREATE_MUTATION, AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA, AUTH_ENTRYPOINT_MUTATION_TEXT,
+    AUTHORIZER_SCHEMA, AUTH_CREATE_MUTATION, AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA, AUTH_ENTRYPOINT_MUTATION_TEXT,
     AUTH_ENTRYPOINT_QUERY_TEXT, AUTH_QUERY_WITH_TEXT,
 };
 
@@ -80,7 +80,7 @@ fn jwt_provider() {
 }
 
 fn generate_hs512_token(sub: &str, groups: &[&str]) -> String {
-    #[derive(Debug, serde::Serialize)]
+    #[derive(Debug, Serialize)]
     struct CustomClaims<'a> {
         iss: &'a str,
         sub: &'a str,
@@ -152,7 +152,7 @@ fn generate_rs256_token(
     issuer: Option<&str>,
     key_id: &str,
 ) -> String {
-    #[derive(Debug, serde::Serialize)]
+    #[derive(Debug, Serialize)]
     struct CustomClaims<'a> {
         #[serde(skip_serializing_if = "Option::is_none")]
         iss: Option<&'a str>,
@@ -209,7 +209,7 @@ async fn set_up_oidc_with_path(path: Option<&str>) -> SetUpOidc {
     let key_set = to_verifying_key_set(&pub_key, KEY_ID);
     let server = MockServer::start().await;
     let issuer_url: Url = {
-        let issuer_url = server.uri().parse::<url::Url>().unwrap();
+        let issuer_url = server.uri().parse().unwrap();
         match path {
             None => issuer_url,
             Some(path) => {
@@ -569,5 +569,53 @@ async fn entrypoint_mutation_field_resolver_mixed() {
     insta::assert_json_snapshot!(
         "entrypoint_mutation_field_resolver_mixed__public_entrypoint_field_mutation_should_fail",
         public_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn authorizer_with_no_headers_should_work() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTHORIZER_SCHEMA);
+    let authorizer_name = "a1";
+    let authorizer_content = r#"export default function(parent, args, context, info) {
+        return { identity: { sub:'user1', groups: ['backend'] } };
+    }"#;
+
+    env.write_resolver(format!("{authorizer_name}.js"), authorizer_content);
+    env.set_variables(HashMap::from([(
+        "AUTHORIZER_NAME".to_string(),
+        authorizer_name.to_string(),
+    )]));
+    env.grafbase_dev();
+    let client = env.create_async_client();
+    client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(
+        "authorizer_with_no_headers_should_work__todo_creation_should_succeed",
+        client.gql::<Value>(AUTH_CREATE_MUTATION).await
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn authorizer_with_headers_should_work() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTHORIZER_SCHEMA);
+    let authorizer_name = "a1";
+    let authorizer_content = r#"export default function(parent, args, context, info) {
+        return { identity: { groups: [context.request.headers['h1']] } };
+    }"#;
+
+    env.write_resolver(format!("{authorizer_name}.js"), authorizer_content);
+    env.set_variables(HashMap::from([(
+        "AUTHORIZER_NAME".to_string(),
+        authorizer_name.to_string(),
+    )]));
+    env.grafbase_dev();
+    let client = env.create_async_client().with_header("h1", "backend");
+    client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(
+        "authorizer_with_headers_should_work__todo_creation_should_succeed",
+        client.gql::<Value>(AUTH_CREATE_MUTATION).await
     );
 }
