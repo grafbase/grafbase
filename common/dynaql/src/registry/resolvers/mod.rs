@@ -348,7 +348,7 @@ impl ResolverType {
                 let headers = ctx
                     .registry()
                     .http_headers
-                    .get(&format!("Connector{}", &resolver.id))
+                    .get(&format!("GraphQLConnector{}", resolver.id))
                     .map(Vec::as_slice)
                     .unwrap_or(&[]);
 

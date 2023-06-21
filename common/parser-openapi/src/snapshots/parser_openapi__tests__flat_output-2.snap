@@ -8,11 +8,20 @@ Registry {
             name: "Mutation",
             description: None,
             fields: {
-                "petstore": MetaField {
-                    name: "petstore",
+                "updatePet": MetaField {
+                    name: "updatePet",
                     description: None,
-                    args: {},
-                    ty: "PetstoreMutation!",
+                    args: {
+                        "input": MetaInputValue {
+                            name: "input",
+                            description: None,
+                            ty: "OpenAPI1PetInput!",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "OpenAPI1Pet",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: false,
@@ -26,7 +35,271 @@ Registry {
                     edges: [],
                     relation: None,
                     plan: None,
-                    resolve: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "PUT",
+                                    url: "http://example.com/pet",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [],
+                                    query_parameters: [],
+                                    request_body: Some(
+                                        RequestBody {
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "input",
+                                            ),
+                                            content_type: Json,
+                                        },
+                                    ),
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "addPet": MetaField {
+                    name: "addPet",
+                    description: None,
+                    args: {
+                        "input": MetaInputValue {
+                            name: "input",
+                            description: None,
+                            ty: "OpenAPI1PetInput!",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "OpenAPI1Pet",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "POST",
+                                    url: "http://example.com/pet",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [],
+                                    query_parameters: [],
+                                    request_body: Some(
+                                        RequestBody {
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "input",
+                                            ),
+                                            content_type: Json,
+                                        },
+                                    ),
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "uploadFile": MetaField {
+                    name: "uploadFile",
+                    description: None,
+                    args: {
+                        "petId": MetaInputValue {
+                            name: "petId",
+                            description: None,
+                            ty: "Int!",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                        "additionalMetadata": MetaInputValue {
+                            name: "additionalMetadata",
+                            description: None,
+                            ty: "String",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "OpenAPI1ApiResponse",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "POST",
+                                    url: "http://example.com/pet/{petId}/uploadImage",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [
+                                        PathParameter {
+                                            name: "petId",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "petId",
+                                            ),
+                                        },
+                                    ],
+                                    query_parameters: [
+                                        QueryParameter {
+                                            name: "additionalMetadata",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "additionalMetadata",
+                                            ),
+                                            encoding_style: FormExploded,
+                                        },
+                                    ],
+                                    request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "placeOrder": MetaField {
+                    name: "placeOrder",
+                    description: None,
+                    args: {
+                        "input": MetaInputValue {
+                            name: "input",
+                            description: None,
+                            ty: "OpenAPI1OrderInput!",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "OpenAPI1Order",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "POST",
+                                    url: "http://example.com/store/order",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [],
+                                    query_parameters: [],
+                                    request_body: Some(
+                                        RequestBody {
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "input",
+                                            ),
+                                            content_type: Json,
+                                        },
+                                    ),
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "createUsersWithListInput": MetaField {
+                    name: "createUsersWithListInput",
+                    description: None,
+                    args: {
+                        "input": MetaInputValue {
+                            name: "input",
+                            description: None,
+                            ty: "[OpenAPI1UserInput!]!",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "OpenAPI1User",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "POST",
+                                    url: "http://example.com/user/createWithList",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [],
+                                    query_parameters: [],
+                                    request_body: Some(
+                                        RequestBody {
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "input",
+                                            ),
+                                            content_type: Json,
+                                        },
+                                    ),
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
                     transformer: None,
                     required_operation: None,
                     auth: None,
@@ -45,8 +318,8 @@ Registry {
             rust_typename: "Mutation",
             constraints: [],
         },
-        "PetstoreApiResponse": Object {
-            name: "PetstoreApiResponse",
+        "OpenAPI1ApiResponse": Object {
+            name: "OpenAPI1ApiResponse",
             description: None,
             fields: {
                 "message": MetaField {
@@ -156,11 +429,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "PetstoreApiResponse",
+            rust_typename: "OpenAPI1ApiResponse",
             constraints: [],
         },
-        "PetstoreCategory": Object {
-            name: "PetstoreCategory",
+        "OpenAPI1Category": Object {
+            name: "OpenAPI1Category",
             description: None,
             fields: {
                 "name": MetaField {
@@ -238,11 +511,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "PetstoreCategory",
+            rust_typename: "OpenAPI1Category",
             constraints: [],
         },
-        "PetstoreCategoryInput": InputObject {
-            name: "PetstoreCategoryInput",
+        "OpenAPI1CategoryInput": InputObject {
+            name: "OpenAPI1CategoryInput",
             description: None,
             input_fields: {
                 "name": MetaInputValue {
@@ -262,11 +535,11 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "PetstoreCategoryInput",
+            rust_typename: "OpenAPI1CategoryInput",
             oneof: false,
         },
-        "PetstoreFindPetsByStatusStatus": Enum {
-            name: "PetstoreFindPetsByStatusStatus",
+        "OpenAPI1FindPetsByStatusStatus": Enum {
+            name: "OpenAPI1FindPetsByStatusStatus",
             description: None,
             enum_values: {
                 "AVAILABLE": MetaEnumValue {
@@ -294,324 +567,10 @@ Registry {
                     ),
                 },
             },
-            rust_typename: "PetstoreFindPetsByStatusStatus",
+            rust_typename: "OpenAPI1FindPetsByStatusStatus",
         },
-        "PetstoreMutation": Object {
-            name: "PetstoreMutation",
-            description: None,
-            fields: {
-                "updatePet": MetaField {
-                    name: "updatePet",
-                    description: None,
-                    args: {
-                        "input": MetaInputValue {
-                            name: "input",
-                            description: None,
-                            ty: "PetstorePetInput!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "PetstorePet",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "PUT",
-                                    url: "http://example.com/pet",
-                                    api_name: "petstore",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: Some(
-                                        RequestBody {
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "input",
-                                            ),
-                                            content_type: Json,
-                                        },
-                                    ),
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "addPet": MetaField {
-                    name: "addPet",
-                    description: None,
-                    args: {
-                        "input": MetaInputValue {
-                            name: "input",
-                            description: None,
-                            ty: "PetstorePetInput!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "PetstorePet",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "POST",
-                                    url: "http://example.com/pet",
-                                    api_name: "petstore",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: Some(
-                                        RequestBody {
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "input",
-                                            ),
-                                            content_type: Json,
-                                        },
-                                    ),
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "uploadFile": MetaField {
-                    name: "uploadFile",
-                    description: None,
-                    args: {
-                        "petId": MetaInputValue {
-                            name: "petId",
-                            description: None,
-                            ty: "Int!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                        "additionalMetadata": MetaInputValue {
-                            name: "additionalMetadata",
-                            description: None,
-                            ty: "String",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "PetstoreApiResponse",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "POST",
-                                    url: "http://example.com/pet/{petId}/uploadImage",
-                                    api_name: "petstore",
-                                    path_parameters: [
-                                        PathParameter {
-                                            name: "petId",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "petId",
-                                            ),
-                                        },
-                                    ],
-                                    query_parameters: [
-                                        QueryParameter {
-                                            name: "additionalMetadata",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "additionalMetadata",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                    ],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "placeOrder": MetaField {
-                    name: "placeOrder",
-                    description: None,
-                    args: {
-                        "input": MetaInputValue {
-                            name: "input",
-                            description: None,
-                            ty: "PetstoreOrderInput!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "PetstoreOrder",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "POST",
-                                    url: "http://example.com/store/order",
-                                    api_name: "petstore",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: Some(
-                                        RequestBody {
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "input",
-                                            ),
-                                            content_type: Json,
-                                        },
-                                    ),
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "createUsersWithListInput": MetaField {
-                    name: "createUsersWithListInput",
-                    description: None,
-                    args: {
-                        "input": MetaInputValue {
-                            name: "input",
-                            description: None,
-                            ty: "[PetstoreUserInput!]!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "PetstoreUser",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "POST",
-                                    url: "http://example.com/user/createWithList",
-                                    api_name: "petstore",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: Some(
-                                        RequestBody {
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "input",
-                                            ),
-                                            content_type: Json,
-                                        },
-                                    ),
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-            },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
-            },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "PetstoreMutation",
-            constraints: [],
-        },
-        "PetstoreOrder": Object {
-            name: "PetstoreOrder",
+        "OpenAPI1Order": Object {
+            name: "OpenAPI1Order",
             description: None,
             fields: {
                 "complete": MetaField {
@@ -650,7 +609,7 @@ Registry {
                     name: "status",
                     description: None,
                     args: {},
-                    ty: "PetstoreOrderStatus",
+                    ty: "OpenAPI1OrderStatus",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: false,
@@ -824,11 +783,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "PetstoreOrder",
+            rust_typename: "OpenAPI1Order",
             constraints: [],
         },
-        "PetstoreOrderInput": InputObject {
-            name: "PetstoreOrderInput",
+        "OpenAPI1OrderInput": InputObject {
+            name: "OpenAPI1OrderInput",
             description: None,
             input_fields: {
                 "complete": MetaInputValue {
@@ -842,7 +801,7 @@ Registry {
                 "status": MetaInputValue {
                     name: "status",
                     description: None,
-                    ty: "PetstoreOrderStatus",
+                    ty: "OpenAPI1OrderStatus",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -880,11 +839,11 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "PetstoreOrderInput",
+            rust_typename: "OpenAPI1OrderInput",
             oneof: false,
         },
-        "PetstoreOrderStatus": Enum {
-            name: "PetstoreOrderStatus",
+        "OpenAPI1OrderStatus": Enum {
+            name: "OpenAPI1OrderStatus",
             description: None,
             enum_values: {
                 "PLACED": MetaEnumValue {
@@ -912,17 +871,17 @@ Registry {
                     ),
                 },
             },
-            rust_typename: "PetstoreOrderStatus",
+            rust_typename: "OpenAPI1OrderStatus",
         },
-        "PetstorePet": Object {
-            name: "PetstorePet",
+        "OpenAPI1Pet": Object {
+            name: "OpenAPI1Pet",
             description: None,
             fields: {
                 "status": MetaField {
                     name: "status",
                     description: None,
                     args: {},
-                    ty: "PetstorePetStatus",
+                    ty: "OpenAPI1PetStatus",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: false,
@@ -961,7 +920,7 @@ Registry {
                     name: "tags",
                     description: None,
                     args: {},
-                    ty: "[PetstoreTag!]",
+                    ty: "[OpenAPI1Tag!]",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: false,
@@ -1025,7 +984,7 @@ Registry {
                     name: "category",
                     description: None,
                     args: {},
-                    ty: "PetstoreCategory",
+                    ty: "OpenAPI1Category",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: false,
@@ -1128,17 +1087,17 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "PetstorePet",
+            rust_typename: "OpenAPI1Pet",
             constraints: [],
         },
-        "PetstorePetInput": InputObject {
-            name: "PetstorePetInput",
+        "OpenAPI1PetInput": InputObject {
+            name: "OpenAPI1PetInput",
             description: None,
             input_fields: {
                 "status": MetaInputValue {
                     name: "status",
                     description: None,
-                    ty: "PetstorePetStatus",
+                    ty: "OpenAPI1PetStatus",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1146,7 +1105,7 @@ Registry {
                 "tags": MetaInputValue {
                     name: "tags",
                     description: None,
-                    ty: "[PetstoreTagInput!]!",
+                    ty: "[OpenAPI1TagInput!]!",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1162,7 +1121,7 @@ Registry {
                 "category": MetaInputValue {
                     name: "category",
                     description: None,
-                    ty: "PetstoreCategoryInput!",
+                    ty: "OpenAPI1CategoryInput!",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1184,11 +1143,11 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "PetstorePetInput",
+            rust_typename: "OpenAPI1PetInput",
             oneof: false,
         },
-        "PetstorePetStatus": Enum {
-            name: "PetstorePetStatus",
+        "OpenAPI1PetStatus": Enum {
+            name: "OpenAPI1PetStatus",
             description: None,
             enum_values: {
                 "AVAILABLE": MetaEnumValue {
@@ -1216,428 +1175,10 @@ Registry {
                     ),
                 },
             },
-            rust_typename: "PetstorePetStatus",
+            rust_typename: "OpenAPI1PetStatus",
         },
-        "PetstoreQuery": Object {
-            name: "PetstoreQuery",
-            description: None,
-            fields: {
-                "findPetsByStatus": MetaField {
-                    name: "findPetsByStatus",
-                    description: None,
-                    args: {
-                        "status": MetaInputValue {
-                            name: "status",
-                            description: None,
-                            ty: "PetstoreFindPetsByStatusStatus",
-                            default_value: Some(
-                                Enum(
-                                    Name(
-                                        "AVAILABLE",
-                                    ),
-                                ),
-                            ),
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "[PetstorePet!]",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/pet/findByStatus",
-                                    api_name: "petstore",
-                                    path_parameters: [],
-                                    query_parameters: [
-                                        QueryParameter {
-                                            name: "status",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "status",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                    ],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "findPetsByTags": MetaField {
-                    name: "findPetsByTags",
-                    description: None,
-                    args: {
-                        "tags": MetaInputValue {
-                            name: "tags",
-                            description: None,
-                            ty: "[String!]",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "[PetstorePet!]",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/pet/findByTags",
-                                    api_name: "petstore",
-                                    path_parameters: [],
-                                    query_parameters: [
-                                        QueryParameter {
-                                            name: "tags",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "tags",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                    ],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "pet": MetaField {
-                    name: "pet",
-                    description: None,
-                    args: {
-                        "petId": MetaInputValue {
-                            name: "petId",
-                            description: None,
-                            ty: "Int!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "PetstorePet",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/pet/{petId}",
-                                    api_name: "petstore",
-                                    path_parameters: [
-                                        PathParameter {
-                                            name: "petId",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "petId",
-                                            ),
-                                        },
-                                    ],
-                                    query_parameters: [],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "inventory": MetaField {
-                    name: "inventory",
-                    description: None,
-                    args: {},
-                    ty: "JSON",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/store/inventory",
-                                    api_name: "petstore",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "order": MetaField {
-                    name: "order",
-                    description: None,
-                    args: {
-                        "orderId": MetaInputValue {
-                            name: "orderId",
-                            description: None,
-                            ty: "Int!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "PetstoreOrder",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/store/order/{orderId}",
-                                    api_name: "petstore",
-                                    path_parameters: [
-                                        PathParameter {
-                                            name: "orderId",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "orderId",
-                                            ),
-                                        },
-                                    ],
-                                    query_parameters: [],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "loginUser": MetaField {
-                    name: "loginUser",
-                    description: None,
-                    args: {
-                        "password": MetaInputValue {
-                            name: "password",
-                            description: None,
-                            ty: "String",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                        "username": MetaInputValue {
-                            name: "username",
-                            description: None,
-                            ty: "String",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/user/login",
-                                    api_name: "petstore",
-                                    path_parameters: [],
-                                    query_parameters: [
-                                        QueryParameter {
-                                            name: "password",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "password",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                        QueryParameter {
-                                            name: "username",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "username",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                    ],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "user": MetaField {
-                    name: "user",
-                    description: None,
-                    args: {
-                        "username": MetaInputValue {
-                            name: "username",
-                            description: None,
-                            ty: "String!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "PetstoreUser",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/user/{username}",
-                                    api_name: "petstore",
-                                    path_parameters: [
-                                        PathParameter {
-                                            name: "username",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "username",
-                                            ),
-                                        },
-                                    ],
-                                    query_parameters: [],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-            },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
-            },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "PetstoreQuery",
-            constraints: [],
-        },
-        "PetstoreTag": Object {
-            name: "PetstoreTag",
+        "OpenAPI1Tag": Object {
+            name: "OpenAPI1Tag",
             description: None,
             fields: {
                 "name": MetaField {
@@ -1715,11 +1256,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "PetstoreTag",
+            rust_typename: "OpenAPI1Tag",
             constraints: [],
         },
-        "PetstoreTagInput": InputObject {
-            name: "PetstoreTagInput",
+        "OpenAPI1TagInput": InputObject {
+            name: "OpenAPI1TagInput",
             description: None,
             input_fields: {
                 "name": MetaInputValue {
@@ -1739,11 +1280,11 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "PetstoreTagInput",
+            rust_typename: "OpenAPI1TagInput",
             oneof: false,
         },
-        "PetstoreUser": Object {
-            name: "PetstoreUser",
+        "OpenAPI1User": Object {
+            name: "OpenAPI1User",
             description: None,
             fields: {
                 "userStatus": MetaField {
@@ -2013,11 +1554,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "PetstoreUser",
+            rust_typename: "OpenAPI1User",
             constraints: [],
         },
-        "PetstoreUserInput": InputObject {
-            name: "PetstoreUserInput",
+        "OpenAPI1UserInput": InputObject {
+            name: "OpenAPI1UserInput",
             description: None,
             input_fields: {
                 "userStatus": MetaInputValue {
@@ -2085,18 +1626,33 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "PetstoreUserInput",
+            rust_typename: "OpenAPI1UserInput",
             oneof: false,
         },
         "Query": Object {
             name: "Query",
             description: None,
             fields: {
-                "petstore": MetaField {
-                    name: "petstore",
+                "findPetsByStatus": MetaField {
+                    name: "findPetsByStatus",
                     description: None,
-                    args: {},
-                    ty: "PetstoreQuery!",
+                    args: {
+                        "status": MetaInputValue {
+                            name: "status",
+                            description: None,
+                            ty: "OpenAPI1FindPetsByStatusStatus",
+                            default_value: Some(
+                                Enum(
+                                    Name(
+                                        "AVAILABLE",
+                                    ),
+                                ),
+                            ),
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "[OpenAPI1Pet!]",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: false,
@@ -2110,7 +1666,369 @@ Registry {
                     edges: [],
                     relation: None,
                     plan: None,
-                    resolve: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "GET",
+                                    url: "http://example.com/pet/findByStatus",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [],
+                                    query_parameters: [
+                                        QueryParameter {
+                                            name: "status",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "status",
+                                            ),
+                                            encoding_style: FormExploded,
+                                        },
+                                    ],
+                                    request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "findPetsByTags": MetaField {
+                    name: "findPetsByTags",
+                    description: None,
+                    args: {
+                        "tags": MetaInputValue {
+                            name: "tags",
+                            description: None,
+                            ty: "[String!]",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "[OpenAPI1Pet!]",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "GET",
+                                    url: "http://example.com/pet/findByTags",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [],
+                                    query_parameters: [
+                                        QueryParameter {
+                                            name: "tags",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "tags",
+                                            ),
+                                            encoding_style: FormExploded,
+                                        },
+                                    ],
+                                    request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "pet": MetaField {
+                    name: "pet",
+                    description: None,
+                    args: {
+                        "petId": MetaInputValue {
+                            name: "petId",
+                            description: None,
+                            ty: "Int!",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "OpenAPI1Pet",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "GET",
+                                    url: "http://example.com/pet/{petId}",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [
+                                        PathParameter {
+                                            name: "petId",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "petId",
+                                            ),
+                                        },
+                                    ],
+                                    query_parameters: [],
+                                    request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "inventory": MetaField {
+                    name: "inventory",
+                    description: None,
+                    args: {},
+                    ty: "JSON",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "GET",
+                                    url: "http://example.com/store/inventory",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [],
+                                    query_parameters: [],
+                                    request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "order": MetaField {
+                    name: "order",
+                    description: None,
+                    args: {
+                        "orderId": MetaInputValue {
+                            name: "orderId",
+                            description: None,
+                            ty: "Int!",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "OpenAPI1Order",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "GET",
+                                    url: "http://example.com/store/order/{orderId}",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [
+                                        PathParameter {
+                                            name: "orderId",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "orderId",
+                                            ),
+                                        },
+                                    ],
+                                    query_parameters: [],
+                                    request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "loginUser": MetaField {
+                    name: "loginUser",
+                    description: None,
+                    args: {
+                        "password": MetaInputValue {
+                            name: "password",
+                            description: None,
+                            ty: "String",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                        "username": MetaInputValue {
+                            name: "username",
+                            description: None,
+                            ty: "String",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "String",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "GET",
+                                    url: "http://example.com/user/login",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [],
+                                    query_parameters: [
+                                        QueryParameter {
+                                            name: "password",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "password",
+                                            ),
+                                            encoding_style: FormExploded,
+                                        },
+                                        QueryParameter {
+                                            name: "username",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "username",
+                                            ),
+                                            encoding_style: FormExploded,
+                                        },
+                                    ],
+                                    request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+                "user": MetaField {
+                    name: "user",
+                    description: None,
+                    args: {
+                        "username": MetaInputValue {
+                            name: "username",
+                            description: None,
+                            ty: "String!",
+                            default_value: None,
+                            is_secret: false,
+                            rename: None,
+                        },
+                    },
+                    ty: "OpenAPI1User",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: false,
+                        max_age: 0,
+                        stale_while_revalidate: 0,
+                        invalidation_policy: None,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: Some(
+                        Resolver {
+                            id: None,
+                            type: Http(
+                                HttpResolver {
+                                    method: "GET",
+                                    url: "http://example.com/user/{username}",
+                                    api_name: "OpenAPI1",
+                                    path_parameters: [
+                                        PathParameter {
+                                            name: "username",
+                                            variable_resolve_definition: ConnectorInputTypeName(
+                                                "username",
+                                            ),
+                                        },
+                                    ],
+                                    query_parameters: [],
+                                    request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
                     transformer: None,
                     required_operation: None,
                     auth: None,
@@ -2155,7 +2073,7 @@ Registry {
     },
     schemas: {},
     http_headers: {
-        "petstore": [],
+        "OpenAPI1": [],
     },
     search_config: Config {
         indices: {},

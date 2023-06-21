@@ -94,7 +94,7 @@ mod tests {
     fn test_connector_models_can_be_extended() {
         let output = futures::executor::block_on(crate::parse(
             r#"
-        extend schema @openapi(name: "stripe", schema: "http://example.com")
+        extend schema @openapi(namespace: "stripe", schema: "http://example.com")
 
         extend type StripeCustomer {
             email: String @resolver(name: "email")
@@ -118,7 +118,7 @@ mod tests {
     // Technically there's nothing wrong with this first one, but I'd expect it to not work well,
     // so want to make sure it errors
     #[case::extending_native_type(r#"
-        extend schema @openapi(name: "stripe", schema: "http://example.com")
+        extend schema @openapi(namespace: "stripe", schema: "http://example.com")
 
         extend type Foo {
             foo: String! @resolver(name: "hello")
@@ -130,7 +130,7 @@ mod tests {
         "Type `Foo` is present multiple times."
     ])]
     #[case::extend_missing_type(r#"
-        extend schema @openapi(name: "stripe", schema: "http://example.com")
+        extend schema @openapi(namespace: "stripe", schema: "http://example.com")
 
         extend type Blah {
             foo: String! @resolver(name: "hello")
@@ -139,7 +139,7 @@ mod tests {
         "Type 'Blah' does not exist"
     ])]
     #[case::extend_without_resolver(r#"
-        extend schema @openapi(name: "stripe", schema: "http://example.com")
+        extend schema @openapi(namespace: "stripe", schema: "http://example.com")
 
         extend type StripeCustomer {
             foo: String!

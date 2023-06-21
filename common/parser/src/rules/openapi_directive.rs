@@ -7,7 +7,14 @@ use super::{directive::Directive, visitor::Visitor};
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenApiDirective {
-    pub name: String,
+    /// A unique identifier for the given directive.
+    ///
+    /// This ID *MUST NOT* be persisted (and defaults to `None` when deserializing), as the ID is
+    /// re-generated whenever the schema is parsed.
+    #[serde(skip)]
+    pub id: Option<u16>,
+    #[serde(alias = "name")]
+    pub namespace: Option<String>,
     pub url: Option<Url>,
     #[serde(rename = "schema")]
     pub schema_url: String,
@@ -62,8 +69,8 @@ impl Directive for OpenApiDirective {
     fn definition() -> String {
         r#"
         directive @openapi(
-          "The name of this OpenAPI source"
-          name: String!
+          "The namespace of this OpenAPI source"
+          namespace: String
           "The URL of the API"
           url: Url!,
           "The URL of this APIs schema"
@@ -135,7 +142,7 @@ mod tests {
         let schema = r#"
             extend schema
               @openapi(
-                name: "stripe",
+                namespace: "stripe",
                 url: "https://api.stripe.com",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 headers: [{ name: "authorization", value: "Bearer {{env.STRIPE_API_KEY}}"}],
@@ -146,7 +153,12 @@ mod tests {
         insta::assert_debug_snapshot!(connector_parsers.openapi_directives.lock().unwrap(), @r###"
         [
             OpenApiDirective {
-                name: "stripe",
+                id: Some(
+                    0,
+                ),
+                namespace: Some(
+                    "stripe",
+                ),
                 url: Some(
                     Url {
                         scheme: "https",
@@ -191,7 +203,7 @@ mod tests {
             r#"
                     extend schema
                       @openapi(
-                        name: "stripe",
+                        namespace: "stripe",
                         url: "https://api.stripe.com",
                         schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                         transforms: {{
@@ -238,7 +250,7 @@ mod tests {
             r#"
             extend schema
               @openapi(
-                name: "stripe",
+                namespace: "stripe",
                 url: "https://api.stripe.com",
                 headers: [{ name: "authorization", value: "BLAH" }],
               )
@@ -253,7 +265,7 @@ mod tests {
             r#"
             extend schema
               @openapi(
-                name: "stripe",
+                namespace: "stripe",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 url: "https://api.stripe.com",
                 transforms: {queryNaming: PIES}

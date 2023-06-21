@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use dynaql::registry::{resolvers::http::ExpectedStatusCode, Registry};
 use graph::OpenApiGraph;
 use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
@@ -32,23 +34,40 @@ pub fn parse_spec(
 
     output::output(&graph, registry);
 
-    registry.http_headers.insert(metadata.name, metadata.headers);
+    registry
+        .http_headers
+        .insert(metadata.unique_namespace().to_string(), metadata.headers);
 
     Ok(())
 }
 
 #[derive(Clone, Debug)]
 pub struct ApiMetadata {
-    pub name: String,
+    pub id: u16,
+    pub namespace: Option<String>,
     pub url: Option<Url>,
     pub headers: Vec<(String, String)>,
     pub query_naming: QueryNamingStrategy,
 }
 
+impl ApiMetadata {
+    pub fn unique_namespace(&self) -> Cow<'_, str> {
+        self.namespace
+            .as_deref()
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Owned(format!("OpenAPI{}", self.id)))
+    }
+
+    pub fn namespaced(&self, name: &str) -> String {
+        format!("{}_{}", self.unique_namespace(), name)
+    }
+}
+
 impl From<parser::OpenApiDirective> for ApiMetadata {
     fn from(val: parser::OpenApiDirective) -> Self {
         ApiMetadata {
-            name: val.name.clone(),
+            id: val.id.unwrap_or_default(),
+            namespace: val.namespace.clone(),
             url: val.url.clone(),
             headers: val.headers(),
             query_naming: val.transforms.query_naming,
@@ -181,7 +200,7 @@ mod tests {
     fn test_stripe_output() {
         let metadata = ApiMetadata {
             url: None,
-            ..metadata("stripe")
+            ..metadata(Some("stripe"))
         };
         insta::assert_snapshot!(build_registry("test_data/stripe.openapi.json", Format::Json, metadata)
             .unwrap()
@@ -192,7 +211,7 @@ mod tests {
     fn test_stripe_output_json() {
         let metadata = ApiMetadata {
             url: None,
-            ..metadata("stripe")
+            ..metadata(Some("stripe"))
         };
         let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata).unwrap();
         insta::assert_json_snapshot!(registry);
@@ -200,7 +219,20 @@ mod tests {
 
     #[test]
     fn test_petstore_output() {
-        let registry = build_registry("test_data/petstore.openapi.json", Format::Json, metadata("petstore")).unwrap();
+        let registry = build_registry(
+            "test_data/petstore.openapi.json",
+            Format::Json,
+            metadata(Some("petstore")),
+        )
+        .unwrap();
+
+        insta::assert_snapshot!(registry.export_sdl(false));
+        insta::assert_debug_snapshot!(registry);
+    }
+
+    #[test]
+    fn test_flat_output() {
+        let registry = build_registry("test_data/petstore.openapi.json", Format::Json, metadata(None)).unwrap();
 
         insta::assert_snapshot!(registry.export_sdl(false));
         insta::assert_debug_snapshot!(registry);
@@ -210,7 +242,7 @@ mod tests {
     fn test_url_without_host_failure() {
         let metadata = ApiMetadata {
             url: None,
-            ..metadata("petstore")
+            ..metadata(Some("petstore"))
         };
         assert_matches!(
             build_registry("test_data/petstore.openapi.json", Format::Json, metadata)
@@ -229,7 +261,7 @@ mod tests {
             Format::Yaml,
             ApiMetadata {
                 query_naming: QueryNamingStrategy::OperationId,
-                ..metadata("openai")
+                ..metadata(Some("openai"))
             }
         )
         .unwrap()
@@ -243,7 +275,7 @@ mod tests {
             Format::Json,
             ApiMetadata {
                 url: None,
-                ..metadata("planetscale")
+                ..metadata(Some("planetscale"))
             }
         )
         .unwrap()
@@ -252,16 +284,18 @@ mod tests {
 
     #[test]
     fn test_impossible_unions() {
-        insta::assert_snapshot!(
-            build_registry("test_data/impossible-unions.json", Format::Json, metadata("petstore"))
-                .unwrap()
-                .export_sdl(false)
-        );
+        insta::assert_snapshot!(build_registry(
+            "test_data/impossible-unions.json",
+            Format::Json,
+            metadata(Some("petstore"))
+        )
+        .unwrap()
+        .export_sdl(false));
     }
 
     #[test]
     fn test_stripe_discrimnator_detection() {
-        let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe")).unwrap();
+        let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata(Some("stripe"))).unwrap();
         let discriminators = registry
             .types
             .values()
@@ -289,9 +323,10 @@ mod tests {
         Ok(registry)
     }
 
-    fn metadata(name: &str) -> ApiMetadata {
+    fn metadata(name: Option<&str>) -> ApiMetadata {
         ApiMetadata {
-            name: name.into(),
+            id: 1,
+            namespace: name.map(Into::into),
             url: Some(Url::parse("http://example.com").unwrap()),
             headers: vec![],
             query_naming: QueryNamingStrategy::SchemaName,
