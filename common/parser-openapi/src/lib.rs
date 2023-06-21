@@ -36,7 +36,7 @@ pub fn parse_spec(
 
     registry
         .http_headers
-        .insert(format!("OpenAPIConnector{}", metadata.id), metadata.headers);
+        .insert(metadata.unique_namespace().to_string(), metadata.headers);
 
     Ok(())
 }

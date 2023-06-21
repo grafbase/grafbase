@@ -2155,7 +2155,7 @@ Registry {
     },
     schemas: {},
     http_headers: {
-        "OpenAPIConnector1": [],
+        "petstore": [],
     },
     search_config: Config {
         indices: {},
