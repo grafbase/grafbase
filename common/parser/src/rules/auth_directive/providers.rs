@@ -87,8 +87,7 @@ impl AuthProvider {
                     (_, Some(jwks_endpoint)) => Self::validate_url(jwks_endpoint, "JWKS provider").map(|_| ()),
                 }?;
             }
-            AuthProvider::Jwt { .. } => {}
-            AuthProvider::Authorizer { .. } => {}
+            AuthProvider::Jwt { .. } | AuthProvider::Authorizer { .. } => {}
         }
         Ok(self)
     }
