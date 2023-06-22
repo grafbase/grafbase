@@ -108,7 +108,7 @@ pub async fn spawn_miniflare(
             let lines_stream = LinesStream::new(tokio::io::BufReader::new(stdout).lines())
                 .inspect_ok(|line| trace!("miniflare: {line}"));
 
-            let filtered_lines_stream = lines_stream.try_filter_map(|line| {
+            let filtered_lines_stream = lines_stream.try_filter_map(|line: String| {
                 futures_util::future::ready(Ok(line
                     .split("Listening on")
                     .skip(1)

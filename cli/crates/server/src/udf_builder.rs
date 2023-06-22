@@ -148,10 +148,12 @@ pub async fn build(
     let package_root_path = project.grafbase_directory_path.as_path();
     let udf_input_file_path_without_extension = match udf_kind {
         UdfKind::Resolver => project.resolvers_source_path.join(udf_name),
+        UdfKind::Authorizer => project.authorizers_source_path.join(udf_name),
     };
 
     let udf_build_artifact_directory_path = match udf_kind {
         UdfKind::Resolver => project.resolvers_build_artifact_path.join(udf_name),
+        UdfKind::Authorizer => project.authorizers_build_artifact_path.join(udf_name),
     };
 
     let mut udf_input_file_path = None;
@@ -247,6 +249,9 @@ pub async fn build(
         UdfKind::Resolver => udf_build_artifact_directory_path
             .join("resolver")
             .with_extension(udf_input_file_path.extension().unwrap()),
+        UdfKind::Authorizer => udf_build_artifact_directory_path
+            .join("auth")
+            .with_extension(udf_input_file_path.extension().unwrap()),
     };
 
     trace!("Copying the main file of the {udf_kind}");
@@ -257,11 +262,6 @@ pub async fn build(
 
     let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
         "${UDF_MAIN_FILE_PATH}",
-        udf_js_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
-    );
-    // TODO: remove after wrapper-worker.js in api repo is updated.
-    let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
-        "${RESOLVER_MAIN_FILE_PATH}",
         udf_js_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
     );
     tokio::fs::write(&udf_build_entrypoint_path, udf_wrapper_worker_contents)

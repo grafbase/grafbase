@@ -582,7 +582,7 @@ async fn authorizer_with_no_headers_should_work() {
         return { identity: { sub:'user1', groups: ['backend'] } };
     }"#;
 
-    env.write_resolver(format!("{authorizer_name}.js"), authorizer_content);
+    env.write_authorizer(format!("{authorizer_name}.js"), authorizer_content);
     env.set_variables(HashMap::from([(
         "AUTHORIZER_NAME".to_string(),
         authorizer_name.to_string(),
@@ -606,7 +606,7 @@ async fn authorizer_with_headers_should_work() {
         return { identity: { groups: [context.request.headers['h1']] } };
     }"#;
 
-    env.write_resolver(format!("{authorizer_name}.js"), authorizer_content);
+    env.write_authorizer(format!("{authorizer_name}.js"), authorizer_content);
     env.set_variables(HashMap::from([(
         "AUTHORIZER_NAME".to_string(),
         authorizer_name.to_string(),
