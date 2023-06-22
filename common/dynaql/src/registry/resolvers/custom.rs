@@ -3,9 +3,9 @@ use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::{Context, Error};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
-use grafbase_runtime::custom_resolvers::{
-    CustomResolverRequest, CustomResolverRequestContext, CustomResolverRequestContextRequest,
+use grafbase_runtime::udf::{
     CustomResolverRequestInfo, CustomResolverRequestPayload, CustomResolversEngine, UdfKind,
+    UdfRequest, UdfRequestContext, UdfRequestContextRequest,
 };
 
 use send_wrapper::SendWrapper;
@@ -98,13 +98,13 @@ impl ResolverTrait for CustomResolver {
             .collect::<serde_json::Result<_>>()?;
         let future = SendWrapper::new(custom_resolvers_engine.invoke(
             ctx.data()?,
-            CustomResolverRequest {
+            UdfRequest {
                 name: self.resolver_name.clone(),
                 payload: CustomResolverRequestPayload {
                     arguments,
                     parent: Some(value),
-                    context: CustomResolverRequestContext {
-                        request: CustomResolverRequestContextRequest {
+                    context: UdfRequestContext {
+                        request: UdfRequestContextRequest {
                             headers: serde_json::to_value(&graphql.headers).expect("must be valid"),
                         },
                     },
