@@ -4,6 +4,6 @@ extend schema
     url: "https://api.github.com/"
     schema: "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/ghes-3.0/ghes-3.0.json"
     headers: [
-      { name: "Authorization", value: "Bearer {{ env.GITHUB_API_KEY }}" }
+      { name: "Authorization", value: "Bearer {{ env.GITHUB_ACCESS_TOKEN }}" }
     ]
   )

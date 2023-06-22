@@ -6,5 +6,5 @@ type TodoList @model {
 type Todo @model {
   list: TodoList
   title: String!
-  complete: Boolean!
+  complete: Boolean @default(value: false)
 }

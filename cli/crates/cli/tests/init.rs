@@ -40,6 +40,7 @@ fn init() {
 
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("schema.graphql").exists());
+    assert!(!env.directory.join("package.json").exists());
 
     env.remove_grafbase_dir(None);
 

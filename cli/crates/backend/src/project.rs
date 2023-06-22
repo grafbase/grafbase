@@ -14,7 +14,7 @@ use serde::Deserialize;
 use std::fs;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::iter::Iterator;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fmt};
 use tokio_stream::StreamExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
@@ -113,7 +113,7 @@ pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), Back
             if template.contains('/') {
                 if let Ok(repo_url) = Url::parse(template) {
                     match repo_url.host_str() {
-                        Some("github.com") => handle_github_repo_url(grafbase_path, &repo_url).await?,
+                        Some("github.com") => handle_github_repo_url(&grafbase_path, &repo_url).await?,
                         _ => return Err(BackendError::UnsupportedTemplateURL(template.to_string())),
                     }
                 } else {
@@ -121,10 +121,26 @@ pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), Back
                 }
             } else {
                 download_github_template(
-                    grafbase_path,
+                    &grafbase_path,
                     GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template }),
                 )
                 .await?;
+            }
+
+            if std::fs::read_dir(&grafbase_path)
+                .expect("We must have a valid directory in this point.")
+                .any(|item| {
+                    item.ok()
+                        .and_then(|dir_entry| dir_entry.path().extension().map(|extension| extension == "ts"))
+                        .unwrap_or_default()
+                })
+            {
+                environment::add_dev_dependency_to_package_json(
+                    &project_path,
+                    GRAFBASE_SDK_PACKAGE_NAME,
+                    GRAFBASE_SDK_PACKAGE_VERSION,
+                )
+                .map_err(BackendError::CommonError)?;
             }
         }
         Template::FromDefault(config_type) => {
@@ -171,7 +187,7 @@ pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), Back
     Ok(())
 }
 
-async fn handle_github_repo_url(grafbase_path: PathBuf, repo_url: &Url) -> Result<(), BackendError> {
+async fn handle_github_repo_url(grafbase_path: &Path, repo_url: &Url) -> Result<(), BackendError> {
     if let Some(mut segments) = repo_url.path_segments().map(Iterator::collect::<Vec<_>>) {
         // remove trailing slashes to prevent extra path parameters
         if segments.last() == Some(&"") {
@@ -303,7 +319,7 @@ impl<'a> GitHubTemplate<'a> {
     }
 }
 
-async fn download_github_template(grafbase_path: PathBuf, template: GitHubTemplate<'_>) -> Result<(), BackendError> {
+async fn download_github_template(grafbase_path: &Path, template: GitHubTemplate<'_>) -> Result<(), BackendError> {
     let ExternalGitHubTemplate {
         org,
         repo,
@@ -335,7 +351,7 @@ async fn download_github_template(grafbase_path: PathBuf, template: GitHubTempla
 }
 
 async fn stream_github_archive<'a>(
-    grafbase_path: PathBuf,
+    grafbase_path: &Path,
     org_and_repo: &'a str,
     template_path: PathBuf,
     branch: &'a str,

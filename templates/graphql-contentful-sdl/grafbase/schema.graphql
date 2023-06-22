@@ -1,7 +1,7 @@
 extend schema
   @graphql(
     name: "Contentful"
-    url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
+    url: "{{ env.CONTENTFUL_API_URL }}"
     headers: [
       { name: "Authorization", value: "Bearer {{ env.CONTENTFUL_API_TOKEN }}" }
     ]
