@@ -2,7 +2,6 @@ use crate::bridge::Bridge;
 use grafbase_runtime::{
     self,
     udf::{CustomResolverError, CustomResolverResponse, UdfInvoker, UdfRequest},
-    GraphqlRequestExecutionContext,
 };
 use serde::Serialize;
 
@@ -27,14 +26,14 @@ impl UdfInvokerImpl {
 impl<Payload: Serialize> UdfInvoker<Payload> for UdfInvokerImpl {
     async fn invoke(
         &self,
-        ctx: &GraphqlRequestExecutionContext,
+        ray_id: &str,
         request: UdfRequest<Payload>,
     ) -> Result<CustomResolverResponse, CustomResolverError>
     where
         Payload: 'async_trait,
     {
         self.bridge.request("/invoke-udf", request).await.map_err(|error| {
-            log::error!(ctx.ray_id, "Resolver invocation failed with: {}", error);
+            log::error!(ray_id, "Resolver invocation failed with: {}", error);
             CustomResolverError::ServerError
         })
     }

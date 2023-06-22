@@ -7,6 +7,7 @@ use grafbase_runtime::udf::{
     CustomResolverRequestInfo, CustomResolverRequestPayload, CustomResolversEngine, UdfKind,
     UdfRequest, UdfRequestContext, UdfRequestContextRequest,
 };
+use grafbase_runtime::GraphqlRequestExecutionContext;
 
 use send_wrapper::SendWrapper;
 
@@ -97,7 +98,7 @@ impl ResolverTrait for CustomResolver {
             .map(|(name, value)| value.into_json().map(|value| (name.to_string(), value)))
             .collect::<serde_json::Result<_>>()?;
         let future = SendWrapper::new(custom_resolvers_engine.invoke(
-            ctx.data()?,
+            &ctx.data::<GraphqlRequestExecutionContext>()?.ray_id,
             UdfRequest {
                 name: self.resolver_name.clone(),
                 payload: CustomResolverRequestPayload {
