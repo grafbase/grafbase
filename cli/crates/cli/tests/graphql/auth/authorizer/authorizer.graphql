@@ -1,7 +1,7 @@
 schema
   @auth(
     providers: [{ type: authorizer, name: "{{ env.AUTHORIZER_NAME }}" }]
-    rules: [{ allow: groups, groups: ["backend"] }]
+    rules: [{ allow: groups, groups: ["backend"] }, { allow: public, operations: [read] }]
   ) {
   query: Query
 }
