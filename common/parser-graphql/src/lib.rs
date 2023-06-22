@@ -18,11 +18,10 @@ use cynic::{
 };
 use cynic_introspection::{query::IntrospectionQuery, SchemaError};
 use dynaql::{
-    indexmap::IndexMap,
     registry::{
         resolvers::{graphql, Resolver, ResolverType},
         transformers::Transformer,
-        Deprecation, MetaField, MetaType, Registry,
+        Deprecation, MetaField, ObjectType, Registry,
     },
     CacheControl,
 };
@@ -279,19 +278,7 @@ impl Parser {
         let root = registry
             .types
             .entry(registry.query_type.clone())
-            .or_insert_with(|| MetaType::Object {
-                name: registry.query_type.clone(),
-                description: None,
-                fields: IndexMap::new(),
-                cache_control: CacheControl::default(),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: registry.query_type.clone(),
-                constraints: vec![],
-            });
+            .or_insert_with(|| ObjectType::new(registry.query_type.clone(), []).into());
 
         let Some(fields) = root.fields_mut() else {
             return
@@ -323,19 +310,7 @@ impl Parser {
         let root = registry
             .types
             .entry(registry.query_type.clone())
-            .or_insert_with(|| MetaType::Object {
-                name: registry.query_type.clone(),
-                description: None,
-                fields: IndexMap::new(),
-                cache_control: CacheControl::default(),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: registry.query_type.clone(),
-                constraints: vec![],
-            });
+            .or_insert_with(|| ObjectType::new(registry.query_type.clone(), []).into());
 
         let Some(fields) = root.fields_mut() else {
             return
@@ -365,19 +340,7 @@ impl Parser {
         let root = registry
             .types
             .entry(mutation_type.clone())
-            .or_insert_with(|| MetaType::Object {
-                name: mutation_type.clone(),
-                description: None,
-                fields: IndexMap::new(),
-                cache_control: CacheControl::default(),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: mutation_type.clone(),
-                constraints: vec![],
-            });
+            .or_insert_with(|| ObjectType::new(mutation_type.clone(), []).into());
 
         let Some(fields) = root.fields_mut() else {
             return
@@ -413,19 +376,7 @@ impl Parser {
         let root = registry
             .types
             .entry(mutation_type.clone())
-            .or_insert_with(|| MetaType::Object {
-                name: mutation_type.clone(),
-                description: None,
-                fields: IndexMap::new(),
-                cache_control: CacheControl::default(),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: mutation_type.clone(),
-                constraints: vec![],
-            });
+            .or_insert_with(|| ObjectType::new(mutation_type.clone(), []).into());
 
         let Some(fields) = root.fields_mut() else {
             return

@@ -356,7 +356,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 registry.create_output_type::<Self, _>(|registry| {
                     #(#registry_types)*
 
-                    #crate_name::registry::MetaType::Interface {
+                    #crate_name::registry::MetaType::Interface(#crate_name::registry::InterfaceType {
                         name: ::std::string::ToString::to_string(#gql_typename),
                         description: #desc,
                         fields: {
@@ -373,7 +373,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                         keys: ::std::option::Option::None,
                         visible: #visible,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
-                    }
+                    })
                 })
             }
 

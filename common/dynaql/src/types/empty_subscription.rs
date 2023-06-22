@@ -18,18 +18,8 @@ impl SubscriptionType for EmptySubscription {
     }
 
     fn create_type_info(registry: &mut registry::Registry) -> String {
-        registry.create_subscription_type::<Self, _>(|_| registry::MetaType::Object {
-            name: "EmptySubscription".to_string(),
-            description: None,
-            fields: Default::default(),
-            cache_control: Default::default(),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: true,
-            is_node: false,
-            rust_typename: std::any::type_name::<Self>().to_owned(),
-            constraints: vec![],
+        registry.create_subscription_type::<Self, _>(|_| {
+            registry::ObjectType::new("EmptySubscription".into(), []).into()
         })
     }
 

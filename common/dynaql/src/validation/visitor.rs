@@ -634,9 +634,7 @@ fn visit_selection<'a, V: Visitor<'a>>(
                     },
                 );
             } else if ctx.current_type().map(|ty| match ty {
-                MetaType::Object {
-                    is_subscription, ..
-                } => *is_subscription,
+                MetaType::Object(object) => object.is_subscription,
                 _ => false,
             }) == Some(true)
             {
@@ -753,13 +751,15 @@ fn visit_input_value<'a, V: Visitor<'a>>(
             if let Some(expected_ty) = expected_ty {
                 let expected_ty = expected_ty.unwrap_non_null();
                 if let MetaTypeName::Named(expected_ty) = expected_ty {
-                    if let Some(MetaType::InputObject { input_fields, .. }) = ctx
+                    if let Some(MetaType::InputObject(input_object)) = ctx
                         .registry
                         .types
                         .get(MetaTypeName::concrete_typename(expected_ty))
                     {
                         for (item_key, item_value) in values {
-                            if let Some(input_value) = input_fields.get(item_key.as_str()) {
+                            if let Some(input_value) =
+                                input_object.input_fields.get(item_key.as_str())
+                            {
                                 visit_input_value(
                                     v,
                                     ctx,

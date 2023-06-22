@@ -4,8 +4,8 @@
 //! registry.
 
 use super::{
-    Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, Registry,
-    __DirectiveLocation,
+    Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType,
+    Registry, __DirectiveLocation,
 };
 
 impl From<cynic_introspection::Schema> for Registry {
@@ -130,23 +130,9 @@ impl From<cynic_introspection::Type> for MetaType {
 
 impl From<cynic_introspection::ObjectType> for MetaType {
     fn from(object: cynic_introspection::ObjectType) -> Self {
-        Self::Object {
-            name: object.name.clone(),
-            description: object.description,
-            fields: object
-                .fields
-                .into_iter()
-                .map(|v| (v.name.clone(), v.into()))
-                .collect(),
-            cache_control: Default::default(),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: object.name,
-            constraints: vec![],
-        }
+        ObjectType::new(object.name, object.fields.into_iter().map(Into::into))
+            .with_description(object.description)
+            .into()
     }
 }
 
@@ -164,34 +150,17 @@ impl From<cynic_introspection::Deprecated> for Deprecation {
 
 impl From<cynic_introspection::InputObjectType> for MetaType {
     fn from(input: cynic_introspection::InputObjectType) -> Self {
-        Self::InputObject {
-            name: input.name.clone(),
-            description: input.description,
-            input_fields: input
-                .fields
-                .into_iter()
-                .map(|v| (v.name.clone(), v.into()))
-                .collect(),
-            visible: None,
-            rust_typename: input.name,
-            oneof: false,
-        }
+        super::InputObjectType::new(input.name, input.fields.into_iter().map(Into::into))
+            .with_description(input.description)
+            .into()
     }
 }
 
 impl From<cynic_introspection::EnumType> for MetaType {
     fn from(enum_type: cynic_introspection::EnumType) -> Self {
-        Self::Enum {
-            name: enum_type.name.clone(),
-            description: enum_type.description,
-            enum_values: enum_type
-                .values
-                .into_iter()
-                .map(|v| (v.name.clone(), v.into()))
-                .collect(),
-            visible: None,
-            rust_typename: enum_type.name,
-        }
+        super::EnumType::new(enum_type.name, enum_type.values.into_iter().map(Into::into))
+            .with_description(enum_type.description)
+            .into()
     }
 }
 
@@ -209,7 +178,7 @@ impl From<cynic_introspection::EnumValue> for MetaEnumValue {
 
 impl From<cynic_introspection::InterfaceType> for MetaType {
     fn from(interface: cynic_introspection::InterfaceType) -> Self {
-        Self::Interface {
+        Self::Interface(super::InterfaceType {
             name: interface.name.clone(),
             description: interface.description,
             fields: interface
@@ -222,33 +191,33 @@ impl From<cynic_introspection::InterfaceType> for MetaType {
             keys: None,
             visible: None,
             rust_typename: interface.name,
-        }
+        })
     }
 }
 
 impl From<cynic_introspection::UnionType> for MetaType {
     fn from(union: cynic_introspection::UnionType) -> Self {
-        Self::Union {
+        Self::Union(super::UnionType {
             name: union.name.clone(),
             description: union.description,
             possible_types: union.possible_types.into_iter().collect(),
             visible: None,
             rust_typename: union.name,
             discriminators: None,
-        }
+        })
     }
 }
 
 impl From<cynic_introspection::ScalarType> for MetaType {
     fn from(scalar: cynic_introspection::ScalarType) -> Self {
-        Self::Scalar {
+        Self::Scalar(super::ScalarType {
             name: scalar.name,
             description: scalar.description,
             is_valid: None,
             visible: None,
             specified_by_url: None,
             parser: super::ScalarParser::PassThrough,
-        }
+        })
     }
 }
 

@@ -13,8 +13,8 @@ expression: "Registry::from(schema)"
     },
     "Film": {
       "O": {
-        "N": "Film",
-        "D": "A single film.",
+        "n": "Film",
+        "d": "A single film.",
         "f": {
           "characterConnection": {
             "n": "characterConnection",
@@ -200,8 +200,8 @@ expression: "Registry::from(schema)"
     },
     "FilmCharactersConnection": {
       "O": {
-        "N": "FilmCharactersConnection",
-        "D": "A connection to a list of items.",
+        "n": "FilmCharactersConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "characters": {
             "n": "characters",
@@ -237,8 +237,8 @@ expression: "Registry::from(schema)"
     },
     "FilmCharactersEdge": {
       "O": {
-        "N": "FilmCharactersEdge",
-        "D": "An edge in a connection.",
+        "n": "FilmCharactersEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -260,8 +260,8 @@ expression: "Registry::from(schema)"
     },
     "FilmPlanetsConnection": {
       "O": {
-        "N": "FilmPlanetsConnection",
-        "D": "A connection to a list of items.",
+        "n": "FilmPlanetsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -297,8 +297,8 @@ expression: "Registry::from(schema)"
     },
     "FilmPlanetsEdge": {
       "O": {
-        "N": "FilmPlanetsEdge",
-        "D": "An edge in a connection.",
+        "n": "FilmPlanetsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -320,8 +320,8 @@ expression: "Registry::from(schema)"
     },
     "FilmSpeciesConnection": {
       "O": {
-        "N": "FilmSpeciesConnection",
-        "D": "A connection to a list of items.",
+        "n": "FilmSpeciesConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -357,8 +357,8 @@ expression: "Registry::from(schema)"
     },
     "FilmSpeciesEdge": {
       "O": {
-        "N": "FilmSpeciesEdge",
-        "D": "An edge in a connection.",
+        "n": "FilmSpeciesEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -380,8 +380,8 @@ expression: "Registry::from(schema)"
     },
     "FilmStarshipsConnection": {
       "O": {
-        "N": "FilmStarshipsConnection",
-        "D": "A connection to a list of items.",
+        "n": "FilmStarshipsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -417,8 +417,8 @@ expression: "Registry::from(schema)"
     },
     "FilmStarshipsEdge": {
       "O": {
-        "N": "FilmStarshipsEdge",
-        "D": "An edge in a connection.",
+        "n": "FilmStarshipsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -440,8 +440,8 @@ expression: "Registry::from(schema)"
     },
     "FilmVehiclesConnection": {
       "O": {
-        "N": "FilmVehiclesConnection",
-        "D": "A connection to a list of items.",
+        "n": "FilmVehiclesConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -477,8 +477,8 @@ expression: "Registry::from(schema)"
     },
     "FilmVehiclesEdge": {
       "O": {
-        "N": "FilmVehiclesEdge",
-        "D": "An edge in a connection.",
+        "n": "FilmVehiclesEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -500,8 +500,8 @@ expression: "Registry::from(schema)"
     },
     "FilmsConnection": {
       "O": {
-        "N": "FilmsConnection",
-        "D": "A connection to a list of items.",
+        "n": "FilmsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -537,8 +537,8 @@ expression: "Registry::from(schema)"
     },
     "FilmsEdge": {
       "O": {
-        "N": "FilmsEdge",
-        "D": "An edge in a connection.",
+        "n": "FilmsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -581,9 +581,9 @@ expression: "Registry::from(schema)"
     },
     "Node": {
       "I": {
-        "n_": "Node",
-        "d_": "An object with an ID",
-        "F": {
+        "n": "Node",
+        "d": "An object with an ID",
+        "f": {
           "id": {
             "n": "id",
             "d": "The id of the object.",
@@ -592,7 +592,7 @@ expression: "Registry::from(schema)"
             "D": "N"
           }
         },
-        "P": [
+        "p": [
           "Film",
           "Species",
           "Planet",
@@ -600,13 +600,13 @@ expression: "Registry::from(schema)"
           "Starship",
           "Vehicle"
         ],
-        "R": "Node"
+        "r": "Node"
       }
     },
     "PageInfo": {
       "O": {
-        "N": "PageInfo",
-        "D": "Information about pagination in a connection.",
+        "n": "PageInfo",
+        "d": "Information about pagination in a connection.",
         "f": {
           "endCursor": {
             "n": "endCursor",
@@ -642,8 +642,8 @@ expression: "Registry::from(schema)"
     },
     "PeopleConnection": {
       "O": {
-        "N": "PeopleConnection",
-        "D": "A connection to a list of items.",
+        "n": "PeopleConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -679,8 +679,8 @@ expression: "Registry::from(schema)"
     },
     "PeopleEdge": {
       "O": {
-        "N": "PeopleEdge",
-        "D": "An edge in a connection.",
+        "n": "PeopleEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -702,8 +702,8 @@ expression: "Registry::from(schema)"
     },
     "Person": {
       "O": {
-        "N": "Person",
-        "D": "An individual person or character within the Star Wars universe.",
+        "n": "Person",
+        "d": "An individual person or character within the Star Wars universe.",
         "f": {
           "birthYear": {
             "n": "birthYear",
@@ -871,8 +871,8 @@ expression: "Registry::from(schema)"
     },
     "PersonFilmsConnection": {
       "O": {
-        "N": "PersonFilmsConnection",
-        "D": "A connection to a list of items.",
+        "n": "PersonFilmsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -908,8 +908,8 @@ expression: "Registry::from(schema)"
     },
     "PersonFilmsEdge": {
       "O": {
-        "N": "PersonFilmsEdge",
-        "D": "An edge in a connection.",
+        "n": "PersonFilmsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -931,8 +931,8 @@ expression: "Registry::from(schema)"
     },
     "PersonStarshipsConnection": {
       "O": {
-        "N": "PersonStarshipsConnection",
-        "D": "A connection to a list of items.",
+        "n": "PersonStarshipsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -968,8 +968,8 @@ expression: "Registry::from(schema)"
     },
     "PersonStarshipsEdge": {
       "O": {
-        "N": "PersonStarshipsEdge",
-        "D": "An edge in a connection.",
+        "n": "PersonStarshipsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -991,8 +991,8 @@ expression: "Registry::from(schema)"
     },
     "PersonVehiclesConnection": {
       "O": {
-        "N": "PersonVehiclesConnection",
-        "D": "A connection to a list of items.",
+        "n": "PersonVehiclesConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -1028,8 +1028,8 @@ expression: "Registry::from(schema)"
     },
     "PersonVehiclesEdge": {
       "O": {
-        "N": "PersonVehiclesEdge",
-        "D": "An edge in a connection.",
+        "n": "PersonVehiclesEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -1051,8 +1051,8 @@ expression: "Registry::from(schema)"
     },
     "Planet": {
       "O": {
-        "N": "Planet",
-        "D": "A large mass, planet or planetoid in the Star Wars Universe, at the time of\n0 ABY.",
+        "n": "Planet",
+        "d": "A large mass, planet or planetoid in the Star Wars Universe, at the time of\n0 ABY.",
         "f": {
           "climates": {
             "n": "climates",
@@ -1190,8 +1190,8 @@ expression: "Registry::from(schema)"
     },
     "PlanetFilmsConnection": {
       "O": {
-        "N": "PlanetFilmsConnection",
-        "D": "A connection to a list of items.",
+        "n": "PlanetFilmsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -1227,8 +1227,8 @@ expression: "Registry::from(schema)"
     },
     "PlanetFilmsEdge": {
       "O": {
-        "N": "PlanetFilmsEdge",
-        "D": "An edge in a connection.",
+        "n": "PlanetFilmsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -1250,8 +1250,8 @@ expression: "Registry::from(schema)"
     },
     "PlanetResidentsConnection": {
       "O": {
-        "N": "PlanetResidentsConnection",
-        "D": "A connection to a list of items.",
+        "n": "PlanetResidentsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -1287,8 +1287,8 @@ expression: "Registry::from(schema)"
     },
     "PlanetResidentsEdge": {
       "O": {
-        "N": "PlanetResidentsEdge",
-        "D": "An edge in a connection.",
+        "n": "PlanetResidentsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -1310,8 +1310,8 @@ expression: "Registry::from(schema)"
     },
     "PlanetsConnection": {
       "O": {
-        "N": "PlanetsConnection",
-        "D": "A connection to a list of items.",
+        "n": "PlanetsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -1347,8 +1347,8 @@ expression: "Registry::from(schema)"
     },
     "PlanetsEdge": {
       "O": {
-        "N": "PlanetsEdge",
-        "D": "An edge in a connection.",
+        "n": "PlanetsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -1370,7 +1370,7 @@ expression: "Registry::from(schema)"
     },
     "Root": {
       "O": {
-        "N": "Root",
+        "n": "Root",
         "f": {
           "allFilms": {
             "n": "allFilms",
@@ -1619,8 +1619,8 @@ expression: "Registry::from(schema)"
     },
     "Species": {
       "O": {
-        "N": "Species",
-        "D": "A type of person or character within the Star Wars Universe.",
+        "n": "Species",
+        "d": "A type of person or character within the Star Wars Universe.",
         "f": {
           "averageHeight": {
             "n": "averageHeight",
@@ -1765,8 +1765,8 @@ expression: "Registry::from(schema)"
     },
     "SpeciesConnection": {
       "O": {
-        "N": "SpeciesConnection",
-        "D": "A connection to a list of items.",
+        "n": "SpeciesConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -1802,8 +1802,8 @@ expression: "Registry::from(schema)"
     },
     "SpeciesEdge": {
       "O": {
-        "N": "SpeciesEdge",
-        "D": "An edge in a connection.",
+        "n": "SpeciesEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -1825,8 +1825,8 @@ expression: "Registry::from(schema)"
     },
     "SpeciesFilmsConnection": {
       "O": {
-        "N": "SpeciesFilmsConnection",
-        "D": "A connection to a list of items.",
+        "n": "SpeciesFilmsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -1862,8 +1862,8 @@ expression: "Registry::from(schema)"
     },
     "SpeciesFilmsEdge": {
       "O": {
-        "N": "SpeciesFilmsEdge",
-        "D": "An edge in a connection.",
+        "n": "SpeciesFilmsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -1885,8 +1885,8 @@ expression: "Registry::from(schema)"
     },
     "SpeciesPeopleConnection": {
       "O": {
-        "N": "SpeciesPeopleConnection",
-        "D": "A connection to a list of items.",
+        "n": "SpeciesPeopleConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -1922,8 +1922,8 @@ expression: "Registry::from(schema)"
     },
     "SpeciesPeopleEdge": {
       "O": {
-        "N": "SpeciesPeopleEdge",
-        "D": "An edge in a connection.",
+        "n": "SpeciesPeopleEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -1945,8 +1945,8 @@ expression: "Registry::from(schema)"
     },
     "Starship": {
       "O": {
-        "N": "Starship",
-        "D": "A single transport craft that has hyperdrive capability.",
+        "n": "Starship",
+        "d": "A single transport craft that has hyperdrive capability.",
         "f": {
           "MGLT": {
             "n": "MGLT",
@@ -2112,8 +2112,8 @@ expression: "Registry::from(schema)"
     },
     "StarshipFilmsConnection": {
       "O": {
-        "N": "StarshipFilmsConnection",
-        "D": "A connection to a list of items.",
+        "n": "StarshipFilmsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -2149,8 +2149,8 @@ expression: "Registry::from(schema)"
     },
     "StarshipFilmsEdge": {
       "O": {
-        "N": "StarshipFilmsEdge",
-        "D": "An edge in a connection.",
+        "n": "StarshipFilmsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -2172,8 +2172,8 @@ expression: "Registry::from(schema)"
     },
     "StarshipPilotsConnection": {
       "O": {
-        "N": "StarshipPilotsConnection",
-        "D": "A connection to a list of items.",
+        "n": "StarshipPilotsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -2209,8 +2209,8 @@ expression: "Registry::from(schema)"
     },
     "StarshipPilotsEdge": {
       "O": {
-        "N": "StarshipPilotsEdge",
-        "D": "An edge in a connection.",
+        "n": "StarshipPilotsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -2232,8 +2232,8 @@ expression: "Registry::from(schema)"
     },
     "StarshipsConnection": {
       "O": {
-        "N": "StarshipsConnection",
-        "D": "A connection to a list of items.",
+        "n": "StarshipsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -2269,8 +2269,8 @@ expression: "Registry::from(schema)"
     },
     "StarshipsEdge": {
       "O": {
-        "N": "StarshipsEdge",
-        "D": "An edge in a connection.",
+        "n": "StarshipsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -2299,8 +2299,8 @@ expression: "Registry::from(schema)"
     },
     "Vehicle": {
       "O": {
-        "N": "Vehicle",
-        "D": "A single transport craft that does not have hyperdrive capability",
+        "n": "Vehicle",
+        "d": "A single transport craft that does not have hyperdrive capability",
         "f": {
           "cargoCapacity": {
             "n": "cargoCapacity",
@@ -2452,8 +2452,8 @@ expression: "Registry::from(schema)"
     },
     "VehicleFilmsConnection": {
       "O": {
-        "N": "VehicleFilmsConnection",
-        "D": "A connection to a list of items.",
+        "n": "VehicleFilmsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -2489,8 +2489,8 @@ expression: "Registry::from(schema)"
     },
     "VehicleFilmsEdge": {
       "O": {
-        "N": "VehicleFilmsEdge",
-        "D": "An edge in a connection.",
+        "n": "VehicleFilmsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -2512,8 +2512,8 @@ expression: "Registry::from(schema)"
     },
     "VehiclePilotsConnection": {
       "O": {
-        "N": "VehiclePilotsConnection",
-        "D": "A connection to a list of items.",
+        "n": "VehiclePilotsConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -2549,8 +2549,8 @@ expression: "Registry::from(schema)"
     },
     "VehiclePilotsEdge": {
       "O": {
-        "N": "VehiclePilotsEdge",
-        "D": "An edge in a connection.",
+        "n": "VehiclePilotsEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -2572,8 +2572,8 @@ expression: "Registry::from(schema)"
     },
     "VehiclesConnection": {
       "O": {
-        "N": "VehiclesConnection",
-        "D": "A connection to a list of items.",
+        "n": "VehiclesConnection",
+        "d": "A connection to a list of items.",
         "f": {
           "edges": {
             "n": "edges",
@@ -2609,8 +2609,8 @@ expression: "Registry::from(schema)"
     },
     "VehiclesEdge": {
       "O": {
-        "N": "VehiclesEdge",
-        "D": "An edge in a connection.",
+        "n": "VehiclesEdge",
+        "d": "An edge in a connection.",
         "f": {
           "cursor": {
             "n": "cursor",
@@ -2632,8 +2632,8 @@ expression: "Registry::from(schema)"
     },
     "__Directive": {
       "O": {
-        "N": "__Directive",
-        "D": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
+        "n": "__Directive",
+        "d": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
         "f": {
           "args": {
             "n": "args",
@@ -2665,9 +2665,9 @@ expression: "Registry::from(schema)"
     },
     "__DirectiveLocation": {
       "E": {
-        "a": "__DirectiveLocation",
-        "e_": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
-        "_e": {
+        "n": "__DirectiveLocation",
+        "d": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
+        "e": {
           "ARGUMENT_DEFINITION": {
             "n": "ARGUMENT_DEFINITION",
             "d": "Location adjacent to an argument definition."
@@ -2745,13 +2745,13 @@ expression: "Registry::from(schema)"
             "d": "Location adjacent to a variable definition."
           }
         },
-        "_r": "__DirectiveLocation"
+        "r": "__DirectiveLocation"
       }
     },
     "__EnumValue": {
       "O": {
-        "N": "__EnumValue",
-        "D": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
+        "n": "__EnumValue",
+        "d": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
         "f": {
           "deprecationReason": {
             "n": "deprecationReason",
@@ -2783,8 +2783,8 @@ expression: "Registry::from(schema)"
     },
     "__Field": {
       "O": {
-        "N": "__Field",
-        "D": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
+        "n": "__Field",
+        "d": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
         "f": {
           "args": {
             "n": "args",
@@ -2828,8 +2828,8 @@ expression: "Registry::from(schema)"
     },
     "__InputValue": {
       "O": {
-        "N": "__InputValue",
-        "D": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
+        "n": "__InputValue",
+        "d": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
         "f": {
           "defaultValue": {
             "n": "defaultValue",
@@ -2862,8 +2862,8 @@ expression: "Registry::from(schema)"
     },
     "__Schema": {
       "O": {
-        "N": "__Schema",
-        "D": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
+        "n": "__Schema",
+        "d": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
         "f": {
           "directives": {
             "n": "directives",
@@ -2906,8 +2906,8 @@ expression: "Registry::from(schema)"
     },
     "__Type": {
       "O": {
-        "N": "__Type",
-        "D": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
+        "n": "__Type",
+        "d": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
         "f": {
           "description": {
             "n": "description",
@@ -2981,9 +2981,9 @@ expression: "Registry::from(schema)"
     },
     "__TypeKind": {
       "E": {
-        "a": "__TypeKind",
-        "e_": "An enum describing what kind of type a given `__Type` is.",
-        "_e": {
+        "n": "__TypeKind",
+        "d": "An enum describing what kind of type a given `__Type` is.",
+        "e": {
           "ENUM": {
             "n": "ENUM",
             "d": "Indicates this type is an enum. `enumValues` is a valid field."
@@ -3017,7 +3017,7 @@ expression: "Registry::from(schema)"
             "d": "Indicates this type is a union. `possibleTypes` is a valid field."
           }
         },
-        "_r": "__TypeKind"
+        "r": "__TypeKind"
       }
     }
   },

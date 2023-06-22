@@ -86,11 +86,11 @@ pub fn is_valid_input_value(
                         ))
                     }
                 }
-                registry::MetaType::Enum {
+                registry::MetaType::Enum(registry::EnumType {
                     enum_values,
                     name: enum_name,
                     ..
-                } => match value {
+                }) => match value {
                     ConstValue::Enum(name) => {
                         if !enum_values.contains_key(name.as_str()) {
                             Some(valid_error(
@@ -120,12 +120,12 @@ pub fn is_valid_input_value(
                         format!("expected type \"{type_name}\""),
                     )),
                 },
-                registry::MetaType::InputObject {
+                registry::MetaType::InputObject(registry::InputObjectType {
                     input_fields,
                     name: object_name,
                     oneof,
                     ..
-                } => match value {
+                }) => match value {
                     ConstValue::Object(values) => {
                         if *oneof {
                             if values.len() != 1 {

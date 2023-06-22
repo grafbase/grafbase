@@ -6,8 +6,9 @@ use dynaql::{Error, Value};
 
 fn resolve(registry: &Registry, type_name: &str, value: serde_json::Value) -> Result<serde_json::Value, Error> {
     match (registry.types.get(type_name).unwrap(), value) {
-        (MetaType::InputObject { input_fields, .. }, serde_json::Value::Object(mut input)) => {
-            let resolved_fields = input_fields
+        (MetaType::InputObject(input_object), serde_json::Value::Object(mut input)) => {
+            let resolved_fields = input_object
+                .input_fields
                 .iter()
                 .map(|(name, input_type)| {
                     resolve_input_inner(

@@ -9,8 +9,8 @@ use dynaql::registry::enums::DynaqlEnum;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::{
-    resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::Resolver, resolvers::ResolverType,
-    variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
+    self, resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::Resolver, resolvers::ResolverType,
+    variables::VariableResolveDefinition, MetaField, MetaInputValue,
 };
 use dynaql::registry::{MetaEnumValue, Registry};
 use dynaql::validation::dynamic_validators::DynValidator;
@@ -36,29 +36,7 @@ pub use search::add_query_search;
 fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> BaseType {
     let type_name = T::ty().to_string();
     registry.create_type(
-        |_| MetaType::Enum {
-            name: type_name.clone(),
-            description: None,
-            enum_values: IndexMap::from_iter(
-                T::values()
-                    .into_iter()
-                    .map(|value| {
-                        (
-                            value.clone(),
-                            MetaEnumValue {
-                                name: value,
-                                description: None,
-                                deprecation: dynaql::registry::Deprecation::NoDeprecated,
-                                visible: None,
-                                value: None,
-                            },
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            ),
-            visible: None,
-            rust_typename: type_name.clone(),
-        },
+        |_| registry::EnumType::new(type_name.clone(), T::values().into_iter().map(MetaEnumValue::new)).into(),
         &type_name,
         &type_name,
     );
@@ -72,30 +50,19 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
 
     // Input
     ctx.registry.get_mut().create_type(
-        |_| MetaType::InputObject {
-            name: input_type.clone(),
-            description: Some(format!("{type_name} input type.")),
-            oneof: false,
-            input_fields: {
-                let mut input_fields = IndexMap::new();
-                for field in &object.fields {
-                    let name = &field.node.name.node;
-
-                    input_fields.insert(
-                        name.clone().to_string(),
-                        MetaInputValue {
-                            description: field.node.description.clone().map(|x| x.node),
-                            ..MetaInputValue::new(
-                                name.to_string(),
-                                to_input_type(&ctx.types, field.node.ty.clone().node),
-                            )
-                        },
-                    );
-                }
-                input_fields
-            },
-            visible: None,
-            rust_typename: input_type.clone(),
+        |_| {
+            dynaql::registry::InputObjectType::new(
+                input_type.clone(),
+                object.fields.iter().map(|field| MetaInputValue {
+                    description: field.node.description.clone().map(|x| x.node),
+                    ..MetaInputValue::new(
+                        field.name.node.to_string(),
+                        to_input_type(&ctx.types, field.node.ty.clone().node),
+                    )
+                }),
+            )
+            .with_description(Some(format!("{type_name} input type.")))
+            .into()
         },
         &input_type,
         &input_type,
@@ -111,48 +78,34 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
 
     // DeletePayload
     ctx.registry.get_mut().create_type(
-        |_| MetaType::Object {
-            name: delete_payload_name.clone(),
-            description: None,
-            fields: {
-                let mut fields = IndexMap::new();
-                let name = "deletedId".to_string();
-                fields.insert(
-                    name.clone(),
-                    MetaField {
-                        name,
-                        description: None,
-                        args: Default::default(),
-                        // TODO: Should be infered from the entity depending on the directives
-                        ty: "ID!".to_string(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
-                        resolve: None,
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "id".to_string(),
-                        }),
-                        plan: None,
-                        required_operation: Some(Operations::DELETE),
-                        auth: auth.cloned(),
-                    },
-                );
-                fields
-            },
-            cache_control: Default::default(),
-            extends: false,
-            keys: None,
-            is_node: false,
-            visible: None,
-            is_subscription: false,
-            rust_typename: delete_payload_name.clone(),
-            constraints: vec![],
+        |_| {
+            registry::ObjectType::new(
+                delete_payload_name.clone(),
+                [MetaField {
+                    name: "deletedId".to_string(),
+                    description: None,
+                    args: Default::default(),
+                    // TODO: Should be infered from the entity depending on the directives
+                    ty: "ID!".to_string(),
+                    deprecation: Default::default(),
+                    cache_control: Default::default(),
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    visible: None,
+                    compute_complexity: None,
+                    edges: Vec::new(),
+                    relation: None,
+                    resolve: None,
+                    transformer: Some(Transformer::JSONSelect {
+                        property: "id".to_string(),
+                    }),
+                    plan: None,
+                    required_operation: Some(Operations::DELETE),
+                    auth: auth.cloned(),
+                }],
+            )
+            .into()
         },
         &delete_payload_name,
         &delete_payload_name,

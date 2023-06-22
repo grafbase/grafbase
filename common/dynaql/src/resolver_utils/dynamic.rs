@@ -128,14 +128,10 @@ pub fn resolve_input_inner(
                 .get(type_name)
                 .expect("Registry has already been validated")
             {
-                MetaType::InputObject {
-                    input_fields,
-                    oneof,
-                    ..
-                } => {
+                MetaType::InputObject(input_object) => {
                     if let ConstValue::Object(mut fields) = value {
-                        let mut map = IndexMap::with_capacity(input_fields.len());
-                        for (name, meta_input_value) in input_fields {
+                        let mut map = IndexMap::with_capacity(input_object.input_fields.len());
+                        for (name, meta_input_value) in &input_object.input_fields {
                             path.push(name.clone());
                             let field_value = resolve_input_inner(
                                 registry,
@@ -159,7 +155,7 @@ pub fn resolve_input_inner(
                                 map.insert(Name::new(field_name), field_value);
                             }
                         }
-                        if *oneof && map.len() != 1 {
+                        if input_object.oneof && map.len() != 1 {
                             Err(input_error(
                                 &format!("Expected exactly one fields (@oneof), got {}", map.len()),
                                 path,
@@ -171,8 +167,8 @@ pub fn resolve_input_inner(
                         Err(input_error("Expected an Object", path))
                     }
                 }
-                MetaType::Enum { enum_values, .. } => {
-                    resolve_input_enum(value, enum_values, path, mode)
+                MetaType::Enum(enum_type) => {
+                    resolve_input_enum(value, &enum_type.enum_values, path, mode)
                 }
                 // TODO: this conversion ConstValue -> serde_json -> ConstValue is sad...
                 // we need an intermediate representation between the database & dynaql

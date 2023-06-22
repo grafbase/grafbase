@@ -18,9 +18,6 @@ Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it 
 For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
 """
 scalar DateTime
-"""
-
-"""
 input DateTimeSearchFilterInput {
 	ALL: [DateTimeSearchFilterInput!]
 	ANY: [DateTimeSearchFilterInput!]
@@ -63,17 +60,11 @@ enum Pet {
 	CAT
 	DOG
 }
-"""
-
-"""
 input PetListSearchFilterInput {
 	includes: PetSearchFilterInput
 	includesNone: PetSearchFilterInput
 	isEmpty: Boolean
 }
-"""
-
-"""
 input PetSearchFilterInput {
 	eq: Pet
 	neq: Pet
@@ -140,9 +131,6 @@ type ProductSearchEdge {
 	cursor: String!
 	score: Float!
 }
-"""
-
-"""
 input ProductSearchFilterInput {
 	ALL: [ProductSearchFilterInput!]
 	ANY: [ProductSearchFilterInput!]
@@ -188,9 +176,6 @@ enum Status {
 	ACTIVE
 	INACTIVE
 }
-"""
-
-"""
 input StatusOrNullSearchFilterInput {
 	eq: Status
 	neq: Status
@@ -198,9 +183,6 @@ input StatusOrNullSearchFilterInput {
 	notIn: [Status!]
 	isNull: Boolean
 }
-"""
-
-"""
 input StringOrNullSearchFilterInput {
 	ALL: [StringOrNullSearchFilterInput!]
 	ANY: [StringOrNullSearchFilterInput!]

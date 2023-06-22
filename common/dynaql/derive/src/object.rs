@@ -618,23 +618,25 @@ pub fn generate(
                 }
 
                 fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
-                    let ty = registry.create_output_type::<Self, _>(|registry| #crate_name::registry::MetaType::Object {
-                        name: ::std::borrow::ToOwned::to_owned(#gql_typename),
-                        description: #desc,
-                        fields: {
-                            let mut fields = #crate_name::indexmap::IndexMap::new();
-                            #(#schema_fields)*
-                            fields
-                        },
-                        cache_control: #cache_control,
-                        extends: #extends,
-                        keys: ::std::option::Option::None,
-                        is_node: false,
-                        visible: #visible,
-                        is_subscription: false,
-                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
-                        constraints: vec![],
-                    });
+                    let ty = registry.create_output_type::<Self, _>(|registry|
+                        #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
+                            name: ::std::borrow::ToOwned::to_owned(#gql_typename),
+                            description: #desc,
+                            fields: {
+                                let mut fields = #crate_name::indexmap::IndexMap::new();
+                                #(#schema_fields)*
+                                fields
+                            },
+                            cache_control: #cache_control,
+                            extends: #extends,
+                            keys: ::std::option::Option::None,
+                            is_node: false,
+                            visible: #visible,
+                            is_subscription: false,
+                            rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                            constraints: vec![],
+                        })
+                    );
                     #(#create_entity_types)*
                     #(#add_keys)*
                     ty
@@ -659,23 +661,25 @@ pub fn generate(
 
             impl #impl_generics #self_ty #where_clause {
                 fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> ::std::string::String  where Self: #crate_name::OutputType {
-                    let ty = registry.create_output_type::<Self, _>(|registry| #crate_name::registry::MetaType::Object {
-                        name: ::std::borrow::ToOwned::to_owned(name),
-                        description: #desc,
-                        fields: {
-                            let mut fields = #crate_name::indexmap::IndexMap::new();
-                            #(#schema_fields)*
-                            fields
-                        },
-                        cache_control: #cache_control,
-                        extends: #extends,
-                        keys: ::std::option::Option::None,
-                        visible: #visible,
-                        is_node: false,
-                        is_subscription: false,
-                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
-                        constraints: vec![],
-                    });
+                    let ty = registry.create_output_type::<Self, _>(|registry|
+                        #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
+                            name: ::std::borrow::ToOwned::to_owned(name),
+                            description: #desc,
+                            fields: {
+                                let mut fields = #crate_name::indexmap::IndexMap::new();
+                                #(#schema_fields)*
+                                fields
+                            },
+                            cache_control: #cache_control,
+                            extends: #extends,
+                            keys: ::std::option::Option::None,
+                            visible: #visible,
+                            is_node: false,
+                            is_subscription: false,
+                            rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                            constraints: vec![],
+                        })
+                    );
                     #(#create_entity_types)*
                     #(#add_keys)*
                     ty

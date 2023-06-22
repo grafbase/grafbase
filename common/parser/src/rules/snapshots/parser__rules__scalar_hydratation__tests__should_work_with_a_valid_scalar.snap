@@ -2,9 +2,11 @@
 source: common/parser/src/rules/scalar_hydratation.rs
 expression: scalar_ty.unwrap()
 ---
-Scalar {
-    name: "DateTime",
-    description: None,
-    specified_by_url: None,
-    parser: BestEffort,
-}
+Scalar(
+    ScalarType {
+        name: "DateTime",
+        description: None,
+        specified_by_url: None,
+        parser: BestEffort,
+    },
+)

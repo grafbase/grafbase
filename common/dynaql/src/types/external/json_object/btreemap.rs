@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use crate::graph::selection_set_into_node;
-use crate::registry::{self, MetaType, Registry};
+use crate::registry::{self, MetaType, Registry, ScalarType};
 use crate::{
     ContextSelectionSet, InputType, InputValueError, InputValueResult, Name, OutputType,
     ServerResult, Value,
@@ -31,13 +31,15 @@ where
     }
 
     fn create_type_info(registry: &mut Registry) -> String {
-        registry.create_input_type::<Self, _>(|_| MetaType::Scalar {
-            name: <Self as InputType>::type_name().to_string(),
-            description: Some("A scalar that can represent any JSON Object value.".to_string()),
-            is_valid: Some(|_| true),
-            visible: None,
-            specified_by_url: None,
-            parser: registry::ScalarParser::BestEffort,
+        registry.create_input_type::<Self, _>(|_| {
+            MetaType::Scalar(ScalarType {
+                name: <Self as InputType>::type_name().to_string(),
+                description: Some("A scalar that can represent any JSON Object value.".to_string()),
+                is_valid: Some(|_| true),
+                visible: None,
+                specified_by_url: None,
+                parser: registry::ScalarParser::BestEffort,
+            })
         })
     }
 
@@ -87,13 +89,15 @@ where
     }
 
     fn create_type_info(registry: &mut Registry) -> String {
-        registry.create_output_type::<Self, _>(|_| MetaType::Scalar {
-            name: <Self as OutputType>::type_name().to_string(),
-            description: Some("A scalar that can represent any JSON Object value.".to_string()),
-            is_valid: Some(|_| true),
-            visible: None,
-            specified_by_url: None,
-            parser: registry::ScalarParser::BestEffort,
+        registry.create_output_type::<Self, _>(|_| {
+            MetaType::Scalar(ScalarType {
+                name: <Self as OutputType>::type_name().to_string(),
+                description: Some("A scalar that can represent any JSON Object value.".to_string()),
+                is_valid: Some(|_| true),
+                visible: None,
+                specified_by_url: None,
+                parser: registry::ScalarParser::BestEffort,
+            })
         })
     }
 

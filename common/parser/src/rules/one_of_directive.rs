@@ -4,7 +4,7 @@ use super::{
 };
 use dynaql::{
     indexmap::IndexMap,
-    registry::{MetaDirective, MetaInputValue, MetaType, __DirectiveLocation},
+    registry::{InputObjectType, MetaDirective, MetaInputValue, __DirectiveLocation},
 };
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
@@ -48,23 +48,18 @@ impl<'a> Visitor<'a> for OneOfDirective {
 
                 let one_of_type_name = type_definition.node.name.node.to_string();
 
-                ctx.registry.get_mut().create_type(|_| MetaType::InputObject  {
-                    name: one_of_type_name.clone(),
-                    description: type_definition.node.description.clone().map(|description| description.node),
-                    visible: None,
-                    rust_typename: one_of_type_name.clone(),
-                    input_fields: {
-                        let mut input_fields = IndexMap::new();
-                        for field in &input.fields {
-                            input_fields.insert(
-                                field.node.name.to_string(),
-                                MetaInputValue::new(field.node.name.to_string(), field.node.ty.to_string())
-                            );
-                        }
-                        input_fields
-                    },
-                    oneof: true,
-                }, &one_of_type_name, &one_of_type_name);
+                ctx.registry.get_mut().create_type(|_| {
+                    InputObjectType::new(
+                        one_of_type_name.clone(),
+                        input.fields.iter().map(|field| {
+                            MetaInputValue::new(field.node.name.to_string(), field.node.ty.to_string())
+                        })
+                    ).with_description(
+                        type_definition.node.description.clone().map(|description| description.node),
+                    ).with_oneof(true)
+                    .into()
+                },
+                &one_of_type_name, &one_of_type_name);
 
                 let has_one_of = ctx.registry.get_mut().directives.iter().any(|directive| directive.1.name == ONE_OF_DIRECTIVE);
 
@@ -86,6 +81,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
 #[test]
 fn test_not_usable_on_nullable_fields() {
     use super::visitor::{visit, VisitorContext};
+    use dynaql::registry::MetaType;
     use dynaql_parser::parse_schema;
 
     let schema = r#"
@@ -110,5 +106,5 @@ fn test_not_usable_on_nullable_fields() {
         .get_mut()
         .types
         .values()
-        .any(|r#type| matches!(r#type, MetaType::InputObject { oneof: true, .. })));
+        .any(|r#type| matches!(r#type, MetaType::InputObject(InputObjectType { oneof: true, .. }))));
 }

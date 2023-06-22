@@ -3,8 +3,8 @@ use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, 
 use crate::registry::enums::OrderByDirection;
 use crate::registry::relations::{MetaRelation, MetaRelationKind};
 use crate::registry::variables::oneof::OneOf;
-use crate::registry::SchemaID;
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
+use crate::registry::{MetaType, SchemaID};
 use crate::{Context, Error, Value};
 use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::{
@@ -193,8 +193,9 @@ impl ResolverTrait for DynamoResolver {
 
         let ctx_ty = resolver_ctx
             .ty
+            .and_then(MetaType::object)
             .ok_or_else(|| Error::new("Internal Error: Failed process the associated schema."))?;
-        let current_ty = ctx_ty.name();
+        let current_ty = ctx_ty.name.as_str();
 
         match self {
             DynamoResolver::ListResultByTypePaginated {
@@ -559,11 +560,11 @@ impl ResolverTrait for DynamoResolver {
                     (pk, sk)
                 } else {
                     let constraint_id = ctx_ty
-                        .constraints()
+                        .constraints
                         .iter()
                         .find(|constraint| constraint.name() == key)
                         .and_then(|constraint| {
-                            constraint.extract_id_from_by_input_field(ctx_ty.name(), value)
+                            constraint.extract_id_from_by_input_field(&ctx_ty.name, value)
                         })
                         .expect("constraint fields to be in the input");
 

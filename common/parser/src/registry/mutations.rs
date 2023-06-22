@@ -1,13 +1,12 @@
 use case::CaseExt;
 
-use dynaql::indexmap::{indexmap, IndexMap};
+use dynaql::indexmap::indexmap;
 
 use dynaql::registry::relations::MetaRelationKind;
-use dynaql::registry::Registry;
+use dynaql::registry::{self, InputObjectType, Registry};
 use dynaql::registry::{
     resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
-    MetaType,
 };
 
 use dynaql::AuthConfig;
@@ -283,7 +282,7 @@ fn register_mutation_input_type(
     // type is only created if necessary
     registry.create_type(
         |registry| {
-            let mut input_fields = IndexMap::new();
+            let mut input_fields = vec![];
             let maybe_parent_relation_meta = mutation_kind
                 .maybe_parent_relation()
                 .map(|parent_relation| &parent_relation.meta);
@@ -356,33 +355,29 @@ fn register_mutation_input_type(
                 // We typically won't have any input field to add for a OneToOne relation field
                 if let Some(r#type) = maybe_type {
                     let field_name = &field.node.name.node;
-                    input_fields.insert(
-                        field_name.to_string(),
-                        MetaInputValue {
-                            name: field_name.to_string(),
-                            description: field.node.description.clone().map(|x| x.node),
-                            ty: (if mutation_kind.is_update() {
-                                Type::nullable(r#type.base)
-                            } else {
-                                r#type
-                            })
-                            .to_string(),
-                            validators: super::get_length_validator(&field.node).map(|val| vec![val]),
-                            visible: None,
-                            default_value: (if mutation_kind.is_update() {
-                                None
-                            } else {
-                                DefaultDirective::default_value_of(&field.node)
-                            }),
-                            is_secret: false,
-                            rename: None,
-                        },
-                    );
+                    input_fields.push(MetaInputValue {
+                        name: field_name.to_string(),
+                        description: field.node.description.clone().map(|x| x.node),
+                        ty: (if mutation_kind.is_update() {
+                            Type::nullable(r#type.base)
+                        } else {
+                            r#type
+                        })
+                        .to_string(),
+                        validators: super::get_length_validator(&field.node).map(|val| vec![val]),
+                        visible: None,
+                        default_value: (if mutation_kind.is_update() {
+                            None
+                        } else {
+                            DefaultDirective::default_value_of(&field.node)
+                        }),
+                        is_secret: false,
+                        rename: None,
+                    });
                 };
             }
-            MetaType::InputObject {
-                name: input_type_name.clone(),
-                description: {
+            InputObjectType::new(input_type_name.clone(), input_fields)
+                .with_description({
                     let description = format!(
                         "Input to {} a {}",
                         if mutation_kind.is_update() { "update" } else { "create" },
@@ -392,12 +387,8 @@ fn register_mutation_input_type(
                         .maybe_parent_relation()
                         .map(|parent_relation| format!("{description} for the {parent_relation}"))
                         .or(Some(description))
-                },
-                oneof: false,
-                input_fields,
-                visible: None,
-                rust_typename: input_type_name.clone(),
-            }
+                })
+                .into()
         },
         &input_type_name,
         &input_type_name,
@@ -409,27 +400,22 @@ fn register_mutation_input_type(
             let relation_input_type_name = MetaNames::update_relation_input(&parent_relation, model_type_definition);
 
             registry.create_type(
-                |_| MetaType::InputObject {
-                    name: relation_input_type_name.clone(),
-                    description: Some(format!(
+                |_| {
+                    InputObjectType::new(
+                        relation_input_type_name.clone(),
+                        [
+                            MetaInputValue::new(INPUT_FIELD_RELATION_CREATE, input_type_name),
+                            MetaInputValue::new(INPUT_FIELD_RELATION_LINK, "ID"),
+                            MetaInputValue::new(INPUT_FIELD_RELATION_UNLINK, "ID"),
+                        ],
+                    )
+                    .with_description(Some(format!(
                         "Input to link/unlink to or create a {} for the {}",
                         MetaNames::model(model_type_definition),
                         parent_relation,
-                    )),
-                    oneof: true,
-                    input_fields: indexmap! {
-                        INPUT_FIELD_RELATION_CREATE.to_string() => MetaInputValue::new(
-                            INPUT_FIELD_RELATION_CREATE, input_type_name
-                        ),
-                        INPUT_FIELD_RELATION_LINK.to_string() => MetaInputValue::new(
-                            INPUT_FIELD_RELATION_LINK, "ID"
-                        ),
-                        INPUT_FIELD_RELATION_UNLINK.to_string() => MetaInputValue::new(
-                            INPUT_FIELD_RELATION_UNLINK, "ID"
-                        ),
-                    },
-                    visible: None,
-                    rust_typename: relation_input_type_name.clone(),
+                    )))
+                    .with_oneof(true)
+                    .into()
                 },
                 &relation_input_type_name,
                 &relation_input_type_name,
@@ -442,26 +428,21 @@ fn register_mutation_input_type(
             let relation_input_type_name = MetaNames::create_relation_input(&parent_relation, model_type_definition);
 
             registry.create_type(
-                |_| MetaType::InputObject {
-                    name: relation_input_type_name.clone(),
-                    description: Some(format!(
+                |_| {
+                    InputObjectType::new(
+                        relation_input_type_name.clone(),
+                        [
+                            MetaInputValue::new(INPUT_FIELD_RELATION_CREATE, input_type_name.clone()),
+                            MetaInputValue::new(INPUT_FIELD_RELATION_LINK, "ID"),
+                        ],
+                    )
+                    .with_description(Some(format!(
                         "Input to link to or create a {} for the {}",
                         MetaNames::model(model_type_definition),
                         parent_relation,
-                    )),
-                    oneof: true,
-                    input_fields: indexmap! {
-                        INPUT_FIELD_RELATION_CREATE.to_string() => MetaInputValue::new(
-                            INPUT_FIELD_RELATION_CREATE,
-                            input_type_name.clone(),
-                        ),
-                        INPUT_FIELD_RELATION_LINK.to_string() => MetaInputValue::new(
-                            INPUT_FIELD_RELATION_LINK,
-                            "ID",
-                        ),
-                    },
-                    visible: None,
-                    rust_typename: relation_input_type_name.clone(),
+                    )))
+                    .with_oneof(true)
+                    .into()
                 },
                 &relation_input_type_name,
                 &relation_input_type_name,
@@ -486,51 +467,32 @@ fn register_mutation_payload_type<'a>(
     };
 
     ctx.registry.get_mut().create_type(
-        |_| MetaType::Object {
-            name: payload_type_name.clone(),
-            description: None,
-            fields: {
+        |_| {
+            registry::ObjectType::new(payload_type_name.clone(), {
                 let model_type_name = model_type_definition.name.node.to_string();
                 let name = to_lower_camelcase(&model_type_name);
-                indexmap! {
-                    name.clone() =>  MetaField {
-                        name,
-                        description: None,
-                        args: Default::default(),
-                        ty: MetaNames::model(model_type_definition),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
-                        resolve: Some(Resolver {
-                            id: Some(format!("{}_resolver", model_type_name.to_lowercase())),
-                            // Single entity
-                            r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
-                                pk: VariableResolveDefinition::LocalData("id".to_string()),
-                                sk: VariableResolveDefinition::LocalData("id".to_string()),
-                                schema: None,
-                            }),
+                [MetaField {
+                    name,
+                    ty: MetaNames::model(model_type_definition),
+                    resolve: Some(Resolver {
+                        id: Some(format!("{}_resolver", model_type_name.to_lowercase())),
+                        // Single entity
+                        r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
+                            pk: VariableResolveDefinition::LocalData("id".to_string()),
+                            sk: VariableResolveDefinition::LocalData("id".to_string()),
+                            schema: None,
                         }),
-                        plan: None,
-                        transformer: None,
-                        required_operation: Some(if mutation_kind.is_update() { Operations::UPDATE } else {Operations::CREATE}),
-                        auth: model_auth.cloned(),
-                    },
-                }
-            },
-            cache_control: Default::default(),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: payload_type_name.clone(),
-            constraints: vec![],
+                    }),
+                    required_operation: Some(if mutation_kind.is_update() {
+                        Operations::UPDATE
+                    } else {
+                        Operations::CREATE
+                    }),
+                    auth: model_auth.cloned(),
+                    ..Default::default()
+                }]
+            })
+            .into()
         },
         &payload_type_name,
         &payload_type_name,
@@ -565,33 +527,25 @@ pub fn register_numerical_operations(registry: &mut Registry, numerical_field_ki
     let operation_input_type_name = MetaNames::numerical_operation_input(&numerical_field_kind);
 
     registry.create_type(
-        |_| MetaType::InputObject {
-            name: operation_input_type_name.clone(),
-            description: Some(format!(
+        |_| {
+            InputObjectType::new(
+                operation_input_type_name.clone(),
+                [
+                    MetaInputValue::new(INPUT_FIELD_NUM_OP_SET, numerical_field_kind.to_type_name()),
+                    MetaInputValue::new(INPUT_FIELD_NUM_OP_INCREMENT, numerical_field_kind.to_type_name()),
+                    MetaInputValue::new(INPUT_FIELD_NUM_OP_DECREMENT, numerical_field_kind.to_type_name()),
+                ],
+            )
+            .with_description(Some(format!(
                 "Possible operations for {} {} field",
                 match numerical_field_kind {
                     NumericFieldKind::Int => "an",
                     NumericFieldKind::Float => "a",
                 },
                 numerical_field_kind.as_str()
-            )),
-            oneof: true,
-            input_fields: IndexMap::from([
-                (
-                    INPUT_FIELD_NUM_OP_SET.to_string(),
-                    MetaInputValue::new(INPUT_FIELD_NUM_OP_SET, numerical_field_kind.to_type_name()),
-                ),
-                (
-                    INPUT_FIELD_NUM_OP_INCREMENT.to_string(),
-                    MetaInputValue::new(INPUT_FIELD_NUM_OP_INCREMENT, numerical_field_kind.to_type_name()),
-                ),
-                (
-                    INPUT_FIELD_NUM_OP_DECREMENT.to_string(),
-                    MetaInputValue::new(INPUT_FIELD_NUM_OP_DECREMENT, numerical_field_kind.to_type_name()),
-                ),
-            ]),
-            visible: None,
-            rust_typename: operation_input_type_name.clone(),
+            )))
+            .with_oneof(true)
+            .into()
         },
         &operation_input_type_name,
         &operation_input_type_name,

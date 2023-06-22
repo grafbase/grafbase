@@ -51,8 +51,8 @@ impl<'ctx, 'a> Visitor<'ctx> for ComplexityCalculate<'ctx, 'a> {
     fn exit_field(&mut self, ctx: &mut VisitorContext<'ctx>, field: &'ctx Positioned<Field>) {
         let children_complex = self.complexity_stack.pop().unwrap();
 
-        if let Some(MetaType::Object { fields, .. }) = ctx.parent_type() {
-            if let Some(meta_field) = fields.get(MetaTypeName::concrete_typename(
+        if let Some(MetaType::Object(object)) = ctx.parent_type() {
+            if let Some(meta_field) = object.fields.get(MetaTypeName::concrete_typename(
                 field.node.name.node.as_str(),
             )) {
                 if let Some(compute_complexity) = &meta_field.compute_complexity {
@@ -223,13 +223,13 @@ mod tests {
         fragment A on MyObj {
             a b ... A2 #2
         }
-        
+
         fragment A2 on MyObj {
             obj { # 1
                 a # 1
             }
         }
-        
+
         query {
             obj { # 1
                 ... A
@@ -280,7 +280,7 @@ mod tests {
         fragment A on MyObj {
             a b
         }
-        
+
         query {
             objs(count: 10) {
                 ... A
@@ -338,13 +338,13 @@ mod tests {
         fragment A on MyObj {
             a b ... A2 #2
         }
-        
+
         fragment A2 on MyObj {
             obj { # 1
                 a # 1
             }
         }
-        
+
         subscription query {
             obj { # 1
                 ... A
@@ -395,7 +395,7 @@ mod tests {
         fragment A on MyObj {
             a b
         }
-        
+
         subscription query {
             objs(count: 10) {
                 ... A

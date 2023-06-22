@@ -64,7 +64,7 @@ pub fn generate(object_args: &args::MergedSubscription) -> GeneratorResult<Token
                         fields = obj_fields;
                     }
 
-                    #crate_name::registry::MetaType::Object {
+                    #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
                         description: #desc,
                         fields,
@@ -75,7 +75,7 @@ pub fn generate(object_args: &args::MergedSubscription) -> GeneratorResult<Token
                         is_subscription: true,
                         rust_typename: ::std::any::type_name::<Self>(),
                         constraints: vec![],
-                    }
+                    })
                 })
             }
 

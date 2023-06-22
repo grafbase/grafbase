@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 
 use crate::futures_util::Stream;
 use crate::parser::types::Field;
-use crate::registry::{MetaType, Registry};
+use crate::registry::{MetaType, ObjectType, Registry};
 use crate::SimpleObject;
 use crate::{
     CacheControl, ContainerType, Context, ContextSelectionSet, OutputType, Positioned, Response,
@@ -54,39 +54,30 @@ where
             let mut fields = IndexMap::new();
             let mut cc = CacheControl::default();
 
-            if let MetaType::Object {
+            if let MetaType::Object(ObjectType {
                 fields: b_fields,
                 cache_control: b_cc,
                 ..
-            } = registry.create_fake_output_type::<B>()
+            }) = registry.create_fake_output_type::<B>()
             {
                 fields.extend(b_fields);
                 cc.merge(b_cc);
             }
 
-            if let MetaType::Object {
+            if let MetaType::Object(ObjectType {
                 fields: a_fields,
                 cache_control: a_cc,
                 ..
-            } = registry.create_fake_output_type::<A>()
+            }) = registry.create_fake_output_type::<A>()
             {
                 fields.extend(a_fields);
                 cc.merge(a_cc);
             }
 
-            MetaType::Object {
-                name: Self::type_name().to_string(),
-                description: None,
-                fields,
-                cache_control: cc,
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: std::any::type_name::<Self>().to_owned(),
-                constraints: vec![],
-            }
+            let mut object = ObjectType::new(Self::type_name().to_string(), []);
+            object.fields = fields;
+            object.rust_typename = std::any::type_name::<Self>().to_owned();
+            object.into()
         })
     }
 
@@ -114,39 +105,30 @@ where
             let mut fields = IndexMap::new();
             let mut cc = CacheControl::default();
 
-            if let MetaType::Object {
+            if let MetaType::Object(ObjectType {
                 fields: b_fields,
                 cache_control: b_cc,
                 ..
-            } = registry.create_fake_subscription_type::<B>()
+            }) = registry.create_fake_subscription_type::<B>()
             {
                 fields.extend(b_fields);
                 cc.merge(b_cc);
             }
 
-            if let MetaType::Object {
+            if let MetaType::Object(ObjectType {
                 fields: a_fields,
                 cache_control: a_cc,
                 ..
-            } = registry.create_fake_subscription_type::<A>()
+            }) = registry.create_fake_subscription_type::<A>()
             {
                 fields.extend(a_fields);
                 cc.merge(a_cc);
             }
 
-            MetaType::Object {
-                name: Self::type_name().to_string(),
-                description: None,
-                fields,
-                cache_control: cc,
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: std::any::type_name::<Self>().to_owned(),
-                constraints: vec![],
-            }
+            let mut object = ObjectType::new(Self::type_name().to_string(), []);
+            object.fields = fields;
+            object.rust_typename = std::any::type_name::<Self>().to_owned();
+            object.into()
         })
     }
 
@@ -169,18 +151,10 @@ impl SubscriptionType for MergedObjectTail {
     }
 
     fn create_type_info(registry: &mut Registry) -> String {
-        registry.create_subscription_type::<Self, _>(|_| MetaType::Object {
-            name: "MergedSubscriptionTail".to_string(),
-            description: None,
-            fields: Default::default(),
-            cache_control: Default::default(),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: std::any::type_name::<Self>().to_owned(),
-            constraints: vec![],
+        registry.create_subscription_type::<Self, _>(|_| {
+            let mut object = ObjectType::new("MergedSubscriptionTail".into(), []);
+            object.rust_typename = std::any::type_name::<Self>().to_owned();
+            object.into()
         })
     }
 

@@ -35,7 +35,7 @@ use crate::parser::types::{
 use crate::resolver_utils::{resolve_container, resolve_list};
 use crate::validation::dynamic_validators::DynValidator;
 use crate::{
-    model, Any, Context, InputType, OutputType, Positioned, ServerError, ServerResult,
+    model, Any, Context, Error, InputType, OutputType, Positioned, ServerError, ServerResult,
     SubscriptionType, Value, VisitorContext,
 };
 use grafbase::auth::Operations;
@@ -499,7 +499,7 @@ impl MetaField {
                     .unwrap_or_default();
 
                 let result = match meta_type {
-                    MetaType::Scalar { parser, .. } => match parser {
+                    MetaType::Scalar(scalar) => match scalar.parser {
                         ScalarParser::PassThrough => {
                             let scalar_value: ConstValue =
                                 result.try_into().map_err(|err: serde_json::Error| {
@@ -780,6 +780,25 @@ pub struct MetaEnumValue {
     pub value: Option<String>,
 }
 
+impl MetaEnumValue {
+    pub fn new(name: String) -> Self {
+        MetaEnumValue {
+            name,
+            description: None,
+            deprecation: Deprecation::NoDeprecated,
+            visible: None,
+            value: None,
+        }
+    }
+
+    pub fn with_description(self, description: Option<String>) -> Self {
+        MetaEnumValue {
+            description,
+            ..self
+        }
+    }
+}
+
 impl Eq for MetaEnumValue {}
 
 type MetaVisibleFn = fn(&Context<'_>) -> bool;
@@ -794,139 +813,316 @@ impl<'a> ToString for Edge<'a> {
     }
 }
 
-impl MetaType {
-    /// Get the edges of a current type.
-    /// The edges are only for the top level.
-    /// If one of the edge is a node with edges, those won't appear here.
-    pub fn edges<'a>(&'a self) -> HashMap<&'a str, Vec<Edge<'a>>> {
-        let mut result: HashMap<&'a str, Vec<Edge<'a>>> = HashMap::new();
-
-        if let MetaType::Object { fields, .. } = self {
-            for (field, ty) in fields {
-                if !ty.edges.is_empty() {
-                    let edges: Vec<Edge<'a>> = ty.edges.iter().map(|x| Edge(x.as_str())).collect();
-                    result.insert(field.as_str(), edges);
-                }
-            }
-        };
-
-        result
-    }
-
-    /// Get the relations of a current type, select relations based on the
-    /// selected fields.
-    pub fn relations_by_selection<'a>(
-        &'a self,
-        selected_fields: Vec<&str>,
-    ) -> HashMap<&'a str, &'a MetaRelation> {
-        let mut result: HashMap<&'a str, &'a MetaRelation> = HashMap::new();
-
-        if let MetaType::Object { fields, .. } = self {
-            for (field, ty) in fields
-                .iter()
-                .filter(|f| selected_fields.contains(&f.0.as_str()))
-            {
-                if let Some(relation) = &ty.relation {
-                    result.insert(field.as_str(), relation);
-                }
-            }
-        };
-
-        result
-    }
-
+impl ObjectType {
     /// Get the relations of a current type
     pub fn relations<'a>(&'a self) -> IndexMap<&'a str, &'a MetaRelation> {
         let mut result: IndexMap<&'a str, &'a MetaRelation> = IndexMap::new();
 
-        if let MetaType::Object { fields, .. } = self {
-            for (field, ty) in fields {
-                if let Some(relation) = &ty.relation {
-                    result.insert(field.as_str(), relation);
-                }
+        for (field, ty) in &self.fields {
+            if let Some(relation) = &ty.relation {
+                result.insert(field.as_str(), relation);
             }
-        };
+        }
 
         result
     }
 }
 
-#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
-#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, IndexMap)]
 #[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug)]
 pub enum MetaType {
-    Scalar {
-        name: String,
-        description: Option<String>,
-        #[derivative(Debug = "ignore")]
-        #[serde(skip)]
-        is_valid: Option<fn(value: &Value) -> bool>,
-        #[derivative(Debug = "ignore")]
-        #[serde(skip)]
-        visible: Option<MetaVisibleFn>,
-        specified_by_url: Option<String>,
-        #[serde(default)]
-        parser: ScalarParser,
-    },
-    Object {
-        name: String,
-        description: Option<String>,
-        fields: IndexMap<String, MetaField>,
-        cache_control: CacheControl,
-        extends: bool,
-        keys: Option<Vec<String>>,
-        #[derivative(Debug = "ignore")]
-        #[serde(skip)]
-        visible: Option<MetaVisibleFn>,
-        is_subscription: bool,
-        /// Define if the current Object if a Node
-        is_node: bool,
-        rust_typename: String,
-        constraints: Vec<Constraint>,
-    },
-    Interface {
-        name: String,
-        description: Option<String>,
-        fields: IndexMap<String, MetaField>,
-        possible_types: IndexSet<String>,
-        extends: bool,
-        keys: Option<Vec<String>>,
-        #[derivative(Debug = "ignore")]
-        #[serde(skip)]
-        visible: Option<MetaVisibleFn>,
-        rust_typename: String,
-    },
-    Union {
-        name: String,
-        description: Option<String>,
-        possible_types: IndexSet<String>,
-        #[derivative(Debug = "ignore")]
-        #[serde(skip)]
-        visible: Option<MetaVisibleFn>,
-        rust_typename: String,
-        discriminators: Option<Vec<(String, UnionDiscriminator)>>,
-    },
-    Enum {
-        name: String,
-        description: Option<String>,
-        enum_values: IndexMap<String, MetaEnumValue>,
-        #[derivative(Debug = "ignore")]
-        #[serde(skip)]
-        visible: Option<MetaVisibleFn>,
-        rust_typename: String,
-    },
-    InputObject {
-        name: String,
-        description: Option<String>,
-        input_fields: IndexMap<String, MetaInputValue>,
-        #[derivative(Debug = "ignore")]
-        #[serde(skip)]
-        visible: Option<MetaVisibleFn>,
-        rust_typename: String,
-        oneof: bool,
-    },
+    Scalar(ScalarType),
+    Object(ObjectType),
+    Interface(InterfaceType),
+    Union(UnionType),
+    Enum(EnumType),
+    InputObject(InputObjectType),
+}
+
+impl MetaType {
+    pub fn object(&self) -> Option<&ObjectType> {
+        match self {
+            MetaType::Object(inner) => Some(inner),
+            _ => None,
+        }
+    }
+
+    pub fn is_node(&self) -> bool {
+        match self {
+            MetaType::Object(object) => object.is_node,
+            _ => false,
+        }
+    }
+}
+
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, IndexMap)]
+#[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub struct ScalarType {
+    pub name: String,
+    pub description: Option<String>,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
+    pub is_valid: Option<fn(value: &Value) -> bool>,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
+    pub visible: Option<MetaVisibleFn>,
+    pub specified_by_url: Option<String>,
+    #[serde(default)]
+    pub parser: ScalarParser,
+}
+
+impl From<ScalarType> for MetaType {
+    fn from(val: ScalarType) -> Self {
+        MetaType::Scalar(val)
+    }
+}
+
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, IndexMap)]
+#[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub struct ObjectType {
+    pub name: String,
+    pub description: Option<String>,
+    pub fields: IndexMap<String, MetaField>,
+    pub cache_control: CacheControl,
+    pub extends: bool,
+    pub keys: Option<Vec<String>>,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
+    pub visible: Option<MetaVisibleFn>,
+    pub is_subscription: bool,
+    /// Define if the current Object if a Node
+    pub is_node: bool,
+    pub rust_typename: String,
+    pub constraints: Vec<Constraint>,
+}
+
+impl ObjectType {
+    pub fn new(name: String, fields: impl IntoIterator<Item = MetaField>) -> ObjectType {
+        ObjectType {
+            rust_typename: name.clone(),
+            name,
+            fields: fields
+                .into_iter()
+                .map(|field| (field.name.clone(), field))
+                .collect(),
+            description: None,
+            cache_control: Default::default(),
+            extends: false,
+            keys: None,
+            visible: None,
+            is_subscription: false,
+            is_node: false,
+            constraints: vec![],
+        }
+    }
+
+    pub fn with_description(self, description: impl Into<Option<String>>) -> Self {
+        ObjectType {
+            description: description.into(),
+            ..self
+        }
+    }
+
+    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+        ObjectType {
+            cache_control,
+            ..self
+        }
+    }
+
+    #[inline]
+    pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
+        self.fields.get(name)
+    }
+}
+
+impl From<ObjectType> for MetaType {
+    fn from(val: ObjectType) -> Self {
+        MetaType::Object(val)
+    }
+}
+
+impl<'a> TryFrom<&'a MetaType> for &'a ObjectType {
+    type Error = Error;
+
+    fn try_from(value: &'a MetaType) -> Result<Self, Self::Error> {
+        match value {
+            MetaType::Object(inner) => Ok(inner),
+            _ => Err(Error::unexpected_kind(value, MetaTypeKind::Object)),
+        }
+    }
+}
+
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, IndexMap)]
+#[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub struct InterfaceType {
+    pub name: String,
+    pub description: Option<String>,
+    pub fields: IndexMap<String, MetaField>,
+    pub possible_types: IndexSet<String>,
+    pub extends: bool,
+    pub keys: Option<Vec<String>>,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
+    pub visible: Option<MetaVisibleFn>,
+    pub rust_typename: String,
+}
+
+impl From<InterfaceType> for MetaType {
+    fn from(val: InterfaceType) -> Self {
+        MetaType::Interface(val)
+    }
+}
+
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, IndexMap)]
+#[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub struct UnionType {
+    pub name: String,
+    pub description: Option<String>,
+    pub possible_types: IndexSet<String>,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
+    pub visible: Option<MetaVisibleFn>,
+    pub rust_typename: String,
+    pub discriminators: Option<Vec<(String, UnionDiscriminator)>>,
+}
+
+impl From<UnionType> for MetaType {
+    fn from(val: UnionType) -> Self {
+        MetaType::Union(val)
+    }
+}
+
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, IndexMap)]
+#[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub struct EnumType {
+    pub name: String,
+    pub description: Option<String>,
+    pub enum_values: IndexMap<String, MetaEnumValue>,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
+    pub visible: Option<MetaVisibleFn>,
+    pub rust_typename: String,
+}
+
+impl EnumType {
+    pub fn new(name: String, values: impl IntoIterator<Item = MetaEnumValue>) -> Self {
+        EnumType {
+            rust_typename: name.clone(),
+            name,
+            enum_values: values
+                .into_iter()
+                .map(|value| (value.name.clone(), value))
+                .collect(),
+            description: None,
+            visible: None,
+        }
+    }
+
+    pub fn with_description(self, description: Option<String>) -> Self {
+        EnumType {
+            description,
+            ..self
+        }
+    }
+}
+
+impl From<EnumType> for MetaType {
+    fn from(val: EnumType) -> Self {
+        MetaType::Enum(val)
+    }
+}
+
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, IndexMap)]
+#[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub struct InputObjectType {
+    pub name: String,
+    pub description: Option<String>,
+    pub input_fields: IndexMap<String, MetaInputValue>,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
+    pub visible: Option<MetaVisibleFn>,
+    pub rust_typename: String,
+    pub oneof: bool,
+}
+
+impl InputObjectType {
+    pub fn new(name: String, input_fields: impl IntoIterator<Item = MetaInputValue>) -> Self {
+        InputObjectType {
+            rust_typename: name.clone(),
+            name,
+            description: None,
+            input_fields: input_fields
+                .into_iter()
+                .map(|v| (v.name.clone(), v))
+                .collect(),
+            visible: None,
+            oneof: false,
+        }
+    }
+
+    pub fn with_description(self, description: Option<String>) -> Self {
+        InputObjectType {
+            description,
+            ..self
+        }
+    }
+
+    pub fn with_oneof(self, oneof: bool) -> Self {
+        InputObjectType { oneof, ..self }
+    }
+}
+
+impl From<InputObjectType> for MetaType {
+    fn from(val: InputObjectType) -> Self {
+        MetaType::InputObject(val)
+    }
+}
+
+impl Error {
+    fn unexpected_kind(actual: &MetaType, expected: MetaTypeKind) -> Self {
+        Error::new(format!(
+            "Type {} appeared in a position where we expected a {expected:?} but it is a {:?}",
+            actual.name(),
+            actual.kind()
+        ))
+    }
+}
+
+impl MetaType {
+    fn kind(&self) -> MetaTypeKind {
+        match self {
+            MetaType::Scalar(_) => MetaTypeKind::Scalar,
+            MetaType::Object(_) => MetaTypeKind::Object,
+            MetaType::Interface { .. } => MetaTypeKind::Interface,
+            MetaType::Union { .. } => MetaTypeKind::Union,
+            MetaType::Enum { .. } => MetaTypeKind::Enum,
+            MetaType::InputObject { .. } => MetaTypeKind::InputObject,
+        }
+    }
+}
+
+#[derive(Debug)]
+enum MetaTypeKind {
+    Scalar,
+    Object,
+    Interface,
+    Union,
+    Enum,
+    InputObject,
 }
 
 /// The type of parser to be used for scalar values.
@@ -948,17 +1144,17 @@ pub enum ScalarParser {
 impl Hash for MetaType {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Self::Scalar {
+            Self::Scalar(ScalarType {
                 name,
                 description,
                 specified_by_url,
                 ..
-            } => {
+            }) => {
                 name.hash(state);
                 description.hash(state);
                 specified_by_url.hash(state);
             }
-            Self::Object {
+            Self::Object(ObjectType {
                 name,
                 description,
                 fields,
@@ -970,7 +1166,7 @@ impl Hash for MetaType {
                 is_node,
                 rust_typename,
                 constraints,
-            } => {
+            }) => {
                 name.hash(state);
                 description.hash(state);
                 fields.as_slice().hash(state);
@@ -982,7 +1178,7 @@ impl Hash for MetaType {
                 rust_typename.hash(state);
                 constraints.hash(state);
             }
-            Self::Interface {
+            Self::Interface(InterfaceType {
                 name,
                 description,
                 fields,
@@ -991,7 +1187,7 @@ impl Hash for MetaType {
                 keys,
                 visible: _,
                 rust_typename,
-            } => {
+            }) => {
                 name.hash(state);
                 description.hash(state);
                 fields.as_slice().hash(state);
@@ -1000,40 +1196,40 @@ impl Hash for MetaType {
                 keys.hash(state);
                 rust_typename.hash(state);
             }
-            Self::Enum {
+            Self::Enum(EnumType {
                 name,
                 description,
                 enum_values,
                 visible: _,
                 rust_typename,
-            } => {
+            }) => {
                 name.hash(state);
                 description.hash(state);
                 enum_values.as_slice().hash(state);
                 rust_typename.hash(state);
             }
-            Self::Union {
+            Self::Union(UnionType {
                 name,
                 description,
                 possible_types,
                 visible: _,
                 rust_typename,
                 discriminators,
-            } => {
+            }) => {
                 name.hash(state);
                 description.hash(state);
                 possible_types.as_slice().hash(state);
                 rust_typename.hash(state);
                 discriminators.hash(state);
             }
-            Self::InputObject {
+            Self::InputObject(InputObjectType {
                 name,
                 description,
                 input_fields,
                 visible: _,
                 rust_typename,
                 oneof,
-            } => {
+            }) => {
                 name.hash(state);
                 description.hash(state);
                 input_fields.as_slice().hash(state);
@@ -1049,25 +1245,25 @@ impl PartialEq for MetaType {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (
-                Self::Scalar {
+                Self::Scalar(ScalarType {
                     name,
                     description,
                     specified_by_url,
                     ..
-                },
-                Self::Scalar {
+                }),
+                Self::Scalar(ScalarType {
                     name: o_name,
                     description: o_descrition,
                     specified_by_url: o_specified_by_url,
                     ..
-                },
+                }),
             ) => {
                 name.eq(o_name)
                     && description.eq(o_descrition)
                     && specified_by_url.eq(o_specified_by_url)
             }
             (
-                Self::Object {
+                Self::Object(ObjectType {
                     name,
                     description,
                     fields,
@@ -1079,8 +1275,8 @@ impl PartialEq for MetaType {
                     is_node,
                     rust_typename,
                     constraints,
-                },
-                Self::Object {
+                }),
+                Self::Object(ObjectType {
                     name: o_name,
                     description: o_description,
                     fields: o_fields,
@@ -1092,7 +1288,7 @@ impl PartialEq for MetaType {
                     is_node: o_is_node,
                     rust_typename: o_rust_typename,
                     constraints: o_constraints,
-                },
+                }),
             ) => {
                 name.eq(o_name)
                     && description.eq(o_description)
@@ -1106,7 +1302,7 @@ impl PartialEq for MetaType {
                     && constraints.eq(o_constraints)
             }
             (
-                Self::Interface {
+                Self::Interface(InterfaceType {
                     name,
                     description,
                     fields,
@@ -1115,8 +1311,8 @@ impl PartialEq for MetaType {
                     keys,
                     visible: _,
                     rust_typename,
-                },
-                Self::Interface {
+                }),
+                Self::Interface(InterfaceType {
                     name: o_name,
                     description: o_description,
                     fields: o_fields,
@@ -1125,7 +1321,7 @@ impl PartialEq for MetaType {
                     keys: o_keys,
                     visible: _,
                     rust_typename: o_rust_typename,
-                },
+                }),
             ) => {
                 name.eq(o_name)
                     && description.eq(o_description)
@@ -1136,20 +1332,20 @@ impl PartialEq for MetaType {
                     && rust_typename.eq(o_rust_typename)
             }
             (
-                Self::Enum {
+                Self::Enum(EnumType {
                     name,
                     description,
                     enum_values,
                     visible: _,
                     rust_typename,
-                },
-                Self::Enum {
+                }),
+                Self::Enum(EnumType {
                     name: o_name,
                     description: o_description,
                     enum_values: o_enum_values,
                     visible: _,
                     rust_typename: o_rust_typename,
-                },
+                }),
             ) => {
                 name.eq(o_name)
                     && description.eq(o_description)
@@ -1157,22 +1353,22 @@ impl PartialEq for MetaType {
                     && rust_typename.eq(o_rust_typename)
             }
             (
-                Self::Union {
+                Self::Union(UnionType {
                     name,
                     description,
                     possible_types,
                     visible: _,
                     rust_typename,
                     discriminators,
-                },
-                Self::Union {
+                }),
+                Self::Union(UnionType {
                     name: o_name,
                     description: o_description,
                     possible_types: o_possible_types,
                     visible: _,
                     rust_typename: o_rust_typename,
                     discriminators: o_discrimnators,
-                },
+                }),
             ) => {
                 name.eq(o_name)
                     && description.eq(o_description)
@@ -1181,22 +1377,22 @@ impl PartialEq for MetaType {
                     && discriminators.eq(o_discrimnators)
             }
             (
-                Self::InputObject {
+                Self::InputObject(InputObjectType {
                     name,
                     description,
                     input_fields,
                     visible: _,
                     rust_typename,
                     oneof,
-                },
-                Self::InputObject {
+                }),
+                Self::InputObject(InputObjectType {
                     name: o_name,
                     description: o_description,
                     input_fields: o_input_fields,
                     visible: _,
                     rust_typename: o_rust_typename,
                     oneof: o_oneof,
-                },
+                }),
             ) => {
                 name.eq(o_name)
                     && description.eq(o_description)
@@ -1225,8 +1421,8 @@ impl MetaType {
     #[inline]
     pub fn fields(&self) -> Option<&IndexMap<String, MetaField>> {
         match self {
-            MetaType::Object { fields, .. } => Some(&fields),
-            MetaType::Interface { fields, .. } => Some(&fields),
+            MetaType::Object(inner) => Some(&inner.fields),
+            MetaType::Interface(inner) => Some(&inner.fields),
             _ => None,
         }
     }
@@ -1234,15 +1430,15 @@ impl MetaType {
     #[inline]
     pub fn fields_mut(&mut self) -> Option<&mut IndexMap<String, MetaField>> {
         match self {
-            MetaType::Object { fields, .. } => Some(fields),
-            MetaType::Interface { fields, .. } => Some(fields),
+            MetaType::Object(inner) => Some(&mut inner.fields),
+            MetaType::Interface(inner) => Some(&mut inner.fields),
             _ => None,
         }
     }
 
     pub fn constraints(&self) -> &[Constraint] {
         match self {
-            MetaType::Object { constraints, .. } => &constraints,
+            MetaType::Object(inner) => &inner.constraints,
             _ => &[],
         }
     }
@@ -1250,12 +1446,12 @@ impl MetaType {
     #[inline]
     pub fn is_visible(&self, ctx: &Context<'_>) -> bool {
         let visible = match self {
-            MetaType::Scalar { visible, .. } => visible,
-            MetaType::Object { visible, .. } => visible,
-            MetaType::Interface { visible, .. } => visible,
-            MetaType::Union { visible, .. } => visible,
-            MetaType::Enum { visible, .. } => visible,
-            MetaType::InputObject { visible, .. } => visible,
+            MetaType::Scalar(inner) => &inner.visible,
+            MetaType::Object(inner) => &inner.visible,
+            MetaType::Interface(inner) => &inner.visible,
+            MetaType::Union(inner) => &inner.visible,
+            MetaType::Enum(inner) => &inner.visible,
+            MetaType::InputObject(inner) => &inner.visible,
         };
         is_visible(ctx, visible)
     }
@@ -1263,24 +1459,24 @@ impl MetaType {
     #[inline]
     pub fn name(&self) -> &str {
         match self {
-            MetaType::Scalar { name, .. } => &name,
-            MetaType::Object { name, .. } => name,
-            MetaType::Interface { name, .. } => name,
-            MetaType::Union { name, .. } => name,
-            MetaType::Enum { name, .. } => name,
-            MetaType::InputObject { name, .. } => name,
+            MetaType::Scalar(inner) => &inner.name,
+            MetaType::Object(inner) => &inner.name,
+            MetaType::Interface(inner) => &inner.name,
+            MetaType::Union(inner) => &inner.name,
+            MetaType::Enum(inner) => &inner.name,
+            MetaType::InputObject(inner) => &inner.name,
         }
     }
 
     #[inline]
     pub fn description(&self) -> Option<&str> {
         match self {
-            MetaType::Scalar { description, .. } => description.as_deref(),
-            MetaType::Object { description, .. } => description.as_deref(),
-            MetaType::Interface { description, .. } => description.as_deref(),
-            MetaType::Union { description, .. } => description.as_deref(),
-            MetaType::Enum { description, .. } => description.as_deref(),
-            MetaType::InputObject { description, .. } => description.as_deref(),
+            MetaType::Scalar(inner) => inner.description.as_deref(),
+            MetaType::Object(inner) => inner.description.as_deref(),
+            MetaType::Interface(inner) => inner.description.as_deref(),
+            MetaType::Union(inner) => inner.description.as_deref(),
+            MetaType::Enum(inner) => inner.description.as_deref(),
+            MetaType::InputObject(inner) => inner.description.as_deref(),
         }
     }
 
@@ -1288,39 +1484,39 @@ impl MetaType {
     pub fn is_composite(&self) -> bool {
         matches!(
             self,
-            MetaType::Object { .. } | MetaType::Interface { .. } | MetaType::Union { .. }
+            MetaType::Object(_) | MetaType::Interface(_) | MetaType::Union(_)
         )
     }
 
     #[inline]
     pub fn is_abstract(&self) -> bool {
-        matches!(self, MetaType::Interface { .. } | MetaType::Union { .. })
+        matches!(self, MetaType::Interface(_) | MetaType::Union(_))
     }
 
     #[inline]
     pub fn is_leaf(&self) -> bool {
-        matches!(self, MetaType::Enum { .. } | MetaType::Scalar { .. })
+        matches!(self, MetaType::Enum(_) | MetaType::Scalar(_))
     }
 
     #[inline]
     pub fn is_input(&self) -> bool {
         matches!(
             self,
-            MetaType::Enum { .. } | MetaType::Scalar { .. } | MetaType::InputObject { .. }
+            MetaType::Enum(_) | MetaType::Scalar(_) | MetaType::InputObject(_)
         )
     }
 
     #[inline]
     pub fn is_enum(&self) -> bool {
-        matches!(self, MetaType::Enum { .. })
+        matches!(self, MetaType::Enum(_))
     }
 
     #[inline]
     pub fn is_possible_type(&self, type_name: &str) -> bool {
         match self {
-            MetaType::Interface { possible_types, .. } => possible_types.contains(type_name),
-            MetaType::Union { possible_types, .. } => possible_types.contains(type_name),
-            MetaType::Object { name, .. } => name == type_name,
+            MetaType::Interface(inner) => inner.possible_types.contains(type_name),
+            MetaType::Union(inner) => inner.possible_types.contains(type_name),
+            MetaType::Object(inner) => inner.name == type_name,
             _ => false,
         }
     }
@@ -1328,8 +1524,8 @@ impl MetaType {
     #[inline]
     pub fn possible_types(&self) -> Option<&IndexSet<String>> {
         match self {
-            MetaType::Interface { possible_types, .. } => Some(possible_types),
-            MetaType::Union { possible_types, .. } => Some(possible_types),
+            MetaType::Interface(inner) => Some(&inner.possible_types),
+            MetaType::Union(inner) => Some(&inner.possible_types),
             _ => None,
         }
     }
@@ -1355,11 +1551,11 @@ impl MetaType {
     pub fn rust_typename(&self) -> Option<&String> {
         match self {
             MetaType::Scalar { .. } => None,
-            MetaType::Object { rust_typename, .. } => Some(rust_typename),
-            MetaType::Interface { rust_typename, .. } => Some(rust_typename),
-            MetaType::Union { rust_typename, .. } => Some(rust_typename),
-            MetaType::Enum { rust_typename, .. } => Some(rust_typename),
-            MetaType::InputObject { rust_typename, .. } => Some(rust_typename),
+            MetaType::Object(inner) => Some(&inner.rust_typename),
+            MetaType::Interface(inner) => Some(&inner.rust_typename),
+            MetaType::Union(inner) => Some(&inner.rust_typename),
+            MetaType::Enum(inner) => Some(&inner.rust_typename),
+            MetaType::InputObject(inner) => Some(&inner.rust_typename),
         }
     }
 }
@@ -1444,6 +1640,20 @@ pub struct Registry {
     pub enable_caching: bool,
 }
 
+impl Registry {
+    pub fn lookup<'a, T>(&'a self, name: &str) -> Result<&T, Error>
+    where
+        &'a T: TryFrom<&'a MetaType>,
+        <&'a T as TryFrom<&'a MetaType>>::Error: Into<Error>,
+    {
+        self.types
+            .get(name)
+            .ok_or_else(|| Error::new(format!("Couldn't find a type named {name}")))?
+            .try_into()
+            .map_err(Into::into)
+    }
+}
+
 pub mod vectorize {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use std::iter::FromIterator;
@@ -1478,19 +1688,7 @@ impl Registry {
         };
         registry.types.insert(
             "Query".to_string(),
-            MetaType::Object {
-                name: "Query".to_string(),
-                description: None,
-                fields: IndexMap::new(),
-                cache_control: Default::default(),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: "Query".to_string(),
-                constraints: vec![],
-            },
+            ObjectType::new("Query".to_string(), []).into(),
         );
         registry
     }
@@ -1513,14 +1711,14 @@ impl Registry {
 
         self.types.insert(
             "MyScalar".to_owned(),
-            MetaType::Scalar {
+            MetaType::Scalar(ScalarType {
                 name: "MyScalar".to_owned(),
                 description: Some("test scalar".to_owned()),
                 is_valid: None,
                 visible: None,
                 specified_by_url: None,
                 parser: ScalarParser::default(),
-            },
+            }),
         );
 
         self
@@ -1681,19 +1879,11 @@ impl Registry {
                 // Inserting a fake type before calling the function allows recursive types to exist.
                 self.types.insert(
                     name.to_string(),
-                    MetaType::Object {
-                        name: String::new(),
-                        description: None,
-                        fields: Default::default(),
-                        cache_control: Default::default(),
-                        extends: false,
-                        keys: None,
-                        visible: None,
-                        is_subscription: false,
-                        is_node: false,
+                    ObjectType {
                         rust_typename: "__fake_type__".to_string(),
-                        constraints: vec![],
-                    },
+                        ..ObjectType::new(String::new(), [])
+                    }
+                    .into(),
                 );
                 let ty = f(self);
                 *self.types.get_mut(name).unwrap() = ty;
@@ -1745,8 +1935,8 @@ impl Registry {
 
     pub fn add_keys(&mut self, ty: &str, keys: &str) {
         let all_keys = match self.types.get_mut(ty) {
-            Some(MetaType::Object { keys: all_keys, .. }) => all_keys,
-            Some(MetaType::Interface { keys: all_keys, .. }) => all_keys,
+            Some(MetaType::Object(inner)) => &mut inner.keys,
+            Some(MetaType::Interface(inner)) => &mut inner.keys,
             _ => return,
         };
         if let Some(all_keys) = all_keys {
@@ -1769,12 +1959,12 @@ impl Registry {
 
     pub(crate) fn has_entities(&self) -> bool {
         self.types.values().any(|ty| match ty {
-            MetaType::Object {
+            MetaType::Object(ObjectType {
                 keys: Some(keys), ..
-            }
-            | MetaType::Interface {
+            })
+            | MetaType::Interface(InterfaceType {
                 keys: Some(keys), ..
-            } => !keys.is_empty(),
+            }) => !keys.is_empty(),
             _ => false,
         })
     }
@@ -1789,16 +1979,16 @@ impl Registry {
             .types
             .values()
             .filter_map(|ty| match ty {
-                MetaType::Object {
+                MetaType::Object(ObjectType {
                     name,
                     keys: Some(keys),
                     ..
-                } if !keys.is_empty() => Some(name.clone()),
-                MetaType::Interface {
+                }) if !keys.is_empty() => Some(name.clone()),
+                MetaType::Interface(InterfaceType {
                     name,
                     keys: Some(keys),
                     ..
-                } if !keys.is_empty() => Some(name.clone()),
+                }) if !keys.is_empty() => Some(name.clone()),
                 _ => None,
             })
             .collect();
@@ -1806,19 +1996,20 @@ impl Registry {
         if !possible_types.is_empty() {
             self.types.insert(
                 "_Entity".to_string(),
-                MetaType::Union {
+                UnionType {
                     name: "_Entity".to_string(),
                     description: None,
                     possible_types,
                     visible: None,
                     rust_typename: "dynaql::federation::Entity".to_string(),
                     discriminators: None,
-                },
+                }
+                .into(),
             );
 
             let query_root = self.types.get_mut(&self.query_type).unwrap();
-            if let MetaType::Object { fields, .. } = query_root {
-                fields.insert(
+            if let MetaType::Object(object) = query_root {
+                object.fields.insert(
                     "_service".to_string(),
                     MetaField {
                         name: "_service".to_string(),
@@ -1842,7 +2033,7 @@ impl Registry {
                     },
                 );
 
-                fields.insert(
+                object.fields.insert(
                     "_entities".to_string(),
                     MetaField {
                         name: "_entities".to_string(),
@@ -1881,45 +2072,18 @@ impl Registry {
 
         self.types.insert(
             "_Service".to_string(),
-            MetaType::Object {
-                name: "_Service".to_string(),
-                description: None,
-                fields: {
-                    let mut fields = IndexMap::new();
-                    fields.insert(
-                        "sdl".to_string(),
-                        MetaField {
-                            name: "sdl".to_string(),
-                            description: None,
-                            args: Default::default(),
-                            ty: "String".to_string(),
-                            deprecation: Default::default(),
-                            cache_control: Default::default(),
-                            external: false,
-                            requires: None,
-                            provides: None,
-                            visible: None,
-                            compute_complexity: None,
-                            edges: Vec::new(),
-                            relation: None,
-                            resolve: None,
-                            plan: None,
-                            transformer: None,
-                            required_operation: None,
-                            auth: None,
-                        },
-                    );
-                    fields
-                },
-                cache_control: Default::default(),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
+            ObjectType {
                 rust_typename: "dynaql::federation::Service".to_string(),
-                constraints: vec![],
-            },
+                ..ObjectType::new(
+                    "_Service".into(),
+                    [MetaField {
+                        name: "sdl".to_string(),
+                        ty: "String".to_string(),
+                        ..Default::default()
+                    }],
+                )
+            }
+            .into(),
         );
 
         self.create_entity_type_and_root_field();
@@ -1935,11 +2099,11 @@ impl Registry {
 
         for ty in self.types.values() {
             match ty {
-                MetaType::Scalar { name, .. } | MetaType::Union { name, .. } => {
-                    names.insert(name.clone());
+                MetaType::Scalar(_) | MetaType::Union(_) => {
+                    names.insert(ty.name().to_string());
                 }
-                MetaType::Object { name, fields, .. }
-                | MetaType::Interface { name, fields, .. } => {
+                MetaType::Object(ObjectType { name, fields, .. })
+                | MetaType::Interface(InterfaceType { name, fields, .. }) => {
                     names.insert(name.clone());
                     names.extend(
                         fields
@@ -1951,15 +2115,15 @@ impl Registry {
                             .flatten(),
                     );
                 }
-                MetaType::Enum {
+                MetaType::Enum(EnumType {
                     name, enum_values, ..
-                } => {
+                }) => {
                     names.insert(name.clone());
                     names.extend(enum_values.values().map(|value| value.name.to_string()));
                 }
-                MetaType::InputObject {
+                MetaType::InputObject(InputObjectType {
                     name, input_fields, ..
-                } => {
+                }) => {
                     names.insert(name.clone());
                     names.extend(input_fields.values().map(|field| field.name.to_string()));
                 }
@@ -1971,13 +2135,13 @@ impl Registry {
 
     pub fn set_description(&mut self, name: &str, desc: &'static str) {
         match self.types.get_mut(name) {
-            Some(MetaType::Scalar { description, .. }) => *description = Some(desc.to_string()),
-            Some(MetaType::Object { description, .. }) => *description = Some(desc.to_string()),
-            Some(MetaType::Interface { description, .. }) => *description = Some(desc.to_string()),
-            Some(MetaType::Union { description, .. }) => *description = Some(desc.to_string()),
-            Some(MetaType::Enum { description, .. }) => *description = Some(desc.to_string()),
-            Some(MetaType::InputObject { description, .. }) => {
-                *description = Some(desc.to_string());
+            Some(MetaType::Scalar(inner)) => inner.description = Some(desc.to_string()),
+            Some(MetaType::Object(inner)) => inner.description = Some(desc.to_string()),
+            Some(MetaType::Interface(inner)) => inner.description = Some(desc.to_string()),
+            Some(MetaType::Union(inner)) => inner.description = Some(desc.to_string()),
+            Some(MetaType::Enum(inner)) => inner.description = Some(desc.to_string()),
+            Some(MetaType::InputObject(inner)) => {
+                inner.description = Some(desc.to_string());
             }
             None => {}
         }
@@ -2026,30 +2190,26 @@ impl Registry {
             if let Some(ty) = types.get(type_name) {
                 used_types.insert(type_name);
                 match ty {
-                    MetaType::Object { fields, .. } => {
-                        for field in fields.values() {
+                    MetaType::Object(object) => {
+                        for field in object.fields.values() {
                             traverse_field(types, used_types, field);
                         }
                     }
-                    MetaType::Interface {
-                        fields,
-                        possible_types,
-                        ..
-                    } => {
-                        for field in fields.values() {
+                    MetaType::Interface(interface) => {
+                        for field in interface.fields.values() {
                             traverse_field(types, used_types, field);
                         }
-                        for type_name in possible_types.iter() {
+                        for type_name in interface.possible_types.iter() {
                             traverse_type(types, used_types, type_name);
                         }
                     }
-                    MetaType::Union { possible_types, .. } => {
-                        for type_name in possible_types.iter() {
+                    MetaType::Union(union_type) => {
+                        for type_name in union_type.possible_types.iter() {
                             traverse_type(types, used_types, type_name);
                         }
                     }
-                    MetaType::InputObject { input_fields, .. } => {
-                        for field in input_fields.values() {
+                    MetaType::InputObject(input_object) => {
+                        for field in input_object.input_fields.values() {
                             traverse_input_value(types, used_types, field);
                         }
                     }
@@ -2073,12 +2233,12 @@ impl Registry {
         }
 
         for ty in self.types.values().filter(|ty| match ty {
-            MetaType::Object {
+            MetaType::Object(ObjectType {
                 keys: Some(keys), ..
-            }
-            | MetaType::Interface {
+            })
+            | MetaType::Interface(InterfaceType {
                 keys: Some(keys), ..
-            } => !keys.is_empty(),
+            }) => !keys.is_empty(),
             _ => false,
         }) {
             traverse_type(&self.types, &mut used_types, ty.name());
@@ -2155,30 +2315,26 @@ impl Registry {
 
                 visible_types.insert(type_name);
                 match ty {
-                    MetaType::Object { fields, .. } => {
-                        for field in fields.values() {
+                    MetaType::Object(object) => {
+                        for field in object.fields.values() {
                             traverse_field(ctx, types, visible_types, field);
                         }
                     }
-                    MetaType::Interface {
-                        fields,
-                        possible_types,
-                        ..
-                    } => {
-                        for field in fields.values() {
+                    MetaType::Interface(interface) => {
+                        for field in interface.fields.values() {
                             traverse_field(ctx, types, visible_types, field);
                         }
-                        for type_name in possible_types.iter() {
+                        for type_name in interface.possible_types.iter() {
                             traverse_type(ctx, types, visible_types, type_name);
                         }
                     }
-                    MetaType::Union { possible_types, .. } => {
-                        for type_name in possible_types.iter() {
+                    MetaType::Union(union_type) => {
+                        for type_name in union_type.possible_types.iter() {
                             traverse_type(ctx, types, visible_types, type_name);
                         }
                     }
-                    MetaType::InputObject { input_fields, .. } => {
-                        for field in input_fields.values() {
+                    MetaType::InputObject(input_object) => {
+                        for field in input_object.input_fields.values() {
                             traverse_input_value(ctx, types, visible_types, field);
                         }
                     }
@@ -2204,21 +2360,21 @@ impl Registry {
         }
 
         for ty in self.types.values().filter(|ty| match ty {
-            MetaType::Object {
+            MetaType::Object(ObjectType {
                 keys: Some(keys), ..
-            }
-            | MetaType::Interface {
+            })
+            | MetaType::Interface(InterfaceType {
                 keys: Some(keys), ..
-            } => !keys.is_empty(),
+            }) => !keys.is_empty(),
             _ => false,
         }) {
             traverse_type(ctx, &self.types, &mut visible_types, ty.name());
         }
 
         for ty in self.types.values() {
-            if let MetaType::Interface { possible_types, .. } = ty {
+            if let MetaType::Interface(interface) = ty {
                 if ty.is_visible(ctx) && !visible_types.contains(ty.name()) {
-                    for type_name in possible_types.iter() {
+                    for type_name in interface.possible_types.iter() {
                         if visible_types.contains(type_name.as_str()) {
                             traverse_type(ctx, &self.types, &mut visible_types, ty.name());
                             break;

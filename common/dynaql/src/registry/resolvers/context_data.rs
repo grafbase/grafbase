@@ -266,14 +266,14 @@ impl ResolverTrait for ContextDataResolver {
 impl Context<'_> {
     fn current_enum_values(&self) -> Option<&IndexMap<String, MetaEnumValue>> {
         match self.resolver_node.as_ref()?.ty? {
-            MetaType::Enum { enum_values, .. } => Some(enum_values),
+            MetaType::Enum(enum_type) => Some(&enum_type.enum_values),
             _ => None,
         }
     }
 
     fn current_discriminators(&self) -> Option<&Vec<(String, UnionDiscriminator)>> {
         match self.resolver_node.as_ref()?.ty? {
-            MetaType::Union { discriminators, .. } => discriminators.as_ref(),
+            MetaType::Union(union_type) => union_type.discriminators.as_ref(),
             _ => None,
         }
     }

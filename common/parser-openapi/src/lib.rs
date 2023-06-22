@@ -192,7 +192,7 @@ fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
 mod tests {
     use assert_matches::assert_matches;
 
-    use dynaql::registry::MetaType;
+    use dynaql::registry::{MetaType, UnionType};
 
     use super::*;
 
@@ -300,9 +300,9 @@ mod tests {
             .types
             .values()
             .filter_map(|ty| match ty {
-                MetaType::Union {
+                MetaType::Union(UnionType {
                     name, discriminators, ..
-                } => Some((name, discriminators)),
+                }) => Some((name, discriminators)),
                 _ => None,
             })
             .collect::<Vec<_>>();

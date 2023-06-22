@@ -49,14 +49,16 @@ pub fn generate(
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
-                registry.create_input_type::<#self_ty, _>(|_| #crate_name::registry::MetaType::Scalar {
-                    name: ::std::borrow::ToOwned::to_owned(#gql_typename),
-                    description: #desc,
-                    is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
-                    visible: #visible,
-                    specified_by_url: #specified_by_url,
-                    parser: #crate_name::registry::ScalarParser::BestEffort,
-                })
+                registry.create_input_type::<#self_ty, _>(|_|
+                    #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
+                        name: ::std::borrow::ToOwned::to_owned(#gql_typename),
+                        description: #desc,
+                        is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
+                        visible: #visible,
+                        specified_by_url: #specified_by_url,
+                        parser: #crate_name::registry::ScalarParser::BestEffort,
+                    })
+                )
             }
 
             fn parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> {
@@ -80,14 +82,16 @@ pub fn generate(
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
-                registry.create_output_type::<#self_ty, _>(|_| #crate_name::registry::MetaType::Scalar {
-                    name: ::std::borrow::ToOwned::to_owned(#gql_typename),
-                    description: #desc,
-                    is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
-                    visible: #visible,
-                    specified_by_url: #specified_by_url,
-                    parser: #crate_name::registry::ScalarParser::BestEffort,
-                })
+                registry.create_output_type::<#self_ty, _>(|_|
+                    #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
+                        name: ::std::borrow::ToOwned::to_owned(#gql_typename),
+                        description: #desc,
+                        is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
+                        visible: #visible,
+                        specified_by_url: #specified_by_url,
+                        parser: #crate_name::registry::ScalarParser::BestEffort,
+                    })
+                )
             }
 
             async fn resolve(

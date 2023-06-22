@@ -86,16 +86,16 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
                     let mut fields = ::std::default::Default::default();
                     let mut cache_control = ::std::default::Default::default();
 
-                    if let #crate_name::registry::MetaType::Object {
+                    if let #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                         fields: obj_fields,
                         cache_control: obj_cache_control,
                         ..
-                    } = registry.create_fake_output_type::<#merged_type>() {
+                    }) = registry.create_fake_output_type::<#merged_type>() {
                         fields = obj_fields;
                         cache_control = obj_cache_control;
                     }
 
-                    #crate_name::registry::MetaType::Object {
+                    #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
                         description: #desc,
                         fields,
@@ -106,7 +106,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
                         is_subscription: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         constraints: vec![],
-                    }
+                    })
                 })
             }
 

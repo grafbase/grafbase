@@ -26,12 +26,12 @@ use dynaql::indexmap::IndexMap;
 use dynaql::registry::resolvers::context_data::ContextDataResolver;
 use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
 use dynaql::registry::scalars::{DateTimeScalar, IDScalar, SDLDefinitionScalar};
-use dynaql::registry::MetaField;
-use dynaql::registry::MetaInputValue;
+use dynaql::registry::{self, MetaField};
 use dynaql::registry::{is_array_basic_type, MetaType};
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
 };
+use dynaql::registry::{InputObjectType, MetaInputValue};
 use dynaql::{AuthConfig, Positioned};
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
 use grafbase::auth::Operations;
@@ -218,197 +218,190 @@ impl<'a> Visitor<'a> for ModelDirective {
             // If it's a modeled Type, we create the associated type into the registry.
             // Without more data, we infer it's from our modelization.
             ctx.registry.borrow_mut().create_type(
-                |registry| MetaType::Object {
-                    name: type_name.clone(),
-                    description: type_definition.node.description.clone().map(|x| x.node),
-                    fields: {
-                        let mut fields = IndexMap::new();
-                        for field in &object.fields {
-                            let name = field.node.name.node.to_string();
+                |registry| {
+                    let mut fields = IndexMap::new();
+                    for field in &object.fields {
+                        let name = field.node.name.node.to_string();
 
-                            // Will be added later or ignored (error was already reported)
-                            if METADATA_FIELDS.contains(&name.as_str()) || RESERVED_FIELDS.contains(&name.as_str()) {
-                                continue;
-                            }
-
-                            let (resolver, relation, transformer, edges, args, ty, cache_control, plan) =
-                                ResolverDirective::resolver_name(&field.node)
-                                    .map(|resolver_name| {
-                                        (
-                                            Resolver {
-                                                id: Some(format!("{}_custom_resolver", type_name.to_lowercase())),
-                                                r#type: ResolverType::CustomResolver(CustomResolver {
-                                                    resolver_name: resolver_name.to_owned(),
-                                                }),
-                                            },
-                                            None,
-                                            None,
-                                            vec![],
-                                            field
-                                                .node
-                                                .arguments
-                                                .iter()
-                                                .map(|argument| {
-                                                    (
-                                                        argument.node.name.to_string(),
-                                                        MetaInputValue::new(
-                                                            argument.node.name.to_string(),
-                                                            argument.node.ty.to_string(),
-                                                        ),
-                                                    )
-                                                })
-                                                .collect(),
-                                            field.node.ty.clone().node.to_string(),
-                                            CacheDirective::parse(&field.node.directives),
-                                            SchemaPlan::resolver(resolver_name.to_owned()),
-                                        )
-                                    })
-                                    .or_else(|| {
-                                        RelationEngine::get(ctx, &type_name, &field.node).map(|relation| {
-                                            let id = Some(format!("{}_edge_resolver", type_name.to_lowercase()));
-                                            let edges = {
-                                                let edge_type = to_base_type_str(&field.node.ty.node.base);
-                                                connection_edges.push(edge_type.clone());
-                                                vec![edge_type]
-                                            };
-                                            let (context_data_resolver, args, ty) =
-                                                if is_array_basic_type(&field.node.ty.to_string()) {
-                                                    (
-                                                        ContextDataResolver::EdgeArray {
-                                                            key: type_name.clone(),
-                                                            relation_name: relation.name.clone(),
-                                                            expected_ty: to_base_type_str(&field.node.ty.node.base),
-                                                        },
-                                                        generate_pagination_args(registry, &type_definition.node),
-                                                        format!(
-                                                            "{}Connection",
-                                                            to_base_type_str(&field.node.ty.node.base).to_camel()
-                                                        ),
-                                                    )
-                                                } else {
-                                                    (
-                                                        ContextDataResolver::SingleEdge {
-                                                            key: type_name.clone(),
-                                                            relation_name: relation.name.clone(),
-                                                        },
-                                                        Default::default(),
-                                                        field.node.ty.clone().node.to_string(),
-                                                    )
-                                                };
-                                            (
-                                                Resolver {
-                                                    id,
-                                                    r#type: ResolverType::ContextDataResolver(context_data_resolver),
-                                                },
-                                                Some(relation.clone()),
-                                                None,
-                                                edges,
-                                                args,
-                                                ty,
-                                                CacheDirective::parse(&field.node.directives),
-                                                SchemaPlan::related(
-                                                    Some(ctx.get_schema_id(relation.relation.0.clone().unwrap())),
-                                                    ctx.get_schema_id(relation.relation.1.clone()),
-                                                    Some(relation.name),
-                                                    relation.relation.1,
-                                                ),
-                                            )
-                                        })
-                                    })
-                                    .unwrap_or_else(|| {
-                                        (
-                                            Resolver {
-                                                id: None,
-                                                r#type: ResolverType::ContextDataResolver(
-                                                    ContextDataResolver::LocalKey {
-                                                        key: type_name.to_string(),
-                                                    },
-                                                ),
-                                            },
-                                            None,
-                                            Some(Transformer::DynamoSelect { property: name.clone() }),
-                                            vec![],
-                                            Default::default(),
-                                            field.node.ty.clone().node.to_string(),
-                                            CacheDirective::parse(&field.node.directives),
-                                            SchemaPlan::projection(vec![name.clone()], false),
-                                        )
-                                    });
-
-                            fields.insert(
-                                name.clone(),
-                                MetaField {
-                                    name: name.clone(),
-                                    description: field.node.description.clone().map(|x| x.node),
-                                    args,
-                                    ty,
-                                    deprecation: Default::default(),
-                                    cache_control,
-                                    external: false,
-                                    requires: None,
-                                    provides: None,
-                                    visible: None,
-                                    compute_complexity: None,
-                                    resolve: Some(resolver),
-                                    edges,
-                                    plan: Some(plan),
-                                    relation,
-                                    transformer,
-                                    required_operation: None,
-                                    auth: field_auth.get(&name).expect("must be set").clone(),
-                                },
-                            );
+                        // Will be added later or ignored (error was already reported)
+                        if METADATA_FIELDS.contains(&name.as_str()) || RESERVED_FIELDS.contains(&name.as_str()) {
+                            continue;
                         }
-                        insert_metadata_field(
-                            &mut fields,
-                            &type_name,
-                            METADATA_FIELD_ID,
-                            Some("Unique identifier".to_owned()),
-                            "ID!",
-                            dynamodb::constant::SK,
-                            "id",
-                            field_auth
-                                .get(METADATA_FIELD_ID)
-                                .map(|e| e.as_ref())
-                                .unwrap_or(model_auth.as_ref()),
-                        );
-                        insert_metadata_field(
-                            &mut fields,
-                            &type_name,
-                            METADATA_FIELD_UPDATED_AT,
-                            Some("when the model was updated".to_owned()),
-                            "DateTime!",
-                            dynamodb::constant::UPDATED_AT,
-                            "updatedAt",
-                            field_auth
-                                .get(METADATA_FIELD_UPDATED_AT)
-                                .map(|e| e.as_ref())
-                                .unwrap_or(model_auth.as_ref()),
-                        );
-                        insert_metadata_field(
-                            &mut fields,
-                            &type_name,
-                            METADATA_FIELD_CREATED_AT,
-                            Some("when the model was created".to_owned()),
-                            "DateTime!",
-                            dynamodb::constant::CREATED_AT,
-                            "createdAt",
-                            field_auth
-                                .get(METADATA_FIELD_CREATED_AT)
-                                .map(|e| e.as_ref())
-                                .unwrap_or(model_auth.as_ref()),
-                        );
 
-                        fields
-                    },
-                    cache_control: CacheDirective::parse(&type_definition.node.directives),
-                    extends: false,
-                    keys: None,
-                    visible: None,
-                    is_subscription: false,
-                    is_node: true,
-                    rust_typename: type_name.clone(),
-                    constraints: unique_directives.iter().map(UniqueDirective::to_constraint).collect(),
+                        let (resolver, relation, transformer, edges, args, ty, cache_control, plan) =
+                            ResolverDirective::resolver_name(&field.node)
+                                .map(|resolver_name| {
+                                    (
+                                        Resolver {
+                                            id: Some(format!("{}_custom_resolver", type_name.to_lowercase())),
+                                            r#type: ResolverType::CustomResolver(CustomResolver {
+                                                resolver_name: resolver_name.to_owned(),
+                                            }),
+                                        },
+                                        None,
+                                        None,
+                                        vec![],
+                                        field
+                                            .node
+                                            .arguments
+                                            .iter()
+                                            .map(|argument| {
+                                                (
+                                                    argument.node.name.to_string(),
+                                                    MetaInputValue::new(
+                                                        argument.node.name.to_string(),
+                                                        argument.node.ty.to_string(),
+                                                    ),
+                                                )
+                                            })
+                                            .collect(),
+                                        field.node.ty.clone().node.to_string(),
+                                        CacheDirective::parse(&field.node.directives),
+                                        SchemaPlan::resolver(resolver_name.to_owned()),
+                                    )
+                                })
+                                .or_else(|| {
+                                    RelationEngine::get(ctx, &type_name, &field.node).map(|relation| {
+                                        let id = Some(format!("{}_edge_resolver", type_name.to_lowercase()));
+                                        let edges = {
+                                            let edge_type = to_base_type_str(&field.node.ty.node.base);
+                                            connection_edges.push(edge_type.clone());
+                                            vec![edge_type]
+                                        };
+                                        let (context_data_resolver, args, ty) =
+                                            if is_array_basic_type(&field.node.ty.to_string()) {
+                                                (
+                                                    ContextDataResolver::EdgeArray {
+                                                        key: type_name.clone(),
+                                                        relation_name: relation.name.clone(),
+                                                        expected_ty: to_base_type_str(&field.node.ty.node.base),
+                                                    },
+                                                    generate_pagination_args(registry, &type_definition.node),
+                                                    format!(
+                                                        "{}Connection",
+                                                        to_base_type_str(&field.node.ty.node.base).to_camel()
+                                                    ),
+                                                )
+                                            } else {
+                                                (
+                                                    ContextDataResolver::SingleEdge {
+                                                        key: type_name.clone(),
+                                                        relation_name: relation.name.clone(),
+                                                    },
+                                                    Default::default(),
+                                                    field.node.ty.clone().node.to_string(),
+                                                )
+                                            };
+                                        (
+                                            Resolver {
+                                                id,
+                                                r#type: ResolverType::ContextDataResolver(context_data_resolver),
+                                            },
+                                            Some(relation.clone()),
+                                            None,
+                                            edges,
+                                            args,
+                                            ty,
+                                            CacheDirective::parse(&field.node.directives),
+                                            SchemaPlan::related(
+                                                Some(ctx.get_schema_id(relation.relation.0.clone().unwrap())),
+                                                ctx.get_schema_id(relation.relation.1.clone()),
+                                                Some(relation.name),
+                                                relation.relation.1,
+                                            ),
+                                        )
+                                    })
+                                })
+                                .unwrap_or_else(|| {
+                                    (
+                                        Resolver {
+                                            id: None,
+                                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                                                key: type_name.to_string(),
+                                            }),
+                                        },
+                                        None,
+                                        Some(Transformer::DynamoSelect { property: name.clone() }),
+                                        vec![],
+                                        Default::default(),
+                                        field.node.ty.clone().node.to_string(),
+                                        CacheDirective::parse(&field.node.directives),
+                                        SchemaPlan::projection(vec![name.clone()], false),
+                                    )
+                                });
+
+                        fields.insert(
+                            name.clone(),
+                            MetaField {
+                                name: name.clone(),
+                                description: field.node.description.clone().map(|x| x.node),
+                                args,
+                                ty,
+                                cache_control,
+                                resolve: Some(resolver),
+                                edges,
+                                plan: Some(plan),
+                                relation,
+                                transformer,
+                                required_operation: None,
+                                auth: field_auth.get(&name).expect("must be set").clone(),
+                                ..Default::default()
+                            },
+                        );
+                    }
+                    insert_metadata_field(
+                        &mut fields,
+                        &type_name,
+                        METADATA_FIELD_ID,
+                        Some("Unique identifier".to_owned()),
+                        "ID!",
+                        dynamodb::constant::SK,
+                        "id",
+                        field_auth
+                            .get(METADATA_FIELD_ID)
+                            .map(|e| e.as_ref())
+                            .unwrap_or(model_auth.as_ref()),
+                    );
+                    insert_metadata_field(
+                        &mut fields,
+                        &type_name,
+                        METADATA_FIELD_UPDATED_AT,
+                        Some("when the model was updated".to_owned()),
+                        "DateTime!",
+                        dynamodb::constant::UPDATED_AT,
+                        "updatedAt",
+                        field_auth
+                            .get(METADATA_FIELD_UPDATED_AT)
+                            .map(|e| e.as_ref())
+                            .unwrap_or(model_auth.as_ref()),
+                    );
+                    insert_metadata_field(
+                        &mut fields,
+                        &type_name,
+                        METADATA_FIELD_CREATED_AT,
+                        Some("when the model was created".to_owned()),
+                        "DateTime!",
+                        dynamodb::constant::CREATED_AT,
+                        "createdAt",
+                        field_auth
+                            .get(METADATA_FIELD_CREATED_AT)
+                            .map(|e| e.as_ref())
+                            .unwrap_or(model_auth.as_ref()),
+                    );
+
+                    MetaType::Object(registry::ObjectType {
+                        name: type_name.clone(),
+                        description: type_definition.node.description.clone().map(|x| x.node),
+                        fields,
+                        cache_control: CacheDirective::parse(&type_definition.node.directives),
+                        extends: false,
+                        keys: None,
+                        visible: None,
+                        is_subscription: false,
+                        is_node: true,
+                        rust_typename: type_name.clone(),
+                        constraints: unique_directives.iter().map(UniqueDirective::to_constraint).collect(),
+                    })
                 },
                 &type_name,
                 &type_name,
@@ -420,27 +413,22 @@ impl<'a> Visitor<'a> for ModelDirective {
 
             let one_of_type_name = format!("{type_name}ByInput");
             ctx.registry.get_mut().create_type(
-                |registry| MetaType::InputObject {
-                    name: one_of_type_name.clone(),
-                    description: type_definition
-                        .node
-                        .description
-                        .clone()
-                        .map(|description| description.node),
-                    visible: None,
-                    rust_typename: one_of_type_name.clone(),
-                    input_fields: {
-                        let mut input_fields = IndexMap::new();
-                        input_fields.insert(
-                            METADATA_FIELD_ID.to_string(),
-                            MetaInputValue::new(METADATA_FIELD_ID, "ID".to_string()),
-                        );
-                        for unique_directive in &unique_directives {
-                            input_fields.insert(unique_directive.name(), unique_directive.lookup_by_field(registry));
-                        }
-                        input_fields
-                    },
-                    oneof: true,
+                |registry| {
+                    let mut input_fields = vec![];
+                    input_fields.push(MetaInputValue::new(METADATA_FIELD_ID, "ID".to_string()));
+                    for unique_directive in &unique_directives {
+                        input_fields.push(unique_directive.lookup_by_field(registry));
+                    }
+                    InputObjectType::new(one_of_type_name.clone(), input_fields)
+                        .with_description(
+                            type_definition
+                                .node
+                                .description
+                                .clone()
+                                .map(|description| description.node),
+                        )
+                        .with_oneof(true)
+                        .into()
                 },
                 &one_of_type_name,
                 &one_of_type_name,
@@ -462,13 +450,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                 ty: type_name.clone(),
                 deprecation: dynaql::registry::Deprecation::NoDeprecated,
                 cache_control: CacheDirective::parse(&type_definition.node.directives),
-                external: false,
-                provides: None,
-                requires: None,
-                visible: None,
-                compute_complexity: None,
-                edges: Vec::new(),
-                relation: None,
                 resolve: Some(Resolver {
                     id: Some(format!("{}_resolver", type_name.to_lowercase())),
                     // TODO: Should be defined as a ResolveNode
@@ -478,10 +459,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                         schema: Some(schema_id),
                     }),
                 }),
-                plan: None,
-                transformer: None,
                 required_operation: Some(Operations::GET),
                 auth: model_auth.clone(),
+                ..Default::default()
             });
 
             //

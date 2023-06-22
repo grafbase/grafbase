@@ -97,9 +97,9 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
 
             if variant.flatten {
                 possible_types.push(quote! {
-                    if let #crate_name::registry::MetaType::Union { possible_types: possible_types2, .. } =
+                    if let #crate_name::registry::MetaType::Union(union_type) =
                         registry.create_fake_output_type::<#p>() {
-                        possible_types.extend(possible_types2);
+                        possible_types.extend(union_type.possible_types);
                     }
                 });
             } else {
@@ -173,7 +173,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                 registry.create_output_type::<Self, _>(|registry| {
                     #(#registry_types)*
 
-                    #crate_name::registry::MetaType::Union {
+                    #crate_name::registry::MetaType::Union(#crate_name::registry::UnionType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
                         description: #desc,
                         possible_types: {
@@ -184,7 +184,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                         visible: #visible,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         discriminators: None
-                    }
+                    })
                 })
             }
 

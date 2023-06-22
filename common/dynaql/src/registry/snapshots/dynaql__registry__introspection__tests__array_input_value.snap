@@ -13,7 +13,7 @@ expression: "Registry::from(schema)"
     },
     "Continent": {
       "O": {
-        "N": "Continent",
+        "n": "Continent",
         "f": {
           "code": {
             "n": "code",
@@ -39,19 +39,19 @@ expression: "Registry::from(schema)"
     },
     "ContinentFilterInput": {
       "i": {
-        "A": "ContinentFilterInput",
-        "_p": {
+        "n": "ContinentFilterInput",
+        "i": {
           "code": {
             "n": "code",
             "t": "StringQueryOperatorInput"
           }
         },
-        "u": "ContinentFilterInput"
+        "r": "ContinentFilterInput"
       }
     },
     "Country": {
       "O": {
-        "N": "Country",
+        "n": "Country",
         "f": {
           "awsRegion": {
             "n": "awsRegion",
@@ -154,8 +154,8 @@ expression: "Registry::from(schema)"
     },
     "CountryFilterInput": {
       "i": {
-        "A": "CountryFilterInput",
-        "_p": {
+        "n": "CountryFilterInput",
+        "i": {
           "code": {
             "n": "code",
             "t": "StringQueryOperatorInput"
@@ -169,7 +169,7 @@ expression: "Registry::from(schema)"
             "t": "StringQueryOperatorInput"
           }
         },
-        "u": "CountryFilterInput"
+        "r": "CountryFilterInput"
       }
     },
     "Float": {
@@ -195,7 +195,7 @@ expression: "Registry::from(schema)"
     },
     "Language": {
       "O": {
-        "N": "Language",
+        "n": "Language",
         "f": {
           "code": {
             "n": "code",
@@ -227,19 +227,19 @@ expression: "Registry::from(schema)"
     },
     "LanguageFilterInput": {
       "i": {
-        "A": "LanguageFilterInput",
-        "_p": {
+        "n": "LanguageFilterInput",
+        "i": {
           "code": {
             "n": "code",
             "t": "StringQueryOperatorInput"
           }
         },
-        "u": "LanguageFilterInput"
+        "r": "LanguageFilterInput"
       }
     },
     "Query": {
       "O": {
-        "N": "Query",
+        "n": "Query",
         "f": {
           "continent": {
             "n": "continent",
@@ -316,7 +316,7 @@ expression: "Registry::from(schema)"
     },
     "State": {
       "O": {
-        "N": "State",
+        "n": "State",
         "f": {
           "code": {
             "n": "code",
@@ -349,8 +349,8 @@ expression: "Registry::from(schema)"
     },
     "StringQueryOperatorInput": {
       "i": {
-        "A": "StringQueryOperatorInput",
-        "_p": {
+        "n": "StringQueryOperatorInput",
+        "i": {
           "eq": {
             "n": "eq",
             "t": "String"
@@ -372,12 +372,12 @@ expression: "Registry::from(schema)"
             "t": "String"
           }
         },
-        "u": "StringQueryOperatorInput"
+        "r": "StringQueryOperatorInput"
       }
     },
     "Subdivision": {
       "O": {
-        "N": "Subdivision",
+        "n": "Subdivision",
         "f": {
           "code": {
             "n": "code",
@@ -403,8 +403,8 @@ expression: "Registry::from(schema)"
     },
     "__Directive": {
       "O": {
-        "N": "__Directive",
-        "D": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
+        "n": "__Directive",
+        "d": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
         "f": {
           "args": {
             "n": "args",
@@ -448,9 +448,9 @@ expression: "Registry::from(schema)"
     },
     "__DirectiveLocation": {
       "E": {
-        "a": "__DirectiveLocation",
-        "e_": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
-        "_e": {
+        "n": "__DirectiveLocation",
+        "d": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
+        "e": {
           "ARGUMENT_DEFINITION": {
             "n": "ARGUMENT_DEFINITION",
             "d": "Location adjacent to an argument definition."
@@ -528,13 +528,13 @@ expression: "Registry::from(schema)"
             "d": "Location adjacent to a variable definition."
           }
         },
-        "_r": "__DirectiveLocation"
+        "r": "__DirectiveLocation"
       }
     },
     "__EnumValue": {
       "O": {
-        "N": "__EnumValue",
-        "D": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
+        "n": "__EnumValue",
+        "d": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
         "f": {
           "deprecationReason": {
             "n": "deprecationReason",
@@ -566,8 +566,8 @@ expression: "Registry::from(schema)"
     },
     "__Field": {
       "O": {
-        "N": "__Field",
-        "D": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
+        "n": "__Field",
+        "d": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
         "f": {
           "args": {
             "n": "args",
@@ -617,8 +617,8 @@ expression: "Registry::from(schema)"
     },
     "__InputValue": {
       "O": {
-        "N": "__InputValue",
-        "D": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
+        "n": "__InputValue",
+        "d": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
         "f": {
           "defaultValue": {
             "n": "defaultValue",
@@ -663,8 +663,8 @@ expression: "Registry::from(schema)"
     },
     "__Schema": {
       "O": {
-        "N": "__Schema",
-        "D": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
+        "n": "__Schema",
+        "d": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
         "f": {
           "description": {
             "n": "description",
@@ -713,8 +713,8 @@ expression: "Registry::from(schema)"
     },
     "__Type": {
       "O": {
-        "N": "__Type",
-        "D": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name, description and optional `specifiedByURL`, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
+        "n": "__Type",
+        "d": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name, description and optional `specifiedByURL`, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
         "f": {
           "description": {
             "n": "description",
@@ -800,9 +800,9 @@ expression: "Registry::from(schema)"
     },
     "__TypeKind": {
       "E": {
-        "a": "__TypeKind",
-        "e_": "An enum describing what kind of type a given `__Type` is.",
-        "_e": {
+        "n": "__TypeKind",
+        "d": "An enum describing what kind of type a given `__Type` is.",
+        "e": {
           "ENUM": {
             "n": "ENUM",
             "d": "Indicates this type is an enum. `enumValues` is a valid field."
@@ -836,7 +836,7 @@ expression: "Registry::from(schema)"
             "d": "Indicates this type is a union. `possibleTypes` is a valid field."
           }
         },
-        "_r": "__TypeKind"
+        "r": "__TypeKind"
       }
     }
   },

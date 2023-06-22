@@ -118,10 +118,10 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
 
         if !registry.disable_introspection {
             let schema_type = __Schema::create_type_info(registry);
-            if let Some(registry::MetaType::Object { fields, .. }) =
+            if let Some(registry::MetaType::Object(object)) =
                 registry.types.get_mut(T::type_name().as_ref())
             {
-                fields.insert(
+                object.fields.insert(
                     "__schema".to_string(),
                     registry::MetaField {
                         name: "__schema".to_string(),
@@ -147,7 +147,7 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                     },
                 );
 
-                fields.insert(
+                object.fields.insert(
                     "__type".to_string(),
                     registry::MetaField {
                         name: "__type".to_string(),

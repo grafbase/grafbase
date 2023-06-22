@@ -167,52 +167,23 @@ impl<'a> VisitorContext<'a> {
         registry.create_type(
             |registry| {
                 let schema_type = __Schema::create_type_info(registry);
-                dynaql::registry::MetaType::Object {
-                    name: QUERY_TYPE.to_owned(),
-                    description: None,
-                    fields: {
-                        let mut fields = dynaql::indexmap::IndexMap::new();
-                        fields.insert(
-                            "__schema".to_string(),
-                            MetaField {
-                                name: "__schema".to_string(),
-                                description: Some("Access the current type schema of this server.".to_string()),
-                                args: Default::default(),
-                                ty: schema_type,
-                                deprecation: Default::default(),
-                                cache_control: Default::default(),
-                                external: false,
-                                requires: None,
-                                provides: None,
-                                visible: None,
-                                compute_complexity: None,
-                                resolve: None,
-                                edges: Vec::new(),
-                                relation: None,
-                                plan: None,
-                                transformer: None,
-                                required_operation: None,
-                                auth: None,
-                            },
-                        );
-                        for query in &self.queries {
-                            fields.insert(query.name.clone(), query.clone());
-                        }
-                        fields
-                    },
-                    cache_control: self
-                        .global_cache_rules
-                        .get(&GlobalCacheTarget::Type(Cow::Borrowed(QUERY_TYPE)))
-                        .cloned()
-                        .unwrap_or_default(),
-                    extends: false,
-                    keys: ::std::option::Option::None,
-                    visible: ::std::option::Option::None,
-                    is_subscription: false,
-                    is_node: false,
-                    rust_typename: QUERY_TYPE.to_owned(),
-                    constraints: vec![],
-                }
+                let mut fields = Vec::with_capacity(self.queries.len() + 1);
+                fields.push(MetaField {
+                    name: "__schema".to_string(),
+                    description: Some("Access the current type schema of this server.".to_string()),
+                    ty: schema_type,
+                    ..Default::default()
+                });
+                fields.extend(self.queries);
+
+                dynaql::registry::ObjectType::new(QUERY_TYPE.to_owned(), fields)
+                    .with_cache_control(
+                        self.global_cache_rules
+                            .get(&GlobalCacheTarget::Type(Cow::Borrowed(QUERY_TYPE)))
+                            .cloned()
+                            .unwrap_or_default(),
+                    )
+                    .into()
             },
             QUERY_TYPE,
             QUERY_TYPE,
@@ -220,25 +191,7 @@ impl<'a> VisitorContext<'a> {
 
         if !self.mutations.is_empty() {
             registry.create_type(
-                |_| dynaql::registry::MetaType::Object {
-                    name: MUTATION_TYPE.to_owned(),
-                    description: None,
-                    fields: {
-                        let mut fields = dynaql::indexmap::IndexMap::new();
-                        for mutation in &self.mutations {
-                            fields.insert(mutation.name.clone(), mutation.clone());
-                        }
-                        fields
-                    },
-                    cache_control: Default::default(),
-                    extends: false,
-                    keys: ::std::option::Option::None,
-                    visible: ::std::option::Option::None,
-                    is_subscription: false,
-                    is_node: false,
-                    rust_typename: MUTATION_TYPE.to_owned(),
-                    constraints: vec![],
-                },
+                |_| dynaql::registry::ObjectType::new(MUTATION_TYPE.to_owned(), self.mutations).into(),
                 MUTATION_TYPE,
                 MUTATION_TYPE,
             );

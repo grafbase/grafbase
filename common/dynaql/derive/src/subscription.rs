@@ -473,23 +473,25 @@ pub fn generate(
 
             #[allow(bare_trait_objects)]
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
-                registry.create_subscription_type::<Self, _>(|registry| #crate_name::registry::MetaType::Object {
-                    name: ::std::borrow::ToOwned::to_owned(#gql_typename),
-                    description: #desc,
-                    fields: {
-                        let mut fields = #crate_name::indexmap::IndexMap::new();
-                        #(#schema_fields)*
-                        fields
-                    },
-                    cache_control: ::std::default::Default::default(),
-                    extends: #extends,
-                    keys: ::std::option::Option::None,
-                    visible: #visible,
-                    is_subscription: true,
-                    is_node: false,
-                    rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
-                    constraints: vec![],
-                })
+                registry.create_subscription_type::<Self, _>(|registry|
+                    #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
+                        name: ::std::borrow::ToOwned::to_owned(#gql_typename),
+                        description: #desc,
+                        fields: {
+                            let mut fields = #crate_name::indexmap::IndexMap::new();
+                            #(#schema_fields)*
+                            fields
+                        },
+                        cache_control: ::std::default::Default::default(),
+                        extends: #extends,
+                        keys: ::std::option::Option::None,
+                        visible: #visible,
+                        is_subscription: true,
+                        is_node: false,
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                        constraints: vec![],
+                    })
+                )
             }
 
             fn create_field_stream<'__life>(

@@ -2,10 +2,10 @@ use std::{borrow::Cow, sync::Mutex};
 
 use async_trait::async_trait;
 use dynaql::{
-    registry::{MetaField, MetaType, Registry},
+    registry::{self, MetaField, MetaType, Registry},
     Name, Pos, Positioned,
 };
-use dynaql_parser::types::{EnumType, InputObjectType, InterfaceType, ObjectType, TypeDefinition, TypeKind, UnionType};
+use dynaql_parser::types::TypeDefinition;
 
 use crate::{rules::visitor::VisitorContext, GraphqlDirective, OpenApiDirective};
 
@@ -86,13 +86,15 @@ pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Reg
 
 #[allow(clippy::panic)]
 fn type_fields(src_type: MetaType) -> impl Iterator<Item = MetaField> {
-    let MetaType::Object { fields, .. } = src_type else {
+    let MetaType::Object(registry::ObjectType { fields, .. }) = src_type else {
         panic!("type_fields should only be called on objects")
     };
     fields.into_iter().map(|(_, field)| field)
 }
 
 fn meta_type_to_type_definition(ty: &MetaType, position: Pos) -> Positioned<TypeDefinition> {
+    use dynaql_parser::types::{EnumType, InputObjectType, InterfaceType, ObjectType, TypeKind, UnionType};
+
     Positioned::new(
         TypeDefinition {
             extend: false,

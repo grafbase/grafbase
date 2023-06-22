@@ -19,17 +19,12 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
         ctx: &mut VisitorContext<'_>,
         _selection_set: &Positioned<SelectionSet>,
     ) {
-        if let Some(MetaType::Object {
-            cache_control,
-            rust_typename,
-            ..
-        }) = ctx.current_type()
-        {
-            self.cache_control.merge(cache_control.clone());
+        if let Some(MetaType::Object(object)) = ctx.current_type() {
+            self.cache_control.merge(object.cache_control.clone());
 
-            if let Some(policy) = &cache_control.invalidation_policy {
+            if let Some(policy) = &object.cache_control.invalidation_policy {
                 self.invalidation_policies.insert(CacheInvalidation {
-                    ty: rust_typename.to_string(),
+                    ty: object.rust_typename.to_string(),
                     policy: policy.clone(),
                 });
             }

@@ -45,13 +45,15 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
         };
 
         quote! {
-            registry.create_input_type::<#ident, _>(|_| #crate_name::registry::MetaType::Scalar {
-                name: ::std::borrow::ToOwned::to_owned(#name),
-                description: #desc,
-                is_valid: |value| <#ident as #crate_name::ScalarType>::is_valid(value),
-                visible: #visible,
-                specified_by_url: #specified_by_url,
-            })
+            registry.create_input_type::<#ident, _>(|_|
+                #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
+                    name: ::std::borrow::ToOwned::to_owned(#name),
+                    description: #desc,
+                    is_valid: |value| <#ident as #crate_name::ScalarType>::is_valid(value),
+                    visible: #visible,
+                    specified_by_url: #specified_by_url,
+                })
+            )
         }
     } else {
         quote! { <#inner_ty as #crate_name::InputType>::create_type_info(registry) }

@@ -117,14 +117,18 @@ impl Registry {
                     self.types
                         .get(MetaTypeName::concrete_typename(&input_value.ty))
                 });
-                if let Some(MetaType::InputObject { input_fields, .. }) = parent_type {
+                if let Some(MetaType::InputObject(input_object)) = parent_type {
                     output.push('{');
                     for (idx, (key, value)) in obj.iter().enumerate() {
                         if idx > 0 {
                             output.push_str(", ");
                         }
                         write!(output, "{key}: ")?;
-                        self.stringify_input_value(output, input_fields.get(key.as_str()), value)?;
+                        self.stringify_input_value(
+                            output,
+                            input_object.input_fields.get(key.as_str()),
+                            value,
+                        )?;
                     }
                     output.push('}');
                 } else {

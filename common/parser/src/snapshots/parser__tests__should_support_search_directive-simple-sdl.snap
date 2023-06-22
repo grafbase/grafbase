@@ -96,9 +96,6 @@ type ProductSearchEdge {
 	cursor: String!
 	score: Float!
 }
-"""
-
-"""
 input ProductSearchFilterInput {
 	ALL: [ProductSearchFilterInput!]
 	ANY: [ProductSearchFilterInput!]
@@ -132,9 +129,6 @@ type Query {
 type SearchInfo {
 	totalHits: Int!
 }
-"""
-
-"""
 input StringOrNullSearchFilterInput {
 	ALL: [StringOrNullSearchFilterInput!]
 	ANY: [StringOrNullSearchFilterInput!]

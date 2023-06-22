@@ -2,9 +2,6 @@
 source: common/parser/src/tests.rs
 expression: sdl
 ---
-"""
-
-"""
 input BooleanOrNullSearchFilterInput {
 	eq: Boolean
 	neq: Boolean
@@ -16,17 +13,11 @@ A date string, such as 2007-12-03, is compliant with the full-date format outlin
 This scalar is a description of the date, as used for birthdays for example. It cannot represent an instant on the timeline.
 """
 scalar Date
-"""
-
-"""
 input DateListSearchFilterInput {
 	includes: DateSearchFilterInput
 	includesNone: DateSearchFilterInput
 	isEmpty: Boolean
 }
-"""
-
-"""
 input DateSearchFilterInput {
 	ALL: [DateSearchFilterInput!]
 	ANY: [DateSearchFilterInput!]
@@ -57,9 +48,6 @@ Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it 
 For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
 """
 scalar DateTime
-"""
-
-"""
 input DateTimeOrNullSearchFilterInput {
 	ALL: [DateTimeOrNullSearchFilterInput!]
 	ANY: [DateTimeOrNullSearchFilterInput!]
@@ -79,17 +67,11 @@ input DateTimeOrNullSearchFilterInput {
 A scalar to validate the email as it is defined in the HTML specification.
 """
 scalar Email
-"""
-
-"""
 input EmailListSearchFilterInput {
 	includes: EmailSearchFilterInput
 	includesNone: EmailSearchFilterInput
 	isEmpty: Boolean
 }
-"""
-
-"""
 input EmailSearchFilterInput {
 	ALL: [EmailSearchFilterInput!]
 	ANY: [EmailSearchFilterInput!]
@@ -112,9 +94,6 @@ input FloatOperationsInput {
 	increment: Float
 	decrement: Float
 }
-"""
-
-"""
 input FloatOrNullSearchFilterInput {
 	ALL: [FloatOrNullSearchFilterInput!]
 	ANY: [FloatOrNullSearchFilterInput!]
@@ -136,9 +115,6 @@ A valid IPv4 or IPv6 address. IPv4 addresses are expected in quad-dotted notatio
 You can include an optional CIDR suffix `(123.45.67.89/16)` to indicate subnet mask.
 """
 scalar IPAddress
-"""
-
-"""
 input IPAddressOrNullSearchFilterInput {
 	ALL: [IPAddressOrNullSearchFilterInput!]
 	ANY: [IPAddressOrNullSearchFilterInput!]
@@ -162,9 +138,6 @@ input IntOperationsInput {
 	increment: Int
 	decrement: Int
 }
-"""
-
-"""
 input IntOrNullSearchFilterInput {
 	ALL: [IntOrNullSearchFilterInput!]
 	ANY: [IntOrNullSearchFilterInput!]
@@ -208,9 +181,6 @@ type PageInfo {
 A phone number. This value is stored as a string. Phone numbers must follow the E.164 format, a general format for international telephone numbers.
 """
 scalar PhoneNumber
-"""
-
-"""
 input PhoneNumberOrNullSearchFilterInput {
 	ALL: [PhoneNumberOrNullSearchFilterInput!]
 	ANY: [PhoneNumberOrNullSearchFilterInput!]
@@ -300,9 +270,6 @@ type ProductSearchEdge {
 	cursor: String!
 	score: Float!
 }
-"""
-
-"""
 input ProductSearchFilterInput {
 	ALL: [ProductSearchFilterInput!]
 	ANY: [ProductSearchFilterInput!]
@@ -356,17 +323,11 @@ type Query {
 type SearchInfo {
 	totalHits: Int!
 }
-"""
-
-"""
 input StringListSearchFilterInput {
 	includes: StringSearchFilterInput
 	includesNone: StringSearchFilterInput
 	isEmpty: Boolean
 }
-"""
-
-"""
 input StringSearchFilterInput {
 	ALL: [StringSearchFilterInput!]
 	ANY: [StringSearchFilterInput!]
@@ -385,9 +346,6 @@ input StringSearchFilterInput {
 A Unix Timestamp with milliseconds precision.
 """
 scalar Timestamp
-"""
-
-"""
 input TimestampSearchFilterInput {
 	ALL: [TimestampSearchFilterInput!]
 	ANY: [TimestampSearchFilterInput!]
@@ -406,9 +364,6 @@ input TimestampSearchFilterInput {
 An URL as defined by RFC1738. For example, `https://grafbase.com/foo/` or `mailto:example@grafbase.com`.
 """
 scalar URL
-"""
-
-"""
 input URLOrNullSearchFilterInput {
 	ALL: [URLOrNullSearchFilterInput!]
 	ANY: [URLOrNullSearchFilterInput!]

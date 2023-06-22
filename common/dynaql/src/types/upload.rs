@@ -109,15 +109,17 @@ impl InputType for Upload {
     }
 
     fn create_type_info(registry: &mut registry::Registry) -> String {
-        registry.create_input_type::<Self, _>(|_| registry::MetaType::Scalar {
-            name: Self::type_name().to_string(),
-            description: None,
-            is_valid: Some(|value| matches!(value, Value::String(_))),
-            visible: None,
-            specified_by_url: Some(
-                "https://github.com/jaydenseric/graphql-multipart-request-spec".to_string(),
-            ),
-            parser: registry::ScalarParser::BestEffort,
+        registry.create_input_type::<Self, _>(|_| {
+            registry::MetaType::Scalar(registry::ScalarType {
+                name: Self::type_name().to_string(),
+                description: None,
+                is_valid: Some(|value| matches!(value, Value::String(_))),
+                visible: None,
+                specified_by_url: Some(
+                    "https://github.com/jaydenseric/graphql-multipart-request-spec".to_string(),
+                ),
+                parser: registry::ScalarParser::BestEffort,
+            })
         })
     }
 

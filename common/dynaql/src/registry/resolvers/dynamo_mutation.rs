@@ -2,7 +2,7 @@ use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::registry::utils::{type_to_base_type, value_to_attribute};
 use crate::registry::variables::id::ObfuscatedID;
 use crate::registry::variables::VariableResolveDefinition;
-use crate::registry::{ConstraintType, MetaType};
+use crate::registry::{ConstraintType, ObjectType};
 use crate::{Context, Error, ServerError, Value};
 
 use dynamodb::constant::INVERTED_INDEX_PK;
@@ -84,7 +84,7 @@ pub enum DynamoMutationResolver {
     ///                     ┌────────┐
     ///                     │ Edge 1 │
     ///                     └────────┘
-    ///                     
+    ///
     ///
     ///
     ///                     ┌────────┐
@@ -238,7 +238,7 @@ impl<'a> Add<RecursiveCreation<'a>> for RecursiveCreation<'a> {
 /// need to be run.
 fn node_create<'a>(
     ctx: &'a Context<'a>,
-    node_ty: &'a MetaType,
+    node_ty: &'a ObjectType,
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
     input: IndexMap<Name, Value>,
@@ -253,7 +253,7 @@ fn node_create<'a>(
     }
     .expect("Shouldn't fail");
 
-    let id = NodeID::new_owned(node_ty.name().to_string(), current_execution_id.to_string());
+    let id = NodeID::new_owned(node_ty.name.to_string(), current_execution_id.to_string());
     // First, to create the Node, we'll need to create the associated relations
     // if they need to be created.
     let relations_to_be_created = node_ty.relations();
@@ -330,11 +330,11 @@ fn node_create<'a>(
             let transaction_loader = &batchers.transaction_new;
 
             let node = PossibleChanges::new_node(
-                node_ty.name().to_string(),
+                node_ty.name.to_string(),
                 current_execution_id.to_string(),
                 item,
                 node_ty
-                    .constraints()
+                    .constraints
                     .iter()
                     .cloned()
                     .map(From::from)
@@ -428,7 +428,7 @@ pub const NUMERICAL_TYPES: &[&str] = &["Int", "Int!", "Float", "Float!"];
 ///   - Remove old entity linked if needed
 fn node_update<'a>(
     ctx: &'a Context<'a>,
-    node_ty: &'a MetaType,
+    node_ty: &'a ObjectType,
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
     input: IndexMap<Name, Value>,
@@ -443,15 +443,11 @@ fn node_update<'a>(
         .partition(|(name, _)| relations.contains_key(name.as_str()));
 
     let numerical_field_names = node_ty
-        .fields()
-        .map(|fields| {
-            fields
-                .iter()
-                .filter(|(_, field)| NUMERICAL_TYPES.contains(&field.ty.as_str()))
-                .map(|(name, _)| name)
-                .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
+        .fields
+        .iter()
+        .filter(|(_, field)| NUMERICAL_TYPES.contains(&field.ty.as_str()))
+        .map(|(name, _)| name)
+        .collect::<HashSet<_>>();
 
     let numerical_operations = basic
         .iter()
@@ -476,21 +472,13 @@ fn node_update<'a>(
 
     let mut increments = HashMap::new();
 
-    let constraints = ctx
-        .schema_env
-        .registry
-        .types
-        .get(node_ty.name())
-        .expect("must exist")
-        .constraints();
-
     for (field, operation) in numerical_operations {
         if let Some(set) = operation.get("set") {
             update_attr.push((
                 Name::new(field),
                 dynaql_value::ConstValue::from_json(set.clone()).expect("must parse"),
             ));
-        } else if constraints.iter().any(|constraint| {
+        } else if node_ty.constraints.iter().any(|constraint| {
             constraint.r#type == ConstraintType::Unique
                 && constraint
                     .fields()
@@ -660,7 +648,7 @@ fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
 /// Create a relation node only if needed
 async fn create_relation_node<'a>(
     ctx: &'a Context<'a>,
-    to_ty: &MetaType,
+    to_ty: &ObjectType,
     parent_value: SharedSelectionType<'a>,
     selected_value: SharedSelectionType<'a>,
     relation_name: &'a str,
@@ -720,8 +708,8 @@ async fn create_relation_node<'a>(
 
 fn internal_node_linking<'a>(
     ctx: &'a Context<'a>,
-    parent_ty: &'a MetaType,
-    child_ty: &'a MetaType,
+    parent_ty: &'a ObjectType,
+    child_ty: &'a ObjectType,
     parent_value: SharedSelectionType<'a>,
     relation_name: &'a str,
     linking_input: &Value,
@@ -865,7 +853,7 @@ fn internal_node_unlinking<'a>(
 #[allow(clippy::too_many_arguments)]
 fn relation_handle<'a>(
     ctx: &'a Context<'a>,
-    parent_ty: &'a MetaType,
+    parent_ty: &'a ObjectType,
     parent_value: SharedSelectionType<'a>,
     relation_field: &'a str,
     relation_name: &'a str,
@@ -885,7 +873,7 @@ fn relation_handle<'a>(
     .unwrap();
 
     // We determinate the subtype of this relation
-    let child_ty: &MetaType = ctx.registry().types.get(child_ty_name).unwrap();
+    let child_ty = ctx.registry().lookup::<ObjectType>(child_ty_name).unwrap();
 
     // We need to tell if it's a `create` or a `link`
     // So we get the child input first
@@ -994,9 +982,7 @@ impl ResolverTrait for DynamoMutationResolver {
             //
             // Because it's how we store the data.
             DynamoMutationResolver::CreateNode { input, ty } => {
-                let ctx_ty = ctx.registry().types.get(ty).ok_or_else(|| {
-                    Error::new("Internal Error: Failed process the associated schema.")
-                })?;
+                let ctx_ty = ctx.registry().lookup::<ObjectType>(ty)?;
 
                 let id = resolver_ctx.execution_id.to_string();
                 let autogenerated_id = NodeID::new(&ty, &id);
@@ -1028,9 +1014,7 @@ impl ResolverTrait for DynamoMutationResolver {
             DynamoMutationResolver::UpdateNode { by, input, ty } => {
                 let loader = &batchers.loader;
 
-                let ctx_ty = ctx.registry().types.get(ty).ok_or_else(|| {
-                    Error::new("Internal Error: Failed process the associated schema.")
-                })?;
+                let ctx_ty = ctx.registry().lookup::<ObjectType>(ty)?;
 
                 let by = match by
                     .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
@@ -1082,7 +1066,7 @@ impl ResolverTrait for DynamoMutationResolver {
                     }))))
                 } else {
                     let constraint_id = ctx_ty
-                        .constraints()
+                        .constraints
                         .iter()
                         .find(|constraint| constraint.name() == key)
                         .and_then(|constraint| constraint.extract_id_from_by_input_field(ty, value))

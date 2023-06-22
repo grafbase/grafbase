@@ -3,7 +3,7 @@ use crate::rules::cache_directive::global::GlobalCacheRulesError::{
 };
 use crate::rules::visitor::MUTATION_TYPE;
 use dynaql::indexmap::IndexMap;
-use dynaql::registry::{CacheInvalidationPolicy, MetaField, MetaType, Registry};
+use dynaql::registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry};
 use dynaql::CacheControl;
 use if_chain::if_chain;
 use itertools::Itertools;
@@ -109,7 +109,7 @@ impl<'a> GlobalCacheRules<'a> {
                     match Self::get_registry_type(ty.as_ref(), registry) {
                         Ok(registry_type) => {
                             if_chain! {
-                                if let MetaType::Object { cache_control, fields,  .. } = registry_type;
+                                if let MetaType::Object (registry::ObjectType { cache_control, fields,  .. }) = registry_type;
                                 // (!= 0) means caching was defined in a different level
                                 // global works as default so we skip
                                 if cache_control.max_age == 0;
@@ -236,7 +236,7 @@ mod tests {
     use crate::rules::cache_directive::visitor::CacheVisitor;
     use crate::rules::visitor::{visit, VisitorContext, MUTATION_TYPE};
     use crate::{to_parse_result_with_variables, ParseResult};
-    use dynaql::registry::{CacheInvalidationPolicy, MetaField, MetaType};
+    use dynaql::registry::{CacheInvalidationPolicy, MetaField};
     use dynaql::CacheControl;
     use dynaql_parser::parse_schema;
     use std::borrow::Cow;
@@ -359,23 +359,30 @@ mod tests {
             panic!("global cache rules apply must succeed - {global_cache_rules_result:?}");
         };
 
-        let MetaType::Object { cache_control: user_cache_control, .. } = result.registry.types.get("User").unwrap() else {
-            panic!("should be an object");
-        };
+        let user = result
+            .registry
+            .types
+            .get("User")
+            .unwrap()
+            .object()
+            .expect("should be an object");
 
-        let post_type = result.registry.types.get("Post").unwrap();
-        let MetaType::Object { cache_control: post_cache_control, .. } = post_type else {
-            panic!("should be an object");
-        };
+        let post_type = result
+            .registry
+            .types
+            .get("Post")
+            .unwrap()
+            .object()
+            .expect("should be an object");
 
         let MetaField {
             cache_control: post_contents_cache_control,
             ..
-        } = post_type.fields().unwrap().get("contents").unwrap();
+        } = post_type.fields.get("contents").unwrap();
 
         assert_eq!(
-            user_cache_control,
-            &CacheControl {
+            user.cache_control,
+            CacheControl {
                 public: false,
                 max_age: 60,
                 stale_while_revalidate: 0,
@@ -386,8 +393,8 @@ mod tests {
         );
 
         assert_eq!(
-            post_cache_control,
-            &CacheControl {
+            post_type.cache_control,
+            CacheControl {
                 public: false,
                 max_age: 20,
                 stale_while_revalidate: 0,

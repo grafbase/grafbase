@@ -324,24 +324,26 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 }
 
                 fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
-                    registry.create_output_type::<Self, _>(|registry| #crate_name::registry::MetaType::Object {
-                        name: ::std::borrow::ToOwned::to_owned(#gql_typename),
-                        description: #desc,
-                        fields: {
-                            let mut fields = #crate_name::indexmap::IndexMap::new();
-                            #(#schema_fields)*
-                            #concat_complex_fields
-                            fields
-                        },
-                        cache_control: #cache_control,
-                        extends: #extends,
-                        keys: ::std::option::Option::None,
-                        visible: #visible,
-                        is_subscription: false,
-                        is_node: false,
-                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
-                        constraints: vec![],
-                    })
+                    registry.create_output_type::<Self, _>(|registry|
+                        #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
+                            name: ::std::borrow::ToOwned::to_owned(#gql_typename),
+                            description: #desc,
+                            fields: {
+                                let mut fields = #crate_name::indexmap::IndexMap::new();
+                                #(#schema_fields)*
+                                #concat_complex_fields
+                                fields
+                            },
+                            cache_control: #cache_control,
+                            extends: #extends,
+                            keys: ::std::option::Option::None,
+                            visible: #visible,
+                            is_subscription: false,
+                            is_node: false,
+                            rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                            constraints: vec![],
+                        })
+                    )
                 }
 
                 async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
@@ -390,28 +392,30 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     name: &str,
                     complex_fields: #crate_name::indexmap::IndexMap<::std::string::String, #crate_name::registry::MetaField>,
                 ) -> ::std::string::String where Self: #crate_name::OutputType {
-                    registry.create_output_type::<Self, _>(|registry| #crate_name::registry::MetaType::Object {
-                        name: ::std::borrow::ToOwned::to_owned(name),
-                        description: #desc,
-                        fields: {
-                            let mut fields = #crate_name::indexmap::IndexMap::new();
-                            #(#schema_fields)*
-                            ::std::iter::Extend::extend(&mut fields, complex_fields.clone());
-                            fields
-                        },
-                        cache_control: #cache_control,
-                        extends: #extends,
-                        keys: ::std::option::Option::None,
-                        visible: #visible,
-                        is_subscription: false,
-                        is_node: false,
-                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
-                        resolve: None,
-                        transformer: None,
-                        required_operation: None,
-                        auth: None,
-                        constraints: vec![],
-                    })
+                    registry.create_output_type::<Self, _>(|registry|
+                        #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
+                            name: ::std::borrow::ToOwned::to_owned(name),
+                            description: #desc,
+                            fields: {
+                                let mut fields = #crate_name::indexmap::IndexMap::new();
+                                #(#schema_fields)*
+                                ::std::iter::Extend::extend(&mut fields, complex_fields.clone());
+                                fields
+                            },
+                            cache_control: #cache_control,
+                            extends: #extends,
+                            keys: ::std::option::Option::None,
+                            visible: #visible,
+                            is_subscription: false,
+                            is_node: false,
+                            rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                            resolve: None,
+                            transformer: None,
+                            required_operation: None,
+                            auth: None,
+                            constraints: vec![],
+                        })
+                    )
                 }
 
                 async fn __internal_resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> where Self: #crate_name::ContainerType {

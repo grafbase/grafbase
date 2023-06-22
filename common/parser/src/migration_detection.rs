@@ -29,11 +29,8 @@ pub fn required_migrations(from: &Registry, to: &Registry) -> Vec<RequiredMigrat
             let from_type = from
                 .types
                 .get(*common_type_name)
-                .filter(|meta_type| matches!(meta_type, MetaType::Object { is_node: true, .. }));
-            let to_type = to
-                .types
-                .get(*common_type_name)
-                .filter(|meta_type| matches!(meta_type, MetaType::Object { is_node: true, .. }));
+                .filter(|meta_type| meta_type.is_node());
+            let to_type = to.types.get(*common_type_name).filter(|meta_type| meta_type.is_node());
 
             let from_create_input_type = from.types.get(&format!("{common_type_name}CreateInput"));
             let to_create_input_type = to.types.get(&format!("{common_type_name}CreateInput"));
@@ -46,7 +43,9 @@ pub fn required_migrations(from: &Registry, to: &Registry) -> Vec<RequiredMigrat
             |((from_type, _from_create_input_type), (to_type, to_create_input_type))| {
                 let type_name = from_type.name();
 
-                let MetaType::InputObject { input_fields: to_create_input_fields, .. } = to_create_input_type else { unreachable!("Impossible") };
+                let MetaType::InputObject(to_create_input_object) = to_create_input_type else { unreachable!("Impossible") };
+
+                let to_create_input_fields = &to_create_input_object.input_fields;
 
                 from_type
                     .fields()

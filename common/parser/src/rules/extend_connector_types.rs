@@ -1,4 +1,5 @@
 use dynaql::registry::{
+    self,
     plan::SchemaPlan,
     resolvers::{custom::CustomResolver, Resolver, ResolverType},
     MetaField, MetaInputValue, MetaType,
@@ -68,7 +69,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
             .collect::<Vec<_>>();
 
         let mut registry = ctx.registry.borrow_mut();
-        let Some(MetaType::Object { fields, .. }) = registry.types.get_mut(type_name) else {
+        let Some(MetaType::Object(registry::ObjectType { fields, .. })) = registry.types.get_mut(type_name) else {
             drop(registry);
             ctx.report_error(
                 vec![type_definition.pos],
@@ -83,8 +84,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
 
 #[cfg(test)]
 mod tests {
-    use dynaql::registry::{MetaField, MetaType, Registry};
-    use dynaql_value::indexmap::IndexMap;
+    use dynaql::registry::{self, MetaField, Registry};
     use serde_json as _;
     use std::collections::HashMap;
 
@@ -166,26 +166,15 @@ mod tests {
             let mut registry = Registry::new();
             registry.types.insert(
                 "StripeCustomer".into(),
-                MetaType::Object {
-                    name: "StripeCustomer".into(),
-                    description: None,
-                    fields: IndexMap::from([(
-                        "id".into(),
-                        MetaField {
-                            name: "id".into(),
-                            ty: "String".into(),
-                            ..MetaField::default()
-                        },
-                    )]),
-                    cache_control: Default::default(),
-                    extends: false,
-                    keys: None,
-                    visible: None,
-                    is_subscription: false,
-                    is_node: false,
-                    rust_typename: "StripeCustomer".into(),
-                    constraints: vec![],
-                },
+                registry::ObjectType::new(
+                    "StripeCustomer".into(),
+                    [MetaField {
+                        name: "id".into(),
+                        ty: "String".into(),
+                        ..MetaField::default()
+                    }],
+                )
+                .into(),
             );
             registry.query_root_mut().fields_mut().unwrap().insert(
                 "customer".into(),

@@ -131,7 +131,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
 
             fn __create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
                 registry.create_input_type::<Self, _>(|registry| {
-                    #crate_name::registry::MetaType::Enum {
+                    #crate_name::registry::MetaType::Enum(#crate_name::registry::EnumType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
                         description: #desc,
                         enum_values: {
@@ -141,7 +141,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                         },
                         visible: #visible,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
-                    }
+                    })
                 })
             }
         }

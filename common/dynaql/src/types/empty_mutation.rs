@@ -51,18 +51,21 @@ impl OutputType for EmptyMutation {
     }
 
     fn create_type_info(registry: &mut registry::Registry) -> String {
-        registry.create_output_type::<Self, _>(|_| registry::MetaType::Object {
-            name: "EmptyMutation".to_string(),
-            description: None,
-            fields: Default::default(),
-            cache_control: Default::default(),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: std::any::type_name::<Self>().to_owned(),
-            constraints: vec![],
+        registry.create_output_type::<Self, _>(|_| {
+            registry::ObjectType {
+                name: "EmptyMutation".to_string(),
+                description: None,
+                fields: Default::default(),
+                cache_control: Default::default(),
+                extends: false,
+                keys: None,
+                visible: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: std::any::type_name::<Self>().to_owned(),
+                constraints: vec![],
+            }
+            .into()
         })
     }
 

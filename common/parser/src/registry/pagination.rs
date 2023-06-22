@@ -4,10 +4,10 @@ use dynaql::registry::enums::OrderByDirection;
 use dynaql::registry::plan::{PaginationPage, SchemaPlan};
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
-use dynaql::registry::Registry;
+use dynaql::registry::{self, InputObjectType, Registry};
 use dynaql::registry::{
     resolvers::context_data::ContextDataResolver, resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver,
-    resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
+    resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
 };
 use dynaql::AuthConfig;
 use dynaql_parser::types::{BaseType, Type, TypeDefinition};
@@ -35,49 +35,20 @@ fn register_edge_type(
 ) -> BaseType {
     let type_name = MetaNames::pagination_edge_type(model_type_definition);
     registry.create_type(
-        |_| MetaType::Object {
-            name: type_name.clone(),
-            description: None,
-            fields: IndexMap::from([
-                (
-                    PAGINATION_FIELD_EDGE_NODE.to_string(),
+        |_| {
+            registry::ObjectType::new(
+                type_name.clone(),
+                [
                     MetaField {
                         name: PAGINATION_FIELD_EDGE_NODE.to_string(),
-                        description: None,
-                        args: Default::default(),
                         ty: format!("{}!", MetaNames::model(model_type_definition)),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
-                        resolve: None,
-                        plan: None,
-                        transformer: None,
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
+                        ..Default::default()
                     },
-                ),
-                (
-                    PAGINATION_FIELD_EDGE_CURSOR.to_string(),
                     MetaField {
                         name: PAGINATION_FIELD_EDGE_CURSOR.to_string(),
-                        description: None,
-                        args: Default::default(),
                         ty: "String!".to_string(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
@@ -96,17 +67,12 @@ fn register_edge_type(
                         ),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
+                        ..Default::default()
                     },
-                ),
-            ]),
-            cache_control: CacheDirective::parse(&model_type_definition.directives),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: type_name.clone(),
-            constraints: vec![],
+                ],
+            )
+            .with_cache_control(CacheDirective::parse(&model_type_definition.directives))
+            .into()
         },
         &type_name,
         &type_name,
@@ -116,26 +82,13 @@ fn register_edge_type(
 
 pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
     registry.create_type(
-        |_| MetaType::Object {
-            name: PAGE_INFO_TYPE.to_string(),
-            description: None,
-            fields: IndexMap::from([
-                (
-                    PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE.to_string(),
+        |_| {
+            registry::ObjectType::new(
+                PAGE_INFO_TYPE.to_string(),
+                [
                     MetaField {
                         name: PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE.to_string(),
-                        description: None,
-                        args: Default::default(),
                         ty: "Boolean!".to_string(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -149,24 +102,11 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                         // type. PageInfo type is not specific to any data model, what matters is
                         // the model authorization of the model on which we iterate over.
                         auth: None,
+                        ..Default::default()
                     },
-                ),
-                (
-                    PAGE_INFO_FIELD_HAS_NEXT_PAGE.to_string(),
                     MetaField {
                         name: PAGE_INFO_FIELD_HAS_NEXT_PAGE.to_string(),
-                        description: None,
-                        args: Default::default(),
                         ty: "Boolean!".to_string(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -177,24 +117,11 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                         }),
                         required_operation: Some(Operations::LIST),
                         auth: None,
+                        ..Default::default()
                     },
-                ),
-                (
-                    PAGE_INFO_FIELD_START_CURSOR.to_string(),
                     MetaField {
                         name: PAGE_INFO_FIELD_START_CURSOR.to_string(),
-                        description: None,
-                        args: Default::default(),
                         ty: "String".to_string(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -208,24 +135,11 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                         }),
                         required_operation: Some(Operations::LIST),
                         auth: None,
+                        ..Default::default()
                     },
-                ),
-                (
-                    PAGE_INFO_FIELD_END_CURSOR.to_string(),
                     MetaField {
                         name: PAGE_INFO_FIELD_END_CURSOR.to_string(),
-                        description: None,
-                        args: Default::default(),
                         ty: "String".to_string(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -239,17 +153,11 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                         }),
                         required_operation: Some(Operations::LIST),
                         auth: None,
+                        ..Default::default()
                     },
-                ),
-            ]),
-            cache_control: Default::default(),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: PAGE_INFO_TYPE.to_string(),
-            constraints: vec![],
+                ],
+            )
+            .into()
         },
         PAGE_INFO_TYPE,
         PAGE_INFO_TYPE,
@@ -260,7 +168,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
 fn register_connection_type(
     registry: &mut Registry,
     model_type_definition: &TypeDefinition,
-    connection_edges: Vec<String>,
+    _connection_edges: Vec<String>,
     model_auth: Option<&AuthConfig>,
 ) -> BaseType {
     let type_name = MetaNames::pagination_connection_type(model_type_definition);
@@ -269,67 +177,29 @@ fn register_connection_type(
         |registry| {
             let edge_type = register_edge_type(registry, model_type_definition, model_auth);
             let page_info_type = register_page_info_type(registry);
-            MetaType::Object {
-                name: type_name.clone(),
-                description: None,
-                fields: IndexMap::from([
-                    (
-                        PAGINATION_FIELD_PAGE_INFO.to_string(),
-                        MetaField {
-                            name: PAGINATION_FIELD_PAGE_INFO.to_string(),
-                            description: Some("Information to aid in pagination".to_string()),
-                            args: Default::default(),
-                            ty: Type::required(page_info_type).to_string(),
-                            deprecation: Default::default(),
-                            cache_control: Default::default(),
-                            external: false,
-                            requires: None,
-                            provides: None,
-                            visible: None,
-                            compute_complexity: None,
-                            edges: Vec::new(),
-                            relation: None,
-                            resolve: None,
-                            plan: None,
-                            transformer: None,
-                            required_operation: Some(Operations::LIST),
-                            auth: model_auth.cloned(),
-                        },
-                    ),
-                    (
-                        PAGINATION_FIELD_EDGES.to_string(),
-                        MetaField {
-                            name: PAGINATION_FIELD_EDGES.to_string(),
-                            description: None,
-                            args: Default::default(),
-                            // TODO: Should this be really nullable?
-                            ty: Type::nullable(BaseType::list(Type::nullable(edge_type))).to_string(),
-                            deprecation: Default::default(),
-                            cache_control: Default::default(),
-                            external: false,
-                            requires: None,
-                            provides: None,
-                            visible: None,
-                            compute_complexity: None,
-                            edges: connection_edges.clone(),
-                            relation: None,
-                            resolve: None,
-                            plan: None,
-                            transformer: None,
-                            required_operation: Some(Operations::LIST),
-                            auth: model_auth.cloned(),
-                        },
-                    ),
-                ]),
-                cache_control: CacheDirective::parse(&model_type_definition.directives),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: type_name.clone(),
-                constraints: vec![],
-            }
+            registry::ObjectType::new(
+                type_name.clone(),
+                [
+                    MetaField {
+                        name: PAGINATION_FIELD_PAGE_INFO.to_string(),
+                        description: Some("Information to aid in pagination".to_string()),
+                        ty: Type::required(page_info_type).to_string(),
+                        required_operation: Some(Operations::LIST),
+                        auth: model_auth.cloned(),
+                        ..Default::default()
+                    },
+                    MetaField {
+                        name: PAGINATION_FIELD_EDGES.to_string(),
+                        // TODO: Should this be really nullable?
+                        ty: Type::nullable(BaseType::list(Type::nullable(edge_type))).to_string(),
+                        required_operation: Some(Operations::LIST),
+                        auth: model_auth.cloned(),
+                        ..Default::default()
+                    },
+                ],
+            )
+            .with_cache_control(CacheDirective::parse(&model_type_definition.directives))
+            .into()
         },
         &type_name,
         &type_name,
@@ -442,17 +312,15 @@ fn register_orderby_input(registry: &mut Registry, model_type_definition: &TypeD
     registry.create_type(
         |registry| {
             let order_by_direction_type = register_dynaql_enum::<OrderByDirection>(registry);
-            MetaType::InputObject {
-                name: input_type_name.clone(),
-                description: None,
-                input_fields: IndexMap::from([(
-                    METADATA_FIELD_CREATED_AT.to_string(),
-                    MetaInputValue::new(METADATA_FIELD_CREATED_AT, Type::nullable(order_by_direction_type)),
-                )]),
-                oneof: true,
-                visible: None,
-                rust_typename: input_type_name.clone(),
-            }
+            InputObjectType::new(
+                input_type_name.clone(),
+                [MetaInputValue::new(
+                    METADATA_FIELD_CREATED_AT,
+                    Type::nullable(order_by_direction_type),
+                )],
+            )
+            .with_oneof(true)
+            .into()
         },
         &input_type_name,
         &input_type_name,

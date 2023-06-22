@@ -207,7 +207,6 @@ expression: req_string_a
     },
     "Mutation": {
       "O": {
-        "N": "Mutation",
         "f": {
           "userCreate": {
             "D": "N",
@@ -295,12 +294,12 @@ expression: req_string_a
             "t": "UserUpdatePayload"
           }
         },
+        "n": "Mutation",
         "r": "Mutation"
       }
     },
     "Nested": {
       "O": {
-        "N": "Nested",
         "f": {
           "requiredField": {
             "D": "N",
@@ -322,25 +321,26 @@ expression: req_string_a
             "t": "String!"
           }
         },
+        "n": "Nested",
         "r": "Nested"
       }
     },
     "NestedInput": {
       "i": {
-        "A": "NestedInput",
-        "_p": {
+        "d": "Nested input type.",
+        "i": {
           "requiredField": {
             "n": "requiredField",
             "t": "String!"
           }
         },
-        "s_": "Nested input type.",
-        "u": "NestedInput"
+        "n": "NestedInput",
+        "r": "NestedInput"
       }
     },
     "OrderByDirection": {
       "E": {
-        "_e": {
+        "e": {
           "ASC": {
             "n": "ASC"
           },
@@ -348,13 +348,12 @@ expression: req_string_a
             "n": "DESC"
           }
         },
-        "_r": "OrderByDirection",
-        "a": "OrderByDirection"
+        "n": "OrderByDirection",
+        "r": "OrderByDirection"
       }
     },
     "PageInfo": {
       "O": {
-        "N": "PageInfo",
         "f": {
           "endCursor": {
             "D": "N",
@@ -479,12 +478,12 @@ expression: req_string_a
             "t": "String"
           }
         },
+        "n": "PageInfo",
         "r": "PageInfo"
       }
     },
     "Query": {
       "O": {
-        "N": "Query",
         "f": {
           "__schema": {
             "D": "N",
@@ -595,6 +594,7 @@ expression: req_string_a
             "t": "UserConnection"
           }
         },
+        "n": "Query",
         "r": "Query"
       }
     },
@@ -607,7 +607,7 @@ expression: req_string_a
     },
     "User": {
       "O": {
-        "N": "User",
+        "I": true,
         "f": {
           "createdAt": {
             "D": "N",
@@ -729,26 +729,25 @@ expression: req_string_a
             "t": "DateTime!"
           }
         },
-        "i_": true,
+        "n": "User",
         "r": "User"
       }
     },
     "UserByInput": {
       "i": {
-        "A": "UserByInput",
-        "_p": {
+        "i": {
           "id": {
             "n": "id",
             "t": "ID"
           }
         },
+        "n": "UserByInput",
         "o": true,
-        "u": "UserByInput"
+        "r": "UserByInput"
       }
     },
     "UserConnection": {
       "O": {
-        "N": "UserConnection",
         "f": {
           "edges": {
             "D": "N",
@@ -766,25 +765,25 @@ expression: req_string_a
             "t": "PageInfo!"
           }
         },
+        "n": "UserConnection",
         "r": "UserConnection"
       }
     },
     "UserCreateInput": {
       "i": {
-        "A": "UserCreateInput",
-        "_p": {
+        "d": "Input to create a User",
+        "i": {
           "nested": {
             "n": "nested",
             "t": "NestedInput"
           }
         },
-        "s_": "Input to create a User",
-        "u": "UserCreateInput"
+        "n": "UserCreateInput",
+        "r": "UserCreateInput"
       }
     },
     "UserCreatePayload": {
       "O": {
-        "N": "UserCreatePayload",
         "f": {
           "user": {
             "D": "N",
@@ -810,12 +809,12 @@ expression: req_string_a
             "t": "User"
           }
         },
+        "n": "UserCreatePayload",
         "r": "UserCreatePayload"
       }
     },
     "UserDeletePayload": {
       "O": {
-        "N": "UserDeletePayload",
         "f": {
           "deletedId": {
             "D": "N",
@@ -830,12 +829,12 @@ expression: req_string_a
             "t": "ID!"
           }
         },
+        "n": "UserDeletePayload",
         "r": "UserDeletePayload"
       }
     },
     "UserEdge": {
       "O": {
-        "N": "UserEdge",
         "f": {
           "cursor": {
             "D": "N",
@@ -890,38 +889,38 @@ expression: req_string_a
             "t": "User!"
           }
         },
+        "n": "UserEdge",
         "r": "UserEdge"
       }
     },
     "UserOrderByInput": {
       "i": {
-        "A": "UserOrderByInput",
-        "_p": {
+        "i": {
           "createdAt": {
             "n": "createdAt",
             "t": "OrderByDirection"
           }
         },
+        "n": "UserOrderByInput",
         "o": true,
-        "u": "UserOrderByInput"
+        "r": "UserOrderByInput"
       }
     },
     "UserUpdateInput": {
       "i": {
-        "A": "UserUpdateInput",
-        "_p": {
+        "d": "Input to update a User",
+        "i": {
           "nested": {
             "n": "nested",
             "t": "NestedInput"
           }
         },
-        "s_": "Input to update a User",
-        "u": "UserUpdateInput"
+        "n": "UserUpdateInput",
+        "r": "UserUpdateInput"
       }
     },
     "UserUpdatePayload": {
       "O": {
-        "N": "UserUpdatePayload",
         "f": {
           "user": {
             "D": "N",
@@ -947,13 +946,13 @@ expression: req_string_a
             "t": "User"
           }
         },
+        "n": "UserUpdatePayload",
         "r": "UserUpdatePayload"
       }
     },
     "__Directive": {
       "O": {
-        "D": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
-        "N": "__Directive",
+        "d": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
         "f": {
           "args": {
             "D": "N",
@@ -986,12 +985,14 @@ expression: req_string_a
             "t": "String!"
           }
         },
+        "n": "__Directive",
         "r": "dynaql::model::directive::__Directive"
       }
     },
     "__DirectiveLocation": {
       "E": {
-        "_e": {
+        "d": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
+        "e": {
           "ARGUMENT_DEFINITION": {
             "d": "Location adjacent to an argument definition.",
             "n": "ARGUMENT_DEFINITION"
@@ -1069,15 +1070,13 @@ expression: req_string_a
             "n": "VARIABLE_DEFINITION"
           }
         },
-        "_r": "dynaql::model::directive::__DirectiveLocation",
-        "a": "__DirectiveLocation",
-        "e_": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies."
+        "n": "__DirectiveLocation",
+        "r": "dynaql::model::directive::__DirectiveLocation"
       }
     },
     "__EnumValue": {
       "O": {
-        "D": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
-        "N": "__EnumValue",
+        "d": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
         "f": {
           "deprecationReason": {
             "D": "N",
@@ -1104,13 +1103,13 @@ expression: req_string_a
             "t": "String!"
           }
         },
+        "n": "__EnumValue",
         "r": "dynaql::model::enum_value::__EnumValue"
       }
     },
     "__Field": {
       "O": {
-        "D": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
-        "N": "__Field",
+        "d": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
         "f": {
           "args": {
             "D": "N",
@@ -1149,13 +1148,13 @@ expression: req_string_a
             "t": "__Type!"
           }
         },
+        "n": "__Field",
         "r": "dynaql::model::field::__Field"
       }
     },
     "__InputValue": {
       "O": {
-        "D": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
-        "N": "__InputValue",
+        "d": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
         "f": {
           "defaultValue": {
             "D": "N",
@@ -1182,13 +1181,13 @@ expression: req_string_a
             "t": "__Type!"
           }
         },
+        "n": "__InputValue",
         "r": "dynaql::model::input_value::__InputValue"
       }
     },
     "__Schema": {
       "O": {
-        "D": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
-        "N": "__Schema",
+        "d": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
         "f": {
           "directives": {
             "D": "N",
@@ -1226,13 +1225,13 @@ expression: req_string_a
             "t": "[__Type!]!"
           }
         },
+        "n": "__Schema",
         "r": "dynaql::model::schema::__Schema"
       }
     },
     "__Type": {
       "O": {
-        "D": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
-        "N": "__Type",
+        "d": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
         "f": {
           "description": {
             "D": "N",
@@ -1313,12 +1312,14 @@ expression: req_string_a
             "t": "String"
           }
         },
+        "n": "__Type",
         "r": "dynaql::model::type::__Type"
       }
     },
     "__TypeKind": {
       "E": {
-        "_e": {
+        "d": "An enum describing what kind of type a given `__Type` is.",
+        "e": {
           "ENUM": {
             "d": "Indicates this type is an enum. `enumValues` is a valid field.",
             "n": "ENUM"
@@ -1352,9 +1353,8 @@ expression: req_string_a
             "n": "UNION"
           }
         },
-        "_r": "dynaql::model::kind::__TypeKind",
-        "a": "__TypeKind",
-        "e_": "An enum describing what kind of type a given `__Type` is."
+        "n": "__TypeKind",
+        "r": "dynaql::model::kind::__TypeKind"
       }
     }
   }

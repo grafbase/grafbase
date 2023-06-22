@@ -2,6 +2,8 @@ use std::fmt::Write;
 
 use crate::registry::{MetaField, MetaInputValue, MetaType, Registry};
 
+use super::{EnumType, InputObjectType, InterfaceType, ObjectType, ScalarType, UnionType};
+
 impl Registry {
     pub fn export_sdl(&self, federation: bool) -> String {
         let mut sdl = String::new();
@@ -87,9 +89,9 @@ impl Registry {
 
     fn export_type(&self, ty: &MetaType, sdl: &mut String, federation: bool) {
         match ty {
-            MetaType::Scalar {
+            MetaType::Scalar(ScalarType {
                 name, description, ..
-            } => {
+            }) => {
                 const SYSTEM_SCALARS: &[&str] = &["Int", "Float", "String", "Boolean", "ID"];
                 const FEDERATION_SCALARS: &[&str] = &["Any"];
                 let mut export_scalar = !SYSTEM_SCALARS.contains(&name.as_str());
@@ -103,14 +105,14 @@ impl Registry {
                     writeln!(sdl, "scalar {name}").ok();
                 }
             }
-            MetaType::Object {
+            MetaType::Object(ObjectType {
                 name,
                 fields,
                 extends,
                 keys,
                 description,
                 ..
-            } => {
+            }) => {
                 if Some(name.as_str()) == self.subscription_type.as_deref()
                     && federation
                     && !self.federation_subscription
@@ -154,14 +156,14 @@ impl Registry {
                 Self::export_fields(sdl, fields.values(), federation);
                 writeln!(sdl, "}}").ok();
             }
-            MetaType::Interface {
+            MetaType::Interface(InterfaceType {
                 name,
                 fields,
                 extends,
                 keys,
                 description,
                 ..
-            } => {
+            }) => {
                 if description.is_some() {
                     writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
@@ -182,12 +184,12 @@ impl Registry {
                 Self::export_fields(sdl, fields.values(), federation);
                 writeln!(sdl, "}}").ok();
             }
-            MetaType::Enum {
+            MetaType::Enum(EnumType {
                 name,
                 enum_values,
                 description,
                 ..
-            } => {
+            }) => {
                 if description.is_some() {
                     writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
@@ -198,14 +200,14 @@ impl Registry {
                 }
                 writeln!(sdl, "}}").ok();
             }
-            MetaType::InputObject {
+            MetaType::InputObject(InputObjectType {
                 name,
                 input_fields,
                 description,
                 #[cfg(feature = "unstable_oneof")]
                 oneof,
                 ..
-            } => {
+            }) => {
                 if description.is_some() {
                     writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
@@ -223,12 +225,12 @@ impl Registry {
                 }
                 writeln!(sdl, "}}").ok();
             }
-            MetaType::Union {
+            MetaType::Union(UnionType {
                 name,
                 possible_types,
                 description,
                 ..
-            } => {
+            }) => {
                 if description.is_some() {
                     writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }

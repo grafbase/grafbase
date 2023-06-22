@@ -4,2049 +4,2081 @@ expression: registry
 ---
 Registry {
     types: {
-        "Mutation": Object {
-            name: "Mutation",
-            description: None,
-            fields: {
-                "updatePet": MetaField {
-                    name: "updatePet",
-                    description: None,
-                    args: {
-                        "input": MetaInputValue {
-                            name: "input",
-                            description: None,
-                            ty: "OpenAPI1PetInput!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
+        "Mutation": Object(
+            ObjectType {
+                name: "Mutation",
+                description: None,
+                fields: {
+                    "updatePet": MetaField {
+                        name: "updatePet",
+                        description: None,
+                        args: {
+                            "input": MetaInputValue {
+                                name: "input",
+                                description: None,
+                                ty: "OpenAPI1PetInput!",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
                         },
-                    },
-                    ty: "OpenAPI1Pet",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "PUT",
-                                    url: "http://example.com/pet",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: Some(
-                                        RequestBody {
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "input",
-                                            ),
-                                            content_type: Json,
-                                        },
-                                    ),
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
+                        ty: "OpenAPI1Pet",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
                         },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "PUT",
+                                        url: "http://example.com/pet",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [],
+                                        query_parameters: [],
+                                        request_body: Some(
+                                            RequestBody {
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "input",
+                                                ),
+                                                content_type: Json,
+                                            },
+                                        ),
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "addPet": MetaField {
+                        name: "addPet",
+                        description: None,
+                        args: {
+                            "input": MetaInputValue {
+                                name: "input",
+                                description: None,
+                                ty: "OpenAPI1PetInput!",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "OpenAPI1Pet",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "POST",
+                                        url: "http://example.com/pet",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [],
+                                        query_parameters: [],
+                                        request_body: Some(
+                                            RequestBody {
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "input",
+                                                ),
+                                                content_type: Json,
+                                            },
+                                        ),
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "uploadFile": MetaField {
+                        name: "uploadFile",
+                        description: None,
+                        args: {
+                            "petId": MetaInputValue {
+                                name: "petId",
+                                description: None,
+                                ty: "Int!",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                            "additionalMetadata": MetaInputValue {
+                                name: "additionalMetadata",
+                                description: None,
+                                ty: "String",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "OpenAPI1ApiResponse",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "POST",
+                                        url: "http://example.com/pet/{petId}/uploadImage",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [
+                                            PathParameter {
+                                                name: "petId",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "petId",
+                                                ),
+                                            },
+                                        ],
+                                        query_parameters: [
+                                            QueryParameter {
+                                                name: "additionalMetadata",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "additionalMetadata",
+                                                ),
+                                                encoding_style: FormExploded,
+                                            },
+                                        ],
+                                        request_body: None,
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "placeOrder": MetaField {
+                        name: "placeOrder",
+                        description: None,
+                        args: {
+                            "input": MetaInputValue {
+                                name: "input",
+                                description: None,
+                                ty: "OpenAPI1OrderInput!",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "OpenAPI1Order",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "POST",
+                                        url: "http://example.com/store/order",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [],
+                                        query_parameters: [],
+                                        request_body: Some(
+                                            RequestBody {
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "input",
+                                                ),
+                                                content_type: Json,
+                                            },
+                                        ),
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "createUsersWithListInput": MetaField {
+                        name: "createUsersWithListInput",
+                        description: None,
+                        args: {
+                            "input": MetaInputValue {
+                                name: "input",
+                                description: None,
+                                ty: "[OpenAPI1UserInput!]!",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "OpenAPI1User",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "POST",
+                                        url: "http://example.com/user/createWithList",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [],
+                                        query_parameters: [],
+                                        request_body: Some(
+                                            RequestBody {
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "input",
+                                                ),
+                                                content_type: Json,
+                                            },
+                                        ),
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
                 },
-                "addPet": MetaField {
-                    name: "addPet",
-                    description: None,
-                    args: {
-                        "input": MetaInputValue {
-                            name: "input",
-                            description: None,
-                            ty: "OpenAPI1PetInput!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "OpenAPI1Pet",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "POST",
-                                    url: "http://example.com/pet",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: Some(
-                                        RequestBody {
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "input",
-                                            ),
-                                            content_type: Json,
-                                        },
-                                    ),
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
+                cache_control: CacheControl {
+                    public: false,
+                    max_age: 0,
+                    stale_while_revalidate: 0,
+                    invalidation_policy: None,
                 },
-                "uploadFile": MetaField {
-                    name: "uploadFile",
-                    description: None,
-                    args: {
-                        "petId": MetaInputValue {
-                            name: "petId",
-                            description: None,
-                            ty: "Int!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
+                extends: false,
+                keys: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "Mutation",
+                constraints: [],
+            },
+        ),
+        "OpenAPI1ApiResponse": Object(
+            ObjectType {
+                name: "OpenAPI1ApiResponse",
+                description: None,
+                fields: {
+                    "message": MetaField {
+                        name: "message",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
                         },
-                        "additionalMetadata": MetaInputValue {
-                            name: "additionalMetadata",
-                            description: None,
-                            ty: "String",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "message",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "type": MetaField {
+                        name: "type",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
                         },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "type",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
                     },
-                    ty: "OpenAPI1ApiResponse",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
+                    "code": MetaField {
+                        name: "code",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "code",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
                     },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "POST",
-                                    url: "http://example.com/pet/{petId}/uploadImage",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [
-                                        PathParameter {
-                                            name: "petId",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "petId",
-                                            ),
-                                        },
+                },
+                cache_control: CacheControl {
+                    public: false,
+                    max_age: 0,
+                    stale_while_revalidate: 0,
+                    invalidation_policy: None,
+                },
+                extends: false,
+                keys: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "OpenAPI1ApiResponse",
+                constraints: [],
+            },
+        ),
+        "OpenAPI1Category": Object(
+            ObjectType {
+                name: "OpenAPI1Category",
+                description: None,
+                fields: {
+                    "name": MetaField {
+                        name: "name",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "name",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "id": MetaField {
+                        name: "id",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "id",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                },
+                cache_control: CacheControl {
+                    public: false,
+                    max_age: 0,
+                    stale_while_revalidate: 0,
+                    invalidation_policy: None,
+                },
+                extends: false,
+                keys: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "OpenAPI1Category",
+                constraints: [],
+            },
+        ),
+        "OpenAPI1CategoryInput": InputObject(
+            InputObjectType {
+                name: "OpenAPI1CategoryInput",
+                description: None,
+                input_fields: {
+                    "name": MetaInputValue {
+                        name: "name",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "id": MetaInputValue {
+                        name: "id",
+                        description: None,
+                        ty: "Int",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                },
+                rust_typename: "OpenAPI1CategoryInput",
+                oneof: false,
+            },
+        ),
+        "OpenAPI1FindPetsByStatusStatus": Enum(
+            EnumType {
+                name: "OpenAPI1FindPetsByStatusStatus",
+                description: None,
+                enum_values: {
+                    "AVAILABLE": MetaEnumValue {
+                        name: "AVAILABLE",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "available",
+                        ),
+                    },
+                    "PENDING": MetaEnumValue {
+                        name: "PENDING",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "pending",
+                        ),
+                    },
+                    "SOLD": MetaEnumValue {
+                        name: "SOLD",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "sold",
+                        ),
+                    },
+                },
+                rust_typename: "OpenAPI1FindPetsByStatusStatus",
+            },
+        ),
+        "OpenAPI1Order": Object(
+            ObjectType {
+                name: "OpenAPI1Order",
+                description: None,
+                fields: {
+                    "complete": MetaField {
+                        name: "complete",
+                        description: None,
+                        args: {},
+                        ty: "Boolean",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "complete",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "status": MetaField {
+                        name: "status",
+                        description: None,
+                        args: {},
+                        ty: "OpenAPI1OrderStatus",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Composition(
+                                    [
+                                        ContextDataResolver(
+                                            LocalKey {
+                                                key: "status",
+                                            },
+                                        ),
+                                        ContextDataResolver(
+                                            RemoteEnum,
+                                        ),
                                     ],
-                                    query_parameters: [
-                                        QueryParameter {
-                                            name: "additionalMetadata",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "additionalMetadata",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "shipDate": MetaField {
+                        name: "shipDate",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "shipDate",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "quantity": MetaField {
+                        name: "quantity",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "quantity",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "petId": MetaField {
+                        name: "petId",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "petId",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "id": MetaField {
+                        name: "id",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "id",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                },
+                cache_control: CacheControl {
+                    public: false,
+                    max_age: 0,
+                    stale_while_revalidate: 0,
+                    invalidation_policy: None,
+                },
+                extends: false,
+                keys: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "OpenAPI1Order",
+                constraints: [],
+            },
+        ),
+        "OpenAPI1OrderInput": InputObject(
+            InputObjectType {
+                name: "OpenAPI1OrderInput",
+                description: None,
+                input_fields: {
+                    "complete": MetaInputValue {
+                        name: "complete",
+                        description: None,
+                        ty: "Boolean",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "status": MetaInputValue {
+                        name: "status",
+                        description: None,
+                        ty: "OpenAPI1OrderStatus",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "shipDate": MetaInputValue {
+                        name: "shipDate",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "quantity": MetaInputValue {
+                        name: "quantity",
+                        description: None,
+                        ty: "Int",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "petId": MetaInputValue {
+                        name: "petId",
+                        description: None,
+                        ty: "Int",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "id": MetaInputValue {
+                        name: "id",
+                        description: None,
+                        ty: "Int",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                },
+                rust_typename: "OpenAPI1OrderInput",
+                oneof: false,
+            },
+        ),
+        "OpenAPI1OrderStatus": Enum(
+            EnumType {
+                name: "OpenAPI1OrderStatus",
+                description: None,
+                enum_values: {
+                    "PLACED": MetaEnumValue {
+                        name: "PLACED",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "placed",
+                        ),
+                    },
+                    "APPROVED": MetaEnumValue {
+                        name: "APPROVED",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "approved",
+                        ),
+                    },
+                    "DELIVERED": MetaEnumValue {
+                        name: "DELIVERED",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "delivered",
+                        ),
+                    },
+                },
+                rust_typename: "OpenAPI1OrderStatus",
+            },
+        ),
+        "OpenAPI1Pet": Object(
+            ObjectType {
+                name: "OpenAPI1Pet",
+                description: None,
+                fields: {
+                    "status": MetaField {
+                        name: "status",
+                        description: None,
+                        args: {},
+                        ty: "OpenAPI1PetStatus",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Composition(
+                                    [
+                                        ContextDataResolver(
+                                            LocalKey {
+                                                key: "status",
+                                            },
+                                        ),
+                                        ContextDataResolver(
+                                            RemoteEnum,
+                                        ),
                                     ],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "tags": MetaField {
+                        name: "tags",
+                        description: None,
+                        args: {},
+                        ty: "[OpenAPI1Tag!]",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
                         },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "tags",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "photoUrls": MetaField {
+                        name: "photoUrls",
+                        description: None,
+                        args: {},
+                        ty: "[String!]!",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "photoUrls",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "category": MetaField {
+                        name: "category",
+                        description: None,
+                        args: {},
+                        ty: "OpenAPI1Category",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "category",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "name": MetaField {
+                        name: "name",
+                        description: None,
+                        args: {},
+                        ty: "String!",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "name",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "id": MetaField {
+                        name: "id",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "id",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
                 },
-                "placeOrder": MetaField {
-                    name: "placeOrder",
-                    description: None,
-                    args: {
-                        "input": MetaInputValue {
-                            name: "input",
-                            description: None,
-                            ty: "OpenAPI1OrderInput!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "OpenAPI1Order",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "POST",
-                                    url: "http://example.com/store/order",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: Some(
-                                        RequestBody {
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "input",
-                                            ),
-                                            content_type: Json,
-                                        },
-                                    ),
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
+                cache_control: CacheControl {
+                    public: false,
+                    max_age: 0,
+                    stale_while_revalidate: 0,
+                    invalidation_policy: None,
                 },
-                "createUsersWithListInput": MetaField {
-                    name: "createUsersWithListInput",
-                    description: None,
-                    args: {
-                        "input": MetaInputValue {
-                            name: "input",
-                            description: None,
-                            ty: "[OpenAPI1UserInput!]!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "OpenAPI1User",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "POST",
-                                    url: "http://example.com/user/createWithList",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: Some(
-                                        RequestBody {
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "input",
-                                            ),
-                                            content_type: Json,
-                                        },
-                                    ),
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
+                extends: false,
+                keys: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "OpenAPI1Pet",
+                constraints: [],
             },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
+        ),
+        "OpenAPI1PetInput": InputObject(
+            InputObjectType {
+                name: "OpenAPI1PetInput",
+                description: None,
+                input_fields: {
+                    "status": MetaInputValue {
+                        name: "status",
+                        description: None,
+                        ty: "OpenAPI1PetStatus",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "tags": MetaInputValue {
+                        name: "tags",
+                        description: None,
+                        ty: "[OpenAPI1TagInput!]!",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "photoUrls": MetaInputValue {
+                        name: "photoUrls",
+                        description: None,
+                        ty: "[String!]!",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "category": MetaInputValue {
+                        name: "category",
+                        description: None,
+                        ty: "OpenAPI1CategoryInput!",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "name": MetaInputValue {
+                        name: "name",
+                        description: None,
+                        ty: "String!",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "id": MetaInputValue {
+                        name: "id",
+                        description: None,
+                        ty: "Int",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                },
+                rust_typename: "OpenAPI1PetInput",
+                oneof: false,
             },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "Mutation",
-            constraints: [],
-        },
-        "OpenAPI1ApiResponse": Object {
-            name: "OpenAPI1ApiResponse",
-            description: None,
-            fields: {
-                "message": MetaField {
-                    name: "message",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
+        ),
+        "OpenAPI1PetStatus": Enum(
+            EnumType {
+                name: "OpenAPI1PetStatus",
+                description: None,
+                enum_values: {
+                    "AVAILABLE": MetaEnumValue {
+                        name: "AVAILABLE",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "available",
+                        ),
                     },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "message",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "type": MetaField {
-                    name: "type",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
+                    "PENDING": MetaEnumValue {
+                        name: "PENDING",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "pending",
+                        ),
                     },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "type",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "code": MetaField {
-                    name: "code",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
+                    "SOLD": MetaEnumValue {
+                        name: "SOLD",
+                        description: None,
+                        deprecation: NoDeprecated,
+                        value: Some(
+                            "sold",
+                        ),
                     },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "code",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
                 },
+                rust_typename: "OpenAPI1PetStatus",
             },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
+        ),
+        "OpenAPI1Tag": Object(
+            ObjectType {
+                name: "OpenAPI1Tag",
+                description: None,
+                fields: {
+                    "name": MetaField {
+                        name: "name",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "name",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "id": MetaField {
+                        name: "id",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "id",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                },
+                cache_control: CacheControl {
+                    public: false,
+                    max_age: 0,
+                    stale_while_revalidate: 0,
+                    invalidation_policy: None,
+                },
+                extends: false,
+                keys: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "OpenAPI1Tag",
+                constraints: [],
             },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "OpenAPI1ApiResponse",
-            constraints: [],
-        },
-        "OpenAPI1Category": Object {
-            name: "OpenAPI1Category",
-            description: None,
-            fields: {
-                "name": MetaField {
-                    name: "name",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
+        ),
+        "OpenAPI1TagInput": InputObject(
+            InputObjectType {
+                name: "OpenAPI1TagInput",
+                description: None,
+                input_fields: {
+                    "name": MetaInputValue {
+                        name: "name",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
                     },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "name",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "id": MetaField {
-                    name: "id",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
+                    "id": MetaInputValue {
+                        name: "id",
+                        description: None,
+                        ty: "Int",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
                     },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "id",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
                 },
+                rust_typename: "OpenAPI1TagInput",
+                oneof: false,
             },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
+        ),
+        "OpenAPI1User": Object(
+            ObjectType {
+                name: "OpenAPI1User",
+                description: None,
+                fields: {
+                    "userStatus": MetaField {
+                        name: "userStatus",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "userStatus",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "phone": MetaField {
+                        name: "phone",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "phone",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "password": MetaField {
+                        name: "password",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "password",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "email": MetaField {
+                        name: "email",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "email",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "lastName": MetaField {
+                        name: "lastName",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "lastName",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "firstName": MetaField {
+                        name: "firstName",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "firstName",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "username": MetaField {
+                        name: "username",
+                        description: None,
+                        args: {},
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "username",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "id": MetaField {
+                        name: "id",
+                        description: None,
+                        args: {},
+                        ty: "Int",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: ContextDataResolver(
+                                    LocalKey {
+                                        key: "id",
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                },
+                cache_control: CacheControl {
+                    public: false,
+                    max_age: 0,
+                    stale_while_revalidate: 0,
+                    invalidation_policy: None,
+                },
+                extends: false,
+                keys: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "OpenAPI1User",
+                constraints: [],
             },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "OpenAPI1Category",
-            constraints: [],
-        },
-        "OpenAPI1CategoryInput": InputObject {
-            name: "OpenAPI1CategoryInput",
-            description: None,
-            input_fields: {
-                "name": MetaInputValue {
-                    name: "name",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
+        ),
+        "OpenAPI1UserInput": InputObject(
+            InputObjectType {
+                name: "OpenAPI1UserInput",
+                description: None,
+                input_fields: {
+                    "userStatus": MetaInputValue {
+                        name: "userStatus",
+                        description: None,
+                        ty: "Int",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "phone": MetaInputValue {
+                        name: "phone",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "password": MetaInputValue {
+                        name: "password",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "email": MetaInputValue {
+                        name: "email",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "lastName": MetaInputValue {
+                        name: "lastName",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "firstName": MetaInputValue {
+                        name: "firstName",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "username": MetaInputValue {
+                        name: "username",
+                        description: None,
+                        ty: "String",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
+                    "id": MetaInputValue {
+                        name: "id",
+                        description: None,
+                        ty: "Int",
+                        default_value: None,
+                        is_secret: false,
+                        rename: None,
+                    },
                 },
-                "id": MetaInputValue {
-                    name: "id",
-                    description: None,
-                    ty: "Int",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
+                rust_typename: "OpenAPI1UserInput",
+                oneof: false,
             },
-            rust_typename: "OpenAPI1CategoryInput",
-            oneof: false,
-        },
-        "OpenAPI1FindPetsByStatusStatus": Enum {
-            name: "OpenAPI1FindPetsByStatusStatus",
-            description: None,
-            enum_values: {
-                "AVAILABLE": MetaEnumValue {
-                    name: "AVAILABLE",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "available",
-                    ),
-                },
-                "PENDING": MetaEnumValue {
-                    name: "PENDING",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "pending",
-                    ),
-                },
-                "SOLD": MetaEnumValue {
-                    name: "SOLD",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "sold",
-                    ),
-                },
-            },
-            rust_typename: "OpenAPI1FindPetsByStatusStatus",
-        },
-        "OpenAPI1Order": Object {
-            name: "OpenAPI1Order",
-            description: None,
-            fields: {
-                "complete": MetaField {
-                    name: "complete",
-                    description: None,
-                    args: {},
-                    ty: "Boolean",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "complete",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "status": MetaField {
-                    name: "status",
-                    description: None,
-                    args: {},
-                    ty: "OpenAPI1OrderStatus",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Composition(
-                                [
-                                    ContextDataResolver(
-                                        LocalKey {
-                                            key: "status",
-                                        },
-                                    ),
-                                    ContextDataResolver(
-                                        RemoteEnum,
-                                    ),
-                                ],
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "shipDate": MetaField {
-                    name: "shipDate",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "shipDate",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "quantity": MetaField {
-                    name: "quantity",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "quantity",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "petId": MetaField {
-                    name: "petId",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "petId",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "id": MetaField {
-                    name: "id",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "id",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-            },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
-            },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "OpenAPI1Order",
-            constraints: [],
-        },
-        "OpenAPI1OrderInput": InputObject {
-            name: "OpenAPI1OrderInput",
-            description: None,
-            input_fields: {
-                "complete": MetaInputValue {
-                    name: "complete",
-                    description: None,
-                    ty: "Boolean",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "status": MetaInputValue {
-                    name: "status",
-                    description: None,
-                    ty: "OpenAPI1OrderStatus",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "shipDate": MetaInputValue {
-                    name: "shipDate",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "quantity": MetaInputValue {
-                    name: "quantity",
-                    description: None,
-                    ty: "Int",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "petId": MetaInputValue {
-                    name: "petId",
-                    description: None,
-                    ty: "Int",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "id": MetaInputValue {
-                    name: "id",
-                    description: None,
-                    ty: "Int",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-            },
-            rust_typename: "OpenAPI1OrderInput",
-            oneof: false,
-        },
-        "OpenAPI1OrderStatus": Enum {
-            name: "OpenAPI1OrderStatus",
-            description: None,
-            enum_values: {
-                "PLACED": MetaEnumValue {
-                    name: "PLACED",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "placed",
-                    ),
-                },
-                "APPROVED": MetaEnumValue {
-                    name: "APPROVED",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "approved",
-                    ),
-                },
-                "DELIVERED": MetaEnumValue {
-                    name: "DELIVERED",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "delivered",
-                    ),
-                },
-            },
-            rust_typename: "OpenAPI1OrderStatus",
-        },
-        "OpenAPI1Pet": Object {
-            name: "OpenAPI1Pet",
-            description: None,
-            fields: {
-                "status": MetaField {
-                    name: "status",
-                    description: None,
-                    args: {},
-                    ty: "OpenAPI1PetStatus",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Composition(
-                                [
-                                    ContextDataResolver(
-                                        LocalKey {
-                                            key: "status",
-                                        },
-                                    ),
-                                    ContextDataResolver(
-                                        RemoteEnum,
-                                    ),
-                                ],
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "tags": MetaField {
-                    name: "tags",
-                    description: None,
-                    args: {},
-                    ty: "[OpenAPI1Tag!]",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "tags",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "photoUrls": MetaField {
-                    name: "photoUrls",
-                    description: None,
-                    args: {},
-                    ty: "[String!]!",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "photoUrls",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "category": MetaField {
-                    name: "category",
-                    description: None,
-                    args: {},
-                    ty: "OpenAPI1Category",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "category",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "name": MetaField {
-                    name: "name",
-                    description: None,
-                    args: {},
-                    ty: "String!",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "name",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "id": MetaField {
-                    name: "id",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "id",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-            },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
-            },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "OpenAPI1Pet",
-            constraints: [],
-        },
-        "OpenAPI1PetInput": InputObject {
-            name: "OpenAPI1PetInput",
-            description: None,
-            input_fields: {
-                "status": MetaInputValue {
-                    name: "status",
-                    description: None,
-                    ty: "OpenAPI1PetStatus",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "tags": MetaInputValue {
-                    name: "tags",
-                    description: None,
-                    ty: "[OpenAPI1TagInput!]!",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "photoUrls": MetaInputValue {
-                    name: "photoUrls",
-                    description: None,
-                    ty: "[String!]!",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "category": MetaInputValue {
-                    name: "category",
-                    description: None,
-                    ty: "OpenAPI1CategoryInput!",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "name": MetaInputValue {
-                    name: "name",
-                    description: None,
-                    ty: "String!",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "id": MetaInputValue {
-                    name: "id",
-                    description: None,
-                    ty: "Int",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-            },
-            rust_typename: "OpenAPI1PetInput",
-            oneof: false,
-        },
-        "OpenAPI1PetStatus": Enum {
-            name: "OpenAPI1PetStatus",
-            description: None,
-            enum_values: {
-                "AVAILABLE": MetaEnumValue {
-                    name: "AVAILABLE",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "available",
-                    ),
-                },
-                "PENDING": MetaEnumValue {
-                    name: "PENDING",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "pending",
-                    ),
-                },
-                "SOLD": MetaEnumValue {
-                    name: "SOLD",
-                    description: None,
-                    deprecation: NoDeprecated,
-                    value: Some(
-                        "sold",
-                    ),
-                },
-            },
-            rust_typename: "OpenAPI1PetStatus",
-        },
-        "OpenAPI1Tag": Object {
-            name: "OpenAPI1Tag",
-            description: None,
-            fields: {
-                "name": MetaField {
-                    name: "name",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "name",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "id": MetaField {
-                    name: "id",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "id",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-            },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
-            },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "OpenAPI1Tag",
-            constraints: [],
-        },
-        "OpenAPI1TagInput": InputObject {
-            name: "OpenAPI1TagInput",
-            description: None,
-            input_fields: {
-                "name": MetaInputValue {
-                    name: "name",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "id": MetaInputValue {
-                    name: "id",
-                    description: None,
-                    ty: "Int",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-            },
-            rust_typename: "OpenAPI1TagInput",
-            oneof: false,
-        },
-        "OpenAPI1User": Object {
-            name: "OpenAPI1User",
-            description: None,
-            fields: {
-                "userStatus": MetaField {
-                    name: "userStatus",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "userStatus",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "phone": MetaField {
-                    name: "phone",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "phone",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "password": MetaField {
-                    name: "password",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "password",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "email": MetaField {
-                    name: "email",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "email",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "lastName": MetaField {
-                    name: "lastName",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "lastName",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "firstName": MetaField {
-                    name: "firstName",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "firstName",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "username": MetaField {
-                    name: "username",
-                    description: None,
-                    args: {},
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "username",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "id": MetaField {
-                    name: "id",
-                    description: None,
-                    args: {},
-                    ty: "Int",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: ContextDataResolver(
-                                LocalKey {
-                                    key: "id",
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-            },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
-            },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "OpenAPI1User",
-            constraints: [],
-        },
-        "OpenAPI1UserInput": InputObject {
-            name: "OpenAPI1UserInput",
-            description: None,
-            input_fields: {
-                "userStatus": MetaInputValue {
-                    name: "userStatus",
-                    description: None,
-                    ty: "Int",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "phone": MetaInputValue {
-                    name: "phone",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "password": MetaInputValue {
-                    name: "password",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "email": MetaInputValue {
-                    name: "email",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "lastName": MetaInputValue {
-                    name: "lastName",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "firstName": MetaInputValue {
-                    name: "firstName",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "username": MetaInputValue {
-                    name: "username",
-                    description: None,
-                    ty: "String",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-                "id": MetaInputValue {
-                    name: "id",
-                    description: None,
-                    ty: "Int",
-                    default_value: None,
-                    is_secret: false,
-                    rename: None,
-                },
-            },
-            rust_typename: "OpenAPI1UserInput",
-            oneof: false,
-        },
-        "Query": Object {
-            name: "Query",
-            description: None,
-            fields: {
-                "findPetsByStatus": MetaField {
-                    name: "findPetsByStatus",
-                    description: None,
-                    args: {
-                        "status": MetaInputValue {
-                            name: "status",
-                            description: None,
-                            ty: "OpenAPI1FindPetsByStatusStatus",
-                            default_value: Some(
-                                Enum(
-                                    Name(
-                                        "AVAILABLE",
+        ),
+        "Query": Object(
+            ObjectType {
+                name: "Query",
+                description: None,
+                fields: {
+                    "findPetsByStatus": MetaField {
+                        name: "findPetsByStatus",
+                        description: None,
+                        args: {
+                            "status": MetaInputValue {
+                                name: "status",
+                                description: None,
+                                ty: "OpenAPI1FindPetsByStatusStatus",
+                                default_value: Some(
+                                    Enum(
+                                        Name(
+                                            "AVAILABLE",
+                                        ),
                                     ),
                                 ),
-                            ),
-                            is_secret: false,
-                            rename: None,
+                                is_secret: false,
+                                rename: None,
+                            },
                         },
-                    },
-                    ty: "[OpenAPI1Pet!]",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/pet/findByStatus",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [],
-                                    query_parameters: [
-                                        QueryParameter {
-                                            name: "status",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "status",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                    ],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
+                        ty: "[OpenAPI1Pet!]",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
                         },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "GET",
+                                        url: "http://example.com/pet/findByStatus",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [],
+                                        query_parameters: [
+                                            QueryParameter {
+                                                name: "status",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "status",
+                                                ),
+                                                encoding_style: FormExploded,
+                                            },
+                                        ],
+                                        request_body: None,
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "findPetsByTags": MetaField {
+                        name: "findPetsByTags",
+                        description: None,
+                        args: {
+                            "tags": MetaInputValue {
+                                name: "tags",
+                                description: None,
+                                ty: "[String!]",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "[OpenAPI1Pet!]",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "GET",
+                                        url: "http://example.com/pet/findByTags",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [],
+                                        query_parameters: [
+                                            QueryParameter {
+                                                name: "tags",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "tags",
+                                                ),
+                                                encoding_style: FormExploded,
+                                            },
+                                        ],
+                                        request_body: None,
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "pet": MetaField {
+                        name: "pet",
+                        description: None,
+                        args: {
+                            "petId": MetaInputValue {
+                                name: "petId",
+                                description: None,
+                                ty: "Int!",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "OpenAPI1Pet",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "GET",
+                                        url: "http://example.com/pet/{petId}",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [
+                                            PathParameter {
+                                                name: "petId",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "petId",
+                                                ),
+                                            },
+                                        ],
+                                        query_parameters: [],
+                                        request_body: None,
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "inventory": MetaField {
+                        name: "inventory",
+                        description: None,
+                        args: {},
+                        ty: "JSON",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "GET",
+                                        url: "http://example.com/store/inventory",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [],
+                                        query_parameters: [],
+                                        request_body: None,
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "order": MetaField {
+                        name: "order",
+                        description: None,
+                        args: {
+                            "orderId": MetaInputValue {
+                                name: "orderId",
+                                description: None,
+                                ty: "Int!",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "OpenAPI1Order",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "GET",
+                                        url: "http://example.com/store/order/{orderId}",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [
+                                            PathParameter {
+                                                name: "orderId",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "orderId",
+                                                ),
+                                            },
+                                        ],
+                                        query_parameters: [],
+                                        request_body: None,
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "loginUser": MetaField {
+                        name: "loginUser",
+                        description: None,
+                        args: {
+                            "password": MetaInputValue {
+                                name: "password",
+                                description: None,
+                                ty: "String",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                            "username": MetaInputValue {
+                                name: "username",
+                                description: None,
+                                ty: "String",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "String",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "GET",
+                                        url: "http://example.com/user/login",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [],
+                                        query_parameters: [
+                                            QueryParameter {
+                                                name: "password",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "password",
+                                                ),
+                                                encoding_style: FormExploded,
+                                            },
+                                            QueryParameter {
+                                                name: "username",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "username",
+                                                ),
+                                                encoding_style: FormExploded,
+                                            },
+                                        ],
+                                        request_body: None,
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
+                    "user": MetaField {
+                        name: "user",
+                        description: None,
+                        args: {
+                            "username": MetaInputValue {
+                                name: "username",
+                                description: None,
+                                ty: "String!",
+                                default_value: None,
+                                is_secret: false,
+                                rename: None,
+                            },
+                        },
+                        ty: "OpenAPI1User",
+                        deprecation: NoDeprecated,
+                        cache_control: CacheControl {
+                            public: false,
+                            max_age: 0,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                        },
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        edges: [],
+                        relation: None,
+                        plan: None,
+                        resolve: Some(
+                            Resolver {
+                                id: None,
+                                type: Http(
+                                    HttpResolver {
+                                        method: "GET",
+                                        url: "http://example.com/user/{username}",
+                                        api_name: "OpenAPI1",
+                                        path_parameters: [
+                                            PathParameter {
+                                                name: "username",
+                                                variable_resolve_definition: ConnectorInputTypeName(
+                                                    "username",
+                                                ),
+                                            },
+                                        ],
+                                        query_parameters: [],
+                                        request_body: None,
+                                        expected_status: Exact(
+                                            200,
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                        transformer: None,
+                        required_operation: None,
+                        auth: None,
+                    },
                 },
-                "findPetsByTags": MetaField {
-                    name: "findPetsByTags",
-                    description: None,
-                    args: {
-                        "tags": MetaInputValue {
-                            name: "tags",
-                            description: None,
-                            ty: "[String!]",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "[OpenAPI1Pet!]",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/pet/findByTags",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [],
-                                    query_parameters: [
-                                        QueryParameter {
-                                            name: "tags",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "tags",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                    ],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
+                cache_control: CacheControl {
+                    public: false,
+                    max_age: 0,
+                    stale_while_revalidate: 0,
+                    invalidation_policy: None,
                 },
-                "pet": MetaField {
-                    name: "pet",
-                    description: None,
-                    args: {
-                        "petId": MetaInputValue {
-                            name: "petId",
-                            description: None,
-                            ty: "Int!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "OpenAPI1Pet",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/pet/{petId}",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [
-                                        PathParameter {
-                                            name: "petId",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "petId",
-                                            ),
-                                        },
-                                    ],
-                                    query_parameters: [],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "inventory": MetaField {
-                    name: "inventory",
-                    description: None,
-                    args: {},
-                    ty: "JSON",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/store/inventory",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [],
-                                    query_parameters: [],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "order": MetaField {
-                    name: "order",
-                    description: None,
-                    args: {
-                        "orderId": MetaInputValue {
-                            name: "orderId",
-                            description: None,
-                            ty: "Int!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "OpenAPI1Order",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/store/order/{orderId}",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [
-                                        PathParameter {
-                                            name: "orderId",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "orderId",
-                                            ),
-                                        },
-                                    ],
-                                    query_parameters: [],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "loginUser": MetaField {
-                    name: "loginUser",
-                    description: None,
-                    args: {
-                        "password": MetaInputValue {
-                            name: "password",
-                            description: None,
-                            ty: "String",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                        "username": MetaInputValue {
-                            name: "username",
-                            description: None,
-                            ty: "String",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "String",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/user/login",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [],
-                                    query_parameters: [
-                                        QueryParameter {
-                                            name: "password",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "password",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                        QueryParameter {
-                                            name: "username",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "username",
-                                            ),
-                                            encoding_style: FormExploded,
-                                        },
-                                    ],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
-                "user": MetaField {
-                    name: "user",
-                    description: None,
-                    args: {
-                        "username": MetaInputValue {
-                            name: "username",
-                            description: None,
-                            ty: "String!",
-                            default_value: None,
-                            is_secret: false,
-                            rename: None,
-                        },
-                    },
-                    ty: "OpenAPI1User",
-                    deprecation: NoDeprecated,
-                    cache_control: CacheControl {
-                        public: false,
-                        max_age: 0,
-                        stale_while_revalidate: 0,
-                        invalidation_policy: None,
-                    },
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    edges: [],
-                    relation: None,
-                    plan: None,
-                    resolve: Some(
-                        Resolver {
-                            id: None,
-                            type: Http(
-                                HttpResolver {
-                                    method: "GET",
-                                    url: "http://example.com/user/{username}",
-                                    api_name: "OpenAPI1",
-                                    path_parameters: [
-                                        PathParameter {
-                                            name: "username",
-                                            variable_resolve_definition: ConnectorInputTypeName(
-                                                "username",
-                                            ),
-                                        },
-                                    ],
-                                    query_parameters: [],
-                                    request_body: None,
-                                    expected_status: Exact(
-                                        200,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                    transformer: None,
-                    required_operation: None,
-                    auth: None,
-                },
+                extends: false,
+                keys: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "Query",
+                constraints: [],
             },
-            cache_control: CacheControl {
-                public: false,
-                max_age: 0,
-                stale_while_revalidate: 0,
-                invalidation_policy: None,
-            },
-            extends: false,
-            keys: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: "Query",
-            constraints: [],
-        },
+        ),
     },
     directives: {},
     implements: {},

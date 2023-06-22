@@ -1,6 +1,6 @@
 use case::CaseExt;
 use dynaql::{
-    registry::{Constraint, MetaInputValue, MetaType, Registry},
+    registry::{Constraint, InputObjectType, MetaInputValue, Registry},
     Pos, Positioned,
 };
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType};
@@ -115,17 +115,13 @@ impl UniqueDirective {
         let nested_type_description = self.type_description();
         let nested_type_name = MetaNames::nested_order_by_input(&self.model_name, &self.name());
         registry.create_type(
-            |_| MetaType::InputObject {
-                name: nested_type_name.clone(),
-                description: Some(nested_type_description.clone()),
-                input_fields: self
-                    .fields
-                    .iter()
-                    .map(|f| (f.name.clone(), f.lookup_by_field(true)))
-                    .collect(),
-                visible: None,
-                rust_typename: nested_type_name.clone(),
-                oneof: false,
+            |_| {
+                InputObjectType::new(
+                    nested_type_name.clone(),
+                    self.fields.iter().map(|f| f.lookup_by_field(true)),
+                )
+                .with_description(Some(nested_type_description.clone()))
+                .into()
             },
             &nested_type_name,
             &nested_type_name,

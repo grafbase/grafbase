@@ -13,7 +13,7 @@ use dynaql::{
         },
         variables::VariableResolveDefinition,
         Deprecation::NoDeprecated,
-        MetaEnumValue, MetaField, MetaInputValue, MetaType, Registry,
+        EnumType, InputObjectType, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry, UnionType,
     },
 };
 use inflector::Inflector;
@@ -91,7 +91,7 @@ impl IntoMetaType for OutputType {
                     .map(|field| field.into_meta_field(graph))
                     .collect::<Option<Vec<_>>>()?,
             )),
-            OutputType::Union(_) => Some(MetaType::Union {
+            OutputType::Union(_) => Some(MetaType::Union(UnionType {
                 name: name.clone(),
                 description: None,
                 possible_types: self
@@ -102,7 +102,7 @@ impl IntoMetaType for OutputType {
                 visible: None,
                 rust_typename: name,
                 discriminators: Some(self.discriminators(graph)),
-            }),
+            })),
             OutputType::ScalarWrapper(_) => {
                 let scalar_name = self.inner_scalar_kind(graph)?.type_name();
                 Some(object(
@@ -126,21 +126,16 @@ impl IntoMetaType for InputObject {
     fn into_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
 
-        Some(MetaType::InputObject {
-            name: name.clone(),
-            description: None,
-            input_fields: self
-                .fields(graph)
-                .into_iter()
-                .filter_map(|field| {
-                    let meta_input_value = field.to_meta_input_value(graph)?;
-                    Some((meta_input_value.name.clone(), meta_input_value))
-                })
-                .collect(),
-            visible: None,
-            rust_typename: name,
-            oneof: self.one_of(),
-        })
+        Some(
+            InputObjectType::new(
+                name,
+                self.fields(graph)
+                    .into_iter()
+                    .filter_map(|field| field.to_meta_input_value(graph)),
+            )
+            .with_oneof(self.one_of())
+            .into(),
+        )
     }
 }
 
@@ -377,28 +372,19 @@ impl IntoMetaType for Enum {
     fn into_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
         let values = self.values(graph);
-        Some(MetaType::Enum {
-            name: name.clone(),
-            description: None,
-            enum_values: values
-                .into_iter()
-                .map(|value| {
-                    let name = value.to_screaming_snake_case();
-                    (
-                        name.clone(),
-                        MetaEnumValue {
-                            name,
-                            description: None,
-                            deprecation: NoDeprecated,
-                            visible: None,
-                            value: Some(value.to_string()),
-                        },
-                    )
-                })
-                .collect(),
-            visible: None,
-            rust_typename: name,
-        })
+        Some(
+            EnumType::new(
+                name,
+                values.into_iter().map(|value| {
+                    let graphql_value = value.to_screaming_snake_case();
+                    MetaEnumValue {
+                        value: Some(value.to_string()),
+                        ..MetaEnumValue::new(graphql_value)
+                    }
+                }),
+            )
+            .into(),
+        )
     }
 }
 
@@ -426,19 +412,7 @@ fn meta_field(name: String, ty: String) -> MetaField {
 }
 
 fn object(name: String, fields: impl IntoIterator<Item = MetaField>) -> MetaType {
-    MetaType::Object {
-        name: name.clone(),
-        description: None,
-        fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
-        cache_control: Default::default(),
-        extends: false,
-        keys: None,
-        visible: None,
-        is_subscription: false,
-        is_node: false,
-        rust_typename: name,
-        constraints: vec![],
-    }
+    ObjectType::new(name, fields).into()
 }
 
 trait ResolverTypeExt {

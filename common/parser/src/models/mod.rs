@@ -41,7 +41,7 @@ use std::sync::Arc;
 
 use arrow_schema::{DataType, Field, Schema};
 use dynamodb::constant::{INVERTED_INDEX_PK, INVERTED_INDEX_SK, TYPE_INDEX_PK, TYPE_INDEX_SK};
-use dynaql::registry::{MetaType, Registry};
+use dynaql::registry::{MetaType, ObjectType, Registry};
 use dynaql_parser::types::{BaseType, Type};
 use quick_error::quick_error;
 
@@ -112,7 +112,7 @@ pub fn entity_system_fields() -> Vec<Field> {
 pub fn from_meta_type(registry: &Registry, ty: &MetaType, system: bool) -> Result<Schema, ConversionError> {
     match ty {
         // input @ MetaType::InputObject { .. } => from_meta_type_input(registry, input),
-        obj @ MetaType::Object { .. } => from_meta_type_object(registry, obj, system),
+        MetaType::Object(object) => from_object(registry, object, system),
         MetaType::Union { .. } => from_meta_type_union(registry, ty),
         _ => Err(ConversionError::Unknown),
     }
@@ -125,29 +125,23 @@ pub fn from_meta_type(registry: &Registry, ty: &MetaType, system: bool) -> Resul
 /// -> For each field:
 ///   -> Is not a relation
 ///   -> We map every custom scalar by the internal representation associated
-pub fn from_meta_type_object(registry: &Registry, ty: &MetaType, system: bool) -> Result<Schema, ConversionError> {
-    if let MetaType::Object { ref fields, .. } = ty {
-        let mut arrow_fields = Vec::with_capacity(fields.len());
-        for (_key, field) in fields {
-            if field.relation.is_none() && field.plan.as_ref().map(|x| x.is_from_maindb()).unwrap_or(true) {
-                let ty = Type::new(&field.ty).ok_or_else(|| {
-                    ConversionError::ParsingSchema(format!("The Type {ty} is not a proper GraphQL type", ty = field.ty))
-                })?;
+pub fn from_object(registry: &Registry, object: &ObjectType, system: bool) -> Result<Schema, ConversionError> {
+    let mut arrow_fields = Vec::with_capacity(object.fields.len());
+    for (_key, field) in &object.fields {
+        if field.relation.is_none() && field.plan.as_ref().map(|x| x.is_from_maindb()).unwrap_or(true) {
+            let ty = Type::new(&field.ty).ok_or_else(|| {
+                ConversionError::ParsingSchema(format!("The Type {ty} is not a proper GraphQL type", ty = field.ty))
+            })?;
 
-                let arrow_field = scalar_to_datatype(registry, &field.name, &ty);
-                arrow_fields.push(arrow_field);
-            }
+            let arrow_field = scalar_to_datatype(registry, &field.name, &ty);
+            arrow_fields.push(arrow_field);
         }
-
-        if system {
-            arrow_fields.extend(entity_system_fields());
-        }
-        return Ok(Schema::new(arrow_fields));
     }
-    Err(ConversionError::ParsingSchema(format!(
-        "The Type {name} is not an Object, we can't infer the proper schema.",
-        name = ty.name()
-    )))
+
+    if system {
+        arrow_fields.extend(entity_system_fields());
+    }
+    Ok(Schema::new(arrow_fields))
 }
 
 #[allow(clippy::unnecessary_wraps)]
@@ -162,9 +156,9 @@ fn from_meta_type_union(_registry: &Registry, _ty: &MetaType) -> Result<Schema, 
 /// of it.
 #[allow(dead_code)]
 pub fn from_meta_type_input(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
-    if let MetaType::InputObject { ref input_fields, .. } = ty {
-        let mut arrow_fields = Vec::with_capacity(input_fields.len());
-        for (_key, input_value) in input_fields {
+    if let MetaType::InputObject(input_object) = ty {
+        let mut arrow_fields = Vec::with_capacity(input_object.input_fields.len());
+        for (_key, input_value) in &input_object.input_fields {
             let ty = Type::new(&input_value.ty).ok_or_else(|| {
                 ConversionError::ParsingSchema(format!(
                     "The Type {ty} is not a proper GraphQL type",

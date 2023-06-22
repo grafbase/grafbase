@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::model::{__EnumValue, __Field, __InputValue, __TypeKind};
-use crate::registry::is_visible;
+use crate::registry::{is_visible, ObjectType};
 use crate::{registry, Context, Object};
 
 enum TypeDetail<'a> {
@@ -93,12 +93,14 @@ impl<'a> __Type<'a> {
     async fn description(&self) -> Option<&str> {
         match &self.detail {
             TypeDetail::Named(ty) => match ty {
-                registry::MetaType::Scalar { description, .. }
-                | registry::MetaType::Object { description, .. }
-                | registry::MetaType::Interface { description, .. }
-                | registry::MetaType::Union { description, .. }
-                | registry::MetaType::Enum { description, .. }
-                | registry::MetaType::InputObject { description, .. } => description.as_deref(),
+                registry::MetaType::Scalar(registry::ScalarType { description, .. })
+                | registry::MetaType::Object(registry::ObjectType { description, .. })
+                | registry::MetaType::Interface(registry::InterfaceType { description, .. })
+                | registry::MetaType::Union(registry::UnionType { description, .. })
+                | registry::MetaType::Enum(registry::EnumType { description, .. })
+                | registry::MetaType::InputObject(registry::InputObjectType {
+                    description, ..
+                }) => description.as_deref(),
             },
             TypeDetail::NonNull(_) => None,
             TypeDetail::List(_) => None,
@@ -132,7 +134,8 @@ impl<'a> __Type<'a> {
     }
 
     async fn interfaces(&self) -> Option<Vec<__Type<'a>>> {
-        if let TypeDetail::Named(registry::MetaType::Object { name, .. }) = &self.detail {
+        if let TypeDetail::Named(registry::MetaType::Object(ObjectType { name, .. })) = &self.detail
+        {
             Some(
                 self.registry
                     .implements
@@ -150,8 +153,8 @@ impl<'a> __Type<'a> {
 
     async fn possible_types(&self) -> Option<Vec<__Type<'a>>> {
         if let TypeDetail::Named(
-            registry::MetaType::Interface { possible_types, .. }
-            | registry::MetaType::Union { possible_types, .. },
+            registry::MetaType::Interface(registry::InterfaceType { possible_types, .. })
+            | registry::MetaType::Union(registry::UnionType { possible_types, .. }),
         ) = &self.detail
         {
             Some(
@@ -171,9 +174,10 @@ impl<'a> __Type<'a> {
         ctx: &Context<'_>,
         #[graphql(default = false)] include_deprecated: bool,
     ) -> Option<Vec<__EnumValue<'a>>> {
-        if let TypeDetail::Named(registry::MetaType::Enum { enum_values, .. }) = &self.detail {
+        if let TypeDetail::Named(registry::MetaType::Enum(enum_type)) = &self.detail {
             Some(
-                enum_values
+                enum_type
+                    .enum_values
                     .values()
                     .filter(|value| is_visible(ctx, &value.visible))
                     .filter(|value| include_deprecated || !value.deprecation.is_deprecated())
@@ -189,11 +193,10 @@ impl<'a> __Type<'a> {
     }
 
     async fn input_fields(&self, ctx: &Context<'_>) -> Option<Vec<__InputValue<'a>>> {
-        if let TypeDetail::Named(registry::MetaType::InputObject { input_fields, .. }) =
-            &self.detail
-        {
+        if let TypeDetail::Named(registry::MetaType::InputObject(input_object)) = &self.detail {
             Some(
-                input_fields
+                input_object
+                    .input_fields
                     .values()
                     .filter(|input_value| is_visible(ctx, &input_value.visible))
                     .map(|input_value| __InputValue {
@@ -221,9 +224,10 @@ impl<'a> __Type<'a> {
 
     #[graphql(name = "specifiedByURL")]
     async fn specified_by_url(&self) -> Option<&'a str> {
-        if let TypeDetail::Named(registry::MetaType::Scalar {
-            specified_by_url, ..
-        }) = &self.detail
+        if let TypeDetail::Named(registry::MetaType::Scalar(registry::ScalarType {
+            specified_by_url,
+            ..
+        })) = &self.detail
         {
             specified_by_url.as_deref()
         } else {
@@ -232,8 +236,8 @@ impl<'a> __Type<'a> {
     }
 
     async fn is_one_of(&self) -> Option<bool> {
-        if let TypeDetail::Named(registry::MetaType::InputObject { oneof, .. }) = &self.detail {
-            Some(*oneof)
+        if let TypeDetail::Named(registry::MetaType::InputObject(input_object)) = &self.detail {
+            Some(input_object.oneof)
         } else {
             None
         }

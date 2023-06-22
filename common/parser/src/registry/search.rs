@@ -7,10 +7,10 @@ use dynaql::registry::resolvers::query::{
     QueryResolver, SEARCH_RESOLVER_EDGES, SEARCH_RESOLVER_EDGE_CURSOR, SEARCH_RESOLVER_EDGE_SCORE,
     SEARCH_RESOLVER_TOTAL_HITS,
 };
+use dynaql::registry::{self, InputObjectType, MetaTypeName, Registry};
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
 };
-use dynaql::registry::{MetaType, MetaTypeName, Registry};
 use dynaql::{AuthConfig, Positioned};
 use dynaql_parser::types::{FieldDefinition, Type, TypeDefinition};
 use grafbase::auth::Operations;
@@ -289,10 +289,9 @@ fn register_connection_type(
             let edge_type = register_edge_type(registry, model_type_definition, model_auth);
             let search_info_type = register_search_info(registry);
             let page_info_type = Type::required(super::pagination::register_page_info_type(registry)).to_string();
-            MetaType::Object {
-                name: type_name.clone(),
-                description: None,
-                fields: vec![
+            registry::ObjectType::new(
+                type_name.clone(),
+                [
                     MetaField {
                         name: PAGINATION_FIELD_PAGE_INFO.to_string(),
                         ty: page_info_type,
@@ -320,19 +319,10 @@ fn register_connection_type(
                         }),
                         ..Default::default()
                     },
-                ]
-                .into_iter()
-                .map(|input| (input.name.clone(), input))
-                .collect(),
-                cache_control: CacheDirective::parse(&model_type_definition.directives),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: type_name.clone(),
-                constraints: vec![],
-            }
+                ],
+            )
+            .with_cache_control(CacheDirective::parse(&model_type_definition.directives))
+            .into()
         },
         &type_name,
         &type_name,
@@ -344,31 +334,22 @@ fn register_connection_type(
 fn register_search_info(registry: &mut Registry) -> String {
     let type_name = SEARCH_INFO_TYPE.to_string();
     registry.create_type(
-        |_| MetaType::Object {
-            name: type_name.clone(),
-            description: None,
-            fields: vec![MetaField {
-                name: SEARCH_INFO_FIELD_TOTAL_HITS.to_string(),
-                ty: "Int!".to_string(),
-                resolve: Some(Resolver {
-                    id: None,
-                    r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                        key: SEARCH_RESOLVER_TOTAL_HITS.to_string(),
+        |_| {
+            registry::ObjectType::new(
+                type_name.clone(),
+                [MetaField {
+                    name: SEARCH_INFO_FIELD_TOTAL_HITS.to_string(),
+                    ty: "Int!".to_string(),
+                    resolve: Some(Resolver {
+                        id: None,
+                        r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                            key: SEARCH_RESOLVER_TOTAL_HITS.to_string(),
+                        }),
                     }),
-                }),
-                ..Default::default()
-            }]
-            .into_iter()
-            .map(|input| (input.name.clone(), input))
-            .collect(),
-            cache_control: Default::default(),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: type_name.clone(),
-            constraints: vec![],
+                    ..Default::default()
+                }],
+            )
+            .into()
         },
         &type_name,
         &type_name,
@@ -384,55 +365,47 @@ fn register_edge_type(
 ) -> String {
     let type_name = MetaNames::search_edge_type(model_type_definition);
     registry.create_type(
-        |_| MetaType::Object {
-            name: type_name.clone(),
-            description: None,
-            fields: vec![
-                MetaField {
-                    name: PAGINATION_FIELD_EDGE_NODE.to_string(),
-                    ty: format!("{}!", MetaNames::model(model_type_definition)),
-                    required_operation: Some(Operations::LIST),
-                    auth: model_auth.cloned(),
-                    ..Default::default()
-                },
-                MetaField {
-                    name: PAGINATION_FIELD_EDGE_CURSOR.to_string(),
-                    ty: "String!".to_string(),
-                    required_operation: Some(Operations::LIST),
-                    auth: model_auth.cloned(),
-                    resolve: Some(Resolver {
-                        id: None,
-                        r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                            key: SEARCH_RESOLVER_EDGE_CURSOR.to_string(),
+        |_| {
+            registry::ObjectType::new(
+                type_name.clone(),
+                [
+                    MetaField {
+                        name: PAGINATION_FIELD_EDGE_NODE.to_string(),
+                        ty: format!("{}!", MetaNames::model(model_type_definition)),
+                        required_operation: Some(Operations::LIST),
+                        auth: model_auth.cloned(),
+                        ..Default::default()
+                    },
+                    MetaField {
+                        name: PAGINATION_FIELD_EDGE_CURSOR.to_string(),
+                        ty: "String!".to_string(),
+                        required_operation: Some(Operations::LIST),
+                        auth: model_auth.cloned(),
+                        resolve: Some(Resolver {
+                            id: None,
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                                key: SEARCH_RESOLVER_EDGE_CURSOR.to_string(),
+                            }),
                         }),
-                    }),
-                    ..Default::default()
-                },
-                MetaField {
-                    name: PAGINATION_FIELD_EDGE_SEARCH_SCORE.to_string(),
-                    ty: "Float!".to_string(),
-                    required_operation: Some(Operations::LIST),
-                    auth: model_auth.cloned(),
-                    resolve: Some(Resolver {
-                        id: None,
-                        r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                            key: SEARCH_RESOLVER_EDGE_SCORE.to_string(),
+                        ..Default::default()
+                    },
+                    MetaField {
+                        name: PAGINATION_FIELD_EDGE_SEARCH_SCORE.to_string(),
+                        ty: "Float!".to_string(),
+                        required_operation: Some(Operations::LIST),
+                        auth: model_auth.cloned(),
+                        resolve: Some(Resolver {
+                            id: None,
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                                key: SEARCH_RESOLVER_EDGE_SCORE.to_string(),
+                            }),
                         }),
-                    }),
-                    ..Default::default()
-                },
-            ]
-            .into_iter()
-            .map(|input| (input.name.clone(), input))
-            .collect(),
-            cache_control: CacheDirective::parse(&model_type_definition.directives),
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: type_name.clone(),
-            constraints: vec![],
+                        ..Default::default()
+                    },
+                ],
+            )
+            .with_cache_control(CacheDirective::parse(&model_type_definition.directives))
+            .into()
         },
         &type_name,
         &type_name,
@@ -448,41 +421,34 @@ fn register_model_filter(
 ) -> String {
     let input_type_name = MetaNames::search_filter_input(model_type_definition);
     registry.create_type(
-        |registry| MetaType::InputObject {
-            name: input_type_name.clone(),
-            description: Some(String::new()),
-            input_fields: {
-                let mut args = vec![
-                    MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
-                ];
-                args.extend({
-                    let mut field_args = filters
-                        .into_iter()
-                        .map(|(name, kind)| {
-                            MetaInputValue::new(
-                                name,
-                                match kind {
-                                    FilterKind::Single { scalar, is_nullable } => {
-                                        register_scalar_filter(registry, &scalar, is_nullable)
-                                    }
-                                    FilterKind::List { scalar } => register_scalar_list_filter(registry, &scalar),
-                                },
-                            )
-                        })
-                        .collect::<Vec<_>>();
-                    // Stable schema
-                    field_args.sort_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
-                    field_args
-                });
+        |registry| {
+            let mut args = vec![
+                MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
+                MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
+                MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
+                MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
+            ];
+            args.extend({
+                let mut field_args = filters
+                    .into_iter()
+                    .map(|(name, kind)| {
+                        MetaInputValue::new(
+                            name,
+                            match kind {
+                                FilterKind::Single { scalar, is_nullable } => {
+                                    register_scalar_filter(registry, &scalar, is_nullable)
+                                }
+                                FilterKind::List { scalar } => register_scalar_list_filter(registry, &scalar),
+                            },
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                // Stable schema
+                field_args.sort_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
+                field_args
+            });
 
-                args.into_iter().map(|input| (input.name.clone(), input)).collect()
-            },
-            visible: None,
-            rust_typename: input_type_name.clone(),
-            oneof: false,
+            InputObjectType::new(input_type_name.clone(), args).into()
         },
         &input_type_name,
         &input_type_name,
@@ -497,22 +463,17 @@ fn register_scalar_list_filter(registry: &mut Registry, scalar: &str) -> String 
     let item_input_type_name = register_scalar_filter(registry, scalar, false);
     let list_input_type_name = MetaNames::search_scalar_list_filter_input(scalar);
     registry.create_type(
-        |_| MetaType::InputObject {
-            name: list_input_type_name.clone(),
-            description: Some(String::new()),
-            input_fields: {
-                vec![
+        |_| {
+            InputObjectType::new(
+                list_input_type_name.clone(),
+                [
                     MetaInputValue::new(INPUT_FIELD_FILTER_LIST_INCLUDES, &item_input_type_name),
                     MetaInputValue::new(INPUT_FIELD_FILTER_LIST_INCLUDES_NONE, &item_input_type_name),
                     MetaInputValue::new(INPUT_FIELD_FILTER_LIST_IS_EMPTY, "Boolean"),
-                ]
-                .into_iter()
-                .map(|input| (input.name.clone(), input))
-                .collect()
-            },
-            visible: None,
-            rust_typename: list_input_type_name.clone(),
-            oneof: scalar == "Boolean",
+                ],
+            )
+            .with_oneof(scalar == "Boolean")
+            .into()
         },
         &list_input_type_name,
         &list_input_type_name,
@@ -524,53 +485,49 @@ fn register_scalar_list_filter(registry: &mut Registry, scalar: &str) -> String 
 fn register_scalar_filter(registry: &mut Registry, scalar: &str, is_nullable: bool) -> String {
     let input_type_name = MetaNames::search_scalar_filter_input(scalar, is_nullable);
     registry.create_type(
-        |registry| MetaType::InputObject {
-            name: input_type_name.clone(),
-            description: Some(String::new()),
-            input_fields: {
-                let mut args = vec![];
-                if scalar == "Boolean" {
-                    args.extend([
-                        MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
-                    ]);
-                } else if registry.types.get(scalar).map(|ty| ty.is_enum()).unwrap_or_default() {
-                    args.extend([
-                        MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
-                    ]);
-                } else {
-                    args.extend([
-                        MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
-                    ]);
-                    let range_scalar = match scalar {
-                        "Email" | "PhoneNumber" | "URL" => "String",
-                        _ => scalar,
-                    };
-                    args.extend([
-                        MetaInputValue::new(INPUT_FIELD_FILTER_GT, range_scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_GTE, range_scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_LTE, range_scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_LT, range_scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
-                    ]);
-                }
-                if is_nullable {
-                    args.push(MetaInputValue::new(INPUT_FIELD_FILTER_IS_NULL, "Boolean"));
-                }
-                args.into_iter().map(|input| (input.name.clone(), input)).collect()
-            },
-            visible: None,
-            rust_typename: input_type_name.clone(),
-            oneof: scalar == "Boolean",
+        |registry| {
+            let mut args = vec![];
+            if scalar == "Boolean" {
+                args.extend([
+                    MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
+                ]);
+            } else if registry.types.get(scalar).map(|ty| ty.is_enum()).unwrap_or_default() {
+                args.extend([
+                    MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
+                ]);
+            } else {
+                args.extend([
+                    MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
+                ]);
+                let range_scalar = match scalar {
+                    "Email" | "PhoneNumber" | "URL" => "String",
+                    _ => scalar,
+                };
+                args.extend([
+                    MetaInputValue::new(INPUT_FIELD_FILTER_GT, range_scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_GTE, range_scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LTE, range_scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LT, range_scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
+                ]);
+            }
+            if is_nullable {
+                args.push(MetaInputValue::new(INPUT_FIELD_FILTER_IS_NULL, "Boolean"));
+            }
+
+            InputObjectType::new(input_type_name.clone(), args)
+                .with_oneof(scalar == "Boolean")
+                .into()
         },
         &input_type_name,
         &input_type_name,

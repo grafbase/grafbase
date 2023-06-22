@@ -36,7 +36,7 @@ impl<'a> Visitor<'a> for ScalarHydratation {
                             _ => None,
                         });
 
-                    dynaql::registry::MetaType::Scalar {
+                    dynaql::registry::MetaType::Scalar(dynaql::registry::ScalarType {
                         name: name.clone(),
                         description: type_definition
                             .node
@@ -47,7 +47,7 @@ impl<'a> Visitor<'a> for ScalarHydratation {
                         visible: None,
                         specified_by_url,
                         parser: dynaql::registry::ScalarParser::BestEffort,
-                    }
+                    })
                 },
                 name.as_str(),
                 name.as_str(),
