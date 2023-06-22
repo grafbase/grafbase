@@ -583,7 +583,7 @@ async fn authorizer_with_no_headers_should_work() {
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
-    let authorizer_content = r#"export default function(parent, args, context, info) {
+    let authorizer_content = r#"export default function(context) {
         return { identity: { sub:'user1', groups: ['backend'] } };
     }"#;
 
@@ -607,7 +607,7 @@ async fn authorizer_with_headers_should_work() {
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
-    let authorizer_content = r#"export default function(parent, args, context, info) {
+    let authorizer_content = r#"export default function(context) {
         return { identity: { groups: [context.request.headers['h1']] } };
     }"#;
 
@@ -631,7 +631,7 @@ async fn authorizer_with_public_access_should_work() {
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
-    let authorizer_content = r#"export default function(parent, args, context, info) {
+    let authorizer_content = r#"export default function(context) {
         const grp = context.request.headers['h1']
         if (grp) {
             return { identity: { groups: [grp] } };

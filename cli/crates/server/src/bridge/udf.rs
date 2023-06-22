@@ -156,7 +156,7 @@ pub async fn invoke(
     payload: &serde_json::Value,
 ) -> Result<serde_json::Value, ApiError> {
     use futures_util::TryFutureExt;
-    trace!("Invocation of {udf_kind} '{udf_name}'");
+    trace!("Invocation of {udf_kind} '{udf_name}' with payload {payload}");
     let json_string = reqwest::Client::new()
         .post(format!("http://127.0.0.1:{udf_worker_port}/invoke"))
         .json(&payload)
