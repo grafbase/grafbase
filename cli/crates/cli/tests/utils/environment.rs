@@ -190,6 +190,11 @@ impl Environment {
     }
 
     #[track_caller]
+    pub fn write_authorizer(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        self.write_file(Path::new("auth").join(path.as_ref()), contents);
+    }
+
+    #[track_caller]
     pub fn write_file(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
         let target_path = self.schema_path.parent().unwrap().join(path.as_ref());
         fs::create_dir_all(target_path.parent().unwrap()).unwrap();

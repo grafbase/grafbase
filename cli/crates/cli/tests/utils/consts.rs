@@ -68,14 +68,13 @@ pub const SEARCH_SEARCH_PERSON: &str = include_str!("../graphql/search/search-pe
 
 pub const ENVIRONMENT_SCHEMA: &str = include_str!("../graphql/environment/schema.graphql");
 
-pub const JWT_PROVIDER_SCHEMA: &str = include_str!("../graphql/auth/jwt.graphql");
-pub const JWT_PROVIDER_QUERY: &str = include_str!("../graphql/auth/query.graphql");
-pub const OIDC_PROVIDER_SCHEMA: &str = include_str!("../graphql/auth/oidc.graphql");
-pub const JWKS_PROVIDER_WITH_ISSUER_SCHEMA: &str = include_str!("../graphql/auth/jwks-issuer.graphql");
-pub const JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA: &str = include_str!("../graphql/auth/jwks-endpoint.graphql");
-pub const JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA: &str =
+pub const AUTH_JWT_PROVIDER_SCHEMA: &str = include_str!("../graphql/auth/jwt.graphql");
+pub const AUTH_QUERY_TODOS: &str = include_str!("../graphql/auth/query.graphql");
+pub const AUTH_OIDC_PROVIDER_SCHEMA: &str = include_str!("../graphql/auth/oidc.graphql");
+pub const AUTH_JWKS_PROVIDER_WITH_ISSUER_SCHEMA: &str = include_str!("../graphql/auth/jwks-issuer.graphql");
+pub const AUTH_JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA: &str = include_str!("../graphql/auth/jwks-endpoint.graphql");
+pub const AUTH_JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA: &str =
     include_str!("../graphql/auth/jwks-issuer-endpoint.graphql");
-
 pub const AUTH_PUBLIC_GLOBAL_SCHEMA: &str = include_str!("../graphql/auth/public-global.graphql");
 pub const AUTH_PUBLIC_TYPE_SCHEMA: &str = include_str!("../graphql/auth/public-type.graphql");
 pub const AUTH_TYPE_FIELD_RESOLVER_SCHEMA: &str = include_str!("../graphql/auth/type-field-resolver.graphql");
@@ -85,6 +84,8 @@ pub const AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA: &str =
     include_str!("../graphql/auth/entrypoint-field-resolver.graphql");
 pub const AUTH_ENTRYPOINT_QUERY_TEXT: &str = include_str!("../graphql/auth/entrypoint-query-text.graphql");
 pub const AUTH_ENTRYPOINT_MUTATION_TEXT: &str = include_str!("../graphql/auth/entrypoint-mutation-text.graphql");
+
+pub const AUTHORIZER_SCHEMA: &str = include_str!("../graphql/auth/authorizer/authorizer.graphql");
 
 pub const INTROSPECTION_QUERY: &str = include_str!("../graphql/introspection.graphql");
 
