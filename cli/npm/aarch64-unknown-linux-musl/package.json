@@ -18,8 +18,7 @@
     "linux"
   ],
   "cpu": [
-    "x64",
-    "arm"
+    "arm64"
   ],
   "publishConfig": {
     "access": "public",
