@@ -1,12 +1,12 @@
 {
-  "name": "@grafbase/cli-x86_64-apple-darwin",
+  "name": "@grafbase/cli-aarch64-unknown-linux-musl",
   "version": "0.25.0-rc.3",
-  "description": "x86_64-apple-darwin binary for Grafbase CLI",
+  "description": "aarch64-unknown-linux-musl binary for Grafbase CLI",
   "keywords": [
     "grafbase",
-    "macos",
-    "darwin",
-    "x64"
+    "linux",
+    "aarch64",
+    "musl"
   ],
   "repository": {
     "type": "git",
@@ -15,10 +15,10 @@
   },
   "license": "Apache-2.0",
   "os": [
-    "darwin"
+    "linux"
   ],
   "cpu": [
-    "x64"
+    "arm64"
   ],
   "publishConfig": {
     "access": "public",

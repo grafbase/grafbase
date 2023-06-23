@@ -21,7 +21,7 @@ on:
 jobs:
   release:
     name: Release CLI
-    runs-on: ubuntu-latest-8-cores
+    runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Parse version tag
         run: |
@@ -72,11 +72,17 @@ jobs:
           name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
           path: cli/npm/aarch64-apple-darwin
 
-      - name: Download linux artifact
+      - name: Download linux amd artifact
         uses: actions/download-artifact@v3
         with:
           name: ${{ env.VERSION_BUMP }}-linux
           path: cli/npm/x86_64-unknown-linux-musl
+
+      - name: Download linux arm artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.VERSION_BUMP }}-linux
+          path: cli/npm/aarch64-unknown-linux-musl
 
       - name: Download windows artifact
         uses: actions/download-artifact@v3
@@ -93,10 +99,12 @@ jobs:
           cp x86_64-apple-darwin/grafbase github/grafbase-x86_64-apple-darwin
           cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
           cp x86_64-unknown-linux-musl/grafbase github/grafbase-x86_64-unknown-linux-musl
+          cp aarch64-unknown-linux-musl/grafbase github/grafbase-aarch64-unknown-linux-musl
 
           chmod +x aarch64-apple-darwin/grafbase
           chmod +x x86_64-apple-darwin/grafbase
           chmod +x x86_64-unknown-linux-musl/grafbase
+          chmod +x aarch64-unknown-linux-musl/grafbase
 
       - name: Install cargo-binstall and cargo-about
         shell: bash
@@ -127,6 +135,7 @@ jobs:
           (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
 
       - name: Github Release
@@ -142,3 +151,4 @@ jobs:
             cli/npm/github/grafbase-x86_64-apple-darwin
             cli/npm/github/grafbase-x86_64-pc-windows-msvc.exe
             cli/npm/github/grafbase-x86_64-unknown-linux-musl
+            cli/npm/github/grafbase-aarch64-unknown-linux-musl

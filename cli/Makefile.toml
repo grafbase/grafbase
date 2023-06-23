@@ -39,6 +39,8 @@ fi
 cargo release version $VERSION --execute --no-confirm
 cd npm/cli
 npm version --git-tag-version false $VERSION
+cd ../aarch64-unknown-linux-musl
+npm version --git-tag-version false $VERSION
 cd ../aarch64-apple-darwin
 npm version --git-tag-version false $VERSION
 cd ../x86_64-apple-darwin
@@ -52,6 +54,7 @@ sd "@grafbase/cli-aarch64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-aa
 sd "@grafbase/cli-x86_64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-apple-darwin\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-pc-windows-msvc\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-pc-windows-msvc\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-unknown-linux-musl\": \"^$VERSION\""  cli/package.json
+sd "@grafbase/cli-aarch64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-aarch64-unknown-linux-musl\": \"^$VERSION\""  cli/package.json
 cd ../
 touch "changelog/$VERSION.md"
 '''

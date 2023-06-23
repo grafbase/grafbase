@@ -54,6 +54,20 @@ test('x86_64-unknown-linux-musl', () => {
   expect(environmentData.binary).toBe('grafbase');
 });
 
+test('aarch64-unknown-linux-musl', () => {
+  Object.defineProperty(process, 'platform', {
+    value: 'linux',
+  });
+  Object.defineProperty(process, 'arch', {
+    value: 'arm64',
+  });
+
+  const environmentData = getEnvironmentData('grafbase');
+
+  expect(environmentData.targetTriple).toBe('aarch64-unknown-linux-musl');
+  expect(environmentData.binary).toBe('grafbase');
+});
+
 test('x86_64-pc-windows-msvc', () => {
   Object.defineProperty(process, 'platform', {
     value: 'win32',
