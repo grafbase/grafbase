@@ -21,6 +21,8 @@ fn init() {
     env.grafbase_init_template(None, "todo");
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
+    assert!(env.directory.join("package.json").exists());
+
     env.remove_grafbase_dir(None);
 
     env.grafbase_init_template(Some("new-project"), "todo");
@@ -42,6 +44,7 @@ fn init() {
     let directory = env.directory.join("new-project").join("grafbase");
     assert!(directory.exists());
     assert!(directory.join("grafbase.config.ts").exists());
+
     env.remove_grafbase_dir(Some("new-project"));
     let output =
         env.grafbase_init_template_output(None, "https://example.com/grafbase/grafbase/tree/main/templates/blog");
