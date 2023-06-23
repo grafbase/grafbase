@@ -108,6 +108,9 @@ pub enum BackendError {
     #[error("could not read the repository information for {0}")]
     ReadRepositoryInformation(String),
 
+    #[error("could not find 'npm':\nCaused by: {0}")]
+    NpmNotFound(Box<dyn std::error::Error + Send>),
+
     // wraps a [`CommonError`]
     #[error(transparent)]
     CommonError(#[from] CommonError),

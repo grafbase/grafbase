@@ -70,13 +70,6 @@ pub fn project_created(name: Option<&str>, template: Template<'_>) {
             watercolor!("{schema_path}", @BrightBlue)
         );
     }
-
-    if let Template::FromDefault(ConfigType::TypeScript) = template {
-        println!(
-            "We've added our SDK to your {}, make sure to install dependencies before continuing.",
-            watercolor!("package.json", @BrightBlue)
-        );
-    }
 }
 
 /// reports an error to stderr

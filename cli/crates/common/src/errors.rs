@@ -31,4 +31,8 @@ pub enum CommonError {
     SerializePackageJson(serde_json::Error),
     #[error("could not execute 'npm init':\nCaused by: {0}")]
     NpmInitError(std::io::Error),
+    #[error("could not execute 'npm install':\nCaused by: {0}")]
+    NpmInstall(std::io::Error),
+    #[error("could not find 'npm':\nCaused by: {0}")]
+    NpmNotFound(Box<dyn std::error::Error + Send>),
 }

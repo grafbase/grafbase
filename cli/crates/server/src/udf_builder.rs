@@ -1,30 +1,30 @@
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use common::environment::{Environment, Project};
+use common::environment::{self, Environment, NodePackageManager, Project};
 use common::types::UdfKind;
 use futures_util::pin_mut;
 use itertools::Itertools;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
-use crate::errors::{JavascriptPackageManagerComamndError, ServerError, UdfBuildError};
+use crate::errors::{JavascriptPackageManagerCommandError, ServerError, UdfBuildError};
 
 async fn run_command<P: AsRef<Path>>(
-    command_type: JavaScriptPackageManager,
+    command_type: NodePackageManager,
     arguments: &[&str],
     current_directory: P,
     tracing: bool,
     environment: &[(&'static str, &str)],
-) -> Result<(), JavascriptPackageManagerComamndError> {
+) -> Result<(), JavascriptPackageManagerCommandError> {
     let command_string = format!("{command_type} {}", arguments.iter().format(" "));
     let current_directory = current_directory.as_ref();
     match current_directory.try_exists() {
         Ok(true) => Ok(()),
-        Ok(false) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryNotFound(
+        Ok(false) => Err(JavascriptPackageManagerCommandError::WorkingDirectoryNotFound(
             current_directory.to_owned(),
         )),
-        Err(err) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryCannotBeRead(
+        Err(err) => Err(JavascriptPackageManagerCommandError::WorkingDirectoryCannotBeRead(
             current_directory.to_owned(),
             err,
         )),
@@ -34,7 +34,7 @@ async fn run_command<P: AsRef<Path>>(
     // Use `which` to work-around weird path search issues on Windows.
     // See https://github.com/rust-lang/rust/issues/37519.
     let program_path = which::which(command_type.to_string())
-        .map_err(|err| JavascriptPackageManagerComamndError::NotFound(command_type, err))?;
+        .map_err(|err| JavascriptPackageManagerCommandError::NotFound(command_type, err))?;
 
     let mut command = Command::new(program_path);
     command
@@ -47,76 +47,23 @@ async fn run_command<P: AsRef<Path>>(
     trace!("Spawning {command:?}");
     let command = command
         .spawn()
-        .map_err(|err| JavascriptPackageManagerComamndError::CommandError(command_type, err))?;
+        .map_err(|err| JavascriptPackageManagerCommandError::CommandError(command_type, err))?;
 
     let output = command
         .wait_with_output()
         .await
-        .map_err(|err| JavascriptPackageManagerComamndError::CommandError(command_type, err))?;
+        .map_err(|err| JavascriptPackageManagerCommandError::CommandError(command_type, err))?;
 
     if output.status.success() {
         trace!("'{command_string}' succeeded");
         Ok(())
     } else {
         trace!("'{command_string}' failed");
-        Err(JavascriptPackageManagerComamndError::OutputError(
+        Err(JavascriptPackageManagerCommandError::OutputError(
             command_type,
             String::from_utf8_lossy(&output.stderr).into_owned(),
         ))
     }
-}
-
-#[derive(Clone, Copy, Debug, strum::Display, strum::EnumString)]
-#[strum(serialize_all = "lowercase")]
-pub enum JavaScriptPackageManager {
-    Npm,
-    Pnpm,
-    Yarn,
-}
-
-async fn guess_package_manager_from_package_json(path: impl AsRef<Path>) -> Option<JavaScriptPackageManager> {
-    let path = path.as_ref();
-    // FIXME: In the future, we may honour the version too.
-    // "packageManager": "^pnpm@1.2.3"
-    // "packageManager": "^yarn@2.3.4"
-    // etc.
-    let object = match serde_json::from_slice(&tokio::fs::read(&path).await.ok()?) {
-        Ok(serde_json::Value::Object(object)) => object,
-        other => {
-            warn!("Invalid package.json contents: {other:?} in path {}.", path.display());
-            return None;
-        }
-    };
-    object
-        .get("packageManager")
-        .and_then(serde_json::Value::as_str)
-        .and_then(|value| value.trim_start_matches('^').split('@').next().unwrap().parse().ok())
-}
-
-pub const LOCK_FILES: &[(&str, JavaScriptPackageManager)] = &[
-    ("package-lock.json", JavaScriptPackageManager::Npm),
-    ("pnpm-lock.yaml", JavaScriptPackageManager::Pnpm),
-    ("yarn.lock", JavaScriptPackageManager::Yarn),
-];
-
-async fn guess_package_manager_from_package_root(path: impl AsRef<Path>) -> Option<JavaScriptPackageManager> {
-    let package_root = path.as_ref();
-
-    futures_util::future::join_all(LOCK_FILES.iter().map(|(file_name, package_manager)| {
-        let path_to_check = package_root.join(file_name);
-        async move {
-            let file_exists = tokio::fs::try_exists(&path_to_check).await.ok().unwrap_or_default();
-            if file_exists {
-                Some(*package_manager)
-            } else {
-                None
-            }
-        }
-    }))
-    .await
-    .into_iter()
-    .flatten()
-    .next()
 }
 
 async fn extract_udf_wrapper_worker_contents(udf_kind: UdfKind) -> Result<String, UdfBuildError> {
@@ -196,18 +143,15 @@ pub async fn build(
 
     let package_manager = (|| async {
         let package_json_path = package_json_path.as_deref()?;
+
         if tokio::fs::try_exists(&package_json_path).await.ok()? {
-            let (guessed_from_package_json, guessed_from_package_root) = futures_util::join!(
-                guess_package_manager_from_package_json(package_json_path),
-                guess_package_manager_from_package_root(package_root_path)
-            );
-            guessed_from_package_json.or(guessed_from_package_root)
+            environment::guess_project_package_manager(package_root_path, package_json_path)
         } else {
             None
         }
     })()
     .await
-    .unwrap_or(JavaScriptPackageManager::Npm);
+    .unwrap_or(NodePackageManager::Npm);
 
     tokio::fs::create_dir_all(&udf_build_artifact_directory_path)
         .await
@@ -232,9 +176,9 @@ pub async fn build(
             .ok_or_else(|| UdfBuildError::PathError(udf_build_artifact_directory_path.to_string_lossy().to_string()))?;
 
         let arguments = match package_manager {
-            JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "install"],
-            JavaScriptPackageManager::Pnpm => vec!["install"],
-            JavaScriptPackageManager::Yarn => {
+            NodePackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "install"],
+            NodePackageManager::Pnpm => vec!["install"],
+            NodePackageManager::Yarn => {
                 vec!["install", "--modules-folder", artifact_directory_modules_path_string]
             }
         };
@@ -332,7 +276,7 @@ pub async fn build(
             ("WRANGLER_SEND_METRICS", "false"),
         ];
         run_command(
-            JavaScriptPackageManager::Npm,
+            NodePackageManager::Npm,
             wrangler_arguments,
             &environment.wrangler_installation_path,
             tracing,
@@ -340,7 +284,7 @@ pub async fn build(
         )
         .await
         .map_err(|err| match err {
-            JavascriptPackageManagerComamndError::OutputError(_, output) => {
+            JavascriptPackageManagerCommandError::OutputError(_, output) => {
                 UdfBuildError::UdfBuild(udf_kind, udf_name.to_owned(), output)
             }
             other => other.into(),
@@ -411,7 +355,7 @@ pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Resul
         .map_err(|_| ServerError::CreateDir(environment.wrangler_installation_path.clone()))?;
     // Install wrangler once and for all.
     run_command(
-        JavaScriptPackageManager::Npm,
+        NodePackageManager::Npm,
         &["add", "--save-dev", "wrangler@2"],
         environment.wrangler_installation_path.to_str().expect("must be valid"),
         tracing,
@@ -419,7 +363,7 @@ pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Resul
     )
     .await?;
     run_command(
-        JavaScriptPackageManager::Npm,
+        NodePackageManager::Npm,
         &["install"],
         environment.wrangler_installation_path.to_str().expect("must be valid"),
         tracing,

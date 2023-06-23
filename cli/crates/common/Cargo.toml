@@ -21,3 +21,4 @@ serde_json = { version = "1", features = ["preserve_order"] }
 strum = { version = "0.24", features = ["derive"] }
 thiserror = "1"
 ulid = { version = "1", features = ["serde"] }
+which = "4.4.0"

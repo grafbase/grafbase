@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::consts::AUTHORIZERS_DIRECTORY_NAME;
+use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, PNPM_LOCK_FILE, YARN_LOCK_FILE};
 use crate::{
     consts::{
         DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
@@ -12,8 +12,10 @@ use crate::{
 use serde_json::{Map, Value};
 use std::{
     borrow::Cow,
-    env, fs, io,
+    env, fmt, fs, io,
     path::{Path, PathBuf},
+    process::Command,
+    str::FromStr,
     sync::OnceLock,
 };
 
@@ -330,6 +332,102 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum NodePackageManager {
+    Npm,
+    Pnpm,
+    Yarn,
+}
+
+impl Default for NodePackageManager {
+    fn default() -> Self {
+        Self::Npm
+    }
+}
+
+impl NodePackageManager {
+    #[must_use]
+    pub fn is_npm(self) -> bool {
+        matches!(self, Self::Npm)
+    }
+}
+
+impl fmt::Display for NodePackageManager {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Npm => f.write_str("npm"),
+            Self::Pnpm => f.write_str("pnpm"),
+            Self::Yarn => f.write_str("yarn"),
+        }
+    }
+}
+
+impl FromStr for NodePackageManager {
+    type Err = CommonError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "npm" => Ok(NodePackageManager::Npm),
+            "pnpm" => Ok(NodePackageManager::Pnpm),
+            "yarn" => Ok(NodePackageManager::Yarn),
+            _ => {
+                let inner = io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Unsupported package manager in package.json: {s}"),
+                );
+
+                Err(CommonError::AccessPackageJson(inner))
+            }
+        }
+    }
+}
+
+pub fn install_dependencies(project_root: &Path) -> Result<(), CommonError> {
+    let command = match which::which("npm") {
+        Ok(command) => command,
+        Err(e) => return Err(CommonError::NpmNotFound(Box::new(e))),
+    };
+
+    Command::new(command)
+        .args(["install", "--save-dev"])
+        .current_dir(project_root)
+        .output()
+        .map_err(CommonError::NpmInstall)?;
+
+    Ok(())
+}
+
+pub fn guess_project_package_manager(project_root: &Path, package_json: &Path) -> Option<NodePackageManager> {
+    const LOCK_FILES: &[(&str, NodePackageManager)] = &[
+        (PNPM_LOCK_FILE, NodePackageManager::Pnpm),
+        (YARN_LOCK_FILE, NodePackageManager::Yarn),
+    ];
+
+    let Ok(Value::Object(object)) = serde_json::from_slice(&fs::read(package_json).ok()?) else {
+        return None;
+    };
+
+    if let Some(package_manager) = object.get("packageManager").and_then(Value::as_str).and_then(|value| {
+        value
+            .trim_start_matches('^')
+            .split('@')
+            .next()
+            .and_then(|string| string.parse().ok())
+    }) {
+        return Some(package_manager);
+    };
+
+    for (file_name, package_manager) in LOCK_FILES.iter() {
+        let path_to_check = project_root.join(file_name);
+
+        if Path::exists(&path_to_check) {
+            return Some(*package_manager);
+        }
+    }
+
+    Some(NodePackageManager::Npm)
+}
+
 pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), CommonError> {
     let package_json_path = project_dir.join(PACKAGE_JSON_NAME);
 
@@ -346,6 +444,7 @@ pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, ver
         let name = project_dir
             .file_name()
             .map_or(Cow::Borrowed("grafbase-project"), std::ffi::OsStr::to_string_lossy);
+
         match serde_json::json!(
         {
           "name": name,

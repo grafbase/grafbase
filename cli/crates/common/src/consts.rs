@@ -42,3 +42,7 @@ pub const GRAFBASE_SDK_PACKAGE_VERSION: &str = "~0.1.0";
 pub const PACKAGE_JSON_NAME: &str = "package.json";
 /// the package.json dev dependencies key
 pub const PACKAGE_JSON_DEV_DEPENDENCIES: &str = "devDependencies";
+/// the name of the pnpm lock file
+pub const PNPM_LOCK_FILE: &str = "pnpm-lock.yaml";
+/// the name of the yarn lock file
+pub const YARN_LOCK_FILE: &str = "yarn.lock";

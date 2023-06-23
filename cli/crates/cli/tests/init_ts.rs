@@ -34,6 +34,113 @@ fn init_ts_existing_package_json() {
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
 
+    assert!(env.directory.join("package-lock.json").exists());
+    assert!(env.directory.join("node_modules").exists());
+
+    let package_json = env.load_file_from_project("package.json");
+
+    insta::assert_snapshot!(&package_json, @r###"
+    {
+      "name": "test",
+      "version": "1.0.0",
+      "description": "",
+      "main": "index.js",
+      "keywords": [],
+      "author": "",
+      "license": "ISC",
+      "devDependencies": {
+        "@grafbase/sdk": "~0.1.0"
+      }
+    }
+    "###);
+}
+
+#[test]
+fn init_ts_existing_package_json_pnpm_project() {
+    let env = Environment::init();
+
+    env.write_json_file_to_project(
+        "package.json",
+        &json!({
+          "name": "test",
+          "version": "1.0.0",
+          "description": "",
+          "main": "index.js",
+          "keywords": [],
+          "author": "",
+          "license": "ISC"
+        }),
+    );
+
+    env.write_file_to_project("pnpm-lock.yaml", "");
+
+    let output = env.grafbase_init_output(ConfigType::TypeScript);
+    println!("stdout: `{}`", String::from_utf8_lossy(&output.stdout));
+    assert!(
+        output.stderr.is_empty(),
+        "stderr should be empty, got: `{}`",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.status.success());
+
+    assert!(env.directory.join("grafbase").exists());
+    assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
+
+    assert!(!env.directory.join("package-lock.json").exists());
+    assert!(!env.directory.join("node_modules").exists());
+
+    let package_json = env.load_file_from_project("package.json");
+
+    insta::assert_snapshot!(&package_json, @r###"
+    {
+      "name": "test",
+      "version": "1.0.0",
+      "description": "",
+      "main": "index.js",
+      "keywords": [],
+      "author": "",
+      "license": "ISC",
+      "devDependencies": {
+        "@grafbase/sdk": "~0.1.0"
+      }
+    }
+    "###);
+}
+
+#[test]
+fn init_ts_existing_package_json_yarn_project() {
+    let env = Environment::init();
+
+    env.write_json_file_to_project(
+        "package.json",
+        &json!({
+          "name": "test",
+          "version": "1.0.0",
+          "description": "",
+          "main": "index.js",
+          "keywords": [],
+          "author": "",
+          "license": "ISC"
+        }),
+    );
+
+    env.write_file_to_project("yarn.lock", "");
+
+    let output = env.grafbase_init_output(ConfigType::TypeScript);
+    println!("stdout: `{}`", String::from_utf8_lossy(&output.stdout));
+    assert!(
+        output.stderr.is_empty(),
+        "stderr should be empty, got: `{}`",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.status.success());
+
+    assert!(env.directory.join("grafbase").exists());
+    assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
+
+    assert!(!env.directory.join("package-lock.json").exists());
+    assert!(!env.directory.join("node_modules").exists());
+
     let package_json = env.load_file_from_project("package.json");
 
     insta::assert_snapshot!(&package_json, @r###"
@@ -68,6 +175,8 @@ fn init_ts_new_project() {
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
     assert!(env.directory.join("package.json").exists());
+    assert!(env.directory.join("package-lock.json").exists());
+    assert!(env.directory.join("node_modules").exists());
 
     let package_json: serde_json::Value = serde_json::from_str(&env.load_file_from_project("package.json")).unwrap();
     let package_json = package_json.as_object().unwrap().get("devDependencies").unwrap();

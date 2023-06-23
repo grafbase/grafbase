@@ -2,6 +2,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::Json;
+use common::environment::NodePackageManager;
 use common::types::UdfKind;
 use hyper::Error as HyperError;
 use notify::Error as NotifyError;
@@ -12,25 +13,25 @@ use std::path::PathBuf;
 use thiserror::Error;
 use tokio::task::JoinError;
 
-use crate::udf_builder::JavaScriptPackageManager;
-
 #[derive(Error, Debug)]
-pub enum JavascriptPackageManagerComamndError {
+pub enum JavascriptPackageManagerCommandError {
     #[error("working directory '{0}' not found")]
     WorkingDirectoryNotFound(PathBuf),
+
     #[error("working directory '{0}' cannot be read.\nCaused by: {1}")]
     WorkingDirectoryCannotBeRead(PathBuf, std::io::Error),
+
     /// returned if npm/pnpm/yarn cannot be found
     #[error("could not find {0}: {1}")]
-    NotFound(JavaScriptPackageManager, which::Error),
+    NotFound(NodePackageManager, which::Error),
 
     /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
     #[error("{0} encountered an error: {1}")]
-    CommandError(JavaScriptPackageManager, IoError),
+    CommandError(NodePackageManager, IoError),
 
     /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
     #[error("{0} failed with output:\n{1}")]
-    OutputError(JavaScriptPackageManager, String),
+    OutputError(NodePackageManager, String),
 }
 
 #[derive(Error, Debug)]
@@ -116,7 +117,7 @@ pub enum ServerError {
 
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
-    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
+    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerCommandError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("resolver {0} failed to build:\n{1}")]
@@ -208,7 +209,7 @@ pub enum UdfBuildError {
 
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
-    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
+    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerCommandError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("{0} {1} failed to build:\n{2}")]

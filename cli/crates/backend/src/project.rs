@@ -6,16 +6,17 @@ use common::consts::{
     GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_SDK_PACKAGE_NAME,
     GRAFBASE_SDK_PACKAGE_VERSION, GRAFBASE_TS_CONFIG_FILE_NAME,
 };
-use common::environment::{self, Project};
+use common::environment::{self, NodePackageManager, Project};
+use common::errors::CommonError;
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
 use reqwest::{header, Client};
 use reqwest_middleware::ClientBuilder;
 use serde::Deserialize;
-use std::fs;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 use std::{env, fmt};
+use std::{fs, io};
 use tokio_stream::StreamExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::io::StreamReader;
@@ -135,12 +136,7 @@ pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), Back
                         .unwrap_or_default()
                 })
             {
-                environment::add_dev_dependency_to_package_json(
-                    &project_path,
-                    GRAFBASE_SDK_PACKAGE_NAME,
-                    GRAFBASE_SDK_PACKAGE_VERSION,
-                )
-                .map_err(BackendError::CommonError)?;
+                add_dependencies(&project_path)?;
             }
         }
         Template::FromDefault(config_type) => {
@@ -153,17 +149,7 @@ pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), Back
             let schema_write_result = match config_type {
                 ConfigType::TypeScript => {
                     let schema_path = grafbase_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
-
-                    let add_sdk = environment::add_dev_dependency_to_package_json(
-                        &project_path,
-                        GRAFBASE_SDK_PACKAGE_NAME,
-                        GRAFBASE_SDK_PACKAGE_VERSION,
-                    )
-                    .map_err(Into::into);
-
-                    let write_schema = fs::write(schema_path, DEFAULT_SCHEMA_TS).map_err(BackendError::WriteSchema);
-
-                    add_sdk.and(write_schema)
+                    fs::write(schema_path, DEFAULT_SCHEMA_TS).map_err(BackendError::WriteSchema)
                 }
                 ConfigType::GraphQL => {
                     let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
@@ -181,8 +167,37 @@ pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), Back
 
             schema_write_result?;
             dot_env_write_result?;
+
+            // This has to be the last thing we do.
+            if let ConfigType::TypeScript = config_type {
+                add_dependencies(&project_path)?;
+            };
         }
     };
+
+    Ok(())
+}
+
+fn add_dependencies(project_path: &Path) -> Result<(), BackendError> {
+    environment::add_dev_dependency_to_package_json(
+        project_path,
+        GRAFBASE_SDK_PACKAGE_NAME,
+        GRAFBASE_SDK_PACKAGE_VERSION,
+    )
+    .map_err(BackendError::CommonError)?;
+
+    let package_manager = environment::guess_project_package_manager(project_path, &project_path.join("package.json"))
+        .unwrap_or_default();
+
+    if let NodePackageManager::Npm = package_manager {
+        environment::install_dependencies(project_path).map_err(|e| match e {
+            CommonError::NpmNotFound(e) => BackendError::NpmNotFound(e),
+            e => BackendError::CommonError(e),
+        })?;
+    } else {
+        let error = io::Error::new(io::ErrorKind::InvalidInput, "Project is not using npm.");
+        return Err(BackendError::NpmNotFound(Box::new(error)));
+    }
 
     Ok(())
 }

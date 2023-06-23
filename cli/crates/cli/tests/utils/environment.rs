@@ -202,6 +202,13 @@ impl Environment {
     }
 
     #[track_caller]
+    pub fn write_file_to_project(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        let target_path = self.directory.join(path.as_ref());
+        fs::create_dir_all(target_path.parent().unwrap()).unwrap();
+        fs::write(target_path, contents.as_ref()).unwrap();
+    }
+
+    #[track_caller]
     pub fn write_json_file_to_project(&self, path: impl AsRef<Path>, contents: &serde_json::Value) {
         let contents = serde_json::to_string_pretty(contents).unwrap();
         let target_path = self.directory.join(path.as_ref());
