@@ -16,9 +16,11 @@ use crate::udf_builder::JavaScriptPackageManager;
 
 #[derive(Error, Debug)]
 pub enum JavascriptPackageManagerComamndError {
+    #[error("working directory '{0}' not found")]
+    WorkingDirectoryNotFound(PathBuf),
     /// returned if npm/pnpm/yarn cannot be found
-    #[error("could not find {0:?}: {1}")]
-    NotFound(Option<JavaScriptPackageManager>, String),
+    #[error("could not find {0}: {1}")]
+    NotFound(JavaScriptPackageManager, String),
 
     /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
     #[error("{0} encountered an error: {1}")]
