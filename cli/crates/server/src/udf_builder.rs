@@ -19,17 +19,22 @@ async fn run_command<P: AsRef<Path>>(
 ) -> Result<(), JavascriptPackageManagerComamndError> {
     let command_string = format!("{command_type} {}", arguments.iter().format(" "));
     let current_directory = current_directory.as_ref();
-    if !current_directory.exists() {
-        return Err(JavascriptPackageManagerComamndError::WorkingDirectoryNotFound(
+    match current_directory.try_exists() {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryNotFound(
             current_directory.to_owned(),
-        ));
-    }
-    debug!("running '{command_string}'");
+        )),
+        Err(err) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryCannotBeRead(
+            current_directory.to_owned(),
+            err,
+        )),
+    }?;
+    trace!("running '{command_string}'");
 
     // Use `which` to work-around weird path search issues on Windows.
     // See https://github.com/rust-lang/rust/issues/37519.
     let program_path = which::which(command_type.to_string())
-        .map_err(|err| JavascriptPackageManagerComamndError::NotFound(command_type, err.to_string()))?;
+        .map_err(|err| JavascriptPackageManagerComamndError::NotFound(command_type, err))?;
 
     let mut command = Command::new(program_path);
     command
