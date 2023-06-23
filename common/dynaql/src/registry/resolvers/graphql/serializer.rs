@@ -7,7 +7,7 @@ use std::{
 use dynaql_parser::{
     types::{
         Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, Selection,
-        TypeCondition,
+        TypeCondition, VariableDefinition,
     },
     Positioned,
 };
@@ -20,12 +20,12 @@ use super::Target;
 /// The serializer is specifically tailored for the [`graphql::Resolver`](super::Resolver), as it
 /// has logic to prepend/remove namespaced prefixes to global types, and injects `__typename`
 /// fields into queries that need it for the resolver to properly parse the returned data.
-pub struct Serializer<'a, 'b, W> {
+pub struct Serializer<'a, 'b> {
     /// The prefix string to strip from any global type, before serializing the query.
     prefix: Option<&'a str>,
 
     /// Buffer used to write operation string to.
-    buf: &'a mut W,
+    buf: &'a mut String,
 
     /// Global list of fragment definitions, to allow the serializer to embed the definitions of
     /// any fragments used within the query.
@@ -43,13 +43,19 @@ pub struct Serializer<'a, 'b, W> {
     ///
     /// This allows the caller to pass along the relevant variable values to the upsteam server.
     variable_references: HashSet<&'a Name>,
+
+    /// Variable definitions from the original query
+    ///
+    /// These allow us to define any variables we need to use in the upstream query
+    variable_definitions: HashMap<&'b Name, &'b VariableDefinition>,
 }
 
-impl<'a, 'b, W> Serializer<'a, 'b, W> {
+impl<'a, 'b> Serializer<'a, 'b> {
     pub fn new(
         prefix: Option<&'a str>,
         fragment_definitions: HashMap<&'b Name, &'b FragmentDefinition>,
-        buf: &'a mut W,
+        variable_definitions: HashMap<&'b Name, &'b VariableDefinition>,
+        buf: &'a mut String,
     ) -> Self {
         Serializer {
             prefix,
@@ -58,6 +64,7 @@ impl<'a, 'b, W> Serializer<'a, 'b, W> {
             fragment_spreads: HashSet::new(),
             indent: 0,
             variable_references: HashSet::new(),
+            variable_definitions,
         }
     }
 
@@ -70,14 +77,13 @@ impl<'a, 'b, W> Serializer<'a, 'b, W> {
     }
 }
 
-impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
+impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// Serialize query.
     ///
     /// # Errors
     ///
     /// Returns an error if writing to the buffer fails.
     pub fn query(&mut self, target: Target<'c>) -> Result<(), Error> {
-        self.write_str("query")?;
         match target {
             Target::SelectionSet(selections) => self.serialize_selections(selections)?,
             Target::Field(field) => {
@@ -87,7 +93,9 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
             }
         }
 
-        self.serialize_fragment_definitions()
+        self.serialize_fragment_definitions()?;
+
+        self.prepend_declaration("query")
     }
 
     /// Serialize mutation.
@@ -96,7 +104,6 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
     ///
     /// Returns an error if writing to the buffer fails.
     pub fn mutation(&mut self, target: Target<'c>) -> Result<(), Error> {
-        self.write_str("mutation")?;
         match target {
             Target::SelectionSet(selections) => self.serialize_selections(selections)?,
             Target::Field(field) => {
@@ -106,7 +113,9 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
             }
         }
 
-        self.serialize_fragment_definitions()
+        self.serialize_fragment_definitions()?;
+
+        self.prepend_declaration("mutation")
     }
 
     fn serialize_selection(&mut self, selection: &'c Selection) -> Result<(), Error> {
@@ -297,15 +306,68 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
         if let Some(condition) = type_condition {
             self.write_str(" on ")?;
 
-            // We remove the `prefix` from condition types, as these are local to Grafbase, and
-            // should not be sent to the upstream server.
-            if let Some(prefix) = self.prefix {
-                self.write_str(condition.on.as_str().replace(prefix, ""))?;
-            }
+            self.write_str(self.remove_prefix_from_type(condition.on.as_str()))?;
         }
 
         self.serialize_directives(directives)?;
         self.serialize_selections(selections)
+    }
+
+    /// This function handles prepending the variable declarations to our buffer.
+    ///
+    /// We need to output variable definitions at the start of the buffer, but we
+    /// don't know what variables we need till we've serialized everything else.
+    ///
+    /// This is not exactly an optimal solution, but the alternative was traversing
+    /// the entire query looking for variables before we output anything and I
+    /// didn't want to write that much code today, so :sigh: this'll do.
+    fn prepend_declaration(&mut self, query_kind_str: &str) -> Result<(), Error> {
+        // We can't just write directly into buffer in this function because
+        // it's on self and we need to make immutable borrows from self.
+        let mut declaration = query_kind_str.to_string();
+
+        if !self.variable_references.is_empty() {
+            write!(declaration, "(")?;
+            for variable_name in &self.variable_references {
+                let Some(variable_definition) = self.variable_definitions.get(variable_name) else {
+                    return Err(Error::UndeclaredVariable(variable_name.to_string()))
+                };
+
+                let VariableDefinition {
+                    name,
+                    var_type,
+                    directives,
+                    default_value,
+                } = variable_definition;
+
+                let var_type = var_type.to_string();
+                let var_type = self.remove_prefix_from_type(&var_type);
+
+                write!(declaration, "${name}: {var_type}")?;
+
+                if let Some(default_value) = default_value {
+                    write!(declaration, " = {default_value}")?;
+                }
+                for directive in directives {
+                    let Directive { name, arguments } = &directive.node;
+                    write!(declaration, "@{name}")?;
+                    if !arguments.is_empty() {
+                        write!(declaration, "(")?;
+                        for (name, value) in arguments {
+                            write!(declaration, "{name} = {value}, ")?;
+                        }
+                        write!(declaration, ")")?;
+                    }
+                }
+                write!(declaration, ", ")?;
+            }
+            write!(declaration, ")")?;
+        }
+
+        declaration.push_str(self.buf);
+        *self.buf = declaration;
+
+        Ok(())
     }
 
     fn indent(&mut self) -> Result<(), Error> {
@@ -349,16 +411,32 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
 
         self.writeln_str("}\n")
     }
+
+    fn remove_prefix_from_type<'x>(&self, ty: &'x str) -> &'x str {
+        // We remove the `prefix` from condition types, as these are local to Grafbase, and
+        // should not be sent to the upstream server.
+        ty.strip_prefix(self.prefix.unwrap_or_default())
+            .unwrap_or(ty)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     Fmt(#[from] fmt::Error),
+
+    /// A variable wasn't declared.
+    ///
+    /// This should really be caught well before we get here, but I'm
+    /// not sure that it is
+    #[error("Undeclared variable: {0}")]
+    UndeclaredVariable(String),
 }
 
 #[cfg(test)]
 mod tests {
+    use dynaql_parser::Pos;
+    use dynaql_value::ConstValue;
     use rstest::rstest;
 
     use super::*;
@@ -468,7 +546,19 @@ mod tests {
         let (selections, fragment_definitions) = input_to_selections(input);
         let fragments = fragment_definitions.iter().map(|(k, v)| (k, v)).collect();
 
-        let mut serializer = Serializer::new(Some("Github"), fragments, &mut buf);
+        let name = Name::new("foo");
+        let variable_definition = VariableDefinition {
+            name: Positioned::new(Name::new("foo"), Pos::default()),
+            var_type: Positioned::new(
+                dynaql_parser::types::Type::new("Bool").unwrap(),
+                Pos::default(),
+            ),
+            directives: vec![],
+            default_value: Some(Positioned::new(ConstValue::Boolean(true), Pos::default())),
+        };
+        let variables = HashMap::from([(&name, &variable_definition)]);
+
+        let mut serializer = Serializer::new(Some("Github"), fragments, variables, &mut buf);
 
         if input.trim_start().starts_with("query") {
             serializer

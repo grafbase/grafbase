@@ -359,6 +359,20 @@ impl ResolverType {
                     .map(|(k, v)| (k, v.as_ref().node))
                     .collect();
 
+                let variable_definitions = ctx
+                    .query_env
+                    .operation
+                    .node
+                    .variable_definitions
+                    .iter()
+                    .map(|variable_definition| {
+                        (
+                            &variable_definition.node.name.node,
+                            &variable_definition.node,
+                        )
+                    })
+                    .collect();
+
                 let target = match resolver.namespace {
                     Some(_) => Target::SelectionSet(Box::new(
                         ctx.item
@@ -385,6 +399,7 @@ impl ResolverType {
                         target,
                         error_handler,
                         variables,
+                        variable_definitions,
                     )
                     .await
                     .map_err(Into::into)

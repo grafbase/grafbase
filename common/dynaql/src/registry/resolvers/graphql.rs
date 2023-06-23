@@ -33,7 +33,9 @@ use std::{
     sync::Arc,
 };
 
-use dynaql_parser::types::{Field, FragmentDefinition, OperationType, Selection};
+use dynaql_parser::types::{
+    Field, FragmentDefinition, OperationType, Selection, VariableDefinition,
+};
 use dynaql_value::{ConstValue, Name, Variables};
 use futures_util::Future;
 use http::header::USER_AGENT;
@@ -72,7 +74,7 @@ pub struct Resolver {
     pub url: Url,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 struct Query {
     query: String,
     variables: BTreeMap<Name, ConstValue>,
@@ -90,6 +92,7 @@ impl Resolver {
     /// # Errors
     ///
     /// See [`Error`] for more details.
+    #[allow(clippy::too_many_arguments)] // I know clippy, I know
     pub fn resolve<'a>(
         &'a self,
         operation: OperationType,
@@ -98,6 +101,7 @@ impl Resolver {
         target: Target<'a>,
         error_handler: impl FnMut(ServerError) + 'a,
         variables: Variables,
+        variable_definitions: HashMap<&'a Name, &'a VariableDefinition>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         let mut request_builder = reqwest::Client::new()
             .post(self.url.clone())
@@ -117,8 +121,12 @@ impl Resolver {
         };
 
         Box::pin(SendWrapper::new(async move {
-            let mut serializer =
-                Serializer::new(prefix.as_deref(), fragment_definitions, &mut query);
+            let mut serializer = Serializer::new(
+                prefix.as_deref(),
+                fragment_definitions,
+                variable_definitions,
+                &mut query,
+            );
             match operation {
                 OperationType::Query => serializer.query(target)?,
                 OperationType::Mutation => serializer.mutation(target)?,
@@ -326,6 +334,7 @@ mod tests {
                 target,
                 error_handler,
                 Variables::default(),
+                HashMap::new(),
             )
             .await?
             .data_resolved;
