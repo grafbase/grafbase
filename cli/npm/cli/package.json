@@ -30,6 +30,7 @@
     "@grafbase/cli-aarch64-apple-darwin": "^0.24.1",
     "@grafbase/cli-x86_64-apple-darwin": "^0.24.1",
     "@grafbase/cli-x86_64-pc-windows-msvc": "^0.24.1",
-    "@grafbase/cli-x86_64-unknown-linux-musl": "^0.24.1"
+    "@grafbase/cli-x86_64-unknown-linux-musl": "^0.24.1",
+    "@grafbase/cli-aarch64-unknown-linux-musl": "^0.24.1"
   }
 }
