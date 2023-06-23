@@ -1604,7 +1604,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.25.0-rc.1"
+version = "0.25.0-rc.2"
 dependencies = [
  "backtrace",
  "cfg-if",
@@ -1655,7 +1655,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.25.0-rc.1"
+version = "0.25.0-rc.2"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -1685,7 +1685,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.25.0-rc.1"
+version = "0.25.0-rc.2"
 dependencies = [
  "chrono",
  "derivative",
@@ -1700,7 +1700,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.25.0-rc.1"
+version = "0.25.0-rc.2"
 dependencies = [
  "axum",
  "base64 0.21.2",
