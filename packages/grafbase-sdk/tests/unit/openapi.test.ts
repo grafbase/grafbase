@@ -40,7 +40,7 @@ describe('OpenAPI generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
-          name: "Stripe"
+          namespace: "Stripe"
           url: "https://api.stripe.com"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
           transforms: { queryNaming: OPERATION_ID }
@@ -72,11 +72,11 @@ describe('OpenAPI generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
-          name: "Stripe"
+          namespace: "Stripe"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
         )
         @openapi(
-          name: "OpenAI"
+          namespace: "OpenAI"
           schema: "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml"
         )"
     `)

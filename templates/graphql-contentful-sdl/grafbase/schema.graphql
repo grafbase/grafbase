@@ -1,0 +1,8 @@
+extend schema
+  @graphql(
+    name: "Contentful"
+    url: "{{ env.CONTENTFUL_API_URL }}"
+    headers: [
+      { name: "Authorization", value: "Bearer {{ env.CONTENTFUL_API_TOKEN }}" }
+    ]
+  )

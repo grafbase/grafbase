@@ -1,0 +1,10 @@
+extend schema
+  @openapi(
+    namespace: "Tinybird"
+    url: "{{ env.TINYBIRD_API_URL }}"
+    schema: "{{ env.TINYBIRD_API_SCHEMA }}"
+    headers: [
+      { name: "Authorization", value: "Bearer {{ env.TINYBIRD_API_TOKEN }}" }
+    ]
+    transforms: { queryNaming: OPERATION_ID }
+  )

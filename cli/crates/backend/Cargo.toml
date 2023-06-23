@@ -13,6 +13,9 @@ repository.workspace = true
 axum = "0.6"
 async-compression = { version = "0.3", features = ["gzip", "tokio"] }
 async-tar = "0.4"
+# https://github.com/zkat/cacache-rs/commit/d39e83801dc4f1e6479dacd50dcf1372658a598f
+# breaks the Linux musl build because the `reflink` dependency does not compile for that target.
+cacache = "=11.1.0"
 const_format = { version = "0.2", features = ["rust_1_64"] }
 cynic = { version = "3", features = ["http-reqwest"] }
 dirs = "5"
@@ -35,8 +38,8 @@ url = "2"
 urlencoding = "2"
 walkdir = "2"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.23.0" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.23.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.24.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.24.0" }
 
 [build-dependencies]
 cynic-codegen = { version = "3", features = ["rkyv"] }

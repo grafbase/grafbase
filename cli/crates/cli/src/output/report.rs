@@ -4,7 +4,8 @@ use crate::{
 };
 use backend::project::{ConfigType, Template};
 use colored::Colorize;
-use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, types::ResolverMessageLevel};
+use common::types::UdfKind;
+use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, types::UdfMessageLevel};
 use common::{
     consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
     environment::Warning,
@@ -104,31 +105,28 @@ pub fn goodbye() {
     watercolor::output!("\n👋 See you next time!", @BrightBlue);
 }
 
-pub fn start_resolver_build(resolver_name: &str) {
-    println!(
-        "{}  - compiling resolver '{resolver_name}'…",
-        watercolor!("wait", @Blue)
-    );
+pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
+    println!("{}  - compiling {udf_kind} '{udf_name}'…", watercolor!("wait", @Blue));
 }
 
-pub fn complete_resolver_build(resolver_name: &str, duration: std::time::Duration) {
+pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time::Duration) {
     let formatted_duration = if duration < std::time::Duration::from_secs(1) {
         format!("{}ms", duration.as_millis())
     } else {
         format!("{:.1}s", duration.as_secs_f64())
     };
     println!(
-        "{} - resolver '{resolver_name}' compiled successfully in {formatted_duration}",
+        "{} - {udf_kind} '{udf_name}' compiled successfully in {formatted_duration}",
         watercolor!("event", @Green)
     );
 }
 
-pub fn resolver_message(resolver_name: &str, message: &str, level: ResolverMessageLevel) {
+pub fn udf_message(udf_kind: UdfKind, udf_name: &str, message: &str, level: UdfMessageLevel) {
     match level {
-        ResolverMessageLevel::Debug => watercolor::output!("[{resolver_name}] {message}", @BrightBlack),
-        ResolverMessageLevel::Error => watercolor::output!("[{resolver_name}] {message}", @Red),
-        ResolverMessageLevel::Info => watercolor::output!("[{resolver_name}] {message}", @Cyan),
-        ResolverMessageLevel::Warn => watercolor::output!("[{resolver_name}] {message}", @Yellow),
+        UdfMessageLevel::Debug => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @BrightBlack),
+        UdfMessageLevel::Error => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Red),
+        UdfMessageLevel::Info => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Cyan),
+        UdfMessageLevel::Warn => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Yellow),
     }
 }
 
@@ -170,16 +168,16 @@ pub fn logout() {
 
 // TODO change this to a spinner that is removed on success
 pub fn deploy() {
-    watercolor::output!("🕒 Your project is being deployed", @BrightBlue);
+    watercolor::output!("🕒 Your project is being deployed...", @BrightBlue);
 }
 
 // TODO change this to a spinner that is removed on success
 pub fn create() {
-    watercolor::output!("🕒 Your project is being created", @BrightBlue);
+    watercolor::output!("🕒 Your project is being created...", @BrightBlue);
 }
 
 pub fn deploy_success() {
-    watercolor::output!("\n✨ Your project has been deployed successfully!", @BrightBlue);
+    watercolor::output!("\n✨ Your project was successfully deployed!", @BrightBlue);
 }
 
 pub fn linked(name: &str) {

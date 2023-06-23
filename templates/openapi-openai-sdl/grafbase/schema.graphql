@@ -1,0 +1,10 @@
+extend schema
+  @openapi(
+    namespace: "OpenAI"
+    url: "https://api.openai.com/v1/"
+    schema: "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml"
+    headers: [
+      { name: "Authorization", value: "Bearer {{ env.OPENAI_API_KEY }}" }
+    ]
+    transforms: { queryNaming: OPERATION_ID }
+  )

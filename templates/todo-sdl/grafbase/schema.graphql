@@ -1,0 +1,10 @@
+type TodoList @model {
+  title: String!
+  todos: [Todo]
+}
+
+type Todo @model {
+  list: TodoList
+  title: String!
+  complete: Boolean @default(value: false)
+}

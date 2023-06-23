@@ -2,11 +2,11 @@ use crate::consts::{
     ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
     MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT_PATH,
 };
-use crate::custom_resolvers::maybe_install_wrangler;
 use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{ServerMessage, ASSETS_GZIP};
+use crate::udf_builder::maybe_install_wrangler;
 use crate::{bridge, errors::ServerError};
 use common::consts::{
     EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME,

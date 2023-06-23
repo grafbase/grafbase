@@ -1,0 +1,7 @@
+extend schema
+  @openapi(
+    namespace: "Mux"
+    schema: "https://docs.mux.com/api-spec.json"
+    headers: [{ name: "Authorization", value: "Basic {{ env.MUX_BASE64 }}" }]
+    transforms: { queryNaming: OPERATION_ID }
+  )

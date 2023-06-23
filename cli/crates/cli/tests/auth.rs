@@ -7,7 +7,6 @@ use jwt_compact::alg::{Rsa, RsaPrivateKey, RsaPublicKey, StrongAlg, StrongKey};
 use jwt_compact::jwk::JsonWebKey;
 use jwt_compact::prelude::*;
 use jwt_compact::Algorithm;
-use rsa::PublicKeyParts;
 use serde_derive::Serialize;
 use serde_json::{json, Value};
 use std::borrow::Cow;
@@ -90,7 +89,7 @@ fn generate_hs512_token(sub: &str, groups: &[&str]) -> String {
 
     let key = Hs512Key::new(JWT_SECRET.as_bytes());
     let time_opts = TimeOptions::default();
-    let header = Header::default().with_token_type("JWT");
+    let header: jwt_compact::Header<jwt_compact::Empty> = Header::default().with_token_type("JWT");
     let claims = Claims::new(CustomClaims {
         iss: JWT_ISSUER_URL,
         sub,
@@ -98,7 +97,7 @@ fn generate_hs512_token(sub: &str, groups: &[&str]) -> String {
     })
     .set_duration_and_issuance(&time_opts, chrono::Duration::hours(1));
 
-    Hs512.token(header, &claims, &key).unwrap()
+    Hs512.token(&header, &claims, &key).unwrap()
 }
 
 const OIDC_DISCOVERY_PATH: &str = ".well-known/openid-configuration";
@@ -129,6 +128,7 @@ async fn set_up_jwks_server(jwks_path: &str, server: &MockServer, key_set: JsonW
 }
 
 fn to_verifying_key_set<'a>(pub_key: &'a StrongKey<RsaPublicKey>, kid: &'a str) -> JsonWebKeySet<'a> {
+    use rsa::traits::PublicKeyParts;
     let modulus = Cow::Owned(pub_key.as_ref().n().to_bytes_be());
     let public_exponent = Cow::Owned(pub_key.as_ref().e().to_bytes_be());
     JsonWebKeySet {
@@ -161,7 +161,7 @@ fn generate_rs256_token(
     }
 
     let time_opts = TimeOptions::default();
-    let header = Header::default().with_token_type("JWT").with_key_id(key_id);
+    let header: jwt_compact::Header<jwt_compact::Empty> = Header::default().with_token_type("JWT").with_key_id(key_id);
     let claims = Claims::new(CustomClaims {
         iss: issuer,
         sub,
@@ -169,7 +169,7 @@ fn generate_rs256_token(
     })
     .set_duration_and_issuance(&time_opts, chrono::Duration::hours(1));
 
-    RS_256.token(header, &claims, key).unwrap()
+    RS_256.token(&header, &claims, key).unwrap()
 }
 
 // A wrapper around JsonWebKey that makes the kid accessible

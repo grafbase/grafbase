@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0] - Wed Jun 21 2023
+
+[CHANGELOG](changelog/0.1.0.md)
+
+## [0.0.26] - Wed Jun 21 2023
+
+[CHANGELOG](changelog/0.0.26.md)
+
 ## [0.0.25] - Mon Jun 19 2023
 
 [CHANGELOG](changelog/0.0.25.md)
@@ -43,4 +51,3 @@
 ## [0.0.15] - Wed May 31 2023
 
 [CHANGELOG](changelog/0.0.15.md)
-

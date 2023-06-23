@@ -13,7 +13,6 @@ use std::{
     borrow::Cow,
     env, fs, io,
     path::{Path, PathBuf},
-    process::Command,
     sync::OnceLock,
 };
 
@@ -325,17 +324,36 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
 pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), CommonError> {
     let package_json_path = project_dir.join(PACKAGE_JSON_NAME);
 
-    if !package_json_path.exists() {
-        run_npm_init(project_dir)?;
-    }
-
-    let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;
-
-    let Ok(Value::Object(mut package_json)) = serde_json::from_reader(&file) else {
+    let mut package_json = if package_json_path.exists() {
+        let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;
+        let Ok(Value::Object(package_json)) = serde_json::from_reader(&file) else {
         return Err(CommonError::AccessPackageJson(io::Error::new(
             io::ErrorKind::InvalidData,
             "the file is not a JSON object",
         )));
+    };
+        package_json
+    } else {
+        let name = project_dir
+            .file_name()
+            .map_or(Cow::Borrowed("grafbase-project"), std::ffi::OsStr::to_string_lossy);
+        match serde_json::json!(
+        {
+          "name": name,
+          "version": "1.0.0",
+          "description": "",
+          "main": "index.js",
+          "scripts": {
+            "test": "echo \"Error: no test specified\" && exit 1"
+          },
+          "keywords": [],
+          "author": "",
+          "license": "ISC",
+        }
+        ) {
+            Value::Object(package_json) => package_json,
+            _ => unreachable!("must be an object"),
+        }
     };
 
     match package_json
@@ -358,13 +376,4 @@ pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, ver
     serde_json::to_writer_pretty(&file, &package_json).map_err(CommonError::SerializePackageJson)?;
 
     Ok(())
-}
-
-fn run_npm_init(project_dir: &Path) -> Result<(), CommonError> {
-    Command::new("npm")
-        .args(["init", "-y"])
-        .current_dir(project_dir)
-        .output()
-        .map_err(CommonError::NpmInitError)
-        .map(|_| ())
 }
