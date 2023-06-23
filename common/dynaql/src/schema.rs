@@ -674,8 +674,7 @@ impl Schema {
         };
 
         #[cfg(feature = "query-planning")]
-        let _engine =
-            ctx.data_unchecked::<grafbase_runtime::custom_resolvers::CustomResolversEngine>();
+        let _engine = ctx.data_unchecked::<grafbase_runtime::udf::CustomResolversEngine>();
 
         #[cfg(feature = "query-planning")]
         let _req = ctx.data_unchecked::<grafbase_runtime::GraphqlRequestExecutionContext>();

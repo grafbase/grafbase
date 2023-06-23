@@ -36,3 +36,6 @@ rstest = { workspace = true }
 assert_matches = "1.5"
 function_name = "0.3"
 maplit = "1"
+
+[features]
+local = []

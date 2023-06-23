@@ -1,10 +1,10 @@
 mod bridge;
-mod custom_resolvers;
 pub mod registry;
 pub mod search;
+mod ufd_invoker;
 
-pub use custom_resolvers::CustomResolvers;
 pub use search::LocalSearchEngine;
+pub use ufd_invoker::UdfInvokerImpl;
 
 pub struct ExecutionContext {
     pub request_id: String,

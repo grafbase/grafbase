@@ -3,10 +3,11 @@ use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::{Context, Error};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
-use grafbase_runtime::custom_resolvers::{
-    CustomResolverRequest, CustomResolverRequestContext, CustomResolverRequestContextRequest,
-    CustomResolverRequestInfo, CustomResolverRequestPayload, CustomResolversEngine,
+use grafbase_runtime::udf::{
+    CustomResolverRequestInfo, CustomResolverRequestPayload, CustomResolversEngine, UdfKind,
+    UdfRequest, UdfRequestContext, UdfRequestContextRequest,
 };
+use grafbase_runtime::GraphqlRequestExecutionContext;
 
 use send_wrapper::SendWrapper;
 
@@ -97,19 +98,20 @@ impl ResolverTrait for CustomResolver {
             .map(|(name, value)| value.into_json().map(|value| (name.to_string(), value)))
             .collect::<serde_json::Result<_>>()?;
         let future = SendWrapper::new(custom_resolvers_engine.invoke(
-            ctx.data()?,
-            CustomResolverRequest {
-                resolver_name: self.resolver_name.clone(),
+            &ctx.data::<GraphqlRequestExecutionContext>()?.ray_id,
+            UdfRequest {
+                name: self.resolver_name.clone(),
                 payload: CustomResolverRequestPayload {
                     arguments,
                     parent: Some(value),
-                    context: CustomResolverRequestContext {
-                        request: CustomResolverRequestContextRequest {
+                    context: UdfRequestContext {
+                        request: UdfRequestContextRequest {
                             headers: serde_json::to_value(&graphql.headers).expect("must be valid"),
                         },
                     },
                     info: CustomResolverRequestInfo {},
                 },
+                udf_kind: UdfKind::Resolver,
             },
         ));
         let value = Box::pin(future).await?;

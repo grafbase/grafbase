@@ -44,6 +44,9 @@ pub enum AuthProvider {
 
         secret: String,
     },
+
+    #[serde(rename_all = "camelCase")]
+    Authorizer { name: String },
 }
 
 fn default_groups_claim() -> String {
@@ -84,8 +87,7 @@ impl AuthProvider {
                     (_, Some(jwks_endpoint)) => Self::validate_url(jwks_endpoint, "JWKS provider").map(|_| ()),
                 }?;
             }
-
-            AuthProvider::Jwt { .. } => {}
+            AuthProvider::Jwt { .. } | AuthProvider::Authorizer { .. } => {}
         }
         Ok(self)
     }
