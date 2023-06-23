@@ -81,7 +81,7 @@ jobs:
       - name: Download linux arm artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ env.VERSION_BUMP }}-linux
+          name: ${{ env.VERSION_BUMP }}-linux-arm
           path: cli/npm/aarch64-unknown-linux-musl
 
       - name: Download windows artifact
