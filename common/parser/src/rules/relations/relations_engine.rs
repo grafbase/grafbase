@@ -1,4 +1,5 @@
 //! Implement the Relation Engine
+use crate::registry::names::MetaNames;
 use crate::rules::directive::Directive;
 use crate::rules::model_directive::{ModelDirective, MODEL_DIRECTIVE};
 use crate::{Visitor, VisitorContext};
@@ -69,7 +70,12 @@ fn generate_metarelation(type_name: &str, field: &FieldDefinition) -> MetaRelati
         _ => None,
     });
 
-    MetaRelation::new(name, &Type::new(&type_name).expect("Shouldn't fail"), &field.ty.node)
+    let from_field = Type::new(&type_name).expect("Shouldn't fail");
+    let to_field = &field.ty.node;
+    let from_model = MetaNames::model_name_from_str(from_field.base.to_base_type_str());
+    let to_model = MetaNames::model_name_from_str(to_field.base.to_base_type_str());
+
+    MetaRelation::new(name, &from_field, to_field, from_model, to_model)
 }
 
 fn relation_name(field: &FieldDefinition) -> Option<&Positioned<dynaql_value::ConstValue>> {

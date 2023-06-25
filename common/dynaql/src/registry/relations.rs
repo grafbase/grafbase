@@ -180,15 +180,19 @@ impl MetaRelation {
         a.join("To")
     }
 
-    pub fn new(name: Option<String>, from: &Type, to: &Type) -> Self {
-        let base_from = from.base.to_base_type_str();
-        let base_to = to.base.to_base_type_str();
+    pub fn new(
+        name: Option<String>,
+        from_field: &Type,
+        to_field: &Type,
+        from_model: String,
+        to_model: String,
+    ) -> Self {
         Self {
             name: name
-                .unwrap_or_else(|| MetaRelation::generate_relation_name(&base_from, &base_to)),
-            relation: (Some(base_from.to_string()), base_to.to_string()),
+                .unwrap_or_else(|| MetaRelation::generate_relation_name(&from_model, &to_model)),
+            relation: (Some(from_model), to_model),
             birectional: false,
-            kind: MetaRelationKind::new(&from, &to),
+            kind: MetaRelationKind::new(from_field, to_field),
         }
     }
 

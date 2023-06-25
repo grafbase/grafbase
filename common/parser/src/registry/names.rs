@@ -57,7 +57,11 @@ impl MetaNames {
     }
 
     pub fn model(model_type_definition: &TypeDefinition) -> String {
-        model_type_definition.name.node.to_camel()
+        MetaNames::model_name_from_str(model_type_definition.name.node.as_str())
+    }
+
+    pub fn model_name_from_str(name: &str) -> String {
+        name.to_camel()
     }
 
     //
