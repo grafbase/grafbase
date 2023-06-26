@@ -6,7 +6,7 @@ use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{ServerMessage, ASSETS_GZIP};
-use crate::udf_builder::maybe_install_wrangler;
+use crate::udf_builder::install_wrangler;
 use crate::{bridge, errors::ServerError};
 use common::consts::{
     EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME,
@@ -135,7 +135,10 @@ async fn spawn_servers(
 
     let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
 
-    let mut resolvers = match run_schema_parser(&environment_variables).await {
+    let ParsingResponse {
+        mut detected_resolvers,
+        requires_udf,
+    } = match run_schema_parser(&environment_variables).await {
         Ok(resolvers) => resolvers,
         Err(error) => {
             let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
@@ -158,7 +161,7 @@ async fn spawn_servers(
         .filter(|(dir, path)| path != &dir.join(GRAFBASE_TS_CONFIG_FILE_NAME))
         .is_some()
     {
-        for resolver in &mut resolvers {
+        for resolver in &mut detected_resolvers {
             resolver.fresh = false;
         }
     }
@@ -166,15 +169,19 @@ async fn spawn_servers(
     let environment = Environment::get();
     let project = Project::get();
 
-    if let Err(error) = maybe_install_wrangler(environment, resolvers, tracing).await {
-        let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
-        // TODO consider disabling colored output from wrangler
-        let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
-            .ok()
-            .and_then(|stripped| String::from_utf8(stripped).ok())
-            .unwrap_or_else(|| error.to_string());
-        tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
-        return Ok(());
+    if requires_udf {
+        if let Err(error) = install_wrangler(environment, tracing).await {
+            let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
+            // TODO consider disabling colored output from wrangler
+            let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
+                .ok()
+                .and_then(|stripped| String::from_utf8(stripped).ok())
+                .unwrap_or_else(|| error.to_string());
+            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
+            return Ok(());
+        }
+    } else {
+        trace!("Skipping wrangler installation");
     }
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
@@ -319,6 +326,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
         let full_path = &environment.user_dot_grafbase_path;
         archive
             .unpack(full_path)
+            .map_err(|err| error!("unpack error: {err}"))
             .map_err(|_| ServerError::WriteFile(full_path.to_string_lossy().into_owned()))?;
 
         if fs::write(&version_path, current_version).is_err() {
@@ -349,6 +357,7 @@ struct SchemaParserResult {
     #[allow(dead_code)]
     required_resolvers: Vec<String>,
     versioned_registry: serde_json::Value,
+    requires_udf: bool,
 }
 
 pub struct DetectedResolver {
@@ -356,11 +365,16 @@ pub struct DetectedResolver {
     pub fresh: bool,
 }
 
-// schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
+pub struct ParsingResponse {
+    detected_resolvers: Vec<DetectedResolver>,
+    requires_udf: bool,
+}
+
+// schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environment
 // and due to schema-parser not being open source
 async fn run_schema_parser(
     environment_variables: &std::collections::HashMap<String, String>,
-) -> Result<Vec<DetectedResolver>, ServerError> {
+) -> Result<ParsingResponse, ServerError> {
     trace!("parsing schema");
     let environment = Environment::get();
     let project = Project::get();
@@ -421,9 +435,11 @@ async fn run_schema_parser(
     let parser_result_string = tokio::fs::read_to_string(&parser_result_path)
         .await
         .map_err(ServerError::SchemaParserResultRead)?;
+
     let SchemaParserResult {
         versioned_registry,
         required_resolvers,
+        requires_udf,
     } = serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
 
     let registry_mtime = tokio::fs::metadata(&project.registry_path)
@@ -457,8 +473,10 @@ async fn run_schema_parser(
     )
     .await
     .map_err(ServerError::SchemaRegistryWrite)?;
-
-    Ok(detected_resolvers)
+    Ok(ParsingResponse {
+        detected_resolvers,
+        requires_udf,
+    })
 }
 
 /// Parses a TypeScript Grafbase configuration and generates a GraphQL schema

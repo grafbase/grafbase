@@ -14,16 +14,17 @@ use std::collections::HashMap;
 use url::Url;
 use utils::async_client::AsyncClient;
 use utils::consts::{
-    AUTH_PUBLIC_GLOBAL_SCHEMA, AUTH_PUBLIC_TYPE_SCHEMA, AUTH_TYPE_FIELD_RESOLVER_SCHEMA, INTROSPECTION_QUERY,
-    JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA, JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA, JWKS_PROVIDER_WITH_ISSUER_SCHEMA,
-    JWT_PROVIDER_QUERY, JWT_PROVIDER_SCHEMA, OIDC_PROVIDER_SCHEMA,
+    AUTH_JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA, AUTH_JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA,
+    AUTH_JWKS_PROVIDER_WITH_ISSUER_SCHEMA, AUTH_JWT_PROVIDER_SCHEMA, AUTH_OIDC_PROVIDER_SCHEMA,
+    AUTH_PUBLIC_GLOBAL_SCHEMA, AUTH_PUBLIC_TYPE_SCHEMA, AUTH_QUERY_TODOS, AUTH_TYPE_FIELD_RESOLVER_SCHEMA,
+    INTROSPECTION_QUERY,
 };
 use utils::environment::Environment;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use crate::utils::consts::{
-    AUTH_CREATE_MUTATION, AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA, AUTH_ENTRYPOINT_MUTATION_TEXT,
+    AUTHORIZER_SCHEMA, AUTH_CREATE_MUTATION, AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA, AUTH_ENTRYPOINT_MUTATION_TEXT,
     AUTH_ENTRYPOINT_QUERY_TEXT, AUTH_QUERY_WITH_TEXT,
 };
 
@@ -34,7 +35,7 @@ const JWT_SECRET: &str = "topsecret";
 fn jwt_provider() {
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
-    env.write_schema(JWT_PROVIDER_SCHEMA);
+    env.write_schema(AUTH_JWT_PROVIDER_SCHEMA);
     env.set_variables(HashMap::from([
         ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
         ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
@@ -45,7 +46,7 @@ fn jwt_provider() {
     client.poll_endpoint(30, 300);
 
     // No auth header -> fail
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
     let error: String = dot_get_opt!(resp, "errors.0.message").expect("should end with an auth failure");
     assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
@@ -54,33 +55,33 @@ fn jwt_provider() {
 
     // Reject invalid token
     let client = client.with_header("Authorization", "Bearer invalid-token");
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(error, Some("Unauthorized".to_string()), "error: {error:#?}");
 
     // Reject valid token with wrong group
     let token = generate_hs512_token("cli_user", &["some-group"]);
     let client = client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
     let error: String = dot_get_opt!(resp, "errors.0.message").expect("should end with an auth failure");
     assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
     // Accept valid token with correct group
     let token = generate_hs512_token("cli_user", &["backend"]);
     let client = client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 
     // accept authorization via an API key
     let client = client.with_cleared_headers().with_api_key();
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
 
 fn generate_hs512_token(sub: &str, groups: &[&str]) -> String {
-    #[derive(Debug, serde::Serialize)]
+    #[derive(Debug, Serialize)]
     struct CustomClaims<'a> {
         iss: &'a str,
         sub: &'a str,
@@ -152,7 +153,7 @@ fn generate_rs256_token(
     issuer: Option<&str>,
     key_id: &str,
 ) -> String {
-    #[derive(Debug, serde::Serialize)]
+    #[derive(Debug, Serialize)]
     struct CustomClaims<'a> {
         #[serde(skip_serializing_if = "Option::is_none")]
         iss: Option<&'a str>,
@@ -209,7 +210,7 @@ async fn set_up_oidc_with_path(path: Option<&str>) -> SetUpOidc {
     let key_set = to_verifying_key_set(&pub_key, KEY_ID);
     let server = MockServer::start().await;
     let issuer_url: Url = {
-        let issuer_url = server.uri().parse::<url::Url>().unwrap();
+        let issuer_url = server.uri().parse().unwrap();
         match path {
             None => issuer_url,
             Some(path) => {
@@ -225,7 +226,7 @@ async fn set_up_oidc_with_path(path: Option<&str>) -> SetUpOidc {
     set_up_oidc_server(&issuer_url, &server, key_set).await;
     let mut env = Environment::init_async().await;
     env.grafbase_init(ConfigType::GraphQL);
-    env.write_schema(OIDC_PROVIDER_SCHEMA);
+    env.write_schema(AUTH_OIDC_PROVIDER_SCHEMA);
     env.set_variables(HashMap::from([("ISSUER_URL".to_string(), issuer_url.to_string())]));
     env.grafbase_dev();
     let client = env.create_async_client();
@@ -271,7 +272,7 @@ async fn oidc_without_token_should_only_allow_introspection() {
     let set_up = set_up_oidc().await;
 
     // No auth header -> fail
-    let resp = set_up.client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = set_up.client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let error: String = dot_get_opt!(resp, "errors.0.message").expect("response should contain an error");
     assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
@@ -291,7 +292,7 @@ async fn oidc_token_with_valid_group_should_work() {
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
@@ -307,7 +308,7 @@ async fn oidc_with_path_with_trailing_slash_should_work() {
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
@@ -323,7 +324,7 @@ async fn oidc_with_path_without_trailing_slash_should_work() {
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
@@ -340,7 +341,7 @@ async fn oidc_token_with_wrong_group_should_fail() {
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(
         error,
@@ -361,14 +362,14 @@ async fn oidc_token_with_wrong_kid_should_fail() {
         "other-id",
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(error, Some("Unauthorized".to_string()));
 }
 
 #[tokio::test(flavor = "multi_thread")]
 async fn jwks_issuer_token_with_valid_group_should_work() {
-    let set_up = set_up_jwks(JWKS_PROVIDER_WITH_ISSUER_SCHEMA, JWKS_PATH, |issuer_url: &Url| {
+    let set_up = set_up_jwks(AUTH_JWKS_PROVIDER_WITH_ISSUER_SCHEMA, JWKS_PATH, |issuer_url: &Url| {
         HashMap::from([("ISSUER_URL".to_string(), issuer_url.to_string())])
     })
     .await;
@@ -381,7 +382,7 @@ async fn jwks_issuer_token_with_valid_group_should_work() {
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
@@ -389,12 +390,16 @@ async fn jwks_issuer_token_with_valid_group_should_work() {
 #[tokio::test(flavor = "multi_thread")]
 async fn jwks_endoint_token_with_valid_group_should_work() {
     const ENDPOINT_PATH: &str = "custom/jwks.json";
-    let set_up = set_up_jwks(JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA, ENDPOINT_PATH, |issuer_url: &Url| {
-        HashMap::from([(
-            "JWKS_ENDPOINT_URL".to_string(),
-            issuer_url.join(ENDPOINT_PATH).unwrap().to_string(),
-        )])
-    })
+    let set_up = set_up_jwks(
+        AUTH_JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA,
+        ENDPOINT_PATH,
+        |issuer_url: &Url| {
+            HashMap::from([(
+                "JWKS_ENDPOINT_URL".to_string(),
+                issuer_url.join(ENDPOINT_PATH).unwrap().to_string(),
+            )])
+        },
+    )
     .await;
 
     let token = generate_rs256_token(
@@ -405,7 +410,7 @@ async fn jwks_endoint_token_with_valid_group_should_work() {
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
@@ -414,7 +419,7 @@ async fn jwks_endoint_token_with_valid_group_should_work() {
 async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
     const ENDPOINT_PATH: &str = "custom/jwks.json";
     let set_up = set_up_jwks(
-        JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA,
+        AUTH_JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA,
         ENDPOINT_PATH,
         |issuer_url: &Url| {
             HashMap::from([
@@ -436,7 +441,7 @@ async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
@@ -453,7 +458,7 @@ async fn public_global() {
     env.grafbase_dev();
     let client = env.create_async_client();
     client.poll_endpoint(30, 300).await;
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     insta::assert_json_snapshot!("public_global", resp);
 }
 
@@ -469,7 +474,7 @@ async fn public_type() {
     env.grafbase_dev();
     let client = env.create_async_client();
     client.poll_endpoint(30, 300).await;
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     insta::assert_json_snapshot!("public_type", resp);
 }
 
@@ -514,7 +519,7 @@ async fn type_field_resolver_mixed() {
     );
     insta::assert_json_snapshot!(
         "type_field_resolver_mixed__public_partial_query_should_succeed",
-        public_client.gql::<Value>(JWT_PROVIDER_QUERY).await
+        public_client.gql::<Value>(AUTH_QUERY_TODOS).await
     );
 }
 
@@ -569,5 +574,95 @@ async fn entrypoint_mutation_field_resolver_mixed() {
     insta::assert_json_snapshot!(
         "entrypoint_mutation_field_resolver_mixed__public_entrypoint_field_mutation_should_fail",
         public_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn authorizer_with_no_headers_should_work() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTHORIZER_SCHEMA);
+    let authorizer_name = "a1";
+    let authorizer_content = r#"export default function(context) {
+        return { identity: { sub:'user1', groups: ['backend'] } };
+    }"#;
+
+    env.write_authorizer(format!("{authorizer_name}.js"), authorizer_content);
+    env.set_variables(HashMap::from([(
+        "AUTHORIZER_NAME".to_string(),
+        authorizer_name.to_string(),
+    )]));
+    env.grafbase_dev();
+    let client = env.create_async_client();
+    client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(
+        "authorizer_with_no_headers_should_work__todo_creation_should_succeed",
+        client.gql::<Value>(AUTH_CREATE_MUTATION).await
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn authorizer_with_headers_should_work() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTHORIZER_SCHEMA);
+    let authorizer_name = "a1";
+    let authorizer_content = r#"export default function(context) {
+        return { identity: { groups: [context.request.headers['h1']] } };
+    }"#;
+
+    env.write_authorizer(format!("{authorizer_name}.js"), authorizer_content);
+    env.set_variables(HashMap::from([(
+        "AUTHORIZER_NAME".to_string(),
+        authorizer_name.to_string(),
+    )]));
+    env.grafbase_dev();
+    let client = env.create_async_client().with_header("h1", "backend");
+    client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(
+        "authorizer_with_headers_should_work__todo_creation_should_succeed",
+        client.gql::<Value>(AUTH_CREATE_MUTATION).await
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn authorizer_with_public_access_should_work() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(AUTHORIZER_SCHEMA);
+    let authorizer_name = "a1";
+    let authorizer_content = r#"export default function(context) {
+        const grp = context.request.headers['h1']
+        if (grp) {
+            return { identity: { groups: [grp] } };
+        } else {
+            return {}; // missing identity = public access
+        }
+    }"#;
+
+    env.write_authorizer(format!("{authorizer_name}.js"), authorizer_content);
+    env.set_variables(HashMap::from([(
+        "AUTHORIZER_NAME".to_string(),
+        authorizer_name.to_string(),
+    )]));
+    env.grafbase_dev();
+    let private_client = env.create_async_client().with_header("h1", "backend");
+    private_client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(
+        "authorizer_with_public_access_should_work__todo_creation_should_succeed",
+        private_client.gql::<Value>(AUTH_CREATE_MUTATION).await
+    );
+    insta::assert_json_snapshot!(
+        "authorizer_with_public_access_should_work__todo_list_should_succeed",
+        private_client.gql::<Value>(AUTH_QUERY_TODOS).await
+    );
+    let public_client = env.create_async_client();
+    insta::assert_json_snapshot!(
+        "authorizer_with_public_access_should_work__todo_creation_with_public_access_should_fail",
+        public_client.gql::<Value>(AUTH_CREATE_MUTATION).await
+    );
+    insta::assert_json_snapshot!(
+        "authorizer_with_public_access_should_work__todo_list_should_succeed",
+        private_client.gql::<Value>(AUTH_QUERY_TODOS).await
     );
 }

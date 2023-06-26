@@ -30,6 +30,7 @@ impl LocalAddressType {
 #[derive(Clone, Copy, Debug, serde::Deserialize, strum::Display)]
 pub enum UdfKind {
     Resolver,
+    Authorizer,
 }
 
 // FIXME: remove after api repo is updated

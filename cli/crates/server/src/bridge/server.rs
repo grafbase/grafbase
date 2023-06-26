@@ -187,7 +187,7 @@ async fn invoke_udf_endpoint(
             .unwrap();
 
         let tracing = handler_state.tracing;
-        if let Ok((package_json_path, wrangler_toml_path)) = crate::udf_builder::build(
+        match crate::udf_builder::build(
             environment,
             environment.project.as_ref().expect("must be present"),
             &handler_state.environment_variables,
@@ -197,31 +197,52 @@ async fn invoke_udf_endpoint(
         )
         .await
         {
-            let (miniflare_handle, worker_port) =
-                super::udf::spawn_miniflare(udf_kind, &payload.name, package_json_path, wrangler_toml_path, tracing)
-                    .await?;
-
-            handler_state.udf_builds.lock().await.insert(
-                payload.name.clone(),
-                UdfBuild::Succeeded {
-                    miniflare_handle,
-                    worker_port,
-                },
-            );
-            notify.notify_waiters();
-
-            handler_state
-                .bridge_sender
-                .send(ServerMessage::CompleteUdfBuild {
+            Ok((package_json_path, wrangler_toml_path)) => {
+                let (miniflare_handle, worker_port) = super::udf::spawn_miniflare(
                     udf_kind,
-                    udf_name: payload.name.clone(),
-                    duration: start.elapsed(),
-                })
-                .await
-                .unwrap();
+                    &payload.name,
+                    package_json_path,
+                    wrangler_toml_path,
+                    tracing,
+                )
+                .await?;
 
-            break worker_port;
-        }
+                handler_state.udf_builds.lock().await.insert(
+                    payload.name.clone(),
+                    UdfBuild::Succeeded {
+                        miniflare_handle,
+                        worker_port,
+                    },
+                );
+                notify.notify_waiters();
+
+                handler_state
+                    .bridge_sender
+                    .send(ServerMessage::CompleteUdfBuild {
+                        udf_kind,
+                        udf_name: payload.name.clone(),
+                        duration: start.elapsed(),
+                    })
+                    .await
+                    .unwrap();
+
+                break worker_port;
+            }
+            Err(err) => {
+                error!(
+                    "Build of {udf_kind} '{udf_name}' failed: {err:?}",
+                    udf_name = payload.name
+                );
+                handler_state
+                    .bridge_sender
+                    .send(ServerMessage::CompilationError(format!(
+                        "{udf_kind} '{udf_name}' failed to build: {err}",
+                        udf_name = payload.name
+                    )))
+                    .await
+                    .unwrap();
+            }
+        };
 
         handler_state
             .udf_builds

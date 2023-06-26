@@ -108,7 +108,7 @@ pub async fn spawn_miniflare(
             let lines_stream = LinesStream::new(tokio::io::BufReader::new(stdout).lines())
                 .inspect_ok(|line| trace!("miniflare: {line}"));
 
-            let filtered_lines_stream = lines_stream.try_filter_map(|line| {
+            let filtered_lines_stream = lines_stream.try_filter_map(|line: String| {
                 futures_util::future::ready(Ok(line
                     .split("Listening on")
                     .skip(1)
@@ -156,7 +156,7 @@ pub async fn invoke(
     payload: &serde_json::Value,
 ) -> Result<serde_json::Value, ApiError> {
     use futures_util::TryFutureExt;
-    trace!("Invocation of {udf_kind} '{udf_name}'");
+    trace!("Invocation of {udf_kind} '{udf_name}' with payload {payload}");
     let json_string = reqwest::Client::new()
         .post(format!("http://127.0.0.1:{udf_worker_port}/invoke"))
         .json(&payload)

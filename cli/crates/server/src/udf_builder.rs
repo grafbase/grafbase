@@ -18,7 +18,17 @@ async fn run_command<P: AsRef<Path>>(
     environment: &[(&'static str, &str)],
 ) -> Result<(), JavascriptPackageManagerComamndError> {
     let command_string = format!("{command_type} {}", arguments.iter().format(" "));
-
+    let current_directory = current_directory.as_ref();
+    match current_directory.try_exists() {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryNotFound(
+            current_directory.to_owned(),
+        )),
+        Err(err) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryCannotBeRead(
+            current_directory.to_owned(),
+            err,
+        )),
+    }?;
     trace!("running '{command_string}'");
 
     // Use `which` to work-around weird path search issues on Windows.
@@ -26,12 +36,16 @@ async fn run_command<P: AsRef<Path>>(
     let program_path = which::which(command_type.to_string())
         .map_err(|err| JavascriptPackageManagerComamndError::NotFound(command_type, err))?;
 
-    let command = Command::new(program_path)
+    let mut command = Command::new(program_path);
+    command
         .envs(environment.iter().copied())
         .args(arguments)
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
-        .current_dir(current_directory)
+        .current_dir(current_directory);
+
+    trace!("Spawning {command:?}");
+    let command = command
         .spawn()
         .map_err(|err| JavascriptPackageManagerComamndError::CommandError(command_type, err))?;
 
@@ -138,10 +152,12 @@ pub async fn build(
     let package_root_path = project.grafbase_directory_path.as_path();
     let udf_input_file_path_without_extension = match udf_kind {
         UdfKind::Resolver => project.resolvers_source_path.join(udf_name),
+        UdfKind::Authorizer => project.authorizers_source_path.join(udf_name),
     };
 
     let udf_build_artifact_directory_path = match udf_kind {
         UdfKind::Resolver => project.resolvers_build_artifact_path.join(udf_name),
+        UdfKind::Authorizer => project.authorizers_build_artifact_path.join(udf_name),
     };
 
     let mut udf_input_file_path = None;
@@ -237,6 +253,9 @@ pub async fn build(
         UdfKind::Resolver => udf_build_artifact_directory_path
             .join("resolver")
             .with_extension(udf_input_file_path.extension().unwrap()),
+        UdfKind::Authorizer => udf_build_artifact_directory_path
+            .join("auth")
+            .with_extension(udf_input_file_path.extension().unwrap()),
     };
 
     trace!("Copying the main file of the {udf_kind}");
@@ -247,11 +266,6 @@ pub async fn build(
 
     let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
         "${UDF_MAIN_FILE_PATH}",
-        udf_js_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
-    );
-    // TODO: remove after wrapper-worker.js in api repo is updated.
-    let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
-        "${RESOLVER_MAIN_FILE_PATH}",
         udf_js_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
     );
     tokio::fs::write(&udf_build_entrypoint_path, udf_wrapper_worker_contents)
@@ -381,7 +395,7 @@ pub async fn build(
     Ok((udf_build_package_json_path, wrangler_toml_file_path))
 }
 
-async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
+pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
     let lock_file_path = environment.user_dot_grafbase_path.join(".wrangler.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
         let mut file = fslock::LockFile::open(&lock_file_path)?;
@@ -416,20 +430,6 @@ async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<()
     tokio::task::spawn_blocking(move || lock_file.unlock())
         .await?
         .map_err(ServerError::Unlock)?;
-
-    Ok(())
-}
-
-pub async fn maybe_install_wrangler(
-    environment: &Environment,
-    resolvers: impl IntoIterator<Item = crate::servers::DetectedResolver>,
-    tracing: bool,
-) -> Result<(), ServerError> {
-    let mut resolvers_iterator = resolvers.into_iter().peekable();
-    if resolvers_iterator.peek().is_some() {
-        // Install wrangler once and for all.
-        install_wrangler(environment, tracing).await?;
-    }
 
     Ok(())
 }
