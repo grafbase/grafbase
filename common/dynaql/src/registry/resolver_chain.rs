@@ -256,6 +256,13 @@ impl<'a> Display for ResolverChainNode<'a> {
     }
 }
 
+#[derive(serde::Serialize)]
+pub struct ResponsePath<'a> {
+    key: &'a str,
+    prev: Option<Box<ResponsePath<'a>>>,
+    typename: Option<&'a str>,
+}
+
 impl<'a> ResolverChainNode<'a> {
     /// Get the current field name.
     ///
@@ -281,6 +288,18 @@ impl<'a> ResolverChainNode<'a> {
             });
         });
         res
+    }
+
+    /// https://graphql-js.org/api/interface/ResponsePath
+    pub fn to_response_path(&self) -> ResponsePath<'_> {
+        ResponsePath {
+            key: self.field_name(),
+            prev: self
+                .parent
+                .as_ref()
+                .map(|parent| Box::new(parent.to_response_path())),
+            typename: self.ty.map(crate::registry::MetaType::name),
+        }
     }
 
     /// Iterate over the parents of the node.

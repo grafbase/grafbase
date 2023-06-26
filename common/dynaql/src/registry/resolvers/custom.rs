@@ -4,8 +4,8 @@ use crate::{Context, Error};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase_runtime::udf::{
-    CustomResolverRequestInfo, CustomResolverRequestPayload, CustomResolversEngine, UdfKind,
-    UdfRequest, UdfRequestContext, UdfRequestContextRequest,
+    CustomResolverRequestPayload, CustomResolversEngine, UdfKind, UdfRequest, UdfRequestContext,
+    UdfRequestContextRequest,
 };
 use grafbase_runtime::GraphqlRequestExecutionContext;
 
@@ -27,6 +27,8 @@ impl ResolverTrait for CustomResolver {
         _resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
+        use crate::registry::resolver_chain::ResolverChainNode;
+
         // Little hack while QP is not live
         //
         // We know the format of the parent value, we then apply some little magic to adapt it to
@@ -109,11 +111,16 @@ impl ResolverTrait for CustomResolver {
                             headers: serde_json::to_value(&graphql.headers).expect("must be valid"),
                         },
                     },
-                    info: CustomResolverRequestInfo {},
+                    info: Some(serde_json::json!({
+                        "fieldName": ctx.item.name.node.as_str(),
+                        "path": ctx.resolver_node.as_ref().map(ResolverChainNode::to_response_path),
+                        "variableValues": &ctx.query_env.variables,
+                    })),
                 },
                 udf_kind: UdfKind::Resolver,
             },
         ));
+
         let value = Box::pin(future).await?;
         Ok(ResolvedValue::new(Arc::new(value.value)))
     }
