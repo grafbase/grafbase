@@ -13,11 +13,11 @@
     "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@types/react": "18.2.13",
-    "@types/react-dom": "18.0.11",
+    "@types/react": "18.2.14",
+    "@types/react-dom": "18.2.6",
     "@vitejs/plugin-react": "^4.0.0",
     "monaco-editor": "0.39.0",
-    "monaco-graphql": "1.2.3",
+    "monaco-graphql": "1.2.4",
     "pathfinder": "workspace:*",
     "ui": "workspace:*",
     "vite-plugin-monaco-editor": "1.1.0",
