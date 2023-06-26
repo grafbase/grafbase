@@ -40,7 +40,7 @@ chrono = { version = "0.4", default-features = false, features = [
   "clock",
   "std",
 ] }
-cynic-introspection = "3.1.0"
+cynic-introspection = "3.2.0"
 derivative = "2"
 dynomite = "0.10"
 fast_chemail = "0.9"
