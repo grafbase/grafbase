@@ -681,22 +681,6 @@ fn should_support_search_directive() {
 }
 
 #[test]
-fn test_relations_with_underscore_types() {
-    let schema = r#"
-    type SomeType_WithAnUnderscore @model {
-        id: ID!,
-        otherType: SomeOtherType
-      }
-
-      type SomeOtherType @model {
-        test: String
-      }
-    "#;
-
-    super::to_parse_result_with_variables(schema, &HashMap::new()).expect("must succeed");
-}
-
-#[test]
 fn test_name_clashes_dont_cause_panic() {
     let schema = r#"
         type User {
@@ -708,4 +692,21 @@ fn test_name_clashes_dont_cause_panic() {
         }
     "#;
     super::to_parse_result_with_variables(schema, &HashMap::new()).expect("must succeed");
+}
+
+#[test]
+fn test_with_lowercase_model_names() {
+    assert_validation_error!(
+        r#"
+            type user @model {
+                name: String!
+                projects: [Project!]
+            }
+
+            type Project @model {
+                createdBy: user!
+            }
+        "#,
+        "Models must be named in PascalCase.  Try renaming user to User."
+    );
 }

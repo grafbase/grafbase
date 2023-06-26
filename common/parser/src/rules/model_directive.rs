@@ -163,6 +163,16 @@ impl<'a> Visitor<'a> for ModelDirective {
         }
         if let TypeKind::Object(object) = &type_definition.node.kind {
             let type_name = MetaNames::model(&type_definition.node);
+            if type_definition.node.name.node != type_name {
+                ctx.report_error(
+                    vec![type_definition.node.name.pos],
+                    format!(
+                        "Models must be named in PascalCase.  Try renaming {} to {type_name}.",
+                        type_definition.node.name.node
+                    ),
+                );
+                return;
+            }
             if has_any_invalid_metadata_fields(ctx, &type_name, object) {
                 return;
             }
