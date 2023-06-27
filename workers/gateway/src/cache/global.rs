@@ -32,10 +32,11 @@ pub mod remote {
             .join("/");
 
             let mut headers = Headers::new();
+            use secrecy::ExposeSecret;
             headers
                 .set(
                     http::header::AUTHORIZATION.as_str(),
-                    &format!("Bearer {}", &self.cloudflare_config.api_key),
+                    &format!("Bearer {}", self.cloudflare_config.api_key.expose_secret()),
                 )
                 .map_err(|err| CacheError::CachePurgeByTags(err.to_string()))?;
 
