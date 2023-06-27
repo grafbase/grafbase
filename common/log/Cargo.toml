@@ -11,6 +11,7 @@ futures-util = { workspace = true, features = [
 ] }
 log_ = { package = "log", version = "0.4" }
 maplit = "1"
+secrecy = { version = "0.8", features = ["alloc"] }
 sentry-cf-worker = { path = "../sentry-cf-worker", optional = true }
 serde = { workspace = true }
 strum = { workspace = true, features = ["derive"] }

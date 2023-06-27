@@ -57,7 +57,7 @@ pub struct SentryConfig {
 
 pub struct LogConfig<'a> {
     pub branch: Option<String>,
-    pub datadog_api_key: Option<String>,
+    pub datadog_api_key: Option<secrecy::SecretString>,
     pub environment: String,
     pub host_name: String,
     #[cfg(feature = "with-sentry")]

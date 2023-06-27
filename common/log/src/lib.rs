@@ -163,7 +163,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
         return Ok(());
     }
 
-    let Some(datadog_api_key) = log_config.datadog_api_key.as_deref() else { return Ok(()) };
+    let Some(datadog_api_key) = log_config.datadog_api_key.as_ref() else { return Ok(()) };
 
     // We use `Cow` to avoid needless cloning.
     let mut tags: HashMap<&'static str, Cow<'_, str>> = maplit::hashmap! {
@@ -200,9 +200,10 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
         })
         .collect();
 
+    use secrecy::ExposeSecret;
     let response = reqwest::Client::new()
         .post(constants::DATADOG_INTAKE_URL)
-        .header("DD-API-KEY", datadog_api_key)
+        .header("DD-API-KEY", datadog_api_key.expose_secret())
         .json(&entries)
         .send()
         .await
