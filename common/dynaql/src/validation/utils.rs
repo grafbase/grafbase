@@ -76,16 +76,19 @@ pub fn is_valid_input_value(
                 .get(type_name)
                 .unwrap_or_else(|| panic!("{type_name} unknown"))
             {
-                registry::MetaType::Scalar { .. } => {
-                    if let true = PossibleScalar::is_valid(&type_name, &value) {
-                        None
-                    } else {
-                        Some(valid_error(
-                            &path_node,
-                            format!("expected type \"{type_name}\""),
-                        ))
+                registry::MetaType::Scalar(scalar) => match scalar.parser {
+                    registry::ScalarParser::PassThrough => None,
+                    registry::ScalarParser::BestEffort => {
+                        if PossibleScalar::is_valid(&type_name, &value) {
+                            None
+                        } else {
+                            Some(valid_error(
+                                &path_node,
+                                format!("expected type \"{type_name}\""),
+                            ))
+                        }
                     }
-                }
+                },
                 registry::MetaType::Enum(registry::EnumType {
                     enum_values,
                     name: enum_name,
