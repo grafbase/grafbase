@@ -1,0 +1,25 @@
+name: Check grafbase.com for GraphQL schema updates
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron: 0 9 * * *
+jobs:
+  update-grafbase-schema:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run introspection
+      uses: obmarg/action-graphql-introspect@main
+      with:
+        server-url: https://api.grafbase.com/graphql
+        output-file: cli/crates/backend/src/api/graphql/api.graphql
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        commit-message: "Update api.grafbase.com GraphQL Schema"
+        branch: graphql-schema-updates
+        title: "Update api.grafbase.com GraphQL Schema"
+        message: "This is an automated pull request, brought to you by `.github/workflows/update-grafbase-schema.yml`"
