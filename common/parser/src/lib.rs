@@ -9,6 +9,7 @@ use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
 use dynaql::Pos;
 use dynaql_parser::types::ServiceDocument;
 use dynaql_parser::{parse_schema, Error as ParserError};
+use grafbase::UdfKind;
 use rules::auth_directive::AuthDirective;
 use rules::basic_type::BasicType;
 use rules::check_field_lowercase::CheckFieldCamelCase;
@@ -93,10 +94,8 @@ impl Error {
 #[derive(Debug)]
 pub struct ParseResult<'a> {
     pub registry: Registry,
-    pub required_resolvers: HashSet<String>,
+    pub required_udfs: HashSet<(UdfKind, String)>,
     pub global_cache_rules: GlobalCacheRules<'a>,
-    #[cfg(feature = "local")]
-    pub requires_udf: bool,
 }
 
 /// Transform the input into a Registry

@@ -2,12 +2,13 @@ use dynaql::indexmap::IndexMap;
 use dynaql::model::__Schema;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::{ConnectorIdGenerator, MetaField, Registry, SchemaID, SchemaIDGenerator};
-use dynaql::{Name, OutputType, Pos, Positioned, Schema};
+use dynaql::{AuthorizerProvider, Name, OutputType, Pos, Positioned, Schema};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
 use dynaql_value::ConstValue;
+use grafbase::UdfKind;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry;
@@ -209,13 +210,19 @@ impl<'a> VisitorContext<'a> {
 
         registry.schemas = result;
 
+        let mut required_udfs = self
+            .required_resolvers
+            .into_iter()
+            .map(|udf_name| (UdfKind::Resolver, udf_name))
+            .collect::<HashSet<_>>();
+        if let Some(dynaql::AuthProvider::Authorizer(AuthorizerProvider { ref name })) = registry.auth.provider {
+            required_udfs.insert((UdfKind::Authorizer, name.clone()));
+        }
+
         ParseResult {
             global_cache_rules: self.global_cache_rules,
-            #[cfg(feature = "local")]
-            requires_udf: !self.required_resolvers.is_empty()
-                || matches!(registry.auth.provider, Some(dynaql::AuthProvider::Authorizer(_))),
-            required_resolvers: self.required_resolvers,
             registry,
+            required_udfs,
         }
     }
 
