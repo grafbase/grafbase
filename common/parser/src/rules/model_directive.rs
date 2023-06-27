@@ -56,10 +56,13 @@ use super::visitor::{Visitor, VisitorContext};
 
 pub struct ModelDirective;
 
-pub const METADATA_FIELD_ID: &str = "id";
 pub const METADATA_FIELD_CREATED_AT: &str = "createdAt";
 pub const METADATA_FIELD_UPDATED_AT: &str = "updatedAt";
-pub const METADATA_FIELDS: [&str; 3] = [METADATA_FIELD_ID, METADATA_FIELD_UPDATED_AT, METADATA_FIELD_CREATED_AT];
+pub const METADATA_FIELDS: [&str; 3] = [
+    dynaql::names::OUTPUT_FIELD_ID,
+    METADATA_FIELD_UPDATED_AT,
+    METADATA_FIELD_CREATED_AT,
+];
 pub const RESERVED_FIELDS: [&str; 4] = [
     INPUT_FIELD_FILTER_ALL,
     INPUT_FIELD_FILTER_ANY,
@@ -362,13 +365,13 @@ impl<'a> Visitor<'a> for ModelDirective {
                     insert_metadata_field(
                         &mut fields,
                         &type_name,
-                        METADATA_FIELD_ID,
+                        dynaql::names::OUTPUT_FIELD_ID,
                         Some("Unique identifier".to_owned()),
                         "ID!",
                         dynamodb::constant::SK,
-                        "id",
+                        dynaql::names::OUTPUT_FIELD_ID,
                         field_auth
-                            .get(METADATA_FIELD_ID)
+                            .get(dynaql::names::OUTPUT_FIELD_ID)
                             .map(|e| e.as_ref())
                             .unwrap_or(model_auth.as_ref()),
                     );
@@ -425,7 +428,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             ctx.registry.get_mut().create_type(
                 |registry| {
                     let mut input_fields = vec![];
-                    input_fields.push(MetaInputValue::new(METADATA_FIELD_ID, "ID".to_string()));
+                    input_fields.push(MetaInputValue::new(dynaql::names::OUTPUT_FIELD_ID, "ID".to_string()));
                     for unique_directive in &unique_directives {
                         input_fields.push(unique_directive.lookup_by_field(registry));
                     }
@@ -494,7 +497,7 @@ fn has_any_invalid_metadata_fields(ctx: &mut VisitorContext<'_>, object_name: &s
         let field_name = field.node.name.node.as_str();
         let expected_type_name = match field_name {
             METADATA_FIELD_CREATED_AT | METADATA_FIELD_UPDATED_AT => DateTimeScalar::name(),
-            METADATA_FIELD_ID => IDScalar::name(),
+            dynaql::names::OUTPUT_FIELD_ID => IDScalar::name(),
             // Field is not reserved.
             _ => continue,
         }

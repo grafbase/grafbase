@@ -9,7 +9,7 @@ pub const VALUE_ARGUMENT: &str = "value";
 
 pub struct DefaultDirectiveTypes;
 
-const FIELDS_NOT_ALLOWED: &[&str] = &["id"];
+const FIELDS_NOT_ALLOWED: &[&str] = &[dynaql::names::OUTPUT_FIELD_ID];
 
 impl<'a> Visitor<'a> for DefaultDirectiveTypes {
     fn enter_field(

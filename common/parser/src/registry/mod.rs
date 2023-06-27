@@ -73,8 +73,7 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
 
 /// Add the remove mutation for a given Object
 pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: Option<&AuthConfig>) {
-    let type_name = type_name.to_string();
-    let delete_payload_name = format!("{}DeletePayload", type_name.to_camel());
+    let delete_payload_name = dynaql::names::deletion_return_type_name(type_name);
 
     // DeletePayload
     ctx.registry.get_mut().create_type(
@@ -82,7 +81,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
             registry::ObjectType::new(
                 delete_payload_name.clone(),
                 [MetaField {
-                    name: "deletedId".to_string(),
+                    name: names::OUTPUT_FIELD_DELETED_ID.to_string(),
                     description: None,
                     args: Default::default(),
                     // TODO: Should be infered from the entity depending on the directives
@@ -98,7 +97,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
                     relation: None,
                     resolve: None,
                     transformer: Some(Transformer::JSONSelect {
-                        property: "id".to_string(),
+                        property: names::OUTPUT_FIELD_ID.to_string(),
                     }),
                     plan: None,
                     required_operation: Some(Operations::DELETE),
@@ -113,7 +112,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
 
     // deleteMutation
     ctx.mutations.push(MetaField {
-        name: format!("{}Delete", to_lower_camelcase(&type_name)),
+        name: format!("{}Delete", to_lower_camelcase(type_name)),
         description: Some(format!("Delete a {type_name} by ID or unique field")),
         args: {
             let mut args = IndexMap::new();
@@ -136,7 +135,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
         resolve: Some(Resolver {
             id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::DeleteNode {
-                ty: type_name,
+                ty: type_name.to_string(),
                 by: VariableResolveDefinition::InputTypeName("by".to_owned()),
             }),
         }),

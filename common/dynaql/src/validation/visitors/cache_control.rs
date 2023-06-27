@@ -23,8 +23,14 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
             self.cache_control.merge(object.cache_control.clone());
 
             if let Some(policy) = &object.cache_control.invalidation_policy {
+                let ty = object.rust_typename.to_string();
+                let deletion_ty = object
+                    .is_node
+                    .then(|| crate::names::deletion_return_type_name(&ty));
+
                 self.invalidation_policies.insert(CacheInvalidation {
-                    ty: object.rust_typename.to_string(),
+                    ty,
+                    deletion_ty,
                     policy: policy.clone(),
                 });
             }
@@ -42,6 +48,8 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
             if let Some(policy) = &registry_field.cache_control.invalidation_policy {
                 self.invalidation_policies.insert(CacheInvalidation {
                     ty: registry_field.ty.to_string(),
+                    // only nodes can have a deletion mutation and therefore a deletion return type
+                    deletion_ty: None,
                     policy: policy.clone(),
                 });
             }

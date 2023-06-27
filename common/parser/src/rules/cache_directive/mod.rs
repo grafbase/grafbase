@@ -18,7 +18,6 @@ const CACHE_DIRECTIVE_NAME: &str = "cache";
 pub const RULES_ARGUMENT: &str = "rules";
 pub const MAX_AGE_ARGUMENT: &str = "maxAge";
 pub const STALE_WHILE_REVALIDATE_ARGUMENT: &str = "staleWhileRevalidate";
-pub const MUTATION_INVALIDATION_POLICY_ENTITY_DEFAULT_FIELD: &str = "id";
 pub const MUTATION_INVALIDATION_POLICY_ARGUMENT: &str = "mutationInvalidation";
 
 pub mod global;
@@ -79,7 +78,7 @@ impl<'de> serde::de::Visitor<'de> for Visitor {
     {
         match v {
             "entity" => Ok(Some(CacheInvalidationPolicy::Entity {
-                field: MUTATION_INVALIDATION_POLICY_ENTITY_DEFAULT_FIELD.to_string(),
+                field: dynaql::names::OUTPUT_FIELD_ID.to_string(),
             })),
             "list" => Ok(Some(CacheInvalidationPolicy::List)),
             "type" => Ok(Some(CacheInvalidationPolicy::Type)),

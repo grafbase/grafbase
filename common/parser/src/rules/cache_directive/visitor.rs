@@ -1,5 +1,5 @@
 use crate::rules::cache_directive::validation::{validate_directive, ValidationLevel};
-use crate::rules::cache_directive::{CacheDirectiveError, MUTATION_INVALIDATION_POLICY_ENTITY_DEFAULT_FIELD};
+use crate::rules::cache_directive::CacheDirectiveError;
 use crate::rules::visitor::{Visitor, VisitorContext};
 use crate::utils::is_type_primitive;
 use dynaql::registry::CacheInvalidationPolicy;
@@ -37,7 +37,7 @@ impl<'a> Visitor<'a> for CacheVisitor {
                     match &mutation_invalidation_policy {
                         // we allow the _id_ to be missing because our @model types have it
                         CacheInvalidationPolicy::Entity { field: policy_field }
-                            if policy_field != MUTATION_INVALIDATION_POLICY_ENTITY_DEFAULT_FIELD =>
+                            if policy_field != dynaql::names::OUTPUT_FIELD_ID =>
                         {
                             let referenced_field = object
                                 .fields

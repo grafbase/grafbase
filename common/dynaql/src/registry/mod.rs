@@ -723,40 +723,60 @@ impl MetaField {
         resolved_field_name: &str,
         resolved_field_value: Option<&ConstValue>,
     ) {
-        let cache_invalidation = ctx
-            .query_env
-            .cache_invalidations
-            .iter()
-            .find(|cache_invalidation| cache_invalidation.ty == resolved_field_type);
+        let cache_invalidation =
+            ctx.query_env
+                .cache_invalidations
+                .iter()
+                .find(|cache_invalidation| {
+                    // This is very specific to deletions, not all queries return the `cache_invalidation.ty`
+                    // and `cache_invalidation.ty` is always tied to a graphql type.
+                    // Reads, Creates and Updates do but Deletes do not.
+                    // Deletions return a `xDeletionPayload` with only a `deletedId`
+                    let is_deletion_type_with_invalidation = cache_invalidation
+                        .deletion_ty
+                        .as_ref()
+                        .map(|deletion_ty| deletion_ty == resolved_field_type)
+                        .unwrap_or_default();
+
+                    cache_invalidation.ty == resolved_field_type
+                        || is_deletion_type_with_invalidation
+                });
 
         if let Some(cache_invalidation) = cache_invalidation {
             let cache_tag = match &cache_invalidation.policy {
                 CacheInvalidationPolicy::Entity {
                     field: target_field,
-                } if target_field == resolved_field_name => {
+                } if target_field == resolved_field_name
+                    // specific condition for deletions
+                    || (target_field == crate::names::OUTPUT_FIELD_ID && resolved_field_name == crate::names::OUTPUT_FIELD_DELETED_ID) =>
+                {
                     let Some(resolved_field_value) = resolved_field_value else {
                         #[cfg(feature = "tracing_worker")]
                         logworker::warn!(
                             ctx.data_unchecked::<Arc<dynamodb::DynamoDBBatchersData>>()
                                 .ctx
                                 .trace_id,
-                            "missing field valued for {}#{}",
-                            resolved_field_type, resolved_field_name
+                            "missing field valued for resolved {}#{} and cache type {}",
+                            resolved_field_type, resolved_field_name, cache_invalidation.ty,
                         );
 
                         return;
                     };
+
                     let resolved_field_value = match resolved_field_value {
                         // remove double quotes
                         ConstValue::String(quoted_string) => quoted_string.as_str().to_string(),
                         value => value.to_string(),
                     };
 
-                    format!("{resolved_field_type}#{target_field}:{resolved_field_value}")
+                    format!(
+                        "{}#{target_field}:{resolved_field_value}",
+                        cache_invalidation.ty
+                    )
                 }
                 CacheInvalidationPolicy::Entity { .. } => return,
-                CacheInvalidationPolicy::List => format!("{resolved_field_type}#List"),
-                CacheInvalidationPolicy::Type => resolved_field_type.to_string(),
+                CacheInvalidationPolicy::List => format!("{}#List", cache_invalidation.ty),
+                CacheInvalidationPolicy::Type => cache_invalidation.ty.clone(),
             };
 
             ctx.response_graph.write().await.add_cache_tag(cache_tag);
