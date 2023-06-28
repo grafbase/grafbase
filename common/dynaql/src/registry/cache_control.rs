@@ -79,7 +79,6 @@ impl CacheControl {
 #[derive(Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
 pub struct CacheInvalidation {
     pub ty: String,
-    pub deletion_ty: Option<String>,
     pub policy: CacheInvalidationPolicy,
 }
 

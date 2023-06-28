@@ -723,31 +723,33 @@ impl MetaField {
         resolved_field_name: &str,
         resolved_field_value: Option<&ConstValue>,
     ) {
-        let cache_invalidation =
-            ctx.query_env
-                .cache_invalidations
-                .iter()
-                .find(|cache_invalidation| {
-                    // This is very specific to deletions, not all queries return the `cache_invalidation.ty`
-                    // and `cache_invalidation.ty` is always tied to a graphql type.
-                    // Reads, Creates and Updates do but Deletes do not.
-                    // Deletions return a `xDeletionPayload` with only a `deletedId`
-                    let is_deletion_type_with_invalidation = cache_invalidation
-                        .deletion_ty
-                        .as_ref()
-                        .map(|deletion_ty| deletion_ty == resolved_field_type)
-                        .unwrap_or_default();
-
-                    cache_invalidation.ty == resolved_field_type
-                        || is_deletion_type_with_invalidation
-                });
+        let cache_invalidation = ctx
+            .query_env
+            .cache_invalidations
+            .iter()
+            .find(|cache_invalidation| cache_invalidation.ty == resolved_field_type);
 
         if let Some(cache_invalidation) = cache_invalidation {
+            let mut cache_type = cache_invalidation.ty.clone();
+
+            // This is very specific to deletions, not all queries return the @cache type ...
+            // Reads, Creates and Updates do return the @cache type but Deletes do not.
+            // Deletions return a `xDeletionPayload` with only a `deletedId`
+            if cache_invalidation
+                .ty
+                .ends_with(crate::names::DELETE_PAYLOAD_RETURN_TY_SUFFIX)
+            {
+                cache_type = cache_invalidation
+                    .ty
+                    .replace(crate::names::DELETE_PAYLOAD_RETURN_TY_SUFFIX, "");
+            }
+
             let cache_tag = match &cache_invalidation.policy {
                 CacheInvalidationPolicy::Entity {
                     field: target_field,
                 } if target_field == resolved_field_name
-                    // specific condition for deletions
+                    // Deletions return a `xDeletionPayload` with only a `deletedId`
+                    // If an invalidation policy is of type `entity.id`, on deletes `id` is the `deletedId`
                     || (target_field == crate::names::OUTPUT_FIELD_ID && resolved_field_name == crate::names::OUTPUT_FIELD_DELETED_ID) =>
                 {
                     let Some(resolved_field_value) = resolved_field_value else {
@@ -769,14 +771,11 @@ impl MetaField {
                         value => value.to_string(),
                     };
 
-                    format!(
-                        "{}#{target_field}:{resolved_field_value}",
-                        cache_invalidation.ty
-                    )
+                    format!("{cache_type}#{target_field}:{resolved_field_value}",)
                 }
                 CacheInvalidationPolicy::Entity { .. } => return,
-                CacheInvalidationPolicy::List => format!("{}#List", cache_invalidation.ty),
-                CacheInvalidationPolicy::Type => cache_invalidation.ty.clone(),
+                CacheInvalidationPolicy::List => format!("{cache_type}#List"),
+                CacheInvalidationPolicy::Type => cache_type,
             };
 
             ctx.response_graph.write().await.add_cache_tag(cache_tag);

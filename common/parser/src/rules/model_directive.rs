@@ -224,6 +224,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                 }
             }
 
+            let model_cache = CacheDirective::parse(&type_definition.node.directives);
+
             //
             // CREATE ACTUAL TYPE
             //
@@ -406,7 +408,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         name: type_name.clone(),
                         description: type_definition.node.description.clone().map(|x| x.node),
                         fields,
-                        cache_control: CacheDirective::parse(&type_definition.node.directives),
+                        cache_control: model_cache.clone(),
                         extends: false,
                         keys: None,
                         visible: None,
@@ -462,7 +464,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 },
                 ty: type_name.clone(),
                 deprecation: dynaql::registry::Deprecation::NoDeprecated,
-                cache_control: CacheDirective::parse(&type_definition.node.directives),
+                cache_control: model_cache.clone(),
                 resolve: Some(Resolver {
                     id: Some(format!("{}_resolver", type_name.to_lowercase())),
                     // TODO: Should be defined as a ResolveNode
@@ -484,7 +486,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             add_mutation_update(ctx, &type_definition.node, object, model_auth.as_ref());
 
             add_query_paginated_collection(ctx, &type_definition.node, connection_edges, model_auth.as_ref());
-            add_remove_mutation(ctx, &type_name, model_auth.as_ref());
+            add_remove_mutation(ctx, &type_name, model_auth.as_ref(), model_cache);
 
             add_query_search(ctx, &type_definition.node, &object.fields, model_auth.as_ref());
         }
