@@ -1,56 +1,66 @@
 use std::{borrow::Cow, fmt};
 
+use crate::comment::CommentBlock;
+
 use super::{ObjectTypeDef, StaticType};
 
-#[derive(Debug, Clone)]
-pub struct Property {
-    key: Cow<'static, str>,
-    value: PropertyValue,
+#[derive(Clone)]
+pub struct Property<'a> {
+    key: Cow<'a, str>,
+    value: PropertyValue<'a>,
     optional: bool,
+    description: Option<CommentBlock<'a>>,
 }
 
-impl Property {
-    pub fn new(key: impl Into<Cow<'static, str>>, value: impl Into<PropertyValue>) -> Self {
+impl<'a> Property<'a> {
+    pub fn new(key: impl Into<Cow<'a, str>>, value: impl Into<PropertyValue<'a>>) -> Self {
         Self {
             key: key.into(),
             value: value.into(),
             optional: false,
+            description: None,
         }
     }
 
-    #[must_use]
-    pub fn optional(mut self) -> Self {
+    pub fn optional(&mut self) {
         self.optional = true;
-        self
+    }
+
+    pub fn description(&mut self, comment: impl Into<CommentBlock<'a>>) {
+        self.description = Some(comment.into());
     }
 }
 
-impl fmt::Display for Property {
+impl<'a> fmt::Display for Property<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(ref comment) = self.description {
+            writeln!(f, "{comment}")?;
+        }
+
         let optional = if self.optional { "?" } else { "" };
         write!(f, "{}{optional}: {}", self.key, self.value)
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum PropertyValue {
-    Type(StaticType),
-    Object(ObjectTypeDef),
+#[derive(Clone)]
+pub enum PropertyValue<'a> {
+    Type(StaticType<'a>),
+    Object(ObjectTypeDef<'a>),
 }
 
-impl From<StaticType> for PropertyValue {
-    fn from(value: StaticType) -> Self {
+impl<'a> From<StaticType<'a>> for PropertyValue<'a> {
+    fn from(value: StaticType<'a>) -> Self {
         Self::Type(value)
     }
 }
 
-impl From<ObjectTypeDef> for PropertyValue {
-    fn from(value: ObjectTypeDef) -> Self {
+impl<'a> From<ObjectTypeDef<'a>> for PropertyValue<'a> {
+    fn from(value: ObjectTypeDef<'a>) -> Self {
         Self::Object(value)
     }
 }
 
-impl fmt::Display for PropertyValue {
+impl<'a> fmt::Display for PropertyValue<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PropertyValue::Type(ident) => ident.fmt(f),

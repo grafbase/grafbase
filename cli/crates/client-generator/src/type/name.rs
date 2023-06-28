@@ -3,12 +3,12 @@ use core::fmt;
 use crate::common::{Identifier, Quoted};
 
 #[derive(Debug, Clone)]
-pub enum TypeName {
-    Ident(Identifier),
-    String(Quoted),
+pub enum TypeName<'a> {
+    Ident(Identifier<'a>),
+    String(Quoted<'a>),
 }
 
-impl fmt::Display for TypeName {
+impl<'a> fmt::Display for TypeName<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TypeName::Ident(ref i) => i.fmt(f),

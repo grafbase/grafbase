@@ -2,25 +2,25 @@ use std::fmt;
 
 use super::{MappedType, StaticType};
 
-#[derive(Debug, Clone)]
-pub enum TypeKind {
-    Static(StaticType),
-    Mapped(MappedType),
+#[derive(Clone)]
+pub enum TypeKind<'a> {
+    Static(StaticType<'a>),
+    Mapped(MappedType<'a>),
 }
 
-impl From<StaticType> for TypeKind {
-    fn from(value: StaticType) -> Self {
+impl<'a> From<StaticType<'a>> for TypeKind<'a> {
+    fn from(value: StaticType<'a>) -> Self {
         Self::Static(value)
     }
 }
 
-impl From<MappedType> for TypeKind {
-    fn from(value: MappedType) -> Self {
+impl<'a> From<MappedType<'a>> for TypeKind<'a> {
+    fn from(value: MappedType<'a>) -> Self {
         Self::Mapped(value)
     }
 }
 
-impl fmt::Display for TypeKind {
+impl<'a> fmt::Display for TypeKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TypeKind::Static(s) => s.fmt(f),

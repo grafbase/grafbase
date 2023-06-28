@@ -5,16 +5,15 @@ use crate::common::Identifier;
 use crate::r#type::TypeKind;
 use crate::Expression;
 
-#[derive(Debug)]
-pub struct Assignment {
-    left: Identifier,
-    right: Expression,
+pub struct Assignment<'a> {
+    left: Identifier<'a>,
+    right: Expression<'a>,
     mutability: Mutability,
-    r#type: Option<TypeKind>,
+    r#type: Option<TypeKind<'a>>,
 }
 
-impl Assignment {
-    pub fn new(left: impl Into<Cow<'static, str>>, right: impl Into<Expression>) -> Self {
+impl<'a> Assignment<'a> {
+    pub fn new(left: impl Into<Cow<'a, str>>, right: impl Into<Expression<'a>>) -> Self {
         Self {
             left: Identifier::new(left),
             right: right.into(),
@@ -41,13 +40,13 @@ impl Assignment {
         self
     }
 
-    pub fn r#type(mut self, typedef: impl Into<TypeKind>) -> Self {
+    pub fn r#type(mut self, typedef: impl Into<TypeKind<'a>>) -> Self {
         self.r#type = Some(typedef.into());
         self
     }
 }
 
-impl fmt::Display for Assignment {
+impl<'a> fmt::Display for Assignment<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.mutability, self.left)?;
 

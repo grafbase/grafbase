@@ -2,17 +2,17 @@ use std::fmt::{self, Write};
 
 use crate::{block::Block, common::Identifier, r#type::TypeKind};
 
-#[derive(Debug, Default)]
-pub struct Closure {
-    params: Vec<Identifier>,
-    input_types: Vec<TypeKind>,
-    return_type: Option<TypeKind>,
-    body: Block,
+#[derive(Default)]
+pub struct Closure<'a> {
+    params: Vec<Identifier<'a>>,
+    input_types: Vec<TypeKind<'a>>,
+    return_type: Option<TypeKind<'a>>,
+    body: Block<'a>,
 }
 
-impl Closure {
+impl<'a> Closure<'a> {
     #[must_use]
-    pub fn new(body: Block) -> Self {
+    pub fn new(body: Block<'a>) -> Self {
         Self {
             body,
             ..Default::default()
@@ -20,18 +20,18 @@ impl Closure {
     }
 
     #[must_use]
-    pub fn params(mut self, params: Vec<Identifier>) -> Self {
+    pub fn params(mut self, params: Vec<Identifier<'a>>) -> Self {
         self.params = params;
         self
     }
 
-    pub fn returns(mut self, return_type: impl Into<TypeKind>) -> Self {
+    pub fn returns(mut self, return_type: impl Into<TypeKind<'a>>) -> Self {
         self.return_type = Some(return_type.into());
         self
     }
 
     #[must_use]
-    pub fn typed_params(mut self, params: Vec<(Identifier, impl Into<TypeKind>)>) -> Self {
+    pub fn typed_params(mut self, params: Vec<(Identifier<'a>, impl Into<TypeKind<'a>>)>) -> Self {
         let (params, input_types): (Vec<_>, Vec<_>) = params.into_iter().map(|(a, b)| (a, b.into())).unzip();
 
         self.params = params;
@@ -41,7 +41,7 @@ impl Closure {
     }
 }
 
-impl fmt::Display for Closure {
+impl<'a> fmt::Display for Closure<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_char('(')?;
 

@@ -7,23 +7,23 @@ use crate::{
     Interface,
 };
 
-#[derive(Debug, Default)]
-pub struct Block {
-    contents: Vec<BlockItem>,
+#[derive(Default)]
+pub struct Block<'a> {
+    contents: Vec<BlockItem<'a>>,
 }
 
-impl Block {
+impl<'a> Block<'a> {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn push(&mut self, content: impl Into<BlockItem>) {
+    pub fn push(&mut self, content: impl Into<BlockItem<'a>>) {
         self.contents.push(content.into())
     }
 }
 
-impl fmt::Display for Block {
+impl<'a> fmt::Display for Block<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("{\n")?;
 
@@ -37,22 +37,24 @@ impl fmt::Display for Block {
     }
 }
 
-#[derive(Debug)]
-pub enum BlockItemKind {
-    Type(Type),
-    Interface(Interface),
-    Block(Box<Block>),
-    Expression(Expression),
-    Statement(Statement),
+pub enum BlockItemKind<'a> {
+    Type(Type<'a>),
+    Interface(Interface<'a>),
+    Block(Box<Block<'a>>),
+    Expression(Expression<'a>),
+    Statement(Statement<'a>),
     Newline,
 }
 
-#[derive(Debug)]
-pub struct BlockItem {
-    kind: BlockItemKind,
+pub struct BlockItem<'a> {
+    kind: BlockItemKind<'a>,
 }
 
-impl BlockItem {
+impl<'a> BlockItem<'a> {
+    pub fn new(kind: impl Into<BlockItemKind<'a>>) -> Self {
+        Self { kind: kind.into() }
+    }
+
     #[must_use]
     pub fn newline() -> Self {
         Self {
@@ -61,64 +63,64 @@ impl BlockItem {
     }
 }
 
-impl From<Type> for BlockItemKind {
-    fn from(value: Type) -> Self {
+impl<'a> From<Type<'a>> for BlockItemKind<'a> {
+    fn from(value: Type<'a>) -> Self {
         Self::Type(value)
     }
 }
 
-impl From<Interface> for BlockItemKind {
-    fn from(value: Interface) -> Self {
+impl<'a> From<Interface<'a>> for BlockItemKind<'a> {
+    fn from(value: Interface<'a>) -> Self {
         Self::Interface(value)
     }
 }
 
-impl From<Block> for BlockItemKind {
-    fn from(value: Block) -> Self {
+impl<'a> From<Block<'a>> for BlockItemKind<'a> {
+    fn from(value: Block<'a>) -> Self {
         Self::Block(Box::new(value))
     }
 }
 
-impl From<Statement> for BlockItemKind {
-    fn from(value: Statement) -> Self {
+impl<'a> From<Statement<'a>> for BlockItemKind<'a> {
+    fn from(value: Statement<'a>) -> Self {
         Self::Statement(value)
     }
 }
 
-impl From<Expression> for BlockItemKind {
-    fn from(value: Expression) -> Self {
+impl<'a> From<Expression<'a>> for BlockItemKind<'a> {
+    fn from(value: Expression<'a>) -> Self {
         Self::Expression(value)
     }
 }
 
-impl From<Value> for BlockItemKind {
-    fn from(value: Value) -> Self {
+impl<'a> From<Value<'a>> for BlockItemKind<'a> {
+    fn from(value: Value<'a>) -> Self {
         Self::Expression(Expression::from(value))
     }
 }
 
-impl From<Return> for BlockItemKind {
-    fn from(value: Return) -> Self {
+impl<'a> From<Return<'a>> for BlockItemKind<'a> {
+    fn from(value: Return<'a>) -> Self {
         Self::Statement(Statement::from(value))
     }
 }
 
-impl From<Assignment> for BlockItemKind {
-    fn from(value: Assignment) -> Self {
+impl<'a> From<Assignment<'a>> for BlockItemKind<'a> {
+    fn from(value: Assignment<'a>) -> Self {
         Self::Statement(Statement::from(value))
     }
 }
 
-impl<T> From<T> for BlockItem
+impl<'a, T> From<T> for BlockItem<'a>
 where
-    T: Into<BlockItemKind>,
+    T: Into<BlockItemKind<'a>>,
 {
     fn from(value: T) -> Self {
         Self { kind: value.into() }
     }
 }
 
-impl fmt::Display for BlockItem {
+impl<'a> fmt::Display for BlockItem<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
             BlockItemKind::Type(ref t) => t.fmt(f),
@@ -128,5 +130,64 @@ impl fmt::Display for BlockItem {
             BlockItemKind::Statement(ref s) => s.fmt(f),
             BlockItemKind::Newline => writeln!(f),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helpers::{expect, expect_ts};
+    use crate::{
+        expression::{Object, Value},
+        r#type::{Property, StaticType},
+        statement::{Assignment, Statement},
+        Interface,
+    };
+
+    #[test]
+    fn basic_block() {
+        let mut block = Block::new();
+
+        let mut interface = Interface::new("User");
+        interface.push_property(Property::new("id", StaticType::ident("number")));
+        interface.push_property(Property::new("name", StaticType::ident("string")));
+        block.push(interface);
+
+        block.push(BlockItem::newline());
+
+        let mut object = Object::new();
+        object.entry("id", Value::from(1));
+        object.entry("name", Value::from("Naukio"));
+
+        let assignment = Assignment::new("myObject", object)
+            .r#const()
+            .r#type(StaticType::ident("User"));
+
+        block.push(Statement::from(assignment));
+
+        let assignment = Assignment::new("foo", Value::from(1)).r#let();
+        block.push(Statement::from(assignment));
+
+        let assignment = Assignment::new("bar", Value::from(1)).var();
+        block.push(Statement::from(assignment));
+
+        let assignment = Assignment::new("bar", Value::from(2));
+        block.push(Statement::from(assignment));
+
+        let expected = expect![[r#"
+            {
+              interface User {
+                id: number
+                name: string
+              }
+
+              const myObject: User = { id: 1, name: 'Naukio' }
+              let foo = 1
+              var bar = 1
+              bar = 2
+            }
+        "#]];
+
+        expect_ts(&block, &expected);
     }
 }

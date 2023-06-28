@@ -3,47 +3,77 @@ use std::{
     fmt::{self, Write},
 };
 
+use async_graphql_parser::types::BaseType;
+
 use crate::common::{Identifier, Quoted};
 
 use super::{StaticType, TypeName};
 
-#[derive(Debug, Clone)]
-pub struct TypeIdentifier {
-    name: TypeName,
-    params: Vec<StaticType>,
-    extends: Option<Box<StaticType>>,
+#[derive(Clone)]
+pub struct TypeIdentifier<'a> {
+    name: TypeName<'a>,
+    params: Vec<StaticType<'a>>,
+    extends: Option<Box<StaticType<'a>>>,
+    array: bool,
 }
 
-impl TypeIdentifier {
-    pub fn ident(name: impl Into<Cow<'static, str>>) -> Self {
+impl<'a> TypeIdentifier<'a> {
+    pub fn ident(name: impl Into<Cow<'a, str>>) -> Self {
         Self {
             name: TypeName::Ident(Identifier::new(name)),
             params: Vec::new(),
             extends: None,
+            array: false,
         }
     }
 
-    pub fn string(name: impl Into<Cow<'static, str>>) -> Self {
+    pub fn string(name: impl Into<Cow<'a, str>>) -> Self {
         Self {
             name: TypeName::String(Quoted::new(name)),
             params: Vec::new(),
             extends: None,
+            array: false,
         }
     }
 
-    #[must_use]
-    pub fn extends(mut self, ident: StaticType) -> Self {
+    pub fn extends(&mut self, ident: StaticType<'a>) {
         self.extends = Some(Box::new(ident));
-
-        self
     }
 
-    pub fn push_param(&mut self, param: StaticType) {
+    pub fn array(&mut self) {
+        self.array = true;
+    }
+
+    pub fn from_graphql(base: &'a BaseType) -> Self {
+        match base {
+            BaseType::Named(ref name) if name.as_str() == "String" => Self::ident("string"),
+            BaseType::Named(ref name) if name.as_str() == "ID" => Self::ident("string"),
+            BaseType::Named(ref name) if name.as_str() == "Int" => Self::ident("number"),
+            BaseType::Named(ref name) if name.as_str() == "Float" => Self::ident("number"),
+            BaseType::Named(ref name) if name.as_str() == "Boolean" => Self::ident("boolean"),
+            BaseType::Named(ref name) if name.as_str() == "Date" => Self::ident("Date"),
+            BaseType::Named(ref name) if name.as_str() == "DateTime" => Self::ident("Date"),
+            BaseType::Named(ref name) if name.as_str() == "Timestamp" => Self::ident("Date"),
+            BaseType::Named(ref name) if name.as_str() == "Email" => Self::ident("string"),
+            BaseType::Named(ref name) if name.as_str() == "IPAddress" => Self::ident("string"),
+            BaseType::Named(ref name) if name.as_str() == "URL" => Self::ident("string"),
+            BaseType::Named(ref name) if name.as_str() == "JSON" => Self::ident("object"),
+            BaseType::Named(ref name) if name.as_str() == "PhoneNumber" => Self::ident("string"),
+            BaseType::Named(ref name) => Self::ident(name.as_str()),
+            BaseType::List(ref base) => {
+                let mut identifier = Self::from_graphql(&base.base);
+                identifier.array();
+                identifier
+            }
+        }
+    }
+
+    pub fn push_param(&mut self, param: StaticType<'a>) {
         self.params.push(param);
     }
 }
 
-impl fmt::Display for TypeIdentifier {
+impl<'a> fmt::Display for TypeIdentifier<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.name.fmt(f)?;
 
@@ -59,6 +89,10 @@ impl fmt::Display for TypeIdentifier {
             }
 
             f.write_char('>')?;
+        }
+
+        if self.array {
+            f.write_str("[]")?;
         }
 
         if let Some(ref extends) = self.extends {

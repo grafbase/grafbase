@@ -20,14 +20,13 @@ pub use object::ObjectTypeDef;
 pub use property::{Property, PropertyValue};
 pub use r#static::StaticType;
 
-#[derive(Debug)]
-pub struct Type {
-    identifier: StaticType,
-    definition: TypeKind,
+pub struct Type<'a> {
+    identifier: StaticType<'a>,
+    definition: TypeKind<'a>,
 }
 
-impl Type {
-    pub fn new(identifier: StaticType, definition: impl Into<TypeKind>) -> Self {
+impl<'a> Type<'a> {
+    pub fn new(identifier: StaticType<'a>, definition: impl Into<TypeKind<'a>>) -> Self {
         Self {
             identifier,
             definition: definition.into(),
@@ -35,7 +34,7 @@ impl Type {
     }
 }
 
-impl fmt::Display for Type {
+impl<'a> fmt::Display for Type<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "type {} = {}", self.identifier, self.definition)
     }

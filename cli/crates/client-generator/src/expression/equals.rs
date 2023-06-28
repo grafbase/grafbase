@@ -2,15 +2,14 @@ use std::fmt;
 
 use super::Expression;
 
-#[derive(Debug)]
-pub struct Equals {
-    left: Expression,
-    right: Expression,
+pub struct Equals<'a> {
+    left: Expression<'a>,
+    right: Expression<'a>,
     strict: bool,
 }
 
-impl Equals {
-    pub fn new(left: impl Into<Expression>, right: impl Into<Expression>) -> Self {
+impl<'a> Equals<'a> {
+    pub fn new(left: impl Into<Expression<'a>>, right: impl Into<Expression<'a>>) -> Self {
         Self {
             left: left.into(),
             right: right.into(),
@@ -26,7 +25,7 @@ impl Equals {
     }
 }
 
-impl fmt::Display for Equals {
+impl<'a> fmt::Display for Equals<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let op = if self.strict { "===" } else { "==" };
 

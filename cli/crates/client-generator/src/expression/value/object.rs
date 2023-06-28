@@ -2,23 +2,22 @@ use std::{borrow::Cow, fmt};
 
 use crate::{common::Identifier, expression::Expression};
 
-#[derive(Debug)]
-pub struct Object {
-    entries: Vec<Entry>,
+pub struct Object<'a> {
+    entries: Vec<Entry<'a>>,
 }
 
-impl Object {
+impl<'a> Object<'a> {
     #[must_use]
     pub fn new() -> Self {
         Self { entries: Vec::new() }
     }
 
-    pub fn entry(&mut self, key: impl Into<Cow<'static, str>>, value: impl Into<Expression>) {
+    pub fn entry(&mut self, key: impl Into<Cow<'a, str>>, value: impl Into<Expression<'a>>) {
         self.entries.push(Entry::new(Identifier::new(key), value))
     }
 }
 
-impl fmt::Display for Object {
+impl<'a> fmt::Display for Object<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("{ ")?;
 
@@ -36,14 +35,13 @@ impl fmt::Display for Object {
     }
 }
 
-#[derive(Debug)]
-pub struct Entry {
-    key: Identifier,
-    value: Expression,
+pub struct Entry<'a> {
+    key: Identifier<'a>,
+    value: Expression<'a>,
 }
 
-impl Entry {
-    pub fn new(key: Identifier, value: impl Into<Expression>) -> Self {
+impl<'a> Entry<'a> {
+    pub fn new(key: Identifier<'a>, value: impl Into<Expression<'a>>) -> Self {
         Self {
             key,
             value: value.into(),
@@ -51,7 +49,7 @@ impl Entry {
     }
 }
 
-impl fmt::Display for Entry {
+impl<'a> fmt::Display for Entry<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.key, self.value)
     }

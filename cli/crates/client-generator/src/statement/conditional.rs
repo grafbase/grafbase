@@ -2,30 +2,29 @@ use std::fmt;
 
 use crate::{Block, Expression};
 
-#[derive(Debug)]
-pub struct Conditional {
-    first_branch: (Expression, Block),
-    branches: Vec<(Option<Expression>, Block)>,
+pub struct Conditional<'a> {
+    first_branch: (Expression<'a>, Block<'a>),
+    branches: Vec<(Option<Expression<'a>>, Block<'a>)>,
 }
 
-impl Conditional {
-    pub fn new(expr: impl Into<Expression>, block: impl Into<Block>) -> Self {
+impl<'a> Conditional<'a> {
+    pub fn new(expr: impl Into<Expression<'a>>, block: impl Into<Block<'a>>) -> Self {
         Self {
             branches: Vec::new(),
             first_branch: (expr.into(), block.into()),
         }
     }
 
-    pub fn else_if(&mut self, expr: impl Into<Expression>, block: impl Into<Block>) {
+    pub fn else_if(&mut self, expr: impl Into<Expression<'a>>, block: impl Into<Block<'a>>) {
         self.branches.push((Some(expr.into()), block.into()));
     }
 
-    pub fn r#else(&mut self, block: impl Into<Block>) {
+    pub fn r#else(&mut self, block: impl Into<Block<'a>>) {
         self.branches.push((None, block.into()));
     }
 }
 
-impl fmt::Display for Conditional {
+impl<'a> fmt::Display for Conditional<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "if ({}) {}", self.first_branch.0, self.first_branch.1)?;
 

@@ -1,57 +1,57 @@
 use std::{borrow::Cow, fmt};
 
 #[derive(Debug, Clone)]
-pub struct Quoted {
-    inner: Cow<'static, str>,
+pub struct Quoted<'a> {
+    inner: Cow<'a, str>,
 }
 
-impl Quoted {
-    pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
+impl<'a> Quoted<'a> {
+    pub fn new(name: impl Into<Cow<'a, str>>) -> Self {
         Self { inner: name.into() }
     }
 }
 
-impl fmt::Display for Quoted {
+impl<'a> fmt::Display for Quoted<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "'{}'", self.inner)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Template {
-    inner: Cow<'static, str>,
+pub struct Template<'a> {
+    inner: Cow<'a, str>,
 }
 
-impl Template {
-    pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
+impl<'a> Template<'a> {
+    pub fn new(name: impl Into<Cow<'a, str>>) -> Self {
         Self { inner: name.into() }
     }
 }
 
-impl fmt::Display for Template {
+impl<'a> fmt::Display for Template<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "`{}`", self.inner)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Identifier {
-    inner: Cow<'static, str>,
+pub struct Identifier<'a> {
+    inner: Cow<'a, str>,
 }
 
-impl Identifier {
-    pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
+impl<'a> Identifier<'a> {
+    pub fn new(name: impl Into<Cow<'a, str>>) -> Self {
         Self { inner: name.into() }
     }
 }
 
-impl From<Cow<'static, str>> for Identifier {
-    fn from(value: Cow<'static, str>) -> Self {
+impl<'a> From<Cow<'a, str>> for Identifier<'a> {
+    fn from(value: Cow<'a, str>) -> Self {
         Self { inner: value }
     }
 }
 
-impl From<String> for Identifier {
+impl From<String> for Identifier<'static> {
     fn from(value: String) -> Self {
         Self {
             inner: Cow::Owned(value),
@@ -59,15 +59,15 @@ impl From<String> for Identifier {
     }
 }
 
-impl From<&'static str> for Identifier {
-    fn from(value: &'static str) -> Self {
+impl<'a> From<&'a str> for Identifier<'a> {
+    fn from(value: &'a str) -> Self {
         Self {
             inner: Cow::Borrowed(value),
         }
     }
 }
 
-impl fmt::Display for Identifier {
+impl<'a> fmt::Display for Identifier<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.inner)
     }

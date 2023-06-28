@@ -2,14 +2,14 @@ use std::fmt;
 
 use super::{Property, TypeGenerator, TypeKind};
 
-#[derive(Debug, Clone)]
-pub struct MappedType {
-    source: TypeMapSource,
-    definition: Box<TypeKind>,
+#[derive(Clone)]
+pub struct MappedType<'a> {
+    source: TypeMapSource<'a>,
+    definition: Box<TypeKind<'a>>,
 }
 
-impl MappedType {
-    pub fn new(source: impl Into<TypeMapSource>, definition: impl Into<TypeKind>) -> Self {
+impl<'a> MappedType<'a> {
+    pub fn new(source: impl Into<TypeMapSource<'a>>, definition: impl Into<TypeKind<'a>>) -> Self {
         Self {
             source: source.into(),
             definition: Box::new(definition.into()),
@@ -17,31 +17,31 @@ impl MappedType {
     }
 }
 
-impl fmt::Display for MappedType {
+impl<'a> fmt::Display for MappedType<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{ [{}]: {} }}", self.source, self.definition)
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum TypeMapSource {
-    Generator(TypeGenerator),
-    Static(Property),
+#[derive(Clone)]
+pub enum TypeMapSource<'a> {
+    Generator(TypeGenerator<'a>),
+    Static(Property<'a>),
 }
 
-impl From<TypeGenerator> for TypeMapSource {
-    fn from(value: TypeGenerator) -> Self {
+impl<'a> From<TypeGenerator<'a>> for TypeMapSource<'a> {
+    fn from(value: TypeGenerator<'a>) -> Self {
         Self::Generator(value)
     }
 }
 
-impl From<Property> for TypeMapSource {
-    fn from(value: Property) -> Self {
+impl<'a> From<Property<'a>> for TypeMapSource<'a> {
+    fn from(value: Property<'a>) -> Self {
         Self::Static(value)
     }
 }
 
-impl fmt::Display for TypeMapSource {
+impl<'a> fmt::Display for TypeMapSource<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TypeMapSource::Generator(g) => g.fmt(f),

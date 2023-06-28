@@ -5,14 +5,13 @@ use crate::{
     Block, FunctionBody,
 };
 
-#[derive(Debug)]
-pub struct Constructor {
-    inner: FunctionBody,
+pub struct Constructor<'a> {
+    inner: FunctionBody<'a>,
 }
 
-impl Constructor {
+impl<'a> Constructor<'a> {
     #[must_use]
-    pub fn new(body: Block) -> Self {
+    pub fn new(body: Block<'a>) -> Self {
         let inner = FunctionBody {
             name: Cow::Borrowed("constructor"),
             params: Vec::new(),
@@ -23,12 +22,12 @@ impl Constructor {
         Self { inner }
     }
 
-    pub fn push_param(&mut self, key: impl Into<Cow<'static, str>>, value: impl Into<PropertyValue>) {
+    pub fn push_param(&mut self, key: impl Into<Cow<'a, str>>, value: impl Into<PropertyValue<'a>>) {
         self.inner.params.push(Property::new(key, value));
     }
 }
 
-impl fmt::Display for Constructor {
+impl<'a> fmt::Display for Constructor<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.inner.fmt(f)
     }

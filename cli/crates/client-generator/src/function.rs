@@ -8,13 +8,12 @@ use crate::{
     Block,
 };
 
-#[derive(Debug)]
-pub struct Function {
-    inner: FunctionBody,
+pub struct Function<'a> {
+    inner: FunctionBody<'a>,
 }
 
-impl Function {
-    pub fn new(name: impl Into<Cow<'static, str>>, body: Block) -> Self {
+impl<'a> Function<'a> {
+    pub fn new(name: impl Into<Cow<'a, str>>, body: Block<'a>) -> Self {
         let inner = FunctionBody {
             name: name.into(),
             params: Vec::new(),
@@ -25,32 +24,31 @@ impl Function {
         Self { inner }
     }
 
-    pub fn returns(mut self, r#type: impl Into<TypeKind>) -> Self {
+    pub fn returns(mut self, r#type: impl Into<TypeKind<'a>>) -> Self {
         self.inner.returns = Some(r#type.into());
         self
     }
 
-    pub fn push_param(mut self, key: impl Into<Cow<'static, str>>, value: impl Into<PropertyValue>) -> Self {
+    pub fn push_param(mut self, key: impl Into<Cow<'a, str>>, value: impl Into<PropertyValue<'a>>) -> Self {
         self.inner.params.push(Property::new(key, value));
         self
     }
 }
 
-impl fmt::Display for Function {
+impl<'a> fmt::Display for Function<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "function {}", self.inner)
     }
 }
 
-#[derive(Debug)]
-pub struct FunctionBody {
-    pub name: Cow<'static, str>,
-    pub params: Vec<Property>,
-    pub returns: Option<TypeKind>,
-    pub body: Block,
+pub struct FunctionBody<'a> {
+    pub name: Cow<'a, str>,
+    pub params: Vec<Property<'a>>,
+    pub returns: Option<TypeKind<'a>>,
+    pub body: Block<'a>,
 }
 
-impl fmt::Display for FunctionBody {
+impl<'a> fmt::Display for FunctionBody<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}(", self.name)?;
 
@@ -67,5 +65,51 @@ impl fmt::Display for FunctionBody {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_helpers::{expect, expect_ts};
+    use crate::{
+        r#type::StaticType,
+        statement::{Export, Return},
+        Block, Function, Identifier,
+    };
+
+    #[test]
+    fn basic_function() {
+        let mut block = Block::new();
+        block.push(Return::new(Identifier::new("foo")));
+
+        let function = Function::new("bar", block)
+            .push_param("foo", StaticType::ident("string"))
+            .returns(StaticType::ident("string"));
+
+        let expected = expect![[r#"
+            function bar(foo: string): string {
+              return foo
+            }
+        "#]];
+
+        expect_ts(&function, &expected);
+    }
+
+    #[test]
+    fn export_function() {
+        let mut block = Block::new();
+        block.push(Return::new(Identifier::new("foo")));
+
+        let function = Function::new("bar", block)
+            .push_param("foo", StaticType::ident("string"))
+            .returns(StaticType::ident("string"));
+
+        let expected = expect![[r#"
+            export function bar(foo: string): string {
+              return foo
+            }
+        "#]];
+
+        expect_ts(&Export::new(function), &expected);
     }
 }

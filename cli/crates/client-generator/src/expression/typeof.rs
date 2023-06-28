@@ -2,20 +2,19 @@ use core::fmt;
 
 use super::Expression;
 
-#[derive(Debug)]
-pub struct TypeOf {
-    expression: Expression,
+pub struct TypeOf<'a> {
+    expression: Expression<'a>,
 }
 
-impl TypeOf {
-    pub fn new(expression: impl Into<Expression>) -> Self {
+impl<'a> TypeOf<'a> {
+    pub fn new(expression: impl Into<Expression<'a>>) -> Self {
         Self {
             expression: expression.into(),
         }
     }
 }
 
-impl fmt::Display for TypeOf {
+impl<'a> fmt::Display for TypeOf<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "typeof {}", self.expression)
     }

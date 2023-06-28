@@ -1,50 +1,60 @@
 use std::fmt;
 
-use crate::{interface::Interface, r#type::Type, Function};
+use crate::{comment::CommentBlock, interface::Interface, r#type::Type, Function};
 
-#[derive(Debug)]
-pub struct Export {
-    kind: ExportKind,
+pub struct Export<'a> {
+    kind: ExportKind<'a>,
+    description: Option<CommentBlock<'a>>,
 }
 
-impl Export {
-    pub fn new(kind: impl Into<ExportKind>) -> Self {
-        Self { kind: kind.into() }
+impl<'a> Export<'a> {
+    pub fn new(kind: impl Into<ExportKind<'a>>) -> Self {
+        Self {
+            kind: kind.into(),
+            description: None,
+        }
+    }
+
+    pub fn description(&mut self, comment: impl Into<CommentBlock<'a>>) {
+        self.description = Some(comment.into());
     }
 }
 
-impl fmt::Display for Export {
+impl<'a> fmt::Display for Export<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(ref comment) = self.description {
+            writeln!(f, "{comment}")?;
+        }
+
         write!(f, "export {}", self.kind)
     }
 }
 
-#[derive(Debug)]
-pub enum ExportKind {
-    Interface(Interface),
-    Type(Type),
-    Function(Function),
+pub enum ExportKind<'a> {
+    Interface(Interface<'a>),
+    Type(Type<'a>),
+    Function(Function<'a>),
 }
 
-impl From<Interface> for ExportKind {
-    fn from(value: Interface) -> Self {
+impl<'a> From<Interface<'a>> for ExportKind<'a> {
+    fn from(value: Interface<'a>) -> Self {
         Self::Interface(value)
     }
 }
 
-impl From<Type> for ExportKind {
-    fn from(value: Type) -> Self {
+impl<'a> From<Type<'a>> for ExportKind<'a> {
+    fn from(value: Type<'a>) -> Self {
         Self::Type(value)
     }
 }
 
-impl From<Function> for ExportKind {
-    fn from(value: Function) -> Self {
+impl<'a> From<Function<'a>> for ExportKind<'a> {
+    fn from(value: Function<'a>) -> Self {
         Self::Function(value)
     }
 }
 
-impl fmt::Display for ExportKind {
+impl<'a> fmt::Display for ExportKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ExportKind::Interface(i) => i.fmt(f),

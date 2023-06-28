@@ -2,13 +2,13 @@ use std::fmt;
 
 use super::Property;
 
-#[derive(Debug, Default, Clone)]
-pub struct ObjectTypeDef {
-    properties: Vec<Property>,
+#[derive(Default, Clone)]
+pub struct ObjectTypeDef<'a> {
+    properties: Vec<Property<'a>>,
     multiline: bool,
 }
 
-impl ObjectTypeDef {
+impl<'a> ObjectTypeDef<'a> {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -20,12 +20,12 @@ impl ObjectTypeDef {
         self
     }
 
-    pub fn push_property(&mut self, prop: Property) {
+    pub fn push_property(&mut self, prop: Property<'a>) {
         self.properties.push(prop);
     }
 }
 
-impl fmt::Display for ObjectTypeDef {
+impl<'a> fmt::Display for ObjectTypeDef<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let divider = if self.multiline { "\n" } else { " " };
         let indent = if self.multiline { "  " } else { "" };

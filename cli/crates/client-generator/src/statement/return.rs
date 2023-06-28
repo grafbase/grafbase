@@ -2,20 +2,19 @@ use std::fmt;
 
 use crate::Expression;
 
-#[derive(Debug)]
-pub struct Return {
-    expression: Expression,
+pub struct Return<'a> {
+    expression: Expression<'a>,
 }
 
-impl Return {
-    pub fn new(expression: impl Into<Expression>) -> Self {
+impl<'a> Return<'a> {
+    pub fn new(expression: impl Into<Expression<'a>>) -> Self {
         Self {
             expression: expression.into(),
         }
     }
 }
 
-impl fmt::Display for Return {
+impl<'a> fmt::Display for Return<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "return {}", self.expression)
     }

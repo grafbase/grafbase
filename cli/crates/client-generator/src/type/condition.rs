@@ -2,15 +2,15 @@ use std::fmt;
 
 use super::TypeKind;
 
-#[derive(Debug, Clone)]
-pub struct TypeCondition {
-    left: TypeKind,
-    right: TypeKind,
+#[derive(Clone)]
+pub struct TypeCondition<'a> {
+    left: TypeKind<'a>,
+    right: TypeKind<'a>,
 }
 
-impl TypeCondition {
+impl<'a> TypeCondition<'a> {
     #[must_use]
-    pub fn new(left: impl Into<TypeKind>, right: impl Into<TypeKind>) -> Self {
+    pub fn new(left: impl Into<TypeKind<'a>>, right: impl Into<TypeKind<'a>>) -> Self {
         Self {
             left: left.into(),
             right: right.into(),
@@ -18,7 +18,7 @@ impl TypeCondition {
     }
 }
 
-impl fmt::Display for TypeCondition {
+impl<'a> fmt::Display for TypeCondition<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "? {} : {}", self.left, self.right)
     }

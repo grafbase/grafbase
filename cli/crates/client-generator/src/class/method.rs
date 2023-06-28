@@ -7,14 +7,13 @@ use crate::{
 
 use super::Privacy;
 
-#[derive(Debug)]
-pub struct Method {
-    inner: FunctionBody,
+pub struct Method<'a> {
+    inner: FunctionBody<'a>,
     privacy: Option<Privacy>,
 }
 
-impl Method {
-    pub fn new(name: impl Into<Cow<'static, str>>, body: Block) -> Self {
+impl<'a> Method<'a> {
+    pub fn new(name: impl Into<Cow<'a, str>>, body: Block<'a>) -> Self {
         let inner = FunctionBody {
             name: name.into(),
             params: Vec::new(),
@@ -25,12 +24,12 @@ impl Method {
         Self { inner, privacy: None }
     }
 
-    pub fn returns(mut self, r#type: impl Into<TypeKind>) -> Self {
+    pub fn returns(mut self, r#type: impl Into<TypeKind<'a>>) -> Self {
         self.inner.returns = Some(r#type.into());
         self
     }
 
-    pub fn push_param(mut self, key: impl Into<Cow<'static, str>>, value: impl Into<PropertyValue>) -> Self {
+    pub fn push_param(mut self, key: impl Into<Cow<'a, str>>, value: impl Into<PropertyValue<'a>>) -> Self {
         self.inner.params.push(Property::new(key, value));
         self
     }
@@ -54,7 +53,7 @@ impl Method {
     }
 }
 
-impl fmt::Display for Method {
+impl<'a> fmt::Display for Method<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(privacy) = self.privacy {
             write!(f, "{privacy} ")?;
