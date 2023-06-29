@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{comment::CommentBlock, interface::Interface, r#type::Type, Function};
+use crate::{comment::CommentBlock, interface::Interface, r#enum::Enum, r#type::Type, Function};
 
 pub struct Export<'a> {
     kind: ExportKind<'a>,
@@ -34,6 +34,13 @@ pub enum ExportKind<'a> {
     Interface(Interface<'a>),
     Type(Type<'a>),
     Function(Function<'a>),
+    Enum(Enum<'a>),
+}
+
+impl<'a> From<Enum<'a>> for ExportKind<'a> {
+    fn from(value: Enum<'a>) -> Self {
+        Self::Enum(value)
+    }
 }
 
 impl<'a> From<Interface<'a>> for ExportKind<'a> {
@@ -60,6 +67,7 @@ impl<'a> fmt::Display for ExportKind<'a> {
             ExportKind::Interface(i) => i.fmt(f),
             ExportKind::Type(t) => t.fmt(f),
             ExportKind::Function(fun) => fun.fmt(f),
+            ExportKind::Enum(e) => e.fmt(f),
         }
     }
 }

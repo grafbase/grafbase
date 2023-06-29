@@ -1,3 +1,4 @@
+mod r#enum;
 mod input_type;
 mod r#type;
 
@@ -25,7 +26,7 @@ pub fn generate(graphql_schema: impl AsRef<str>) -> Result<String> {
                     Object(ref obj) => r#type::generate(name, description, obj).into(),
                     Interface(_) => todo!(),
                     Union(_) => todo!(),
-                    Enum(_) => todo!(),
+                    Enum(ref r#enum) => r#enum::generate(name, description, r#enum).into(),
                     InputObject(ref obj) => input_type::generate(name, description, obj).into(),
                 };
 

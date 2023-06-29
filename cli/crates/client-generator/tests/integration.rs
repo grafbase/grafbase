@@ -1,4 +1,5 @@
 mod common;
+mod enums;
 mod input_types;
 mod types;
 

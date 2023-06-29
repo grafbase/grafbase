@@ -3,6 +3,7 @@ mod class;
 mod comment;
 mod common;
 mod document;
+mod r#enum;
 mod error;
 mod expression;
 mod function;
@@ -34,6 +35,7 @@ pub(crate) use expression::Expression;
 pub(crate) use function::{Function, FunctionBody};
 pub(crate) use import::Import;
 pub(crate) use interface::Interface;
+pub(crate) use r#enum::Enum;
 
 pub type Result<T> = std::result::Result<T, GeneratorError>;
 
