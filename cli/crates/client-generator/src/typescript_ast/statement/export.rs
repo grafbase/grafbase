@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{comment::CommentBlock, interface::Interface, r#enum::Enum, r#type::Type, Function};
+use crate::typescript_ast::{comment::CommentBlock, Enum, Function, Interface, Type};
 
 pub struct Export<'a> {
     kind: ExportKind<'a>,

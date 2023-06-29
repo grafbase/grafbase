@@ -3,7 +3,7 @@ use std::{
     fmt::{self, Write},
 };
 
-use crate::common::{Identifier, Quoted};
+use crate::typescript_ast::{Identifier, Quoted};
 
 use super::{StaticType, TypeName};
 
@@ -12,7 +12,6 @@ pub struct TypeIdentifier<'a> {
     name: TypeName<'a>,
     extends: Option<Box<StaticType<'a>>>,
     params: Vec<StaticType<'a>>,
-    array: bool,
 }
 
 impl<'a> TypeIdentifier<'a> {
@@ -29,19 +28,15 @@ impl<'a> TypeIdentifier<'a> {
         self.extends = Some(Box::new(r#type));
     }
 
-    pub fn array(&mut self) {
-        self.array = true;
-    }
-
     fn new(name: TypeName<'a>) -> Self {
         Self {
             name,
             params: Vec::new(),
             extends: None,
-            array: false,
         }
     }
 
+    #[cfg(test)] // TODO: only for tests for now
     pub fn push_param(&mut self, param: StaticType<'a>) {
         self.params.push(param);
     }
@@ -63,10 +58,6 @@ impl<'a> fmt::Display for TypeIdentifier<'a> {
             }
 
             f.write_char('>')?;
-        }
-
-        if self.array {
-            f.write_str("[]")?;
         }
 
         if let Some(ref extends) = self.extends {

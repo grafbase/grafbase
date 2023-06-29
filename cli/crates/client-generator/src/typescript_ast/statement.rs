@@ -60,7 +60,7 @@ impl<'a> From<Return<'a>> for StatementKind<'a> {
 #[cfg(test)]
 mod tests {
     use crate::test_helpers::{expect, expect_ts};
-    use crate::{expression::Value, statement::Conditional, Block};
+    use crate::typescript_ast::{expression::Value, statement::Conditional, Block};
 
     #[test]
     fn single_if() {

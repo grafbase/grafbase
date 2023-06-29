@@ -1,11 +1,6 @@
 use std::fmt::{self, Write};
 
-use crate::{
-    expression::{Expression, Value},
-    r#type::Type,
-    statement::{Assignment, Return, Statement},
-    Interface,
-};
+use super::{Assignment, Expression, Interface, Return, Statement, Type, Value};
 
 #[derive(Default)]
 pub struct Block<'a> {
@@ -139,12 +134,9 @@ impl<'a> fmt::Display for BlockItem<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_helpers::{expect, expect_ts};
     use crate::{
-        expression::{Object, Value},
-        r#type::{Property, StaticType},
-        statement::{Assignment, Statement},
-        Interface,
+        test_helpers::{expect, expect_ts},
+        typescript_ast::{Object, Property, StaticType},
     };
 
     #[test]

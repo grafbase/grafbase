@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt};
 
-use crate::r#type::{Property, StaticType};
+use crate::typescript_ast::r#type::{Property, StaticType};
 
 pub struct Interface<'a> {
     identifier: StaticType<'a>,
@@ -37,7 +37,7 @@ impl<'a> fmt::Display for Interface<'a> {
 #[cfg(test)]
 mod tests {
     use crate::test_helpers::{expect, expect_ts};
-    use crate::{
+    use crate::typescript_ast::{
         r#type::{ObjectTypeDef, Property, StaticType},
         statement::Export,
         Interface,

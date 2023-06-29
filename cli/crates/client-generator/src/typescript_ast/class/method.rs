@@ -1,9 +1,6 @@
 use std::{borrow::Cow, fmt};
 
-use crate::{
-    r#type::{Property, PropertyValue, TypeKind},
-    Block, FunctionBody,
-};
+use crate::typescript_ast::{Block, FunctionBody, Property, PropertyValue, TypeKind};
 
 use super::Privacy;
 

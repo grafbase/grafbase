@@ -1,20 +1,14 @@
-mod block;
-mod class;
-mod comment;
-mod common;
-mod document;
-mod r#enum;
 mod error;
-mod expression;
-mod function;
-mod import;
-mod interface;
-mod statement;
-mod transpile;
-mod r#type;
-
 #[cfg(test)]
 mod test_helpers;
+mod transpile;
+
+pub(crate) mod typescript_ast;
+
+pub type Result<T> = std::result::Result<T, GeneratorError>;
+
+pub use error::GeneratorError;
+pub use transpile::generate;
 
 use dprint_plugin_typescript::configuration::{
     Configuration, ConfigurationBuilder, QuoteStyle, SemiColons, TrailingCommas,
@@ -26,22 +20,7 @@ use expect_test as _;
 #[cfg(test)]
 use indoc as _;
 
-pub(crate) use block::Block;
-pub(crate) use class::Class;
-pub(crate) use common::{Identifier, Template};
-pub(crate) use document::Document;
-pub(crate) use error::GeneratorError;
-pub(crate) use expression::Expression;
-pub(crate) use function::{Function, FunctionBody};
-pub(crate) use import::Import;
-pub(crate) use interface::Interface;
-pub(crate) use r#enum::Enum;
-
-pub type Result<T> = std::result::Result<T, GeneratorError>;
-
-pub use transpile::generate;
-
-pub fn typescript_configuration() -> &'static Configuration {
+pub fn prettier_configuration() -> &'static Configuration {
     static TS_CONFIG: OnceLock<Configuration> = OnceLock::new();
 
     &*TS_CONFIG.get_or_init(|| {

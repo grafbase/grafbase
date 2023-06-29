@@ -1,7 +1,6 @@
 use async_graphql_parser::types::EnumType;
 
-use crate::r#enum::{Enum, EnumVariant};
-use crate::statement::Export;
+use crate::typescript_ast::{Enum, EnumVariant, Export};
 
 pub(crate) fn generate<'a>(name: &'a str, description: Option<&'a str>, obj: &'a EnumType) -> Export<'a> {
     let mut r#enum = Enum::new(name);

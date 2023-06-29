@@ -1,7 +1,7 @@
 use core::fmt;
 use std::fmt::Write;
 
-use crate::{Expression, Identifier};
+use crate::typescript_ast::{Expression, Identifier};
 
 pub struct Construct<'a> {
     identifier: Identifier<'a>,

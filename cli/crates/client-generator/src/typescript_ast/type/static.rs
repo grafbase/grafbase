@@ -3,8 +3,6 @@ use std::{
     fmt::{self, Write},
 };
 
-use async_graphql_parser::types::BaseType;
-
 use super::{TypeCondition, TypeIdentifier};
 
 #[derive(Clone, Debug)]
@@ -150,12 +148,12 @@ impl<'a> fmt::Display for StaticType<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::r#type::TypeIdentifier;
-    use crate::test_helpers::{expect, expect_raw_ts, expect_ts};
     use crate::{
-        r#type::{MappedType, Property, StaticType, Type, TypeCondition, TypeGenerator},
-        statement::Export,
+        test_helpers::{expect, expect_raw_ts, expect_ts},
+        typescript_ast::{Export, MappedType, Property, Type, TypeCondition, TypeGenerator, TypeIdentifier},
     };
+
+    use super::StaticType;
 
     #[test]
     fn property_type_map() {

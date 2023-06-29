@@ -3,10 +3,7 @@ use std::{
     fmt::{self, Write},
 };
 
-use crate::{
-    r#type::{Property, PropertyValue, TypeKind},
-    Block,
-};
+use super::{Block, Property, PropertyValue, TypeKind};
 
 pub struct Function<'a> {
     inner: FunctionBody<'a>,
@@ -71,12 +68,12 @@ impl<'a> fmt::Display for FunctionBody<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_helpers::{expect, expect_ts};
     use crate::{
-        r#type::StaticType,
-        statement::{Export, Return},
-        Block, Function, Identifier,
+        test_helpers::{expect, expect_ts},
+        typescript_ast::{Block, Export, Identifier, Return, StaticType},
     };
+
+    use super::Function;
 
     #[test]
     fn basic_function() {

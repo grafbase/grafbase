@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, fmt};
 
-use crate::common::{Identifier, Quoted};
+use super::common::{Identifier, Quoted};
 
 #[derive(Debug)]
 pub struct Import<'a> {
@@ -74,8 +74,8 @@ impl<'a> fmt::Display for ImportItems<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::Import;
     use crate::test_helpers::{expect, expect_ts};
-    use crate::Import;
 
     #[test]
     fn import_all() {

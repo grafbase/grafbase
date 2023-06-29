@@ -8,8 +8,9 @@ pub use equals::Equals;
 pub use r#typeof::TypeOf;
 pub use value::{Object, Value};
 
-use crate::{common::Identifier, Template};
 use std::fmt;
+
+use super::{Identifier, Template};
 
 pub struct Expression<'a> {
     kind: ExpressionKind<'a>,
@@ -88,13 +89,12 @@ impl<'a> From<Closure<'a>> for ExpressionKind<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_helpers::{expect, expect_ts, indoc};
     use crate::{
-        expression::{Closure, Equals, TypeOf, Value},
-        r#type::StaticType,
-        statement::{Assignment, Return},
-        Block, Identifier, Template,
+        test_helpers::{expect, expect_ts, indoc},
+        typescript_ast::{Assignment, Block, Identifier, Return, StaticType, Template},
     };
+
+    use super::{Closure, Equals, TypeOf, Value};
 
     #[test]
     fn strict_equals() {

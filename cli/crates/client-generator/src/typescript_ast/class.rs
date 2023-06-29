@@ -12,7 +12,7 @@ pub use method::Method;
 pub use privacy::Privacy;
 pub use property::ClassProperty;
 
-use crate::r#type::TypeIdentifier;
+use super::TypeIdentifier;
 
 pub struct Class<'a> {
     identifier: TypeIdentifier<'a>,
@@ -73,14 +73,15 @@ impl<'a> fmt::Display for Class<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_helpers::{expect, expect_ts};
     use crate::{
-        class::{ClassProperty, Construct, Constructor, Method},
-        expression::{Object, Value},
-        r#type::{StaticType, TypeIdentifier},
-        statement::{Assignment, Return},
-        Block, Class, Identifier,
+        test_helpers::{expect, expect_ts},
+        typescript_ast::{
+            class::{ClassProperty, Constructor, Method},
+            Assignment, Block, Class, Identifier, Object, Return, StaticType, TypeIdentifier, Value,
+        },
     };
+
+    use super::Construct;
 
     #[test]
     fn basic_class() {

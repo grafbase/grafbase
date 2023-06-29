@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 #[track_caller]
 pub fn expect_ts(result: impl ToString, expected: &Expect) {
-    let config = crate::typescript_configuration();
+    let config = crate::prettier_configuration();
     let result = dprint_plugin_typescript::format_text(&PathBuf::from("test.ts"), &result.to_string(), config)
         .unwrap()
         .unwrap();

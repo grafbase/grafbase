@@ -1,9 +1,7 @@
 use std::borrow::Cow;
 use std::fmt;
 
-use crate::common::Identifier;
-use crate::r#type::TypeKind;
-use crate::Expression;
+use crate::typescript_ast::{Expression, Identifier, TypeKind};
 
 pub struct Assignment<'a> {
     left: Identifier<'a>,

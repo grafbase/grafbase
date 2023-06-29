@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt};
 
-use crate::comment::CommentBlock;
+use crate::typescript_ast::CommentBlock;
 
 use super::{ObjectTypeDef, StaticType};
 

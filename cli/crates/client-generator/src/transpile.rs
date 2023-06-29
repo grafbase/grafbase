@@ -2,15 +2,42 @@ mod r#enum;
 mod input_type;
 mod r#type;
 
-use crate::{document::DocumentItem, r#type::StaticType, typescript_configuration, Document, GeneratorError, Result};
+use crate::{
+    prettier_configuration,
+    typescript_ast::{Document, DocumentItem, StaticType},
+    GeneratorError, Result,
+};
 use async_graphql_parser::types::{BaseType, TypeKind, TypeSystemDefinition};
 use std::path::PathBuf;
+
+#[derive(Default, Clone, Copy, Debug)]
+struct Schema<'a> {
+    query: Option<&'a str>,
+    mutation: Option<&'a str>,
+}
+
+impl<'a> Schema<'a> {
+    fn is_query_or_mutation(self, name: &'a str) -> bool {
+        let is_query = self.query.map(|query| query == name).unwrap_or_default();
+        let is_mutation = self.mutation.map(|mutation| mutation == name).unwrap_or_default();
+
+        is_query || is_mutation
+    }
+}
 
 /// Transpiles a GraphQL schema definition to TypeScript client schema.
 pub fn generate(graphql_schema: impl AsRef<str>) -> Result<String> {
     let graphql_schema = async_graphql_parser::parse_schema(graphql_schema).map_err(GeneratorError::GraphQLParse)?;
 
+    let mut schema = Schema::default();
     let mut document = Document::new();
+
+    for definition in &graphql_schema.definitions {
+        if let TypeSystemDefinition::Schema(ref schema_definition) = definition {
+            schema.query = schema_definition.node.query.as_ref().map(|name| name.node.as_str());
+            schema.mutation = schema_definition.node.mutation.as_ref().map(|name| name.node.as_str());
+        }
+    }
 
     for definition in &graphql_schema.definitions {
         match definition {
@@ -19,6 +46,11 @@ pub fn generate(graphql_schema: impl AsRef<str>) -> Result<String> {
 
                 let node = &type_definition.node;
                 let name = node.name.node.as_str();
+
+                if schema.is_query_or_mutation(name) {
+                    continue;
+                }
+
                 let description = node.description.as_ref().map(|description| description.node.as_str());
 
                 let item: DocumentItem<'_> = match &node.kind {
@@ -38,7 +70,7 @@ pub fn generate(graphql_schema: impl AsRef<str>) -> Result<String> {
     }
 
     let result = document.to_string();
-    let result = dprint_plugin_typescript::format_text(&PathBuf::from("test.ts"), &result, typescript_configuration())
+    let result = dprint_plugin_typescript::format_text(&PathBuf::from("test.ts"), &result, prettier_configuration())
         .map_err(|e| GeneratorError::TypeScriptGenerate(e.to_string()))?
         .unwrap_or(result);
 

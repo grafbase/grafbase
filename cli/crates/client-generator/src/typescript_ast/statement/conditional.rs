@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{Block, Expression};
+use crate::typescript_ast::{Block, Expression};
 
 pub struct Conditional<'a> {
     first_branch: (Expression<'a>, Block<'a>),

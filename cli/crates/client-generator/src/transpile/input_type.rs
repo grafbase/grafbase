@@ -1,10 +1,6 @@
 use async_graphql_parser::types::InputObjectType;
 
-use crate::{
-    r#type::{Property, StaticType},
-    statement::Export,
-    Interface,
-};
+use crate::typescript_ast::{Export, Interface, Property, StaticType};
 
 /// Transpiles a GraphQL input type into TypeScript interface.
 pub(super) fn generate<'a>(name: &'a str, description: Option<&'a str>, object: &'a InputObjectType) -> Export<'a> {

@@ -3,7 +3,7 @@ use std::{
     fmt::{self, Write},
 };
 
-use crate::{comment::CommentBlock, common::Identifier};
+use super::{comment::CommentBlock, Identifier};
 
 pub struct EnumVariant<'a> {
     identifier: Identifier<'a>,

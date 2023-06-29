@@ -1,10 +1,6 @@
 use std::fmt;
 
-use crate::{
-    r#type::Type,
-    statement::{Assignment, Export},
-    Class, Function, Import, Interface,
-};
+use super::{Assignment, Class, Export, Function, Import, Interface, Type};
 
 #[derive(Default)]
 pub struct Document<'a> {

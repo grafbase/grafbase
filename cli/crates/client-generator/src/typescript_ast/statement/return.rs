@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::Expression;
+use crate::typescript_ast::Expression;
 
 pub struct Return<'a> {
     expression: Expression<'a>,

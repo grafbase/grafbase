@@ -1,6 +1,6 @@
 use std::fmt::{self, Write};
 
-use crate::{block::Block, common::Identifier, r#type::TypeKind};
+use crate::typescript_ast::{Block, Identifier, TypeKind};
 
 #[derive(Default)]
 pub struct Closure<'a> {

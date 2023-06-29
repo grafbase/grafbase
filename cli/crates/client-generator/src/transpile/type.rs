@@ -1,10 +1,5 @@
+use crate::typescript_ast::{Export, Interface, Property, StaticType};
 use async_graphql_parser::types::ObjectType;
-
-use crate::{
-    interface::Interface,
-    r#type::{Property, StaticType},
-    statement::Export,
-};
 
 /// Transpiles a GraphQL type definition into TypeScript interface.
 pub(crate) fn generate<'a>(name: &'a str, description: Option<&'a str>, object: &'a ObjectType) -> Export<'a> {

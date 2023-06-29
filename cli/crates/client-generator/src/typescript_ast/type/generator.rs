@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::common::Identifier;
+use crate::typescript_ast::Identifier;
 
 use super::StaticType;
 

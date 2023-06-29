@@ -1,7 +1,7 @@
 use core::fmt;
 use std::borrow::Cow;
 
-use crate::r#type::{Property, PropertyValue};
+use crate::typescript_ast::{Property, PropertyValue};
 
 use super::Privacy;
 

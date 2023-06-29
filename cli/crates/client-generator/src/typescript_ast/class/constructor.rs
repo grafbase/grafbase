@@ -1,9 +1,6 @@
 use std::{borrow::Cow, fmt};
 
-use crate::{
-    r#type::{Property, PropertyValue},
-    Block, FunctionBody,
-};
+use crate::typescript_ast::{Block, FunctionBody, Property, PropertyValue};
 
 pub struct Constructor<'a> {
     inner: FunctionBody<'a>,

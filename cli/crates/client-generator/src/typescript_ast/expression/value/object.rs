@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt};
 
-use crate::{common::Identifier, expression::Expression};
+use crate::typescript_ast::{common::Identifier, expression::Expression};
 
 pub struct Object<'a> {
     entries: Vec<Entry<'a>>,

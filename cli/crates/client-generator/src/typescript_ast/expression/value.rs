@@ -3,7 +3,7 @@ mod object;
 pub use object::Object;
 use std::fmt;
 
-use crate::common::{Quoted, Template};
+use crate::typescript_ast::common::{Quoted, Template};
 
 pub struct Value<'a> {
     kind: ValueKind<'a>,
@@ -99,7 +99,7 @@ impl From<f64> for ValueKind<'static> {
 
 #[cfg(test)]
 mod tests {
-    use crate::expression::Value;
+    use super::Value;
     use crate::test_helpers::{expect, expect_ts};
 
     #[test]
