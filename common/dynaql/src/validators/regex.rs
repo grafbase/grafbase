@@ -1,8 +1,8 @@
 use regex::Regex;
 
-use crate::{InputType, InputValueError};
+use crate::{InputValueError, LegacyInputType};
 
-pub fn regex<T: AsRef<str> + InputType>(
+pub fn regex<T: AsRef<str> + LegacyInputType>(
     value: &T,
     regex: &'static str,
 ) -> Result<(), InputValueError<T>> {

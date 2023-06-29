@@ -7,12 +7,12 @@ use dynaql::registry::resolvers::query::{
     QueryResolver, SEARCH_RESOLVER_EDGES, SEARCH_RESOLVER_EDGE_CURSOR, SEARCH_RESOLVER_EDGE_SCORE,
     SEARCH_RESOLVER_TOTAL_HITS,
 };
-use dynaql::registry::{self, InputObjectType, MetaTypeName, Registry};
+use dynaql::registry::{self, InputObjectType, MetaTypeName, NamedType, Registry};
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
 };
 use dynaql::{AuthConfig, Positioned};
-use dynaql_parser::types::{FieldDefinition, Type, TypeDefinition};
+use dynaql_parser::types::{FieldDefinition, TypeDefinition};
 use grafbase::auth::Operations;
 use grafbase_runtime::search;
 
@@ -31,6 +31,7 @@ use crate::rules::cache_directive::CacheDirective;
 use crate::rules::model_directive::{METADATA_FIELD_CREATED_AT, METADATA_FIELD_UPDATED_AT};
 use crate::rules::search_directive::SEARCH_DIRECTIVE;
 use crate::rules::visitor::VisitorContext;
+use crate::type_names::TypeNameExt;
 
 enum FilterKind {
     Single { scalar: String, is_nullable: bool },
@@ -246,7 +247,7 @@ pub fn add_query_search(
 
             args.into_iter().map(|input| (input.name.clone(), input)).collect()
         },
-        ty: connection_type,
+        ty: connection_type.into(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
         cache_control: CacheDirective::parse(&model_type_definition.directives),
         external: false,
@@ -288,7 +289,9 @@ fn register_connection_type(
         |registry| {
             let edge_type = register_edge_type(registry, model_type_definition, model_auth);
             let search_info_type = register_search_info(registry);
-            let page_info_type = Type::required(super::pagination::register_page_info_type(registry)).to_string();
+            let page_info_type = super::pagination::register_page_info_type(registry)
+                .as_non_null()
+                .into();
             registry::ObjectType::new(
                 type_name.clone(),
                 [
@@ -301,14 +304,14 @@ fn register_connection_type(
                     },
                     MetaField {
                         name: PAGINATION_FIELD_SEARCH_INFO.to_string(),
-                        ty: search_info_type,
+                        ty: search_info_type.as_nullable().into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         ..Default::default()
                     },
                     MetaField {
                         name: PAGINATION_FIELD_EDGES.to_string(),
-                        ty: format!("[{edge_type}!]!"),
+                        ty: format!("[{edge_type}!]!").into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         resolve: Some(Resolver {
@@ -331,7 +334,7 @@ fn register_connection_type(
     type_name
 }
 
-fn register_search_info(registry: &mut Registry) -> String {
+fn register_search_info(registry: &mut Registry) -> NamedType<'static> {
     let type_name = SEARCH_INFO_TYPE.to_string();
     registry.create_type(
         |_| {
@@ -339,7 +342,7 @@ fn register_search_info(registry: &mut Registry) -> String {
                 type_name.clone(),
                 [MetaField {
                     name: SEARCH_INFO_FIELD_TOTAL_HITS.to_string(),
-                    ty: "Int!".to_string(),
+                    ty: "Int!".into(),
                     resolve: Some(Resolver {
                         id: None,
                         r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
@@ -355,7 +358,7 @@ fn register_search_info(registry: &mut Registry) -> String {
         &type_name,
     );
 
-    type_name
+    type_name.into()
 }
 
 fn register_edge_type(
@@ -364,6 +367,7 @@ fn register_edge_type(
     model_auth: Option<&AuthConfig>,
 ) -> String {
     let type_name = MetaNames::search_edge_type(model_type_definition);
+    let model_name = NamedType::from(MetaNames::model(model_type_definition));
     registry.create_type(
         |_| {
             registry::ObjectType::new(
@@ -371,14 +375,14 @@ fn register_edge_type(
                 [
                     MetaField {
                         name: PAGINATION_FIELD_EDGE_NODE.to_string(),
-                        ty: format!("{}!", MetaNames::model(model_type_definition)),
+                        ty: model_name.as_non_null().into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         ..Default::default()
                     },
                     MetaField {
                         name: PAGINATION_FIELD_EDGE_CURSOR.to_string(),
-                        ty: "String!".to_string(),
+                        ty: "String!".into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         resolve: Some(Resolver {
@@ -391,7 +395,7 @@ fn register_edge_type(
                     },
                     MetaField {
                         name: PAGINATION_FIELD_EDGE_SEARCH_SCORE.to_string(),
-                        ty: "Float!".to_string(),
+                        ty: "Float!".into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         resolve: Some(Resolver {

@@ -13,7 +13,7 @@ use crate::parser::types::Selection;
 use crate::registry::resolvers::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::registry::MetaType;
 use crate::{
-    relations_edges, Context, ContextBase, ContextSelectionSet, Error, Name, OutputType,
+    relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name,
     ServerError, ServerResult, Value,
 };
 
@@ -22,7 +22,7 @@ use crate::{
 /// This helper trait allows the type to call `resolve_container` on itself in its
 /// `OutputType::resolve` implementation.
 #[async_trait::async_trait]
-pub trait ContainerType: OutputType {
+pub trait ContainerType: LegacyOutputType {
     /// This function returns true of type `EmptyMutation` only.
     #[doc(hidden)]
     fn is_empty() -> bool {
@@ -194,8 +194,8 @@ async fn resolve_container_inner<'a>(
                     ResponseNodeRelation::relation(
                         name,
                         relation.name.clone(),
-                        relation.relation.0.clone(),
-                        relation.relation.1.clone(),
+                        relation.relation.0.as_ref().map(ToString::to_string),
+                        relation.relation.1.to_string(),
                     ),
                     value,
                 );
@@ -221,8 +221,8 @@ async fn resolve_container_inner<'a>(
                     ResponseNodeRelation::relation(
                         name,
                         relation.name.clone(),
-                        relation.relation.0.clone(),
-                        relation.relation.1.clone(),
+                        relation.relation.0.as_ref().map(ToString::to_string),
+                        relation.relation.1.to_string(),
                     ),
                     value,
                 );

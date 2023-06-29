@@ -61,7 +61,7 @@ impl<'ctx, 'a> Visitor<'ctx> for ComplexityCalculate<'ctx, 'a> {
                             *self.complexity_stack.last_mut().unwrap() += n;
                         }
                         ComplexityType::Fn(f) => {
-                            if MetaTypeName::create(&meta_field.ty).is_list() {
+                            if meta_field.ty.is_list() {
                                 match f(
                                     ctx,
                                     self.variable_definition.unwrap(),

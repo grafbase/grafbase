@@ -1,8 +1,8 @@
-use crate::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
+use crate::{InputValueError, InputValueResult, LegacyScalarType, Scalar, Value};
 
 /// The `Boolean` scalar type represents `true` or `false`.
 #[Scalar(internal, name = "Boolean")]
-impl ScalarType for bool {
+impl LegacyScalarType for bool {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Boolean(n) => Ok(n),

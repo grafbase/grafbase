@@ -18,12 +18,11 @@ use query_planning::{
     scalar::{graphql::GraphQLScalars, ScalarValue},
 };
 
-use crate::model::__Schema;
 use crate::parser::types::Selection;
+use crate::{model::__Schema, registry::TypeReference};
 
-use crate::registry::utils::type_to_base_type;
 use crate::registry::MetaType;
-use crate::{ContextField, ContextSelectionSet, OutputType, ServerError, ServerResult};
+use crate::{ContextField, ContextSelectionSet, LegacyOutputType, ServerError, ServerResult};
 
 use auth::AuthContext;
 
@@ -271,7 +270,7 @@ pub async fn build_plan_for_field<'a>(
     if ctx.item.node.name.node == "__schema" {
         let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
         let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-        let node_id = OutputType::resolve(
+        let node_id = LegacyOutputType::resolve(
             &__Schema::new(&ctx.schema_env.registry, &visible_types),
             &ctx_obj,
             ctx.item,
@@ -310,7 +309,7 @@ pub async fn build_plan_for_field<'a>(
         let associated_meta_ty = ctx
             .registry()
             .types
-            .get(&type_to_base_type(&associated_meta_field.ty).unwrap_or_default())
+            .get(associated_meta_field.ty.named_type().as_str())
             .ok_or_else(|| {
                 ServerError::new(
                     format!(
@@ -334,7 +333,7 @@ pub async fn build_plan_for_field<'a>(
 
     use dynaql_parser::types::Type;
     use query_planning::scalar::graphql::as_graphql_scalar;
-    let ty = Type::new(&associated_meta_field.ty).ok_or_else(|| {
+    let ty = Type::new(&associated_meta_field.ty.to_string()).ok_or_else(|| {
         ServerError::new(
             format!(
                 "Can't find the associated type for field: {}",

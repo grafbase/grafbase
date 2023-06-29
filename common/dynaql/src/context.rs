@@ -31,13 +31,13 @@ use crate::registry::plan::SchemaPlan;
 use crate::registry::relations::MetaRelation;
 use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::{ResolvedValue, Resolver};
-use crate::registry::{get_basic_type, MetaInputValue, MetaType};
+use crate::registry::{MetaInputValue, MetaType, TypeReference};
 use crate::registry::{Registry, SchemaID};
 use crate::resolver_utils::{resolve_input, InputResolveMode};
 use crate::schema::SchemaEnv;
 use crate::{
-    CacheInvalidation, Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result,
-    ServerError, ServerResult, UploadValue, Value,
+    CacheInvalidation, Error, LegacyInputType, Lookahead, Name, PathSegment, Pos, Positioned,
+    Result, ServerError, ServerResult, UploadValue, Value,
 };
 
 use arrow_schema::Schema as ArrowSchema;
@@ -471,9 +471,7 @@ impl<'a, T> ContextBase<'a, T> {
 
         let meta_field = ty.and_then(|ty| ty.field_by_name(&field.node.name.node));
 
-        let meta = meta_field
-            .map(|x| get_basic_type(x.ty.as_str()))
-            .and_then(|x| registry.types.get(x));
+        let meta = meta_field.and_then(|field| registry.types.get(field.ty.named_type().as_str()));
 
         ContextBase {
             path_node: Some(QueryPathNode {
@@ -749,7 +747,7 @@ impl<'a, T> ContextBase<'a, T> {
     }
 
     #[doc(hidden)]
-    fn get_param_value<Q: InputType>(
+    fn get_param_value<Q: LegacyInputType>(
         &self,
         arguments: &[(Positioned<Name>, Positioned<InputValue>)],
         name: &str,
@@ -771,7 +769,7 @@ impl<'a, T> ContextBase<'a, T> {
             None => (Pos::default(), None),
         };
 
-        InputType::parse(value)
+        LegacyInputType::parse(value)
             .map(|value| (pos, value))
             .map_err(|e| e.into_server_error(pos))
     }
@@ -1319,7 +1317,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     }
 
     #[doc(hidden)]
-    pub fn param_value<T: InputType>(
+    pub fn param_value<T: LegacyInputType>(
         &self,
         name: &str,
         default: Option<fn() -> T>,
@@ -1464,7 +1462,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
 impl<'a> ContextBase<'a, &'a Positioned<Directive>> {
     #[doc(hidden)]
-    pub fn param_value<T: InputType>(
+    pub fn param_value<T: LegacyInputType>(
         &self,
         name: &str,
         default: Option<fn() -> T>,

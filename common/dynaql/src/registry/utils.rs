@@ -1,16 +1,4 @@
 pub use dynamodb::{attribute_to_value, value_to_attribute};
-use dynaql_parser::types::{BaseType, Type};
-
-fn to_base_type_str(ty: &BaseType) -> String {
-    match ty {
-        BaseType::Named(name) => name.to_string(),
-        BaseType::List(ty_list) => to_base_type_str(&ty_list.base),
-    }
-}
-
-pub fn type_to_base_type(value: &str) -> Option<String> {
-    Type::new(value).map(|x| to_base_type_str(&x.base))
-}
 
 /// Merge JSON together
 pub fn merge(a: &mut serde_json::Value, b: serde_json::Value) {

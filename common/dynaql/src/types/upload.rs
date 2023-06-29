@@ -5,7 +5,7 @@ use std::io::Read;
 #[cfg(feature = "unblock")]
 use futures_util::io::AsyncRead;
 
-use crate::{registry, Context, InputType, InputValueError, InputValueResult, Value};
+use crate::{registry, Context, InputValueError, InputValueResult, LegacyInputType, Value};
 
 /// A file upload value.
 pub struct UploadValue {
@@ -101,7 +101,7 @@ impl Upload {
     }
 }
 
-impl InputType for Upload {
+impl LegacyInputType for Upload {
     type RawValueType = Self;
 
     fn type_name() -> Cow<'static, str> {

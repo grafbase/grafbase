@@ -2,7 +2,7 @@ use dynaql::indexmap::IndexMap;
 use dynaql::model::{__Schema, __Type};
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::{ConnectorIdGenerator, MetaField, MetaInputValue, Registry, SchemaID, SchemaIDGenerator};
-use dynaql::{Name, OutputType, Pos, Positioned, Schema};
+use dynaql::{LegacyOutputType, Name, Pos, Positioned, Schema};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,

@@ -393,7 +393,7 @@ fn meta_field(name: String, ty: String) -> MetaField {
         name,
         description: None,
         args: IndexMap::new(),
-        ty,
+        ty: ty.into(),
         deprecation: NoDeprecated,
         cache_control: Default::default(),
         external: false,

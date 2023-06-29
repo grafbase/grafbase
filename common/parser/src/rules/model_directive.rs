@@ -115,7 +115,7 @@ fn insert_metadata_field(
             name: field_name.to_owned(),
             description,
             args: Default::default(),
-            ty: ty.to_owned(),
+            ty: ty.into(),
             deprecation: Default::default(),
             cache_control: Default::default(),
             external: false,
@@ -319,10 +319,12 @@ impl<'a> Visitor<'a> for ModelDirective {
                                             ty,
                                             CacheDirective::parse(&field.node.directives),
                                             SchemaPlan::related(
-                                                Some(ctx.get_schema_id(relation.relation.0.clone().unwrap())),
-                                                ctx.get_schema_id(relation.relation.1.clone()),
+                                                Some(
+                                                    ctx.get_schema_id(relation.relation.0.clone().unwrap().to_string()),
+                                                ),
+                                                ctx.get_schema_id(relation.relation.1.clone().to_string()),
                                                 Some(relation.name),
-                                                relation.relation.1,
+                                                relation.relation.1.to_string(),
                                             ),
                                         )
                                     })
@@ -351,7 +353,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 name: name.clone(),
                                 description: field.node.description.clone().map(|x| x.node),
                                 args,
-                                ty,
+                                ty: ty.into(),
                                 cache_control,
                                 resolve: Some(resolver),
                                 edges,
@@ -462,7 +464,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     );
                     args
                 },
-                ty: type_name.clone(),
+                ty: type_name.clone().into(),
                 deprecation: dynaql::registry::Deprecation::NoDeprecated,
                 cache_control: model_cache.clone(),
                 resolve: Some(Resolver {

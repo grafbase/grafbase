@@ -62,7 +62,7 @@ impl From<cynic_introspection::Field> for MetaField {
                 .into_iter()
                 .map(|v| (v.name.clone(), v.into()))
                 .collect(),
-            ty: field.ty.to_string(),
+            ty: field.ty.to_string().into(),
             deprecation: field.deprecated.into(),
             ..Default::default()
         }

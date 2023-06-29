@@ -38,7 +38,7 @@ impl<'a> __Field<'a> {
 
     #[graphql(name = "type")]
     async fn ty(&self) -> __Type<'a> {
-        __Type::new(self.registry, self.visible_types, &self.field.ty)
+        __Type::new(self.registry, self.visible_types, &self.field.ty.as_str())
     }
 
     #[inline]

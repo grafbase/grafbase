@@ -289,7 +289,7 @@ impl Parser {
             MetaField {
                 name: prefix.to_camel_case(),
                 description: Some(format!("Access to embedded {prefix} API.")),
-                ty: format!("{}{}!", prefix.to_pascal_case(), &registry.query_type),
+                ty: format!("{}{}!", prefix.to_pascal_case(), &registry.query_type).into(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolve: Some(Resolver {
@@ -351,7 +351,7 @@ impl Parser {
             MetaField {
                 name: prefix.to_camel_case(),
                 description: Some(format!("Access to embedded {prefix} API.")),
-                ty: format!("{}{mutation_type}!", prefix.to_pascal_case()),
+                ty: format!("{}{mutation_type}!", prefix.to_pascal_case()).into(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolve: Some(Resolver {

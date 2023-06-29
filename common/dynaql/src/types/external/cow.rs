@@ -3,20 +3,20 @@ use std::borrow::Cow;
 use dynaql_parser::types::Field;
 use graph_entities::ResponseNodeId;
 
-use crate::{registry, ContextSelectionSet, OutputType, Positioned, ServerResult};
+use crate::{registry, ContextSelectionSet, LegacyOutputType, Positioned, ServerResult};
 
 #[async_trait::async_trait]
-impl<'a, T> OutputType for Cow<'a, T>
+impl<'a, T> LegacyOutputType for Cow<'a, T>
 where
-    T: OutputType + ToOwned + ?Sized,
+    T: LegacyOutputType + ToOwned + ?Sized,
     <T as ToOwned>::Owned: Send + Sync,
 {
     fn type_name() -> Cow<'static, str> {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
-        <T as OutputType>::create_type_info(registry)
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType {
+        <T as LegacyOutputType>::create_type_info(registry)
     }
 
     async fn resolve(

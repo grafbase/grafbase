@@ -90,7 +90,7 @@ pub fn add_remove_mutation(
                     description: None,
                     args: Default::default(),
                     // TODO: Should be infered from the entity depending on the directives
-                    ty: "ID!".to_string(),
+                    ty: "ID!".into(),
                     deprecation: Default::default(),
                     cache_control: cache_control.clone(),
                     external: false,
@@ -127,7 +127,7 @@ pub fn add_remove_mutation(
             );
             args
         },
-        ty: delete_payload_name,
+        ty: delete_payload_name.into(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
         cache_control,
         external: false,
@@ -140,7 +140,7 @@ pub fn add_remove_mutation(
         resolve: Some(Resolver {
             id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::DeleteNode {
-                ty: type_name.to_string(),
+                ty: type_name.into(),
                 by: VariableResolveDefinition::InputTypeName("by".to_owned()),
             }),
         }),

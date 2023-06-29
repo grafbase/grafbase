@@ -184,9 +184,7 @@ impl Registry {
                         output.push(' ');
                         let parent_type = parent_type
                             .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()))
-                            .and_then(|field| {
-                                self.types.get(MetaTypeName::concrete_typename(&field.ty))
-                            });
+                            .and_then(|field| self.lookup(&field.ty).ok());
                         self.stringify_selection_set(
                             output,
                             variables,

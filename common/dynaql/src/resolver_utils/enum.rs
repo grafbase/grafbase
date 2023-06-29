@@ -2,7 +2,7 @@ use graph_entities::{CompactValue, ResponseNodeId};
 use query_planning::reexport::internment::ArcIntern;
 
 use crate::{
-    context::ContextSelectionSet, InputType, InputValueError, InputValueResult, Name, Value,
+    context::ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, Name, Value,
 };
 
 /// A variant of an enum.
@@ -14,7 +14,7 @@ pub struct EnumItem<T> {
 }
 
 /// A GraphQL enum.
-pub trait EnumType: Sized + Eq + Send + Copy + 'static {
+pub trait LegacyEnumType: Sized + Eq + Send + Copy + 'static {
     /// Get a list of possible variants of the enum and their values.
     fn items() -> &'static [EnumItem<Self>];
 }
@@ -22,7 +22,7 @@ pub trait EnumType: Sized + Eq + Send + Copy + 'static {
 /// Parse a value as an enum value.
 ///
 /// This can be used to implement `InputType::parse`.
-pub fn parse_enum<T: EnumType + InputType>(value: Value) -> InputValueResult<T> {
+pub fn parse_enum<T: LegacyEnumType + LegacyInputType>(value: Value) -> InputValueResult<T> {
     let value = match &value {
         Value::Enum(s) => s,
         Value::String(s) => s.as_str(),
@@ -43,12 +43,12 @@ pub fn parse_enum<T: EnumType + InputType>(value: Value) -> InputValueResult<T> 
 /// Convert the enum value into a GraphQL value.
 ///
 /// This can be used to implement `InputType::to_value` or `OutputType::resolve`.
-pub fn enum_value<T: EnumType>(value: T) -> Value {
+pub fn enum_value<T: LegacyEnumType>(value: T) -> Value {
     let item = T::items().iter().find(|item| item.value == value).unwrap();
     Value::Enum(Name::new(item.name))
 }
 
-pub async fn enum_value_node<'a, T: EnumType>(
+pub async fn enum_value_node<'a, T: LegacyEnumType>(
     ctx: &ContextSelectionSet<'a>,
     value: T,
 ) -> ResponseNodeId {

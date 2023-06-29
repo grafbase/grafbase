@@ -6,6 +6,10 @@ use crate::{ContextSelectionSet, InputValueResult, ServerResult, Value};
 ///
 /// You can implement the trait to create a custom scalar.
 ///
+/// This is mostly unused these days - a leftover from the origins of this crate.
+/// Introspection does still run through this trait though, so until we replace that
+/// we can't get rid of it.
+///
 /// # Examples
 ///
 /// ```rust, ignore
@@ -29,7 +33,7 @@ use crate::{ContextSelectionSet, InputValueResult, ServerResult, Value};
 ///     }
 /// }
 /// ```
-pub trait ScalarType: Sized + Send {
+pub trait LegacyScalarType: Sized + Send {
     /// Parse a scalar value.
     fn parse(value: Value) -> InputValueResult<Self>;
 

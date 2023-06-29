@@ -30,10 +30,10 @@ pub use min_password_strength::min_password_strength;
 pub use minimum::minimum;
 pub use multiple_of::multiple_of;
 
-use crate::InputType;
+use crate::LegacyInputType;
 
 /// Represents a custom input value validator.
-pub trait CustomValidator<T: InputType> {
+pub trait CustomValidator<T: LegacyInputType> {
     /// Check the value is valid.
     fn check(&self, value: &T) -> Result<(), String>;
 }

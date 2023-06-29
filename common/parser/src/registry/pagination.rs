@@ -4,7 +4,7 @@ use dynaql::registry::enums::OrderByDirection;
 use dynaql::registry::plan::{PaginationPage, SchemaPlan};
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
-use dynaql::registry::{self, InputObjectType, Registry};
+use dynaql::registry::{self, InputObjectType, NamedType, Registry};
 use dynaql::registry::{
     resolvers::context_data::ContextDataResolver, resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver,
     resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
@@ -21,6 +21,7 @@ use crate::registry::names::{
 use crate::rules::cache_directive::CacheDirective;
 use crate::rules::model_directive::METADATA_FIELD_CREATED_AT;
 use crate::rules::visitor::VisitorContext;
+use crate::type_names::TypeNameExt;
 
 use super::names::{
     PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST,
@@ -32,8 +33,9 @@ fn register_edge_type(
     registry: &mut Registry,
     model_type_definition: &TypeDefinition,
     model_auth: Option<&AuthConfig>,
-) -> BaseType {
+) -> NamedType<'static> {
     let type_name = MetaNames::pagination_edge_type(model_type_definition);
+    let model_name = NamedType::from(MetaNames::model(model_type_definition));
     registry.create_type(
         |_| {
             registry::ObjectType::new(
@@ -41,14 +43,14 @@ fn register_edge_type(
                 [
                     MetaField {
                         name: PAGINATION_FIELD_EDGE_NODE.to_string(),
-                        ty: format!("{}!", MetaNames::model(model_type_definition)),
+                        ty: model_name.as_non_null().into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         ..Default::default()
                     },
                     MetaField {
                         name: PAGINATION_FIELD_EDGE_CURSOR.to_string(),
-                        ty: "String!".to_string(),
+                        ty: "String!".into(),
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
@@ -77,10 +79,10 @@ fn register_edge_type(
         &type_name,
         &type_name,
     );
-    BaseType::named(&type_name)
+    type_name.into()
 }
 
-pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
+pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'static> {
     registry.create_type(
         |_| {
             registry::ObjectType::new(
@@ -88,7 +90,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                 [
                     MetaField {
                         name: PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE.to_string(),
-                        ty: "Boolean!".to_string(),
+                        ty: "Boolean!".into(),
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -106,7 +108,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                     },
                     MetaField {
                         name: PAGE_INFO_FIELD_HAS_NEXT_PAGE.to_string(),
-                        ty: "Boolean!".to_string(),
+                        ty: "Boolean!".into(),
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -121,7 +123,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                     },
                     MetaField {
                         name: PAGE_INFO_FIELD_START_CURSOR.to_string(),
-                        ty: "String".to_string(),
+                        ty: "String".into(),
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -139,7 +141,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                     },
                     MetaField {
                         name: PAGE_INFO_FIELD_END_CURSOR.to_string(),
-                        ty: "String".to_string(),
+                        ty: "String".into(),
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -162,7 +164,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
         PAGE_INFO_TYPE,
         PAGE_INFO_TYPE,
     );
-    BaseType::named(PAGE_INFO_TYPE)
+    PAGE_INFO_TYPE.into()
 }
 
 fn register_connection_type(
@@ -170,7 +172,7 @@ fn register_connection_type(
     model_type_definition: &TypeDefinition,
     _connection_edges: Vec<String>,
     model_auth: Option<&AuthConfig>,
-) -> BaseType {
+) -> NamedType<'static> {
     let type_name = MetaNames::pagination_connection_type(model_type_definition);
 
     registry.create_type(
@@ -183,7 +185,7 @@ fn register_connection_type(
                     MetaField {
                         name: PAGINATION_FIELD_PAGE_INFO.to_string(),
                         description: Some("Information to aid in pagination".to_string()),
-                        ty: Type::required(page_info_type).to_string(),
+                        ty: page_info_type.as_non_null().into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         ..Default::default()
@@ -191,7 +193,7 @@ fn register_connection_type(
                     MetaField {
                         name: PAGINATION_FIELD_EDGES.to_string(),
                         // TODO: Should this be really nullable?
-                        ty: Type::nullable(BaseType::list(Type::nullable(edge_type))).to_string(),
+                        ty: edge_type.as_nullable().list().into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         ..Default::default()
@@ -205,7 +207,7 @@ fn register_connection_type(
         &type_name,
     );
 
-    BaseType::named(&type_name)
+    type_name.into()
 }
 
 /// Add a query to list a Collection with Relay specification and pagination
@@ -243,7 +245,7 @@ pub fn add_query_paginated_collection(
         description: Some(format!("Paginated query to fetch the whole list of `{type_name}`.")),
         args: generate_pagination_args(ctx.registry.get_mut(), model_type_definition),
         // TODO: Should this be really nullable?
-        ty: Type::nullable(connection_type).to_string(),
+        ty: connection_type.as_nullable().into(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
         cache_control,
         external: false,

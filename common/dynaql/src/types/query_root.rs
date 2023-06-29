@@ -8,8 +8,8 @@ use crate::model::{__Schema, __Type};
 use crate::parser::types::Field;
 use crate::resolver_utils::ContainerType;
 use crate::{
-    registry, Any, Context, ContextSelectionSet, ObjectType, OutputType, Positioned, ServerError,
-    ServerResult, SimpleObject, Value,
+    registry, Any, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned,
+    ServerError, ServerResult, SimpleObject, Value,
 };
 
 /// Federation service
@@ -31,7 +31,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
 
-                return OutputType::resolve(
+                return LegacyOutputType::resolve(
                     &__Schema::new(&ctx.schema_env.registry, &visible_types),
                     &ctx_obj,
                     ctx.item,
@@ -42,7 +42,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-                return OutputType::resolve(
+                return LegacyOutputType::resolve(
                     &ctx.schema_env
                         .registry
                         .types
@@ -72,7 +72,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 return Ok(Some(field_into_node(Value::List(values), ctx).await));
             } else if ctx.item.node.name.node == "_service" {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-                return OutputType::resolve(
+                return LegacyOutputType::resolve(
                     &Service {
                         sdl: Some(ctx.schema_env.registry.export_sdl(true)),
                     },
@@ -108,12 +108,12 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: ObjectType> OutputType for QueryRoot<T> {
+impl<T: ObjectType> LegacyOutputType for QueryRoot<T> {
     fn type_name() -> Cow<'static, str> {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType {
         let root = T::create_type_info(registry);
 
         if !registry.disable_introspection {
@@ -162,7 +162,7 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                             );
                             args
                         },
-                        ty: "__Type".to_string(),
+                        ty: "__Type".into(),
                         deprecation: Default::default(),
                         cache_control: Default::default(),
                         external: false,

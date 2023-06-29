@@ -117,7 +117,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
     let visible = visible_fn(&enum_args.visible);
     let expanded = quote! {
         #[allow(clippy::all, clippy::pedantic)]
-        impl #crate_name::resolver_utils::EnumType for #ident {
+        impl #crate_name::resolver_utils::LegacyEnumType for #ident {
             fn items() -> &'static [#crate_name::resolver_utils::EnumItem<#ident>] {
                 &[#(#items),*]
             }
@@ -129,7 +129,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                 ::std::borrow::Cow::Borrowed(#gql_typename)
             }
 
-            fn __create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn __create_type_info(registry: &mut #crate_name::registry::Registry) -> String {
                 registry.create_input_type::<Self, _>(|registry| {
                     #crate_name::registry::MetaType::Enum(#crate_name::registry::EnumType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -147,7 +147,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
         }
 
         #[allow(clippy::all, clippy::pedantic)]
-        impl #crate_name::InputType for #ident {
+        impl #crate_name::LegacyInputType for #ident {
             type RawValueType = Self;
 
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
@@ -172,13 +172,13 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
         }
 
         #[#crate_name::async_trait::async_trait]
-        impl #crate_name::OutputType for #ident {
+        impl #crate_name::LegacyOutputType for #ident {
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                 Self::__type_name()
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
-                Self::__create_type_info(registry)
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
+                Self::__create_type_info(registry).into()
             }
 
             async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {

@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use bson::oid::{self, ObjectId};
 use serde::{Deserialize, Serialize};
 
-use crate::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
+use crate::{InputValueError, InputValueResult, LegacyScalarType, Scalar, Value};
 
 /// ID scalar
 ///
@@ -81,7 +81,7 @@ impl PartialEq<&str> for ID {
 }
 
 #[Scalar(internal, name = "ID")]
-impl ScalarType for ID {
+impl LegacyScalarType for ID {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) if n.is_i64() => Ok(ID(n.to_string())),

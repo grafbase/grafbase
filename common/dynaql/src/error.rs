@@ -7,7 +7,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{parser, InputType, Pos, Value};
+use crate::{parser, LegacyInputType, Pos, Value};
 
 /// Extensions to the error.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -198,7 +198,7 @@ impl<T> InputValueError<T> {
     }
 }
 
-impl<T: InputType> InputValueError<T> {
+impl<T: LegacyInputType> InputValueError<T> {
     /// The expected input type did not match the actual input type.
     #[must_use]
     pub fn expected_type(actual: Value) -> Self {
@@ -219,7 +219,7 @@ impl<T: InputType> InputValueError<T> {
     }
 
     /// Propagate the error message to a different type.
-    pub fn propagate<U: InputType>(self) -> InputValueError<U> {
+    pub fn propagate<U: LegacyInputType>(self) -> InputValueError<U> {
         if T::type_name() != U::type_name() {
             InputValueError::new(format!(
                 r#"{} (occurred while parsing "{}")"#,
@@ -237,7 +237,7 @@ impl<T: InputType> InputValueError<T> {
     }
 }
 
-impl<T: InputType, E: Display> From<E> for InputValueError<T> {
+impl<T: LegacyInputType, E: Display> From<E> for InputValueError<T> {
     fn from(error: E) -> Self {
         Self::custom(error)
     }

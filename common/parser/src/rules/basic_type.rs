@@ -39,7 +39,7 @@ impl<'a> Visitor<'a> for BasicType {
                             name: name.clone(),
                             description: field.node.description.clone().map(|x| x.node),
                             args: Default::default(),
-                            ty: field.node.ty.clone().node.to_string(),
+                            ty: field.node.ty.clone().node.to_string().into(),
                             deprecation: Default::default(),
                             cache_control: CacheDirective::parse(&field.node.directives),
                             external: false,

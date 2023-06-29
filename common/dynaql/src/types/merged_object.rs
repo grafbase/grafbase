@@ -9,8 +9,8 @@ use crate::parser::types::Field;
 use crate::registry::{MetaType, ObjectType, Registry};
 use crate::SimpleObject;
 use crate::{
-    CacheControl, ContainerType, Context, ContextSelectionSet, OutputType, Positioned, Response,
-    ServerResult, SubscriptionType, Value,
+    CacheControl, ContainerType, Context, ContextSelectionSet, LegacyOutputType, Positioned,
+    Response, ServerResult, SubscriptionType, Value,
 };
 
 #[doc(hidden)]
@@ -40,16 +40,16 @@ where
 }
 
 #[async_trait::async_trait]
-impl<A, B> OutputType for MergedObject<A, B>
+impl<A, B> LegacyOutputType for MergedObject<A, B>
 where
-    A: OutputType,
-    B: OutputType,
+    A: LegacyOutputType,
+    B: LegacyOutputType,
 {
     fn type_name() -> Cow<'static, str> {
         Cow::Owned(format!("{}_{}", A::type_name(), B::type_name()))
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::MetaFieldType {
         registry.create_output_type::<Self, _>(|registry| {
             let mut fields = IndexMap::new();
             let mut cc = CacheControl::default();

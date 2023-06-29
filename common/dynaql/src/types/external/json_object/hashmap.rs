@@ -15,11 +15,11 @@ use serde::Serialize;
 use crate::graph::selection_set_into_node;
 use crate::registry::{self, MetaType, Registry, ScalarType};
 use crate::{
-    ContextSelectionSet, InputType, InputValueError, InputValueResult, Name, OutputType,
-    ServerResult, Value,
+    ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType,
+    Name, ServerResult, Value,
 };
 
-impl<K, V> InputType for HashMap<K, V>
+impl<K, V> LegacyInputType for HashMap<K, V>
 where
     K: ToString + FromStr + Eq + Hash + Send + Sync,
     K::Err: Display,
@@ -34,7 +34,7 @@ where
     fn create_type_info(registry: &mut Registry) -> String {
         registry.create_input_type::<Self, _>(|_| {
             MetaType::Scalar(ScalarType {
-                name: <Self as InputType>::type_name().to_string(),
+                name: <Self as LegacyInputType>::type_name().to_string(),
                 description: Some("A scalar that can represent any JSON Object value.".to_string()),
                 is_valid: Some(|_| true),
                 visible: None,
@@ -80,7 +80,7 @@ where
 }
 
 #[async_trait::async_trait]
-impl<K, V> OutputType for HashMap<K, V>
+impl<K, V> LegacyOutputType for HashMap<K, V>
 where
     K: ToString + Eq + Hash + Send + Sync,
     V: Serialize + Send + Sync,
@@ -89,10 +89,10 @@ where
         Cow::Borrowed("JSONObject")
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::MetaFieldType {
         registry.create_output_type::<Self, _>(|_| {
             MetaType::Scalar(ScalarType {
-                name: <Self as OutputType>::type_name().to_string(),
+                name: <Self as LegacyOutputType>::type_name().to_string(),
                 description: Some("A scalar that can represent any JSON Object value.".to_string()),
                 is_valid: Some(|_| true),
                 visible: None,

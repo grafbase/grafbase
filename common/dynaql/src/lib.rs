@@ -91,8 +91,8 @@ pub use subscription::SubscriptionType;
 
 pub use auth::*;
 pub use base::{
-    ComplexObject, Description, InputObjectType, InputType, InterfaceType, ObjectType, OutputType,
-    UnionType,
+    ComplexObject, Description, LegacyInputObjectType, LegacyInputType, LegacyInterfaceType,
+    LegacyOutputType, LegacyUnionType, ObjectType,
 };
 pub use custom_directive::{CustomDirective, CustomDirectiveFactory};
 pub use dynaql_parser as parser;
@@ -111,7 +111,7 @@ pub use look_ahead::Lookahead;
 pub use registry::{CacheControl, CacheInvalidation};
 pub use request::{BatchRequest, Request};
 #[doc(no_inline)]
-pub use resolver_utils::{ContainerType, EnumType, ScalarType};
+pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
 pub use response::GraphQlResponse;
 pub use response::{BatchResponse, Response};
 pub use schema::{Schema, SchemaBuilder, SchemaEnv};

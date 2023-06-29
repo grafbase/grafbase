@@ -54,7 +54,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                         })
                         .map(|arg| (arg.name.clone(), arg))
                         .collect(),
-                    ty: field.ty.clone().node.to_string(),
+                    ty: field.ty.clone().node.to_string().into(),
                     resolve: Some(Resolver {
                         id: Some(format!("{}_custom_resolver", type_name.to_lowercase())),
                         r#type: ResolverType::CustomResolver(CustomResolver {

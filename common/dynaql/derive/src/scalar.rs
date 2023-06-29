@@ -41,7 +41,7 @@ pub fn generate(
         #item_impl
 
         #[allow(clippy::all, clippy::pedantic)]
-        impl #generic #crate_name::InputType for #self_ty #where_clause {
+        impl #generic #crate_name::LegacyInputType for #self_ty #where_clause {
             type RawValueType = Self;
 
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
@@ -53,7 +53,7 @@ pub fn generate(
                     #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
                         description: #desc,
-                        is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
+                        is_valid: Some(|value| <#self_ty as #crate_name::LegacyScalarType>::is_valid(value)),
                         visible: #visible,
                         specified_by_url: #specified_by_url,
                         parser: #crate_name::registry::ScalarParser::BestEffort,
@@ -62,11 +62,11 @@ pub fn generate(
             }
 
             fn parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> {
-                <#self_ty as #crate_name::ScalarType>::parse(value.unwrap_or_default())
+                <#self_ty as #crate_name::LegacyScalarType>::parse(value.unwrap_or_default())
             }
 
             fn to_value(&self) -> #crate_name::Value {
-                <#self_ty as #crate_name::ScalarType>::to_value(self)
+                <#self_ty as #crate_name::LegacyScalarType>::to_value(self)
             }
 
             fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
@@ -76,17 +76,17 @@ pub fn generate(
 
         #[allow(clippy::all, clippy::pedantic)]
         #[#crate_name::async_trait::async_trait]
-        impl #generic #crate_name::OutputType for #self_ty #where_clause {
+        impl #generic #crate_name::LegacyOutputType for #self_ty #where_clause {
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                 ::std::borrow::Cow::Borrowed(#gql_typename)
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
                 registry.create_output_type::<#self_ty, _>(|_|
                     #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
                         description: #desc,
-                        is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
+                        is_valid: Some(|value| <#self_ty as #crate_name::LegacyScalarType>::is_valid(value)),
                         visible: #visible,
                         specified_by_url: #specified_by_url,
                         parser: #crate_name::registry::ScalarParser::BestEffort,
@@ -101,7 +101,7 @@ pub fn generate(
             ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                 #crate_name::resolver_utils::resolve_scalar_native(
                     ctx,
-                    #crate_name::ScalarType::to_value(self)
+                    #crate_name::LegacyScalarType::to_value(self)
                 ).await
             }
         }

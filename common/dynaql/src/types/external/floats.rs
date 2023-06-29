@@ -1,8 +1,8 @@
-use crate::{InputValueError, InputValueResult, Number, Scalar, ScalarType, Value};
+use crate::{InputValueError, InputValueResult, LegacyScalarType, Number, Scalar, Value};
 
 /// The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
 #[Scalar(internal, name = "Float")]
-impl ScalarType for f32 {
+impl LegacyScalarType for f32 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => Ok(n
@@ -27,7 +27,7 @@ impl ScalarType for f32 {
 
 /// The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
 #[Scalar(internal, name = "Float")]
-impl ScalarType for f64 {
+impl LegacyScalarType for f64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => Ok(n

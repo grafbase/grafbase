@@ -163,7 +163,7 @@ impl Validators {
 
         if !list_validators.is_empty() {
             codes.push(quote! {
-                if let ::std::option::Option::Some(__raw_value) = #crate_name::InputType::as_raw_value(#value) {
+                if let ::std::option::Option::Some(__raw_value) = #crate_name::LegacyInputType::as_raw_value(#value) {
                     #(#list_validators #map_err ?;)*
                 }
             });
@@ -172,9 +172,9 @@ impl Validators {
         if !elem_validators.is_empty() {
             if self.list {
                 codes.push(quote! {
-                    if let ::std::option::Option::Some(value) = #crate_name::InputType::as_raw_value(#value) {
+                    if let ::std::option::Option::Some(value) = #crate_name::LegacyInputType::as_raw_value(#value) {
                         for __item in value {
-                            if let ::std::option::Option::Some(__raw_value) = #crate_name::InputType::as_raw_value(__item) {
+                            if let ::std::option::Option::Some(__raw_value) = #crate_name::LegacyInputType::as_raw_value(__item) {
                                 #(#elem_validators #map_err ?;)*
                             }
                         }
@@ -182,7 +182,7 @@ impl Validators {
                 });
             } else {
                 codes.push(quote! {
-                    if let ::std::option::Option::Some(__raw_value) = #crate_name::InputType::as_raw_value(#value) {
+                    if let ::std::option::Option::Some(__raw_value) = #crate_name::LegacyInputType::as_raw_value(#value) {
                         #(#elem_validators #map_err ?;)*
                     }
                 });
@@ -196,9 +196,9 @@ impl Validators {
             if self.list {
                 codes.push(quote! {
                     let __custom_validator = #__create_custom_validator;
-                    if let ::std::option::Option::Some(value) = #crate_name::InputType::as_raw_value(#value) {
+                    if let ::std::option::Option::Some(value) = #crate_name::LegacyInputType::as_raw_value(#value) {
                         for __item in value {
-                            if let ::std::option::Option::Some(__raw_value) = #crate_name::InputType::as_raw_value(__item) {
+                            if let ::std::option::Option::Some(__raw_value) = #crate_name::LegacyInputType::as_raw_value(__item) {
                                 #crate_name::CustomValidator::check(&__custom_validator, __raw_value)
                                     .map_err(|err_msg| #crate_name::InputValueError::<#ty>::custom(err_msg)) #map_err ?;
                             }
@@ -208,7 +208,7 @@ impl Validators {
             } else {
                 codes.push(quote! {
                     let __custom_validator = #__create_custom_validator;
-                    if let ::std::option::Option::Some(__raw_value) = #crate_name::InputType::as_raw_value(#value) {
+                    if let ::std::option::Option::Some(__raw_value) = #crate_name::LegacyInputType::as_raw_value(#value) {
                         #crate_name::CustomValidator::check(&__custom_validator, __raw_value)
                             .map_err(|err_msg| #crate_name::InputValueError::<#ty>::custom(err_msg)) #map_err ?;
                     }

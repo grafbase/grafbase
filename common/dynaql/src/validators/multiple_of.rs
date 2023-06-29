@@ -3,11 +3,11 @@ use std::ops::Rem;
 
 use num_traits::{AsPrimitive, Zero};
 
-use crate::{InputType, InputValueError};
+use crate::{InputValueError, LegacyInputType};
 
 pub fn multiple_of<T, N>(value: &T, n: N) -> Result<(), InputValueError<T>>
 where
-    T: AsPrimitive<N> + InputType,
+    T: AsPrimitive<N> + LegacyInputType,
     N: Rem<Output = N> + Zero + Display + Copy + PartialEq + 'static,
 {
     let value = value.as_();

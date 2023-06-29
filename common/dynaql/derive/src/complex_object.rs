@@ -237,7 +237,7 @@ pub fn generate(
                     .map(|value| {
                         quote! {
                             ::std::option::Option::Some(::std::string::ToString::to_string(
-                                &<#ty as #crate_name::InputType>::to_value(&#value)
+                                &<#ty as #crate_name::LegacyInputType>::to_value(&#value)
                             ))
                         }
                     })
@@ -248,7 +248,7 @@ pub fn generate(
                     args.insert(#name, #crate_name::registry::MetaInputValue {
                         name: #name,
                         description: #desc,
-                        ty: <#ty as #crate_name::InputType>::create_type_info(registry),
+                        ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                         default_value: #schema_default,
                         visible: #visible,
                         is_secret: #secret,
@@ -344,7 +344,7 @@ pub fn generate(
                         #(#schema_args)*
                         args
                     },
-                    ty: <#schema_ty as #crate_name::OutputType>::create_type_info(registry),
+                    ty: <#schema_ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                     deprecation: #field_deprecation,
                     cache_control: #cache_control,
                     external: #external,
@@ -397,7 +397,7 @@ pub fn generate(
                     };
                     let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
                     let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-                    return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
+                    return #crate_name::LegacyOutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                 }
             });
 

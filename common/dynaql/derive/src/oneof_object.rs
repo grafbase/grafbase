@@ -84,7 +84,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                 fields.insert(::std::borrow::ToOwned::to_owned(#field_name), #crate_name::registry::MetaInputValue {
                     name: #field_name,
                     description: #desc,
-                    ty: <::std::option::Option<#ty> as #crate_name::InputType>::create_type_info(registry),
+                    ty: <::std::option::Option<#ty> as #crate_name::LegacyInputType>::create_type_info(registry),
                     default_value: ::std::option::Option::None,
                     validators: None,
                     visible: #visible,
@@ -106,7 +106,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
 
             parse_item.push(quote! {
                 if obj.contains_key(#field_name) && obj.len() == 1 {
-                    let value = #crate_name::InputType::parse(obj.remove(#field_name)).map_err(#crate_name::InputValueError::propagate)?;
+                    let value = #crate_name::LegacyInputType::parse(obj.remove(#field_name)).map_err(#crate_name::InputValueError::propagate)?;
                     #validators
                     return ::std::result::Result::Ok(Self::#enum_name(value));
                 }
@@ -114,7 +114,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
 
             put_fields.push(quote! {
                 Self::#enum_name(value) => {
-                    map.insert(#crate_name::Name::new(#field_name), #crate_name::InputType::to_value(value));
+                    map.insert(#crate_name::Name::new(#field_name), #crate_name::LegacyInputType::to_value(value));
                 }
             });
         } else {
@@ -125,7 +125,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
     let visible = visible_fn(&object_args.visible);
     let expanded = if object_args.concretes.is_empty() {
         quote! {
-            impl #crate_name::InputType for #ident {
+            impl #crate_name::LegacyInputType for #ident {
                 type RawValueType = Self;
 
                 fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
@@ -181,7 +181,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
         code.push(quote! {
             #[allow(clippy::all, clippy::pedantic)]
             impl #impl_generics #ident #ty_generics #where_clause {
-                fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> ::std::string::String where Self: #crate_name::InputType {
+                fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> ::std::string::String where Self: #crate_name::LegacyInputType {
                     registry.create_input_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::InputObject(#crate_name::registry::InputObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),
@@ -198,7 +198,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                     )
                 }
 
-                fn __internal_parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> where Self: #crate_name::InputType {
+                fn __internal_parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> where Self: #crate_name::LegacyInputType {
                     if let ::std::option::Option::Some(#crate_name::Value::Object(mut obj)) = value {
                         #(#parse_item)*
                         ::std::result::Result::Err(#crate_name::InputValueError::expected_type(dynaql::Value::Object(obj)))
@@ -207,7 +207,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                     }
                 }
 
-                fn __internal_to_value(&self) -> #crate_name::Value where Self: #crate_name::InputType {
+                fn __internal_to_value(&self) -> #crate_name::Value where Self: #crate_name::LegacyInputType {
                     let mut map = #crate_name::indexmap::IndexMap::new();
                     match self {
                         #(#put_fields)*
@@ -224,7 +224,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
 
             let expanded = quote! {
                 #[allow(clippy::all, clippy::pedantic)]
-                impl #crate_name::InputType for #concrete_type {
+                impl #crate_name::LegacyInputType for #concrete_type {
                     type RawValueType = Self;
 
                     fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {

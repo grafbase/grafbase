@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use crate::{InputType, InputValueError};
+use crate::{InputValueError, LegacyInputType};
 
-pub fn url<T: AsRef<str> + InputType>(value: &T) -> Result<(), InputValueError<T>> {
+pub fn url<T: AsRef<str> + LegacyInputType>(value: &T) -> Result<(), InputValueError<T>> {
     if let Ok(true) = http::uri::Uri::from_str(value.as_ref())
         .map(|uri| uri.scheme().is_some() && uri.authority().is_some())
     {

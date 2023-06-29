@@ -178,7 +178,7 @@ pub fn generate(
 
                     if is_key {
                         get_federation_key.push(quote! {
-                            if let Some(fields) = <#ty as #crate_name::InputType>::federation_fields() {
+                            if let Some(fields) = <#ty as #crate_name::LegacyInputType>::federation_fields() {
                                 key_str.push(format!("{} {}", #name, fields));
                             } else {
                                 key_str.push(#name.to_string());
@@ -190,14 +190,14 @@ pub fn generate(
                         });
                         key_getter.push(quote! {
                             params.get(#name).and_then(|value| {
-                                let value: ::std::option::Option<#ty> = #crate_name::InputType::parse(::std::option::Option::Some(::std::clone::Clone::clone(&value))).ok();
+                                let value: ::std::option::Option<#ty> = #crate_name::LegacyInputType::parse(::std::option::Option::Some(::std::clone::Clone::clone(&value))).ok();
                                 value
                             })
                         });
                     } else {
                         // requires
                         requires_getter.push(quote! {
-                            let #ident: #ty = #crate_name::InputType::parse(params.get(#name).cloned()).
+                            let #ident: #ty = #crate_name::LegacyInputType::parse(params.get(#name).cloned()).
                                 map_err(|err| err.into_server_error(ctx.item.pos))?;
                         });
                     }
@@ -208,11 +208,11 @@ pub fn generate(
                     {
                         let mut key_str = Vec::new();
                         #(#get_federation_key)*
-                        registry.add_keys(&<#entity_type as #crate_name::OutputType>::type_name(), &key_str.join(" "));
+                        registry.add_keys(&<#entity_type as #crate_name::LegacyOutputType>::type_name(), &key_str.join(" "));
                     }
                 });
                 create_entity_types.push(
-                    quote! { <#entity_type as #crate_name::OutputType>::create_type_info(registry); },
+                    quote! { <#entity_type as #crate_name::LegacyOutputType>::create_type_info(registry); },
                 );
 
                 let field_ident = &method.sig.ident;
@@ -239,7 +239,7 @@ pub fn generate(
                     args.len(),
                     quote! {
                         #(#cfg_attrs)*
-                        if typename == &<#entity_type as #crate_name::OutputType>::type_name() {
+                        if typename == &<#entity_type as #crate_name::LegacyOutputType>::type_name() {
                             if let (#(#key_pat),*) = (#(#key_getter),*) {
                                 let f = async move {
                                     #(#requires_getter)*
@@ -247,7 +247,7 @@ pub fn generate(
                                 };
                                 let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
                                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-                                return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
+                                return #crate_name::LegacyOutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                             }
                         }
                     },
@@ -371,7 +371,7 @@ pub fn generate(
                         .as_ref()
                         .map(|value| {
                             quote! {
-                                ::std::option::Option::Some(<#ty as #crate_name::InputType>::to_value(&#value))
+                                ::std::option::Option::Some(<#ty as #crate_name::LegacyInputType>::to_value(&#value))
                             }
                         })
                         .unwrap_or_else(|| quote! {::std::option::Option::None});
@@ -381,7 +381,7 @@ pub fn generate(
                         args.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
                             name: ::std::borrow::ToOwned::to_owned(#name),
                             description: #desc,
-                            ty: <#ty as #crate_name::InputType>::create_type_info(registry),
+                            ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                             default_value: #schema_default,
                             validators: None,
                             visible: #visible,
@@ -478,7 +478,7 @@ pub fn generate(
                             #(#schema_args)*
                             args
                         },
-                        ty: <#schema_ty as #crate_name::OutputType>::create_type_info(registry),
+                        ty: <#schema_ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                         deprecation: #field_deprecation,
                         cache_control: #cache_control,
                         external: #external,
@@ -538,7 +538,7 @@ pub fn generate(
                         };
                         let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
                         let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-                        return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
+                        return #crate_name::LegacyOutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                     }
                 });
             }
@@ -612,12 +612,12 @@ pub fn generate(
 
             #[allow(clippy::all, clippy::pedantic)]
             #[#crate_name::async_trait::async_trait]
-            impl #impl_generics #crate_name::OutputType for #self_ty #where_clause {
+            impl #impl_generics #crate_name::LegacyOutputType for #self_ty #where_clause {
                 fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                     ::std::borrow::Cow::Borrowed(#gql_typename)
                 }
 
-                fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+                fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
                     let ty = registry.create_output_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                             name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -660,7 +660,7 @@ pub fn generate(
             #item_impl
 
             impl #impl_generics #self_ty #where_clause {
-                fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> ::std::string::String  where Self: #crate_name::OutputType {
+                fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> ::std::string::String  where Self: #crate_name::LegacyOutputType {
                     let ty = registry.create_output_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),
@@ -733,12 +733,12 @@ pub fn generate(
                 }
 
                 #[#crate_name::async_trait::async_trait]
-                impl #crate_name::OutputType for #concrete_type {
+                impl #crate_name::LegacyOutputType for #concrete_type {
                     fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                         ::std::borrow::Cow::Borrowed(#gql_typename)
                     }
 
-                    fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+                    fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
                         Self::__internal_create_type_info(registry, #gql_typename)
                     }
 

@@ -3,7 +3,9 @@ use crate::parser::types::Field;
 use crate::registry::scalars::{DynamicScalar, PossibleScalar};
 use crate::registry::MetaType;
 use crate::resolver_utils::resolve_container;
-use crate::{ContextSelectionSet, Error, OutputType, Positioned, ServerError, ServerResult, Value};
+use crate::{
+    ContextSelectionSet, Error, LegacyOutputType, Positioned, ServerError, ServerResult, Value,
+};
 use dynaql_value::Name;
 use graph_entities::{ResponseList, ResponseNodeId, ResponsePrimitive};
 
@@ -34,7 +36,7 @@ pub async fn resolve_list<'a>(
                         .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
 
                     let parent_type = format!("[{type_name}]");
-                    let return_type = format!("{type_name}!");
+                    let return_type = format!("{type_name}!").into();
                     let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
                         .item
                         .node
@@ -148,7 +150,7 @@ fn resolve_scalar(value: Value, base_type_name: &str) -> Result<Value, Error> {
 }
 
 /// Resolve an list by executing each of the items concurrently.
-pub async fn resolve_list_native<'a, T: OutputType + 'a>(
+pub async fn resolve_list_native<'a, T: LegacyOutputType + 'a>(
     ctx: &ContextSelectionSet<'a>,
     field: &Positioned<Field>,
     iter: impl IntoIterator<Item = T>,
@@ -184,7 +186,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                         input_values: Vec::new(), // Isn't needed for static resolve
                     };
                     let resolve_fut = async {
-                        OutputType::resolve(&item, &ctx_idx, field)
+                        LegacyOutputType::resolve(&item, &ctx_idx, field)
                             .await
                             .map(Option::Some)
                             .map_err(|err| ctx_idx.set_error_path(err))
@@ -211,7 +213,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
         for (idx, item) in iter.into_iter().enumerate() {
             let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
             futures.push(async move {
-                OutputType::resolve(&item, &ctx_idx, field)
+                LegacyOutputType::resolve(&item, &ctx_idx, field)
                     .await
                     .map_err(|err| ctx_idx.set_error_path(err))
             });
