@@ -786,6 +786,18 @@ expression: req_string_b
             "n": "__schema",
             "t": "__Schema!"
           },
+          "__type": {
+            "D": "N",
+            "a": {
+              "name": {
+                "n": "name",
+                "t": "String!"
+              }
+            },
+            "d": "Access the current type schema of this server.",
+            "n": "__type",
+            "t": "__Type!"
+          },
           "product": {
             "D": "N",
             "_r": 2,
@@ -1138,6 +1150,12 @@ expression: req_string_b
       "O": {
         "d": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
         "f": {
+          "description": {
+            "D": "N",
+            "a": {},
+            "n": "description",
+            "t": "String"
+          },
           "directives": {
             "D": "N",
             "a": {},

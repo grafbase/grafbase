@@ -1,7 +1,7 @@
 use dynaql::indexmap::IndexMap;
-use dynaql::model::__Schema;
+use dynaql::model::{__Schema, __Type};
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{ConnectorIdGenerator, MetaField, Registry, SchemaID, SchemaIDGenerator};
+use dynaql::registry::{ConnectorIdGenerator, MetaField, MetaInputValue, Registry, SchemaID, SchemaIDGenerator};
 use dynaql::{Name, OutputType, Pos, Positioned, Schema};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
@@ -172,6 +172,16 @@ impl<'a> VisitorContext<'a> {
                     name: "__schema".to_string(),
                     description: Some("Access the current type schema of this server.".to_string()),
                     ty: schema_type,
+                    ..Default::default()
+                });
+                fields.push(MetaField {
+                    name: "__type".to_string(),
+                    args: [MetaInputValue::new("name", "String!")]
+                        .into_iter()
+                        .map(|value| (value.name.clone(), value))
+                        .collect(),
+                    description: Some("Access the current type schema of this server.".to_string()),
+                    ty: __Type::create_type_info(registry),
                     ..Default::default()
                 });
                 fields.extend(self.queries);
