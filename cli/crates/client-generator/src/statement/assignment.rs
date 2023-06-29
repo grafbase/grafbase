@@ -12,6 +12,7 @@ pub struct Assignment<'a> {
     r#type: Option<TypeKind<'a>>,
 }
 
+#[allow(dead_code)]
 impl<'a> Assignment<'a> {
     pub fn new(left: impl Into<Cow<'a, str>>, right: impl Into<Expression<'a>>) -> Self {
         Self {

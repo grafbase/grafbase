@@ -4,7 +4,7 @@ use crate::comment::CommentBlock;
 
 use super::{ObjectTypeDef, StaticType};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Property<'a> {
     key: Cow<'a, str>,
     value: PropertyValue<'a>,
@@ -42,7 +42,7 @@ impl<'a> fmt::Display for Property<'a> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum PropertyValue<'a> {
     Type(StaticType<'a>),
     Object(ObjectTypeDef<'a>),

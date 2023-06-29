@@ -12,6 +12,7 @@ pub struct Function<'a> {
     inner: FunctionBody<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> Function<'a> {
     pub fn new(name: impl Into<Cow<'a, str>>, body: Block<'a>) -> Self {
         let inner = FunctionBody {

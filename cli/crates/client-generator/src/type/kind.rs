@@ -2,7 +2,7 @@ use std::fmt;
 
 use super::{MappedType, StaticType};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum TypeKind<'a> {
     Static(StaticType<'a>),
     Mapped(MappedType<'a>),

@@ -9,6 +9,7 @@ pub struct Constructor<'a> {
     inner: FunctionBody<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> Constructor<'a> {
     #[must_use]
     pub fn new(body: Block<'a>) -> Self {

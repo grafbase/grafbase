@@ -2,12 +2,13 @@ use std::fmt;
 
 use super::{Property, TypeGenerator, TypeKind};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MappedType<'a> {
     source: TypeMapSource<'a>,
     definition: Box<TypeKind<'a>>,
 }
 
+#[allow(dead_code)]
 impl<'a> MappedType<'a> {
     pub fn new(source: impl Into<TypeMapSource<'a>>, definition: impl Into<TypeKind<'a>>) -> Self {
         Self {
@@ -23,7 +24,7 @@ impl<'a> fmt::Display for MappedType<'a> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum TypeMapSource<'a> {
     Generator(TypeGenerator<'a>),
     Static(Property<'a>),

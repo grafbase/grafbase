@@ -21,6 +21,7 @@ pub struct Class<'a> {
     methods: Vec<Method<'a>>,
 }
 
+#[allow(dead_code)]
 impl<'a> Class<'a> {
     #[must_use]
     pub fn new(identifier: TypeIdentifier<'a>) -> Self {
@@ -94,11 +95,11 @@ mod tests {
         let mut class = Class::new(ident);
         class.push_property(ClassProperty::new("collection", StaticType::ident("string")));
 
-        let mut fetch_input = StaticType::ident("FetchInput");
+        let mut fetch_input = TypeIdentifier::ident("FetchInput");
         fetch_input.push_param(StaticType::ident("T"));
         fetch_input.push_param(StaticType::ident("U"));
 
-        class.push_property(ClassProperty::new("input", fetch_input.clone()));
+        class.push_property(ClassProperty::new("input", StaticType::new(fetch_input.clone())));
 
         let mut block = Block::new();
         block.push(Assignment::new("this.collection", Identifier::new("collection")));
@@ -106,14 +107,14 @@ mod tests {
 
         let mut constructor = Constructor::new(block);
         constructor.push_param("collection", StaticType::ident("string"));
-        constructor.push_param("input", fetch_input.clone());
+        constructor.push_param("input", StaticType::new(fetch_input.clone()));
 
         class.set_constructor(constructor);
 
         let mut block = Block::new();
         block.push(Return::new(Identifier::new("this.input")));
 
-        let method = Method::new("getInput", block).returns(fetch_input);
+        let method = Method::new("getInput", block).returns(StaticType::new(fetch_input));
         class.push_method(method);
 
         let expected = expect![[r#"
@@ -131,6 +132,8 @@ mod tests {
               }
             }
         "#]];
+
+        dbg!(class.to_string());
 
         expect_ts(&class, &expected);
     }

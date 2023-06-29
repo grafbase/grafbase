@@ -8,6 +8,7 @@ pub struct Equals<'a> {
     strict: bool,
 }
 
+#[allow(dead_code)]
 impl<'a> Equals<'a> {
     pub fn new(left: impl Into<Expression<'a>>, right: impl Into<Expression<'a>>) -> Self {
         Self {

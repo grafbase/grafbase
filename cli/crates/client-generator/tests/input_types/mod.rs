@@ -12,6 +12,7 @@ fn required_id() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           id: string
         }
     "#]];
@@ -29,6 +30,7 @@ fn optional_id() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           id?: string | null
         }
     "#]];
@@ -46,6 +48,7 @@ fn required_string() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           name: string
         }
     "#]];
@@ -63,6 +66,7 @@ fn required_int() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           age: number
         }
     "#]];
@@ -80,6 +84,7 @@ fn required_float() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           weight: number
         }
     "#]];
@@ -97,6 +102,7 @@ fn required_boolean() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           registered: boolean
         }
     "#]];
@@ -114,6 +120,7 @@ fn required_date() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           registered: Date
         }
     "#]];
@@ -131,6 +138,7 @@ fn required_datetime() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           registered: Date
         }
     "#]];
@@ -148,6 +156,7 @@ fn required_email() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           email: string
         }
     "#]];
@@ -165,6 +174,7 @@ fn required_ip() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           ip: string
         }
     "#]];
@@ -182,6 +192,7 @@ fn required_timestamp() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           lastSeen: Date
         }
     "#]];
@@ -199,6 +210,7 @@ fn required_url() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           homepage: string
         }
     "#]];
@@ -216,6 +228,7 @@ fn optional_json() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           homepage?: object | null
         }
     "#]];
@@ -233,6 +246,7 @@ fn required_phone_number() {
 
     let expected = expect![[r#"
         export interface User {
+          __typename?: 'User'
           contactNo: string
         }
     "#]];
@@ -254,10 +268,12 @@ fn dependent_types() {
 
     let expected = expect![[r#"
         export interface Address {
+          __typename?: 'Address'
           street: string
         }
 
         export interface User {
+          __typename?: 'User'
           address: Address
         }
     "#]];
@@ -283,6 +299,7 @@ fn input_description() {
          * Why don't you give it a try!
          */
         export interface Cool {
+          __typename?: 'Cool'
           howCool: string
         }
     "#]];
@@ -304,6 +321,7 @@ fn input_field_description() {
 
     let expected = expect![[r#"
         export interface Cool {
+          __typename?: 'Cool'
           /**
            * Hey we have this cool field.
            * Why don't you give it a try!

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CommentBlock<'a> {
     content: Cow<'a, str>,
 }

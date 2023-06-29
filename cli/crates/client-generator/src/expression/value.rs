@@ -44,6 +44,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 pub enum ValueKind<'a> {
     Object(Object<'a>),
     Template(Template<'a>),

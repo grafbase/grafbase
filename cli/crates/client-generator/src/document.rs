@@ -32,6 +32,7 @@ impl<'a> fmt::Display for Document<'a> {
     }
 }
 
+#[allow(dead_code)]
 enum DocumentItemKind<'a> {
     Import(Import<'a>),
     Type(Type<'a>),
@@ -68,6 +69,7 @@ impl<'a> fmt::Display for DocumentItem<'a> {
     }
 }
 
+#[allow(dead_code)]
 impl DocumentItem<'static> {
     pub fn newline() -> Self {
         Self {

@@ -1,5 +1,6 @@
 mod common;
 mod input_types;
+mod types;
 
 use async_graphql_parser as _;
 use dprint_plugin_typescript as _;

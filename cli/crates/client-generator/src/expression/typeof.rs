@@ -6,6 +6,7 @@ pub struct TypeOf<'a> {
     expression: Expression<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> TypeOf<'a> {
     pub fn new(expression: impl Into<Expression<'a>>) -> Self {
         Self {

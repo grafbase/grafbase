@@ -12,6 +12,7 @@ pub struct Block<'a> {
     contents: Vec<BlockItem<'a>>,
 }
 
+#[allow(dead_code)]
 impl<'a> Block<'a> {
     #[must_use]
     pub fn new() -> Self {
@@ -37,6 +38,7 @@ impl<'a> fmt::Display for Block<'a> {
     }
 }
 
+#[allow(dead_code)]
 pub enum BlockItemKind<'a> {
     Type(Type<'a>),
     Interface(Interface<'a>),
@@ -50,6 +52,7 @@ pub struct BlockItem<'a> {
     kind: BlockItemKind<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> BlockItem<'a> {
     pub fn new(kind: impl Into<BlockItemKind<'a>>) -> Self {
         Self { kind: kind.into() }

@@ -2,12 +2,13 @@ use std::fmt;
 
 use super::TypeKind;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TypeCondition<'a> {
     left: TypeKind<'a>,
     right: TypeKind<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> TypeCondition<'a> {
     #[must_use]
     pub fn new(left: impl Into<TypeKind<'a>>, right: impl Into<TypeKind<'a>>) -> Self {

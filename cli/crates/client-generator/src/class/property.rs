@@ -10,6 +10,7 @@ pub struct ClassProperty<'a> {
     privacy: Option<Privacy>,
 }
 
+#[allow(dead_code)]
 impl<'a> ClassProperty<'a> {
     pub fn new(key: impl Into<Cow<'a, str>>, value: impl Into<PropertyValue<'a>>) -> Self {
         Self {

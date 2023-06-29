@@ -6,6 +6,7 @@ pub struct Object<'a> {
     entries: Vec<Entry<'a>>,
 }
 
+#[allow(dead_code)]
 impl<'a> Object<'a> {
     #[must_use]
     pub fn new() -> Self {

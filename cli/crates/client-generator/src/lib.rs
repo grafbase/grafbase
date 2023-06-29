@@ -1,5 +1,3 @@
-#![allow(dead_code)] // TODO: remove this when we're done
-
 mod block;
 mod class;
 mod comment;

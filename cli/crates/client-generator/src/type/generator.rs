@@ -4,12 +4,13 @@ use crate::common::Identifier;
 
 use super::StaticType;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TypeGenerator<'a> {
     param: Identifier<'a>,
     source: StaticType<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> TypeGenerator<'a> {
     #[must_use]
     pub fn new(param: impl Into<Identifier<'a>>, source: StaticType<'a>) -> Self {

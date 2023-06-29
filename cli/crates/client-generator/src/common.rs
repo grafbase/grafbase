@@ -22,6 +22,7 @@ pub struct Template<'a> {
     inner: Cow<'a, str>,
 }
 
+#[allow(dead_code)]
 impl<'a> Template<'a> {
     pub fn new(name: impl Into<Cow<'a, str>>) -> Self {
         Self { inner: name.into() }

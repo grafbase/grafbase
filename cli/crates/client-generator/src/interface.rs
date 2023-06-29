@@ -1,14 +1,10 @@
 use std::{borrow::Cow, fmt};
 
-use crate::{
-    comment::CommentBlock,
-    r#type::{Property, StaticType},
-};
+use crate::r#type::{Property, StaticType};
 
 pub struct Interface<'a> {
     identifier: StaticType<'a>,
     properties: Vec<Property<'a>>,
-    description: Option<CommentBlock<'a>>,
 }
 
 impl<'a> Interface<'a> {
@@ -16,25 +12,16 @@ impl<'a> Interface<'a> {
         Self {
             identifier: StaticType::ident(name),
             properties: Vec::new(),
-            description: None,
         }
     }
 
     pub fn push_property(&mut self, prop: Property<'a>) {
         self.properties.push(prop);
     }
-
-    pub fn description(&mut self, comment: impl Into<CommentBlock<'a>>) {
-        self.description = Some(comment.into());
-    }
 }
 
 impl<'a> fmt::Display for Interface<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(ref comment) = self.description {
-            writeln!(f, "{comment}")?;
-        }
-
         writeln!(f, "interface {} {{", self.identifier)?;
 
         for prop in &self.properties {

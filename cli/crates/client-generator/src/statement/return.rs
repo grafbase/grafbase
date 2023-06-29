@@ -6,6 +6,7 @@ pub struct Return<'a> {
     expression: Expression<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> Return<'a> {
     pub fn new(expression: impl Into<Expression<'a>>) -> Self {
         Self {

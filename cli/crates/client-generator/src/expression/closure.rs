@@ -10,6 +10,7 @@ pub struct Closure<'a> {
     body: Block<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> Closure<'a> {
     #[must_use]
     pub fn new(body: Block<'a>) -> Self {

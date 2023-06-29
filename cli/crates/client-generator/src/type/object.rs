@@ -2,12 +2,13 @@ use std::fmt;
 
 use super::Property;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct ObjectTypeDef<'a> {
     properties: Vec<Property<'a>>,
     multiline: bool,
 }
 
+#[allow(dead_code)]
 impl<'a> ObjectTypeDef<'a> {
     #[must_use]
     pub fn new() -> Self {

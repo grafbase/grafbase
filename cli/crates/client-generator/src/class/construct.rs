@@ -8,6 +8,7 @@ pub struct Construct<'a> {
     params: Vec<Expression<'a>>,
 }
 
+#[allow(dead_code)]
 impl<'a> Construct<'a> {
     pub fn new(identifier: impl Into<Identifier<'a>>) -> Self {
         Self {

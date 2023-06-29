@@ -12,6 +12,7 @@ pub struct Method<'a> {
     privacy: Option<Privacy>,
 }
 
+#[allow(dead_code)]
 impl<'a> Method<'a> {
     pub fn new(name: impl Into<Cow<'a, str>>, body: Block<'a>) -> Self {
         let inner = FunctionBody {

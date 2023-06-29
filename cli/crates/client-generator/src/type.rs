@@ -25,6 +25,7 @@ pub struct Type<'a> {
     definition: TypeKind<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> Type<'a> {
     pub fn new(identifier: StaticType<'a>, definition: impl Into<TypeKind<'a>>) -> Self {
         Self {

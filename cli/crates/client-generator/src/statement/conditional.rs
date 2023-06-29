@@ -7,6 +7,7 @@ pub struct Conditional<'a> {
     branches: Vec<(Option<Expression<'a>>, Block<'a>)>,
 }
 
+#[allow(dead_code)]
 impl<'a> Conditional<'a> {
     pub fn new(expr: impl Into<Expression<'a>>, block: impl Into<Block<'a>>) -> Self {
         Self {

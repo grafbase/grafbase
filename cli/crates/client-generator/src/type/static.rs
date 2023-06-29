@@ -1,33 +1,67 @@
-use std::{borrow::Cow, fmt};
+use std::{
+    borrow::Cow,
+    fmt::{self, Write},
+};
 
 use async_graphql_parser::types::BaseType;
 
 use super::{TypeCondition, TypeIdentifier};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+pub enum StaticTypeIdentifier<'a> {
+    Nested(Box<StaticType<'a>>),
+    Flat(TypeIdentifier<'a>),
+}
+
+impl<'a> From<StaticType<'a>> for StaticTypeIdentifier<'a> {
+    fn from(value: StaticType<'a>) -> Self {
+        Self::Nested(Box::new(value))
+    }
+}
+
+impl<'a> From<TypeIdentifier<'a>> for StaticTypeIdentifier<'a> {
+    fn from(value: TypeIdentifier<'a>) -> Self {
+        Self::Flat(value)
+    }
+}
+
+impl<'a> fmt::Display for StaticTypeIdentifier<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StaticTypeIdentifier::Nested(r#type) => r#type.fmt(f),
+            StaticTypeIdentifier::Flat(identifier) => identifier.fmt(f),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct StaticType<'a> {
-    identifier: TypeIdentifier<'a>,
+    identifier: StaticTypeIdentifier<'a>,
+    extends: Option<Box<StaticType<'a>>>,
     or: Vec<StaticType<'a>>,
     condition: Option<Box<TypeCondition<'a>>>,
     keyof: bool,
+    array: bool,
 }
 
+#[allow(dead_code)]
 impl<'a> StaticType<'a> {
     pub fn ident(name: impl Into<Cow<'a, str>>) -> Self {
-        Self {
-            identifier: TypeIdentifier::ident(name),
-            or: Vec::new(),
-            condition: None,
-            keyof: false,
-        }
+        Self::new(TypeIdentifier::ident(name))
     }
 
     pub fn string(name: impl Into<Cow<'a, str>>) -> Self {
+        Self::new(TypeIdentifier::string(name))
+    }
+
+    pub fn new(identifier: impl Into<StaticTypeIdentifier<'a>>) -> Self {
         Self {
-            identifier: TypeIdentifier::string(name),
+            identifier: identifier.into(),
             or: Vec::new(),
             condition: None,
+            extends: None,
             keyof: false,
+            array: false,
         }
     }
 
@@ -35,8 +69,11 @@ impl<'a> StaticType<'a> {
         Self::ident("null")
     }
 
-    pub fn extends(&mut self, ident: StaticType<'a>) {
-        self.identifier.extends(ident);
+    pub fn extends(&mut self, extend: StaticType<'a>) {
+        match self.identifier {
+            StaticTypeIdentifier::Nested(_) => self.extends = Some(Box::new(extend)),
+            StaticTypeIdentifier::Flat(ref mut identifier) => identifier.extends(extend),
+        }
     }
 
     pub fn or(&mut self, ident: StaticType<'a>) {
@@ -51,22 +88,28 @@ impl<'a> StaticType<'a> {
         self.keyof = true;
     }
 
-    pub fn from_graphql(base: &'a BaseType) -> Self {
-        Self {
-            identifier: TypeIdentifier::from_graphql(base),
-            or: Vec::new(),
-            condition: None,
-            keyof: false,
-        }
+    pub fn array(&mut self) {
+        self.array = true;
     }
 
-    pub fn push_param(&mut self, param: StaticType<'a>) {
-        self.identifier.push_param(param);
+    fn multiple_parts(&self) -> bool {
+        let check = || self.keyof || !self.or.is_empty() || self.condition.is_some();
+
+        match self.identifier {
+            StaticTypeIdentifier::Nested(ref nested) => check() || nested.multiple_parts(),
+            StaticTypeIdentifier::Flat(_) => check(),
+        }
     }
 }
 
 impl<'a> fmt::Display for StaticType<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let multiple_parts = self.multiple_parts();
+
+        if multiple_parts && self.array {
+            f.write_char('(')?;
+        }
+
         if self.keyof {
             f.write_str("keyof ")?;
         }
@@ -89,12 +132,25 @@ impl<'a> fmt::Display for StaticType<'a> {
             write!(f, " {condition}")?;
         }
 
+        if let Some(ref extends) = self.extends {
+            write!(f, " extends {extends}")?;
+        }
+
+        if self.array {
+            if multiple_parts {
+                f.write_char(')')?;
+            }
+
+            f.write_str("[]")?;
+        }
+
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::r#type::TypeIdentifier;
     use crate::test_helpers::{expect, expect_raw_ts, expect_ts};
     use crate::{
         r#type::{MappedType, Property, StaticType, Type, TypeCondition, TypeGenerator},
@@ -115,10 +171,10 @@ mod tests {
 
     #[test]
     fn generator_type_map() {
-        let mut ident = StaticType::ident("TruthyKeys");
+        let mut ident = TypeIdentifier::ident("TruthyKeys");
         ident.push_param(StaticType::ident("S"));
 
-        let source = TypeGenerator::new("P", ident);
+        let source = TypeGenerator::new("P", StaticType::new(ident));
         let mut definition = StaticType::ident("boolean");
         definition.or(StaticType::ident("Horse"));
         let map = MappedType::new(source, definition);
@@ -151,13 +207,13 @@ mod tests {
         let definition = StaticType::ident("boolean");
         let map = MappedType::new(source, definition);
 
-        let mut record = StaticType::ident("Record");
+        let mut record = TypeIdentifier::ident("Record");
 
         record.push_param(StaticType::ident("string"));
         record.push_param(StaticType::ident("string"));
 
         let mut u = StaticType::ident("U");
-        u.extends(record);
+        u.extends(StaticType::new(record));
         u.condition(TypeCondition::new(map, StaticType::ident("number")));
 
         let expected = expect!["U extends Record<string, string> ? { [Property in keyof Type]: boolean } : number"];
@@ -167,10 +223,10 @@ mod tests {
 
     #[test]
     fn basic_type_generator() {
-        let mut ident = StaticType::ident("TruthyKeys");
+        let mut ident = TypeIdentifier::ident("TruthyKeys");
         ident.push_param(StaticType::ident("S"));
 
-        let gen = TypeGenerator::new("P", ident);
+        let gen = TypeGenerator::new("P", StaticType::new(ident));
 
         let expected = expect!["P in TruthyKeys<S>"];
 
@@ -201,7 +257,7 @@ mod tests {
 
     #[test]
     fn type_ident_with_params() {
-        let mut ident = StaticType::ident("BlogNode");
+        let mut ident = TypeIdentifier::ident("BlogNode");
         ident.push_param(StaticType::ident("T"));
         ident.push_param(StaticType::ident("U"));
 
@@ -212,7 +268,7 @@ mod tests {
 
     #[test]
     fn type_ident_with_extends() {
-        let mut record = StaticType::ident("Record");
+        let mut record = TypeIdentifier::ident("Record");
 
         let key = StaticType::ident("string");
 
@@ -224,7 +280,7 @@ mod tests {
         record.push_param(val);
 
         let mut u = StaticType::ident("U");
-        u.extends(record);
+        u.extends(StaticType::new(record));
 
         let expected = expect!["U extends Record<string, null | boolean | object>"];
 
@@ -246,12 +302,12 @@ mod tests {
 
     #[test]
     fn type_ident_with_extends_condition() {
-        let mut record = StaticType::ident("Record");
+        let mut record = TypeIdentifier::ident("Record");
 
         record.push_param(StaticType::ident("string"));
 
         let mut u = StaticType::ident("U");
-        u.extends(record);
+        u.extends(StaticType::new(record));
         u.condition(TypeCondition::new(
             StaticType::ident("string"),
             StaticType::ident("number"),
