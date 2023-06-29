@@ -398,7 +398,7 @@ pub fn install_dependencies(project_root: &Path) -> Result<(), CommonError> {
 }
 
 pub fn guess_project_package_manager(project_root: &Path, package_json: &Path) -> Option<NodePackageManager> {
-    const LOCK_FILES: &[(&str, NodePackageManager)] = &[
+    const LOCK_FILE_NAMES: &[(&str, NodePackageManager)] = &[
         (PNPM_LOCK_FILE, NodePackageManager::Pnpm),
         (YARN_LOCK_FILE, NodePackageManager::Yarn),
     ];
@@ -417,7 +417,7 @@ pub fn guess_project_package_manager(project_root: &Path, package_json: &Path) -
         return Some(package_manager);
     };
 
-    for (file_name, package_manager) in LOCK_FILES.iter() {
+    for (file_name, package_manager) in LOCK_FILE_NAMES.iter() {
         let path_to_check = project_root.join(file_name);
 
         if Path::exists(&path_to_check) {
