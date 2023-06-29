@@ -1167,6 +1167,18 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
           "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
           "fields": [
             {
+              "name": "description",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
               "name": "types",
               "description": "A list of all types supported by this server.",
               "args": [],
