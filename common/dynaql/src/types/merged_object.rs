@@ -152,7 +152,7 @@ impl SubscriptionType for MergedObjectTail {
 
     fn create_type_info(registry: &mut Registry) -> String {
         registry.create_subscription_type::<Self, _>(|_| {
-            let mut object = ObjectType::new("MergedSubscriptionTail".into(), []);
+            let mut object = ObjectType::new("MergedSubscriptionTail", []);
             object.rust_typename = std::any::type_name::<Self>().to_owned();
             object.into()
         })

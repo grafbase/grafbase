@@ -876,7 +876,7 @@ fn relation_handle<'a>(
     // We determinate the subtype of this relation
     let child_ty = ctx
         .registry()
-        .lookup_expecting::<ObjectType>(&MetaFieldType::from(child_ty_name))
+        .lookup_expecting::<&ObjectType>(&MetaFieldType::from(child_ty_name))
         .unwrap();
 
     // We need to tell if it's a `create` or a `link`

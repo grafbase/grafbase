@@ -626,7 +626,11 @@ fn visit_selection<'a, V: Visitor<'a>>(
                 ctx.with_type(
                     ctx.current_type()
                         .and_then(|ty| ty.field_by_name(&field.node.name.node))
-                        .and_then(|schema_field| ctx.registry.lookup(&schema_field.ty).ok()),
+                        .and_then(|schema_field| {
+                            ctx.registry
+                                .lookup_expecting::<&MetaType>(&schema_field.ty)
+                                .ok()
+                        }),
                     |ctx| {
                         visit_field(v, ctx, field);
                     },

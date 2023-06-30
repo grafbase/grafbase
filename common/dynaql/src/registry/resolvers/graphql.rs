@@ -43,7 +43,10 @@ use inflector::Inflector;
 use send_wrapper::SendWrapper;
 use url::Url;
 
-use crate::ServerError;
+use crate::{
+    registry::{type_kinds::SelectionSetTarget, MetaField, Registry},
+    ServerError,
+};
 
 use self::serializer::Serializer;
 
@@ -81,8 +84,11 @@ struct Query {
 }
 
 pub enum Target<'a> {
-    SelectionSet(Box<dyn Iterator<Item = &'a Selection> + Send + 'a>),
-    Field(&'a Field),
+    SelectionSet(
+        Box<dyn Iterator<Item = &'a Selection> + Send + 'a>,
+        SelectionSetTarget<'a>,
+    ),
+    Field(&'a Field, &'a MetaField),
 }
 
 impl Resolver {
@@ -102,6 +108,7 @@ impl Resolver {
         error_handler: impl FnMut(ServerError) + 'a,
         variables: Variables,
         variable_definitions: HashMap<&'a Name, &'a VariableDefinition>,
+        registry: &'a Registry,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         let mut request_builder = reqwest::Client::new()
             .post(self.url.clone())
@@ -116,8 +123,8 @@ impl Resolver {
         let prefix = self.namespace.clone().map(|n| n.to_pascal_case());
 
         let wrapping_field = match &target {
-            Target::SelectionSet(_) => None,
-            Target::Field(field) => Some(field.name.node.to_string()),
+            Target::SelectionSet(_, _) => None,
+            Target::Field(field, _) => Some(field.name.node.to_string()),
         };
 
         Box::pin(SendWrapper::new(async move {
@@ -126,6 +133,7 @@ impl Resolver {
                 fragment_definitions,
                 variable_definitions,
                 &mut query,
+                registry,
             );
             match operation {
                 OperationType::Query => serializer.query(target)?,
@@ -227,11 +235,14 @@ mod tests {
     use serde_json::{json, Value};
     use wiremock::MockServer;
 
+    use crate::registry::{MetaField, ObjectType, UnionType};
+
     use super::*;
 
     #[tokio::test]
     async fn resolve() {
         let server = MockServer::start().await;
+        let registry = fake_registry();
 
         let query = indoc! {r#"
             query {
@@ -264,7 +275,7 @@ mod tests {
         });
 
         let mut errors = vec![];
-        let result = run_resolve(&server, query, response, &mut errors)
+        let result = run_resolve(&server, query, response, &mut errors, &registry)
             .await
             .unwrap();
 
@@ -276,6 +287,7 @@ mod tests {
         query: &str,
         response: Value,
         errors: &mut Vec<ServerError>,
+        registry: &Registry,
     ) -> Result<Value, Error> {
         use dynaql_parser::parse_query;
         use wiremock::matchers::{header, method, path};
@@ -314,15 +326,19 @@ mod tests {
             .clone()
             .into_inner();
 
-        let target = Target::SelectionSet(Box::new(
-            operation
-                .selection_set
-                .node
-                .items
-                .as_slice()
-                .iter()
-                .map(|v| &v.node),
-        ));
+        let current_type = registry.lookup_by_str("Query").unwrap().try_into().unwrap();
+        let target = Target::SelectionSet(
+            Box::new(
+                operation
+                    .selection_set
+                    .node
+                    .items
+                    .as_slice()
+                    .iter()
+                    .map(|v| &v.node),
+            ),
+            current_type,
+        );
 
         let error_handler = |error| errors.push(error);
 
@@ -335,6 +351,7 @@ mod tests {
                 error_handler,
                 Variables::default(),
                 HashMap::new(),
+                registry,
             )
             .await?
             .data_resolved;
@@ -347,5 +364,55 @@ mod tests {
         };
 
         Ok(response)
+    }
+
+    fn fake_registry() -> Registry {
+        let mut registry = Registry::new();
+        registry.insert_type(ObjectType::new(
+            "GithubRepository",
+            [
+                MetaField::new("id", "ID!"),
+                // Not certain this is the correct type for changedFiles, but who cares
+                MetaField::new("changedFiles", "[String!]!"),
+                // Technically this field has an argument, but for now the tests don't need that detail
+                MetaField::new("issueOrPullRequest", "GithubIssueOrPr!"),
+                // Technically this field has an argument, but for now the tests don't need that detail
+                MetaField::new("pullRequest", "GithubPullRequest"),
+            ],
+        ));
+
+        registry.insert_type(ObjectType::new(
+            "GithubIssue",
+            [MetaField::new("id", "ID!")],
+        ));
+
+        registry.insert_type(ObjectType::new(
+            "GithubPullRequest",
+            [
+                MetaField::new("id", "ID!"),
+                MetaField::new("changedFiles", "[String!]!"),
+            ],
+        ));
+
+        registry.insert_type(UnionType::new(
+            "GithubIssueOrPr",
+            ["GithubIssue", "GithubPullRequest"],
+        ));
+
+        registry.insert_type(ObjectType::new(
+            "GitHubQueries",
+            [MetaField::new("repository", "GithubRepository")],
+        ));
+
+        let query_fields = registry
+            .types
+            .get_mut("Query")
+            .unwrap()
+            .fields_mut()
+            .unwrap();
+
+        query_fields.insert("github".into(), MetaField::new("github", "GitHubQueries"));
+
+        registry
     }
 }

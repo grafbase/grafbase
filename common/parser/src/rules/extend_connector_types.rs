@@ -167,7 +167,7 @@ mod tests {
             registry.types.insert(
                 "StripeCustomer".into(),
                 registry::ObjectType::new(
-                    "StripeCustomer".into(),
+                    "StripeCustomer",
                     [MetaField {
                         name: "id".into(),
                         ty: "String".into(),

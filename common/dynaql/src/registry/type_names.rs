@@ -2,7 +2,10 @@
 
 use std::borrow::{Borrow, Cow};
 
-use super::{MetaType, ObjectType};
+use super::{
+    type_kinds::{OutputType, SelectionSetTarget},
+    MetaType, ObjectType,
+};
 
 /// A trait for types that represent type names in someway.
 ///
@@ -10,7 +13,7 @@ use super::{MetaType, ObjectType};
 /// and type-safety around retrieving types from the registry.
 pub trait TypeReference {
     /// The kind of type we expect this `TypeName` to represent in the `Registry`.
-    type ExpectedType;
+    type ExpectedType<'a>;
 
     /// The name of the type
     fn named_type(&self) -> NamedType<'_>;
@@ -24,6 +27,13 @@ macro_rules! def_string_conversions {
         impl std::fmt::Display for $ty {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", self.0)
+            }
+        }
+
+        impl $ty {
+            #[allow(dead_code)]
+            pub fn as_str(&self) -> &str {
+                &self.0
             }
         }
 
@@ -55,10 +65,6 @@ pub struct MetaFieldType(String);
 def_string_conversions!(MetaFieldType);
 
 impl MetaFieldType {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-
     pub fn is_non_null(&self) -> bool {
         // This makes me sad, but for now lets live with it
         self.0.ends_with('!')
@@ -72,8 +78,7 @@ impl MetaFieldType {
 }
 
 impl TypeReference for MetaFieldType {
-    // TODO: make an OutputType enum and use it here
-    type ExpectedType = MetaType;
+    type ExpectedType<'a> = OutputType<'a>;
 
     fn named_type(&self) -> NamedType<'_> {
         NamedType(Cow::Borrowed(named_type_from_type_str(&self.0)))
@@ -89,14 +94,22 @@ pub struct ModelName(String);
 
 def_string_conversions!(ModelName);
 
-impl ModelName {
-    pub fn as_str(&self) -> &str {
-        &self.0
+impl TypeReference for ModelName {
+    type ExpectedType<'a> = &'a ObjectType;
+
+    fn named_type(&self) -> NamedType<'_> {
+        NamedType(Cow::Borrowed(&self.0))
     }
 }
 
-impl TypeReference for ModelName {
-    type ExpectedType = ObjectType;
+/// A type condition from an inline fragment spread or a fragment definition.
+#[derive(Clone, Debug)]
+pub struct TypeCondition(String);
+
+def_string_conversions!(TypeCondition);
+
+impl TypeReference for TypeCondition {
+    type ExpectedType<'a> = SelectionSetTarget<'a>;
 
     fn named_type(&self) -> NamedType<'_> {
         NamedType(Cow::Borrowed(&self.0))
@@ -125,7 +138,7 @@ impl NamedType<'_> {
 }
 
 impl TypeReference for NamedType<'_> {
-    type ExpectedType = MetaType;
+    type ExpectedType<'a> = &'a MetaType;
 
     fn named_type(&self) -> NamedType<'_> {
         self.clone()

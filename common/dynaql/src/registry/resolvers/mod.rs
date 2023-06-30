@@ -345,8 +345,8 @@ impl ResolverType {
                     .await
             }
             ResolverType::Graphql(resolver) => {
-                let headers = ctx
-                    .registry()
+                let registry = ctx.registry();
+                let headers = registry
                     .http_headers
                     .get(&format!("GraphQLConnector{}", resolver.id))
                     .map(Vec::as_slice)
@@ -374,17 +374,33 @@ impl ResolverType {
                     .collect();
 
                 let target = match resolver.namespace {
-                    Some(_) => Target::SelectionSet(Box::new(
-                        ctx.item
-                            .node
-                            .selection_set
-                            .node
-                            .items
-                            .as_slice()
-                            .iter()
-                            .map(|v| &v.node),
-                    )),
-                    None => Target::Field(&ctx.item),
+                    Some(_) => {
+                        let current_object = resolver_ctx
+                            .ty
+                            .ok_or_else(|| Error::new("Internal error"))?
+                            .try_into()
+                            .map_err(|_| Error::new("Internal error"))?;
+
+                        Target::SelectionSet(
+                            Box::new(
+                                ctx.item
+                                    .node
+                                    .selection_set
+                                    .node
+                                    .items
+                                    .as_slice()
+                                    .iter()
+                                    .map(|v| &v.node),
+                            ),
+                            current_object,
+                        )
+                    }
+                    None => Target::Field(
+                        &ctx.item,
+                        resolver_ctx
+                            .field
+                            .ok_or_else(|| Error::new("internal error"))?,
+                    ),
                 };
 
                 let operation = ctx.query_env.operation.node.ty;
@@ -393,6 +409,7 @@ impl ResolverType {
 
                 resolver
                     .resolve(
+                        // Be a lot easier to just pass the context in here...
                         operation,
                         headers,
                         fragment_definitions,
@@ -400,6 +417,7 @@ impl ResolverType {
                         error_handler,
                         variables,
                         variable_definitions,
+                        registry,
                     )
                     .await
                     .map_err(Into::into)

@@ -10,6 +10,7 @@ pub mod scalars;
 mod serde_preserve_enum;
 mod stringify_exec_doc;
 pub mod transformers;
+pub mod type_kinds;
 mod type_names;
 pub mod union_discriminator;
 pub mod utils;
@@ -41,6 +42,7 @@ use crate::{
 };
 use grafbase::auth::Operations;
 
+use self::type_kinds::TypeKind;
 pub use self::{
     cache_control::CacheControl,
     cache_control::CacheInvalidation,
@@ -335,6 +337,23 @@ pub struct MetaField {
     pub auth: Option<AuthConfig>,
 }
 
+impl MetaField {
+    pub fn new(name: impl Into<String>, ty: impl Into<MetaFieldType>) -> MetaField {
+        MetaField {
+            name: name.into(),
+            ty: ty.into(),
+            ..Default::default()
+        }
+    }
+
+    pub fn has_custom_resolver(&self) -> bool {
+        self.resolve
+            .as_ref()
+            .map(|resolve| matches!(resolve.r#type, resolvers::ResolverType::CustomResolver(_)))
+            .unwrap_or_default()
+    }
+}
+
 impl Hash for MetaField {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
@@ -571,7 +590,7 @@ impl MetaField {
                 };
 
                 let container_type = registry
-                    .lookup(&self.ty)
+                    .lookup_expecting::<&MetaType>(&self.ty)
                     .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
                 // TEMP: Hack
@@ -597,15 +616,12 @@ impl MetaField {
                     .and_then(|x| x.node_id(container_type.name()))
                     .and_then(|x| NodeID::from_owned(x).ok());
 
+                let type_name = container_type.name().to_string();
+
                 match resolve_container(&ctx_obj, container_type, node_id).await {
                     result @ Ok(_) => {
-                        self.check_cache_tag(
-                            ctx,
-                            &container_type.rust_typename().cloned().unwrap_or_default(),
-                            &self.name,
-                            None,
-                        )
-                        .await;
+                        self.check_cache_tag(ctx, &type_name, &self.name, None)
+                            .await;
                         result
                     }
                     Err(err) => {
@@ -624,7 +640,7 @@ impl MetaField {
             }
             CurrentResolverType::ARRAY => {
                 let container_type = registry
-                    .lookup(&self.ty)
+                    .lookup_expecting::<&MetaType>(&self.ty)
                     .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
                 let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
@@ -654,13 +670,8 @@ impl MetaField {
                         }
                     }
                     serde_json::Value::Array(arr) => {
-                        self.check_cache_tag(
-                            ctx,
-                            &container_type.rust_typename().cloned().unwrap_or_default(),
-                            &self.name,
-                            None,
-                        )
-                        .await;
+                        self.check_cache_tag(ctx, container_type.name(), &self.name, None)
+                            .await;
                         arr.clone()
                     }
                     _ => {
@@ -895,7 +906,8 @@ pub struct ObjectType {
 }
 
 impl ObjectType {
-    pub fn new(name: String, fields: impl IntoIterator<Item = MetaField>) -> ObjectType {
+    pub fn new(name: impl Into<String>, fields: impl IntoIterator<Item = MetaField>) -> ObjectType {
+        let name = name.into();
         ObjectType {
             rust_typename: name.clone(),
             name,
@@ -987,6 +999,23 @@ pub struct UnionType {
     pub visible: Option<MetaVisibleFn>,
     pub rust_typename: String,
     pub discriminators: Option<Vec<(String, UnionDiscriminator)>>,
+}
+
+impl UnionType {
+    pub fn new<T: Into<String>>(
+        name: impl Into<String>,
+        possible_types: impl IntoIterator<Item = T>,
+    ) -> UnionType {
+        let name = name.into();
+        UnionType {
+            rust_typename: name.clone(),
+            name,
+            description: None,
+            possible_types: possible_types.into_iter().map(Into::into).collect(),
+            visible: None,
+            discriminators: None,
+        }
+    }
 }
 
 impl From<UnionType> for MetaType {
@@ -1092,62 +1121,6 @@ impl Error {
             actual.name(),
             actual.kind()
         ))
-    }
-}
-
-impl MetaType {
-    fn kind(&self) -> TypeKind {
-        match self {
-            MetaType::Scalar(_) => TypeKind::Scalar,
-            MetaType::Object(_) => TypeKind::Object,
-            MetaType::Interface { .. } => TypeKind::Interface,
-            MetaType::Union { .. } => TypeKind::Union,
-            MetaType::Enum { .. } => TypeKind::Enum,
-            MetaType::InputObject { .. } => TypeKind::InputObject,
-        }
-    }
-}
-
-/// The kinds of types we work with in GraphQL
-///
-/// This enum is composed of both the individual kinds of MetaType and some
-/// additional variants for the different sub-groups we work with.
-///
-/// It's mostly used in error messages at the moment, but could be used for
-/// other things.
-#[derive(Debug)]
-enum TypeKind {
-    Scalar,
-    Object,
-    Interface,
-    Union,
-    Enum,
-    InputObject,
-    SelectionSetTarget,
-}
-
-/// A reference to a MetaType in a selection set context.
-///
-/// When we're processing a selection set in GQL we know that the target
-/// of the selection set is one of the composite output types. This enum
-/// lets us work with just those types rather than having to work with
-/// all the MetaType variants.
-enum SelectionSetTarget<'a> {
-    Object(&'a ObjectType),
-    Interface(&'a InterfaceType),
-    Union(&'a UnionType),
-}
-
-impl<'a> TryFrom<&'a MetaType> for SelectionSetTarget<'a> {
-    type Error = Error;
-
-    fn try_from(value: &'a MetaType) -> Result<Self, Self::Error> {
-        match value {
-            MetaType::Object(object) => Ok(SelectionSetTarget::Object(object)),
-            MetaType::Interface(interface) => Ok(SelectionSetTarget::Interface(interface)),
-            MetaType::Union(union) => Ok(SelectionSetTarget::Union(union)),
-            _ => Err(Error::unexpected_kind(value, TypeKind::SelectionSetTarget)),
-        }
     }
 }
 
@@ -1670,11 +1643,11 @@ impl Registry {
     /// Looks up a particular type in the registry, using the default kind for the given TypeName.
     ///
     /// Will error if the type doesn't exist or is of an unexpected kind.
-    pub fn lookup<'a, Name>(&'a self, name: &Name) -> Result<&'a Name::ExpectedType, Error>
+    pub fn lookup<'a, Name>(&'a self, name: &Name) -> Result<Name::ExpectedType<'a>, Error>
     where
         Name: TypeReference,
-        &'a Name::ExpectedType: TryFrom<&'a MetaType>,
-        <&'a Name::ExpectedType as TryFrom<&'a MetaType>>::Error: Into<Error>,
+        Name::ExpectedType<'a>: TryFrom<&'a MetaType>,
+        <Name::ExpectedType<'a> as TryFrom<&'a MetaType>>::Error: Into<Error>,
     {
         self.lookup_by_str(name.named_type().as_str())?
             .try_into()
@@ -1687,10 +1660,10 @@ impl Registry {
     pub fn lookup_expecting<'a, Expected>(
         &'a self,
         name: &impl TypeReference,
-    ) -> Result<&'a Expected, Error>
+    ) -> Result<Expected, Error>
     where
-        &'a Expected: TryFrom<&'a MetaType>,
-        <&'a Expected as TryFrom<&'a MetaType>>::Error: Into<Error>,
+        Expected: TryFrom<&'a MetaType> + 'a,
+        <Expected as TryFrom<&'a MetaType>>::Error: Into<Error>,
     {
         self.lookup_by_str(name.named_type().as_str())?
             .try_into()
@@ -1912,6 +1885,11 @@ impl Registry {
         T::qualified_type_name()
     }
 
+    pub fn insert_type(&mut self, ty: impl Into<MetaType>) {
+        let ty = ty.into();
+        self.types.insert(ty.name().to_string(), ty);
+    }
+
     pub fn create_type<F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
@@ -2128,7 +2106,7 @@ impl Registry {
             ObjectType {
                 rust_typename: "dynaql::federation::Service".to_string(),
                 ..ObjectType::new(
-                    "_Service".into(),
+                    "_Service",
                     [MetaField {
                         name: "sdl".to_string(),
                         ty: "String".into(),

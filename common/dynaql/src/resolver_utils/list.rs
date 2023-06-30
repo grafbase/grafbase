@@ -59,7 +59,7 @@ pub async fn resolve_list<'a>(
 
                     let resolve_fut = async {
                         match ty {
-                            MetaType::Scalar { .. } | MetaType::Enum { .. } => {
+                            MetaType::Scalar(_) | MetaType::Enum(_) => {
                                 let mut result = Value::try_from(item).map_err(|err| {
                                     ctx_idx.set_error_path(ServerError::new(
                                         format!("{err:?}"),
@@ -67,7 +67,7 @@ pub async fn resolve_list<'a>(
                                     ))
                                 })?;
                                 // Yes it's ugly...
-                                if let MetaType::Scalar { .. } = ty {
+                                if let MetaType::Scalar(_) = ty {
                                     result = resolve_scalar(result, type_name)
                                         .map_err(|err| err.into_server_error(field.pos))?;
                                 }

@@ -157,7 +157,7 @@ pub async fn resolve_container_serial_native<'a, T: ContainerType + ?Sized>(
 async fn resolve_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
     parallel: bool,
-    root: &'a MetaType,
+    root: &MetaType,
     node_id: Option<NodeID<'a>>,
 ) -> ServerResult<ResponseNodeId> {
     #[cfg(feature = "tracing_worker")]
