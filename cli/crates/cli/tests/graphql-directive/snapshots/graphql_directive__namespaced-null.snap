@@ -1,0 +1,8 @@
+---
+source: crates/cli/tests/graphql-directive/main.rs
+expression: "client.gql::<Value>(NAMESPACED_QUERY).variables(json!({ \"id\" : \"4\" })).await"
+---
+data:
+  gothub:
+    pullRequestOrIssue: ~
+

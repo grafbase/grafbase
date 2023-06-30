@@ -38,6 +38,9 @@ backend = { package = "grafbase-local-backend", path = "../backend", version = "
 common = { package = "grafbase-local-common", path = "../common", version = "0.25.2" }
 
 [dev-dependencies]
+async-graphql = "5"
+async-graphql-axum = "5"
+axum = "0.6"
 cfg-if = "1"
 chrono = "0.4"
 crossbeam-channel = "0.5"
