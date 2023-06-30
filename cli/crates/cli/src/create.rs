@@ -1,4 +1,4 @@
-use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
+use crate::{errors::CliError, output::report};
 use backend::api::{
     create,
     types::{Account, DatabaseRegion},
@@ -87,12 +87,10 @@ async fn interactive() -> Result<(), CliError> {
                 ))
             }
         })
-        .prompt()
-        .map_err(handle_inquire_error)?;
+        .prompt()?;
 
-    let AccountSelection(selected_account) = Select::new("In which account should the project be created?", options)
-        .prompt()
-        .map_err(handle_inquire_error)?;
+    let AccountSelection(selected_account) =
+        Select::new("In which account should the project be created?", options).prompt()?;
 
     let selected_region = Select::new(
         "In which region should your database be created?",
@@ -104,13 +102,11 @@ async fn interactive() -> Result<(), CliError> {
             .position(|region| region.name == closest_region.name)
             .unwrap_or_default(),
     )
-    .prompt()
-    .map_err(handle_inquire_error)?;
+    .prompt()?;
 
     let confirm = Confirm::new("Please confirm the above to create and deploy your new project")
         .with_default(true)
-        .prompt()
-        .map_err(handle_inquire_error)?;
+        .prompt()?;
 
     if confirm {
         let domains = create::create(&selected_account.id, &project_name, &[selected_region.0.name.clone()])

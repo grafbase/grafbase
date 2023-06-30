@@ -1,4 +1,4 @@
-use crate::{cli_input::ConfigFormat, errors::CliError, output::report, prompts::handle_inquire_error};
+use crate::{cli_input::ConfigFormat, errors::CliError, output::report};
 use backend::project::{self, ConfigType, Template};
 use inquire::Select;
 
@@ -12,8 +12,7 @@ pub fn init(name: Option<&str>, template: Option<&str>, config_format: Option<Co
                 "What configuration format would you like to use?",
                 ConfigType::VARIANTS.to_vec(),
             )
-            .prompt()
-            .map_err(handle_inquire_error)?;
+            .prompt()?;
 
             Template::FromDefault(config_type)
         }

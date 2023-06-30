@@ -1,4 +1,4 @@
-use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
+use crate::{errors::CliError, output::report};
 use backend::api::{
     link,
     types::{AccountWithProjects, Project},
@@ -32,9 +32,7 @@ pub async fn link() -> Result<(), CliError> {
     let options: Vec<AccountSelection> = accounts.into_iter().map(AccountSelection).collect();
 
     let AccountSelection(selected_account) =
-        Select::new("Which account owns the project you'd like to link to?", options)
-            .prompt()
-            .map_err(handle_inquire_error)?;
+        Select::new("Which account owns the project you'd like to link to?", options).prompt()?;
 
     if selected_account.projects.is_empty() {
         return Err(CliError::AccountWithNoProjects);
@@ -42,9 +40,8 @@ pub async fn link() -> Result<(), CliError> {
 
     let options: Vec<ProjectSelection> = selected_account.projects.into_iter().map(ProjectSelection).collect();
 
-    let ProjectSelection(selected_project) = Select::new("Which project would you like to link to?", options)
-        .prompt()
-        .map_err(handle_inquire_error)?;
+    let ProjectSelection(selected_project) =
+        Select::new("Which project would you like to link to?", options).prompt()?;
 
     link::link_project(selected_account.id, selected_project.id)
         .await
