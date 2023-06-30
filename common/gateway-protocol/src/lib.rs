@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use aws_region_nearby::AwsRegion;
 use dynaql::AuthConfig;
 use grafbase::auth::ExecutionAuth;
+use grafbase::UdfKind;
 use worker::js_sys::Uint8Array;
 use worker::{Headers, Method, RequestInit};
 
@@ -110,7 +111,7 @@ pub struct CustomerDeploymentConfig {
     pub project_id: String,
     /// Resolver service names
     #[serde(default)]
-    pub resolver_bindings: std::collections::HashMap<String, String>,
+    pub resolver_bindings: std::collections::HashMap<(UdfKind, String), String>,
     #[serde(default)]
     /// Customer's dedicated subdomain
     pub subdomain: String,
