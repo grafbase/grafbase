@@ -47,7 +47,7 @@ pub use self::{
     cache_control::CacheControl,
     cache_control::CacheInvalidation,
     cache_control::CacheInvalidationPolicy,
-    type_names::{MetaFieldType, ModelName, NamedType, TypeReference},
+    type_names::{MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
     union_discriminator::UnionDiscriminator,
 };
 

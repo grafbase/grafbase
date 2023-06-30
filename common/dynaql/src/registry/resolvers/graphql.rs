@@ -200,7 +200,7 @@ pub enum Error {
     #[error("the provided operation type is not supported by this resolver: {0}")]
     UnsupportedOperation(&'static str),
 
-    #[error("could not serialize execution plan: {0}")]
+    #[error("could not serialize downstream graphql operation: {0}")]
     SerializerError(#[from] serializer::Error),
 
     #[error("request to upstream server failed: {0}")]

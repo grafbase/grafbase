@@ -56,6 +56,7 @@ mime = "0.3"
 multer = "2"
 nom = "7"
 num-traits = "0.2"
+once_cell = "1"
 pin-project-lite = "0.2"
 regex = { workspace = true }
 send_wrapper = { version = "0.6", features = ["futures"] }
@@ -114,7 +115,6 @@ reqwest = { version = "0.11", default-features = false, features = [
 
 [dev-dependencies]
 insta = { version = "1", features = ["json"] }
-once_cell = "1"
 rstest = { workspace = true }
 tokio = "1"
 urlencoding = "2.1"

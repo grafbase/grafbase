@@ -6,6 +6,8 @@
 //!
 //! The enums in this file provide alternative groupings for all of these different cases.
 
+use once_cell::sync::Lazy;
+
 use crate::Error;
 
 use super::{EnumType, InterfaceType, MetaField, MetaType, ObjectType, ScalarType, UnionType};
@@ -105,6 +107,10 @@ impl<'a> SelectionSetTarget<'a> {
     }
 
     pub fn field(&self, name: &str) -> Option<&'a MetaField> {
+        if name == "__typename" {
+            return Some(&*TYPENAME_FIELD);
+        }
+
         match self {
             SelectionSetTarget::Object(obj) => obj.field_by_name(name),
             SelectionSetTarget::Interface(iface) => iface.fields.get(name),
@@ -125,3 +131,7 @@ impl<'a> TryFrom<&'a MetaType> for SelectionSetTarget<'a> {
         }
     }
 }
+
+/// __typename is an annoying special case where the `MetaField` doesn't exist in schemas.
+/// We need to fake it here instead...
+static TYPENAME_FIELD: Lazy<MetaField> = Lazy::new(|| MetaField::new("__typename", "String!"));

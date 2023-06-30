@@ -11,7 +11,7 @@ use ulid::Ulid;
 use crate::extensions::ResolveInfo;
 use crate::parser::types::Selection;
 use crate::registry::resolvers::{ResolvedValue, ResolverContext, ResolverTrait};
-use crate::registry::MetaType;
+use crate::registry::{MetaType, Registry};
 use crate::{
     relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name,
     ServerError, ServerResult, Value,
@@ -511,7 +511,24 @@ impl<'a> FieldsGraph<'a> {
                             self.0.push(Box::pin({
                                 let ctx = ctx.clone();
                                 async move {
-                                    resolve_union_spread(
+                                    resolve_spread_with_type_condition(
+                                        ctx,
+                                        type_condition,
+                                        root,
+                                        selection_set,
+                                        current_node_id,
+                                    )
+                                    .await
+                                }
+                            }));
+                        }
+                        MetaType::Interface { .. } if type_condition.is_some() => {
+                            let type_condition = type_condition.unwrap();
+
+                            self.0.push(Box::pin({
+                                let ctx = ctx.clone();
+                                async move {
+                                    resolve_spread_with_type_condition(
                                         ctx,
                                         type_condition,
                                         root,
@@ -550,13 +567,12 @@ impl<'a> FieldsGraph<'a> {
     ) -> Result<(), ServerError> {
         let introspection_type_name = registry.introspection_type_name(root);
         let applies_concrete_object = type_condition.map_or(false, |condition| {
-            introspection_type_name == condition
-                || ctx
-                    .schema_env
-                    .registry
-                    .implements
-                    .get(introspection_type_name)
-                    .map_or(false, |interfaces| interfaces.contains(condition))
+            typename_matches_condition(
+                introspection_type_name,
+                condition,
+                root,
+                &ctx.schema_env.registry,
+            )
         });
 
         if applies_concrete_object {
@@ -571,10 +587,10 @@ impl<'a> FieldsGraph<'a> {
     }
 }
 
-async fn resolve_union_spread<'a>(
+async fn resolve_spread_with_type_condition<'a>(
     ctx: ContextSelectionSet<'a>,
     type_condition: &str,
-    union_type: &'a MetaType,
+    containing_type: &'a MetaType,
     selection_set: &Positioned<dynaql_parser::types::SelectionSet>,
     current_node_id: Option<NodeID<'a>>,
 ) -> ServerResult<GraphFutureOutput> {
@@ -592,20 +608,23 @@ async fn resolve_union_spread<'a>(
         },
         Pos::default(),
     );
-    let typename = resolve_typename(&ctx, &field, union_type, registry).await;
-    if typename != type_condition {
+    let typename = resolve_typename(&ctx, &field, containing_type, registry).await;
+
+    if !typename_matches_condition(&typename, type_condition, containing_type, registry) {
         return Ok(GraphFutureOutput::MultipleFields(vec![]));
     }
-    let union_member = registry.types.get(&typename).ok_or_else(|| {
+
+    let subtype = registry.types.get(&typename).ok_or_else(|| {
         ServerError::new(
             format!(r#"Found an unknown typename: "{typename}"."#,),
             None,
         )
     })?;
+
     let mut subfields = FieldsGraph(Vec::new());
     subfields.add_set(
         &ctx.with_selection_set(selection_set),
-        union_member,
+        subtype,
         current_node_id,
     )?;
 
@@ -616,24 +635,49 @@ async fn resolve_union_spread<'a>(
     ))
 }
 
+fn typename_matches_condition(
+    typename: &str,
+    condition: &str,
+    containing_type: &MetaType,
+    registry: &Registry,
+) -> bool {
+    match containing_type {
+        MetaType::Union(union) => typename == condition || condition == union.rust_typename,
+        _ => {
+            typename == condition
+                || registry
+                    .implements
+                    .get(typename)
+                    .map(|interfaces| interfaces.contains(condition))
+                    .unwrap_or_default()
+        }
+    }
+}
+
 async fn resolve_typename<'a>(
     ctx: &ContextSelectionSet<'a>,
     field: &'a Positioned<dynaql_parser::types::Field>,
     root: &'a MetaType,
     registry: &crate::registry::Registry,
 ) -> String {
-    if let MetaType::Union { .. } = root {
-        if let Some(typename) = resolve_union_typename(ctx, field, root).await {
-            return typename;
+    match root {
+        MetaType::Union(_) | MetaType::Interface(_) => {
+            if let Some(typename) = resolve_remote_typename(ctx, field, root).await {
+                return typename;
+            }
         }
+        _ => {}
     }
 
     registry.introspection_type_name(root).to_owned()
 }
 
-/// Union types are currently only used in OpenAPI types, which put the __typename into the JSON
-/// they return.  This function returns that if present
-async fn resolve_union_typename<'a>(
+/// The `@openapi` & `@graphql` connectors, put the __typename into the JSON
+/// they return.  This function returns that if present.
+///
+/// We should only need to call this for unions & interfaces - any other type and
+/// we'll know the __typename ourselves based on context
+async fn resolve_remote_typename<'a>(
     ctx: &ContextSelectionSet<'a>,
     field: &Positioned<dynaql_parser::types::Field>,
     root: &MetaType,

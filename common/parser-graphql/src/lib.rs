@@ -188,6 +188,7 @@ impl Parser {
     fn update_object(&self, v: &mut cynic_introspection::ObjectType) {
         self.prefixed(&mut v.name);
         v.fields.iter_mut().for_each(|v| self.update_field(v));
+        v.interfaces.iter_mut().for_each(|interface| self.prefixed(interface));
     }
 
     /// Similar to [`Parser::update_object()`], but for `InputObjectType`.
@@ -203,6 +204,9 @@ impl Parser {
     fn update_interface(&self, v: &mut cynic_introspection::InterfaceType) {
         self.prefixed(&mut v.name);
         v.fields.iter_mut().for_each(|v| self.update_field(v));
+        v.possible_types
+            .iter_mut()
+            .for_each(|possible_type| self.prefixed(possible_type));
     }
 
     fn update_union(&self, v: &mut cynic_introspection::UnionType) {

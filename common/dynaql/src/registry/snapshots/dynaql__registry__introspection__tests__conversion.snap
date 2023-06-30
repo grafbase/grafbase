@@ -3074,7 +3074,26 @@ expression: "Registry::from(schema)"
       "is_repeatable": false
     }
   },
-  "implements": {},
+  "implements": {
+    "Film": [
+      "Node"
+    ],
+    "Person": [
+      "Node"
+    ],
+    "Planet": [
+      "Node"
+    ],
+    "Species": [
+      "Node"
+    ],
+    "Starship": [
+      "Node"
+    ],
+    "Vehicle": [
+      "Node"
+    ]
+  },
   "query_type": "Root",
   "mutation_type": null,
   "subscription_type": null,
