@@ -4,6 +4,7 @@ use aws_region_nearby::AwsRegion;
 use dynaql::AuthConfig;
 use grafbase::auth::ExecutionAuth;
 use grafbase::UdfKind;
+use serde_with::serde_as;
 use worker::js_sys::Uint8Array;
 use worker::{Headers, Method, RequestInit};
 
@@ -81,6 +82,7 @@ pub struct ResolverHealthResponse {
 // FIXME: Drop `Default` and instantiate this explicitly for local.
 /// Encapsulates customer specific configuration
 /// Required for executing requests that target a customer deployment
+#[serde_as]
 #[derive(Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct CustomerDeploymentConfig {
     /// Grafbase Gateway Version
@@ -111,6 +113,7 @@ pub struct CustomerDeploymentConfig {
     pub project_id: String,
     /// Resolver service names
     #[serde(default)]
+    #[serde_as(as = "Vec<(_, _)>")]
     pub resolver_bindings: std::collections::HashMap<(UdfKind, String), String>,
     #[serde(default)]
     /// Customer's dedicated subdomain
@@ -203,5 +206,16 @@ mod tests {
         let serialized_sha = Sha256::digest(serialized_versioned_registry);
 
         assert_eq!(&format!("{serialized_sha:x}"), EXPECTED_SHA);
+    }
+
+    #[test]
+    fn serialize_customer_deployment_config() {
+        use grafbase::UdfKind;
+        use std::collections::HashMap;
+        let customer_gateway_config = CustomerDeploymentConfig {
+            resolver_bindings: HashMap::from([((UdfKind::Authorizer, "name".to_string()), "value".to_string())]),
+            ..Default::default()
+        };
+        serde_json::to_string(&customer_gateway_config).unwrap();
     }
 }
