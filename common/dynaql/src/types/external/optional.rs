@@ -4,11 +4,11 @@ use graph_entities::{CompactValue, ResponseNodeId};
 
 use crate::parser::types::Field;
 use crate::{
-    registry, ContextSelectionSet, InputType, InputValueError, InputValueResult, OutputType,
-    Positioned, ServerResult, Value,
+    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType,
+    LegacyOutputType, Positioned, ServerResult, Value,
 };
 
-impl<T: InputType> InputType for Option<T> {
+impl<T: LegacyInputType> LegacyInputType for Option<T> {
     type RawValueType = T::RawValueType;
 
     fn type_name() -> Cow<'static, str> {
@@ -49,18 +49,18 @@ impl<T: InputType> InputType for Option<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: OutputType + Sync> OutputType for Option<T> {
+impl<T: LegacyOutputType + Sync> LegacyOutputType for Option<T> {
     fn type_name() -> Cow<'static, str> {
         T::type_name()
     }
 
-    fn qualified_type_name() -> String {
-        T::type_name().to_string()
+    fn qualified_type_name() -> crate::registry::MetaFieldType {
+        T::type_name().as_ref().into()
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType {
         T::create_type_info(registry);
-        T::type_name().to_string()
+        T::type_name().as_ref().into()
     }
 
     async fn resolve(
@@ -69,7 +69,7 @@ impl<T: OutputType + Sync> OutputType for Option<T> {
         field: &Positioned<Field>,
     ) -> ServerResult<ResponseNodeId> {
         if let Some(inner) = self {
-            match OutputType::resolve(inner, ctx, field).await {
+            match LegacyOutputType::resolve(inner, ctx, field).await {
                 Ok(value) => Ok(value),
                 Err(err) => {
                     ctx.add_error(err);
@@ -86,7 +86,7 @@ impl<T: OutputType + Sync> OutputType for Option<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::InputType;
+    use crate::LegacyInputType;
 
     #[test]
     fn test_optional_type() {

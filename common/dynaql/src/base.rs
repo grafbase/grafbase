@@ -17,7 +17,7 @@ pub trait Description {
 }
 
 /// Represents a GraphQL input type.
-pub trait InputType: Send + Sync + Sized {
+pub trait LegacyInputType: Send + Sync + Sized {
     /// The raw type used for validator.
     ///
     /// Usually it is `Self`, but the wrapper type is its internal type.
@@ -56,14 +56,18 @@ pub trait InputType: Send + Sync + Sized {
 }
 
 /// Represents a GraphQL output type.
+///
+/// This is mostly unused these days - a leftover from the origins of this crate.
+/// Introspection does still run through this trait though, so until we replace that
+/// we can't get rid of it.
 #[async_trait::async_trait]
-pub trait OutputType: Send + Sync {
+pub trait LegacyOutputType: Send + Sync {
     /// Type the name.
     fn type_name() -> Cow<'static, str>;
 
     /// Qualified typename.
-    fn qualified_type_name() -> String {
-        format!("{}!", Self::type_name())
+    fn qualified_type_name() -> crate::registry::MetaFieldType {
+        format!("{}!", Self::type_name()).into()
     }
 
     /// Introspection type name
@@ -74,7 +78,7 @@ pub trait OutputType: Send + Sync {
     }
 
     /// Create type information in the registry and return qualified typename.
-    fn create_type_info(registry: &mut registry::Registry) -> String;
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType;
 
     /// Resolve an output value to `dynaql::Value`.
     async fn resolve(
@@ -85,12 +89,12 @@ pub trait OutputType: Send + Sync {
 }
 
 #[async_trait::async_trait]
-impl<T: OutputType + ?Sized> OutputType for &T {
+impl<T: LegacyOutputType + ?Sized> LegacyOutputType for &T {
     fn type_name() -> Cow<'static, str> {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::MetaFieldType {
         T::create_type_info(registry)
     }
 
@@ -105,12 +109,14 @@ impl<T: OutputType + ?Sized> OutputType for &T {
 }
 
 #[async_trait::async_trait]
-impl<T: OutputType + Sync, E: Into<Error> + Send + Sync + Clone> OutputType for Result<T, E> {
+impl<T: LegacyOutputType + Sync, E: Into<Error> + Send + Sync + Clone> LegacyOutputType
+    for Result<T, E>
+{
     fn type_name() -> Cow<'static, str> {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::MetaFieldType {
         T::create_type_info(registry)
     }
 
@@ -141,21 +147,33 @@ impl<T: ObjectType + ?Sized> ObjectType for Box<T> {}
 impl<T: ObjectType + ?Sized> ObjectType for Arc<T> {}
 
 /// A GraphQL interface.
-pub trait InterfaceType: ContainerType {}
+///
+/// This is mostly unused these days - a leftover from the origins of this crate.
+/// Introspection does still run through this trait though, so until we replace that
+/// we can't get rid of it.
+pub trait LegacyInterfaceType: ContainerType {}
 
 /// A GraphQL interface.
-pub trait UnionType: ContainerType {}
+///
+/// This is mostly unused these days - a leftover from the origins of this crate.
+/// Introspection does still run through this trait though, so until we replace that
+/// we can't get rid of it.
+pub trait LegacyUnionType: ContainerType {}
 
 /// A GraphQL input object.
-pub trait InputObjectType: InputType {}
+///
+/// This is mostly unused these days - a leftover from the origins of this crate.
+/// Introspection does still run through this trait though, so until we replace that
+/// we can't get rid of it.
+pub trait LegacyInputObjectType: LegacyInputType {}
 
 #[async_trait::async_trait]
-impl<T: OutputType + ?Sized> OutputType for Box<T> {
+impl<T: LegacyOutputType + ?Sized> LegacyOutputType for Box<T> {
     fn type_name() -> Cow<'static, str> {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::MetaFieldType {
         T::create_type_info(registry)
     }
 
@@ -170,7 +188,7 @@ impl<T: OutputType + ?Sized> OutputType for Box<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: InputType> InputType for Box<T> {
+impl<T: LegacyInputType> LegacyInputType for Box<T> {
     type RawValueType = T::RawValueType;
 
     fn type_name() -> Cow<'static, str> {
@@ -197,12 +215,12 @@ impl<T: InputType> InputType for Box<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: OutputType + ?Sized> OutputType for Arc<T> {
+impl<T: LegacyOutputType + ?Sized> LegacyOutputType for Arc<T> {
     fn type_name() -> Cow<'static, str> {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::MetaFieldType {
         T::create_type_info(registry)
     }
 
@@ -216,7 +234,7 @@ impl<T: OutputType + ?Sized> OutputType for Arc<T> {
     }
 }
 
-impl<T: InputType> InputType for Arc<T> {
+impl<T: LegacyInputType> LegacyInputType for Arc<T> {
     type RawValueType = T::RawValueType;
 
     fn type_name() -> Cow<'static, str> {

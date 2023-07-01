@@ -90,7 +90,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
             flatten_fields.push((ident, ty));
 
             schema_fields.push(quote! {
-                #crate_name::static_assertions::assert_impl_one!(#ty: #crate_name::InputObjectType);
+                #crate_name::static_assertions::assert_impl_one!(#ty: #crate_name::LegacyInputObjectType);
                 #ty::create_type_info(registry);
                 if let #crate_name::registry::MetaType::InputObject(input_object) =
                     registry.create_fake_input_type::<#ty>() {
@@ -99,7 +99,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
             });
 
             get_fields.push(quote! {
-                let #ident: #ty = #crate_name::InputType::parse(
+                let #ident: #ty = #crate_name::LegacyInputType::parse(
                     ::std::option::Option::Some(#crate_name::Value::Object(::std::clone::Clone::clone(&obj)))
                 ).map_err(#crate_name::InputValueError::propagate)?;
                 #validators
@@ -108,7 +108,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
             fields.push(ident);
 
             put_fields.push(quote! {
-                if let #crate_name::Value::Object(values) = #crate_name::InputType::to_value(&self.#ident) {
+                if let #crate_name::Value::Object(values) = #crate_name::LegacyInputType::to_value(&self.#ident) {
                     map.extend(values);
                 }
             });
@@ -124,7 +124,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
             .map(|value| {
                 quote! {
                     ::std::option::Option::Some(::std::string::ToString::to_string(
-                        &<#ty as #crate_name::InputType>::to_value(&#value)
+                        &<#ty as #crate_name::LegacyInputType>::to_value(&#value)
                     ))
                 }
             })
@@ -137,7 +137,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                 let #ident: #ty = {
                     match obj.get(#name) {
                         ::std::option::Option::Some(value) => {
-                            #crate_name::InputType::parse(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
+                            #crate_name::LegacyInputType::parse(::std::option::Option::Some(::std::clone::Clone::clone(&value)))
                                 .map_err(#crate_name::InputValueError::propagate)?
                         },
                         ::std::option::Option::None => #default,
@@ -148,7 +148,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         } else {
             get_fields.push(quote! {
                 #[allow(non_snake_case)]
-                let #ident: #ty = #crate_name::InputType::parse(obj.get(#name).cloned())
+                let #ident: #ty = #crate_name::LegacyInputType::parse(obj.get(#name).cloned())
                     .map_err(#crate_name::InputValueError::propagate)?;
                 #validators
             });
@@ -157,7 +157,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         put_fields.push(quote! {
             map.insert(
                 #crate_name::Name::new(#name),
-                #crate_name::InputType::to_value(&self.#ident)
+                #crate_name::LegacyInputType::to_value(&self.#ident)
             );
         });
 
@@ -167,7 +167,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
             fields.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
                 name: ::std::borrow::ToOwned::to_owned(#name),
                 description: #desc,
-                ty: <#ty as #crate_name::InputType>::create_type_info(registry),
+                ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                 default_value: #schema_default,
                 validators: None,
                 visible: #visible,
@@ -190,7 +190,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
     let get_federation_fields = {
         let fields = federation_fields.into_iter().map(|(ty, name)| {
             quote! {
-                if let ::std::option::Option::Some(fields) = <#ty as #crate_name::InputType>::federation_fields() {
+                if let ::std::option::Option::Some(fields) = <#ty as #crate_name::LegacyInputType>::federation_fields() {
                     res.push(::std::format!("{} {}", #name, fields));
                 } else {
                     res.push(::std::string::ToString::to_string(#name));
@@ -207,7 +207,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
     let expanded = if object_args.concretes.is_empty() {
         quote! {
             #[allow(clippy::all, clippy::pedantic)]
-            impl #crate_name::InputType for #ident {
+            impl #crate_name::LegacyInputType for #ident {
                 type RawValueType = Self;
 
                 fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
@@ -255,7 +255,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                 }
             }
 
-            impl #crate_name::InputObjectType for #ident {}
+            impl #crate_name::LegacyInputObjectType for #ident {}
         }
     } else {
         let mut code = Vec::new();
@@ -263,7 +263,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         code.push(quote! {
             #[allow(clippy::all, clippy::pedantic)]
             impl #impl_generics #ident #ty_generics #where_clause {
-                fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> ::std::string::String where Self: #crate_name::InputType {
+                fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> ::std::string::String where Self: #crate_name::LegacyInputType {
                     registry.create_input_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::InputObject(#crate_name::registry::InputObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),
@@ -280,7 +280,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                     )
                 }
 
-                fn __internal_parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> where Self: #crate_name::InputType {
+                fn __internal_parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> where Self: #crate_name::LegacyInputType {
                     if let ::std::option::Option::Some(#crate_name::Value::Object(obj)) = value {
                         #(#get_fields)*
                         ::std::result::Result::Ok(Self { #(#fields),* })
@@ -289,7 +289,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                     }
                 }
 
-                fn __internal_to_value(&self) -> #crate_name::Value where Self: #crate_name::InputType {
+                fn __internal_to_value(&self) -> #crate_name::Value where Self: #crate_name::LegacyInputType {
                     let mut map = #crate_name::indexmap::IndexMap::new();
                     #(#put_fields)*
                     #crate_name::Value::Object(map)
@@ -308,7 +308,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
 
             let expanded = quote! {
                 #[allow(clippy::all, clippy::pedantic)]
-                impl #crate_name::InputType for #concrete_type {
+                impl #crate_name::LegacyInputType for #concrete_type {
                     type RawValueType = Self;
 
                     fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {

@@ -3,6 +3,8 @@
 //! The conversion takes all the known information from the introspection and adds it to the
 //! registry.
 
+use std::ops::Not;
+
 use super::{
     Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType,
     Registry, __DirectiveLocation,
@@ -22,6 +24,25 @@ impl From<cynic_introspection::Schema> for Registry {
             .directives
             .into_iter()
             .map(|d| (d.name.clone(), d.into()))
+            .collect();
+
+        registry.implements = schema
+            .types
+            .iter()
+            .filter_map(|ty| match ty {
+                cynic_introspection::Type::Object(object) => object
+                    .interfaces
+                    .is_empty()
+                    .not()
+                    .then(|| (ty.name(), &object.interfaces)),
+                cynic_introspection::Type::Interface(interface) => interface
+                    .interfaces
+                    .is_empty()
+                    .not()
+                    .then(|| (ty.name(), &interface.interfaces)),
+                _ => None,
+            })
+            .map(|(name, interfaces)| (name.to_string(), interfaces.iter().cloned().collect()))
             .collect();
 
         // types
@@ -62,7 +83,7 @@ impl From<cynic_introspection::Field> for MetaField {
                 .into_iter()
                 .map(|v| (v.name.clone(), v.into()))
                 .collect(),
-            ty: field.ty.to_string(),
+            ty: field.ty.to_string().into(),
             deprecation: field.deprecated.into(),
             ..Default::default()
         }

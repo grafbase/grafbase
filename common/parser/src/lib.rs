@@ -37,6 +37,7 @@ use rules::unique_fields::UniqueObjectFields;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 mod models;
+mod type_names;
 
 use crate::rules::cache_directive::visitor::CacheVisitor;
 use crate::rules::cache_directive::CacheDirective;

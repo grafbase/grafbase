@@ -4,6 +4,7 @@ use std::any::{Any, TypeId};
 use std::future::Future;
 use std::sync::Arc;
 
+use crate::registry::MetaFieldType;
 use crate::Value;
 use dynaql_parser::Positioned;
 use dynaql_value::Name;
@@ -100,7 +101,7 @@ pub struct ResolveInfo<'a> {
     pub parent_type: &'a str,
 
     /// Current return type, is qualified name.
-    pub return_type: &'a str,
+    pub return_type: &'a MetaFieldType,
 
     /// Current field name
     pub name: &'a str,

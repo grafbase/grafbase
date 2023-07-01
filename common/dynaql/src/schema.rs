@@ -25,8 +25,8 @@ use crate::subscription::collect_subscription_streams;
 use crate::types::QueryRoot;
 use crate::validation::{check_rules, ValidationMode};
 use crate::{
-    BatchRequest, BatchResponse, CacheControl, ContextBase, InputType, ObjectType, OutputType,
-    QueryEnv, Request, Response, ServerError, SubscriptionType, Variables, ID,
+    BatchRequest, BatchResponse, CacheControl, ContextBase, LegacyInputType, LegacyOutputType,
+    ObjectType, QueryEnv, Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
 #[cfg(feature = "query-planning")]
 use query_planning::execution_query::context::ExecutionContext;
@@ -50,7 +50,7 @@ impl SchemaBuilder {
     ///
     /// You can use this function to register schema types that are not directly referenced.
     #[must_use]
-    pub fn register_input_type<T: InputType>(mut self) -> Self {
+    pub fn register_input_type<T: LegacyInputType>(mut self) -> Self {
         T::create_type_info(&mut self.registry);
         self
     }
@@ -59,7 +59,7 @@ impl SchemaBuilder {
     ///
     /// You can use this function to register schema types that are not directly referenced.
     #[must_use]
-    pub fn register_output_type<T: OutputType>(mut self) -> Self {
+    pub fn register_output_type<T: LegacyOutputType>(mut self) -> Self {
         T::create_type_info(&mut self.registry);
         self
     }
@@ -143,14 +143,20 @@ impl SchemaBuilder {
 
     /// Override the name of the specified input type.
     #[must_use]
-    pub fn override_input_type_description<T: InputType>(mut self, desc: &'static str) -> Self {
+    pub fn override_input_type_description<T: LegacyInputType>(
+        mut self,
+        desc: &'static str,
+    ) -> Self {
         self.registry.set_description(&T::type_name(), desc);
         self
     }
 
     /// Override the name of the specified output type.
     #[must_use]
-    pub fn override_output_type_description<T: OutputType>(mut self, desc: &'static str) -> Self {
+    pub fn override_output_type_description<T: LegacyOutputType>(
+        mut self,
+        desc: &'static str,
+    ) -> Self {
         self.registry.set_description(&T::type_name(), desc);
         self
     }
@@ -393,11 +399,11 @@ impl Schema {
         });
 
         // register scalars
-        <bool as InputType>::create_type_info(registry);
-        <i32 as InputType>::create_type_info(registry);
-        <f32 as InputType>::create_type_info(registry);
-        <String as InputType>::create_type_info(registry);
-        <ID as InputType>::create_type_info(registry);
+        <bool as LegacyInputType>::create_type_info(registry);
+        <i32 as LegacyInputType>::create_type_info(registry);
+        <f32 as LegacyInputType>::create_type_info(registry);
+        <String as LegacyInputType>::create_type_info(registry);
+        <ID as LegacyInputType>::create_type_info(registry);
     }
 
     /// Create a schema
@@ -867,7 +873,7 @@ fn remove_skipped_selection(selection_set: &mut SelectionSet, variables: &Variab
                     .clone()
                     .into_const_with(|name| variables.get(&name).cloned().ok_or(()))
                     .unwrap_or_default();
-                let value: bool = InputType::parse(Some(value)).unwrap_or_default();
+                let value: bool = LegacyInputType::parse(Some(value)).unwrap_or_default();
                 if include != value {
                     return true;
                 }

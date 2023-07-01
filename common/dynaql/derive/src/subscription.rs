@@ -170,7 +170,7 @@ pub fn generate(
                     .as_ref()
                     .map(|value| {
                         quote! {
-                            ::std::option::Option::Some(<#ty as #crate_name::InputType>::to_value(&#value))
+                            ::std::option::Option::Some(<#ty as #crate_name::LegacyInputType>::to_value(&#value))
                         }
                     })
                     .unwrap_or_else(|| quote! {::std::option::Option::None});
@@ -180,7 +180,7 @@ pub fn generate(
                     args.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
                         name: ::std::borrow::ToOwned::to_owned(#name),
                         description: #desc,
-                        ty: <#ty as #crate_name::InputType>::create_type_info(registry),
+                        ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                         default_value: #schema_default,
                         validators: None,
                         visible: #visible,
@@ -298,7 +298,7 @@ pub fn generate(
                         #(#schema_args)*
                         args
                     },
-                    ty: <<#stream_ty as #crate_name::futures_util::stream::Stream>::Item as #crate_name::OutputType>::create_type_info(registry),
+                    ty: <<#stream_ty as #crate_name::futures_util::stream::Stream>::Item as #crate_name::LegacyOutputType>::create_type_info(registry),
                     deprecation: #field_deprecation,
                     cache_control: ::std::default::Default::default(),
                     external: false,
@@ -367,13 +367,13 @@ pub fn generate(
                                 &field.node.selection_set,
                             );
 
-                            let type_name = <<#stream_ty as #crate_name::futures_util::stream::Stream>::Item as #crate_name::OutputType>::qualified_type_name();
+                            let type_name = <<#stream_ty as #crate_name::futures_util::stream::Stream>::Item as #crate_name::LegacyOutputType>::qualified_type_name();
                             let mut execute_fut = async {
                                 #[allow(bare_trait_objects)]
                                 let ri = #crate_name::extensions::ResolveInfo {
                                     path_node: ctx_selection_set.path_node.as_ref().unwrap(),
                                     parent_type: #gql_typename,
-                                    return_type: &<<#stream_ty as #crate_name::futures_util::stream::Stream>::Item as #crate_name::OutputType>::qualified_type_name(),
+                                    return_type: &<<#stream_ty as #crate_name::futures_util::stream::Stream>::Item as #crate_name::LegacyOutputType>::qualified_type_name(),
                                     name: field.node.name.node.as_str(),
                                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                                     required_operation: None,
@@ -382,13 +382,13 @@ pub fn generate(
                                 };
 
                                 let resolve_fut = async {
-                                    let resolved = #crate_name::OutputType::resolve(&msg, &ctx_selection_set, &*field).await?;
+                                    let resolved = #crate_name::LegacyOutputType::resolve(&msg, &ctx_selection_set, &*field).await?;
                                     Ok(Some(resolved))
                                 };
 
                                 /*
                                 let resolve_fut = async {
-                                    #crate_name::OutputType::resolve(&msg, &ctx_selection_set, &*field)
+                                    #crate_name::LegacyOutputType::resolve(&msg, &ctx_selection_set, &*field)
                                         .await
                                         .map(::std::option::Option::Some)
                                 };

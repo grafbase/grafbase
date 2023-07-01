@@ -5,7 +5,7 @@ use graph_entities::ResponseNodeId;
 use crate::parser::types::Field;
 use crate::resolver_utils::ContainerType;
 use crate::{
-    registry, Context, ContextSelectionSet, ObjectType, OutputType, Positioned, ServerError,
+    registry, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned, ServerError,
     ServerResult,
 };
 
@@ -45,12 +45,12 @@ impl ContainerType for EmptyMutation {
 }
 
 #[async_trait::async_trait]
-impl OutputType for EmptyMutation {
+impl LegacyOutputType for EmptyMutation {
     fn type_name() -> Cow<'static, str> {
         Cow::Borrowed("EmptyMutation")
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType {
         registry.create_output_type::<Self, _>(|_| {
             registry::ObjectType {
                 name: "EmptyMutation".to_string(),

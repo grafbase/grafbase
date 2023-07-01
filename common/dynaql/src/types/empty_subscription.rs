@@ -19,7 +19,7 @@ impl SubscriptionType for EmptySubscription {
 
     fn create_type_info(registry: &mut registry::Registry) -> String {
         registry.create_subscription_type::<Self, _>(|_| {
-            registry::ObjectType::new("EmptySubscription".into(), []).into()
+            registry::ObjectType::new("EmptySubscription", []).into()
         })
     }
 

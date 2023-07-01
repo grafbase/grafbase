@@ -33,8 +33,8 @@ pub async fn selection_set_into_node<'a>(
                     ResponseNodeRelation::relation(
                         relation,
                         rel.name.clone(),
-                        rel.relation.0.clone(),
-                        rel.relation.1.clone(),
+                        rel.relation.0.as_ref().map(ToString::to_string),
+                        rel.relation.1.to_string(),
                     )
                 } else {
                     ResponseNodeRelation::NotARelation {

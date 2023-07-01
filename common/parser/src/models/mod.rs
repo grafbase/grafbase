@@ -129,7 +129,7 @@ pub fn from_object(registry: &Registry, object: &ObjectType, system: bool) -> Re
     let mut arrow_fields = Vec::with_capacity(object.fields.len());
     for (_key, field) in &object.fields {
         if field.relation.is_none() && field.plan.as_ref().map(|x| x.is_from_maindb()).unwrap_or(true) {
-            let ty = Type::new(&field.ty).ok_or_else(|| {
+            let ty = Type::new(&field.ty.to_string()).ok_or_else(|| {
                 ConversionError::ParsingSchema(format!("The Type {ty} is not a proper GraphQL type", ty = field.ty))
             })?;
 

@@ -22,7 +22,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "OpenAPI1Pet",
+                        ty: MetaFieldType(
+                            "OpenAPI1Pet",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -78,7 +80,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "OpenAPI1Pet",
+                        ty: MetaFieldType(
+                            "OpenAPI1Pet",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -142,7 +146,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "OpenAPI1ApiResponse",
+                        ty: MetaFieldType(
+                            "OpenAPI1ApiResponse",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -206,7 +212,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "OpenAPI1Order",
+                        ty: MetaFieldType(
+                            "OpenAPI1Order",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -262,7 +270,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "OpenAPI1User",
+                        ty: MetaFieldType(
+                            "OpenAPI1User",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -329,7 +339,9 @@ Registry {
                         name: "message",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -361,7 +373,9 @@ Registry {
                         name: "type",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -393,7 +407,9 @@ Registry {
                         name: "code",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -445,7 +461,9 @@ Registry {
                         name: "name",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -477,7 +495,9 @@ Registry {
                         name: "id",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -588,7 +608,9 @@ Registry {
                         name: "complete",
                         description: None,
                         args: {},
-                        ty: "Boolean",
+                        ty: MetaFieldType(
+                            "Boolean",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -620,7 +642,9 @@ Registry {
                         name: "status",
                         description: None,
                         args: {},
-                        ty: "OpenAPI1OrderStatus",
+                        ty: MetaFieldType(
+                            "OpenAPI1OrderStatus",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -659,7 +683,9 @@ Registry {
                         name: "shipDate",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -691,7 +717,9 @@ Registry {
                         name: "quantity",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -723,7 +751,9 @@ Registry {
                         name: "petId",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -755,7 +785,9 @@ Registry {
                         name: "id",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -898,7 +930,9 @@ Registry {
                         name: "status",
                         description: None,
                         args: {},
-                        ty: "OpenAPI1PetStatus",
+                        ty: MetaFieldType(
+                            "OpenAPI1PetStatus",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -937,7 +971,9 @@ Registry {
                         name: "tags",
                         description: None,
                         args: {},
-                        ty: "[OpenAPI1Tag!]",
+                        ty: MetaFieldType(
+                            "[OpenAPI1Tag!]",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -969,7 +1005,9 @@ Registry {
                         name: "photoUrls",
                         description: None,
                         args: {},
-                        ty: "[String!]!",
+                        ty: MetaFieldType(
+                            "[String!]!",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1001,7 +1039,9 @@ Registry {
                         name: "category",
                         description: None,
                         args: {},
-                        ty: "OpenAPI1Category",
+                        ty: MetaFieldType(
+                            "OpenAPI1Category",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1033,7 +1073,9 @@ Registry {
                         name: "name",
                         description: None,
                         args: {},
-                        ty: "String!",
+                        ty: MetaFieldType(
+                            "String!",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1065,7 +1107,9 @@ Registry {
                         name: "id",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1208,7 +1252,9 @@ Registry {
                         name: "name",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1240,7 +1286,9 @@ Registry {
                         name: "id",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1318,7 +1366,9 @@ Registry {
                         name: "userStatus",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1350,7 +1400,9 @@ Registry {
                         name: "phone",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1382,7 +1434,9 @@ Registry {
                         name: "password",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1414,7 +1468,9 @@ Registry {
                         name: "email",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1446,7 +1502,9 @@ Registry {
                         name: "lastName",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1478,7 +1536,9 @@ Registry {
                         name: "firstName",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1510,7 +1570,9 @@ Registry {
                         name: "username",
                         description: None,
                         args: {},
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1542,7 +1604,9 @@ Registry {
                         name: "id",
                         description: None,
                         args: {},
-                        ty: "Int",
+                        ty: MetaFieldType(
+                            "Int",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1683,7 +1747,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "[OpenAPI1Pet!]",
+                        ty: MetaFieldType(
+                            "[OpenAPI1Pet!]",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1740,7 +1806,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "[OpenAPI1Pet!]",
+                        ty: MetaFieldType(
+                            "[OpenAPI1Pet!]",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1797,7 +1865,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "OpenAPI1Pet",
+                        ty: MetaFieldType(
+                            "OpenAPI1Pet",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1844,7 +1914,9 @@ Registry {
                         name: "inventory",
                         description: None,
                         args: {},
-                        ty: "JSON",
+                        ty: MetaFieldType(
+                            "JSON",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1893,7 +1965,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "OpenAPI1Order",
+                        ty: MetaFieldType(
+                            "OpenAPI1Order",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -1957,7 +2031,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "String",
+                        ty: MetaFieldType(
+                            "String",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,
@@ -2021,7 +2097,9 @@ Registry {
                                 rename: None,
                             },
                         },
-                        ty: "OpenAPI1User",
+                        ty: MetaFieldType(
+                            "OpenAPI1User",
+                        ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
                             public: false,

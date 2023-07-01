@@ -76,6 +76,7 @@ pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Reg
     // in openapi but might need revisited with other connectors.
     main_registry.types.extend(src_registry.types.into_iter());
     main_registry.schemas.extend(src_registry.schemas.into_iter());
+    main_registry.implements.extend(src_registry.implements.into_iter());
 
     main_registry.http_headers.extend(src_registry.http_headers.into_iter());
 

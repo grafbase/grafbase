@@ -6,21 +6,21 @@ use graph_entities::ResponseNodeId;
 use crate::parser::types::Field;
 use crate::resolver_utils::resolve_list_native;
 use crate::{
-    registry, ContextSelectionSet, InputType, InputValueError, InputValueResult, OutputType,
-    Positioned, ServerResult, Value,
+    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType,
+    LegacyOutputType, Positioned, ServerResult, Value,
 };
 
 #[async_trait::async_trait]
-impl<'a, T: OutputType + 'a> OutputType for &'a [T] {
+impl<'a, T: LegacyOutputType + 'a> LegacyOutputType for &'a [T] {
     fn type_name() -> Cow<'static, str> {
         Cow::Owned(format!("[{}]", T::qualified_type_name()))
     }
 
-    fn qualified_type_name() -> String {
-        format!("[{}]!", T::qualified_type_name())
+    fn qualified_type_name() -> crate::registry::MetaFieldType {
+        format!("[{}]!", T::qualified_type_name()).into()
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType {
         T::create_type_info(registry);
         Self::qualified_type_name()
     }
@@ -37,16 +37,18 @@ impl<'a, T: OutputType + 'a> OutputType for &'a [T] {
 macro_rules! impl_output_slice_for_smart_ptr {
     ($ty:ty) => {
         #[async_trait::async_trait]
-        impl<T: OutputType> OutputType for $ty {
+        impl<T: LegacyOutputType> LegacyOutputType for $ty {
             fn type_name() -> Cow<'static, str> {
                 Cow::Owned(format!("[{}]", T::qualified_type_name()))
             }
 
-            fn qualified_type_name() -> String {
-                format!("[{}]!", T::qualified_type_name())
+            fn qualified_type_name() -> crate::registry::MetaFieldType {
+                format!("[{}]!", T::qualified_type_name()).into()
             }
 
-            fn create_type_info(registry: &mut registry::Registry) -> String {
+            fn create_type_info(
+                registry: &mut registry::Registry,
+            ) -> crate::registry::MetaFieldType {
                 T::create_type_info(registry);
                 Self::qualified_type_name()
             }
@@ -67,7 +69,7 @@ impl_output_slice_for_smart_ptr!(Arc<[T]>);
 
 macro_rules! impl_input_slice_for_smart_ptr {
     ($ty:ty) => {
-        impl<T: InputType> InputType for $ty {
+        impl<T: LegacyInputType> LegacyInputType for $ty {
             type RawValueType = Self;
 
             fn type_name() -> Cow<'static, str> {
@@ -87,21 +89,19 @@ macro_rules! impl_input_slice_for_smart_ptr {
                 match value.unwrap_or_default() {
                     Value::List(values) => values
                         .into_iter()
-                        .map(|value| InputType::parse(Some(value)))
+                        .map(|value| LegacyInputType::parse(Some(value)))
                         .collect::<Result<_, _>>()
                         .map_err(InputValueError::propagate),
                     value => {
-                        Ok(
-                            vec![InputType::parse(Some(value))
-                                .map_err(InputValueError::propagate)?]
-                            .into(),
-                        )
+                        Ok(vec![LegacyInputType::parse(Some(value))
+                            .map_err(InputValueError::propagate)?]
+                        .into())
                     }
                 }
             }
 
             fn to_value(&self) -> Value {
-                Value::List(self.iter().map(InputType::to_value).collect())
+                Value::List(self.iter().map(LegacyInputType::to_value).collect())
             }
 
             fn as_raw_value(&self) -> Option<&Self::RawValueType> {

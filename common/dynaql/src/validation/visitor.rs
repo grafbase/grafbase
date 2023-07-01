@@ -8,7 +8,7 @@ use crate::parser::types::{
     OperationDefinition, OperationType, Selection, SelectionSet, TypeCondition, VariableDefinition,
 };
 use crate::registry::{self, MetaInputValue, MetaType, MetaTypeName};
-use crate::{InputType, Name, Pos, Positioned, ServerError, ServerResult, Variables};
+use crate::{LegacyInputType, Name, Pos, Positioned, ServerError, ServerResult, Variables};
 
 use super::dynamic_validators::DynValidate;
 
@@ -90,7 +90,7 @@ impl<'a> VisitorContext<'a> {
     }
 
     #[doc(hidden)]
-    pub fn param_value<T: InputType>(
+    pub fn param_value<T: LegacyInputType>(
         &self,
         variable_definitions: &[Positioned<VariableDefinition>],
         field: &Field,
@@ -627,7 +627,9 @@ fn visit_selection<'a, V: Visitor<'a>>(
                     ctx.current_type()
                         .and_then(|ty| ty.field_by_name(&field.node.name.node))
                         .and_then(|schema_field| {
-                            ctx.registry.concrete_type_by_name(&schema_field.ty)
+                            ctx.registry
+                                .lookup_expecting::<&MetaType>(&schema_field.ty)
+                                .ok()
                         }),
                     |ctx| {
                         visit_field(v, ctx, field);

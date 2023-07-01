@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
-use crate::{InputType, InputValueError};
+use crate::{InputValueError, LegacyInputType};
 
-pub fn min_items<T: Deref<Target = [E]> + InputType, E>(
+pub fn min_items<T: Deref<Target = [E]> + LegacyInputType, E>(
     value: &T,
     len: usize,
 ) -> Result<(), InputValueError<T>> {

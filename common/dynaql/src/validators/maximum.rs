@@ -2,11 +2,11 @@ use std::fmt::Display;
 
 use num_traits::AsPrimitive;
 
-use crate::{InputType, InputValueError};
+use crate::{InputValueError, LegacyInputType};
 
 pub fn maximum<T, N>(value: &T, n: N) -> Result<(), InputValueError<T>>
 where
-    T: AsPrimitive<N> + InputType,
+    T: AsPrimitive<N> + LegacyInputType,
     N: PartialOrd + Display + Copy + 'static,
 {
     if value.as_() <= n {

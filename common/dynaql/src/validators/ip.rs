@@ -1,9 +1,9 @@
 use std::net::IpAddr;
 use std::str::FromStr;
 
-use crate::{InputType, InputValueError};
+use crate::{InputValueError, LegacyInputType};
 
-pub fn ip<T: AsRef<str> + InputType>(value: &T) -> Result<(), InputValueError<T>> {
+pub fn ip<T: AsRef<str> + LegacyInputType>(value: &T) -> Result<(), InputValueError<T>> {
     if IpAddr::from_str(value.as_ref()).is_ok() {
         Ok(())
     } else {

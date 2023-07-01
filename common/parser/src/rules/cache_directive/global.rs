@@ -3,7 +3,7 @@ use crate::rules::cache_directive::global::GlobalCacheRulesError::{
 };
 use crate::rules::visitor::MUTATION_TYPE;
 use dynaql::indexmap::IndexMap;
-use dynaql::registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry};
+use dynaql::registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference};
 use dynaql::CacheControl;
 use if_chain::if_chain;
 use itertools::Itertools;
@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 use crate::rules::cache_directive::de_mutation_invalidation;
-use crate::utils::is_str_type_primitive;
 
 #[derive(Debug, Eq, PartialEq, thiserror::Error)]
 pub enum GlobalCacheRulesError {
@@ -213,7 +212,7 @@ fn validate_mutation_invalidation(
             // only primitives are allowed
             // any complex type should have its own mutation invalidation
             // lists are not supported to limit the number of distinct tags
-            if !is_str_type_primitive(&meta_field.ty) {
+            if !&meta_field.ty.named_type().is_primitive_type() {
                 return Err(GlobalCacheRulesError::UnknownMutationInvalidationFieldType(
                     field_name.to_string(),
                 ));

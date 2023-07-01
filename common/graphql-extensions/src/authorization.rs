@@ -10,7 +10,7 @@ use dynaql::extensions::{Extension, ExtensionContext, ExtensionFactory, NextPars
 use dynaql::graph_entities::ResponseNodeId;
 use dynaql::parser::types::{ExecutableDocument, OperationType, Selection};
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::Registry;
+use dynaql::registry::{ModelName, NamedType, Registry, TypeReference};
 use dynaql::Variables;
 use dynaql::{AuthConfig, ServerError, ServerResult};
 use dynaql_value::{indexmap::IndexMap, ConstValue};
@@ -196,7 +196,7 @@ impl Extension for AuthExtension {
 
 struct CheckInputOptions<'a, F: Fn(Option<&AuthConfig>, Operations) -> Operations> {
     input_fields: &'a IndexMap<dynaql_value::Name, ConstValue>,
-    type_name: &'a str,
+    type_name: NamedType<'a>,
     mutation_name: &'a str,
     registry: &'a Registry,
     required_op: Operations,
@@ -217,8 +217,7 @@ impl AuthExtension {
     ) -> Result<(), ServerError> {
         let type_fields = opts
             .registry
-            .types
-            .get(opts.type_name)
+            .lookup(&opts.type_name)
             .expect("type must exist")
             .fields()
             .expect("type must have fields");
@@ -252,7 +251,7 @@ impl AuthExtension {
                         if let Some(ConstValue::Object(obj)) = obj.get(CREATE_FIELD) {
                             self.check_input(CheckInputOptions {
                                 input_fields: obj,
-                                type_name: target_type,
+                                type_name: target_type.as_str().into(),
                                 ..opts
                             })?;
                         }
@@ -278,7 +277,7 @@ impl AuthExtension {
                                 if let Some(ConstValue::Object(obj)) = obj.get(CREATE_FIELD) {
                                     self.check_input(CheckInputOptions {
                                         input_fields: obj,
-                                        type_name: target_type,
+                                        type_name: target_type.named_type(),
                                         ..opts
                                     })?;
                                 } else if matches!(obj.get(LINK_FIELD), Some(ConstValue::String(_target_id)))
@@ -306,7 +305,7 @@ impl AuthExtension {
     // Only allow (un)link when the user can read the target type's id
     fn check_link_or_unlink<F: Fn(Option<&AuthConfig>, Operations) -> Operations>(
         &self,
-        type_name: &str,
+        type_name: &ModelName,
         mutation_name: &str,
         registry: &Registry,
         global_ops: Operations,
@@ -316,7 +315,7 @@ impl AuthExtension {
             input_fields: &vec![(dynaql::Name::new("id"), ConstValue::String("ignored".to_string()))]
                 .into_iter()
                 .collect(),
-            type_name,
+            type_name: type_name.named_type(),
             mutation_name,
             registry,
             required_op: Operations::GET,
@@ -330,15 +329,14 @@ impl AuthExtension {
     // TODO: Check fields of nested types once we support cascading deletes
     fn check_delete<F: Fn(Option<&AuthConfig>, Operations) -> Operations>(
         &self,
-        type_name: &str,
+        type_name: NamedType<'_>,
         mutation_name: &str,
         registry: &Registry,
         model_ops: Operations,
         auth_fn: &F,
     ) -> Result<(), ServerError> {
         let type_fields = registry
-            .types
-            .get(type_name)
+            .lookup(&type_name)
             .expect("type must exist")
             .fields()
             .expect("type must have fields");
@@ -361,7 +359,7 @@ impl AuthExtension {
 
 // HACK to get underlying type, which is not available in ResolveInfo
 #[allow(clippy::panic)]
-fn guess_type_name<'a>(info: &'a ResolveInfo<'_>, required_op: Operations) -> &'a str {
+fn guess_type_name(info: &ResolveInfo<'_>, required_op: Operations) -> NamedType<'static> {
     let suffix = match required_op {
         Operations::CREATE => "CreatePayload",
         Operations::UPDATE => "UpdatePayload",
@@ -370,6 +368,10 @@ fn guess_type_name<'a>(info: &'a ResolveInfo<'_>, required_op: Operations) -> &'
     };
 
     info.return_type
+        .named_type()
+        .as_str()
         .strip_suffix(suffix)
         .expect("must be the expected Payload type")
+        .to_owned()
+        .into()
 }

@@ -76,12 +76,12 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
 
         #[allow(clippy::all, clippy::pedantic)]
         #[#crate_name::async_trait::async_trait]
-        impl #impl_generics #crate_name::OutputType for #ident #ty_generics #where_clause {
+        impl #impl_generics #crate_name::LegacyOutputType for #ident #ty_generics #where_clause {
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                 ::std::borrow::Cow::Borrowed(#gql_typename)
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
                 registry.create_output_type::<Self, _>(|registry| {
                     let mut fields = ::std::default::Default::default();
                     let mut cache_control = ::std::default::Default::default();

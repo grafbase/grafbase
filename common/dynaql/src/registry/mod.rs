@@ -10,6 +10,8 @@ pub mod scalars;
 mod serde_preserve_enum;
 mod stringify_exec_doc;
 pub mod transformers;
+pub mod type_kinds;
+mod type_names;
 pub mod union_discriminator;
 pub mod utils;
 pub mod variables;
@@ -35,14 +37,18 @@ use crate::parser::types::{
 use crate::resolver_utils::{resolve_container, resolve_list};
 use crate::validation::dynamic_validators::DynValidator;
 use crate::{
-    model, Any, Context, Error, InputType, OutputType, Positioned, ServerError, ServerResult,
-    SubscriptionType, Value, VisitorContext,
+    model, Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerError,
+    ServerResult, SubscriptionType, Value, VisitorContext,
 };
 use grafbase::auth::Operations;
 
+use self::type_kinds::TypeKind;
 pub use self::{
-    cache_control::CacheControl, cache_control::CacheInvalidation,
-    cache_control::CacheInvalidationPolicy, union_discriminator::UnionDiscriminator,
+    cache_control::CacheControl,
+    cache_control::CacheInvalidation,
+    cache_control::CacheInvalidationPolicy,
+    type_names::{MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
+    union_discriminator::UnionDiscriminator,
 };
 
 use self::plan::SchemaPlan;
@@ -50,7 +56,6 @@ use self::relations::MetaRelation;
 use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
 use self::scalars::{DynamicScalar, PossibleScalar};
 use self::transformers::Transformer;
-use self::utils::type_to_base_type;
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
@@ -300,7 +305,7 @@ pub struct MetaField {
     pub name: String,
     pub description: Option<String>,
     pub args: IndexMap<String, MetaInputValue>,
-    pub ty: String,
+    pub ty: MetaFieldType,
     pub deprecation: Deprecation,
     pub cache_control: CacheControl,
     pub external: bool,
@@ -330,6 +335,23 @@ pub struct MetaField {
     pub transformer: Option<Transformer>,
     pub required_operation: Option<Operations>,
     pub auth: Option<AuthConfig>,
+}
+
+impl MetaField {
+    pub fn new(name: impl Into<String>, ty: impl Into<MetaFieldType>) -> MetaField {
+        MetaField {
+            name: name.into(),
+            ty: ty.into(),
+            ..Default::default()
+        }
+    }
+
+    pub fn has_custom_resolver(&self) -> bool {
+        self.resolve
+            .as_ref()
+            .map(|resolve| matches!(resolve.r#type, resolvers::ResolverType::CustomResolver(_)))
+            .unwrap_or_default()
+    }
 }
 
 impl Hash for MetaField {
@@ -387,25 +409,6 @@ pub fn is_array_basic_type(meta: &str) -> bool {
     false
 }
 
-/// Utility function
-/// From a given type, get the base type.
-pub fn get_basic_type(meta: &str) -> &str {
-    let mut nested = Some(meta);
-
-    if meta.starts_with('[') && meta.ends_with(']') {
-        nested = nested.and_then(|x| x.strip_prefix('['));
-        nested = nested.and_then(|x| x.strip_suffix(']'));
-        return get_basic_type(nested.expect("Can't fail"));
-    }
-
-    if meta.ends_with('!') {
-        nested = nested.and_then(|x| x.strip_suffix('!'));
-        return get_basic_type(nested.expect("Can't fail"));
-    }
-
-    nested.expect("Can't fail")
-}
-
 enum CurrentResolverType {
     PRIMITIVE,
     ARRAY,
@@ -414,7 +417,7 @@ enum CurrentResolverType {
 
 impl CurrentResolverType {
     fn new(current_field: &MetaField, ctx: &Context<'_>) -> Self {
-        if current_field.ty.starts_with('[') {
+        if current_field.ty.is_list() {
             return CurrentResolverType::ARRAY;
         }
 
@@ -447,7 +450,7 @@ impl MetaField {
 
                 let result = match resolved_value {
                     Ok(result) => {
-                        if self.ty.ends_with('!')
+                        if self.ty.is_non_null()
                             && *result.data_resolved.as_ref() == serde_json::Value::Null
                         {
                             #[cfg(feature = "tracing_worker")]
@@ -456,7 +459,7 @@ impl MetaField {
                                 "{}",
                                 serde_json::to_string_pretty(&serde_json::json!({
                                     "message": "Something went wrong here",
-                                    "expected": serde_json::Value::String(self.ty.clone()),
+                                    "expected": serde_json::Value::String(self.ty.to_string()),
                                     "path": serde_json::Value::String(resolvers.clone().to_string()),
                                 }))
                                 .unwrap(),
@@ -473,7 +476,7 @@ impl MetaField {
                         }
                     }
                     Err(err) => {
-                        if self.ty.ends_with('!') {
+                        if self.ty.is_non_null() {
                             Err(err)
                         } else {
                             ctx.add_error(err);
@@ -520,7 +523,7 @@ impl MetaField {
                             serde_json::Value::Null => Value::Null,
                             _ => {
                                 let scalar_value = PossibleScalar::to_value(
-                                    &self.ty.strip_suffix('!').unwrap_or(&self.ty),
+                                    &self.ty.named_type().as_str(),
                                     result,
                                 )
                                 .map_err(|err| err.into_server_error(ctx.item.pos))?;
@@ -565,7 +568,7 @@ impl MetaField {
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
                     if resolved_value.is_early_returned() {
-                        if self.ty.ends_with('!') {
+                        if self.ty.is_non_null() {
                             return Err(ServerError::new(
                                 format!(
                                     "An error occured while fetching `{}`, a non-nullable value was expected but no value was found.",
@@ -587,13 +590,8 @@ impl MetaField {
                 };
 
                 let container_type = registry
-                    .types
-                    .get(&type_to_base_type(&self.ty).ok_or_else(|| {
-                        ServerError::new("An internal error happened", Some(ctx.item.pos))
-                    })?)
-                    .ok_or_else(|| {
-                        ServerError::new("An internal error happened", Some(ctx.item.pos))
-                    })?;
+                    .lookup_expecting::<&MetaType>(&self.ty)
+                    .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
                 // TEMP: Hack
                 // We can check from the schema definition if it's a node, if it is, we need to
@@ -618,19 +616,16 @@ impl MetaField {
                     .and_then(|x| x.node_id(container_type.name()))
                     .and_then(|x| NodeID::from_owned(x).ok());
 
+                let type_name = container_type.name().to_string();
+
                 match resolve_container(&ctx_obj, container_type, node_id).await {
                     result @ Ok(_) => {
-                        self.check_cache_tag(
-                            ctx,
-                            &container_type.rust_typename().cloned().unwrap_or_default(),
-                            &self.name,
-                            None,
-                        )
-                        .await;
+                        self.check_cache_tag(ctx, &type_name, &self.name, None)
+                            .await;
                         result
                     }
                     Err(err) => {
-                        if self.ty.ends_with('!') {
+                        if self.ty.is_non_null() {
                             Err(err)
                         } else {
                             ctx.add_error(err);
@@ -645,13 +640,8 @@ impl MetaField {
             }
             CurrentResolverType::ARRAY => {
                 let container_type = registry
-                    .types
-                    .get(&type_to_base_type(&self.ty).ok_or_else(|| {
-                        ServerError::new("An internal error happened", Some(ctx.item.pos))
-                    })?)
-                    .ok_or_else(|| {
-                        ServerError::new("An internal error happened", Some(ctx.item.pos))
-                    })?;
+                    .lookup_expecting::<&MetaType>(&self.ty)
+                    .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
                 let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
                 let resolver_ctx = ResolverContext::new(&execution_id);
@@ -663,7 +653,7 @@ impl MetaField {
 
                 let len = match &resolved_value?.data_resolved.as_ref() {
                     serde_json::Value::Null => {
-                        if self.ty.ends_with('!') {
+                        if self.ty.is_non_null() {
                             return Err(ServerError::new(
                                 format!(
                                     "An error occurred while fetching `{}`, a non-nullable value was expected but no value was found.",
@@ -680,13 +670,8 @@ impl MetaField {
                         }
                     }
                     serde_json::Value::Array(arr) => {
-                        self.check_cache_tag(
-                            ctx,
-                            &container_type.rust_typename().cloned().unwrap_or_default(),
-                            &self.name,
-                            None,
-                        )
-                        .await;
+                        self.check_cache_tag(ctx, container_type.name(), &self.name, None)
+                            .await;
                         arr.clone()
                     }
                     _ => {
@@ -700,7 +685,7 @@ impl MetaField {
                 match resolve_list(&ctx_obj, ctx.item, container_type, len).await {
                     result @ Ok(_) => result,
                     Err(err) => {
-                        if self.ty.ends_with('!') {
+                        if self.ty.is_non_null() {
                             Err(err)
                         } else {
                             ctx.add_error(err);
@@ -723,31 +708,33 @@ impl MetaField {
         resolved_field_name: &str,
         resolved_field_value: Option<&ConstValue>,
     ) {
-        let cache_invalidation =
-            ctx.query_env
-                .cache_invalidations
-                .iter()
-                .find(|cache_invalidation| {
-                    // This is very specific to deletions, not all queries return the `cache_invalidation.ty`
-                    // and `cache_invalidation.ty` is always tied to a graphql type.
-                    // Reads, Creates and Updates do but Deletes do not.
-                    // Deletions return a `xDeletionPayload` with only a `deletedId`
-                    let is_deletion_type_with_invalidation = cache_invalidation
-                        .deletion_ty
-                        .as_ref()
-                        .map(|deletion_ty| deletion_ty == resolved_field_type)
-                        .unwrap_or_default();
-
-                    cache_invalidation.ty == resolved_field_type
-                        || is_deletion_type_with_invalidation
-                });
+        let cache_invalidation = ctx
+            .query_env
+            .cache_invalidations
+            .iter()
+            .find(|cache_invalidation| cache_invalidation.ty == resolved_field_type);
 
         if let Some(cache_invalidation) = cache_invalidation {
+            let mut cache_type = cache_invalidation.ty.clone();
+
+            // This is very specific to deletions, not all queries return the @cache type ...
+            // Reads, Creates and Updates do return the @cache type but Deletes do not.
+            // Deletions return a `xDeletionPayload` with only a `deletedId`
+            if cache_invalidation
+                .ty
+                .ends_with(crate::names::DELETE_PAYLOAD_RETURN_TY_SUFFIX)
+            {
+                cache_type = cache_invalidation
+                    .ty
+                    .replace(crate::names::DELETE_PAYLOAD_RETURN_TY_SUFFIX, "");
+            }
+
             let cache_tag = match &cache_invalidation.policy {
                 CacheInvalidationPolicy::Entity {
                     field: target_field,
                 } if target_field == resolved_field_name
-                    // specific condition for deletions
+                    // Deletions return a `xDeletionPayload` with only a `deletedId`
+                    // If an invalidation policy is of type `entity.id`, on deletes `id` is the `deletedId`
                     || (target_field == crate::names::OUTPUT_FIELD_ID && resolved_field_name == crate::names::OUTPUT_FIELD_DELETED_ID) =>
                 {
                     let Some(resolved_field_value) = resolved_field_value else {
@@ -769,14 +756,11 @@ impl MetaField {
                         value => value.to_string(),
                     };
 
-                    format!(
-                        "{}#{target_field}:{resolved_field_value}",
-                        cache_invalidation.ty
-                    )
+                    format!("{cache_type}#{target_field}:{resolved_field_value}",)
                 }
                 CacheInvalidationPolicy::Entity { .. } => return,
-                CacheInvalidationPolicy::List => format!("{}#List", cache_invalidation.ty),
-                CacheInvalidationPolicy::Type => cache_invalidation.ty.clone(),
+                CacheInvalidationPolicy::List => format!("{cache_type}#List"),
+                CacheInvalidationPolicy::Type => cache_type,
             };
 
             ctx.response_graph.write().await.add_cache_tag(cache_tag);
@@ -922,7 +906,8 @@ pub struct ObjectType {
 }
 
 impl ObjectType {
-    pub fn new(name: String, fields: impl IntoIterator<Item = MetaField>) -> ObjectType {
+    pub fn new(name: impl Into<String>, fields: impl IntoIterator<Item = MetaField>) -> ObjectType {
+        let name = name.into();
         ObjectType {
             rust_typename: name.clone(),
             name,
@@ -973,7 +958,7 @@ impl<'a> TryFrom<&'a MetaType> for &'a ObjectType {
     fn try_from(value: &'a MetaType) -> Result<Self, Self::Error> {
         match value {
             MetaType::Object(inner) => Ok(inner),
-            _ => Err(Error::unexpected_kind(value, MetaTypeKind::Object)),
+            _ => Err(Error::unexpected_kind(value, TypeKind::Object)),
         }
     }
 }
@@ -1014,6 +999,23 @@ pub struct UnionType {
     pub visible: Option<MetaVisibleFn>,
     pub rust_typename: String,
     pub discriminators: Option<Vec<(String, UnionDiscriminator)>>,
+}
+
+impl UnionType {
+    pub fn new<T: Into<String>>(
+        name: impl Into<String>,
+        possible_types: impl IntoIterator<Item = T>,
+    ) -> UnionType {
+        let name = name.into();
+        UnionType {
+            rust_typename: name.clone(),
+            name,
+            description: None,
+            possible_types: possible_types.into_iter().map(Into::into).collect(),
+            visible: None,
+            discriminators: None,
+        }
+    }
 }
 
 impl From<UnionType> for MetaType {
@@ -1113,36 +1115,13 @@ impl From<InputObjectType> for MetaType {
 }
 
 impl Error {
-    fn unexpected_kind(actual: &MetaType, expected: MetaTypeKind) -> Self {
+    fn unexpected_kind(actual: &MetaType, expected: TypeKind) -> Self {
         Error::new(format!(
             "Type {} appeared in a position where we expected a {expected:?} but it is a {:?}",
             actual.name(),
             actual.kind()
         ))
     }
-}
-
-impl MetaType {
-    fn kind(&self) -> MetaTypeKind {
-        match self {
-            MetaType::Scalar(_) => MetaTypeKind::Scalar,
-            MetaType::Object(_) => MetaTypeKind::Object,
-            MetaType::Interface { .. } => MetaTypeKind::Interface,
-            MetaType::Union { .. } => MetaTypeKind::Union,
-            MetaType::Enum { .. } => MetaTypeKind::Enum,
-            MetaType::InputObject { .. } => MetaTypeKind::InputObject,
-        }
-    }
-}
-
-#[derive(Debug)]
-enum MetaTypeKind {
-    Scalar,
-    Object,
-    Interface,
-    Union,
-    Enum,
-    InputObject,
 }
 
 /// The type of parser to be used for scalar values.
@@ -1661,16 +1640,40 @@ pub struct Registry {
 }
 
 impl Registry {
-    pub fn lookup<'a, T>(&'a self, name: &str) -> Result<&T, Error>
+    /// Looks up a particular type in the registry, using the default kind for the given TypeName.
+    ///
+    /// Will error if the type doesn't exist or is of an unexpected kind.
+    pub fn lookup<'a, Name>(&'a self, name: &Name) -> Result<Name::ExpectedType<'a>, Error>
     where
-        &'a T: TryFrom<&'a MetaType>,
-        <&'a T as TryFrom<&'a MetaType>>::Error: Into<Error>,
+        Name: TypeReference,
+        Name::ExpectedType<'a>: TryFrom<&'a MetaType>,
+        <Name::ExpectedType<'a> as TryFrom<&'a MetaType>>::Error: Into<Error>,
     {
-        self.types
-            .get(name)
-            .ok_or_else(|| Error::new(format!("Couldn't find a type named {name}")))?
+        self.lookup_by_str(name.named_type().as_str())?
             .try_into()
             .map_err(Into::into)
+    }
+
+    /// Looks up a particular type in the registry, with the expectation that it is of a particular kind.
+    ///
+    /// Will error if the type doesn't exist or is of an unexpected kind.
+    pub fn lookup_expecting<'a, Expected>(
+        &'a self,
+        name: &impl TypeReference,
+    ) -> Result<Expected, Error>
+    where
+        Expected: TryFrom<&'a MetaType> + 'a,
+        <Expected as TryFrom<&'a MetaType>>::Error: Into<Error>,
+    {
+        self.lookup_by_str(name.named_type().as_str())?
+            .try_into()
+            .map_err(Into::into)
+    }
+
+    fn lookup_by_str<'a>(&'a self, name: &str) -> Result<&'a MetaType, Error> {
+        self.types
+            .get(name)
+            .ok_or_else(|| Error::new(format!("Couldn't find a type named {name}")))
     }
 }
 
@@ -1724,7 +1727,7 @@ impl Registry {
             MetaField {
                 name: "scalar".to_owned(),
                 description: Some("test scalar".to_owned()),
-                ty: "MyScalar".to_owned(),
+                ty: "MyScalar".into(),
                 ..Default::default()
             },
         );
@@ -1795,7 +1798,7 @@ impl Registry {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
 
-                let resolved = OutputType::resolve(
+                let resolved = LegacyOutputType::resolve(
                     &__Schema::new(&ctx.schema_env.registry, &visible_types),
                     &ctx_obj,
                     ctx.item,
@@ -1807,7 +1810,7 @@ impl Registry {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-                let resolved = OutputType::resolve(
+                let resolved = LegacyOutputType::resolve(
                     &ctx.schema_env
                         .registry
                         .types
@@ -1852,7 +1855,7 @@ impl Registry {
 }
 
 impl Registry {
-    pub fn create_input_type<T: InputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
+    pub fn create_input_type<T: LegacyInputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
     ) -> String {
@@ -1860,10 +1863,13 @@ impl Registry {
         T::qualified_type_name()
     }
 
-    pub fn create_output_type<T: OutputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
+    pub fn create_output_type<
+        T: LegacyOutputType + ?Sized,
+        F: FnOnce(&mut Registry) -> MetaType,
+    >(
         &mut self,
         f: F,
-    ) -> String {
+    ) -> MetaFieldType {
         self.create_type(f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
@@ -1877,6 +1883,11 @@ impl Registry {
     ) -> String {
         self.create_type(f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
+    }
+
+    pub fn insert_type(&mut self, ty: impl Into<MetaType>) {
+        let ty = ty.into();
+        self.types.insert(ty.name().to_string(), ty);
     }
 
     pub fn create_type<F: FnOnce(&mut Registry) -> MetaType>(
@@ -1911,7 +1922,7 @@ impl Registry {
         }
     }
 
-    pub fn create_fake_output_type<T: OutputType>(&mut self) -> MetaType {
+    pub fn create_fake_output_type<T: LegacyOutputType>(&mut self) -> MetaType {
         T::create_type_info(self);
         self.types
             .get(&*T::type_name())
@@ -1919,7 +1930,7 @@ impl Registry {
             .expect("You definitely encountered a bug!")
     }
 
-    pub fn create_fake_input_type<T: InputType>(&mut self) -> MetaType {
+    pub fn create_fake_input_type<T: LegacyInputType>(&mut self) -> MetaType {
         T::create_type_info(self);
         self.types
             .get(&*T::type_name())
@@ -2035,7 +2046,7 @@ impl Registry {
                         name: "_service".to_string(),
                         description: None,
                         args: Default::default(),
-                        ty: "_Service!".to_string(),
+                        ty: "_Service!".into(),
                         deprecation: Default::default(),
                         cache_control: Default::default(),
                         external: false,
@@ -2066,7 +2077,7 @@ impl Registry {
                             );
                             args
                         },
-                        ty: "[_Entity]!".to_string(),
+                        ty: "[_Entity]!".into(),
                         deprecation: Default::default(),
                         cache_control: Default::default(),
                         external: false,
@@ -2088,17 +2099,17 @@ impl Registry {
     }
 
     pub(crate) fn create_federation_types(&mut self) {
-        <Any as InputType>::create_type_info(self);
+        <Any as LegacyInputType>::create_type_info(self);
 
         self.types.insert(
             "_Service".to_string(),
             ObjectType {
                 rust_typename: "dynaql::federation::Service".to_string(),
                 ..ObjectType::new(
-                    "_Service".into(),
+                    "_Service",
                     [MetaField {
                         name: "sdl".to_string(),
-                        ty: "String".to_string(),
+                        ty: "String".into(),
                         ..Default::default()
                     }],
                 )
@@ -2176,11 +2187,7 @@ impl Registry {
             used_types: &mut BTreeSet<&'a str>,
             field: &'a MetaField,
         ) {
-            traverse_type(
-                types,
-                used_types,
-                MetaTypeName::concrete_typename(&field.ty),
-            );
+            traverse_type(types, used_types, field.ty.named_type().as_str());
             for arg in field.args.values() {
                 traverse_input_value(types, used_types, arg);
             }
@@ -2201,14 +2208,14 @@ impl Registry {
         fn traverse_type<'a>(
             types: &'a BTreeMap<String, MetaType>,
             used_types: &mut BTreeSet<&'a str>,
-            type_name: &'a str,
+            type_name: &str,
         ) {
             if used_types.contains(type_name) {
                 return;
             }
 
             if let Some(ty) = types.get(type_name) {
-                used_types.insert(type_name);
+                used_types.insert(ty.name());
                 match ty {
                     MetaType::Object(object) => {
                         for field in object.fields.values() {
@@ -2289,12 +2296,7 @@ impl Registry {
                 return;
             }
 
-            traverse_type(
-                ctx,
-                types,
-                visible_types,
-                MetaTypeName::concrete_typename(&field.ty),
-            );
+            traverse_type(ctx, types, visible_types, field.ty.named_type().as_str());
             for arg in field.args.values() {
                 traverse_input_value(ctx, types, visible_types, arg);
             }
@@ -2322,7 +2324,7 @@ impl Registry {
             ctx: &Context<'_>,
             types: &'a BTreeMap<String, MetaType>,
             visible_types: &mut HashSet<&'a str>,
-            type_name: &'a str,
+            type_name: &str,
         ) {
             if visible_types.contains(type_name) {
                 return;
@@ -2333,7 +2335,7 @@ impl Registry {
                     return;
                 }
 
-                visible_types.insert(type_name);
+                visible_types.insert(ty.name());
                 match ty {
                     MetaType::Object(object) => {
                         for field in object.fields.values() {

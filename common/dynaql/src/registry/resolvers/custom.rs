@@ -38,56 +38,25 @@ impl ResolverTrait for CustomResolver {
             .map(|x| x.data_resolved.clone())
             .unwrap_or(Arc::new(serde_json::json!({})));
 
-        // We take the first item as the parent has a struct like: { type: Value }.
-        let parent_data = parent_data
-            .as_object()
-            .and_then(|parent_object| {
-                // parent_object might also contain relations so we need to find the
-                // correct key to take.  We're currently resolving a field so we look
-                // two levels up the resolver chain to find the current type we're within.
-                ctx.resolver_node
-                    .as_ref()
-                    .and_then(|node| Some(node.parent?.ty?.name()))
-                    .and_then(|current_type_name| parent_object.get(current_type_name))
-                    .or_else(|| {
-                        // If we can't find a type name or there's no entry of that type
-                        // we'll just fallback to the first value and hope for the best
-                        parent_object.values().next()
-                    })
-            })
-            .cloned()
-            .unwrap_or(serde_json::json!({}));
+        // This next bit of the hack is _tricky_.
+        // - If our parent was a model we should have a struct like: { type: Value }.
+        //   Where `type` is the name of the Model.
+        // - If our parent was a connector type we just want to pass it in unchanged.
+        //
+        // We use the presence of the `type` key to try and differentiate these two
+        let model_data = parent_data.as_object().and_then(|parent_object| {
+            // parent_object might also contain relations so we need to find the
+            // correct key to take.  We're currently resolving a field so we look
+            // two levels up the resolver chain to find the current type we're within.
+            ctx.resolver_node
+                .as_ref()
+                .and_then(|node| Some(node.parent?.ty?.name()))
+                .and_then(|current_type_name| parent_object.get(current_type_name))
+        });
 
-        // Magic function to convert the dynamodb format to the format we want to have on the
-        // ResolveR.
-        let value = match parent_data {
-            serde_json::Value::Object(val) => {
-                let temp = val
-                    .into_iter()
-                    .filter_map(|(field, val)| {
-                        if field.starts_with('_') {
-                            let new_field = match field.as_str() {
-                                "__created_at" => Some("createdAt"),
-                                "__updated_at" => Some("updatedAt"),
-                                "__sk" => Some("id"),
-                                _ => None,
-                            };
-                            new_field.map(|x| (x.to_string(), val))
-                        } else {
-                            Some((field, val))
-                        }
-                    })
-                    .map(|(field, x)| {
-                        let attribute = serde_json::from_value::<AttributeValue>(x)
-                            .ok()
-                            .unwrap_or_default();
-
-                        (field, attribute_to_value(attribute))
-                    })
-                    .collect();
-                serde_json::Value::Object(temp)
-            }
-            _ => serde_json::json!({}),
+        let parent = match model_data {
+            Some(model_data) => dynamodb_to_json(model_data.clone()),
+            None => (*parent_data).clone(),
         };
 
         // -- End of hack
@@ -106,7 +75,7 @@ impl ResolverTrait for CustomResolver {
                 name: self.resolver_name.clone(),
                 payload: CustomResolverRequestPayload {
                     arguments,
-                    parent: Some(value),
+                    parent: Some(parent),
                     context: UdfRequestContext {
                         request: UdfRequestContextRequest {
                             headers: serde_json::to_value(&graphql.headers).expect("must be valid"),
@@ -124,5 +93,39 @@ impl ResolverTrait for CustomResolver {
 
         let value = Box::pin(future).await?;
         Ok(ResolvedValue::new(Arc::new(value.value)))
+    }
+}
+
+/// Magic function to convert the dynamodb format to the format we want to have on the
+/// resolver.
+fn dynamodb_to_json(model_data: serde_json::Value) -> serde_json::Value {
+    match model_data {
+        serde_json::Value::Object(val) => {
+            let temp = val
+                .into_iter()
+                .filter_map(|(field, val)| {
+                    if field.starts_with('_') {
+                        let new_field = match field.as_str() {
+                            "__created_at" => Some("createdAt"),
+                            "__updated_at" => Some("updatedAt"),
+                            "__sk" => Some("id"),
+                            _ => None,
+                        };
+                        new_field.map(|x| (x.to_string(), val))
+                    } else {
+                        Some((field, val))
+                    }
+                })
+                .map(|(field, x)| {
+                    let attribute = serde_json::from_value::<AttributeValue>(x)
+                        .ok()
+                        .unwrap_or_default();
+
+                    (field, attribute_to_value(attribute))
+                })
+                .collect();
+            serde_json::Value::Object(temp)
+        }
+        _ => serde_json::json!({}),
     }
 }

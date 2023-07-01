@@ -20,6 +20,10 @@ impl<'a> __Schema<'a> {
 /// A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.
 #[Object(internal, name = "__Schema")]
 impl<'a> __Schema<'a> {
+    async fn description(&self) -> Option<String> {
+        None
+    }
+
     /// A list of all types supported by this server.
     async fn types(&self) -> Vec<__Type<'a>> {
         let mut types: Vec<_> = self

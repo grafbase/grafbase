@@ -79,7 +79,7 @@ where
         <StdHashMap<K, V> as OutputType>::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::MetaFieldType {
         <StdHashMap<K, V> as OutputType>::create_type_info(registry)
     }
 

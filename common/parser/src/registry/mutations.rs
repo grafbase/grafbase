@@ -3,7 +3,7 @@ use case::CaseExt;
 use dynaql::indexmap::indexmap;
 
 use dynaql::registry::relations::MetaRelationKind;
-use dynaql::registry::{self, InputObjectType, Registry};
+use dynaql::registry::{self, InputObjectType, NamedType, Registry};
 use dynaql::registry::{
     resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
@@ -24,6 +24,7 @@ use crate::rules::model_directive::ModelDirective;
 use crate::rules::relations::RelationEngine;
 use crate::rules::resolver_directive::ResolverDirective;
 use crate::rules::visitor::VisitorContext;
+use crate::type_names::TypeNameExt;
 use crate::utils::{to_input_type, to_lower_camelcase};
 
 use super::names::{INPUT_FIELD_NUM_OP_DECREMENT, INPUT_FIELD_NUM_OP_INCREMENT, INPUT_FIELD_NUM_OP_SET};
@@ -100,7 +101,7 @@ pub fn add_mutation_create<'a>(
                 Type::required(input_base_type)
             )
         },
-        ty: Type::nullable(payload_base_type).to_string(),
+        ty: payload_base_type.as_nullable().into(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
         cache_control: Default::default(),
         external: false,
@@ -114,7 +115,7 @@ pub fn add_mutation_create<'a>(
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNode {
                 input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
-                ty: type_name,
+                ty: type_name.into(),
             }),
         }),
         plan: None,
@@ -201,7 +202,7 @@ pub fn add_mutation_update<'a>(
                     Type::required(input_base_type),
                 )
         },
-        ty: Type::nullable(payload_base_type).to_string(),
+        ty: payload_base_type.as_nullable().into(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
         cache_control: Default::default(),
         external: false,
@@ -216,7 +217,7 @@ pub fn add_mutation_update<'a>(
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNode {
                 by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
                 input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
-                ty: type_name,
+                ty: type_name.into(),
             }),
         }),
         plan: None,
@@ -459,7 +460,7 @@ fn register_mutation_payload_type<'a>(
     model_type_definition: &TypeDefinition,
     mutation_kind: MutationKind<'a>,
     model_auth: Option<&AuthConfig>,
-) -> BaseType {
+) -> NamedType<'static> {
     let payload_type_name = if mutation_kind.is_update() {
         MetaNames::update_payload_type(model_type_definition)
     } else {
@@ -473,7 +474,7 @@ fn register_mutation_payload_type<'a>(
                 let name = to_lower_camelcase(&model_type_name);
                 [MetaField {
                     name,
-                    ty: MetaNames::model(model_type_definition),
+                    ty: MetaNames::model(model_type_definition).into(),
                     resolve: Some(Resolver {
                         id: Some(format!("{}_resolver", model_type_name.to_lowercase())),
                         // Single entity
@@ -498,7 +499,7 @@ fn register_mutation_payload_type<'a>(
         &payload_type_name,
     );
 
-    BaseType::named(&payload_type_name)
+    payload_type_name.into()
 }
 
 pub enum NumericFieldKind {

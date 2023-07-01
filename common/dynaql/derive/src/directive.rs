@@ -74,7 +74,7 @@ pub fn generate(
             .map(|value| {
                 quote! {
                     ::std::option::Option::Some(::std::string::ToString::to_string(
-                        &<#arg_ty as #crate_name::InputType>::to_value(&#value)
+                        &<#arg_ty as #crate_name::LegacyInputType>::to_value(&#value)
                     ))
                 }
             })
@@ -85,7 +85,7 @@ pub fn generate(
             args.insert(#name, #crate_name::registry::MetaInputValue {
                 name: #name,
                 description: #desc,
-                ty: <#arg_ty as #crate_name::InputType>::create_type_info(registry),
+                ty: <#arg_ty as #crate_name::LegacyInputType>::create_type_info(registry),
                 default_value: #schema_default,
                 validators: None,
                 visible: #visible,

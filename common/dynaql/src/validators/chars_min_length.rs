@@ -1,6 +1,6 @@
-use crate::{InputType, InputValueError};
+use crate::{InputValueError, LegacyInputType};
 
-pub fn chars_min_length<T: AsRef<str> + InputType>(
+pub fn chars_min_length<T: AsRef<str> + LegacyInputType>(
     value: &T,
     len: usize,
 ) -> Result<(), InputValueError<T>> {

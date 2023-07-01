@@ -8,9 +8,13 @@ expression: ctx.relations
         kind: OneToMany,
         relation: (
             Some(
-                "Author",
+                ModelName(
+                    "Author",
+                ),
             ),
-            "Post",
+            ModelName(
+                "Post",
+            ),
         ),
         birectional: false,
     },
@@ -19,9 +23,13 @@ expression: ctx.relations
         kind: OneToMany,
         relation: (
             Some(
-                "Author",
+                ModelName(
+                    "Author",
+                ),
             ),
-            "Post",
+            ModelName(
+                "Post",
+            ),
         ),
         birectional: false,
     },
@@ -30,9 +38,13 @@ expression: ctx.relations
         kind: ManyToMany,
         relation: (
             Some(
-                "Author",
+                ModelName(
+                    "Author",
+                ),
             ),
-            "Post",
+            ModelName(
+                "Post",
+            ),
         ),
         birectional: true,
     },

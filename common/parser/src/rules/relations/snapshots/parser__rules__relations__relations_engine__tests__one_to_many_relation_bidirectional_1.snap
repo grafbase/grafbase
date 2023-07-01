@@ -8,9 +8,13 @@ expression: "&ctx.relations"
         kind: ManyToOne,
         relation: (
             Some(
-                "Author",
+                ModelName(
+                    "Author",
+                ),
             ),
-            "Post",
+            ModelName(
+                "Post",
+            ),
         ),
         birectional: true,
     },

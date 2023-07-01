@@ -65,8 +65,8 @@ pub fn required_migrations(from: &Registry, to: &Registry) -> Vec<RequiredMigrat
 
                                 let from_field = from_fields.get(common_field_name).unwrap();
                                 let to_field = to_fields.get(common_field_name).unwrap();
-                                let from_field_type = Type::new(&from_field.ty).unwrap();
-                                let to_field_type = Type::new(&to_field.ty).unwrap();
+                                let from_field_type = Type::new(&from_field.ty.to_string()).unwrap();
+                                let to_field_type = Type::new(&to_field.ty.to_string()).unwrap();
                                 if from_field_type.base == to_field_type.base
                                     && from_field_type.nullable
                                     && !to_field_type.nullable

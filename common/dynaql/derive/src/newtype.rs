@@ -36,7 +36,7 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
     let inner_ty = &fields.fields[0];
     let type_name = match &gql_typename {
         Some(name) => quote! { ::std::borrow::Cow::Borrowed(#name) },
-        None => quote! { <#inner_ty as #crate_name::InputType>::type_name() },
+        None => quote! { <#inner_ty as #crate_name::LegacyInputType>::type_name() },
     };
     let create_type_info = if let Some(name) = &gql_typename {
         let specified_by_url = match &newtype_args.specified_by_url {
@@ -49,25 +49,25 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
                 #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
                     name: ::std::borrow::ToOwned::to_owned(#name),
                     description: #desc,
-                    is_valid: |value| <#ident as #crate_name::ScalarType>::is_valid(value),
+                    is_valid: |value| <#ident as #crate_name::LegacyScalarType>::is_valid(value),
                     visible: #visible,
                     specified_by_url: #specified_by_url,
                 })
             )
         }
     } else {
-        quote! { <#inner_ty as #crate_name::InputType>::create_type_info(registry) }
+        quote! { <#inner_ty as #crate_name::LegacyInputType>::create_type_info(registry) }
     };
 
     let expanded = quote! {
         #[allow(clippy::all, clippy::pedantic)]
-        impl #impl_generics #crate_name::ScalarType for #ident #ty_generics #where_clause {
+        impl #impl_generics #crate_name::LegacyScalarType for #ident #ty_generics #where_clause {
             fn parse(value: #crate_name::Value) -> #crate_name::InputValueResult<Self> {
-                <#inner_ty as #crate_name::ScalarType>::parse(value).map(#ident).map_err(#crate_name::InputValueError::propagate)
+                <#inner_ty as #crate_name::LegacyScalarType>::parse(value).map(#ident).map_err(#crate_name::InputValueError::propagate)
             }
 
             fn to_value(&self) -> #crate_name::Value {
-                <#inner_ty as #crate_name::ScalarType>::to_value(&self.0)
+                <#inner_ty as #crate_name::LegacyScalarType>::to_value(&self.0)
             }
         }
 
@@ -84,7 +84,7 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
         }
 
         #[allow(clippy::all, clippy::pedantic)]
-        impl #impl_generics #crate_name::InputType for #ident #ty_generics #where_clause {
+        impl #impl_generics #crate_name::LegacyInputType for #ident #ty_generics #where_clause {
             type RawValueType = #inner_ty;
 
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
@@ -96,11 +96,11 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
             }
 
             fn parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> {
-                <#ident as #crate_name::ScalarType>::parse(value.unwrap_or_default())
+                <#ident as #crate_name::LegacyScalarType>::parse(value.unwrap_or_default())
             }
 
             fn to_value(&self) -> #crate_name::Value {
-                <#ident as #crate_name::ScalarType>::to_value(self)
+                <#ident as #crate_name::LegacyScalarType>::to_value(self)
             }
 
             fn as_raw_value(&self) -> ::std::option::Option<&Self::RawValueType> {
@@ -110,12 +110,12 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
 
         #[allow(clippy::all, clippy::pedantic)]
         #[#crate_name::async_trait::async_trait]
-        impl #impl_generics #crate_name::OutputType for #ident #ty_generics #where_clause {
+        impl #impl_generics #crate_name::LegacyOutputType for #ident #ty_generics #where_clause {
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                 #type_name
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
                 #create_type_info
             }
 
@@ -124,7 +124,7 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
                 _: &#crate_name::ContextSelectionSet<'_>,
                 _field: &#crate_name::Positioned<#crate_name::parser::types::Field>
             ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
-                Ok(#crate_name::ScalarType::to_value(self))
+                Ok(#crate_name::LegacyScalarType::to_value(self))
             }
         }
     };

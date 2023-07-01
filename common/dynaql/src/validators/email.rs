@@ -1,7 +1,7 @@
-use crate::{InputType, InputValueError};
+use crate::{InputValueError, LegacyInputType};
 use fast_chemail::is_valid_email;
 
-pub fn email<T: AsRef<str> + InputType>(value: &T) -> Result<(), InputValueError<T>> {
+pub fn email<T: AsRef<str> + LegacyInputType>(value: &T) -> Result<(), InputValueError<T>> {
     if is_valid_email(value.as_ref()) {
         Ok(())
     } else {

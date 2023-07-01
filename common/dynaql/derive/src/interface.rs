@@ -81,7 +81,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
             RemoveLifetime.visit_type_path_mut(&mut assert_ty);
 
             type_into_impls.push(quote! {
-                #crate_name::static_assertions::assert_impl_any!(#assert_ty: #crate_name::ObjectType, #crate_name::InterfaceType);
+                #crate_name::static_assertions::assert_impl_any!(#assert_ty: #crate_name::ObjectType, #crate_name::LegacyInterfaceType);
 
                 #[allow(clippy::all, clippy::pedantic)]
                 impl #impl_generics ::std::convert::From<#p> for #ident #ty_generics #where_clause {
@@ -93,16 +93,16 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
             enum_names.push(enum_name);
 
             registry_types.push(quote! {
-                <#p as #crate_name::OutputType>::create_type_info(registry);
-                registry.add_implements(&<#p as #crate_name::OutputType>::type_name(), #gql_typename);
+                <#p as #crate_name::LegacyOutputType>::create_type_info(registry);
+                registry.add_implements(&<#p as #crate_name::LegacyOutputType>::type_name(), #gql_typename);
             });
 
             possible_types.push(quote! {
-                possible_types.insert(<#p as #crate_name::OutputType>::type_name().into_owned());
+                possible_types.insert(<#p as #crate_name::LegacyOutputType>::type_name().into_owned());
             });
 
             get_introspection_typename.push(quote! {
-                #ident::#enum_name(obj) => <#p as #crate_name::OutputType>::type_name()
+                #ident::#enum_name(obj) => <#p as #crate_name::LegacyOutputType>::type_name()
             });
 
             collect_all_fields.push(quote! {
@@ -214,7 +214,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 .map(|value| {
                     quote! {
                         ::std::option::Option::Some(::std::string::ToString::to_string(
-                            &<#ty as #crate_name::InputType>::to_value(&#value)
+                            &<#ty as #crate_name::LegacyInputType>::to_value(&#value)
                         ))
                     }
                 })
@@ -224,7 +224,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 args.insert(::std::string::ToString::to_string(#name), #crate_name::registry::MetaInputValue {
                     name: ::std::string::ToString::to_string(#name),
                     description: #desc,
-                    ty: <#ty as #crate_name::InputType>::create_type_info(registry),
+                    ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                     default_value: #schema_default,
                     validators: None,
                     visible: #visible,
@@ -274,7 +274,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                     #(#schema_args)*
                     args
                 },
-                ty: <#schema_ty as #crate_name::OutputType>::create_type_info(registry),
+                ty: <#schema_ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                 deprecation: #deprecation,
                 cache_control: ::std::default::Default::default(),
                 external: #external,
@@ -302,7 +302,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
             if ctx.item.node.name.node == #name {
                 #(#get_params)*
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-                return #crate_name::OutputType::resolve(&#resolve_obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
+                return #crate_name::LegacyOutputType::resolve(&#resolve_obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
             }
         });
     }
@@ -343,7 +343,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
 
         #[allow(clippy::all, clippy::pedantic)]
         #[#crate_name::async_trait::async_trait]
-        impl #impl_generics #crate_name::OutputType for #ident #ty_generics #where_clause {
+        impl #impl_generics #crate_name::LegacyOutputType for #ident #ty_generics #where_clause {
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                 ::std::borrow::Cow::Borrowed(#gql_typename)
             }
@@ -352,7 +352,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 #introspection_type_name
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
                 registry.create_output_type::<Self, _>(|registry| {
                     #(#registry_types)*
 
@@ -386,7 +386,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
             }
         }
 
-        impl #impl_generics #crate_name::InterfaceType for #ident #ty_generics #where_clause {}
+        impl #impl_generics #crate_name::LegacyInterfaceType for #ident #ty_generics #where_clause {}
     };
     Ok(expanded.into())
 }

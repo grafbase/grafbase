@@ -73,7 +73,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
 
             if variant.flatten {
                 type_into_impls.push(quote! {
-                    #crate_name::static_assertions::assert_impl_one!(#assert_ty: #crate_name::UnionType);
+                    #crate_name::static_assertions::assert_impl_one!(#assert_ty: #crate_name::LegacyUnionType);
 
                     #[allow(clippy::all, clippy::pedantic)]
                     impl #impl_generics ::std::convert::From<#p> for #ident #ty_generics #where_clause {
@@ -104,20 +104,20 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                 });
             } else {
                 registry_types.push(quote! {
-                    <#p as #crate_name::OutputType>::create_type_info(registry);
+                    <#p as #crate_name::LegacyOutputType>::create_type_info(registry);
                 });
                 possible_types.push(quote! {
-                    possible_types.insert(<#p as #crate_name::OutputType>::type_name().into_owned());
+                    possible_types.insert(<#p as #crate_name::LegacyOutputType>::type_name().into_owned());
                 });
             }
 
             if variant.flatten {
                 get_introspection_typename.push(quote! {
-                    #ident::#enum_name(obj) => <#p as #crate_name::OutputType>::introspection_type_name(obj)
+                    #ident::#enum_name(obj) => <#p as #crate_name::LegacyOutputType>::introspection_type_name(obj)
                 });
             } else {
                 get_introspection_typename.push(quote! {
-                    #ident::#enum_name(obj) => <#p as #crate_name::OutputType>::type_name()
+                    #ident::#enum_name(obj) => <#p as #crate_name::LegacyOutputType>::type_name()
                 });
             }
 
@@ -158,7 +158,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
 
         #[allow(clippy::all, clippy::pedantic)]
         #[#crate_name::async_trait::async_trait]
-        impl #impl_generics #crate_name::OutputType for #ident #ty_generics #where_clause {
+        impl #impl_generics #crate_name::LegacyOutputType for #ident #ty_generics #where_clause {
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                ::std::borrow::Cow::Borrowed(#gql_typename)
             }
@@ -169,7 +169,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                 }
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
                 registry.create_output_type::<Self, _>(|registry| {
                     #(#registry_types)*
 
@@ -193,7 +193,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
             }
         }
 
-        impl #impl_generics #crate_name::UnionType for #ident #ty_generics #where_clause {}
+        impl #impl_generics #crate_name::LegacyUnionType for #ident #ty_generics #where_clause {}
     };
 
     Ok(expanded.into())

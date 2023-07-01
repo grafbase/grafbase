@@ -3,7 +3,7 @@ use std::ops::Deref;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{registry, InputType, InputValueError, InputValueResult, Value};
+use crate::{registry, InputValueError, InputValueResult, LegacyInputType, Value};
 
 /// Similar to `Option`, but it has three states, `undefined`, `null` and `x`.
 ///
@@ -174,7 +174,7 @@ impl<T> MaybeUndefined<T> {
     }
 }
 
-impl<T: InputType> InputType for MaybeUndefined<T> {
+impl<T: LegacyInputType> LegacyInputType for MaybeUndefined<T> {
     type RawValueType = T::RawValueType;
 
     fn type_name() -> Cow<'static, str> {

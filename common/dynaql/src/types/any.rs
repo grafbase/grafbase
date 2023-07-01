@@ -1,4 +1,4 @@
-use crate::{InputValueResult, Scalar, ScalarType, Value};
+use crate::{InputValueResult, LegacyScalarType, Scalar, Value};
 
 /// Any scalar (For [Apollo Federation](https://www.apollographql.com/docs/apollo-server/federation/introduction))
 ///
@@ -8,7 +8,7 @@ pub struct Any(pub Value);
 
 /// The `_Any` scalar is used to pass representations of entities from external services into the root `_entities` field for execution.
 #[Scalar(internal, name = "_Any")]
-impl ScalarType for Any {
+impl LegacyScalarType for Any {
     fn parse(value: Value) -> InputValueResult<Self> {
         Ok(Self(value))
     }

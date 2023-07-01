@@ -57,11 +57,11 @@ impl<T: OutputType + Hash + Eq> OutputType for HashSet<T> {
         <StdHashSet<T> as OutputType>::type_name()
     }
 
-    fn qualified_type_name() -> String {
+    fn qualified_type_name() -> crate::registry::MetaFieldType {
         <StdHashSet<T> as OutputType>::qualified_type_name()
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType {
         <StdHashSet<T> as OutputType>::create_type_info(registry)
     }
 

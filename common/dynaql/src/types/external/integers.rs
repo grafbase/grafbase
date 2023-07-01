@@ -1,8 +1,8 @@
-use crate::{InputValueError, InputValueResult, Number, Scalar, ScalarType, Value};
+use crate::{InputValueError, InputValueResult, LegacyScalarType, Number, Scalar, Value};
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for i8 {
+impl LegacyScalarType for i8 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -33,7 +33,7 @@ impl ScalarType for i8 {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for i16 {
+impl LegacyScalarType for i16 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -64,7 +64,7 @@ impl ScalarType for i16 {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for i32 {
+impl LegacyScalarType for i32 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -95,7 +95,7 @@ impl ScalarType for i32 {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for i64 {
+impl LegacyScalarType for i64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -119,7 +119,7 @@ impl ScalarType for i64 {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for u8 {
+impl LegacyScalarType for u8 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -150,7 +150,7 @@ impl ScalarType for u8 {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for u16 {
+impl LegacyScalarType for u16 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -181,7 +181,7 @@ impl ScalarType for u16 {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for u32 {
+impl LegacyScalarType for u32 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -212,7 +212,7 @@ impl ScalarType for u32 {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for u64 {
+impl LegacyScalarType for u64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -236,7 +236,7 @@ impl ScalarType for u64 {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for usize {
+impl LegacyScalarType for usize {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
@@ -267,7 +267,7 @@ impl ScalarType for usize {
 
 /// The `Int` scalar type represents non-fractional whole numeric values.
 #[Scalar(internal, name = "Int")]
-impl ScalarType for isize {
+impl LegacyScalarType for isize {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {

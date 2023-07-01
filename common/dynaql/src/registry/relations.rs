@@ -1,5 +1,7 @@
 use dynaql_parser::types::{BaseType, Type};
 
+use super::ModelName;
+
 #[derive(Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
 pub enum MetaRelationKind {
     ManyToMany,
@@ -169,7 +171,7 @@ pub struct MetaRelation {
     /// The direction is:
     /// 0 -> 1
     /// The relation can have a null origin, it means it's everything related to 1.
-    pub relation: (Option<String>, String),
+    pub relation: (Option<ModelName>, ModelName),
     pub birectional: bool,
 }
 
@@ -190,7 +192,7 @@ impl MetaRelation {
         Self {
             name: name
                 .unwrap_or_else(|| MetaRelation::generate_relation_name(&from_model, &to_model)),
-            relation: (Some(from_model), to_model),
+            relation: (Some(from_model.into()), to_model.into()),
             birectional: false,
             kind: MetaRelationKind::new(from_field, to_field),
         }
@@ -201,7 +203,7 @@ impl MetaRelation {
         let base_to = to.base.to_base_type_str();
         Self {
             name,
-            relation: (None, base_to.to_string()),
+            relation: (None, base_to.into()),
             birectional: false,
             kind: MetaRelationKind::OneToMany,
         }
@@ -223,7 +225,7 @@ impl MetaRelation {
 
         if *self_origin != relation.relation.1 || *other_origin != self.relation.1 {
             return Err(RelationCombinationError::MultipleRelationsError {
-                from: self_origin.clone(),
+                from: self_origin.to_string(),
             });
         }
 

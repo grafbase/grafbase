@@ -6,7 +6,8 @@ use dynaql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, Type
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-pub fn is_str_type_primitive(name: &str) -> bool {
+// TODO: maybe get rid of this
+fn is_str_type_primitive(name: &str) -> bool {
     matches!(name, "String" | "Float" | "Boolean" | "ID" | "Int")
 }
 
