@@ -1,6 +1,7 @@
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
 use dynaql_value::ConstValue;
+use serde::Deserialize;
 
 pub struct JSONScalar;
 
@@ -15,31 +16,17 @@ impl<'a> SDLDefinitionScalar<'a> for JSONScalar {
 }
 
 impl DynamicParse for JSONScalar {
-    fn is_valid(value: &ConstValue) -> bool {
-        matches!(value, ConstValue::Object(_))
+    fn is_valid(_: &ConstValue) -> bool {
+        true
     }
 
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
-        match value {
-            val @ serde_json::Value::Object(_) => {
-                ConstValue::from_json(val).map_err(Error::new_with_source)
-            }
-            _ => Err(Error::new(
-                "Data violation: Cannot coerce the initial value to a JSON",
-            )),
-        }
+        ConstValue::deserialize(value).map_err(|error| Error::new(error.to_string()))
     }
 
     fn parse(value: ConstValue) -> InputValueResult<serde_json::Value> {
-        match value {
-            val @ ConstValue::Object(_) => {
-                ConstValue::into_json(val).map_err(|err| InputValueError::ty_custom("JSON", err))
-            }
-            _ => Err(InputValueError::ty_custom(
-                "JSON",
-                "Cannot parse into a JSON",
-            )),
-        }
+        serde_json::Value::deserialize(value)
+            .map_err(|error| InputValueError::ty_custom("JSON", error.to_string()))
     }
 }
 
