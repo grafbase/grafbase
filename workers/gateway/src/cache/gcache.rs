@@ -38,23 +38,30 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
 
     pub async fn cached(
         &self,
-        request_context: &RequestContext<'_>,
+        request_context: &RequestContext,
         cache_key: &str,
         source_future: impl Future<Output = worker::Result<CV>> + 'static,
     ) -> CacheResult<CacheResponse<Arc<CV>>>
     where
         CV: Default,
     {
-        let cached_value: CacheProviderResponse<CV> = P::get(&self.cache_name, cache_key)
-            .instrument(tracing::info_span!("cache_get"))
-            .await
-            .unwrap_or_else(|e| {
-                log::warn!(
-                    request_context.cloudflare_request_context.ray_id,
-                    "Error loading {cache_key} from cache: {e}",
-                );
+        // skip if the incoming request doesn't want cached values, forces origin revalidation
+        let cached_value: CacheProviderResponse<CV> =
+            if request_context.cloudflare_request_context.cache_control.no_cache {
                 CacheProviderResponse::Miss
-            });
+            } else {
+                P::get(&self.cache_name, cache_key)
+                    .instrument(tracing::info_span!("cache_get"))
+                    .await
+                    .unwrap_or_else(|e| {
+                        log::warn!(
+                            request_context.cloudflare_request_context.ray_id,
+                            "Error loading {cache_key} from cache: {e}",
+                        );
+                        CacheProviderResponse::Miss
+                    })
+            };
+
         let mut priority_cache_tags = vec![request_context.config.customer_deployment_config.project_id.clone()];
         if let Some(branch) = &request_context.config.customer_deployment_config.github_ref_name {
             priority_cache_tags.insert(0, branch.clone());
@@ -129,7 +136,7 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                         );
                 }
 
-                if origin_result.should_cache() {
+                if origin_result.should_cache() && !request_context.cloudflare_request_context.cache_control.no_store {
                     let ray_id = request_context.cloudflare_request_context.ray_id.to_string();
                     let key = cache_key.to_string();
                     let cache_name = self.cache_name.to_string();
@@ -167,7 +174,7 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
 
     async fn update_stale(
         &self,
-        request_context: &RequestContext<'_>,
+        request_context: &RequestContext,
         key: &str,
         existing_value: Arc<CV>,
         source_future: impl Future<Output = worker::Result<CV>> + 'static,
@@ -326,15 +333,15 @@ mod tests {
     }
 
     fn build_request_context(
-        config: &'static Config,
+        config: Config,
         wait_until_promises: Arc<RefCell<Vec<BoxFuture<'static, ()>>>>,
-    ) -> RequestContext<'static> {
+    ) -> RequestContext {
         RequestContext {
             #[cfg(not(feature = "local"))]
             api_key_auth: crate::auth::ApiKeyAuth::default(),
             cloudflare_request_context: CloudflareRequestContext::default(),
             closest_aws_region: rusoto_core::Region::EuNorth1,
-            config,
+            config: Arc::new(config),
             wait_until_promises,
         }
     }
@@ -368,7 +375,7 @@ mod tests {
             }
         }
 
-        let config = Box::leak(Box::default());
+        let config = Config::default();
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
         let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
@@ -425,7 +432,7 @@ mod tests {
             }
         }
 
-        let config = Box::leak(Box::default());
+        let config = Config::default();
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
         let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
@@ -497,7 +504,7 @@ mod tests {
             }
         }
 
-        let config = Box::leak(Box::default());
+        let config = Config::default();
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
         let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
@@ -590,7 +597,7 @@ mod tests {
             }
         }
 
-        let config = Box::leak(Box::default());
+        let config = Config::default();
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
         let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
@@ -666,7 +673,7 @@ mod tests {
             }
         }
 
-        let config = Box::leak(Box::default());
+        let config = Config::default();
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
         let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
@@ -732,7 +739,7 @@ mod tests {
             }
         }
 
-        let config = Box::leak(Box::default());
+        let config = Config::default();
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
         let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
@@ -809,14 +816,14 @@ mod tests {
             }
         }
 
-        let config = Box::leak(Box::new(Config {
+        let config = Config {
             customer_deployment_config: CustomerDeploymentConfig {
                 project_id: "project_id".to_string(),
                 github_ref_name: Some("github_ref_name".to_string()),
                 ..Default::default()
             },
             ..Default::default()
-        }));
+        };
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
         let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(PurgeTestGlobalCache));

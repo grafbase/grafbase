@@ -131,4 +131,7 @@ pub trait GlobalCacheProvider {
     async fn purge_by_tags(&self, _tags: Vec<String>) -> CacheResult<()> {
         unimplemented!()
     }
+    async fn purge_by_hostname(&self, _hostname: String) -> CacheResult<()> {
+        unimplemented!()
+    }
 }
