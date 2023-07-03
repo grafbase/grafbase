@@ -23,6 +23,7 @@ use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
@@ -415,6 +416,34 @@ enum CurrentResolverType {
     CONTAINER,
 }
 
+pub enum CacheTag {
+    Type {
+        type_name: String,
+    },
+    List {
+        type_name: String,
+    },
+    Field {
+        type_name: String,
+        field_name: String,
+        value: String,
+    },
+}
+
+impl Display for CacheTag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            CacheTag::Type { type_name } => f.write_str(type_name),
+            CacheTag::List { type_name } => write!(f, "{type_name}#List"),
+            CacheTag::Field {
+                type_name,
+                field_name,
+                value,
+            } => write!(f, "{type_name}#{field_name}:{value}"),
+        }
+    }
+}
+
 impl CurrentResolverType {
     fn new(current_field: &MetaField, ctx: &Context<'_>) -> Self {
         if current_field.ty.is_list() {
@@ -756,14 +785,26 @@ impl MetaField {
                         value => value.to_string(),
                     };
 
-                    format!("{cache_type}#{target_field}:{resolved_field_value}",)
+                    CacheTag::Field {
+                        type_name: cache_type,
+                        field_name: target_field.to_string(),
+                        value: resolved_field_value,
+                    }
                 }
+                // we're only interested in the variant above
                 CacheInvalidationPolicy::Entity { .. } => return,
-                CacheInvalidationPolicy::List => format!("{cache_type}#List"),
-                CacheInvalidationPolicy::Type => cache_type,
+                CacheInvalidationPolicy::List => CacheTag::List {
+                    type_name: cache_type,
+                },
+                CacheInvalidationPolicy::Type => CacheTag::Type {
+                    type_name: cache_type,
+                },
             };
 
-            ctx.response_graph.write().await.add_cache_tag(cache_tag);
+            ctx.response_graph
+                .write()
+                .await
+                .add_cache_tag(cache_tag.to_string());
         }
     }
 }
