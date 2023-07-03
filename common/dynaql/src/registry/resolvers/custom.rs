@@ -3,8 +3,9 @@ use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::{Context, Error};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
+use grafbase::UdfKind;
 use grafbase_runtime::udf::{
-    CustomResolverRequestPayload, CustomResolversEngine, UdfKind, UdfRequest, UdfRequestContext,
+    CustomResolverRequestPayload, CustomResolversEngine, UdfRequest, UdfRequestContext,
     UdfRequestContextRequest,
 };
 use grafbase_runtime::GraphqlRequestExecutionContext;

@@ -1,6 +1,7 @@
 use dynaql::registry::{MetaType, Registry};
 use dynaql::Schema;
 use function_name::named;
+use grafbase::UdfKind;
 use serde_json as _;
 use std::collections::{HashMap, HashSet};
 
@@ -556,8 +557,11 @@ fn should_pick_up_required_resolvers() {
     let result = super::to_parse_result_with_variables(SCHEMA, &variables).expect("must succeed");
 
     assert_eq!(
-        result.required_resolvers,
-        HashSet::from(["user/days-inactive".to_owned(), "text/summary".to_owned()])
+        result.required_udfs,
+        HashSet::from([
+            (UdfKind::Resolver, "user/days-inactive".to_owned()),
+            (UdfKind::Resolver, "text/summary".to_owned())
+        ])
     );
 }
 

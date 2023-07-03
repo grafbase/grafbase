@@ -46,6 +46,7 @@ use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
 
 use grafbase::auth::{ExecutionAuth, Operations};
+use grafbase::UdfKind;
 use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
@@ -85,7 +86,7 @@ pub struct DynamoDBContext {
     pub dynamodb_table_name: String,
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
-    pub resolver_binding_map: std::collections::HashMap<String, String>,
+    pub resolver_binding_map: std::collections::HashMap<(UdfKind, String), String>,
     auth: ExecutionAuth,
 }
 
@@ -223,7 +224,7 @@ impl DynamoDBContext {
         region: rusoto_core::Region,
         dynamodb_table_name: String,
         // FIXME: Move this to `grafbase-runtime`!
-        resolver_binding_map: std::collections::HashMap<String, String>,
+        resolver_binding_map: std::collections::HashMap<(UdfKind, String), String>,
         auth: ExecutionAuth,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
