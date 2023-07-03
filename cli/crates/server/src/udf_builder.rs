@@ -326,6 +326,7 @@ pub async fn build(
         format!(
             r#"
                 name = "{slugified_udf_name}"
+                compatibility_flags = ["nodejs_compat"]
                 [build.upload]
                 format = "modules"
                 [miniflare]
