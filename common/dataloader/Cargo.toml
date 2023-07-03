@@ -13,7 +13,7 @@ futures-util = { workspace = true, features = ["io", "sink"] }
 lru = { version = "0.10", default-features = false }
 
 [dev-dependencies]
-tokio = { version = "1.28", features = [
+tokio = { version = "1.29", features = [
   "macros",
   "rt-multi-thread",
   "sync",

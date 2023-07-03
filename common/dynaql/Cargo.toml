@@ -41,7 +41,7 @@ chrono = { version = "0.4", default-features = false, features = [
   "clock",
   "std",
 ] }
-cynic-introspection = "3.2.0"
+cynic-introspection = "3.2.2"
 derivative = "2"
 dynomite = "0.10"
 fast_chemail = "0.9"
@@ -50,7 +50,7 @@ futures-util = { workspace = true, features = ["io", "sink"] }
 http = "0.2"
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 Inflector = { version = "0.11" }
-ipnet = "2.7"
+ipnet = "2.8"
 itertools = { workspace = true }
 mime = "0.3"
 multer = "2"
