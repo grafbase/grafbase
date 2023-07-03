@@ -86,7 +86,7 @@ pub struct DynamoDBContext {
     pub dynamodb_table_name: String,
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
-    pub resolver_binding_map: std::collections::HashMap<(UdfKind, String), String>,
+    pub udf_binding_map: std::collections::HashMap<(UdfKind, String), String>,
     auth: ExecutionAuth,
 }
 
@@ -224,7 +224,7 @@ impl DynamoDBContext {
         region: rusoto_core::Region,
         dynamodb_table_name: String,
         // FIXME: Move this to `grafbase-runtime`!
-        resolver_binding_map: std::collections::HashMap<(UdfKind, String), String>,
+        udf_binding_map: std::collections::HashMap<(UdfKind, String), String>,
         auth: ExecutionAuth,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
@@ -242,7 +242,7 @@ impl DynamoDBContext {
             dynamodb_client: client,
             dynamodb_table_name,
             closest_region: region,
-            resolver_binding_map,
+            udf_binding_map,
             auth,
         }
     }

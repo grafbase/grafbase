@@ -79,6 +79,40 @@ pub struct ResolverHealthResponse {
     pub ready: bool,
 }
 
+// FIXME: Remove after migrating all projects to at least 2023-06-28.
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+pub enum VecOrMapResolverBindingMap {
+    Vec(Vec<((UdfKind, String), String)>),
+    HashMap(std::collections::HashMap<String, String>),
+}
+
+impl VecOrMapResolverBindingMap {
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::Vec(vec) => vec.is_empty(),
+            Self::HashMap(hash_map) => hash_map.is_empty(),
+        }
+    }
+    fn into_iter(self) -> impl Iterator<Item = ((UdfKind, String), String)> {
+        let (vec, hash_map) = match self {
+            Self::Vec(vec) => (vec, Default::default()),
+            Self::HashMap(hash_map) => (Default::default(), hash_map),
+        };
+        vec.into_iter().chain(
+            hash_map
+                .into_iter()
+                .map(|(key, value)| ((UdfKind::Resolver, key), value)),
+        )
+    }
+}
+
+impl Default for VecOrMapResolverBindingMap {
+    fn default() -> Self {
+        Self::HashMap(Default::default())
+    }
+}
+
 // FIXME: Drop `Default` and instantiate this explicitly for local.
 /// Encapsulates customer specific configuration
 /// Required for executing requests that target a customer deployment
@@ -111,10 +145,14 @@ pub struct CustomerDeploymentConfig {
     pub jwt_secret: String,
     /// Grafbase project ID this deployment belongs to
     pub project_id: String,
+    // FIXME: Remove after migrating all projects to at least 2023-06-28.
     /// Resolver service names
     #[serde(default)]
+    pub resolver_bindings: VecOrMapResolverBindingMap,
+    /// UDF service names
+    #[serde(default)]
     #[serde_as(as = "Vec<(_, _)>")]
-    pub resolver_bindings: std::collections::HashMap<(UdfKind, String), String>,
+    pub udf_bindings: std::collections::HashMap<(UdfKind, String), String>,
     #[serde(default)]
     /// Customer's dedicated subdomain
     pub subdomain: String,
@@ -128,6 +166,17 @@ pub struct CustomerDeploymentConfig {
     pub caching_enabled: bool,
     #[serde(default)]
     pub auth_config: AuthConfig,
+}
+
+impl CustomerDeploymentConfig {
+    pub fn all_udf_bindings(&self) -> std::borrow::Cow<'_, std::collections::HashMap<(UdfKind, String), String>> {
+        if self.resolver_bindings.is_empty() {
+            std::borrow::Cow::Borrowed(&self.udf_bindings)
+        } else {
+            assert!(self.udf_bindings.is_empty());
+            std::borrow::Cow::Owned(self.resolver_bindings.clone().into_iter().collect())
+        }
+    }
 }
 
 impl CustomerDeploymentConfig {
@@ -213,7 +262,7 @@ mod tests {
         use grafbase::UdfKind;
         use std::collections::HashMap;
         let customer_gateway_config = CustomerDeploymentConfig {
-            resolver_bindings: HashMap::from([((UdfKind::Authorizer, "name".to_string()), "value".to_string())]),
+            udf_bindings: HashMap::from([((UdfKind::Authorizer, "name".to_string()), "value".to_string())]),
             ..Default::default()
         };
         serde_json::to_string(&customer_gateway_config).unwrap();
