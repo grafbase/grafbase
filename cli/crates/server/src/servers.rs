@@ -12,7 +12,7 @@ use common::consts::{
     EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME,
 };
 use common::environment::{Environment, Project, SchemaLocation};
-use common::types::LocalAddressType;
+use common::types::{LocalAddressType, UdfKind};
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
 
@@ -135,11 +135,8 @@ async fn spawn_servers(
 
     let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
 
-    let ParsingResponse {
-        mut detected_resolvers,
-        requires_udf,
-    } = match run_schema_parser(&environment_variables).await {
-        Ok(resolvers) => resolvers,
+    let ParsingResponse { mut detected_udfs } = match run_schema_parser(&environment_variables).await {
+        Ok(parsing_response) => parsing_response,
         Err(error) => {
             let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
             tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
@@ -161,15 +158,15 @@ async fn spawn_servers(
         .filter(|(dir, path)| path != &dir.join(GRAFBASE_TS_CONFIG_FILE_NAME))
         .is_some()
     {
-        for resolver in &mut detected_resolvers {
-            resolver.fresh = false;
+        for udf in &mut detected_udfs {
+            udf.fresh = false;
         }
     }
 
     let environment = Environment::get();
     let project = Project::get();
 
-    if requires_udf {
+    if !detected_udfs.is_empty() {
         if let Err(error) = install_wrangler(environment, tracing).await {
             let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
             // TODO consider disabling colored output from wrangler
@@ -180,6 +177,17 @@ async fn spawn_servers(
             tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
             return Ok(());
         }
+
+        let start = std::time::Instant::now();
+        sender
+            .send(ServerMessage::InstallUdfDependencies)
+            .unwrap();
+        crate::udf_builder::install_dependencies(project, tracing).await?;
+        sender
+            .send(ServerMessage::CompleteInstallingUdfDependencies {
+                duration: start.elapsed(),
+            })
+            .unwrap();
     } else {
         trace!("Skipping wrangler installation");
     }
@@ -354,20 +362,18 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
 
 #[derive(serde::Deserialize)]
 struct SchemaParserResult {
-    #[allow(dead_code)]
-    required_resolvers: Vec<String>,
     versioned_registry: serde_json::Value,
-    requires_udf: bool,
+    required_udfs: Vec<(UdfKind, String)>,
 }
 
-pub struct DetectedResolver {
-    pub resolver_name: String,
+pub struct DetectedUdf {
+    pub udf_name: String,
+    pub udf_kind: UdfKind,
     pub fresh: bool,
 }
 
 pub struct ParsingResponse {
-    detected_resolvers: Vec<DetectedResolver>,
-    requires_udf: bool,
+    detected_udfs: Vec<DetectedUdf>,
 }
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environment
@@ -438,8 +444,7 @@ async fn run_schema_parser(
 
     let SchemaParserResult {
         versioned_registry,
-        required_resolvers,
-        requires_udf,
+        required_udfs,
     } = serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
 
     let registry_mtime = tokio::fs::metadata(&project.registry_path)
@@ -447,11 +452,11 @@ async fn run_schema_parser(
         .ok()
         .map(|metadata| metadata.modified().expect("must be supported"));
 
-    let detected_resolvers = futures_util::future::join_all(required_resolvers.into_iter().map(|resolver_name| {
+    let detected_resolvers = futures_util::future::join_all(required_udfs.into_iter().map(|(udf_kind, udf_name)| {
         // Last file to be written to in the build process.
         let wrangler_toml_path = project
-            .resolvers_build_artifact_path
-            .join(&resolver_name)
+            .udfs_build_artifact_path(udf_kind)
+            .join(&udf_name)
             .join("wrangler.toml");
         async move {
             let wrangler_toml_mtime = tokio::fs::metadata(&wrangler_toml_path)
@@ -462,7 +467,11 @@ async fn run_schema_parser(
                 .zip(wrangler_toml_mtime)
                 .map(|(registry_mtime, wrangler_toml_mtime)| wrangler_toml_mtime > registry_mtime)
                 .unwrap_or_default();
-            DetectedResolver { resolver_name, fresh }
+            DetectedUdf {
+                udf_name,
+                udf_kind,
+                fresh,
+            }
         }
     }))
     .await;
@@ -474,8 +483,7 @@ async fn run_schema_parser(
     .await
     .map_err(ServerError::SchemaRegistryWrite)?;
     Ok(ParsingResponse {
-        detected_resolvers,
-        requires_udf,
+        detected_udfs: detected_resolvers,
     })
 }
 
