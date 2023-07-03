@@ -1,0 +1,12 @@
+mutation BatchUpdate($input: [PostUpdateManyInput!]!) {
+  postUpdateMany(input: $input) {
+    postCollection {
+      id
+      slug
+      author {
+        id
+        name
+      }
+    }
+  }
+}
