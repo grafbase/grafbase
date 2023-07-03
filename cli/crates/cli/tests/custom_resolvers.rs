@@ -258,6 +258,29 @@ use utils::environment::Environment;
         }
     "#)
 )]
+#[case(
+    11,
+    r#"
+        type Post @model {
+            title: String!
+            text: String! @resolver(name: "return-text")
+        }
+    "#,
+    "return-text.js",
+    r#"
+        import {
+            strictEqual,
+        } from 'node:assert';
+        export default function Resolver(parent, args, context, info) {
+            strictEqual(1, 1);
+            return "Lorem ipsum dolor sit amet";
+        }
+    "#,
+    &[
+        ("query GetPost($id: ID!) { post(by: { id: $id }) { text } }", "data.post.text")
+    ],
+    None,
+)]
 fn test_field_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
