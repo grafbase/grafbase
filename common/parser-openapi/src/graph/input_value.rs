@@ -41,7 +41,11 @@ impl InputValue {
 
                 InputValue::from_index(inner_index, wrapping, graph)
             }
-            Node::Operation(_) | Node::Default(_) | Node::UnionWrappedScalar(_) | Node::PossibleValue(_) => None,
+            Node::Operation(_)
+            | Node::Default(_)
+            | Node::UnionWrappedScalar(_)
+            | Node::PossibleValue(_)
+            | Node::AllOf => None,
         }
     }
 
@@ -55,7 +59,8 @@ impl InputValue {
             | Node::Operation(_)
             | Node::Default(_)
             | Node::PossibleValue(_)
-            | Node::UnionWrappedScalar(_) => None,
+            | Node::UnionWrappedScalar(_)
+            | Node::AllOf => None,
         }
     }
 
@@ -68,7 +73,8 @@ impl InputValue {
             | Node::Operation(_)
             | Node::Default(_)
             | Node::PossibleValue(_)
-            | Node::UnionWrappedScalar(_) => {
+            | Node::UnionWrappedScalar(_)
+            | Node::AllOf => {
                 // These shouldn't really happen
                 None
             }

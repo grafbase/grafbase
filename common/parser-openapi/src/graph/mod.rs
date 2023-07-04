@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Debug};
 
 use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
@@ -20,9 +20,10 @@ mod parameters;
 mod scalar;
 mod transforms;
 
+mod all_of_member;
 pub mod construction;
 
-use crate::parsing::ParseOutput;
+use crate::{parsing::ParseOutput, Error};
 
 pub use self::{
     enums::Enum,
@@ -44,16 +45,39 @@ pub struct OpenApiGraph {
 }
 
 impl OpenApiGraph {
-    pub fn new(parsed: ParseOutput, metadata: crate::ApiMetadata) -> Self {
+    pub fn new(parsed: ParseOutput, metadata: crate::ApiMetadata) -> Result<Self, Error> {
         let mut this = OpenApiGraph {
             graph: parsed.graph,
-            operation_indices: parsed.operation_indices,
+            operation_indices: vec![],
             metadata,
         };
 
-        transforms::run(&mut this);
+        transforms::run(&mut this)?;
 
-        this
+        // ParseOutput has operation_indices _but_ the transforms might have removed
+        // some nodes so we can't trust them anymore.  Re-calculating them here is
+        // the safest option
+        this.operation_indices = this
+            .graph
+            .node_indices()
+            .filter(|index| matches!(this.graph[*index], Node::Operation(_)))
+            .collect();
+
+        Ok(this)
+    }
+
+    // Used to get a Debug impl for a the given node index.
+    #[allow(dead_code)]
+    fn debug(&self, index: NodeIndex) -> NodeDebug<'_> {
+        NodeDebug(&self.graph[index])
+    }
+}
+
+struct NodeDebug<'a>(&'a Node);
+
+impl Debug for NodeDebug<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -108,9 +132,14 @@ pub enum Node {
 
     // A possible value for a given scalar/enum
     PossibleValue(Value),
+
+    /// An OpenAPI allOf schema.
+    ///
+    /// These should be optimised away by the `merge_all_of_schemas` transform.
+    AllOf,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[allow(clippy::enum_variant_names)]
 pub enum Edge {
     /// Links an object with the types of it's fields.
@@ -163,8 +192,14 @@ pub enum Edge {
     /// An edge between any type node and its associated default
     HasDefault,
 
-    // An edge between a scalar type and its possible values.
+    /// An edge between a scalar type and its possible values.
     HasPossibleValue,
+
+    /// An edge between an AllOfSchema and it's members.
+    /// Members should be objects, or schemas that represent an object.
+    /// This edge should be optimised out by the `merge_all_of_schemas` transform,
+    /// so we shouldn't need to consider it at output time.
+    AllOfMember,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -220,6 +255,7 @@ impl std::fmt::Debug for Node {
             Self::Union => write!(f, "Union"),
             Self::Default(value) => f.debug_tuple("Default").field(value).finish(),
             Self::PossibleValue(value) => f.debug_tuple("PossibleValue").field(value).finish(),
+            Self::AllOf => f.debug_tuple("AllOf").finish(),
         }
     }
 }
@@ -332,7 +368,7 @@ impl OpenApiGraph {
     fn type_name(&self, node: NodeIndex) -> Option<String> {
         match &self.graph[node] {
             schema @ Node::Schema { .. } => Some(schema.name()?),
-            Node::Operation(_) | Node::Default(_) | Node::PossibleValue(_) => None,
+            Node::Operation(_) | Node::Default(_) | Node::PossibleValue(_) | Node::AllOf => None,
             Node::Object | Node::Enum { .. } => {
                 // OpenAPI objects are generally anonymous so we walk back up the graph to the
                 // nearest named thing, and construct a name based on the fields in-betweeen.

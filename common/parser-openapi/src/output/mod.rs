@@ -242,17 +242,17 @@ impl Operation {
         let request_body = self.request_body(graph);
 
         let mut args = IndexMap::new();
-        args.extend(path_parameters.iter().map(|param| {
-            let input_value = param.to_meta_input_value(graph).unwrap();
-            (input_value.name.clone(), input_value)
+        args.extend(path_parameters.iter().filter_map(|param| {
+            let input_value = param.to_meta_input_value(graph)?;
+            Some((input_value.name.clone(), input_value))
         }));
-        args.extend(query_parameters.iter().map(|param| {
-            let input_value = param.to_meta_input_value(graph).unwrap();
-            (input_value.name.clone(), input_value)
+        args.extend(query_parameters.iter().filter_map(|param| {
+            let input_value = param.to_meta_input_value(graph)?;
+            Some((input_value.name.clone(), input_value))
         }));
-        args.extend(request_body.iter().map(|body| {
-            let input_value = body.to_meta_input_value(graph).unwrap();
-            (input_value.name.clone(), input_value)
+        args.extend(request_body.iter().filter_map(|body| {
+            let input_value = body.to_meta_input_value(graph)?;
+            Some((input_value.name.clone(), input_value))
         }));
 
         let mut output_type = self.ty(graph)?;

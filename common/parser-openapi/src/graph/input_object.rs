@@ -25,6 +25,7 @@ impl InputObject {
             Node::Union => Some(InputObject { index, one_of: true }),
             Node::Schema(_) => InputObject::from_index(graph.schema_target(index)?, graph),
             Node::Operation(_)
+            | Node::AllOf
             | Node::Scalar(_)
             | Node::Enum { .. }
             | Node::Default(_)

@@ -243,12 +243,13 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                     extract_types(ctx, schema, ParentNode::Union(union_index));
                 }
             }
-            SchemaKind::AllOf { .. } => {
-                // These are used infrequently enough that I don't really want to support them.
-                // But GitHub uses them in one place so I don't want to error out and kill the whole
-                // process.
-                //
-                // For now I'm just going to ignore.
+            SchemaKind::AllOf { all_of } => {
+                let node_index = ctx.graph.add_node(Node::AllOf);
+                ctx.add_type_edge(parent, node_index, false);
+
+                for schema in all_of {
+                    extract_types(ctx, schema, ParentNode::AllOf(node_index));
+                }
             }
             SchemaKind::Not { .. } => {
                 ctx.errors.push(Error::NotSchema);

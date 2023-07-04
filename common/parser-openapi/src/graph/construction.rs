@@ -39,12 +39,13 @@ pub enum ParentNode {
         encoding_style: QueryParameterEncodingStyle,
         required: bool,
     },
+    AllOf(NodeIndex),
 }
 
 impl ParentNode {
     fn node_index(&self) -> NodeIndex {
         match self {
-            ParentNode::Union(idx) | ParentNode::Schema(idx) => *idx,
+            ParentNode::Union(index) | ParentNode::Schema(index) | ParentNode::AllOf(index) => *index,
             ParentNode::OperationResponse { operation_index, .. }
             | ParentNode::OperationRequest { operation_index, .. }
             | ParentNode::PathParameter { operation_index, .. }
@@ -111,6 +112,7 @@ impl ParentNode {
                 wrapping: wrapping.set_required(*required),
                 encoding_style: *encoding_style,
             },
+            ParentNode::AllOf(_) => Edge::AllOfMember,
         }
     }
 }

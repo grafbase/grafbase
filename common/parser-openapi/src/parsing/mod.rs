@@ -36,7 +36,6 @@ pub fn parse(data: String, format: Format) -> Result<ParseOutput, Vec<Error>> {
 
 pub struct ParseOutput {
     pub graph: Graph<Node, Edge>,
-    pub operation_indices: Vec<NodeIndex>,
     pub url: Result<Url, Error>,
 }
 
@@ -53,13 +52,7 @@ impl TryFrom<Context> for ParseOutput {
     type Error = Vec<Error>;
 
     fn try_from(value: Context) -> Result<Self, Self::Error> {
-        let Context {
-            graph,
-            operation_indices,
-            errors,
-            url,
-            ..
-        } = value;
+        let Context { graph, errors, url, .. } = value;
 
         if !errors.is_empty() {
             return Err(errors);
@@ -67,7 +60,6 @@ impl TryFrom<Context> for ParseOutput {
 
         Ok(ParseOutput {
             graph,
-            operation_indices,
             url: url.expect("parsing should always fill in url"),
         })
     }

@@ -28,7 +28,7 @@ pub fn parse_spec(
     // Make sure we have a trailing slash on metadata so that Url::join works correctly.
     ensure_trailing_slash(url).map_err(|_| vec![Error::InvalidUrl(url.to_string())])?;
 
-    let graph = OpenApiGraph::new(parsed, metadata.clone());
+    let graph = OpenApiGraph::new(parsed, metadata.clone()).map_err(|error| vec![error])?;
 
     validation::validate(&graph)?;
 
@@ -146,8 +146,6 @@ pub enum Error {
     ArrayWithoutItems,
     #[error("Encountered a not schema, which we don't currently support")]
     NotSchema,
-    #[error("Encountered an allOf schema, which we don't currently support")]
-    AllOfSchema,
     #[error("Found a reference {0} which didn't seem to exist in the spec")]
     UnresolvedReference(String),
     #[error("We couldn't parse the URL: `{0}`  You might need to provide or fix the url parameter to `@openapi`")]
@@ -168,6 +166,8 @@ pub enum Error {
     NonScalarNestedInsideObjectQueryParameter(String, String),
     #[error("The query parameter {0} on operation {1} has a non-scalar nested inside an object, which is unsupported")]
     ListNestedInsideObjectQueryParameter(String, String),
+    #[error("We found a cycle of allOf objects in the OpenAPI schema, which is unsupported")]
+    AllOfCycle,
 }
 
 fn is_ok(status: &ExpectedStatusCode) -> bool {
@@ -291,6 +291,15 @@ mod tests {
         )
         .unwrap()
         .export_sdl(false));
+    }
+
+    #[test]
+    fn test_all_of_schema() {
+        insta::assert_snapshot!(
+            build_registry("test_data/all-ofs.json", Format::Json, metadata(Some("petstore")))
+                .unwrap()
+                .export_sdl(false)
+        );
     }
 
     #[test]

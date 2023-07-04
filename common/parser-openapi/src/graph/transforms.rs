@@ -6,13 +6,18 @@
 
 use std::collections::HashMap;
 
-use petgraph::{visit::EdgeRef, Direction};
+use petgraph::{graph::NodeIndex, visit::EdgeRef, Direction};
 
-use super::{Edge, Node, OpenApiGraph};
+use crate::Error;
 
-pub fn run(graph: &mut OpenApiGraph) {
+use super::{all_of_member::AllOfMember, Edge, Node, OpenApiGraph};
+
+pub fn run(graph: &mut OpenApiGraph) -> Result<(), Error> {
+    merge_all_of_schemas(graph)?;
     impossible_unions_to_json(graph);
     wrap_scalar_union_variants(graph);
+
+    Ok(())
 }
 
 /// OpenAPI allows for unions of any type but in GraphQL unions can only contain
@@ -120,4 +125,67 @@ fn wrap_scalar_union_variants(graph: &mut OpenApiGraph) {
             graph.graph.add_edge(union_index, *wrapper_index, Edge::HasUnionMember);
         }
     }
+}
+
+fn merge_all_of_schemas(graph: &mut OpenApiGraph) -> Result<(), Error> {
+    let filtered_graph = petgraph::visit::NodeFiltered::from_fn(&graph.graph, |index| {
+        matches!(&graph.graph[index], Node::Schema(_) | Node::AllOf)
+    });
+
+    let all_ofs = petgraph::algo::toposort(&filtered_graph, None)
+        .map_err(|_| {
+            // I think a cycle of AllOfs is probably against the spec - it wouldn't make sense...
+            Error::AllOfCycle
+        })?
+        .into_iter()
+        .rev()
+        .filter(|index| matches!(graph.graph[*index], Node::AllOf))
+        .collect::<Vec<_>>();
+
+    for all_of_index in all_ofs {
+        let members = resolve_all_of_members(graph, all_of_index);
+
+        // We create an object to represent this allOf, then copy all the nested
+        // fields onto that object.
+        let object_index = graph.graph.add_node(Node::Object);
+        for member in members {
+            let mut new_edges = Vec::new();
+            for edge in graph.graph.edges(member.index()) {
+                if let Edge::HasField { name, wrapping } = edge.weight() {
+                    new_edges.push((name.clone(), wrapping.clone(), edge.target()));
+                }
+            }
+
+            for (name, wrapping, target_index) in new_edges {
+                graph
+                    .graph
+                    .add_edge(object_index, target_index, Edge::HasField { name, wrapping });
+            }
+        }
+
+        // Now we need to rewrite any edges to the allOf to point at our new object instead
+        let mut new_edges = Vec::new();
+        let mut edges_to_delete = Vec::new();
+        for edge in graph.graph.edges_directed(all_of_index, Direction::Incoming) {
+            new_edges.push((edge.source(), (*edge.weight()).clone()));
+            edges_to_delete.push(edge.id());
+        }
+        for (source_index, weight) in new_edges {
+            graph.graph.add_edge(source_index, object_index, weight);
+        }
+        for edge_index in edges_to_delete {
+            graph.graph.remove_edge(edge_index);
+        }
+    }
+
+    Ok(())
+}
+
+fn resolve_all_of_members(graph: &OpenApiGraph, all_of_index: NodeIndex) -> Vec<AllOfMember> {
+    graph
+        .graph
+        .edges(all_of_index)
+        .filter_map(|edge| matches!(edge.weight(), Edge::AllOfMember).then_some(edge.target()))
+        .filter_map(|target_index| AllOfMember::from_index(target_index, graph))
+        .collect()
 }
