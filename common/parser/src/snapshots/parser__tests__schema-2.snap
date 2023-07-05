@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 372
 expression: sdl_a
 ---
 """
@@ -24,6 +23,10 @@ type Mutation {
 	Create a User
 	"""
 	userCreate(input: UserCreateInput!): UserCreatePayload
+	"""
+	Create multiple User
+	"""
+	userCollectionCreate(input: [UserCollectionCreateInput!]!): UserCollectionCreatePayload
 	"""
 	Update a User
 	"""
@@ -79,6 +82,12 @@ type User {
 }
 input UserByInput {
 	id: ID
+}
+input UserCollectionCreateInput {
+	input: UserCreateInput!
+}
+type UserCollectionCreatePayload {
+	userCollection: [User!]!
 }
 type UserConnection {
 	"""

@@ -24,6 +24,8 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use ulid::Ulid;
 
+mod create;
+
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum DynamoMutationResolver {
@@ -51,6 +53,12 @@ pub enum DynamoMutationResolver {
     /// }
     /// ```
     CreateNode {
+        input: VariableResolveDefinition,
+        /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
+        /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
+        ty: ModelName,
+    },
+    CreateNodes {
         input: VariableResolveDefinition,
         /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
         /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
@@ -242,6 +250,7 @@ fn node_create<'a>(
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
     input: IndexMap<Name, Value>,
+    is_nested_relation: bool,
 ) -> RecursiveCreation<'a> {
     let current_execution_id = {
         let mut execution_id = Some(execution_id);
@@ -349,6 +358,7 @@ fn node_create<'a>(
 
             Ok(ResolvedValue::new(Arc::new(serde_json::json!({
                 "id": serde_json::Value::String(id.to_string()),
+                "is_nested_relation": is_nested_relation
             }))))
         });
 
@@ -904,6 +914,7 @@ fn relation_handle<'a>(
                     execution_id,
                     increment.clone(),
                     creation_input.clone(),
+                    true,
                 );
 
                 let shared_selection_cloned = result.selection.clone();
@@ -985,6 +996,9 @@ impl ResolverTrait for DynamoMutationResolver {
             // Why?
             //
             // Because it's how we store the data.
+            DynamoMutationResolver::CreateNodes { input, ty } => {
+                create::batch(ctx, resolver_ctx, last_resolver_value, input, ty).await
+            }
             DynamoMutationResolver::CreateNode { input, ty } => {
                 let ctx_ty = ctx.registry().lookup(ty)?;
 
@@ -1007,6 +1021,7 @@ impl ResolverTrait for DynamoMutationResolver {
                     *resolver_ctx.execution_id,
                     Arc::new(AtomicUsize::new(0)),
                     input,
+                    false,
                 );
                 let _ = creation.selection.await?;
                 let _ = futures_util::future::try_join_all(creation.transaction).await?;

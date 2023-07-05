@@ -1297,6 +1297,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     // Pagination
                     Ok(LogicalPlanBuilder::empty())
                 }
+                ResolverType::DynamoResolver(DynamoResolver::_SearchQueryIds { .. }) => {
+                    Ok(LogicalPlanBuilder::empty())
+                }
                 ResolverType::DynamoResolver(DynamoResolver::QueryIds { .. }) => {
                     Ok(LogicalPlanBuilder::empty())
                 }

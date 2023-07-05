@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 47
 expression: sdl
 ---
 type Author {
@@ -23,6 +22,12 @@ type Author {
 }
 input AuthorByInput {
 	id: ID
+}
+input AuthorCollectionCreateInput {
+	input: AuthorCreateInput!
+}
+type AuthorCollectionCreatePayload {
+	authorCollection: [Author!]!
 }
 type AuthorConnection {
 	"""
@@ -107,6 +112,12 @@ type Blog {
 }
 input BlogByInput {
 	id: ID
+}
+input BlogCollectionCreateInput {
+	input: BlogCreateInput!
+}
+type BlogCollectionCreatePayload {
+	blogCollection: [Blog!]!
 }
 type BlogConnection {
 	"""
@@ -215,6 +226,10 @@ type Mutation {
 	"""
 	blogCreate(input: BlogCreateInput!): BlogCreatePayload
 	"""
+	Create multiple Blog
+	"""
+	blogCollectionCreate(input: [BlogCollectionCreateInput!]!): BlogCollectionCreatePayload
+	"""
 	Update a Blog
 	"""
 	blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogUpdatePayload
@@ -227,6 +242,10 @@ type Mutation {
 	"""
 	postCreate(input: PostCreateInput!): PostCreatePayload
 	"""
+	Create multiple Post
+	"""
+	postCollectionCreate(input: [PostCollectionCreateInput!]!): PostCollectionCreatePayload
+	"""
 	Update a Post
 	"""
 	postUpdate(by: PostByInput!, input: PostUpdateInput!): PostUpdatePayload
@@ -238,6 +257,10 @@ type Mutation {
 	Create a Author
 	"""
 	authorCreate(input: AuthorCreateInput!): AuthorCreatePayload
+	"""
+	Create multiple Author
+	"""
+	authorCollectionCreate(input: [AuthorCollectionCreateInput!]!): AuthorCollectionCreatePayload
 	"""
 	Update a Author
 	"""
@@ -276,6 +299,12 @@ type Post {
 }
 input PostByInput {
 	id: ID
+}
+input PostCollectionCreateInput {
+	input: PostCreateInput!
+}
+type PostCollectionCreatePayload {
+	postCollection: [Post!]!
 }
 type PostConnection {
 	"""

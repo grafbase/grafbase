@@ -197,6 +197,32 @@ expression: req_string_a
     "Mutation": {
       "O": {
         "f": {
+          "productCollectionCreate": {
+            "D": "N",
+            "_r": 1,
+            "a": {
+              "input": {
+                "n": "input",
+                "t": "[ProductCollectionCreateInput!]!"
+              }
+            },
+            "d": "Create multiple Product",
+            "n": "productCollectionCreate",
+            "r_": {
+              "id": null,
+              "type": {
+                "d": {
+                  "CreateNodes": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Product"
+                  }
+                }
+              }
+            },
+            "t": "ProductCollectionCreatePayload"
+          },
           "productCreate": {
             "D": "N",
             "_r": 1,
@@ -570,6 +596,46 @@ expression: req_string_a
         "n": "ProductByInput",
         "o": true,
         "r": "ProductByInput"
+      }
+    },
+    "ProductCollectionCreateInput": {
+      "i": {
+        "i": {
+          "input": {
+            "n": "input",
+            "t": "ProductCreateInput!"
+          }
+        },
+        "n": "ProductCollectionCreateInput",
+        "r": "ProductCollectionCreateInput"
+      }
+    },
+    "ProductCollectionCreatePayload": {
+      "O": {
+        "f": {
+          "productCollection": {
+            "D": "N",
+            "_r": 1,
+            "a": {},
+            "n": "productCollection",
+            "r_": {
+              "id": null,
+              "type": {
+                "D": {
+                  "QueryIds": {
+                    "ids": {
+                      "LocalData": "ids"
+                    },
+                    "type_name": "Product"
+                  }
+                }
+              }
+            },
+            "t": "[Product!]!"
+          }
+        },
+        "n": "ProductCollectionCreatePayload",
+        "r": "ProductCollectionCreatePayload"
       }
     },
     "ProductConnection": {

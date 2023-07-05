@@ -24,12 +24,12 @@ use crate::rules::length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMEN
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{to_input_type, to_lower_camelcase};
 
-mod mutations;
+mod create_update;
 pub mod names;
 mod pagination;
 mod relations;
 mod search;
-pub use mutations::{add_mutation_create, add_mutation_update, NumericFieldKind};
+pub use create_update::{add_mutation_create, add_mutation_update, NumericFieldKind};
 pub use pagination::{add_query_paginated_collection, generate_pagination_args};
 pub use search::add_query_search;
 

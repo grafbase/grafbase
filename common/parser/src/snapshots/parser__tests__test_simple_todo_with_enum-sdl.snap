@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 47
 expression: sdl
 ---
 type Author {
@@ -39,6 +38,10 @@ type Mutation {
 	Create a Todo
 	"""
 	todoCreate(input: TodoCreateInput!): TodoCreatePayload
+	"""
+	Create multiple Todo
+	"""
+	todoCollectionCreate(input: [TodoCollectionCreateInput!]!): TodoCollectionCreatePayload
 	"""
 	Update a Todo
 	"""
@@ -87,6 +90,12 @@ type Todo {
 }
 input TodoByInput {
 	id: ID
+}
+input TodoCollectionCreateInput {
+	input: TodoCreateInput!
+}
+type TodoCollectionCreatePayload {
+	todoCollection: [Todo!]!
 }
 type TodoConnection {
 	"""

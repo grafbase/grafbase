@@ -24,6 +24,10 @@ type Mutation {
 	"""
 	productCreate(input: ProductCreateInput!): ProductCreatePayload
 	"""
+	Create multiple Product
+	"""
+	productCollectionCreate(input: [ProductCollectionCreateInput!]!): ProductCollectionCreatePayload
+	"""
 	Update a Product
 	"""
 	productUpdate(by: ProductByInput!, input: ProductUpdateInput!): ProductUpdatePayload
@@ -71,6 +75,12 @@ Looks up a Product by name, and productLine
 input ProductByNameAndProductLine {
 	name: String!
 	productLine: String!
+}
+input ProductCollectionCreateInput {
+	input: ProductCreateInput!
+}
+type ProductCollectionCreatePayload {
+	productCollection: [Product!]!
 }
 type ProductConnection {
 	"""

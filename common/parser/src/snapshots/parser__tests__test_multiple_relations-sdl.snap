@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 47
 expression: sdl
 ---
 type Author {
@@ -22,6 +21,12 @@ type Author {
 }
 input AuthorByInput {
 	id: ID
+}
+input AuthorCollectionCreateInput {
+	input: AuthorCreateInput!
+}
+type AuthorCollectionCreatePayload {
+	authorCollection: [Author!]!
 }
 type AuthorConnection {
 	"""
@@ -82,6 +87,12 @@ type Comment {
 }
 input CommentByInput {
 	id: ID
+}
+input CommentCollectionCreateInput {
+	input: CommentCreateInput!
+}
+type CommentCollectionCreatePayload {
+	commentCollection: [Comment!]!
 }
 type CommentConnection {
 	"""
@@ -246,6 +257,10 @@ type Mutation {
 	"""
 	authorCreate(input: AuthorCreateInput!): AuthorCreatePayload
 	"""
+	Create multiple Author
+	"""
+	authorCollectionCreate(input: [AuthorCollectionCreateInput!]!): AuthorCollectionCreatePayload
+	"""
 	Update a Author
 	"""
 	authorUpdate(by: AuthorByInput!, input: AuthorUpdateInput!): AuthorUpdatePayload
@@ -258,6 +273,10 @@ type Mutation {
 	"""
 	postCreate(input: PostCreateInput!): PostCreatePayload
 	"""
+	Create multiple Post
+	"""
+	postCollectionCreate(input: [PostCollectionCreateInput!]!): PostCollectionCreatePayload
+	"""
 	Update a Post
 	"""
 	postUpdate(by: PostByInput!, input: PostUpdateInput!): PostUpdatePayload
@@ -269,6 +288,10 @@ type Mutation {
 	Create a Comment
 	"""
 	commentCreate(input: CommentCreateInput!): CommentCreatePayload
+	"""
+	Create multiple Comment
+	"""
+	commentCollectionCreate(input: [CommentCollectionCreateInput!]!): CommentCollectionCreatePayload
 	"""
 	Update a Comment
 	"""
@@ -307,6 +330,12 @@ type Post {
 }
 input PostByInput {
 	id: ID
+}
+input PostCollectionCreateInput {
+	input: PostCreateInput!
+}
+type PostCollectionCreatePayload {
+	postCollection: [Post!]!
 }
 type PostConnection {
 	"""

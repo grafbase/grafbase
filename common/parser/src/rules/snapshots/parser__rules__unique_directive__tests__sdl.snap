@@ -24,6 +24,10 @@ type Mutation {
 	"""
 	productCreate(input: ProductCreateInput!): ProductCreatePayload
 	"""
+	Create multiple Product
+	"""
+	productCollectionCreate(input: [ProductCollectionCreateInput!]!): ProductCollectionCreatePayload
+	"""
 	Update a Product
 	"""
 	productUpdate(by: ProductByInput!, input: ProductUpdateInput!): ProductUpdatePayload
@@ -60,6 +64,12 @@ type Product {
 input ProductByInput {
 	id: ID
 	name: String
+}
+input ProductCollectionCreateInput {
+	input: ProductCreateInput!
+}
+type ProductCollectionCreatePayload {
+	productCollection: [Product!]!
 }
 type ProductConnection {
 	"""

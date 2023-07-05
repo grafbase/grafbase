@@ -138,28 +138,47 @@ impl Extension for AuthExtension {
 
             match (info.parent_type, required_op) {
                 (MUTATION_TYPE, Operations::CREATE | Operations::UPDATE) => {
-                    let input_fields = info
+                    let input = info
                         .input_values
                         .iter()
-                        .find_map(|(name, val)| match name.node.as_str() {
-                            INPUT_ARG => match val.as_ref() {
-                                Some(ConstValue::Object(obj)) => Some(obj),
-                                _ => None,
-                            },
-                            _ => None,
-                        })
-                        .unwrap_or(&EMPTY_INDEX_MAP);
+                        .find_map(|(name, val)| val.as_ref().filter(|_| name.as_str() == INPUT_ARG))
+                        .unwrap_or(&ConstValue::Null);
+                    let global_allowed_ops = execution_auth.global_ops();
 
-                    self.check_input(CheckInputOptions {
-                        input_fields,
-                        type_name: guess_type_name(&info, required_op),
-                        mutation_name: info.name,
-                        registry: &ctx.schema_env.registry,
-                        required_op,
-                        model_allowed_ops,
-                        global_allowed_ops: execution_auth.global_ops(),
-                        auth_fn: &auth_fn,
-                    })?;
+                    if let Some(type_name) = guess_batch_operation_type_name(&info, required_op) {
+                        let inputs = match input {
+                            obj @ ConstValue::Object(_) => vec![obj],
+                            ConstValue::List(objs) => objs.iter().collect(),
+                            _ => vec![],
+                        };
+                        for input in inputs {
+                            self.check_input(CheckInputOptions {
+                                input: match input {
+                                    ConstValue::Object(args) => args.get(INPUT_ARG),
+                                    _ => None,
+                                }
+                                .unwrap_or(&ConstValue::Null),
+                                type_name: type_name.clone(),
+                                mutation_name: info.name,
+                                registry: &ctx.schema_env.registry,
+                                required_op,
+                                model_allowed_ops,
+                                global_allowed_ops,
+                                auth_fn: &auth_fn,
+                            })?;
+                        }
+                    } else {
+                        self.check_input(CheckInputOptions {
+                            input,
+                            type_name: guess_type_name(&info, required_op),
+                            mutation_name: info.name,
+                            registry: &ctx.schema_env.registry,
+                            required_op,
+                            model_allowed_ops,
+                            global_allowed_ops,
+                            auth_fn: &auth_fn,
+                        })?;
+                    }
                 }
                 (MUTATION_TYPE, Operations::DELETE) => {
                     self.check_delete(
@@ -195,7 +214,7 @@ impl Extension for AuthExtension {
 }
 
 struct CheckInputOptions<'a, F: Fn(Option<&AuthConfig>, Operations) -> Operations> {
-    input_fields: &'a IndexMap<dynaql_value::Name, ConstValue>,
+    input: &'a ConstValue,
     type_name: NamedType<'a>,
     mutation_name: &'a str,
     registry: &'a Registry,
@@ -215,6 +234,13 @@ impl AuthExtension {
         &self,
         opts: CheckInputOptions<'_, F>,
     ) -> Result<(), ServerError> {
+        let ConstValue::Object(input_fields) = opts.input else {
+            return Ok(());
+        };
+
+        log::info!("", "{:?}", opts.mutation_name);
+        log::info!("", "{:?}", opts.type_name);
+        log::info!("", "{:?}", input_fields);
         let type_fields = opts
             .registry
             .lookup(&opts.type_name)
@@ -222,7 +248,7 @@ impl AuthExtension {
             .fields()
             .expect("type must have fields");
 
-        for (field_name, field_value) in opts.input_fields {
+        for (field_name, field_value) in input_fields {
             let field = type_fields.get(field_name.as_str()).expect("field must exist");
 
             let field_ops = (opts.auth_fn)(field.auth.as_ref(), opts.model_allowed_ops);
@@ -248,9 +274,9 @@ impl AuthExtension {
                 match field_value {
                     // Example: todoCreate(input: { items: { create: ... } })
                     ConstValue::Object(obj) => {
-                        if let Some(ConstValue::Object(obj)) = obj.get(CREATE_FIELD) {
+                        if let Some(input) = obj.get(CREATE_FIELD) {
                             self.check_input(CheckInputOptions {
-                                input_fields: obj,
+                                input,
                                 type_name: target_type.as_str().into(),
                                 ..opts
                             })?;
@@ -274,9 +300,9 @@ impl AuthExtension {
                     ConstValue::List(list) => {
                         for item in list {
                             if let ConstValue::Object(obj) = item {
-                                if let Some(ConstValue::Object(obj)) = obj.get(CREATE_FIELD) {
+                                if let Some(input) = obj.get(CREATE_FIELD) {
                                     self.check_input(CheckInputOptions {
-                                        input_fields: obj,
+                                        input,
                                         type_name: target_type.named_type(),
                                         ..opts
                                     })?;
@@ -312,9 +338,11 @@ impl AuthExtension {
         auth_fn: &F,
     ) -> Result<(), ServerError> {
         self.check_input(CheckInputOptions {
-            input_fields: &vec![(dynaql::Name::new("id"), ConstValue::String("ignored".to_string()))]
-                .into_iter()
-                .collect(),
+            input: &ConstValue::Object(
+                vec![(dynaql::Name::new("id"), ConstValue::String("ignored".to_string()))]
+                    .into_iter()
+                    .collect(),
+            ),
             type_name: type_name.named_type(),
             mutation_name,
             registry,
@@ -371,7 +399,25 @@ fn guess_type_name(info: &ResolveInfo<'_>, required_op: Operations) -> NamedType
         .named_type()
         .as_str()
         .strip_suffix(suffix)
+        .map(|name| name.strip_suffix("Collection").unwrap_or(name))
         .expect("must be the expected Payload type")
         .to_owned()
         .into()
+}
+
+// HACK: we're deprecating the database, so continuing the previous hack...
+#[allow(clippy::panic)]
+fn guess_batch_operation_type_name(info: &ResolveInfo<'_>, required_op: Operations) -> Option<NamedType<'static>> {
+    let suffix = match required_op {
+        Operations::CREATE => "CreatePayload",
+        Operations::UPDATE => "UpdatePayload",
+        Operations::DELETE => "DeletePayload",
+        _ => panic!("unexpected operation"),
+    };
+    info.return_type
+        .named_type()
+        .as_str()
+        .strip_suffix(suffix)
+        .and_then(|name| name.strip_suffix("Collection"))
+        .map(|name| name.to_owned().into())
 }

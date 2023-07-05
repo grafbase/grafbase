@@ -208,6 +208,32 @@ expression: req_string_a
     "Mutation": {
       "O": {
         "f": {
+          "userCollectionCreate": {
+            "D": "N",
+            "_r": 1,
+            "a": {
+              "input": {
+                "n": "input",
+                "t": "[UserCollectionCreateInput!]!"
+              }
+            },
+            "d": "Create multiple User",
+            "n": "userCollectionCreate",
+            "r_": {
+              "id": null,
+              "type": {
+                "d": {
+                  "CreateNodes": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "User"
+                  }
+                }
+              }
+            },
+            "t": "UserCollectionCreatePayload"
+          },
           "userCreate": {
             "D": "N",
             "_r": 1,
@@ -756,6 +782,46 @@ expression: req_string_a
         "n": "UserByInput",
         "o": true,
         "r": "UserByInput"
+      }
+    },
+    "UserCollectionCreateInput": {
+      "i": {
+        "i": {
+          "input": {
+            "n": "input",
+            "t": "UserCreateInput!"
+          }
+        },
+        "n": "UserCollectionCreateInput",
+        "r": "UserCollectionCreateInput"
+      }
+    },
+    "UserCollectionCreatePayload": {
+      "O": {
+        "f": {
+          "userCollection": {
+            "D": "N",
+            "_r": 1,
+            "a": {},
+            "n": "userCollection",
+            "r_": {
+              "id": null,
+              "type": {
+                "D": {
+                  "QueryIds": {
+                    "ids": {
+                      "LocalData": "ids"
+                    },
+                    "type_name": "User"
+                  }
+                }
+              }
+            },
+            "t": "[User!]!"
+          }
+        },
+        "n": "UserCollectionCreatePayload",
+        "r": "UserCollectionCreatePayload"
       }
     },
     "UserConnection": {

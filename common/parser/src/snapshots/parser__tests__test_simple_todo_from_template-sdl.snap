@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 47
 expression: sdl
 ---
 """
@@ -25,6 +24,10 @@ type Mutation {
 	"""
 	todoListCreate(input: TodoListCreateInput!): TodoListCreatePayload
 	"""
+	Create multiple TodoList
+	"""
+	todoListCollectionCreate(input: [TodoListCollectionCreateInput!]!): TodoListCollectionCreatePayload
+	"""
 	Update a TodoList
 	"""
 	todoListUpdate(by: TodoListByInput!, input: TodoListUpdateInput!): TodoListUpdatePayload
@@ -36,6 +39,10 @@ type Mutation {
 	Create a Todo
 	"""
 	todoCreate(input: TodoCreateInput!): TodoCreatePayload
+	"""
+	Create multiple Todo
+	"""
+	todoCollectionCreate(input: [TodoCollectionCreateInput!]!): TodoCollectionCreatePayload
 	"""
 	Update a Todo
 	"""
@@ -93,6 +100,12 @@ type Todo {
 input TodoByInput {
 	id: ID
 }
+input TodoCollectionCreateInput {
+	input: TodoCreateInput!
+}
+type TodoCollectionCreatePayload {
+	todoCollection: [Todo!]!
+}
 type TodoConnection {
 	"""
 	Information to aid in pagination
@@ -136,6 +149,12 @@ type TodoList {
 }
 input TodoListByInput {
 	id: ID
+}
+input TodoListCollectionCreateInput {
+	input: TodoListCreateInput!
+}
+type TodoListCollectionCreatePayload {
+	todoListCollection: [TodoList!]!
 }
 type TodoListConnection {
 	"""

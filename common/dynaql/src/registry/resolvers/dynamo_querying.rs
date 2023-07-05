@@ -23,6 +23,8 @@ use std::hash::Hash;
 use std::string::FromUtf8Error;
 use std::sync::Arc;
 
+mod get;
+
 pub(crate) const PAGINATION_LIMIT: usize = 100;
 
 #[non_exhaustive]
@@ -60,9 +62,14 @@ pub enum DynamoResolver {
         schema: Option<SchemaID>,
     },
     QueryIds {
-        // TODO: This should be VariableResolveDefinition but currently it never used as such
-        // and makes passing ids quite akward as one cannot pass directly arbitrary
-        // serde_json::Value in a VariableResolveDefinition because it's not hashable.
+        ids: VariableResolveDefinition,
+        type_name: String,
+    },
+    // FIXME: kind of a hack into the resolver system for search to query for ids. This resolver is
+    // never saved in the schema. Ideally we would use `QueryIds`, but there's no good way to
+    // propagate a Vec<String> except adding a new edge case or defining Hash for serde_json::Value
+    // currently.
+    _SearchQueryIds {
         ids: Vec<String>,
         type_name: String,
     },
@@ -239,11 +246,11 @@ impl ResolverTrait for DynamoResolver {
 
                 let last_val = last_resolver_value.map(|x| x.data_resolved.borrow());
                 let first = first.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
-                let after: Option<IdCursor> = after.resolve(ctx, last_val)?;
-                let before: Option<IdCursor> = before.resolve(ctx, last_val)?;
+                let after: Option<IdCursor> = after.resolve(ctx, last_resolver_value)?;
+                let before: Option<IdCursor> = before.resolve(ctx, last_resolver_value)?;
                 let last = last.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
                 let order_by: Option<OneOf<OrderByDirection>> = match order_by {
-                    Some(order_by) => order_by.resolve(ctx, last_val)?,
+                    Some(order_by) => order_by.resolve(ctx, last_resolver_value)?,
                     None => None,
                 };
                 let ordering = match order_by
@@ -343,28 +350,11 @@ impl ResolverTrait for DynamoResolver {
                 )
             }
             DynamoResolver::QueryIds { ids, type_name } => {
-                let keys = ids
-                    .iter()
-                    .map(|id| (id.clone(), id.clone()))
-                    .collect::<Vec<_>>();
-                let mut db_result = ctx
-                    .data::<Arc<DynamoDBBatchersData>>()?
-                    .loader
-                    .load_many(keys.clone())
-                    .await?;
-                let result = keys
-                    .into_iter()
-                    .filter_map(|key| {
-                        db_result
-                            .remove(&key)
-                            // Resolvers on the model expect the type name...
-                            .map(|record| serde_json::json!({ type_name: record }))
-                    })
-                    .collect::<Vec<_>>();
-
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(
-                    result,
-                ))))
+                let ids: Vec<String> = ids.resolve(ctx, last_resolver_value)?;
+                get::by_ids(ctx, &ids, &type_name).await
+            }
+            DynamoResolver::_SearchQueryIds { ids, type_name } => {
+                get::by_ids(ctx, &ids, &type_name).await
             }
             DynamoResolver::QueryPKSK { pk, sk, .. } => {
                 let pk = match pk

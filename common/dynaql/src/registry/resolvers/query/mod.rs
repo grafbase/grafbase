@@ -98,7 +98,7 @@ impl QueryResolver {
                 // TODO: We shouldn't call directly a resolver like that IMHO. But currently,
                 // it's the only simple way to pass our custom cursor & score.
                 let edges: Vec<serde_json::Value> = {
-                    let data_resolved = DynamoResolver::QueryIds {
+                    let data_resolved = DynamoResolver::_SearchQueryIds {
                         ids: response.hits.iter().map(|hit| hit.id.clone()).collect(),
                         type_name: type_name.to_string(),
                     }

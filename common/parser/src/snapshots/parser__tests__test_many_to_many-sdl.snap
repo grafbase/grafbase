@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 47
 expression: sdl
 ---
 """
@@ -25,6 +24,10 @@ type Mutation {
 	"""
 	userCreate(input: UserCreateInput!): UserCreatePayload
 	"""
+	Create multiple User
+	"""
+	userCollectionCreate(input: [UserCollectionCreateInput!]!): UserCollectionCreatePayload
+	"""
 	Update a User
 	"""
 	userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
@@ -36,6 +39,10 @@ type Mutation {
 	Create a Organization
 	"""
 	organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload
+	"""
+	Create multiple Organization
+	"""
+	organizationCollectionCreate(input: [OrganizationCollectionCreateInput!]!): OrganizationCollectionCreatePayload
 	"""
 	Update a Organization
 	"""
@@ -67,6 +74,12 @@ type Organization {
 }
 input OrganizationByInput {
 	id: ID
+}
+input OrganizationCollectionCreateInput {
+	input: OrganizationCreateInput!
+}
+type OrganizationCollectionCreatePayload {
+	organizationCollection: [Organization!]!
 }
 type OrganizationConnection {
 	"""
@@ -191,6 +204,12 @@ type User {
 }
 input UserByInput {
 	id: ID
+}
+input UserCollectionCreateInput {
+	input: UserCreateInput!
+}
+type UserCollectionCreatePayload {
+	userCollection: [User!]!
 }
 type UserConnection {
 	"""

@@ -64,6 +64,10 @@ impl MetaNames {
         name.to_camel()
     }
 
+    pub fn collection(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Collection", Self::model(model_type_definition))
+    }
+
     //
     // SEARCH
     //
@@ -100,7 +104,7 @@ impl MetaNames {
     // PAGINATION
     //
     pub fn query_collection(model_type_definition: &TypeDefinition) -> String {
-        to_lower_camelcase(format!("{}Collection", Self::model(model_type_definition)))
+        to_lower_camelcase(Self::collection(model_type_definition))
     }
 
     pub fn pagination_connection_type(model_type_definition: &TypeDefinition) -> String {
@@ -122,8 +126,20 @@ impl MetaNames {
         to_lower_camelcase(format!("{}Create", Self::model(model_type_definition)))
     }
 
+    pub fn mutation_batch_create(model_type_definition: &TypeDefinition) -> String {
+        to_lower_camelcase(format!("{}Create", Self::collection(model_type_definition)))
+    }
+
     pub fn create_payload_type(model_type_definition: &TypeDefinition) -> String {
         format!("{}CreatePayload", Self::model(model_type_definition))
+    }
+
+    pub fn collection_create_payload_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}CreatePayload", Self::collection(model_type_definition))
+    }
+
+    pub fn collection_create_input(model_type_definition: &TypeDefinition) -> String {
+        format!("{}CreateInput", Self::collection(model_type_definition))
     }
 
     /// Defines
@@ -168,6 +184,14 @@ impl MetaNames {
 
     pub fn update_input(model_type_definition: &TypeDefinition) -> String {
         format!("{}UpdateInput", Self::model(model_type_definition))
+    }
+
+    pub fn collection_update_payload_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}UpdatePayload", Self::collection(model_type_definition))
+    }
+
+    pub fn collection_update_input(model_type_definition: &TypeDefinition) -> String {
+        format!("{}UpdateInput", Self::collection(model_type_definition))
     }
 
     /// For a given relation, one can either change the (un)link to an existing object or create a new one

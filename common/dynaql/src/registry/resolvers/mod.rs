@@ -22,7 +22,7 @@ use grafbase_runtime::cursor::Cursor;
 use graph_entities::ConstraintID;
 use query::QueryResolver;
 
-use std::sync::Arc;
+use std::{borrow::Borrow, sync::Arc};
 use ulid::Ulid;
 
 use super::{Constraint, MetaField, MetaType};
@@ -194,6 +194,12 @@ pub struct ResolvedValue {
     /// Resolvers can set this value when resolving so the engine will know it's
     /// not usefull to continue iterating over the ResolverChain.
     pub early_return_null: bool,
+}
+
+impl Borrow<serde_json::Value> for &ResolvedValue {
+    fn borrow(&self) -> &serde_json::Value {
+        self.data_resolved.borrow()
+    }
 }
 
 impl ResolvedValue {

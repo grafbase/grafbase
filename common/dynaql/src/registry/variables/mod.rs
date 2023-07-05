@@ -5,6 +5,8 @@
 //! When you need a Variable inside a Resolver, you can use a
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
+use std::borrow::Borrow;
+
 use crate::resolver_utils::InputResolveMode;
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
 use crate::{Error, ServerError, ServerResult};
@@ -77,12 +79,13 @@ impl VariableResolveDefinition {
     pub fn resolve<T: DeserializeOwned>(
         &self,
         ctx: &Context<'_>,
-        last_resolver_value: Option<&serde_json::Value>,
+        last_resolver_value: Option<impl Borrow<serde_json::Value>>,
     ) -> ServerResult<T> {
-        let param = self
-            .param(ctx, last_resolver_value)?
-            .unwrap_or(ConstValue::Null);
-
+        let param = match last_resolver_value {
+            Some(v) => self.param(ctx, Some(v.borrow())),
+            None => self.param(ctx, None),
+        }?
+        .unwrap_or(ConstValue::Null);
         T::deserialize(param).map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
     }
 

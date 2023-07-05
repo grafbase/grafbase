@@ -82,46 +82,55 @@ pub fn add_mutation_create<'a>(
     model_auth: Option<&AuthConfig>,
 ) {
     let type_name = MetaNames::model(model_type_definition);
-    let input_base_type = register_mutation_input_type(
+    let input_type = register_input(
         ctx,
         &mut ctx.registry.borrow_mut(),
         model_type_definition,
         object,
         MutationKind::Create,
     );
-    let payload_base_type =
-        register_mutation_payload_type(ctx, model_type_definition, MutationKind::Create, model_auth);
 
+    let create_payload = register_payload(ctx, model_type_definition, MutationKind::Create, model_auth);
     ctx.mutations.push(MetaField {
         name: MetaNames::mutation_create(model_type_definition),
         description: Some(format!("Create a {type_name}")),
-        args: indexmap! {
-            INPUT_ARG_INPUT.to_owned() => MetaInputValue::new(
-                INPUT_ARG_INPUT.to_owned(),
-                Type::required(input_base_type)
-            )
-        },
-        ty: payload_base_type.as_nullable().into(),
-        deprecation: dynaql::registry::Deprecation::NoDeprecated,
-        cache_control: Default::default(),
-        external: false,
-        provides: None,
-        requires: None,
-        visible: None,
-        edges: Vec::new(),
-        relation: None,
-        compute_complexity: None,
+        args: [MetaInputValue::new(INPUT_ARG_INPUT, format!("{input_type}!"))]
+            .into_iter()
+            .map(|input| (input.name.clone(), input))
+            .collect(),
+        ty: create_payload.as_nullable().into(),
         resolve: Some(Resolver {
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNode {
                 input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+                ty: type_name.clone().into(),
+            }),
+        }),
+        required_operation: Some(Operations::CREATE),
+        auth: model_auth.cloned(),
+        ..Default::default()
+    });
+
+    let batch_input_type = register_collection_input(ctx, model_type_definition, MutationKind::Create, input_type);
+    let batch_create_payload = register_batch_payload(ctx, model_type_definition, MutationKind::Create, model_auth);
+    ctx.mutations.push(MetaField {
+        name: MetaNames::mutation_batch_create(model_type_definition),
+        description: Some(format!("Create multiple {type_name}")),
+        args: [MetaInputValue::new(INPUT_ARG_INPUT, format!("[{batch_input_type}!]!"))]
+            .into_iter()
+            .map(|input| (input.name.clone(), input))
+            .collect(),
+        ty: batch_create_payload.as_nullable().into(),
+        resolve: Some(Resolver {
+            id: None,
+            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNodes {
+                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
                 ty: type_name.into(),
             }),
         }),
-        plan: None,
-        transformer: None,
         required_operation: Some(Operations::CREATE),
         auth: model_auth.cloned(),
+        ..Default::default()
     });
 }
 
@@ -179,15 +188,14 @@ pub fn add_mutation_update<'a>(
     model_auth: Option<&AuthConfig>,
 ) {
     let type_name = MetaNames::model(model_type_definition);
-    let input_base_type = register_mutation_input_type(
+    let input_base_type = register_input(
         ctx,
         &mut ctx.registry.borrow_mut(),
         model_type_definition,
         object,
         MutationKind::Update,
     );
-    let payload_base_type =
-        register_mutation_payload_type(ctx, model_type_definition, MutationKind::Update, model_auth);
+    let payload_base_type = register_payload(ctx, model_type_definition, MutationKind::Update, model_auth);
 
     ctx.mutations.push(MetaField {
         name: MetaNames::mutation_update(model_type_definition),
@@ -203,15 +211,6 @@ pub fn add_mutation_update<'a>(
                 )
         },
         ty: payload_base_type.as_nullable().into(),
-        deprecation: dynaql::registry::Deprecation::NoDeprecated,
-        cache_control: Default::default(),
-        external: false,
-        provides: None,
-        requires: None,
-        visible: None,
-        edges: Vec::new(),
-        relation: None,
-        compute_complexity: None,
         resolve: Some(Resolver {
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNode {
@@ -220,10 +219,9 @@ pub fn add_mutation_update<'a>(
                 ty: type_name.into(),
             }),
         }),
-        plan: None,
-        transformer: None,
         required_operation: Some(Operations::UPDATE),
         auth: model_auth.cloned(),
+        ..Default::default()
     });
 }
 
@@ -266,9 +264,36 @@ impl<'a> MutationKind<'a> {
     }
 }
 
+fn register_collection_input(
+    ctx: &mut VisitorContext<'_>,
+    model_type_definition: &TypeDefinition,
+    mutation_kind: MutationKind<'_>,
+    single_input_type: BaseType,
+) -> BaseType {
+    let input_type_name = if mutation_kind.is_update() {
+        MetaNames::collection_update_input(model_type_definition)
+    } else {
+        MetaNames::collection_create_input(model_type_definition)
+    };
+
+    ctx.registry.borrow_mut().create_type(
+        |_| {
+            InputObjectType::new(
+                input_type_name.clone(),
+                [MetaInputValue::new(INPUT_ARG_INPUT, format!("{single_input_type}!"))],
+            )
+            .into()
+        },
+        &input_type_name,
+        &input_type_name,
+    );
+
+    BaseType::named(&input_type_name)
+}
+
 /// Creates the actual input types.
 /// See `add_mutation_create` and `add_mutation_update` for examples.
-fn register_mutation_input_type(
+fn register_input(
     ctx: &VisitorContext<'_>,
     registry: &mut Registry,
     model_type_definition: &TypeDefinition,
@@ -318,7 +343,7 @@ fn register_mutation_input_type(
                                 // Actually it will always be an object. But currently the type system cannot express this.
                                 match &field_model_type_definition.kind {
                                     TypeKind::Object(field_object) => {
-                                        let field_input_base_type = register_mutation_input_type(
+                                        let field_input_base_type = register_input(
                                             ctx,
                                             registry,
                                             field_model_type_definition,
@@ -455,7 +480,7 @@ fn register_mutation_input_type(
     }
 }
 
-fn register_mutation_payload_type<'a>(
+fn register_payload<'a>(
     ctx: &mut VisitorContext<'a>,
     model_type_definition: &TypeDefinition,
     mutation_kind: MutationKind<'a>,
@@ -493,6 +518,55 @@ fn register_mutation_payload_type<'a>(
                     ..Default::default()
                 }]
             })
+            .into()
+        },
+        &payload_type_name,
+        &payload_type_name,
+    );
+
+    payload_type_name.into()
+}
+
+fn register_batch_payload<'a>(
+    ctx: &mut VisitorContext<'a>,
+    model_type_definition: &TypeDefinition,
+    mutation_kind: MutationKind<'a>,
+    model_auth: Option<&AuthConfig>,
+) -> NamedType<'static> {
+    let payload_type_name = if mutation_kind.is_update() {
+        MetaNames::collection_update_payload_type(model_type_definition)
+    } else {
+        MetaNames::collection_create_payload_type(model_type_definition)
+    };
+
+    let type_name = MetaNames::model(model_type_definition);
+    ctx.registry.get_mut().create_type(
+        |_| {
+            registry::ObjectType::new(
+                payload_type_name.clone(),
+                [MetaField {
+                    name: to_lower_camelcase(MetaNames::collection(model_type_definition)),
+                    ty: NamedType::from(type_name.clone())
+                        .as_non_null()
+                        .list()
+                        .non_null()
+                        .into(),
+                    resolve: Some(Resolver {
+                        id: None,
+                        r#type: ResolverType::DynamoResolver(DynamoResolver::QueryIds {
+                            ids: VariableResolveDefinition::LocalData("ids".to_string()),
+                            type_name,
+                        }),
+                    }),
+                    required_operation: Some(if mutation_kind.is_update() {
+                        Operations::UPDATE
+                    } else {
+                        Operations::CREATE
+                    }),
+                    auth: model_auth.cloned(),
+                    ..Default::default()
+                }],
+            )
             .into()
         },
         &payload_type_name,
