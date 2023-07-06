@@ -26,7 +26,9 @@ use rules::extend_query_and_mutation_types::ExtendQueryAndMutationTypes;
 use rules::graphql_directive::GraphqlVisitor;
 use rules::input_object::InputObjectVisitor;
 use rules::length_directive::LengthDirective;
+use rules::map_directive::MapDirective;
 use rules::model_directive::ModelDirective;
+use rules::mongodb_directive::MongoDBModelDirective;
 use rules::one_of_directive::OneOfDirective;
 use rules::openapi_directive::OpenApiVisitor;
 use rules::relations::{relations_rules, RelationEngine};
@@ -109,6 +111,7 @@ pub async fn parse<'a>(
     let directives = Directives::new()
         .with::<AuthDirective>()
         .with::<DefaultDirective>()
+        .with::<MapDirective>()
         .with::<LengthDirective>()
         .with::<ModelDirective>()
         .with::<OneOfDirective>()
@@ -202,6 +205,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CheckTypeValidity)
         .with(SearchDirective)
         .with(ModelDirective)
+        .with(MongoDBModelDirective)
         .with(AuthDirective)
         .with(ResolverDirective)
         .with(CacheVisitor)

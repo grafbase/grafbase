@@ -32,9 +32,12 @@ impl<'a> Visitor<'a> for BasicType {
                 ctx.registry.get_mut().create_type(|_| registry::ObjectType::new(
                     type_name.clone(),
                     object.fields.iter().map(|field| {
-                        let name = field.node.name.node.to_string();
+                        let name = field.name().to_string();
+                        let mapped_name = field.mapped_name().map(ToString::to_string);
+
                         MetaField {
                             name: name.clone(),
+                            mapped_name: mapped_name.clone(),
                             description: field.node.description.clone().map(|x| x.node),
                             ty: field.node.ty.clone().node.to_string().into(),
                             cache_control: CacheDirective::parse(&field.node.directives),

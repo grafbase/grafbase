@@ -433,6 +433,19 @@ impl<'a, T> ContextBase<'a, T> {
             Entry::Occupied(_) => {}
         }
     }
+
+    /// Find a fragment definition by name.
+    pub fn get_fragment(&self, name: &str) -> Option<&FragmentDefinition> {
+        self.query_env
+            .fragments
+            .get(name)
+            .map(|fragment| &fragment.node)
+    }
+
+    /// Find a type definition by name.
+    pub fn get_type(&self, name: &str) -> Option<&MetaType> {
+        self.schema_env.registry.types.get(name)
+    }
 }
 
 impl<'a, T> DataContext<'a> for ContextBase<'a, T> {

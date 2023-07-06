@@ -26,6 +26,7 @@ use ulid::Ulid;
 
 use super::{Constraint, MetaField, MetaType};
 
+pub mod atlas_data_api;
 pub mod custom;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
@@ -43,6 +44,7 @@ pub mod transformer;
 /// This give you access to the `resolver_id` which define the resolver, the
 /// `execution_id` which is linked to the actual execution, a unique ID is
 /// created each time the resolver is called.
+#[derive(Debug)]
 pub struct ResolverContext<'a> {
     /// When a resolver is executed, it gains a Resolver unique ID for his
     /// execution, this ID is used for internal cache strategy
@@ -360,6 +362,9 @@ impl Resolver {
                     .await
                     .map_err(Into::into)
             }
+            Resolver::MongoResolver(resolver) => {
+                Ok(resolver.resolve(ctx, resolver_ctx).await.unwrap())
+            }
         }
     }
 
@@ -405,6 +410,7 @@ pub enum Resolver {
     Composition(Vec<Resolver>),
     Http(http::HttpResolver),
     Graphql(graphql::Resolver),
+    MongoResolver(atlas_data_api::AtlasDataApiResolver),
 }
 
 impl Constraint {

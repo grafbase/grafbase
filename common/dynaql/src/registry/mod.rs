@@ -298,6 +298,7 @@ impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition
 #[derivative(Debug)]
 pub struct MetaField {
     pub name: String,
+    pub mapped_name: Option<String>,
     pub description: Option<String>,
     pub args: IndexMap<String, MetaInputValue>,
     pub ty: MetaFieldType,
@@ -336,11 +337,40 @@ impl MetaField {
             ..Default::default()
         }
     }
+
+    pub fn type_name(&self) -> &str {
+        self.ty.as_str()
+    }
+
+    pub fn set_description(&mut self, description: impl Into<String>) {
+        self.description = Some(description.into());
+    }
+
+    pub fn set_arguments(&mut self, arguments: impl Into<IndexMap<String, MetaInputValue>>) {
+        self.args = arguments.into();
+    }
+
+    pub fn set_cache_control(&mut self, cache: CacheControl) {
+        self.cache_control = cache;
+    }
+
+    pub fn set_required_operations(&mut self, operations: Operations) {
+        self.required_operation = Some(operations);
+    }
+
+    pub fn set_authentication(&mut self, auth: AuthConfig) {
+        self.auth = Some(auth);
+    }
+
+    pub fn target_field_name(&self) -> &str {
+        self.mapped_name.as_deref().unwrap_or(&self.name)
+    }
 }
 
 impl Hash for MetaField {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
+        self.mapped_name.hash(state);
         self.description.hash(state);
         self.args.as_slice().hash(state);
         self.ty.hash(state);
@@ -391,6 +421,7 @@ pub fn is_array_basic_type(meta: &str) -> bool {
     false
 }
 
+#[derive(Debug)]
 enum CurrentResolverType {
     PRIMITIVE,
     ARRAY,

@@ -1,15 +1,16 @@
-use std::collections::HashMap;
-
-use dynaql_parser::types::SchemaDefinition;
-
-use crate::directive_de::parse_directive;
+mod model_directive;
 
 use super::{
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
+use crate::directive_de::parse_directive;
+use dynaql_parser::types::SchemaDefinition;
+use std::collections::HashMap;
 
-#[derive(Debug, serde::Deserialize)]
+pub use model_directive::MongoDBModelDirective;
+
+#[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MongoDBDirective {
     name: String,
@@ -73,14 +74,12 @@ impl Directive for MongoDBDirective {
           """
           An API key for the MongoDB Atlas Data API. Generated
           in the Atlas dashboard.
-
           """
           api_key: String!
 
           """
           A unique ID for the application. Found from the
           MongoDB Atlas dashboard.
-
           """
           app_id: String!
 
@@ -127,7 +126,8 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                         .or_default()
                         .push(directive.name.pos);
 
-                    ctx.mongodb_directives.push((parsed_directive, directive.pos));
+                    ctx.mongodb_directives
+                        .insert(parsed_directive.name().to_string(), (parsed_directive, directive.pos));
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }
@@ -135,8 +135,7 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
 
         for (name, positions) in directive_names.into_iter().filter(|(_, positions)| positions.len() > 1) {
             let message = format!(
-                "Directive name '{}' is already in use in more than one MongoDB connector, please use a distinctive name.",
-                name
+                "Directive name '{name}' is already in use in more than one MongoDB connector, please use a distinctive name.",
             );
 
             ctx.report_error(positions, message);

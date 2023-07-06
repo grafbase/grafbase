@@ -338,6 +338,7 @@ pub fn generate(
                 #(#cfg_attrs)*
                 fields.push((#field_name.to_string(), #crate_name::registry::MetaField {
                     name: ::std::borrow::ToOwned::to_owned(#field_name),
+                    mapped_name: None,
                     description: #field_desc,
                     args: {
                         let mut args = #crate_name::indexmap::IndexMap::new();

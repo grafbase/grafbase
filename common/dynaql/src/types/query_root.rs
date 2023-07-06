@@ -125,6 +125,7 @@ impl<T: ObjectType> LegacyOutputType for QueryRoot<T> {
                     "__schema".to_string(),
                     registry::MetaField {
                         name: "__schema".to_string(),
+                        mapped_name: None,
                         description: Some(
                             "Access the current type schema of this server.".to_string(),
                         ),
@@ -137,6 +138,7 @@ impl<T: ObjectType> LegacyOutputType for QueryRoot<T> {
                     "__type".to_string(),
                     registry::MetaField {
                         name: "__type".to_string(),
+                        mapped_name: None,
                         description: Some(
                             "Request the type information of a single type.".to_string(),
                         ),

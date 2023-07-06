@@ -86,7 +86,12 @@ impl ModelDirective {
             BaseType::Named(name) => ctx.types.get(name.as_ref()).and_then(|ty| {
                 if_chain!(
                     if let TypeKind::Object(_) = &ty.node.kind;
-                    if ty.node.directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
+                    if ty.node.directives.iter().any(|directive| {
+                        let is_model = directive.node.name.node == MODEL_DIRECTIVE;
+                        let has_no_attributes = directive.node.arguments.is_empty();
+
+                        is_model && has_no_attributes
+                    });
                     then { Some(ty) }
                     else { None }
                 )
@@ -110,6 +115,7 @@ fn insert_metadata_field(
         field_name.to_owned(),
         MetaField {
             name: field_name.to_owned(),
+            mapped_name: None,
             description,
             args: Default::default(),
             ty: ty.into(),
@@ -150,7 +156,8 @@ impl<'a> Visitor<'a> for ModelDirective {
             .node
             .directives
             .iter()
-            .any(|directive| directive.node.name.node == MODEL_DIRECTIVE)
+            .filter(|directive| directive.node.name.node == MODEL_DIRECTIVE)
+            .any(|directive| directive.node.arguments.is_empty())
         {
             return;
         }

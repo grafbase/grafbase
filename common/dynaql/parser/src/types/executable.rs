@@ -206,6 +206,11 @@ impl Field {
             .find(|item| item.0.node == name)
             .map(|item| &item.1)
     }
+
+    /// Get the subfields being selected in this field, if it is an object.
+    pub fn selection(&self) -> impl ExactSizeIterator<Item = &Selection> {
+        self.selection_set.node.items.iter().map(|v| &v.node)
+    }
 }
 
 /// A fragment selector, such as `... userFields`.
@@ -217,6 +222,13 @@ pub struct FragmentSpread {
     pub fragment_name: Positioned<Name>,
     /// The directives in the fragment selector.
     pub directives: Vec<Positioned<Directive>>,
+}
+
+impl FragmentSpread {
+    /// The name of the fragment being selected.
+    pub fn fragment_name(&self) -> &str {
+        self.fragment_name.node.as_str()
+    }
 }
 
 /// An inline fragment selector, such as `... on User { name }`.
@@ -232,6 +244,17 @@ pub struct InlineFragment {
     pub selection_set: Positioned<SelectionSet>,
 }
 
+impl InlineFragment {
+    /// The fragment's selection.
+    pub fn selection(&self) -> impl ExactSizeIterator<Item = &Selection> + '_ {
+        self.selection_set
+            .node
+            .items
+            .iter()
+            .map(|selection| &selection.node)
+    }
+}
+
 /// The definition of a fragment, such as `fragment userFields on User { name age }`.
 ///
 /// [Reference](https://spec.graphql.org/October2021/#FragmentDefinition).
@@ -243,6 +266,17 @@ pub struct FragmentDefinition {
     pub directives: Vec<Positioned<Directive>>,
     /// The fragment's selection set.
     pub selection_set: Positioned<SelectionSet>,
+}
+
+impl FragmentDefinition {
+    /// The fragment's selection.
+    pub fn selection(&self) -> impl ExactSizeIterator<Item = &Selection> + '_ {
+        self.selection_set
+            .node
+            .items
+            .iter()
+            .map(|selection| &selection.node)
+    }
 }
 
 /// A type a fragment can apply to (`on` followed by the type).

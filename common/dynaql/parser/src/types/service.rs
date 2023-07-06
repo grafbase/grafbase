@@ -107,6 +107,22 @@ pub struct FieldDefinition {
     pub directives: Vec<Positioned<ConstDirective>>,
 }
 
+impl FieldDefinition {
+    /// The name of the field in the source, if different than the field name.
+    pub fn mapped_name(&self) -> Option<&str> {
+        self.directives
+            .iter()
+            .find(|directive| directive.name.as_str() == "map")
+            .and_then(|directive| directive.get_argument("name"))
+            .and_then(|argument| argument.as_str())
+    }
+
+    /// The name of the field
+    pub fn name(&self) -> &str {
+        self.name.node.as_str()
+    }
+}
+
 /// The definition of an interface type.
 ///
 /// [Reference](https://spec.graphql.org/October2021/#InterfaceType).

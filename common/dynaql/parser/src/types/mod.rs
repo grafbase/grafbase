@@ -141,6 +141,14 @@ impl BaseType {
     pub fn is_list(&self) -> bool {
         matches!(self, BaseType::List(_))
     }
+
+    /// Gets the name of the base type
+    pub fn type_name(&self) -> &str {
+        match self {
+            BaseType::Named(ref name) => name.as_str(),
+            BaseType::List(ref r#type) => r#type.base.type_name(),
+        }
+    }
 }
 
 impl BaseType {
