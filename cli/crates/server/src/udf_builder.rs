@@ -264,6 +264,8 @@ pub async fn build(
             &outdir_argument,
             "--compatibility-date",
             "2023-05-14",
+            "--compatibility-flag=nodejs_compat",
+            "--node_compat",
             "--name",
             "STUB",
             udf_build_entrypoint_path.to_str().expect("must be valid utf-8"),
@@ -327,6 +329,7 @@ pub async fn build(
             r#"
                 name = "{slugified_udf_name}"
                 compatibility_flags = ["nodejs_compat"]
+                node_compat = true
                 [build.upload]
                 format = "modules"
                 [miniflare]
