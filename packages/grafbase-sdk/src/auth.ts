@@ -2,11 +2,12 @@ import { FixedLengthArray } from 'type-fest'
 import { JWKSAuth } from './auth/jwks'
 import { JWTAuth } from './auth/jwt'
 import { OpenIDAuth } from './auth/openid'
+import { Authorizer } from './auth/authorizer'
 
 /**
  * A list of authentication providers which can be used in the configuration.
  */
-export type AuthProvider = OpenIDAuth | JWTAuth | JWKSAuth
+export type AuthProvider = OpenIDAuth | JWTAuth | JWKSAuth | Authorizer
 
 /**
  * A closure to define authentication rules.
@@ -191,7 +192,9 @@ export class Authentication {
   }
 
   public toString(): string {
-    var providers = this.providers ? this.providers.map(String).join('\n      ') : ''
+    var providers = this.providers
+      ? this.providers.map(String).join('\n      ')
+      : ''
 
     if (providers) {
       providers = `\n    providers: [\n      ${providers}\n    ]`

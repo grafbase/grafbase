@@ -7,6 +7,7 @@ import { JWTAuth, JWTParams } from './auth/jwt'
 import { JWKSAuth, JWKSParams } from './auth/jwks'
 import { RequireAtLeastOne } from 'type-fest'
 import dotenv from 'dotenv'
+import { Authorizer, AuthorizerParams } from './auth/authorizer'
 
 dotenv.config()
 
@@ -69,5 +70,13 @@ export const auth = {
     params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>
   ): JWKSAuth => {
     return new JWKSAuth(params)
+  },
+  /**
+   * Create a new authorizer authenticator.
+   *
+   * @param params - The configuration parameters.
+   */
+  Authorizer: (params: AuthorizerParams): Authorizer => {
+    return new Authorizer(params)
   }
 }

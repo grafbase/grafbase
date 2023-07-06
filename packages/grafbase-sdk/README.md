@@ -469,6 +469,20 @@ const derp = auth.JWKS({
 })
 ```
 
+## Authorizer
+
+Required fields:
+
+- `name`
+
+```typescript
+const authorizer = auth.Authorizer({
+  name: 'custom-auth'
+})
+```
+
+The name maps the name of the file including a custom authentication function. For this example, there has to be a file implementing the authentication function in `grafbase/auth/custom-auth.js`.
+
 ## Rule Definitions
 
 Everywhere where one can define authentication rules, it happens through a lambda with a rules builder.
