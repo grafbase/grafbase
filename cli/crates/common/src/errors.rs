@@ -27,6 +27,8 @@ pub enum CommonError {
     CreateUserDotGrafbaseFolder(std::io::Error),
     #[error("could not open the project's 'package.json':\nCaused by: {0}")]
     AccessPackageJson(std::io::Error),
+    #[error("unsupported package manager in project's 'package.json': {0}")]
+    UnsupportedNodePackageManager(String),
     #[error("could not serialize the project's 'package.json':\nCaused by: {0}")]
     SerializePackageJson(serde_json::Error),
     #[error("could not execute 'npm init':\nCaused by: {0}")]

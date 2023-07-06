@@ -370,14 +370,7 @@ impl FromStr for NodePackageManager {
             "npm" => Ok(NodePackageManager::Npm),
             "pnpm" => Ok(NodePackageManager::Pnpm),
             "yarn" => Ok(NodePackageManager::Yarn),
-            _ => {
-                let inner = io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("Unsupported package manager in package.json: {s}"),
-                );
-
-                Err(CommonError::AccessPackageJson(inner))
-            }
+            _ => Err(CommonError::UnsupportedNodePackageManager(s.to_string())),
         }
     }
 }
