@@ -17,6 +17,7 @@ pub mod graphql_directive;
 pub mod input_object;
 pub mod length_directive;
 pub mod model_directive;
+pub mod mongodb_directive;
 pub mod one_of_directive;
 pub mod openapi_directive;
 pub mod relations;

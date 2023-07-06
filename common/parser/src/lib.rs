@@ -40,11 +40,13 @@ mod type_names;
 
 use crate::rules::cache_directive::visitor::CacheVisitor;
 use crate::rules::cache_directive::CacheDirective;
+use crate::rules::mongodb_directive::MongoDBVisitor;
 pub use connector_parsers::ConnectorParsers;
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
 pub use rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget};
 pub use rules::graphql_directive::GraphqlDirective;
+pub use rules::mongodb_directive::MongoDBDirective;
 pub use rules::openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms};
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
@@ -116,7 +118,8 @@ pub async fn parse<'a>(
         .with::<SearchDirective>()
         .with::<OpenApiDirective>()
         .with::<GraphqlDirective>()
-        .with::<CacheDirective>();
+        .with::<CacheDirective>()
+        .with::<MongoDBDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -154,7 +157,10 @@ async fn parse_connectors<'a>(
     ctx: &mut VisitorContext<'a>,
     connector_parsers: &dyn ConnectorParsers,
 ) -> Result<(), Error> {
-    let mut connector_rules = rules::visitor::VisitorNil.with(OpenApiVisitor).with(GraphqlVisitor);
+    let mut connector_rules = rules::visitor::VisitorNil
+        .with(OpenApiVisitor)
+        .with(GraphqlVisitor)
+        .with(MongoDBVisitor);
 
     visit(&mut connector_rules, ctx, schema);
 
