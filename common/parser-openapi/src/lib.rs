@@ -303,6 +303,15 @@ mod tests {
     }
 
     #[test]
+    fn test_supabase() {
+        insta::assert_snapshot!(
+            build_registry("test_data/supabase.json", Format::Json, metadata(Some("supabase")))
+                .unwrap()
+                .export_sdl(false)
+        );
+    }
+
+    #[test]
     fn test_stripe_discrimnator_detection() {
         let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata(Some("stripe"))).unwrap();
         let discriminators = registry

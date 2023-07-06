@@ -1,11 +1,13 @@
 //! This module handles parsing a v2 OpenAPI spec into our intermediate graph
 
+mod components;
+
 use std::collections::BTreeMap;
 
 use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
 use once_cell::sync::Lazy;
-use openapi::{Operation, Operations};
+use openapi::v2::{Operation, PathItem};
 use regex::Regex;
 use url::Url;
 
@@ -16,22 +18,27 @@ use crate::{
     Error,
 };
 
+use self::components::Components;
+
 use super::grouping;
 
-pub fn parse(spec: openapi::Spec) -> Context {
+pub fn parse(spec: openapi::v2::Spec) -> Context {
     let mut ctx = Context {
         url: Some(url_from_spec(&spec)),
         ..Context::default()
     };
 
-    extract_operations(&mut ctx, &spec.paths);
+    let mut components = Components::default();
+    components.extend(&spec);
+
+    extract_operations(&mut ctx, &components, &spec.paths);
 
     grouping::determine_resource_relationships(&mut ctx);
 
     ctx
 }
 
-fn extract_operations(ctx: &mut Context, paths: &BTreeMap<String, Operations>) {
+fn extract_operations(ctx: &mut Context, components: &Components, paths: &BTreeMap<String, PathItem>) {
     for (path, operations) in paths {
         for (http_method, operation) in operations_iter(operations) {
             let operation_index = ctx
@@ -42,7 +49,18 @@ fn extract_operations(ctx: &mut Context, paths: &BTreeMap<String, Operations>) {
                     operation_id: operation.operation_id.clone(),
                 })));
 
-            for parameter in operation.parameters.as_deref().unwrap_or(&[]) {
+            for parameter_or_ref in operation.parameters.as_deref().unwrap_or(&[]) {
+                let parameter = match &parameter_or_ref {
+                    openapi::v2::ParameterOrRef::Parameter(parameter) => parameter,
+                    openapi::v2::ParameterOrRef::Ref { ref_path } => {
+                        let parameter_ref = Ref::absolute(ref_path);
+                        let Some(parameter) = components.parameters.get(&parameter_ref) else {
+                            ctx.errors.push(parameter_ref.to_unresolved_error());
+                            continue;
+                        };
+                        parameter
+                    }
+                };
                 match parameter.location.as_str() {
                     "path" => {
                         let parent = ParentNode::PathParameter {
@@ -119,7 +137,7 @@ fn extract_operations(ctx: &mut Context, paths: &BTreeMap<String, Operations>) {
     }
 }
 
-fn extract_types(ctx: &mut Context, schema: &openapi::Schema, parent: ParentNode) {
+fn extract_types(ctx: &mut Context, schema: &openapi::v2::Schema, parent: ParentNode) {
     if let Some(reference) = &schema.ref_path {
         let reference = Ref::absolute(reference);
         let Some(schema) = ctx.schema_index.get(&reference) else {
@@ -143,13 +161,16 @@ fn extract_types(ctx: &mut Context, schema: &openapi::Schema, parent: ParentNode
             }
         }
         Some("boolean") => {
-            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), false);
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), false)
+                .add_possible_values(schema.enum_values.as_ref().unwrap_or(&vec![]));
         }
         Some("integer") => {
-            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Integer), false);
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Integer), false)
+                .add_possible_values(schema.enum_values.as_ref().unwrap_or(&vec![]));
         }
         Some("number") => {
-            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), false);
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), false)
+                .add_possible_values(schema.enum_values.as_ref().unwrap_or(&vec![]));
         }
         Some("object") => {
             let no_properties = BTreeMap::new();
@@ -187,7 +208,7 @@ fn extract_types(ctx: &mut Context, schema: &openapi::Schema, parent: ParentNode
 fn extract_object(
     ctx: &mut Context,
     parent: ParentNode,
-    properties: &BTreeMap<String, openapi::Schema>,
+    properties: &BTreeMap<String, openapi::v2::Schema>,
     required_fields: &[String],
 ) {
     if properties.is_empty() {
@@ -226,11 +247,15 @@ fn extract_object(
 
 // OpenAPI enums can be basically any string, but we're much more limited
 /// in GraphQL.  This checks if this value is valid in GraphQL or not.
-fn is_valid_enum_value(value: &String) -> bool {
-    static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
-    let value = value.to_screaming_snake_case();
+fn is_valid_enum_value(value: &serde_json::Value) -> bool {
+    let serde_json::Value::String(string) = value else {
+        return false;
+    };
 
-    REGEX.is_match(&value)
+    static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
+    let string = string.to_screaming_snake_case();
+
+    REGEX.is_match(&string)
 }
 
 // OpenAPI field names can be basically any string, but we're much more limited
@@ -239,7 +264,7 @@ fn is_valid_field_name(value: &str) -> bool {
     FieldName::from_openapi_name(value).will_be_valid_graphql()
 }
 
-fn operations_iter(operations: &Operations) -> impl Iterator<Item = (HttpMethod, &Operation)> {
+fn operations_iter(operations: &PathItem) -> impl Iterator<Item = (HttpMethod, &Operation)> {
     [
         (HttpMethod::Get, &operations.get),
         (HttpMethod::Post, &operations.post),
@@ -251,7 +276,7 @@ fn operations_iter(operations: &Operations) -> impl Iterator<Item = (HttpMethod,
     .filter_map(|(method, maybe_operation)| Some((method, maybe_operation.as_ref()?)))
 }
 
-fn url_from_spec(spec: &openapi::Spec) -> Result<Url, Error> {
+fn url_from_spec(spec: &openapi::v2::Spec) -> Result<Url, Error> {
     let url_string = format!(
         "https://{}{}",
         spec.host.as_deref().ok_or(Error::MissingUrl)?,
@@ -261,4 +286,18 @@ fn url_from_spec(spec: &openapi::Spec) -> Result<Url, Error> {
     let url = Url::parse(&url_string).map_err(|_| Error::InvalidUrl(url_string))?;
 
     Ok(url)
+}
+
+impl Ref {
+    fn v2_response(name: &str) -> Ref {
+        Ref(format!("#/responses/{name}"))
+    }
+
+    fn v2_path(name: &str) -> Ref {
+        Ref(format!("#/paths/{name}"))
+    }
+
+    fn v2_parameter(name: &str) -> Ref {
+        Ref(format!("#/parameters/{name}"))
+    }
 }

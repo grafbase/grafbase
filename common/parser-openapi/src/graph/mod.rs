@@ -87,17 +87,7 @@ pub struct SchemaDetails {
 }
 
 impl SchemaDetails {
-    pub fn new(openapi_name: String, openapi: openapiv3::Schema) -> Self {
-        // There's a title property on schemas that we _could_ use for a name,
-        // but the spec doesn't enforce that it's unique and (certainly in stripes case) it is not.
-        // Might do some stuff to work around htat, but for now it's either "x-resourceId"
-        // which stripe use or the name of the schema in components.
-        let resource_id = openapi
-            .schema_data
-            .extensions
-            .get("x-resourceId")
-            .map(|value| value.to_string());
-
+    pub fn new(openapi_name: String, resource_id: Option<String>) -> Self {
         SchemaDetails {
             openapi_name,
             resource_id,

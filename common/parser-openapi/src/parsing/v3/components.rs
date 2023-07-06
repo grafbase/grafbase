@@ -6,7 +6,7 @@ use crate::{parsing::Ref, Error};
 
 use super::{operations::RequestBody, Context};
 
-/// Re-usable components that can be referenced in an OpenAPI schema.
+/// Re-usable components that can be referenced in an OpenAPI v3 schema.
 #[derive(Default)]
 pub struct Components {
     pub(super) responses: BTreeMap<Ref, Vec<ResponseComponent>>,

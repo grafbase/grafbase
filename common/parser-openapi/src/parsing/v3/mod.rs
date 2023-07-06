@@ -18,8 +18,8 @@ use self::{components::Components, operations::OperationDetails};
 
 use super::grouping;
 
-pub mod components;
-pub mod operations;
+mod components;
+mod operations;
 
 pub fn parse(spec: openapiv3::OpenAPI) -> Context {
     let mut ctx = Context {
@@ -50,9 +50,19 @@ fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
             continue;
         };
 
+        // There's a title property on schemas that we _could_ use for a name,
+        // but the spec doesn't enforce that it's unique and (certainly in stripes case) it is not.
+        // Might do some stuff to work around htat, but for now it's either "x-resourceId"
+        // which stripe use or the name of the schema in components.
+        let resource_id = schema
+            .schema_data
+            .extensions
+            .get("x-resourceId")
+            .map(|value| value.to_string());
+
         let index = ctx
             .graph
-            .add_node(Node::Schema(Box::new(SchemaDetails::new(name.clone(), schema.clone()))));
+            .add_node(Node::Schema(Box::new(SchemaDetails::new(name.clone(), resource_id))));
 
         ctx.schema_index.insert(Ref::v3_schema(name), index);
     }
