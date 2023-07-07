@@ -119,6 +119,7 @@ pub struct Project {
 
 impl Project {
     /// the path of the directory containing the sources corresponding to the UDF type (resolvers, authorizers).
+    #[must_use]
     pub fn udfs_source_path(&self, kind: UdfKind) -> std::path::PathBuf {
         let subdirectory_name = match kind {
             UdfKind::Resolver => RESOLVERS_DIRECTORY_NAME,
@@ -128,6 +129,7 @@ impl Project {
     }
 
     /// the path of the directory containing the build artifacts corresponding to the UDF type (resolvers, authorizers).
+    #[must_use]
     pub fn udfs_build_artifact_path(&self, kind: UdfKind) -> std::path::PathBuf {
         let subdirectory_name = match kind {
             UdfKind::Resolver => RESOLVERS_DIRECTORY_NAME,

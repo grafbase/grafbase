@@ -166,7 +166,9 @@ async fn spawn_servers(
     let environment = Environment::get();
     let project = Project::get();
 
-    if !detected_udfs.is_empty() {
+    if detected_udfs.is_empty() {
+        trace!("Skipping wrangler installation");
+    } else {
         if let Err(error) = install_wrangler(environment, tracing).await {
             let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
             // TODO consider disabling colored output from wrangler
@@ -179,17 +181,13 @@ async fn spawn_servers(
         }
 
         let start = std::time::Instant::now();
-        sender
-            .send(ServerMessage::InstallUdfDependencies)
-            .unwrap();
+        sender.send(ServerMessage::InstallUdfDependencies).unwrap();
         crate::udf_builder::install_dependencies(project, tracing).await?;
         sender
             .send(ServerMessage::CompleteInstallingUdfDependencies {
                 duration: start.elapsed(),
             })
             .unwrap();
-    } else {
-        trace!("Skipping wrangler installation");
     }
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
