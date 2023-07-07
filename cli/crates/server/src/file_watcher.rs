@@ -90,7 +90,7 @@ fn in_blacklisted_directory(path: &Path, root: &Path) -> bool {
     path.strip_prefix(root)
         .expect("must contain root directory")
         .iter()
-        .filter_map(|path_part| path_part.to_str())
+        .filter_map(std::ffi::OsStr::to_str)
         .any(|path_part| DIRECTORY_BLACKLIST.contains(&path_part))
 }
 
