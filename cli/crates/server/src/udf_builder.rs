@@ -92,7 +92,7 @@ async fn guess_package_manager_from_package_json(path: impl AsRef<Path>) -> Opti
         .and_then(|value| value.trim_start_matches('^').split('@').next().unwrap().parse().ok())
 }
 
-pub const LOCK_FILES: &[(&str, JavaScriptPackageManager)] = &[
+pub const LOCK_FILE_NAMES: &[(&str, JavaScriptPackageManager)] = &[
     ("package-lock.json", JavaScriptPackageManager::Npm),
     ("pnpm-lock.yaml", JavaScriptPackageManager::Pnpm),
     ("yarn.lock", JavaScriptPackageManager::Yarn),
@@ -101,7 +101,7 @@ pub const LOCK_FILES: &[(&str, JavaScriptPackageManager)] = &[
 async fn guess_package_manager_from_package_root(path: impl AsRef<Path>) -> Option<JavaScriptPackageManager> {
     let package_root = path.as_ref();
 
-    futures_util::future::join_all(LOCK_FILES.iter().map(|(file_name, package_manager)| {
+    futures_util::future::join_all(LOCK_FILE_NAMES.iter().map(|(file_name, package_manager)| {
         let path_to_check = package_root.join(file_name);
         async move {
             let file_exists = tokio::fs::try_exists(&path_to_check).await.ok().unwrap_or_default();
