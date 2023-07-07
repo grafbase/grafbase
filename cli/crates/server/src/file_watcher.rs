@@ -1,9 +1,9 @@
-use crate::consts::DOT_ENV_FILE;
+use crate::consts::DOT_ENV_FILE_NAME;
 use crate::errors::ServerError;
+use crate::udf_builder::LOCK_FILE_NAMES;
 use common::consts::GRAFBASE_SCHEMA_FILE_NAME;
 use notify::RecursiveMode;
 use notify_debouncer_mini::new_debouncer;
-use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::runtime::Handle;
@@ -33,7 +33,7 @@ where
                 if let Some(event) = events
                     .iter()
                     .rev()
-                    .find(|event| non_ignored_path(&event.path, path.as_ref()))
+                    .find(|event| should_handle_change(&event.path, path.as_ref()))
                 {
                     on_change(&event.path);
                 }
@@ -55,33 +55,34 @@ where
     }
 }
 
-const ROOT_FILE_WHITELIST: [&str; 2] = [GRAFBASE_SCHEMA_FILE_NAME, DOT_ENV_FILE];
+const ROOT_FILE_WHITELIST: [&str; 2] = [GRAFBASE_SCHEMA_FILE_NAME, DOT_ENV_FILE_NAME];
 const EXTENSION_WHITELIST: [&str; 11] = [
     "js", "ts", "jsx", "tsx", "mjs", "mts", ".wasm", "cjs", "json", "yaml", "yml",
 ];
 const DIRECTORY_BLACKLIST: [&str; 1] = ["node_modules"];
 
-fn non_ignored_path(path: &Path, root: &Path) -> bool {
-    likely_not_a_dir(path)
-        && (whitelisted_root_file(path, root) || (!in_blacklisted_directory(path, root) && whitelisted_extension(path)))
+fn should_handle_change(path: &Path, root: &Path) -> bool {
+    is_whitelisted_root_file(path, root)
+        || (!(is_likely_a_directory(path) || in_blacklisted_directory(path, root) || is_lock_file_path(path, root))
+            && has_whitelisted_extension(path))
 }
 
-fn likely_not_a_dir(path: &Path) -> bool {
+fn is_lock_file_path(path: &Path, root: &Path) -> bool {
+    LOCK_FILE_NAMES
+        .iter()
+        .any(|(file_name, _)| root.join(file_name) == path)
+}
+
+fn is_likely_a_directory(path: &Path) -> bool {
     // we can't know if something was a directory after removal, so this is based on best effort.
     // if a directory matching a name in `ROOT_FILE_WHITELIST` is removed, it'll trigger `on_change`, although that's an unlikely edge case.
     // note that we're not using `.is_file()` here since it'd have a false negative for removal.
     // also avoiding notifying on files that we can't access by using the metadata version of `is_dir`
-    path.metadata().map(|metadata| metadata.is_dir()).ok() == Some(false)
+    path.metadata().map(|metadata| metadata.is_dir()).ok().unwrap_or(true)
 }
 
-fn whitelisted_root_file(path: &Path, root: &Path) -> bool {
-    let in_root = path.parent().filter(|parent| *parent == root).is_some();
-    in_root
-        && path
-            .file_name()
-            .and_then(OsStr::to_str)
-            .filter(|file_name| ROOT_FILE_WHITELIST.contains(file_name))
-            .is_some()
+fn is_whitelisted_root_file(path: &Path, root: &Path) -> bool {
+    ROOT_FILE_WHITELIST.iter().any(|file_name| root.join(file_name) == path)
 }
 
 fn in_blacklisted_directory(path: &Path, root: &Path) -> bool {
@@ -89,17 +90,13 @@ fn in_blacklisted_directory(path: &Path, root: &Path) -> bool {
     path.strip_prefix(root)
         .expect("must contain root directory")
         .iter()
-        .any(|path_part| {
-            path_part
-                .to_str()
-                .filter(|path_part| DIRECTORY_BLACKLIST.contains(path_part))
-                .is_some()
-        })
+        .filter_map(|path_part| path_part.to_str())
+        .any(|path_part| DIRECTORY_BLACKLIST.contains(&path_part))
 }
 
-fn whitelisted_extension(path: &Path) -> bool {
+fn has_whitelisted_extension(path: &Path) -> bool {
     path.extension()
-        .and_then(OsStr::to_str)
-        .filter(|extension| EXTENSION_WHITELIST.contains(extension))
-        .is_some()
+        .iter()
+        .filter_map(|extension| extension.to_str())
+        .any(|extension| EXTENSION_WHITELIST.contains(&extension))
 }
