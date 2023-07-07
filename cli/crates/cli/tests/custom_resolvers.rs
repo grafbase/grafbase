@@ -327,12 +327,16 @@ fn test_field_resolver(
             hello: String @resolver(name: "hello")
         }
     "#,
-    "hello.js",
-    r#"
-        export default function Resolver(parent, args, context, info) {
-            return 'Hello World!';
-        }
-    "#,
+    &[
+        (
+            "hello.js",
+            r#"
+                export default function Resolver(parent, args, context, info) {
+                    return 'Hello World!';
+                }
+            "#
+        )
+    ],
     &[
         (
             r#"
@@ -351,12 +355,16 @@ fn test_field_resolver(
             stringToNumber(string: String!): Int @resolver(name: "string-to-number")
         }
     "#,
-    "string-to-number.js",
-    r#"
-        export default function Resolver(parent, args, context, info) {
-            return +args.string;
-        }
-    "#,
+    &[
+        (
+            "string-to-number.js",
+            r#"
+                export default function Resolver(parent, args, context, info) {
+                    return +args.string;
+                }
+            "#,
+        )
+    ],
     &[
         (
             r#"
@@ -368,17 +376,57 @@ fn test_field_resolver(
         ),
     ],
 )]
+#[case(
+    3,
+    r#"
+        extend type Query {
+            hello: String @resolver(name: "hello")
+        }
+    "#,
+    &[
+        (
+            "another-file.js",
+            r#"
+                export function helper(parent, args, context, info) {
+                    return 'Hello World!';
+                }
+            "#
+        ),
+        (
+            "hello.js",
+            r#"
+                import { helper } from './another-file';
+
+                export default function Resolver(parent, args, context, info) {
+                    return helper(parent, args, context, info);
+                }
+            "#,
+        )
+    ],
+    &[
+        (
+            r#"
+                {
+                    hello
+                }
+            "#,
+            "data.hello"
+        ),
+    ],
+)]
 fn test_query_mutation_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
-    #[case] resolver_name: &str,
-    #[case] resolver_contents: &str,
+    #[case] resolver_files: &[(&str, &str)],
     #[case] queries: &[(&str, &str)],
 ) {
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(schema);
-    env.write_resolver(resolver_name, resolver_contents);
+    for (file_name, file_contents) in resolver_files.iter() {
+        env.write_resolver(file_name, file_contents);
+    }
+
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
     client.poll_endpoint(60, 300);

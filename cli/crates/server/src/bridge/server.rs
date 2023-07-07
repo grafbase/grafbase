@@ -15,6 +15,7 @@ use axum::Json;
 use axum::{http::StatusCode, routing::post, Router};
 use common::environment::{Environment, Project};
 
+use common::types::UdfKind;
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use tokio::fs;
@@ -43,7 +44,7 @@ enum UdfBuild {
 struct HandlerState {
     pool: SqlitePool,
     bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
-    udf_builds: Mutex<std::collections::HashMap<String, UdfBuild>>,
+    udf_builds: Mutex<std::collections::HashMap<(String, UdfKind), UdfBuild>>,
     environment_variables: HashMap<String, String>,
     tracing: bool,
 }
@@ -149,10 +150,9 @@ async fn invoke_udf_endpoint(
 
     let udf_worker_port = loop {
         let notify = {
-            let mut udf_builds: tokio::sync::MutexGuard<'_, HashMap<String, UdfBuild>> =
-                handler_state.udf_builds.lock().await;
+            let mut udf_builds: tokio::sync::MutexGuard<'_, _> = handler_state.udf_builds.lock().await;
 
-            if let Some(udf_build) = udf_builds.get(&payload.name) {
+            if let Some(udf_build) = udf_builds.get(&(payload.name.clone(), udf_kind)) {
                 match udf_build {
                     UdfBuild::Succeeded { worker_port, .. } => break *worker_port,
                     UdfBuild::Failed => return Err(ApiError::UdfSpawnError),
@@ -171,7 +171,10 @@ async fn invoke_udf_endpoint(
                 }
             } else {
                 let notify = Arc::new(Notify::new());
-                udf_builds.insert(payload.name.clone(), UdfBuild::InProgress { notify: notify.clone() });
+                udf_builds.insert(
+                    (payload.name.clone(), udf_kind),
+                    UdfBuild::InProgress { notify: notify.clone() },
+                );
                 notify
             }
         };
@@ -187,9 +190,9 @@ async fn invoke_udf_endpoint(
             .unwrap();
 
         let tracing = handler_state.tracing;
+
         match crate::udf_builder::build(
             environment,
-            environment.project.as_ref().expect("must be present"),
             &handler_state.environment_variables,
             udf_kind,
             &payload.name,
@@ -208,7 +211,7 @@ async fn invoke_udf_endpoint(
                 .await?;
 
                 handler_state.udf_builds.lock().await.insert(
-                    payload.name.clone(),
+                    (payload.name.clone(), udf_kind),
                     UdfBuild::Succeeded {
                         miniflare_handle,
                         worker_port,
@@ -248,7 +251,7 @@ async fn invoke_udf_endpoint(
             .udf_builds
             .lock()
             .await
-            .insert(payload.name.clone(), UdfBuild::Failed);
+            .insert((payload.name.clone(), udf_kind), UdfBuild::Failed);
         notify.notify_waiters();
         return Err(ApiError::UdfSpawnError);
     };

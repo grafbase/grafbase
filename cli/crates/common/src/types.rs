@@ -27,7 +27,7 @@ impl LocalAddressType {
     }
 }
 
-#[derive(Clone, Copy, Debug, serde::Deserialize, strum::Display)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, strum::Display)]
 pub enum UdfKind {
     Resolver,
     Authorizer,
