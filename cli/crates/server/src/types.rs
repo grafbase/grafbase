@@ -26,5 +26,14 @@ pub enum ServerMessage {
         level: UdfMessageLevel,
         message: String,
     },
+    OperationStarted {
+        request_id: String,
+        name: Option<String>,
+    },
+    OperationCompleted {
+        request_id: String,
+        name: Option<String>,
+        duration: std::time::Duration,
+    },
     CompilationError(String),
 }
