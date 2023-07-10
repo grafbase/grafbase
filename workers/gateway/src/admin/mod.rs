@@ -45,10 +45,10 @@ pub async fn handle_graphql_request(mut req: Request, route_context: RouteContex
 
     // use the appropriate cache_provider depending on feature flags
     let global_cache_provider = {
-        #[cfg(not(feature = "local"))]
+        #[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
         let provider = crate::cache::CloudflareGlobal::new(request_context.config.cloudflare_config.clone());
 
-        #[cfg(feature = "local")]
+        #[cfg(any(feature = "local", feature = "sqlite"))]
         let provider = crate::cache::NoopGlobalCache;
 
         provider

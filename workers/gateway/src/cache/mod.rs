@@ -9,9 +9,9 @@ use dynaql::parser::types::OperationType;
 pub use edge::EdgeCache;
 pub use error::CacheError;
 pub use gcache::{Cache, CacheResponse};
-#[cfg(feature = "local")]
+#[cfg(any(feature = "local", feature = "sqlite"))]
 pub use global::noop::NoopGlobalCache;
-#[cfg(not(feature = "local"))]
+#[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
 pub use global::remote::CloudflareGlobal;
 pub use key::CacheKey;
 use serde::de::DeserializeOwned;

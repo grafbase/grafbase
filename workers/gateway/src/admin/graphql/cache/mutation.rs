@@ -5,9 +5,9 @@ use async_graphql::Context;
 use dynaql::registry::CacheTag;
 use send_wrapper::SendWrapper;
 
-#[cfg(not(feature = "local"))]
+#[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
 use crate::cache::CloudflareGlobal;
-#[cfg(feature = "local")]
+#[cfg(any(feature = "local", feature = "sqlite"))]
 use crate::cache::NoopGlobalCache;
 use crate::platform::context::RequestContext;
 
@@ -150,7 +150,7 @@ impl CachePurgeMutation {
     }
 }
 
-#[cfg(not(feature = "local"))]
+#[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
 fn get_cache_provider<'a>(ctx: &'a Context<'_>) -> async_graphql::Result<&'a SendWrapper<CloudflareGlobal>> {
     ctx.data::<SendWrapper<CloudflareGlobal>>()
 }

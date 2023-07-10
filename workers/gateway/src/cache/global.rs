@@ -1,4 +1,4 @@
-#[cfg(not(feature = "local"))]
+#[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
 pub mod remote {
     use crate::cache::{CacheError, CacheResult, GlobalCacheProvider};
     use crate::platform::config;
@@ -110,7 +110,7 @@ pub mod remote {
     }
 }
 
-#[cfg(feature = "local")]
+#[cfg(any(feature = "local", feature = "sqlite"))]
 pub mod noop {
     use crate::cache::{CacheResult, GlobalCacheProvider};
     use async_trait::async_trait;
