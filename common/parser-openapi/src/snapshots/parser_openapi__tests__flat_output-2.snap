@@ -2144,7 +2144,9 @@ Registry {
     },
     schemas: {},
     http_headers: {
-        "OpenAPI1": [],
+        "OpenAPI1": ConnectorHeaders(
+            [],
+        ),
     },
     search_config: Config {
         indices: {},

@@ -4,7 +4,7 @@ use futures_util::Future;
 use reqwest::Url;
 use send_wrapper::SendWrapper;
 
-use crate::{registry::variables::VariableResolveDefinition, Context, Error};
+use crate::{registry::variables::VariableResolveDefinition, Context, Error, RequestHeaders};
 
 use self::parameters::ParamApply;
 
@@ -71,17 +71,22 @@ impl HttpResolver {
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         let last_resolver_value = last_resolver_value.map(|val| val.data_resolved.borrow());
 
+        let request_headers = ctx.data::<RequestHeaders>().ok();
+
         let headers = ctx
             .registry()
             .http_headers
             .get(&self.api_name)
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
+            .zip(request_headers)
+            .map(|(connector_headers, request_headers)| {
+                connector_headers.build_header_vec(request_headers)
+            })
+            .unwrap_or_default();
 
         Box::pin(SendWrapper::new(async move {
             let url = self.build_url(ctx, last_resolver_value)?;
             let mut request_builder =
-                dbg!(reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?));
+                reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
 
             for (name, value) in headers {
                 request_builder = request_builder.header(name, value);

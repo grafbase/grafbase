@@ -1,4 +1,5 @@
 mod cache_control;
+mod connector_headers;
 pub mod enums;
 mod export_sdl;
 pub mod introspection;
@@ -51,6 +52,7 @@ pub use self::{
     cache_control::CacheControl,
     cache_control::CacheInvalidation,
     cache_control::CacheInvalidationPolicy,
+    connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
     type_names::{MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
     union_discriminator::UnionDiscriminator,
 };
@@ -1669,7 +1671,7 @@ pub struct Registry {
     #[serde(with = "vectorize", default)]
     pub schemas: HashMap<SchemaID, Arc<ArrowSchema>>,
     #[serde(default)]
-    pub http_headers: BTreeMap<String, Vec<(String, String)>>,
+    pub http_headers: BTreeMap<String, ConnectorHeaders>,
     #[serde(default)]
     pub search_config: grafbase_runtime::search::Config,
     #[serde(default)]

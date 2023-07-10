@@ -21,7 +21,7 @@ use dynaql::{
     registry::{
         resolvers::{graphql, Resolver, ResolverType},
         transformers::Transformer,
-        Deprecation, MetaField, ObjectType, Registry,
+        ConnectorHeaders, Deprecation, MetaField, ObjectType, Registry,
     },
     CacheControl,
 };
@@ -91,8 +91,8 @@ pub async fn parse_schema(
     client: reqwest::Client,
     namespace: Option<&str>,
     url: &Url,
-    headers: impl ExactSizeIterator<Item = (&str, &str)>,
-    introspection_headers: impl ExactSizeIterator<Item = (&str, &str)>,
+    headers: ConnectorHeaders,
+    introspection_headers: impl IntoIterator<Item = (&str, &str)>,
 ) -> Result<Registry, Vec<Error>> {
     let mut builder = client.post(url.clone()).header(USER_AGENT, "Grafbase");
 
@@ -122,10 +122,7 @@ pub async fn parse_schema(
     };
 
     let mut registry = parser.into_registry(schema);
-    registry.http_headers.insert(
-        format!("GraphQLConnector{id}"),
-        headers.map(|(k, v)| (k.to_string(), v.to_string())).collect(),
-    );
+    registry.http_headers.insert(format!("GraphQLConnector{id}"), headers);
 
     Ok(registry)
 }
@@ -440,6 +437,7 @@ pub struct ApiMetadata {
 mod tests {
     use std::collections::BTreeMap;
 
+    use dynaql::registry::ConnectorHeaderValue;
     use serde_json::json;
     use wiremock::{
         matchers::{header, method},
@@ -450,7 +448,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_counries_output() {
-        let introspection_headers = &[
+        let introspection_headers = [
             ("x-client-id", "5ed1175bad06853b3aa1e492"),
             ("x-app-id", "623996f3c35130073829b252"),
         ];
@@ -469,8 +467,8 @@ mod tests {
             reqwest::Client::new(),
             Some("FooBar"),
             &Url::parse(&server.uri()).unwrap(),
-            std::iter::empty(),
-            introspection_headers.iter().copied(),
+            ConnectorHeaders::new([]),
+            introspection_headers,
         )
         .await
         .unwrap()
@@ -498,17 +496,23 @@ mod tests {
             .mount(&server)
             .await;
 
-        let headers = &[
-            ("x-client-id", "5ed1175bad06853b3aa1e492"),
-            ("x-app-id", "623996f3c35130073829b252"),
-        ];
+        let headers = ConnectorHeaders::new([
+            (
+                "x-client-id".into(),
+                ConnectorHeaderValue::Static("5ed1175bad06853b3aa1e492".into()),
+            ),
+            (
+                "x-app-id".into(),
+                ConnectorHeaderValue::Static("623996f3c35130073829b252".into()),
+            ),
+        ]);
 
         let result = parse_schema(
             1,
             reqwest::Client::new(),
             Some("FooBar"),
             &Url::parse(&server.uri()).unwrap(),
-            headers.iter().copied(),
+            headers.clone(),
             std::iter::empty(),
         )
         .await
@@ -516,14 +520,7 @@ mod tests {
 
         assert_eq!(
             result.http_headers,
-            BTreeMap::from([(
-                String::from("GraphQLConnector1"),
-                headers
-                    .iter()
-                    .copied()
-                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                    .collect::<Vec<_>>()
-            )])
+            BTreeMap::from([(String::from("GraphQLConnector1"), headers)])
         );
     }
 
@@ -541,7 +538,7 @@ mod tests {
             reqwest::Client::new(),
             None,
             &Url::parse(&server.uri()).unwrap(),
-            std::iter::empty(),
+            ConnectorHeaders::new([]),
             std::iter::empty(),
         )
         .await
@@ -565,7 +562,7 @@ mod tests {
             reqwest::Client::new(),
             None,
             &Url::parse(&server.uri()).unwrap(),
-            std::iter::empty(),
+            ConnectorHeaders::new([]),
             std::iter::empty(),
         )
         .await
@@ -589,7 +586,7 @@ mod tests {
             reqwest::Client::new(),
             Some("pre_fix"),
             &Url::parse(&server.uri()).unwrap(),
-            std::iter::empty(),
+            ConnectorHeaders::new([]),
             std::iter::empty(),
         )
         .await

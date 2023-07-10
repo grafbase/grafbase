@@ -46,6 +46,7 @@ mod base;
 mod custom_directive;
 mod error;
 mod guard;
+mod headers;
 mod look_ahead;
 #[doc(hidden)]
 pub mod model;
@@ -105,6 +106,7 @@ pub use error::{
 pub use extensions::ResolveFut;
 pub use graph_entities::ResponseNodeId;
 pub use guard::{Guard, GuardExt};
+pub use headers::RequestHeaders;
 pub use look_ahead::Lookahead;
 pub use registry::{CacheControl, CacheInvalidation};
 pub use request::{BatchRequest, Request};

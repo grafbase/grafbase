@@ -2232,7 +2232,9 @@ Registry {
     },
     schemas: {},
     http_headers: {
-        "petstore": [],
+        "petstore": ConnectorHeaders(
+            [],
+        ),
     },
     search_config: Config {
         indices: {},

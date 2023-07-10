@@ -1,8 +1,13 @@
+use dynaql::registry::ConnectorHeaders;
 use url::Url;
 
 use crate::directive_de::parse_directive;
 
-use super::{directive::Directive, visitor::Visitor};
+use super::{
+    connector_headers::{Header, IntrospectionHeader},
+    directive::Directive,
+    visitor::Visitor,
+};
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -21,7 +26,7 @@ pub struct OpenApiDirective {
     #[serde(default)]
     headers: Vec<Header>,
     #[serde(default)]
-    introspection_headers: Vec<Header>,
+    introspection_headers: Vec<IntrospectionHeader>,
     #[serde(default)]
     pub transforms: OpenApiTransforms,
 }
@@ -42,11 +47,12 @@ pub enum OpenApiQueryNamingStrategy {
 }
 
 impl OpenApiDirective {
-    pub fn headers(&self) -> Vec<(String, String)> {
-        self.headers
-            .iter()
-            .map(|header| (header.name.clone(), header.value.clone()))
-            .collect()
+    pub fn headers(&self) -> ConnectorHeaders {
+        ConnectorHeaders::new(
+            self.headers
+                .iter()
+                .map(|header| (header.name.clone(), header.value.clone())),
+        )
     }
 
     pub fn introspection_headers(&self) -> Vec<(String, String)> {
@@ -55,12 +61,6 @@ impl OpenApiDirective {
             .map(|header| (header.name.clone(), header.value.clone()))
             .collect()
     }
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct Header {
-    name: String,
-    value: String,
 }
 
 const OPENAPI_DIRECTIVE_NAME: &str = "openapi";
@@ -76,10 +76,17 @@ impl Directive for OpenApiDirective {
           "The URL of this APIs schema"
           schema: String!
           headers: [OpenApiHeader!]
+          introspectionHeaders: [OpenApiHeaderIntrospectionHeader!]!
           transforms: OpenApiTransforms
         ) on SCHEMA
 
         input OpenApiHeader {
+            name: String!
+            value: String
+            forward: String
+        }
+
+        input OpenApiHeaderIntrospectionHeader {
             name: String!
             value: String!
         }
@@ -180,7 +187,9 @@ mod tests {
                 headers: [
                     Header {
                         name: "authorization",
-                        value: "Bearer i_am_a_key",
+                        value: Static(
+                            "Bearer i_am_a_key",
+                        ),
                     },
                 ],
                 introspection_headers: [],

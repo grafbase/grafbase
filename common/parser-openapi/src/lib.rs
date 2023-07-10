@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use dynaql::registry::{resolvers::http::ExpectedStatusCode, Registry};
+use dynaql::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
 use graph::OpenApiGraph;
 use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
 use tracing as _;
@@ -46,7 +46,7 @@ pub struct ApiMetadata {
     pub id: u16,
     pub namespace: Option<String>,
     pub url: Option<Url>,
-    pub headers: Vec<(String, String)>,
+    pub headers: ConnectorHeaders,
     pub query_naming: QueryNamingStrategy,
 }
 
@@ -346,7 +346,7 @@ mod tests {
             id: 1,
             namespace: name.map(Into::into),
             url: Some(Url::parse("http://example.com").unwrap()),
-            headers: vec![],
+            headers: ConnectorHeaders::new([]),
             query_naming: QueryNamingStrategy::SchemaName,
         }
     }

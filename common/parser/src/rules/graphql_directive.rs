@@ -1,3 +1,4 @@
+use dynaql::registry::{ConnectorHeaderValue, ConnectorHeaders};
 use dynaql_parser::types::SchemaDefinition;
 use tracing::warn;
 use url::Url;
@@ -5,6 +6,7 @@ use url::Url;
 use crate::directive_de::parse_directive;
 
 use super::{
+    connector_headers::{Header, IntrospectionHeader},
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
@@ -46,7 +48,7 @@ pub struct GraphqlDirective {
     #[serde(default)]
     headers: Vec<Header>,
     #[serde(default)]
-    introspection_headers: Option<Vec<Header>>,
+    introspection_headers: Option<Vec<IntrospectionHeader>>,
 }
 
 fn deprecated_name<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -63,18 +65,30 @@ where
 }
 
 impl GraphqlDirective {
-    pub fn headers(&self) -> impl ExactSizeIterator<Item = (&str, &str)> {
-        self.headers
-            .iter()
-            .map(|header| (header.name.as_str(), header.value.as_str()))
+    pub fn headers(&self) -> ConnectorHeaders {
+        ConnectorHeaders::new(
+            self.headers
+                .iter()
+                .map(|header| (header.name.clone(), header.value.clone())),
+        )
     }
 
-    pub fn introspection_headers(&self) -> impl ExactSizeIterator<Item = (&str, &str)> {
-        self.introspection_headers
-            .as_ref()
-            .unwrap_or(&self.headers)
-            .iter()
-            .map(|header| (header.name.as_str(), header.value.as_str()))
+    pub fn introspection_headers(&self) -> Vec<(&str, &str)> {
+        match &self.introspection_headers {
+            Some(introspection_headers) => introspection_headers
+                .iter()
+                .map(|header| (header.name.as_str(), header.value.as_str()))
+                .collect(),
+
+            None => self
+                .headers
+                .iter()
+                .filter_map(|header| match &header.value {
+                    ConnectorHeaderValue::Static(value) => Some((header.name.as_str(), value.as_str())),
+                    _ => None,
+                })
+                .collect(),
+        }
     }
 
     /// The optional *namespace* for the given GraphQL directive.
@@ -84,12 +98,6 @@ impl GraphqlDirective {
     pub fn namespace(&self) -> Option<&str> {
         self.namespace.as_deref().or(self.name.as_deref())
     }
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct Header {
-    pub name: String,
-    pub value: String,
 }
 
 const GRAPHQL_DIRECTIVE_NAME: &str = "graphql";
@@ -116,12 +124,18 @@ impl Directive for GraphqlDirective {
           """
           Optional headers to embed in an introspection HTTP request.
           """
-          introspectionHeaders: [GraphqlHeader!]
+          introspectionHeaders: [GraphqlIntrospectionHeader!]
         ) on SCHEMA
+
+        input GraphqlIntrospectionHeader {
+            name: String!
+            value: String!
+        }
 
         input GraphqlHeader {
             name: String!
-            value: String!
+            value: String
+            forward: String
         }
         "#
         .to_string()
@@ -206,12 +220,14 @@ mod tests {
                 headers: [
                     Header {
                         name: "authorization",
-                        value: "Bearer i_am_a_key",
+                        value: Static(
+                            "Bearer i_am_a_key",
+                        ),
                     },
                 ],
                 introspection_headers: Some(
                     [
-                        Header {
+                        IntrospectionHeader {
                             name: "x-user-id",
                             value: "root",
                         },
@@ -268,12 +284,14 @@ mod tests {
                 headers: [
                     Header {
                         name: "authorization",
-                        value: "Bearer i_am_a_key",
+                        value: Static(
+                            "Bearer i_am_a_key",
+                        ),
                     },
                 ],
                 introspection_headers: Some(
                     [
-                        Header {
+                        IntrospectionHeader {
                             name: "x-user-id",
                             value: "root",
                         },
@@ -361,9 +379,7 @@ mod tests {
         block_on(crate::parse(schema, &HashMap::new(), &connector_parsers)).unwrap();
 
         assert_eq!(
-            connector_parsers.graphql_directives.lock().unwrap()[0]
-                .introspection_headers()
-                .collect::<Vec<_>>(),
+            connector_parsers.graphql_directives.lock().unwrap()[0].introspection_headers(),
             vec![]
         );
     }
@@ -384,9 +400,7 @@ mod tests {
         block_on(crate::parse(schema, &HashMap::new(), &connector_parsers)).unwrap();
 
         assert_eq!(
-            connector_parsers.graphql_directives.lock().unwrap()[0]
-                .introspection_headers()
-                .collect::<Vec<_>>(),
+            connector_parsers.graphql_directives.lock().unwrap()[0].introspection_headers(),
             vec![("authorization", "Bearer blah")]
         );
     }

@@ -102,7 +102,7 @@ impl Resolver {
     pub fn resolve<'a>(
         &'a self,
         operation: OperationType,
-        headers: &[(String, String)],
+        headers: &[(&str, &str)],
         fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
         target: Target<'a>,
         error_handler: impl FnMut(ServerError) + 'a,
@@ -116,7 +116,7 @@ impl Resolver {
                                              header */
 
         for (name, value) in headers {
-            request_builder = request_builder.header(name, value);
+            request_builder = request_builder.header(*name, *value);
         }
 
         let mut query = String::new();
@@ -308,7 +308,7 @@ mod tests {
             url: Url::parse(&server.uri()).unwrap(),
         };
 
-        let headers = vec![("Authorization".to_string(), "Bearer FOOBAR".to_string())];
+        let headers = vec![("Authorization", "Bearer FOOBAR")];
         let document = parse_query(query).unwrap();
 
         let fragment_definitions = document

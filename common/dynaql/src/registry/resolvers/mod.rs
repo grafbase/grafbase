@@ -10,7 +10,7 @@
 //! A Resolver always know how to apply the associated transformers.
 
 use self::{custom::CustomResolver, debug::DebugResolver, graphql::Target};
-use crate::{Context, Error};
+use crate::{Context, Error, RequestHeaders};
 use context_data::ContextDataResolver;
 use derivative::Derivative;
 use dynamo_mutation::DynamoMutationResolver;
@@ -352,11 +352,15 @@ impl ResolverType {
             }
             ResolverType::Graphql(resolver) => {
                 let registry = ctx.registry();
+                let request_headers = ctx.data::<RequestHeaders>().ok();
                 let headers = registry
                     .http_headers
                     .get(&format!("GraphQLConnector{}", resolver.id))
-                    .map(Vec::as_slice)
-                    .unwrap_or(&[]);
+                    .zip(request_headers)
+                    .map(|(connector_headers, request_headers)| {
+                        connector_headers.build_header_vec(request_headers)
+                    })
+                    .unwrap_or_default();
 
                 let fragment_definitions = ctx
                     .query_env
@@ -417,7 +421,7 @@ impl ResolverType {
                     .resolve(
                         // Be a lot easier to just pass the context in here...
                         operation,
-                        headers,
+                        &headers,
                         fragment_definitions,
                         target,
                         error_handler,
