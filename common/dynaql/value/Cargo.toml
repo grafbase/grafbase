@@ -12,9 +12,7 @@ keywords = ["futures", "async", "graphql"]
 categories = ["network-programming", "asynchronous"]
 
 [features]
-default = ["query-planning"]
-query-planning = ["dep:arrow-json", "dep:arrow-schema", "dep:arrow"]
-
+default = []
 
 [dependencies]
 serde_json = { workspace = true }

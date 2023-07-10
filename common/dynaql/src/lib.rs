@@ -60,8 +60,6 @@ pub mod auth;
 pub mod context;
 pub mod extensions;
 pub mod http;
-#[cfg(feature = "query-planning")]
-pub mod planning;
 
 pub mod resolver_utils;
 pub mod types;

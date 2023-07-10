@@ -1,6 +1,5 @@
 use dynaql::registry::{
     self,
-    plan::SchemaPlan,
     resolvers::{custom::CustomResolver, Resolver, ResolverType},
     MetaField, MetaInputValue, MetaType,
 };
@@ -61,7 +60,6 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                             resolver_name: resolver_name.to_owned(),
                         }),
                     }),
-                    plan: Some(SchemaPlan::resolver(resolver_name.to_owned())),
                     ..MetaField::default()
                 })
             })

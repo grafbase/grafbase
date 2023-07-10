@@ -38,4 +38,5 @@ function_name = "0.3"
 maplit = "1"
 
 [features]
+default = []
 local = []

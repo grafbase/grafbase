@@ -1,7 +1,6 @@
 use dynamodb::constant;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::enums::OrderByDirection;
-use dynaql::registry::plan::{PaginationPage, SchemaPlan};
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::{self, InputObjectType, NamedType, Registry};
@@ -63,10 +62,6 @@ fn register_edge_type(
                             },
                             Transformer::ConvertSkToCursor,
                         ])),
-                        plan: Some(
-                            SchemaPlan::projection(vec!["id".to_string()], false)
-                                .apply_cursor_encode(vec!["id".to_string()]),
-                        ),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         ..Default::default()
@@ -95,7 +90,6 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: Some(SchemaPlan::pagination_page(PaginationPage::Previous)),
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_previous_page".to_string(),
                         }),
@@ -113,7 +107,6 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: Some(SchemaPlan::pagination_page(PaginationPage::Next)),
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_next_page".to_string(),
                         }),
@@ -128,10 +121,6 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: Some(
-                            SchemaPlan::first(Some(SchemaPlan::projection(vec!["id".to_string()], false)))
-                                .apply_cursor_encode(vec!["id".to_string()]),
-                        ),
                         transformer: Some(Transformer::JSONSelect {
                             property: "start_cursor".to_string(),
                         }),
@@ -146,10 +135,6 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: Some(
-                            SchemaPlan::last(Some(SchemaPlan::projection(vec!["id".to_string()], false)))
-                                .apply_cursor_encode(vec!["id".to_string()]),
-                        ),
                         transformer: Some(Transformer::JSONSelect {
                             property: "end_cursor".to_string(),
                         }),
@@ -233,13 +218,6 @@ pub fn add_query_paginated_collection(
     let field = MetaNames::query_collection(model_type_definition);
     let cache_control = CacheDirective::parse(&model_type_definition.directives);
 
-    let plan = Some(SchemaPlan::related(
-        None,
-        ctx.get_schema_id(&type_name),
-        None,
-        type_name.clone(),
-    ));
-
     ctx.queries.push(MetaField {
         name: field.clone(),
         description: Some(format!("Paginated query to fetch the whole list of `{type_name}`.")),
@@ -273,7 +251,6 @@ pub fn add_query_paginated_collection(
                 nested: None,
             }),
         }),
-        plan,
         transformer: None,
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),

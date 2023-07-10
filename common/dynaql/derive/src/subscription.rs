@@ -309,7 +309,6 @@ pub fn generate(
                     relation: None,
                     compute_complexity: #complexity,
                     resolve: ::std::option::Option::None,
-                    plan: ::std::option::Option::None,
                     transformer: ::std::option::Option::None,
                     required_operation: None,
                     auth: None,

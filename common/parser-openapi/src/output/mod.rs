@@ -407,7 +407,6 @@ fn meta_field(name: String, ty: String) -> MetaField {
         transformer: None,
         required_operation: None,
         auth: None,
-        plan: None,
     }
 }
 

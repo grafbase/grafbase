@@ -1,6 +1,5 @@
 use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
 use crate::rules::resolver_directive::ResolverDirective;
-use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::resolvers::custom::CustomResolver;
 use dynaql::registry::resolvers::{Resolver, ResolverType};
 use dynaql::registry::{MetaField, MetaInputValue};
@@ -89,7 +88,6 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     edges: Vec::new(),
                     relation: None,
                     transformer: None,
-                    plan: Some(SchemaPlan::resolver(resolver_name.to_owned())),
                     required_operation,
                     auth: None,
                 });

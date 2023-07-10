@@ -219,6 +219,7 @@ pub fn add_mutation_update<'a>(
                 ty: type_name.into(),
             }),
         }),
+        transformer: None,
         required_operation: Some(Operations::UPDATE),
         auth: model_auth.cloned(),
         ..Default::default()

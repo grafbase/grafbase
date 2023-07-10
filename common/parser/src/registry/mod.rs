@@ -104,7 +104,6 @@ pub fn add_remove_mutation(
                     transformer: Some(Transformer::JSONSelect {
                         property: names::OUTPUT_FIELD_ID.to_string(),
                     }),
-                    plan: None,
                     required_operation: Some(Operations::DELETE),
                     auth: auth.cloned(),
                 }],
@@ -144,7 +143,6 @@ pub fn add_remove_mutation(
                 by: VariableResolveDefinition::InputTypeName("by".to_owned()),
             }),
         }),
-        plan: None,
         transformer: None,
         required_operation: Some(Operations::DELETE),
         auth: auth.cloned(),

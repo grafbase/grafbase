@@ -332,28 +332,6 @@ expression: req_string_b
         "f": {
           "endCursor": {
             "D": "N",
-            "P": {
-              "Apply": {
-                "fun_fields": [
-                  [
-                    "id",
-                    "CursorEncode"
-                  ]
-                ],
-                "plan": {
-                  "Last": {
-                    "plan": {
-                      "Projection": {
-                        "fields": [
-                          "id"
-                        ],
-                        "flattened": false
-                      }
-                    }
-                  }
-                }
-              }
-            },
             "T": {
               "JSONSelect": {
                 "property": "end_cursor"
@@ -372,9 +350,6 @@ expression: req_string_b
           },
           "hasNextPage": {
             "D": "N",
-            "P": {
-              "PaginationPage": "Next"
-            },
             "T": {
               "JSONSelect": {
                 "property": "has_next_page"
@@ -393,9 +368,6 @@ expression: req_string_b
           },
           "hasPreviousPage": {
             "D": "N",
-            "P": {
-              "PaginationPage": "Previous"
-            },
             "T": {
               "JSONSelect": {
                 "property": "has_previous_page"
@@ -414,28 +386,6 @@ expression: req_string_b
           },
           "startCursor": {
             "D": "N",
-            "P": {
-              "Apply": {
-                "fun_fields": [
-                  [
-                    "id",
-                    "CursorEncode"
-                  ]
-                ],
-                "plan": {
-                  "First": {
-                    "plan": {
-                      "Projection": {
-                        "fields": [
-                          "id"
-                        ],
-                        "flattened": false
-                      }
-                    }
-                  }
-                }
-              }
-            },
             "T": {
               "JSONSelect": {
                 "property": "start_cursor"
@@ -463,14 +413,6 @@ expression: req_string_b
         "f": {
           "createdAt": {
             "D": "N",
-            "P": {
-              "Projection": {
-                "fields": [
-                  "createdAt"
-                ],
-                "flattened": false
-              }
-            },
             "T": {
               "DynamoSelect": {
                 "property": "__created_at"
@@ -493,14 +435,6 @@ expression: req_string_b
           },
           "id": {
             "D": "N",
-            "P": {
-              "Projection": {
-                "fields": [
-                  "id"
-                ],
-                "flattened": false
-              }
-            },
             "T": {
               "DynamoSelect": {
                 "property": "__sk"
@@ -523,14 +457,6 @@ expression: req_string_b
           },
           "title": {
             "D": "N",
-            "P": {
-              "Projection": {
-                "fields": [
-                  "title"
-                ],
-                "flattened": false
-              }
-            },
             "T": {
               "DynamoSelect": {
                 "property": "title"
@@ -552,14 +478,6 @@ expression: req_string_b
           },
           "updatedAt": {
             "D": "N",
-            "P": {
-              "Projection": {
-                "fields": [
-                  "updatedAt"
-                ],
-                "flattened": false
-              }
-            },
             "T": {
               "DynamoSelect": {
                 "property": "__updated_at"
@@ -730,24 +648,6 @@ expression: req_string_b
         "f": {
           "cursor": {
             "D": "N",
-            "P": {
-              "Apply": {
-                "fun_fields": [
-                  [
-                    "id",
-                    "CursorEncode"
-                  ]
-                ],
-                "plan": {
-                  "Projection": {
-                    "fields": [
-                      "id"
-                    ],
-                    "flattened": false
-                  }
-                }
-              }
-            },
             "T": {
               "Pipeline": [
                 {
@@ -893,14 +793,6 @@ expression: req_string_b
           },
           "productCollection": {
             "D": "N",
-            "P": {
-              "Related": {
-                "from": null,
-                "relation_name": null,
-                "to": 0,
-                "ty": "Product"
-              }
-            },
             "R": {
               "birectional": false,
               "kind": "OneToMany",

@@ -1,5 +1,5 @@
 use graph_entities::{CompactValue, ResponseNodeId};
-use query_planning::reexport::internment::ArcIntern;
+use internment::ArcIntern;
 
 use crate::{
     context::ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, Name, Value,

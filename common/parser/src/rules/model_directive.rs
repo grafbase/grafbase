@@ -18,7 +18,6 @@
 
 use case::CaseExt;
 use dynaql::names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT};
-use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::resolvers::custom::CustomResolver;
 use if_chain::if_chain;
 
@@ -106,7 +105,6 @@ fn insert_metadata_field(
     description: Option<String>,
     ty: &str,
     dynamo_property_name: &str,
-    plan_field: &str,
     auth: Option<&AuthConfig>,
 ) -> Option<MetaField> {
     fields.insert(
@@ -129,7 +127,6 @@ fn insert_metadata_field(
                     key: type_name.to_string(),
                 }),
             }),
-            plan: Some(SchemaPlan::projection(vec![plan_field.to_string()], false)),
             edges: Vec::new(),
             transformer: Some(Transformer::DynamoSelect {
                 property: dynamo_property_name.to_owned(),
@@ -243,7 +240,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             continue;
                         }
 
-                        let (resolver, relation, transformer, edges, args, ty, cache_control, plan) =
+                        let (resolver, relation, transformer, edges, args, ty, cache_control) =
                             ResolverDirective::resolver_name(&field.node)
                                 .map(|resolver_name| {
                                     (
@@ -272,7 +269,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                                             .collect(),
                                         field.node.ty.clone().node.to_string(),
                                         CacheDirective::parse(&field.node.directives),
-                                        SchemaPlan::resolver(resolver_name.to_owned()),
                                     )
                                 })
                                 .or_else(|| {
@@ -312,20 +308,12 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                 id,
                                                 r#type: ResolverType::ContextDataResolver(context_data_resolver),
                                             },
-                                            Some(relation.clone()),
+                                            Some(relation),
                                             None,
                                             edges,
                                             args,
                                             ty,
                                             CacheDirective::parse(&field.node.directives),
-                                            SchemaPlan::related(
-                                                Some(
-                                                    ctx.get_schema_id(relation.relation.0.clone().unwrap().to_string()),
-                                                ),
-                                                ctx.get_schema_id(relation.relation.1.clone().to_string()),
-                                                Some(relation.name),
-                                                relation.relation.1.to_string(),
-                                            ),
                                         )
                                     })
                                 })
@@ -343,25 +331,23 @@ impl<'a> Visitor<'a> for ModelDirective {
                                         Default::default(),
                                         field.node.ty.clone().node.to_string(),
                                         CacheDirective::parse(&field.node.directives),
-                                        SchemaPlan::projection(vec![name.clone()], false),
                                     )
                                 });
 
                         fields.insert(
                             name.clone(),
                             MetaField {
-                                name: name.clone(),
+                                auth: field_auth.get(&name).expect("must be set").clone(),
+                                name,
                                 description: field.node.description.clone().map(|x| x.node),
                                 args,
                                 ty: ty.into(),
                                 cache_control,
                                 resolve: Some(resolver),
                                 edges,
-                                plan: Some(plan),
                                 relation,
                                 transformer,
                                 required_operation: None,
-                                auth: field_auth.get(&name).expect("must be set").clone(),
                                 ..Default::default()
                             },
                         );
@@ -373,7 +359,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                         Some("Unique identifier".to_owned()),
                         "ID!",
                         dynamodb::constant::SK,
-                        dynaql::names::OUTPUT_FIELD_ID,
                         field_auth
                             .get(dynaql::names::OUTPUT_FIELD_ID)
                             .map(|e| e.as_ref())
@@ -386,7 +371,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                         Some("when the model was updated".to_owned()),
                         "DateTime!",
                         dynamodb::constant::UPDATED_AT,
-                        "updatedAt",
                         field_auth
                             .get(METADATA_FIELD_UPDATED_AT)
                             .map(|e| e.as_ref())
@@ -399,7 +383,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                         Some("when the model was created".to_owned()),
                         "DateTime!",
                         dynamodb::constant::CREATED_AT,
-                        "createdAt",
                         field_auth
                             .get(METADATA_FIELD_CREATED_AT)
                             .map(|e| e.as_ref())

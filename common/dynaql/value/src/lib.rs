@@ -19,7 +19,6 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use arrow_schema::{Field, Fields};
 use bytes::Bytes;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -31,15 +30,6 @@ pub use serde_json::Number;
 pub use serializer::{to_value, SerializerError};
 
 pub use variables::Variables;
-
-#[cfg(feature = "query-planning")]
-use arrow::record_batch::RecordBatch;
-#[cfg(feature = "query-planning")]
-use arrow_json::reader::infer_json_schema_from_iterator;
-#[cfg(feature = "query-planning")]
-use arrow_schema::ArrowError;
-#[cfg(feature = "query-planning")]
-use arrow_schema::Schema;
 
 /// A GraphQL name.
 ///
@@ -182,84 +172,7 @@ impl ConstValue {
     }
 }
 
-fn mandatory_fields(fields: Fields) -> Fields {
-    Fields::from(
-        fields
-            .into_iter()
-            .map(|x| x.as_ref().clone().with_nullable(false))
-            .map(|x| match x.data_type() {
-                arrow_schema::DataType::Struct(fields) => Field::new(
-                    x.name(),
-                    arrow_schema::DataType::Struct(mandatory_fields(
-                        fields.iter().map(Clone::clone).collect(),
-                    )),
-                    false,
-                ),
-                datatype => Field::new(x.name(), datatype.clone(), false),
-            })
-            .collect::<Vec<Field>>(),
-    )
-}
-
-fn mandatory(schema: Schema) -> Schema {
-    let fields = mandatory_fields(schema.fields);
-    Schema::new(fields)
-}
-
-#[cfg(feature = "query-planning")]
 impl ConstValue {
-    /// Wrap the [`ConstValue`] into an Object, when dealing with an ArrowSchema we need to have an
-    /// Object.
-    #[must_use]
-    pub fn prepare_container(self, root: &str) -> Self {
-        let map = IndexMap::from_iter(vec![(Name::new(root), self)]);
-        Self::Object(map)
-    }
-
-    /// Give the associated schema
-    pub fn to_schema(&self) -> Result<Schema, ArrowError> {
-        let value = self
-            .clone()
-            .into_json()
-            .map_err(|err| ArrowError::JsonError(err.to_string()));
-        infer_json_schema_from_iterator(std::iter::once(value)).map(mandatory)
-    }
-
-    /// Give the associated schema for a list
-    pub fn to_schema_list(&self) -> Result<Schema, ArrowError> {
-        match self {
-            ConstValue::List(list) => {
-                let iter = list
-                    .iter()
-                    .map(|x| {
-                        x.clone()
-                            .into_json()
-                            .map_err(|err| ArrowError::JsonError(err.to_string()))
-                    })
-                    .take(10);
-                infer_json_schema_from_iterator(iter)
-            }
-            _ => Err(ArrowError::JsonError("Should be a list".to_string())),
-        }
-    }
-
-    /// Give the RecordBatch for the Value if it's an object
-    pub fn arrow(self) -> Result<Option<RecordBatch>, ArrowError> {
-        use arrow_json::ReaderBuilder;
-        let schema = Arc::new(self.to_schema()?);
-        let value = self
-            .into_json()
-            .map_err(|err| ArrowError::JsonError(err.to_string()))?;
-
-        let mut decoder = ReaderBuilder::new(schema)
-            .with_batch_size(1)
-            .build_decoder()?;
-
-        // TODO: Change it to something more efficient later
-        decoder.serialize(&[value])?;
-        decoder.flush()
-    }
-
     /// Returns a str of the kind of value this is.  Useful for error messages.
     pub fn kind_str(&self) -> &'static str {
         match self {

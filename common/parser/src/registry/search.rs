@@ -257,7 +257,6 @@ pub fn add_query_search(
         compute_complexity: None,
         edges: vec![],
         relation: None,
-        plan: None,
         resolve: Some(Resolver {
             id: None,
             r#type: ResolverType::Query(QueryResolver::Search {

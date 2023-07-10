@@ -28,7 +28,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: None,
                         transformer: None,
                         required_operation: None,
@@ -73,7 +72,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -107,7 +105,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -141,7 +138,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -195,7 +191,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -229,7 +224,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -351,7 +345,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -409,7 +402,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -475,7 +467,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -541,7 +532,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -599,7 +589,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -668,7 +657,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -702,7 +690,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -743,7 +730,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -777,7 +763,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -811,7 +796,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -845,7 +829,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -990,7 +973,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1031,7 +1013,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1065,7 +1046,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1099,7 +1079,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1133,7 +1112,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1167,7 +1145,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1327,7 +1304,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1386,7 +1362,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1445,7 +1420,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1494,7 +1468,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1545,7 +1518,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1611,7 +1583,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1677,7 +1648,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1746,7 +1716,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1780,7 +1749,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1860,7 +1828,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1894,7 +1861,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1928,7 +1894,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1962,7 +1927,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -1996,7 +1960,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -2030,7 +1993,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -2064,7 +2026,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -2098,7 +2059,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: Some(
                             Resolver {
                                 id: None,
@@ -2226,7 +2186,6 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        plan: None,
                         resolve: None,
                         transformer: None,
                         required_operation: None,

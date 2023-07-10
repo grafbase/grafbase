@@ -10,9 +10,6 @@ use serde::Serialize;
 
 use crate::{CacheControl, Result, ServerError, Value};
 
-#[cfg(feature = "query-planning")]
-use query_planning::logical_query::LogicalQuery;
-
 /// Query response
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Response {
@@ -35,23 +32,11 @@ pub struct Response {
     #[serde(skip)]
     pub http_headers: HeaderMap,
 
-    #[cfg(feature = "query-planning")]
-    #[serde(skip)]
-    pub query_plan: Option<LogicalQuery>,
-
     /// GraphQL operation type derived from incoming request
     pub operation_type: OperationType,
 }
 
 impl Response {
-    #[cfg(feature = "query-planning")]
-    pub fn from_logical_query(query: LogicalQuery) -> Self {
-        Self {
-            query_plan: Some(query),
-            ..Default::default()
-        }
-    }
-
     pub fn to_graphql_response(&self) -> GraphQlResponse {
         GraphQlResponse(&self)
     }

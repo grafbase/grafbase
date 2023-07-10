@@ -2,7 +2,6 @@ mod cache_control;
 pub mod enums;
 mod export_sdl;
 pub mod introspection;
-pub mod plan;
 pub mod relations;
 pub mod resolver_chain;
 pub mod resolvers;
@@ -43,6 +42,10 @@ use crate::{
 };
 use grafbase::auth::Operations;
 
+use self::relations::MetaRelation;
+use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
+use self::scalars::{DynamicScalar, PossibleScalar};
+use self::transformers::Transformer;
 use self::type_kinds::TypeKind;
 pub use self::{
     cache_control::CacheControl,
@@ -51,12 +54,6 @@ pub use self::{
     type_names::{MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
     union_discriminator::UnionDiscriminator,
 };
-
-use self::plan::SchemaPlan;
-use self::relations::MetaRelation;
-use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
-use self::scalars::{DynamicScalar, PossibleScalar};
-use self::transformers::Transformer;
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
@@ -328,7 +325,6 @@ pub struct MetaField {
     /// 1: Type,
     /// relation: (String, String)
     pub relation: Option<MetaRelation>,
-    pub plan: Option<SchemaPlan>,
     // To be deleted when enabling the new resolution mechanism
     pub resolve: Option<Resolver>,
     // To be deleted when enabling the new resolution mechanism
@@ -2098,7 +2094,6 @@ impl Registry {
                         relation: None,
                         compute_complexity: None,
                         resolve: None,
-                        plan: None,
                         transformer: None,
                         required_operation: None,
                         auth: None,
@@ -2129,7 +2124,6 @@ impl Registry {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        plan: None,
                         transformer: None,
                         required_operation: None,
                         auth: None,
