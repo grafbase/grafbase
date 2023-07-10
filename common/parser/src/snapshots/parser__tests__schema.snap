@@ -208,32 +208,6 @@ expression: req_string_a
     "Mutation": {
       "O": {
         "f": {
-          "userCollectionCreate": {
-            "D": "N",
-            "_r": 1,
-            "a": {
-              "input": {
-                "n": "input",
-                "t": "[UserCollectionCreateInput!]!"
-              }
-            },
-            "d": "Create multiple User",
-            "n": "userCollectionCreate",
-            "r_": {
-              "id": null,
-              "type": {
-                "d": {
-                  "CreateNodes": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "User"
-                  }
-                }
-              }
-            },
-            "t": "UserCollectionCreatePayload"
-          },
           "userCreate": {
             "D": "N",
             "_r": 1,
@@ -259,6 +233,32 @@ expression: req_string_a
               }
             },
             "t": "UserCreatePayload"
+          },
+          "userCreateMany": {
+            "D": "N",
+            "_r": 1,
+            "a": {
+              "input": {
+                "n": "input",
+                "t": "[UserCreateManyInput!]!"
+              }
+            },
+            "d": "Create multiple User",
+            "n": "userCreateMany",
+            "r_": {
+              "id": null,
+              "type": {
+                "d": {
+                  "CreateNodes": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "User"
+                  }
+                }
+              }
+            },
+            "t": "UserCreateManyPayload"
           },
           "userDelete": {
             "D": "N",
@@ -318,6 +318,32 @@ expression: req_string_a
               }
             },
             "t": "UserUpdatePayload"
+          },
+          "userUpdateMany": {
+            "D": "N",
+            "_r": 8,
+            "a": {
+              "input": {
+                "n": "input",
+                "t": "[UserUpdateManyInput!]!"
+              }
+            },
+            "d": "Update multiple User",
+            "n": "userUpdateMany",
+            "r_": {
+              "id": null,
+              "type": {
+                "d": {
+                  "UpdateNodes": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "User"
+                  }
+                }
+              }
+            },
+            "t": "UserUpdateManyPayload"
           }
         },
         "n": "Mutation",
@@ -686,46 +712,6 @@ expression: req_string_a
         "r": "UserByInput"
       }
     },
-    "UserCollectionCreateInput": {
-      "i": {
-        "i": {
-          "input": {
-            "n": "input",
-            "t": "UserCreateInput!"
-          }
-        },
-        "n": "UserCollectionCreateInput",
-        "r": "UserCollectionCreateInput"
-      }
-    },
-    "UserCollectionCreatePayload": {
-      "O": {
-        "f": {
-          "userCollection": {
-            "D": "N",
-            "_r": 1,
-            "a": {},
-            "n": "userCollection",
-            "r_": {
-              "id": null,
-              "type": {
-                "D": {
-                  "QueryIds": {
-                    "ids": {
-                      "LocalData": "ids"
-                    },
-                    "type_name": "User"
-                  }
-                }
-              }
-            },
-            "t": "[User!]!"
-          }
-        },
-        "n": "UserCollectionCreatePayload",
-        "r": "UserCollectionCreatePayload"
-      }
-    },
     "UserConnection": {
       "O": {
         "f": {
@@ -760,6 +746,46 @@ expression: req_string_a
         },
         "n": "UserCreateInput",
         "r": "UserCreateInput"
+      }
+    },
+    "UserCreateManyInput": {
+      "i": {
+        "i": {
+          "input": {
+            "n": "input",
+            "t": "UserCreateInput!"
+          }
+        },
+        "n": "UserCreateManyInput",
+        "r": "UserCreateManyInput"
+      }
+    },
+    "UserCreateManyPayload": {
+      "O": {
+        "f": {
+          "userCollection": {
+            "D": "N",
+            "_r": 1,
+            "a": {},
+            "n": "userCollection",
+            "r_": {
+              "id": null,
+              "type": {
+                "D": {
+                  "QueryIds": {
+                    "ids": {
+                      "LocalData": "ids"
+                    },
+                    "type_name": "User"
+                  }
+                }
+              }
+            },
+            "t": "[User!]!"
+          }
+        },
+        "n": "UserCreateManyPayload",
+        "r": "UserCreateManyPayload"
       }
     },
     "UserCreatePayload": {
@@ -879,6 +905,50 @@ expression: req_string_a
         },
         "n": "UserUpdateInput",
         "r": "UserUpdateInput"
+      }
+    },
+    "UserUpdateManyInput": {
+      "i": {
+        "i": {
+          "by": {
+            "n": "by",
+            "t": "UserByInput!"
+          },
+          "input": {
+            "n": "input",
+            "t": "UserUpdateInput!"
+          }
+        },
+        "n": "UserUpdateManyInput",
+        "r": "UserUpdateManyInput"
+      }
+    },
+    "UserUpdateManyPayload": {
+      "O": {
+        "f": {
+          "userCollection": {
+            "D": "N",
+            "_r": 8,
+            "a": {},
+            "n": "userCollection",
+            "r_": {
+              "id": null,
+              "type": {
+                "D": {
+                  "QueryIds": {
+                    "ids": {
+                      "LocalData": "ids"
+                    },
+                    "type_name": "User"
+                  }
+                }
+              }
+            },
+            "t": "[User!]!"
+          }
+        },
+        "n": "UserUpdateManyPayload",
+        "r": "UserUpdateManyPayload"
       }
     },
     "UserUpdatePayload": {

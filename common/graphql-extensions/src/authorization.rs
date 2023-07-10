@@ -182,7 +182,8 @@ impl Extension for AuthExtension {
                 }
                 (MUTATION_TYPE, Operations::DELETE) => {
                     self.check_delete(
-                        guess_type_name(&info, required_op),
+                        guess_batch_operation_type_name(&info, required_op)
+                            .unwrap_or_else(|| guess_type_name(&info, required_op)),
                         info.name,
                         &ctx.schema_env.registry,
                         model_allowed_ops,
@@ -399,7 +400,6 @@ fn guess_type_name(info: &ResolveInfo<'_>, required_op: Operations) -> NamedType
         .named_type()
         .as_str()
         .strip_suffix(suffix)
-        .map(|name| name.strip_suffix("Collection").unwrap_or(name))
         .expect("must be the expected Payload type")
         .to_owned()
         .into()
@@ -409,15 +409,14 @@ fn guess_type_name(info: &ResolveInfo<'_>, required_op: Operations) -> NamedType
 #[allow(clippy::panic)]
 fn guess_batch_operation_type_name(info: &ResolveInfo<'_>, required_op: Operations) -> Option<NamedType<'static>> {
     let suffix = match required_op {
-        Operations::CREATE => "CreatePayload",
-        Operations::UPDATE => "UpdatePayload",
-        Operations::DELETE => "DeletePayload",
+        Operations::CREATE => "CreateManyPayload",
+        Operations::UPDATE => "UpdateManyPayload",
+        Operations::DELETE => "DeleteManyPayload",
         _ => panic!("unexpected operation"),
     };
     info.return_type
         .named_type()
         .as_str()
         .strip_suffix(suffix)
-        .and_then(|name| name.strip_suffix("Collection"))
         .map(|name| name.to_owned().into())
 }

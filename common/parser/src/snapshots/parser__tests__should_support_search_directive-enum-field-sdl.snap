@@ -40,11 +40,15 @@ type Mutation {
 	"""
 	Create multiple Product
 	"""
-	productCollectionCreate(input: [ProductCollectionCreateInput!]!): ProductCollectionCreatePayload
+	productCreateMany(input: [ProductCreateManyInput!]!): ProductCreateManyPayload
 	"""
 	Update a Product
 	"""
 	productUpdate(by: ProductByInput!, input: ProductUpdateInput!): ProductUpdatePayload
+	"""
+	Update multiple Product
+	"""
+	productUpdateMany(input: [ProductUpdateManyInput!]!): ProductUpdateManyPayload
 	"""
 	Delete a Product by ID or unique field
 	"""
@@ -96,12 +100,6 @@ type Product {
 input ProductByInput {
 	id: ID
 }
-input ProductCollectionCreateInput {
-	input: ProductCreateInput!
-}
-type ProductCollectionCreatePayload {
-	productCollection: [Product!]!
-}
 type ProductConnection {
 	"""
 	Information to aid in pagination
@@ -117,6 +115,12 @@ input ProductCreateInput {
 	pet: Pet!
 	pets: [Pet!]
 	name: String
+}
+input ProductCreateManyInput {
+	input: ProductCreateInput!
+}
+type ProductCreateManyPayload {
+	productCollection: [Product!]!
 }
 type ProductCreatePayload {
 	product: Product
@@ -161,6 +165,13 @@ input ProductUpdateInput {
 	pet: Pet
 	pets: [Pet!]
 	name: String
+}
+input ProductUpdateManyInput {
+	by: ProductByInput!
+	input: ProductUpdateInput!
+}
+type ProductUpdateManyPayload {
+	productCollection: [Product!]!
 }
 type ProductUpdatePayload {
 	product: Product

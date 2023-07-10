@@ -197,32 +197,6 @@ expression: req_string_a
     "Mutation": {
       "O": {
         "f": {
-          "productCollectionCreate": {
-            "D": "N",
-            "_r": 1,
-            "a": {
-              "input": {
-                "n": "input",
-                "t": "[ProductCollectionCreateInput!]!"
-              }
-            },
-            "d": "Create multiple Product",
-            "n": "productCollectionCreate",
-            "r_": {
-              "id": null,
-              "type": {
-                "d": {
-                  "CreateNodes": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "Product"
-                  }
-                }
-              }
-            },
-            "t": "ProductCollectionCreatePayload"
-          },
           "productCreate": {
             "D": "N",
             "_r": 1,
@@ -248,6 +222,32 @@ expression: req_string_a
               }
             },
             "t": "ProductCreatePayload"
+          },
+          "productCreateMany": {
+            "D": "N",
+            "_r": 1,
+            "a": {
+              "input": {
+                "n": "input",
+                "t": "[ProductCreateManyInput!]!"
+              }
+            },
+            "d": "Create multiple Product",
+            "n": "productCreateMany",
+            "r_": {
+              "id": null,
+              "type": {
+                "d": {
+                  "CreateNodes": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Product"
+                  }
+                }
+              }
+            },
+            "t": "ProductCreateManyPayload"
           },
           "productDelete": {
             "D": "N",
@@ -307,6 +307,32 @@ expression: req_string_a
               }
             },
             "t": "ProductUpdatePayload"
+          },
+          "productUpdateMany": {
+            "D": "N",
+            "_r": 8,
+            "a": {
+              "input": {
+                "n": "input",
+                "t": "[ProductUpdateManyInput!]!"
+              }
+            },
+            "d": "Update multiple Product",
+            "n": "productUpdateMany",
+            "r_": {
+              "id": null,
+              "type": {
+                "d": {
+                  "UpdateNodes": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Product"
+                  }
+                }
+              }
+            },
+            "t": "ProductUpdateManyPayload"
           }
         },
         "n": "Mutation",
@@ -516,46 +542,6 @@ expression: req_string_a
         "r": "ProductByInput"
       }
     },
-    "ProductCollectionCreateInput": {
-      "i": {
-        "i": {
-          "input": {
-            "n": "input",
-            "t": "ProductCreateInput!"
-          }
-        },
-        "n": "ProductCollectionCreateInput",
-        "r": "ProductCollectionCreateInput"
-      }
-    },
-    "ProductCollectionCreatePayload": {
-      "O": {
-        "f": {
-          "productCollection": {
-            "D": "N",
-            "_r": 1,
-            "a": {},
-            "n": "productCollection",
-            "r_": {
-              "id": null,
-              "type": {
-                "D": {
-                  "QueryIds": {
-                    "ids": {
-                      "LocalData": "ids"
-                    },
-                    "type_name": "Product"
-                  }
-                }
-              }
-            },
-            "t": "[Product!]!"
-          }
-        },
-        "n": "ProductCollectionCreatePayload",
-        "r": "ProductCollectionCreatePayload"
-      }
-    },
     "ProductConnection": {
       "O": {
         "f": {
@@ -590,6 +576,46 @@ expression: req_string_a
         },
         "n": "ProductCreateInput",
         "r": "ProductCreateInput"
+      }
+    },
+    "ProductCreateManyInput": {
+      "i": {
+        "i": {
+          "input": {
+            "n": "input",
+            "t": "ProductCreateInput!"
+          }
+        },
+        "n": "ProductCreateManyInput",
+        "r": "ProductCreateManyInput"
+      }
+    },
+    "ProductCreateManyPayload": {
+      "O": {
+        "f": {
+          "productCollection": {
+            "D": "N",
+            "_r": 1,
+            "a": {},
+            "n": "productCollection",
+            "r_": {
+              "id": null,
+              "type": {
+                "D": {
+                  "QueryIds": {
+                    "ids": {
+                      "LocalData": "ids"
+                    },
+                    "type_name": "Product"
+                  }
+                }
+              }
+            },
+            "t": "[Product!]!"
+          }
+        },
+        "n": "ProductCreateManyPayload",
+        "r": "ProductCreateManyPayload"
       }
     },
     "ProductCreatePayload": {
@@ -709,6 +735,50 @@ expression: req_string_a
         },
         "n": "ProductUpdateInput",
         "r": "ProductUpdateInput"
+      }
+    },
+    "ProductUpdateManyInput": {
+      "i": {
+        "i": {
+          "by": {
+            "n": "by",
+            "t": "ProductByInput!"
+          },
+          "input": {
+            "n": "input",
+            "t": "ProductUpdateInput!"
+          }
+        },
+        "n": "ProductUpdateManyInput",
+        "r": "ProductUpdateManyInput"
+      }
+    },
+    "ProductUpdateManyPayload": {
+      "O": {
+        "f": {
+          "productCollection": {
+            "D": "N",
+            "_r": 8,
+            "a": {},
+            "n": "productCollection",
+            "r_": {
+              "id": null,
+              "type": {
+                "D": {
+                  "QueryIds": {
+                    "ids": {
+                      "LocalData": "ids"
+                    },
+                    "type_name": "Product"
+                  }
+                }
+              }
+            },
+            "t": "[Product!]!"
+          }
+        },
+        "n": "ProductUpdateManyPayload",
+        "r": "ProductUpdateManyPayload"
       }
     },
     "ProductUpdatePayload": {

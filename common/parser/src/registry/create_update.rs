@@ -1,7 +1,5 @@
 use case::CaseExt;
 
-use dynaql::indexmap::indexmap;
-
 use dynaql::registry::relations::MetaRelationKind;
 use dynaql::registry::{self, InputObjectType, NamedType, Registry};
 use dynaql::registry::{
@@ -111,10 +109,10 @@ pub fn add_mutation_create<'a>(
         ..Default::default()
     });
 
-    let batch_input_type = register_collection_input(ctx, model_type_definition, MutationKind::Create, input_type);
-    let batch_create_payload = register_batch_payload(ctx, model_type_definition, MutationKind::Create, model_auth);
+    let batch_input_type = register_many_input(ctx, model_type_definition, MutationKind::Create, input_type);
+    let batch_create_payload = register_many_payload(ctx, model_type_definition, MutationKind::Create, model_auth);
     ctx.mutations.push(MetaField {
-        name: MetaNames::mutation_batch_create(model_type_definition),
+        name: MetaNames::mutation_create_many(model_type_definition),
         description: Some(format!("Create multiple {type_name}")),
         args: [MetaInputValue::new(INPUT_ARG_INPUT, format!("[{batch_input_type}!]!"))]
             .into_iter()
@@ -188,33 +186,52 @@ pub fn add_mutation_update<'a>(
     model_auth: Option<&AuthConfig>,
 ) {
     let type_name = MetaNames::model(model_type_definition);
-    let input_base_type = register_input(
+    let input_type = register_input(
         ctx,
         &mut ctx.registry.borrow_mut(),
         model_type_definition,
         object,
         MutationKind::Update,
     );
-    let payload_base_type = register_payload(ctx, model_type_definition, MutationKind::Update, model_auth);
 
+    let update_payload = register_payload(ctx, model_type_definition, MutationKind::Update, model_auth);
     ctx.mutations.push(MetaField {
         name: MetaNames::mutation_update(model_type_definition),
         description: Some(format!("Update a {type_name}")),
-        args: indexmap! {
-            INPUT_ARG_BY.to_owned() => MetaInputValue::new(
-                    INPUT_ARG_BY,
-                    format!("{type_name}ByInput!"),
-                ),
-            INPUT_ARG_INPUT.to_owned() => MetaInputValue::new(
-                    INPUT_ARG_INPUT,
-                    Type::required(input_base_type),
-                )
-        },
-        ty: payload_base_type.as_nullable().into(),
+        args: [
+            MetaInputValue::new(INPUT_ARG_BY, format!("{}!", MetaNames::by_input(model_type_definition))),
+            MetaInputValue::new(INPUT_ARG_INPUT, format!("{input_type}!")),
+        ]
+        .into_iter()
+        .map(|input| (input.name.clone(), input))
+        .collect(),
+        ty: update_payload.as_nullable().into(),
         resolve: Some(Resolver {
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNode {
                 by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
+                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+                ty: type_name.clone().into(),
+            }),
+        }),
+        required_operation: Some(Operations::UPDATE),
+        auth: model_auth.cloned(),
+        ..Default::default()
+    });
+
+    let batch_input_type = register_many_input(ctx, model_type_definition, MutationKind::Update, input_type);
+    let batch_update_payload = register_many_payload(ctx, model_type_definition, MutationKind::Update, model_auth);
+    ctx.mutations.push(MetaField {
+        name: MetaNames::mutation_update_many(model_type_definition),
+        description: Some(format!("Update multiple {type_name}")),
+        args: [MetaInputValue::new(INPUT_ARG_INPUT, format!("[{batch_input_type}!]!"))]
+            .into_iter()
+            .map(|input| (input.name.clone(), input))
+            .collect(),
+        ty: batch_update_payload.as_nullable().into(),
+        resolve: Some(Resolver {
+            id: None,
+            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNodes {
                 input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
                 ty: type_name.into(),
             }),
@@ -258,31 +275,38 @@ impl<'a> MutationKind<'a> {
     fn is_update(&self) -> bool {
         match self {
             Self::Update => true,
-            // Deliberatly not using '_' to ensure any potential new addition to MutationKind is
+            // Deliberately not using '_' to ensure any potential new addition to MutationKind is
             // carefully thought through.
             Self::Create | Self::CreateOrLinkRelation(_) | Self::CreateOrLinkOrUnlinkRelation(_) => false,
         }
     }
 }
 
-fn register_collection_input(
+fn register_many_input(
     ctx: &mut VisitorContext<'_>,
     model_type_definition: &TypeDefinition,
     mutation_kind: MutationKind<'_>,
     single_input_type: BaseType,
 ) -> BaseType {
     let input_type_name = if mutation_kind.is_update() {
-        MetaNames::collection_update_input(model_type_definition)
+        MetaNames::update_many_input(model_type_definition)
     } else {
-        MetaNames::collection_create_input(model_type_definition)
+        MetaNames::create_many_input(model_type_definition)
     };
 
     ctx.registry.borrow_mut().create_type(
         |_| {
-            InputObjectType::new(
-                input_type_name.clone(),
-                [MetaInputValue::new(INPUT_ARG_INPUT, format!("{single_input_type}!"))],
-            )
+            InputObjectType::new(input_type_name.clone(), {
+                let mut args = Vec::new();
+                if mutation_kind.is_update() {
+                    args.push(MetaInputValue::new(
+                        INPUT_ARG_BY,
+                        format!("{}!", MetaNames::by_input(model_type_definition)),
+                    ));
+                }
+                args.push(MetaInputValue::new(INPUT_ARG_INPUT, format!("{single_input_type}!")));
+                args
+            })
             .into()
         },
         &input_type_name,
@@ -301,9 +325,10 @@ fn register_input(
     object: &ObjectType,
     mutation_kind: MutationKind<'_>,
 ) -> BaseType {
-    let input_type_name: String = match &mutation_kind {
-        MutationKind::Update => MetaNames::update_input(model_type_definition),
-        _ => MetaNames::create_input(model_type_definition, mutation_kind.maybe_parent_relation()),
+    let input_type_name: String = if mutation_kind.is_update() {
+        MetaNames::update_input(model_type_definition)
+    } else {
+        MetaNames::create_input(model_type_definition, mutation_kind.maybe_parent_relation())
     };
 
     // type is only created if necessary
@@ -528,16 +553,16 @@ fn register_payload<'a>(
     payload_type_name.into()
 }
 
-fn register_batch_payload<'a>(
+fn register_many_payload<'a>(
     ctx: &mut VisitorContext<'a>,
     model_type_definition: &TypeDefinition,
     mutation_kind: MutationKind<'a>,
     model_auth: Option<&AuthConfig>,
 ) -> NamedType<'static> {
     let payload_type_name = if mutation_kind.is_update() {
-        MetaNames::collection_update_payload_type(model_type_definition)
+        MetaNames::update_many_payload_type(model_type_definition)
     } else {
-        MetaNames::collection_create_payload_type(model_type_definition)
+        MetaNames::create_many_payload_type(model_type_definition)
     };
 
     let type_name = MetaNames::model(model_type_definition);

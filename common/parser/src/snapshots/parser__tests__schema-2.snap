@@ -26,11 +26,15 @@ type Mutation {
 	"""
 	Create multiple User
 	"""
-	userCollectionCreate(input: [UserCollectionCreateInput!]!): UserCollectionCreatePayload
+	userCreateMany(input: [UserCreateManyInput!]!): UserCreateManyPayload
 	"""
 	Update a User
 	"""
 	userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
+	"""
+	Update multiple User
+	"""
+	userUpdateMany(input: [UserUpdateManyInput!]!): UserUpdateManyPayload
 	"""
 	Delete a User by ID or unique field
 	"""
@@ -83,12 +87,6 @@ type User {
 input UserByInput {
 	id: ID
 }
-input UserCollectionCreateInput {
-	input: UserCreateInput!
-}
-type UserCollectionCreatePayload {
-	userCollection: [User!]!
-}
 type UserConnection {
 	"""
 	Information to aid in pagination
@@ -101,6 +99,12 @@ Input to create a User
 """
 input UserCreateInput {
 	nested: NestedInput
+}
+input UserCreateManyInput {
+	input: UserCreateInput!
+}
+type UserCreateManyPayload {
+	userCollection: [User!]!
 }
 type UserCreatePayload {
 	user: User
@@ -120,6 +124,13 @@ Input to update a User
 """
 input UserUpdateInput {
 	nested: NestedInput
+}
+input UserUpdateManyInput {
+	by: UserByInput!
+	input: UserUpdateInput!
+}
+type UserUpdateManyPayload {
+	userCollection: [User!]!
 }
 type UserUpdatePayload {
 	user: User

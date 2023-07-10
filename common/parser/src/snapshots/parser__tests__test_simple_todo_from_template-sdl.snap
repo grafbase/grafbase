@@ -26,11 +26,15 @@ type Mutation {
 	"""
 	Create multiple TodoList
 	"""
-	todoListCollectionCreate(input: [TodoListCollectionCreateInput!]!): TodoListCollectionCreatePayload
+	todoListCreateMany(input: [TodoListCreateManyInput!]!): TodoListCreateManyPayload
 	"""
 	Update a TodoList
 	"""
 	todoListUpdate(by: TodoListByInput!, input: TodoListUpdateInput!): TodoListUpdatePayload
+	"""
+	Update multiple TodoList
+	"""
+	todoListUpdateMany(input: [TodoListUpdateManyInput!]!): TodoListUpdateManyPayload
 	"""
 	Delete a TodoList by ID or unique field
 	"""
@@ -42,11 +46,15 @@ type Mutation {
 	"""
 	Create multiple Todo
 	"""
-	todoCollectionCreate(input: [TodoCollectionCreateInput!]!): TodoCollectionCreatePayload
+	todoCreateMany(input: [TodoCreateManyInput!]!): TodoCreateManyPayload
 	"""
 	Update a Todo
 	"""
 	todoUpdate(by: TodoByInput!, input: TodoUpdateInput!): TodoUpdatePayload
+	"""
+	Update multiple Todo
+	"""
+	todoUpdateMany(input: [TodoUpdateManyInput!]!): TodoUpdateManyPayload
 	"""
 	Delete a Todo by ID or unique field
 	"""
@@ -100,12 +108,6 @@ type Todo {
 input TodoByInput {
 	id: ID
 }
-input TodoCollectionCreateInput {
-	input: TodoCreateInput!
-}
-type TodoCollectionCreatePayload {
-	todoCollection: [Todo!]!
-}
 type TodoConnection {
 	"""
 	Information to aid in pagination
@@ -120,6 +122,12 @@ input TodoCreateInput {
 	title: String!
 	complete: Boolean
 	list: TodoToTodoListCreateTodoListRelation
+}
+input TodoCreateManyInput {
+	input: TodoCreateInput!
+}
+type TodoCreateManyPayload {
+	todoCollection: [Todo!]!
 }
 type TodoCreatePayload {
 	todo: Todo
@@ -150,12 +158,6 @@ type TodoList {
 input TodoListByInput {
 	id: ID
 }
-input TodoListCollectionCreateInput {
-	input: TodoListCreateInput!
-}
-type TodoListCollectionCreatePayload {
-	todoListCollection: [TodoList!]!
-}
 type TodoListConnection {
 	"""
 	Information to aid in pagination
@@ -169,6 +171,12 @@ Input to create a TodoList
 input TodoListCreateInput {
 	title: String!
 	todos: [TodoToTodoListCreateTodoRelation]
+}
+input TodoListCreateManyInput {
+	input: TodoListCreateInput!
+}
+type TodoListCreateManyPayload {
+	todoListCollection: [TodoList!]!
 }
 type TodoListCreatePayload {
 	todoList: TodoList
@@ -189,6 +197,13 @@ Input to update a TodoList
 input TodoListUpdateInput {
 	title: String
 	todos: [TodoToTodoListUpdateTodoRelation]
+}
+input TodoListUpdateManyInput {
+	by: TodoListByInput!
+	input: TodoListUpdateInput!
+}
+type TodoListUpdateManyPayload {
+	todoListCollection: [TodoList!]!
 }
 type TodoListUpdatePayload {
 	todoList: TodoList
@@ -247,6 +262,13 @@ input TodoUpdateInput {
 	title: String
 	complete: Boolean
 	list: TodoToTodoListUpdateTodoListRelation
+}
+input TodoUpdateManyInput {
+	by: TodoByInput!
+	input: TodoUpdateInput!
+}
+type TodoUpdateManyPayload {
+	todoCollection: [Todo!]!
 }
 type TodoUpdatePayload {
 	todo: Todo

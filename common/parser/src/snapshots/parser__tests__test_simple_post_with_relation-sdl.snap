@@ -23,12 +23,6 @@ type Author {
 input AuthorByInput {
 	id: ID
 }
-input AuthorCollectionCreateInput {
-	input: AuthorCreateInput!
-}
-type AuthorCollectionCreatePayload {
-	authorCollection: [Author!]!
-}
 type AuthorConnection {
 	"""
 	Information to aid in pagination
@@ -44,6 +38,12 @@ input AuthorCreateInput {
 	lastname: String!
 	country: Country!
 	posts: [PublishedCreatePostRelation]
+}
+input AuthorCreateManyInput {
+	input: AuthorCreateInput!
+}
+type AuthorCreateManyPayload {
+	authorCollection: [Author!]!
 }
 type AuthorCreatePayload {
 	author: Author
@@ -91,6 +91,13 @@ input AuthorUpdateInput {
 	country: Country
 	posts: [PublishedUpdatePostRelation]
 }
+input AuthorUpdateManyInput {
+	by: AuthorByInput!
+	input: AuthorUpdateInput!
+}
+type AuthorUpdateManyPayload {
+	authorCollection: [Author!]!
+}
 type AuthorUpdatePayload {
 	author: Author
 }
@@ -113,12 +120,6 @@ type Blog {
 input BlogByInput {
 	id: ID
 }
-input BlogCollectionCreateInput {
-	input: BlogCreateInput!
-}
-type BlogCollectionCreatePayload {
-	blogCollection: [Blog!]!
-}
 type BlogConnection {
 	"""
 	Information to aid in pagination
@@ -132,6 +133,12 @@ Input to create a Blog
 input BlogCreateInput {
 	posts: [BlogToPostCreatePostRelation]
 	owner: AuthorToBlogCreateAuthorRelation!
+}
+input BlogCreateManyInput {
+	input: BlogCreateInput!
+}
+type BlogCreateManyPayload {
+	blogCollection: [Blog!]!
 }
 type BlogCreatePayload {
 	blog: Blog
@@ -197,6 +204,13 @@ input BlogUpdateInput {
 	posts: [BlogToPostUpdatePostRelation]
 	owner: AuthorToBlogUpdateAuthorRelation
 }
+input BlogUpdateManyInput {
+	by: BlogByInput!
+	input: BlogUpdateInput!
+}
+type BlogUpdateManyPayload {
+	blogCollection: [Blog!]!
+}
 type BlogUpdatePayload {
 	blog: Blog
 }
@@ -228,11 +242,15 @@ type Mutation {
 	"""
 	Create multiple Blog
 	"""
-	blogCollectionCreate(input: [BlogCollectionCreateInput!]!): BlogCollectionCreatePayload
+	blogCreateMany(input: [BlogCreateManyInput!]!): BlogCreateManyPayload
 	"""
 	Update a Blog
 	"""
 	blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogUpdatePayload
+	"""
+	Update multiple Blog
+	"""
+	blogUpdateMany(input: [BlogUpdateManyInput!]!): BlogUpdateManyPayload
 	"""
 	Delete a Blog by ID or unique field
 	"""
@@ -244,11 +262,15 @@ type Mutation {
 	"""
 	Create multiple Post
 	"""
-	postCollectionCreate(input: [PostCollectionCreateInput!]!): PostCollectionCreatePayload
+	postCreateMany(input: [PostCreateManyInput!]!): PostCreateManyPayload
 	"""
 	Update a Post
 	"""
 	postUpdate(by: PostByInput!, input: PostUpdateInput!): PostUpdatePayload
+	"""
+	Update multiple Post
+	"""
+	postUpdateMany(input: [PostUpdateManyInput!]!): PostUpdateManyPayload
 	"""
 	Delete a Post by ID or unique field
 	"""
@@ -260,11 +282,15 @@ type Mutation {
 	"""
 	Create multiple Author
 	"""
-	authorCollectionCreate(input: [AuthorCollectionCreateInput!]!): AuthorCollectionCreatePayload
+	authorCreateMany(input: [AuthorCreateManyInput!]!): AuthorCreateManyPayload
 	"""
 	Update a Author
 	"""
 	authorUpdate(by: AuthorByInput!, input: AuthorUpdateInput!): AuthorUpdatePayload
+	"""
+	Update multiple Author
+	"""
+	authorUpdateMany(input: [AuthorUpdateManyInput!]!): AuthorUpdateManyPayload
 	"""
 	Delete a Author by ID or unique field
 	"""
@@ -300,12 +326,6 @@ type Post {
 input PostByInput {
 	id: ID
 }
-input PostCollectionCreateInput {
-	input: PostCreateInput!
-}
-type PostCollectionCreatePayload {
-	postCollection: [Post!]!
-}
 type PostConnection {
 	"""
 	Information to aid in pagination
@@ -320,6 +340,12 @@ input PostCreateInput {
 	blog: BlogToPostCreateBlogRelation
 	content: String!
 	authors: [PublishedCreateAuthorRelation]
+}
+input PostCreateManyInput {
+	input: PostCreateInput!
+}
+type PostCreateManyPayload {
+	postCollection: [Post!]!
 }
 type PostCreatePayload {
 	post: Post
@@ -341,6 +367,13 @@ input PostUpdateInput {
 	blog: BlogToPostUpdateBlogRelation
 	content: String
 	authors: [PublishedUpdateAuthorRelation]
+}
+input PostUpdateManyInput {
+	by: PostByInput!
+	input: PostUpdateInput!
+}
+type PostUpdateManyPayload {
+	postCollection: [Post!]!
 }
 type PostUpdatePayload {
 	post: Post

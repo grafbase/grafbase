@@ -26,11 +26,15 @@ type Mutation {
 	"""
 	Create multiple User
 	"""
-	userCollectionCreate(input: [UserCollectionCreateInput!]!): UserCollectionCreatePayload
+	userCreateMany(input: [UserCreateManyInput!]!): UserCreateManyPayload
 	"""
 	Update a User
 	"""
 	userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
+	"""
+	Update multiple User
+	"""
+	userUpdateMany(input: [UserUpdateManyInput!]!): UserUpdateManyPayload
 	"""
 	Delete a User by ID or unique field
 	"""
@@ -42,11 +46,15 @@ type Mutation {
 	"""
 	Create multiple Organization
 	"""
-	organizationCollectionCreate(input: [OrganizationCollectionCreateInput!]!): OrganizationCollectionCreatePayload
+	organizationCreateMany(input: [OrganizationCreateManyInput!]!): OrganizationCreateManyPayload
 	"""
 	Update a Organization
 	"""
 	organizationUpdate(by: OrganizationByInput!, input: OrganizationUpdateInput!): OrganizationUpdatePayload
+	"""
+	Update multiple Organization
+	"""
+	organizationUpdateMany(input: [OrganizationUpdateManyInput!]!): OrganizationUpdateManyPayload
 	"""
 	Delete a Organization by ID or unique field
 	"""
@@ -75,12 +83,6 @@ type Organization {
 input OrganizationByInput {
 	id: ID
 }
-input OrganizationCollectionCreateInput {
-	input: OrganizationCreateInput!
-}
-type OrganizationCollectionCreatePayload {
-	organizationCollection: [Organization!]!
-}
 type OrganizationConnection {
 	"""
 	Information to aid in pagination
@@ -94,6 +96,12 @@ Input to create a Organization
 input OrganizationCreateInput {
 	name: String!
 	users: [OrganizationToUserCreateUserRelation!]
+}
+input OrganizationCreateManyInput {
+	input: OrganizationCreateInput!
+}
+type OrganizationCreateManyPayload {
+	organizationCollection: [Organization!]!
 }
 type OrganizationCreatePayload {
 	organization: Organization
@@ -159,6 +167,13 @@ input OrganizationUpdateInput {
 	name: String
 	users: [OrganizationToUserUpdateUserRelation!]
 }
+input OrganizationUpdateManyInput {
+	by: OrganizationByInput!
+	input: OrganizationUpdateInput!
+}
+type OrganizationUpdateManyPayload {
+	organizationCollection: [Organization!]!
+}
 type OrganizationUpdatePayload {
 	organization: Organization
 }
@@ -205,12 +220,6 @@ type User {
 input UserByInput {
 	id: ID
 }
-input UserCollectionCreateInput {
-	input: UserCreateInput!
-}
-type UserCollectionCreatePayload {
-	userCollection: [User!]!
-}
 type UserConnection {
 	"""
 	Information to aid in pagination
@@ -224,6 +233,12 @@ Input to create a User
 input UserCreateInput {
 	name: String!
 	organizations: [OrganizationToUserCreateOrganizationRelation!]
+}
+input UserCreateManyInput {
+	input: UserCreateInput!
+}
+type UserCreateManyPayload {
+	userCollection: [User!]!
 }
 type UserCreatePayload {
 	user: User
@@ -244,6 +259,13 @@ Input to update a User
 input UserUpdateInput {
 	name: String
 	organizations: [OrganizationToUserUpdateOrganizationRelation!]
+}
+input UserUpdateManyInput {
+	by: UserByInput!
+	input: UserUpdateInput!
+}
+type UserUpdateManyPayload {
+	userCollection: [User!]!
 }
 type UserUpdatePayload {
 	user: User

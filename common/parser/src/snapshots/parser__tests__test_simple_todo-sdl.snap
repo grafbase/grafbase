@@ -41,11 +41,15 @@ type Mutation {
 	"""
 	Create multiple Todo
 	"""
-	todoCollectionCreate(input: [TodoCollectionCreateInput!]!): TodoCollectionCreatePayload
+	todoCreateMany(input: [TodoCreateManyInput!]!): TodoCreateManyPayload
 	"""
 	Update a Todo
 	"""
 	todoUpdate(by: TodoByInput!, input: TodoUpdateInput!): TodoUpdatePayload
+	"""
+	Update multiple Todo
+	"""
+	todoUpdateMany(input: [TodoUpdateManyInput!]!): TodoUpdateManyPayload
 	"""
 	Delete a Todo by ID or unique field
 	"""
@@ -90,12 +94,6 @@ type Todo {
 input TodoByInput {
 	id: ID
 }
-input TodoCollectionCreateInput {
-	input: TodoCreateInput!
-}
-type TodoCollectionCreatePayload {
-	todoCollection: [Todo!]!
-}
 type TodoConnection {
 	"""
 	Information to aid in pagination
@@ -109,6 +107,12 @@ Input to create a Todo
 input TodoCreateInput {
 	content: String!
 	author: AuthorInput
+}
+input TodoCreateManyInput {
+	input: TodoCreateInput!
+}
+type TodoCreateManyPayload {
+	todoCollection: [Todo!]!
 }
 type TodoCreatePayload {
 	todo: Todo
@@ -129,6 +133,13 @@ Input to update a Todo
 input TodoUpdateInput {
 	content: String
 	author: AuthorInput
+}
+input TodoUpdateManyInput {
+	by: TodoByInput!
+	input: TodoUpdateInput!
+}
+type TodoUpdateManyPayload {
+	todoCollection: [Todo!]!
 }
 type TodoUpdatePayload {
 	todo: Todo

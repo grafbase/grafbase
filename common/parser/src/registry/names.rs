@@ -69,6 +69,13 @@ impl MetaNames {
     }
 
     //
+    // GET
+    //
+    pub fn by_input(model_type_definition: &TypeDefinition) -> String {
+        format!("{}ByInput", Self::model(model_type_definition))
+    }
+
+    //
     // SEARCH
     //
     pub fn query_search(model_type_definition: &TypeDefinition) -> String {
@@ -126,20 +133,20 @@ impl MetaNames {
         to_lower_camelcase(format!("{}Create", Self::model(model_type_definition)))
     }
 
-    pub fn mutation_batch_create(model_type_definition: &TypeDefinition) -> String {
-        to_lower_camelcase(format!("{}Create", Self::collection(model_type_definition)))
-    }
-
     pub fn create_payload_type(model_type_definition: &TypeDefinition) -> String {
-        format!("{}CreatePayload", Self::model(model_type_definition))
+        format!("{}Payload", Self::mutation_create(model_type_definition)).to_camel()
     }
 
-    pub fn collection_create_payload_type(model_type_definition: &TypeDefinition) -> String {
-        format!("{}CreatePayload", Self::collection(model_type_definition))
+    pub fn mutation_create_many(model_type_definition: &TypeDefinition) -> String {
+        to_lower_camelcase(format!("{}CreateMany", Self::model(model_type_definition)))
     }
 
-    pub fn collection_create_input(model_type_definition: &TypeDefinition) -> String {
-        format!("{}CreateInput", Self::collection(model_type_definition))
+    pub fn create_many_payload_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Payload", Self::mutation_create_many(model_type_definition)).to_camel()
+    }
+
+    pub fn create_many_input(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Input", Self::mutation_create_many(model_type_definition)).to_camel()
     }
 
     /// Defines
@@ -150,7 +157,7 @@ impl MetaNames {
         maybe_parent_relation: Option<&ParentRelation<'_>>,
     ) -> String {
         match maybe_parent_relation {
-            None => format!("{}CreateInput", Self::model(model_type_definition)),
+            None => format!("{}Input", Self::mutation_create(model_type_definition)).to_camel(),
             Some(parent_relation) => format!(
                 "{}Create{}",
                 Self::relation_prefix(parent_relation),
@@ -179,19 +186,23 @@ impl MetaNames {
     }
 
     pub fn update_payload_type(model_type_definition: &TypeDefinition) -> String {
-        format!("{}UpdatePayload", Self::model(model_type_definition))
+        format!("{}Payload", Self::mutation_update(model_type_definition)).to_camel()
     }
 
     pub fn update_input(model_type_definition: &TypeDefinition) -> String {
-        format!("{}UpdateInput", Self::model(model_type_definition))
+        format!("{}Input", Self::mutation_update(model_type_definition)).to_camel()
     }
 
-    pub fn collection_update_payload_type(model_type_definition: &TypeDefinition) -> String {
-        format!("{}UpdatePayload", Self::collection(model_type_definition))
+    pub fn mutation_update_many(model_type_definition: &TypeDefinition) -> String {
+        to_lower_camelcase(format!("{}UpdateMany", Self::model(model_type_definition)))
     }
 
-    pub fn collection_update_input(model_type_definition: &TypeDefinition) -> String {
-        format!("{}UpdateInput", Self::collection(model_type_definition))
+    pub fn update_many_payload_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Payload", Self::mutation_update_many(model_type_definition)).to_camel()
+    }
+
+    pub fn update_many_input(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Input", Self::mutation_update_many(model_type_definition)).to_camel()
     }
 
     /// For a given relation, one can either change the (un)link to an existing object or create a new one
