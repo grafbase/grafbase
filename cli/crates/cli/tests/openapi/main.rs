@@ -2,19 +2,22 @@
 #[path = "../utils/mod.rs"]
 mod utils;
 
+mod headers;
+mod http_spy;
 mod introspection_headers;
 mod remote_unions;
 
 use std::net::SocketAddr;
 
 use backend::project::ConfigType;
-use crossbeam_channel::{Receiver, Sender};
 use serde_json::{json, Value};
 use utils::{async_client::AsyncClient, environment::Environment};
 use wiremock::{
     matchers::{header, method, path},
-    Match, Mock, ResponseTemplate,
+    Mock, ResponseTemplate,
 };
+
+use self::http_spy::HttpSpy;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn openapi_test() {
@@ -58,12 +61,12 @@ async fn openapi_test() {
     "###
     );
 
-    let request_body_spy = RequestBodySpy::new();
+    let http_spy = HttpSpy::new();
 
     Mock::given(method("PUT"))
         .and(path("/pet"))
         .and(header("authorization", "Bearer BLAH"))
-        .and(request_body_spy.clone())
+        .and(http_spy.clone())
         .respond_with(ResponseTemplate::new(200).set_body_json(doggie()))
         .mount(&mock_server)
         .await;
@@ -102,7 +105,7 @@ async fn openapi_test() {
     "###
     );
 
-    insta::assert_yaml_snapshot!(request_body_spy.drain_requests(), @r###"
+    insta::assert_yaml_snapshot!(http_spy.drain_json_bodies(), @r###"
     ---
     - category: {}
       id: 123
@@ -152,12 +155,12 @@ async fn openapi_flat_namespace() {
     "###
     );
 
-    let request_body_spy = RequestBodySpy::new();
+    let http_spy = HttpSpy::new();
 
     Mock::given(method("PUT"))
         .and(path("/pet"))
         .and(header("authorization", "Bearer BLAH"))
-        .and(request_body_spy.clone())
+        .and(http_spy.clone())
         .respond_with(ResponseTemplate::new(200).set_body_json(doggie()))
         .mount(&mock_server)
         .await;
@@ -193,7 +196,7 @@ async fn openapi_flat_namespace() {
     "###
     );
 
-    insta::assert_yaml_snapshot!(request_body_spy.drain_requests(), @r###"
+    insta::assert_yaml_snapshot!(http_spy.drain_json_bodies(), @r###"
     ---
     - category: {}
       id: 123
@@ -202,33 +205,6 @@ async fn openapi_flat_namespace() {
       status: available
       tags: []
     "###);
-}
-
-#[derive(Clone)]
-struct RequestBodySpy {
-    receiver: Receiver<Value>,
-    sender: Sender<Value>,
-}
-
-impl RequestBodySpy {
-    pub fn new() -> Self {
-        let (sender, receiver) = crossbeam_channel::unbounded();
-        RequestBodySpy { receiver, sender }
-    }
-
-    pub fn drain_requests(&self) -> Vec<Value> {
-        self.receiver.try_iter().collect()
-    }
-}
-
-impl Match for RequestBodySpy {
-    fn matches(&self, request: &wiremock::Request) -> bool {
-        self.sender
-            .send(request.body_json().expect("A JSON Body"))
-            .expect("channel to be open");
-
-        true
-    }
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {

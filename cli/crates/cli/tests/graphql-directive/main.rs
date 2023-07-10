@@ -8,6 +8,7 @@ use crate::utils::environment::Environment;
 #[path = "../utils/mod.rs"]
 mod utils;
 
+mod headers;
 mod server;
 
 const NAMESPACED_QUERY: &str = "
@@ -119,6 +120,43 @@ async fn graphql_test_without_namespace() {
 
     let mut env = Environment::init_async().await;
     let client = start_grafbase(&mut env, schema(54301, false)).await;
+
+    insta::assert_yaml_snapshot!(
+        "unnamespaced-pull-request-with-user",
+        client
+            .gql::<Value>(UNNAMESPACED_QUERY)
+            .variables(json!({"id": "1"}))
+            .await
+    );
+    insta::assert_yaml_snapshot!(
+        "unnamespaced-pull-request-with-bot",
+        client
+            .gql::<Value>(UNNAMESPACED_QUERY)
+            .variables(json!({"id": "2"}))
+            .await
+    );
+    insta::assert_yaml_snapshot!(
+        "unnamespaced-issue",
+        client
+            .gql::<Value>(UNNAMESPACED_QUERY)
+            .variables(json!({"id": "3"}))
+            .await
+    );
+    insta::assert_yaml_snapshot!(
+        "unnamespaced-null",
+        client
+            .gql::<Value>(UNNAMESPACED_QUERY)
+            .variables(json!({"id": "4"}))
+            .await
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_header_forwarding() {
+    server::run(54302).await;
+
+    let mut env = Environment::init_async().await;
+    let client = start_grafbase(&mut env, schema(54302, false)).await;
 
     insta::assert_yaml_snapshot!(
         "unnamespaced-pull-request-with-user",
