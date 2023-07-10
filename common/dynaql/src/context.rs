@@ -835,7 +835,11 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         self.get_param_value(&self.item.node.arguments, name, default)
     }
 
-    pub fn param_value_dynamic(&self, name: &str, mode: InputResolveMode) -> ServerResult<Value> {
+    pub fn param_value_dynamic(
+        &self,
+        name: &str,
+        mode: InputResolveMode,
+    ) -> ServerResult<Option<Value>> {
         let meta = self
             .resolver_node
             .as_ref()
@@ -854,13 +858,11 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 .iter()
                 .find(|(n, _)| n.node.as_str() == name)
                 .map(|(_, value)| value)
-                .cloned();
+                .cloned()
+                .map(|value| self.resolve_input_value(value))
+                .transpose()?;
 
-            let const_value = match maybe_value {
-                Some(value) => self.resolve_input_value(value)?,
-                None => Value::Null,
-            };
-            resolve_input(self, name, meta_input_value, const_value, mode)
+            resolve_input(self, name, meta_input_value, maybe_value, mode)
         } else {
             Err(ServerError::new(
                 &format!("Internal Error: Unknown argument '{name}'"),

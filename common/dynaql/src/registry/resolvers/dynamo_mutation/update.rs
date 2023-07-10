@@ -111,8 +111,8 @@ fn partition_by_identifier(
         .map(|ParsedUpdateInput { input, by }| {
             if by.name == "id" {
                 let serde_json::Value::String(id_to_be_deleted) = by.value else {
-                unreachable!()
-            };
+                    unreachable!()
+                };
                 ObfuscatedID::expect(&id_to_be_deleted, &meta_type.name)
                     .map_err(|err| err.into_server_error(ctx.item.pos))
                     .map(|opaque_id| {
@@ -147,6 +147,7 @@ fn partition_by_identifier(
             updates
                 .into_iter()
                 .map(|update| match update {
+                    // Only used to partition the updates as Rust doesn't have Either in the stdl.
                     UpdateInput::ById(update) => Ok(update),
                     UpdateInput::ByConstraint(update) => Err(update),
                 })

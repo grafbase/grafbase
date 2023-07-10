@@ -340,11 +340,11 @@ impl<'a> Sql<'a> {
                 filter_by_owner,
             } => {
                 let document_update = if increment_fields.is_empty() {
-                    "json_patch(document, ?document)".to_string()
+                    "?document".to_string()
                 } else {
                     increment_fields.iter().fold(String::new(), |accumulator, current| {
                         if accumulator.is_empty() {
-                            format!("json_set(json_patch(document, ?document), '$.{current}.N', cast(coalesce(json_extract(document, '$.{current}.N'), 0) + cast(?increments as NUMERIC) as TEXT))")
+                            format!("json_set(?document, '$.{current}.N', cast(coalesce(json_extract(document, '$.{current}.N'), 0) + cast(?increments as NUMERIC) as TEXT))")
                         } else {
                             format!("json_set({accumulator}, '$.{current}.N', cast(coalesce(json_extract(document, '$.{current}.N'), 0) + cast(?increments as NUMERIC) as TEXT))")
                         }
@@ -397,7 +397,7 @@ impl<'a> Sql<'a> {
 
                     UPDATE {table} SET
                         relation_names=(SELECT json_group_array(updated.value) FROM updated),
-                        document=json_patch(document, ?document),
+                        document=?document,
                         updated_at=?updated_at
                     WHERE pk=?pk AND sk=?sk
                 "},
@@ -425,7 +425,7 @@ impl<'a> Sql<'a> {
 
                     UPDATE {table} SET
                         relation_names=(SELECT json_group_array(removed.value) FROM removed),
-                        document=json_patch(document, ?document),
+                        document=?document,
                         updated_at=?updated_at
                     WHERE pk=?pk AND sk=?sk
                 "},

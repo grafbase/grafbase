@@ -52,12 +52,10 @@ impl VariableResolveDefinition {
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<Value>, ServerError> {
         match self {
-            Self::InputTypeName(name) => ctx
-                .param_value_dynamic(name, InputResolveMode::Default)
-                .map(Some),
-            Self::ConnectorInputTypeName(name) => ctx
-                .param_value_dynamic(name, InputResolveMode::ApplyConnectorTransforms)
-                .map(Some),
+            Self::InputTypeName(name) => ctx.param_value_dynamic(name, InputResolveMode::Default),
+            Self::ConnectorInputTypeName(name) => {
+                ctx.param_value_dynamic(name, InputResolveMode::ApplyConnectorTransforms)
+            }
             #[allow(deprecated)]
             Self::ResolverData(key) => Ok(resolver_data_get_opt_ref::<Value>(
                 &ctx.resolvers_data.read().expect("handle"),
