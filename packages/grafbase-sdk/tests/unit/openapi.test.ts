@@ -32,6 +32,9 @@ describe('OpenAPI generator', () => {
         headers.static('Method', 'POST')
 
         headers.introspection('foo', 'bar')
+
+        headers.set('X-Features', 'Foo,Bar')
+        headers.set('Foo', { forward: 'Bar' })
       }
     })
 
@@ -47,6 +50,8 @@ describe('OpenAPI generator', () => {
           headers: [
             { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
             { name: "Method", value: "POST" }
+            { name: "X-Features", value: "Foo,Bar" }
+            { name: "Foo", forward: "Bar" }
           ]
           introspectionHeaders: [
             { name: "foo", value: "bar" }

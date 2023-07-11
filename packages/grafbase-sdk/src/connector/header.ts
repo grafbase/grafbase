@@ -1,19 +1,27 @@
 export type HeaderGenerator = (headers: Headers) => any
+export type HeaderValue =
+  | { type: 'static'; value: string }
+  | { type: 'forward'; from: string }
 
 /**
  * Header used in connector calls.
  */
 export class Header {
   private name: string
-  private value: string
+  private value: HeaderValue
 
-  constructor(name: string, value: string) {
+  constructor(name: string, value: HeaderValue) {
     this.name = name
     this.value = value
   }
 
   public toString(): string {
-    return `{ name: "${this.name}", value: "${this.value}" }`
+    const valueStr =
+      this.value.type === 'static'
+        ? `value: "${this.value.value}"`
+        : `forward: "${this.value.from}"`
+
+    return `{ name: "${this.name}", ${valueStr} }`
   }
 }
 
@@ -47,11 +55,28 @@ export class Headers {
   /**
    * Creates a header used in client requests.
    *
+   * @deprecated Use set instead
    * @param name - The name of the header
    * @param value - The value of the header
    */
   public static(name: string, value: string) {
-    this.headers.push(new Header(name, value))
+    this.headers.push(new Header(name, { type: 'static', value }))
+  }
+
+  /**
+   * Creates a header used in client requests.
+   *
+   * @param name - The name of the header
+   * @param value - The value for the header.  Either a hardcoded string or a header name to forward from.
+   */
+  public set(name: string, value: string | { forward: string }) {
+    if (typeof value === 'string') {
+      this.headers.push(new Header(name, { type: 'static', value }))
+    } else {
+      this.headers.push(
+        new Header(name, { type: 'forward', from: value.forward })
+      )
+    }
   }
 
   /**
@@ -61,6 +86,6 @@ export class Headers {
    * @param value - The value of the header
    */
   public introspection(name: string, value: string) {
-    this.introspectionHeaders.push(new Header(name, value))
+    this.introspectionHeaders.push(new Header(name, { type: 'static', value }))
   }
 }
