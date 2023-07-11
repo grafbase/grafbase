@@ -157,9 +157,15 @@ pub fn operation_completed(
     r#type: common::types::OperationType,
     duration: std::time::Duration,
 ) {
+    let formatted_duration = if duration < std::time::Duration::from_secs(1) {
+        format!("{}ms", duration.as_millis())
+    } else {
+        format!("{:.1}s", duration.as_secs_f64())
+    };
+
     // FIXME: Add operation type.
     let formatted_name = name.map(|name| format!(" {name}")).unwrap_or_default();
-    println!("→ {type}{formatted_name}  🕑 {}ms", duration.as_millis());
+    println!("→ {type}{formatted_name}  🕑 {formatted_duration}");
 }
 
 pub fn reload<P: AsRef<Path>>(path: P) {
