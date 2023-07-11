@@ -164,6 +164,11 @@ pub struct GqlRequestBuilder<Response> {
 }
 
 impl<Response> GqlRequestBuilder<Response> {
+    pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.reqwest_builder = self.reqwest_builder.header(name.into(), value.into());
+        self
+    }
+
     pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
         self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
         self

@@ -1752,6 +1752,7 @@ version = "0.26.1"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
+ "async-trait",
  "axum",
  "backtrace",
  "cfg-if",
@@ -1759,7 +1760,6 @@ dependencies = [
  "clap",
  "clap_complete",
  "colored",
- "crossbeam-channel",
  "ctrlc",
  "derive_builder",
  "dirs",

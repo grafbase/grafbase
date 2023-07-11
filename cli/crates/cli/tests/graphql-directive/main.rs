@@ -8,6 +8,7 @@ use crate::utils::environment::Environment;
 #[path = "../utils/mod.rs"]
 mod utils;
 
+mod headers;
 mod server;
 
 const NAMESPACED_QUERY: &str = "
