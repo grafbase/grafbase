@@ -105,7 +105,7 @@ mod global {
                 client
                     .gql::<Value>(OWNER_TODO_UPDATE)
                     .bearer(USER1)
-                    .variables(json!({"id": id, "complete": true}))
+                    .variables(json!({"id": id, "input": { "complete": true }}))
                     .send()
             );
             // user1.list should see the todo with updated complete status.
@@ -128,7 +128,7 @@ mod global {
             client
                 .gql::<Value>(OWNER_TODO_UPDATE)
                 .bearer(USER2)
-                .variables(json!({"id": id, "complete": false}))
+                .variables(json!({"id": id, "input": { "complete": false }}))
                 .send();
             insta::assert_json_snapshot!(
                 "user1-list-2",

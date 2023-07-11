@@ -1,0 +1,8 @@
+type Author @model {
+  name: String! @unique
+}
+
+type Post @model {
+  slug: String! @unique
+  author: Author
+}

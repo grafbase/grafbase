@@ -217,12 +217,23 @@ type FieldResult<T> = Result<T, FieldError>;
 
 struct DynamoItemExt;
 impl DynamoItemExt {
-    fn flatten(value: &Value) -> Vec<&Value> {
+    fn is_null(value: &Value) -> bool {
         value
-            .get("L")
-            .and_then(serde_json::Value::as_array)
-            .map(|array| array.iter().flat_map(DynamoItemExt::flatten).collect::<Vec<_>>())
-            .unwrap_or(vec![value])
+            .get("NULL")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or_default()
+    }
+
+    fn flatten(value: &Value) -> Vec<&Value> {
+        if DynamoItemExt::is_null(value) {
+            vec![]
+        } else {
+            value
+                .get("L")
+                .and_then(serde_json::Value::as_array)
+                .map(|array| array.iter().flat_map(DynamoItemExt::flatten).collect::<Vec<_>>())
+                .unwrap_or(vec![value])
+        }
     }
     fn to_str(value: &Value) -> FieldResult<&str> {
         value
