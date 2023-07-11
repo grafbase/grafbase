@@ -17,7 +17,7 @@ use wiremock::{
     Mock, ResponseTemplate,
 };
 
-use self::http_spy::HttpSpy;
+use self::http_spy::ReceivedBodiesExt;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn openapi_test() {
@@ -61,14 +61,11 @@ async fn openapi_test() {
     "###
     );
 
-    let http_spy = HttpSpy::new();
-
-    Mock::given(method("PUT"))
+    let mock_guard = Mock::given(method("PUT"))
         .and(path("/pet"))
         .and(header("authorization", "Bearer BLAH"))
-        .and(http_spy.clone())
         .respond_with(ResponseTemplate::new(200).set_body_json(doggie()))
-        .mount(&mock_server)
+        .mount_as_scoped(&mock_server)
         .await;
 
     insta::assert_yaml_snapshot!(
@@ -105,7 +102,7 @@ async fn openapi_test() {
     "###
     );
 
-    insta::assert_yaml_snapshot!(http_spy.drain_json_bodies(), @r###"
+    insta::assert_yaml_snapshot!(mock_guard.received_json_bodies().await, @r###"
     ---
     - category: {}
       id: 123
@@ -155,14 +152,11 @@ async fn openapi_flat_namespace() {
     "###
     );
 
-    let http_spy = HttpSpy::new();
-
-    Mock::given(method("PUT"))
+    let mock_guard = Mock::given(method("PUT"))
         .and(path("/pet"))
         .and(header("authorization", "Bearer BLAH"))
-        .and(http_spy.clone())
         .respond_with(ResponseTemplate::new(200).set_body_json(doggie()))
-        .mount(&mock_server)
+        .mount_as_scoped(&mock_server)
         .await;
 
     insta::assert_yaml_snapshot!(
@@ -196,7 +190,7 @@ async fn openapi_flat_namespace() {
     "###
     );
 
-    insta::assert_yaml_snapshot!(http_spy.drain_json_bodies(), @r###"
+    insta::assert_yaml_snapshot!(mock_guard.received_json_bodies().await, @r###"
     ---
     - category: {}
       id: 123

@@ -8,7 +8,7 @@ use wiremock::{
     Mock, ResponseTemplate,
 };
 
-use crate::{http_spy::HttpSpy, utils::environment::Environment};
+use crate::utils::environment::Environment;
 
 use super::{doggie, mount_petstore_spec, start_grafbase};
 
@@ -20,13 +20,10 @@ async fn test_header_passthrough() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(&mut env, petstore_schema_with_header_forwarding(mock_server.address())).await;
 
-    let http_spy = HttpSpy::new();
-
-    Mock::given(method("GET"))
+    let mock_guard = Mock::given(method("GET"))
         .and(path("/pet/123"))
-        .and(http_spy.clone())
         .respond_with(ResponseTemplate::new(200).set_body_json(doggie()))
-        .mount(&mock_server)
+        .mount_as_scoped(&mock_server)
         .await;
 
     insta::assert_yaml_snapshot!(
@@ -56,8 +53,9 @@ async fn test_header_passthrough() {
     "###
     );
 
-    let headers = http_spy
-        .drain_requests()
+    let headers = mock_guard
+        .received_requests()
+        .await
         .into_iter()
         .map(|request| {
             // Wow, this is annoying...
@@ -66,11 +64,15 @@ async fn test_header_passthrough() {
                 .into_iter()
                 .map(|(name, value)| (name.to_string(), value.to_string()))
                 .filter(|(name, _)| {
+                    // Host changes on every test, we need to filter it out.
+                    // The others are just noise so I'm also ditching them.
                     name != "host" && name != "connection" && name != "accept-encoding" && name != "mf-loop"
                 })
                 .collect::<BTreeMap<_, _>>()
         })
         .collect::<Vec<_>>();
+
+    dbg!(&headers);
 
     insta::assert_yaml_snapshot!(headers, @r###"
     ---

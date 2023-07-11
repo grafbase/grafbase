@@ -1,36 +1,30 @@
-use crossbeam_channel::{Receiver, Sender};
 use serde_json::Value;
-use wiremock::{Match, Request};
+use wiremock::{MockGuard, MockServer};
 
-#[derive(Clone)]
-/// An impl of `wiremock::Match` that lets you see what requests were made
-pub struct HttpSpy {
-    receiver: Receiver<Request>,
-    sender: Sender<Request>,
+#[async_trait::async_trait]
+pub trait ReceivedBodiesExt {
+    async fn received_json_bodies(&self) -> Vec<Value>;
 }
 
-impl HttpSpy {
-    pub fn new() -> Self {
-        let (sender, receiver) = crossbeam_channel::unbounded();
-        HttpSpy { receiver, sender }
-    }
-
-    pub fn drain_requests(&self) -> Vec<Request> {
-        self.receiver.try_iter().collect()
-    }
-
-    pub fn drain_json_bodies(&self) -> Vec<Value> {
-        self.receiver
-            .try_iter()
-            .map(|request| request.body_json().expect("Expected JSON body"))
+#[async_trait::async_trait]
+impl ReceivedBodiesExt for MockServer {
+    async fn received_json_bodies(&self) -> Vec<Value> {
+        self.received_requests()
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|request| request.body_json().expect("expected JSON body"))
             .collect()
     }
 }
 
-impl Match for HttpSpy {
-    fn matches(&self, request: &wiremock::Request) -> bool {
-        self.sender.send(request.clone()).expect("channel to be open");
-
-        true
+#[async_trait::async_trait]
+impl ReceivedBodiesExt for MockGuard {
+    async fn received_json_bodies(&self) -> Vec<Value> {
+        self.received_requests()
+            .await
+            .into_iter()
+            .map(|request| request.body_json().expect("expected JSON body"))
+            .collect()
     }
 }
