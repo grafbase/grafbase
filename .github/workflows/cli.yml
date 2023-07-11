@@ -17,8 +17,8 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: release/5f5e963-2023-07-10
-  PROD_ASSETS: assets.grafbase.com
+  ASSETS_VERSION: connector/mongodb/b0d33be-2023-07-11
+  PROD_ASSETS: assets.grafbase.dev
   CARGO_TERM_COLOR: 'always'
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_PROFILE_TEST_DEBUG: 0
