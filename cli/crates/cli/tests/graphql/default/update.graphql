@@ -1,7 +1,10 @@
-mutation TodoUpdate($id: ID) {
-  todoListUpdate(by: { id: $id }, input: { title: "Updated Title" }) {
+mutation TodoUpdate($id: ID, $input: TodoListUpdateInput!) {
+  todoListUpdate(by: { id: $id }, input: $input) {
     todoList {
       title
+      tags
+      status
+      likes
     }
   }
 }

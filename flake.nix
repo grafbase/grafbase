@@ -37,7 +37,6 @@
       optional
       ;
     systems = flake-utils.lib.system;
-    
   in
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
@@ -73,6 +72,7 @@
             libiconv
 
             cargo-nextest
+            cargo-insta
             # Used for resolver tests
             nodePackages.pnpm
             nodePackages.yarn
@@ -132,4 +132,3 @@
       };
     });
 }
-
