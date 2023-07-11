@@ -210,9 +210,17 @@ pub enum UdfBuildError {
     #[error("command error: {0}")]
     WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
-    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
-    #[error("{0} {1} failed to build:\n{2}")]
-    UdfBuild(UdfKind, String, String),
+    /// returned if the wrangler build step failed
+    #[error("\n{output}")]
+    WranglerBuildFailed { output: String },
+
+    // returned if miniflare for a given UDF fails to spawn
+    #[error("unknown spawn error")]
+    MiniflareSpawnFailed,
+
+    // returned if miniflare for a given UDF fails to spawn, with more details
+    #[error("\n{output}")]
+    MiniflareSpawnFailedWithOutput { output: String },
 
     /// returned if a spawned task panics
     #[error(transparent)]

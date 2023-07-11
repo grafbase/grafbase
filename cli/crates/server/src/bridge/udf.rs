@@ -1,10 +1,11 @@
 use std::process::Stdio;
 
+use crate::errors::UdfBuildError;
 use crate::types::ServerMessage;
 
 use common::types::UdfKind;
 use common::{environment::Environment, types::UdfMessageLevel};
-use futures_util::{pin_mut, TryStreamExt};
+use futures_util::{pin_mut, TryFutureExt, TryStreamExt};
 use tokio::process::Command;
 
 use super::errors::ApiError;
@@ -58,8 +59,8 @@ pub async fn spawn_miniflare(
     udf_name: &str,
     package_json_path: std::path::PathBuf,
     wrangler_toml_path: std::path::PathBuf,
-    _tracing: bool,
-) -> Result<(tokio::task::JoinHandle<()>, u16), ApiError> {
+    tracing: bool,
+) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
     use tokio::io::AsyncBufReadExt;
     use tokio_stream::wrappers::LinesStream;
 
@@ -72,12 +73,11 @@ pub async fn spawn_miniflare(
         .unwrap();
 
     let (join_handle, resolver_worker_port) = {
-        let miniflare_arguments = &[
+        let mut miniflare_arguments = vec![
             // used by miniflare when running normally as well
             "--experimental-vm-modules",
             miniflare_path.to_str().unwrap(),
             "--modules",
-            "--debug",
             "--host",
             "127.0.0.1",
             "--port",
@@ -89,6 +89,9 @@ pub async fn spawn_miniflare(
             "--wrangler-config",
             wrangler_toml_path.to_str().unwrap(),
         ];
+        if tracing {
+            miniflare_arguments.push("--debug");
+        }
         let miniflare_command = miniflare_arguments.join(" ");
 
         let mut miniflare = Command::new("node");
@@ -105,24 +108,25 @@ pub async fn spawn_miniflare(
         let mut miniflare = miniflare.spawn().unwrap();
         let bound_port = {
             let stdout = miniflare.stdout.as_mut().unwrap();
-            let lines_stream = LinesStream::new(tokio::io::BufReader::new(stdout).lines())
-                .inspect_ok(|line| trace!("miniflare: {line}"));
-
-            let filtered_lines_stream = lines_stream.try_filter_map(|line: String| {
-                futures_util::future::ready(Ok(line
-                    .split("Listening on")
-                    .skip(1)
-                    .flat_map(|bound_address| bound_address.split(':'))
-                    .nth(1)
-                    .and_then(|value| value.trim().parse::<u16>().ok())))
-            });
+            let mut lines_skipped_over = vec![];
+            let filtered_lines_stream =
+                LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
+                    trace!("miniflare: {line}");
+                    let port = line
+                        .split("Listening on")
+                        .skip(1)
+                        .flat_map(|bound_address| bound_address.split(':'))
+                        .nth(1)
+                        .and_then(|value| value.trim().parse::<u16>().ok());
+                    lines_skipped_over.push(line);
+                    futures_util::future::ready(Ok(port))
+                });
             pin_mut!(filtered_lines_stream);
-            filtered_lines_stream
-                .try_next()
-                .await
-                .ok()
-                .flatten()
-                .expect("must be present")
+            filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
+                UdfBuildError::MiniflareSpawnFailedWithOutput {
+                    output: lines_skipped_over.join("\n"),
+                }
+            })?
         };
         trace!("Bound to port: {bound_port}");
         let udf_name = udf_name.to_owned();
@@ -140,11 +144,11 @@ pub async fn spawn_miniflare(
 
     if wait_until_udf_ready(resolver_worker_port, udf_kind, udf_name)
         .await
-        .map_err(|_| ApiError::UdfSpawnError)?
+        .map_err(|_| UdfBuildError::MiniflareSpawnFailed)?
     {
         Ok((join_handle, resolver_worker_port))
     } else {
-        Err(ApiError::UdfSpawnError)
+        Err(UdfBuildError::MiniflareSpawnFailed)
     }
 }
 
@@ -155,7 +159,6 @@ pub async fn invoke(
     udf_name: &str,
     payload: &serde_json::Value,
 ) -> Result<serde_json::Value, ApiError> {
-    use futures_util::TryFutureExt;
     trace!("Invocation of {udf_kind} '{udf_name}' with payload {payload}");
     let json_string = reqwest::Client::new()
         .post(format!("http://127.0.0.1:{udf_worker_port}/invoke"))
