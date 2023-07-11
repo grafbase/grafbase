@@ -2142,7 +2142,6 @@ Registry {
         ),
         provider: None,
     },
-    schemas: {},
     http_headers: {
         "OpenAPI1": ConnectorHeaders(
             [],

@@ -16,8 +16,6 @@ pub mod union_discriminator;
 pub mod utils;
 pub mod variables;
 
-use arrow_schema::Schema as ArrowSchema;
-use dynaql_parser::Pos;
 use dynaql_value::ConstValue;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
@@ -1666,10 +1664,6 @@ pub struct Registry {
     pub enable_federation: bool,
     pub federation_subscription: bool,
     pub auth: AuthConfig,
-    /// Store data about the modelization here
-    /// Every schema is stored here and every references for a schema is inside a [`SchemaID`].
-    #[serde(with = "vectorize", default)]
-    pub schemas: HashMap<SchemaID, Arc<ArrowSchema>>,
     #[serde(default)]
     pub http_headers: BTreeMap<String, ConnectorHeaders>,
     #[serde(default)]
@@ -1813,15 +1807,6 @@ impl Registry {
             .iter()
             .find(|(key, _value)| key.to_lowercase() == ty)
             .map(|(_, val)| val)
-    }
-
-    pub fn get_schema(&self, id: SchemaID, pos: Option<Pos>) -> ServerResult<Arc<ArrowSchema>> {
-        self.schemas
-            .get(&id)
-            .ok_or_else(|| {
-                ServerError::new("An error occured while interpreting your data schema.", pos)
-            })
-            .cloned()
     }
 
     /// Function ran when resolving a field.

@@ -14,9 +14,8 @@ use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display, Formatter};
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
-use crate::models::from_meta_type;
 use crate::rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget};
 use crate::ParseResult;
 
@@ -209,16 +208,6 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.remove_unused_types();
-
-        let mut result = HashMap::new();
-
-        for (id, val) in self.schema_to_build.try_read().expect("Poisoned").iter() {
-            let meta_ty = registry.types.get(val).unwrap();
-            let schema = from_meta_type(&registry, meta_ty, true).unwrap();
-            result.insert(*id, Arc::new(schema));
-        }
-
-        registry.schemas = result;
 
         let mut required_udfs = self
             .required_resolvers

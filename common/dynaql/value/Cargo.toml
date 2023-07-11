@@ -18,8 +18,6 @@ default = []
 serde_json = { workspace = true }
 serde = { workspace = true }
 bytes = { version = "1", features = ["serde"] }
-indexmap = { git = "https://github.com/bluss/indexmap.git", features = ["serde"], rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
-# Arrow
-arrow-json = { workspace = true, optional = true }
-arrow-schema = { workspace = true, optional = true }
-arrow = { workspace = true, optional = true }
+indexmap = { git = "https://github.com/bluss/indexmap.git", features = [
+  "serde",
+], rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }

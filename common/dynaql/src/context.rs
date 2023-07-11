@@ -30,16 +30,14 @@ use crate::parser::types::{
 use crate::registry::relations::MetaRelation;
 use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::ResolvedValue;
+use crate::registry::Registry;
 use crate::registry::{MetaInputValue, MetaType, TypeReference};
-use crate::registry::{Registry, SchemaID};
 use crate::resolver_utils::{resolve_input, InputResolveMode};
 use crate::schema::SchemaEnv;
 use crate::{
     CacheInvalidation, Error, LegacyInputType, Lookahead, Name, PathSegment, Pos, Positioned,
     Result, ServerError, ServerResult, UploadValue, Value,
 };
-
-use arrow_schema::Schema as ArrowSchema;
 
 /// Data related functions of the context.
 pub trait DataContext<'a> {
@@ -815,10 +813,6 @@ pub enum QueryByVariables {
 }
 
 impl<'a> ContextBase<'a, &'a Positioned<Field>> {
-    pub fn get_schema_id(&self, id: SchemaID) -> ServerResult<Arc<ArrowSchema>> {
-        self.registry().get_schema(id, Some(self.item.pos))
-    }
-
     pub fn trace_id(&self) -> String {
         self.data::<Arc<DynamoDBBatchersData>>()
             .map(|x| x.ctx.trace_id.clone())

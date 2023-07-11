@@ -1,11 +1,10 @@
-use dynaql::registry::{MetaType, Registry};
+use dynaql::registry::Registry;
 use dynaql::Schema;
 use function_name::named;
 use grafbase::UdfKind;
 use serde_json as _;
 use std::collections::{HashMap, HashSet};
 
-use crate::models::from_meta_type;
 use crate::rules::visitor::RuleError;
 
 macro_rules! assert_validation_error {
@@ -20,23 +19,6 @@ macro_rules! assert_validation_error {
             Some(RuleError { message, .. }) if message == $expected_message
         );
     };
-}
-
-fn assert_registry_schema_generation(registry: &Registry) {
-    for (name, ty) in &registry.types {
-        if name.ends_with("Input")
-            || name.starts_with("__")
-            || ["PageInfo", "Query", "Mutation"].contains(&name.as_str())
-        {
-            continue;
-        }
-        if let ty @ MetaType::Object { .. } = ty {
-            let schema_opt = from_meta_type(registry, ty, true);
-            // To print the name if there is an issue.
-            dbg!(name);
-            assert!(schema_opt.is_ok());
-        }
-    }
 }
 
 fn assert_snapshot(name: &str, registry: Registry) {
@@ -66,7 +48,6 @@ fn test_simple_product() {
     )
     .unwrap();
 
-    assert_registry_schema_generation(&result);
     assert_snapshot(function_name!(), result);
 }
 
@@ -95,7 +76,6 @@ fn test_simple_todo() {
     )
     .unwrap();
 
-    assert_registry_schema_generation(&result);
     assert_snapshot(function_name!(), result);
 }
 
@@ -119,8 +99,6 @@ fn test_simple_todo_from_template() {
         "#,
     )
     .unwrap();
-
-    assert_registry_schema_generation(&result);
 
     assert_snapshot(function_name!(), result);
 }
@@ -149,8 +127,6 @@ fn test_simple_todo_with_vec() {
         "#,
     )
     .unwrap();
-
-    assert_registry_schema_generation(&result);
 
     assert_snapshot(function_name!(), result);
 }
@@ -193,8 +169,6 @@ fn test_simple_todo_with_enum() {
     )
     .unwrap();
 
-    assert_registry_schema_generation(&result);
-
     assert_snapshot(function_name!(), result);
 }
 
@@ -232,8 +206,6 @@ fn test_simple_post_with_relation() {
     )
     .unwrap();
 
-    assert_registry_schema_generation(&result);
-
     assert_snapshot(function_name!(), result);
 }
 
@@ -267,8 +239,6 @@ fn test_multiple_relations() {
     )
     .unwrap();
 
-    assert_registry_schema_generation(&result);
-
     assert_snapshot(function_name!(), result);
 }
 
@@ -289,8 +259,6 @@ fn test_many_to_many() {
         "#,
     )
     .unwrap();
-
-    assert_registry_schema_generation(&result);
 
     assert_snapshot(function_name!(), result);
 }
@@ -577,7 +545,6 @@ fn should_support_search_directive() {
     );
     assert!(simple.is_ok(), "Search should be supported on @model type");
     let simple = simple.unwrap();
-    assert_registry_schema_generation(&simple);
     assert_snapshot(&format!("{}-simple", function_name!()), simple);
 
     let complex = super::parse_registry(
@@ -600,7 +567,6 @@ fn should_support_search_directive() {
 
     assert!(complex.is_ok(), "Search should support various field types.");
     let complex = complex.unwrap();
-    assert_registry_schema_generation(&complex);
     assert_snapshot(&format!("{}-complex", function_name!()), complex);
 
     let model_directive = super::parse_registry(
@@ -627,7 +593,6 @@ fn should_support_search_directive() {
         "Search should support model @search directive."
     );
     let model_directive = model_directive.unwrap();
-    assert_registry_schema_generation(&model_directive);
     assert_snapshot(&format!("{}-model_directive", function_name!()), model_directive);
 
     let enum_field = super::parse_registry(
@@ -653,7 +618,6 @@ fn should_support_search_directive() {
 
     assert!(enum_field.is_ok(), "Search should support model @search directive.");
     let model_directive = enum_field.unwrap();
-    assert_registry_schema_generation(&model_directive);
     assert_snapshot(&format!("{}-enum-field", function_name!()), model_directive);
 
     assert_validation_error!(

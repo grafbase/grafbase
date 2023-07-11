@@ -924,7 +924,6 @@ expression: "Registry::from(schema)"
     "allowed_owner_ops": 0,
     "provider": null
   },
-  "schemas": [],
   "http_headers": {},
   "search_config": {
     "indices": {}

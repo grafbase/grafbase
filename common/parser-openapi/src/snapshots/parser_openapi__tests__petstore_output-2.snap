@@ -2230,7 +2230,6 @@ Registry {
         ),
         provider: None,
     },
-    schemas: {},
     http_headers: {
         "petstore": ConnectorHeaders(
             [],

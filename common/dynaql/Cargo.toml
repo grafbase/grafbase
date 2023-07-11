@@ -72,9 +72,6 @@ unindent = "0.2"
 grafbase-runtime = { path = "../grafbase-runtime" }
 grafbase = { path = "../grafbase", features = ["json"] }
 
-# Query planning schema
-arrow-schema = { workspace = true, features = ["serde"] }
-
 # API dependencies
 dynamodb = { path = "../dynamodb", features = ["tracing"] }
 graph-entities = { path = "../graph-entities" }
@@ -96,7 +93,7 @@ time = { version = "0.3", optional = true, features = [
   "formatting",
   "macros",
 ] }
-tuple-combinator = { version = "0.2", optional = true}
+tuple-combinator = { version = "0.2", optional = true }
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }
