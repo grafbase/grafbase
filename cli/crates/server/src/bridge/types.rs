@@ -85,6 +85,7 @@ pub enum LogEventType {
         name: Option<String>,
         #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
         duration: std::time::Duration,
+        r#type: common::types::OperationType,
     },
 }
 

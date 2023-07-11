@@ -34,6 +34,7 @@ pub enum ServerMessage {
         request_id: String,
         name: Option<String>,
         duration: std::time::Duration,
+        r#type: common::types::OperationType,
     },
     CompilationError(String),
 }

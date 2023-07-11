@@ -39,3 +39,11 @@ impl Default for UdfKind {
         Self::Resolver
     }
 }
+
+#[derive(Clone, Copy, Debug, serde_with::DeserializeFromStr, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "lowercase")]
+pub enum OperationType {
+    Query,
+    Mutation,
+    Subscription,
+}

@@ -17,10 +17,11 @@ pub async fn log_event_endpoint(
     let LogEvent { request_id, r#type } = request;
     let message = match r#type {
         LogEventType::OperationStarted { name } => ServerMessage::OperationStarted { request_id, name },
-        LogEventType::OperationCompleted { name, duration } => ServerMessage::OperationCompleted {
+        LogEventType::OperationCompleted { name, duration, r#type } => ServerMessage::OperationCompleted {
             request_id,
             name,
             duration,
+            r#type,
         },
     };
 

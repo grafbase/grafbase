@@ -60,8 +60,9 @@ pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Resu
                     request_id,
                     name,
                     duration,
+                    r#type,
                 } => {
-                    report::operation_completed(request_id, name, duration);
+                    report::operation_completed(request_id, name, r#type, duration);
                 }
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }

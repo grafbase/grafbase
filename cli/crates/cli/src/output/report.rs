@@ -151,10 +151,15 @@ pub fn udf_message(udf_kind: UdfKind, udf_name: &str, message: &str, level: UdfM
 
 pub fn operation_started(_request_id: String, _name: Option<String>) {}
 
-pub fn operation_completed(_request_id: String, name: Option<String>, duration: std::time::Duration) {
+pub fn operation_completed(
+    _request_id: String,
+    name: Option<String>,
+    r#type: common::types::OperationType,
+    duration: std::time::Duration,
+) {
     // FIXME: Add operation type.
     let formatted_name = name.map(|name| format!(" {name}")).unwrap_or_default();
-    println!("→{formatted_name}  {}ms", duration.as_millis());
+    println!("→ {type}{formatted_name}  🕑 {}ms", duration.as_millis());
 }
 
 pub fn reload<P: AsRef<Path>>(path: P) {
