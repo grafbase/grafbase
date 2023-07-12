@@ -285,7 +285,7 @@ pub async fn build(
         .await
         .map_err(|err| match err {
             JavascriptPackageManagerComamndError::OutputError(_, output) => {
-                UdfBuildError::UdfBuild(udf_kind, udf_name.to_owned(), output)
+                UdfBuildError::WranglerBuildFailed { output }
             }
             other => other.into(),
         })?;

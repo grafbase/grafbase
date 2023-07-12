@@ -23,9 +23,6 @@ pub enum ApiError {
     ServerError,
     #[error("user-defined function invocation error")]
     UdfInvocation,
-    /// returned if the miniflare command returns an error
-    #[error("user-defined function could not be spawned")]
-    UdfSpawnError,
 }
 
 #[derive(Serialize, Debug)]
@@ -52,7 +49,7 @@ impl IntoResponse for ApiError {
         match self {
             ApiError::User(user_error) => (StatusCode::CONFLICT, Json(user_error)).into_response(),
 
-            ApiError::SqlError(_) | ApiError::ServerError | ApiError::UdfInvocation | ApiError::UdfSpawnError => {
+            ApiError::SqlError(_) | ApiError::ServerError | ApiError::UdfInvocation => {
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }

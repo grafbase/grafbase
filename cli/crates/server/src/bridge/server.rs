@@ -29,7 +29,7 @@ use std::sync::Arc;
 
 use tower_http::trace::TraceLayer;
 
-enum UdfBuild {
+pub enum UdfBuild {
     InProgress {
         notify: Arc<Notify>,
     },
@@ -143,6 +143,8 @@ async fn invoke_udf_endpoint(
     State(handler_state): State<Arc<HandlerState>>,
     Json(payload): Json<UdfInvocation>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    use futures_util::TryFutureExt;
+
     trace!("UDF invocation\n\n{:#?}\n", payload);
 
     let environment = Environment::get();
@@ -155,7 +157,7 @@ async fn invoke_udf_endpoint(
             if let Some(udf_build) = udf_builds.get(&(payload.name.clone(), udf_kind)) {
                 match udf_build {
                     UdfBuild::Succeeded { worker_port, .. } => break *worker_port,
-                    UdfBuild::Failed => return Err(ApiError::UdfSpawnError),
+                    UdfBuild::Failed => return Err(ApiError::UdfInvocation),
                     UdfBuild::InProgress { notify } => {
                         // If the resolver build happening within another invocation has been cancelled
                         // due to the invocation having been interrupted by the HTTP client, start a new build.
@@ -198,18 +200,12 @@ async fn invoke_udf_endpoint(
             &payload.name,
             tracing,
         )
+        .and_then(|(package_json_path, wrangler_toml_path)| {
+            super::udf::spawn_miniflare(udf_kind, &payload.name, package_json_path, wrangler_toml_path, tracing)
+        })
         .await
         {
-            Ok((package_json_path, wrangler_toml_path)) => {
-                let (miniflare_handle, worker_port) = super::udf::spawn_miniflare(
-                    udf_kind,
-                    &payload.name,
-                    package_json_path,
-                    wrangler_toml_path,
-                    tracing,
-                )
-                .await?;
-
+            Ok((miniflare_handle, worker_port)) => {
                 handler_state.udf_builds.lock().await.insert(
                     (payload.name.clone(), udf_kind),
                     UdfBuild::Succeeded {
@@ -253,7 +249,7 @@ async fn invoke_udf_endpoint(
             .await
             .insert((payload.name.clone(), udf_kind), UdfBuild::Failed);
         notify.notify_waiters();
-        return Err(ApiError::UdfSpawnError);
+        return Err(ApiError::UdfInvocation);
     };
 
     super::udf::invoke(
