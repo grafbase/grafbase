@@ -10,7 +10,7 @@ use common::{
     consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
     environment::Warning,
 };
-use std::path::Path;
+use std::{path::Path, fmt::Debug};
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
@@ -156,10 +156,12 @@ pub fn operation_completed(
     name: Option<String>,
     r#type: common::types::OperationType,
     duration: std::time::Duration,
+    debug: bool,
 ) {
-    // FIXME: Put under the `--debug` mode rather than ignoring altogether.
     if let common::types::OperationType::Query { is_introspection: true } = r#type {
-        return;
+        if !debug {
+            return;
+        }
     }
 
     let formatted_duration = if duration < std::time::Duration::from_secs(1) {
