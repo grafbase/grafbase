@@ -16,7 +16,7 @@ pub enum CacheResponse<Type> {
     Hit(Type),
     Miss(Type),
     Bypass(Type),
-    Stale { response: Type, is_updating: bool },
+    Stale { response: Type, updating: bool },
 }
 
 pub struct Cache<CV, Provider> {
@@ -70,29 +70,44 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
         match cached_value {
             CacheProviderResponse::Stale {
                 response,
-                mut is_updating,
+                state,
+                is_early_stale,
             } => {
+                let response_arc = Arc::new(response);
+                let mut revalidated = false;
+
+                // we only want to issue a revalidation if one is not already in progress
+                if state != CacheEntryState::UpdateInProgress {
+                    revalidated = true;
+
+                    self.update_stale(
+                        request_context,
+                        cache_key,
+                        response_arc.clone(),
+                        source_future,
+                        priority_cache_tags,
+                    )
+                    .await;
+                }
+
                 log::info!(
                     request_context.cloudflare_request_context.ray_id,
-                    "Cache STALE - {cache_key}"
+                    "Cache STALE - {revalidated} - {cache_key}"
                 );
 
-                let response_arc = Arc::new(response);
-                if !is_updating {
-                    is_updating = self
-                        .update_stale(
-                            request_context,
-                            cache_key,
-                            response_arc.clone(),
-                            source_future,
-                            priority_cache_tags,
-                        )
-                        .await?;
+                // early stales mean early refreshes on our part
+                // they shouldn't be considered as stale from a client perspective
+                if is_early_stale {
+                    log::info!(
+                        request_context.cloudflare_request_context.ray_id,
+                        "Cache HIT - {cache_key}"
+                    );
+                    return Ok(CacheResponse::Hit(response_arc));
                 }
 
                 Ok(CacheResponse::Stale {
                     response: response_arc,
-                    is_updating,
+                    updating: revalidated,
                 })
             }
             CacheProviderResponse::Hit(gql_response) => {
@@ -179,10 +194,10 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
         existing_value: Arc<CV>,
         source_future: impl Future<Output = worker::Result<CV>> + 'static,
         priority_tags: Vec<String>,
-    ) -> CacheResult<bool> {
+    ) {
+        let ray_id = request_context.cloudflare_request_context.ray_id.to_string();
         let key = key.to_string();
         let cache_name = self.cache_name.to_string();
-        let ray_id = request_context.cloudflare_request_context.ray_id.to_string();
         let existing_tags = existing_value.cache_tags(priority_tags.clone());
 
         // refresh the cache async and update the existing entry state
@@ -192,7 +207,7 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                     &cache_name,
                     &ray_id,
                     &key,
-                    CacheEntryState::Updating,
+                    CacheEntryState::UpdateInProgress,
                     existing_value.clone(),
                     existing_tags.clone(),
                 )
@@ -201,7 +216,7 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                     log::error!(
                         ray_id,
                         "Error transitioning cache entry to {} - {err}",
-                        CacheEntryState::Updating
+                        CacheEntryState::UpdateInProgress
                     );
                 });
 
@@ -254,8 +269,6 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
             })
             .boxed(),
         );
-
-        Ok(true)
     }
 }
 
@@ -278,6 +291,7 @@ mod tests {
     use worker_utils::CloudflareRequestContext;
 
     struct DefaultTestGlobalCache;
+
     impl GlobalCacheProvider for DefaultTestGlobalCache {}
 
     #[derive(serde::Deserialize, serde::Serialize, Default, Clone, Eq, PartialEq, Debug, Hash)]
@@ -485,7 +499,8 @@ mod tests {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
                 Ok(CacheProviderResponse::Stale {
                     response: TestCacheValue::builder(1, OperationType::Query, vec![]),
-                    is_updating: false,
+                    state: CacheEntryState::Fresh,
+                    is_early_stale: false,
                 })
             }
 
@@ -526,12 +541,15 @@ mod tests {
         let cache_response = cache_result.unwrap();
 
         match cache_response {
-            CacheResponse::Stale { response, is_updating } => {
+            CacheResponse::Stale {
+                response,
+                updating: revalidated,
+            } => {
                 assert_eq!(
                     response.as_ref(),
                     &TestCacheValue::builder(1, OperationType::Query, vec![])
                 );
-                assert!(is_updating);
+                assert!(revalidated);
             }
             _ => return Err("should be a CacheResponse::Stale"),
         }
@@ -543,7 +561,7 @@ mod tests {
         let cache_entry_states = CACHE_ENTRY_STATES.read().unwrap();
         let cache_entry_states: HashSet<&CacheEntryState> = cache_entry_states.iter().collect();
         let expected_states: HashSet<&CacheEntryState> =
-            HashSet::from_iter(&[CacheEntryState::Updating, CacheEntryState::Fresh]);
+            HashSet::from_iter(&[CacheEntryState::UpdateInProgress, CacheEntryState::Fresh]);
         assert_eq!(expected_states, cache_entry_states);
 
         let cache_entry_values = CACHE_ENTRY_VALUES.read().unwrap();
@@ -577,7 +595,8 @@ mod tests {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
                 Ok(CacheProviderResponse::Stale {
                     response: TestCacheValue::builder(1, OperationType::Query, vec![]),
-                    is_updating: false,
+                    state: CacheEntryState::Fresh,
+                    is_early_stale: false,
                 })
             }
 
@@ -620,12 +639,15 @@ mod tests {
         let cache_response = cache_result.unwrap();
 
         match cache_response {
-            CacheResponse::Stale { response, is_updating } => {
+            CacheResponse::Stale {
+                response,
+                updating: revalidated,
+            } => {
                 assert_eq!(
                     response.as_ref(),
                     &TestCacheValue::builder(1, OperationType::Query, vec![])
                 );
-                assert!(is_updating);
+                assert!(revalidated);
             }
             _ => return Err("should be a CacheResponse::Stale"),
         }
@@ -638,7 +660,7 @@ mod tests {
         let cache_entry_states = CACHE_ENTRY_STATES.read().unwrap();
         let cache_entry_states: HashSet<&CacheEntryState> = cache_entry_states.iter().collect();
         let expected_states: HashSet<&CacheEntryState> =
-            HashSet::from_iter(&[CacheEntryState::Updating, CacheEntryState::Stale]);
+            HashSet::from_iter(&[CacheEntryState::UpdateInProgress, CacheEntryState::Stale]);
         assert_eq!(expected_states, cache_entry_states);
 
         let cache_entry_values = CACHE_ENTRY_VALUES.read().unwrap();
@@ -668,7 +690,8 @@ mod tests {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
                 Ok(CacheProviderResponse::Stale {
                     response: TestCacheValue::builder(1, OperationType::Query, vec![]),
-                    is_updating: true,
+                    state: CacheEntryState::UpdateInProgress,
+                    is_early_stale: false,
                 })
             }
         }
@@ -696,12 +719,15 @@ mod tests {
         let cache_response = cache_result.unwrap();
 
         match cache_response {
-            CacheResponse::Stale { response, is_updating } => {
+            CacheResponse::Stale {
+                response,
+                updating: revalidated,
+            } => {
                 assert_eq!(
                     response.as_ref(),
                     &TestCacheValue::builder(1, OperationType::Query, vec![])
                 );
-                assert!(is_updating);
+                assert!(!revalidated);
                 assert_eq!(1, GET_CALLS.load(Ordering::SeqCst));
             }
             _ => return Err("should be a CacheResponse::Stale"),
@@ -807,7 +833,7 @@ mod tests {
         }
 
         struct PurgeTestGlobalCache;
-        #[async_trait::async_trait(?Send)]
+        #[async_trait::async_trait(? Send)]
         impl GlobalCacheProvider for PurgeTestGlobalCache {
             async fn purge_by_tags(&self, tags: Vec<String>) -> CacheResult<()> {
                 PURGE_CALLS.fetch_add(1, Ordering::SeqCst);

@@ -25,7 +25,7 @@ pub enum CacheReadStatus {
     Hit,
     Bypass,
     Miss { max_age: Duration },
-    Stale { is_updating: bool },
+    Stale { revalidated: bool },
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Hash, strum::Display, strum::EnumString, strum::IntoStaticStr)]
@@ -34,7 +34,7 @@ pub enum CacheEntryState {
     Fresh,
     #[default]
     Stale,
-    Updating,
+    UpdateInProgress,
 }
 
 impl ToString for CacheReadStatus {
@@ -42,8 +42,8 @@ impl ToString for CacheReadStatus {
         match self {
             CacheReadStatus::Hit => "HIT".to_string(),
             CacheReadStatus::Miss { .. } => "MISS".to_string(),
-            CacheReadStatus::Stale { is_updating } => {
-                if *is_updating {
+            CacheReadStatus::Stale { revalidated } => {
+                if *revalidated {
                     "UPDATING".to_string()
                 } else {
                     "STALE".to_string()
@@ -57,7 +57,11 @@ impl ToString for CacheReadStatus {
 pub enum CacheProviderResponse<Type> {
     Hit(Type),
     Miss,
-    Stale { response: Type, is_updating: bool },
+    Stale {
+        response: Type,
+        state: CacheEntryState,
+        is_early_stale: bool,
+    },
 }
 
 #[async_trait::async_trait(?Send)]

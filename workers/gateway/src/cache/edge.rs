@@ -1,5 +1,8 @@
+use rand::Rng;
 use std::marker::PhantomData;
 use std::sync::Arc;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::UNIX_EPOCH;
 
 use worker::{Cache, Date, Headers, Response};
 
@@ -33,12 +36,21 @@ impl<T: Cacheable + 'static> CacheProvider for EdgeCache<T> {
                         .bytes()
                         .await
                         .map_err(|err| CacheError::CacheGet(err.to_string()))?;
-                    let gql_response = worker_utils::json_request::deserialize(bytes)?;
+                    let gql_response: Self::Value = worker_utils::json_request::deserialize(bytes)?;
+                    // When the load for a given cache key is high, if it expires and the entire load attempts to revalidate the origin/upstream will be stressed.
+                    // To avoid this, as the stale window approaches, we want to issue a revalidation.
+                    // This revalidation is controlled by two conditions:
+                    //      - the entry state is not UPDATING (if it is UPDATING, it means that a previous request for the same cache entry is already revalidating and the cache entry has an updated consistent view in the cache)
+                    //      - y = x^n, where y needs to be bigger than the generated random between [0.0..1.0] rounded to one decimal point
+                    // The second condition is valuable on high load scenarios. Check cache/README.MD for a lengthier explanation.
+                    let should_refresh =
+                        should_early_refresh(gql_response.max_age_seconds(), response.cache_stale_timestamp_millis());
 
-                    if response.is_stale() {
+                    if response.is_stale() || should_refresh {
                         Ok(CacheProviderResponse::Stale {
                             response: gql_response,
-                            is_updating: matches!(response.cache_state(), CacheEntryState::Updating),
+                            state: response.cache_state(),
+                            is_early_stale: should_refresh,
                         })
                     } else {
                         Ok(CacheProviderResponse::Hit(gql_response))
@@ -134,21 +146,15 @@ impl<T: Cacheable + 'static> CacheProvider for EdgeCache<T> {
 trait CacheResponseExt {
     fn is_stale(&self) -> bool;
     fn cache_state(&self) -> CacheEntryState;
+    fn cache_stale_timestamp_millis(&self) -> u64;
 }
 
 impl CacheResponseExt for Response {
     fn is_stale(&self) -> bool {
-        self.headers()
-            .get(STALE_AT_HEADER)
-            .map(|stale_at| {
-                let stale_at_millis: u64 = stale_at
-                    .map(|stale_at| stale_at.parse().unwrap_or_default())
-                    .unwrap_or_default();
-                let now = Date::now().as_millis();
+        let stale_at_millis: u64 = self.cache_stale_timestamp_millis();
+        let now = Date::now().as_millis();
 
-                now > stale_at_millis
-            })
-            .unwrap_or(true) // if anything goes wrong say its stale
+        now > stale_at_millis
     }
 
     fn cache_state(&self) -> CacheEntryState {
@@ -161,4 +167,38 @@ impl CacheResponseExt for Response {
             })
             .unwrap_or_default()
     }
+
+    fn cache_stale_timestamp_millis(&self) -> u64 {
+        self.headers()
+            .get(STALE_AT_HEADER)
+            .map(|stale_at| {
+                stale_at
+                    .map(|stale_at| stale_at.parse().unwrap_or_default())
+                    .unwrap_or_default()
+            })
+            .unwrap_or_default()
+    }
+}
+
+// Preemptive randomization subject to exponential smoothing to avoid surges on origins when revalidations are due.
+fn should_early_refresh(fresh_period_seconds: usize, stale_time_millis: u64) -> bool {
+    use grafbase::ResourceAmount;
+
+    #[cfg(target_arch = "wasm32")]
+    let now = Date::now().as_millis();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let now = std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("should have current time in millis")
+        .as_millis() as u64;
+
+    let max_age_ms = (fresh_period_seconds * 1000) as u64;
+    let age_ms: u64 = now - (stale_time_millis - max_age_ms);
+    let mut rng = rand::thread_rng();
+    stale_time_millis > now && rng.gen::<f64>() < refresh_probability(age_ms.div_f64(max_age_ms))
+}
+
+fn refresh_probability(x: f64) -> f64 {
+    x.powi(10)
 }
