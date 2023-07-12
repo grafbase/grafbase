@@ -40,10 +40,10 @@ impl Default for UdfKind {
     }
 }
 
-#[derive(Clone, Copy, Debug, serde_with::DeserializeFromStr, strum::Display, strum::EnumString)]
+#[derive(serde::Deserialize, Clone, Copy, Debug, strum::Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum OperationType {
-    Query,
+    Query { is_introspection: bool },
     Mutation,
     Subscription,
 }

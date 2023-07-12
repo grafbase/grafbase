@@ -157,6 +157,11 @@ pub fn operation_completed(
     r#type: common::types::OperationType,
     duration: std::time::Duration,
 ) {
+    // FIXME: Put under the `--debug` mode rather than ignoring altogether.
+    if let common::types::OperationType::Query { is_introspection: true } = r#type {
+        return;
+    }
+
     let formatted_duration = if duration < std::time::Duration::from_secs(1) {
         format!("{}ms", duration.as_millis())
     } else {
