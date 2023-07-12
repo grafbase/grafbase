@@ -15,15 +15,20 @@ impl RequestHeaders {
         RequestHeaders(
             headers
                 .into_iter()
-                .map(|(n, v)| (n.into(), v.into()))
+                .map(|(name, value)| {
+                    let mut name = name.into();
+                    name.make_ascii_lowercase();
+                    (name, value.into())
+                })
                 .collect(),
         )
     }
 
     pub fn find(&self, expected_name: &str) -> Option<&str> {
+        let expected_name = expected_name.to_ascii_lowercase();
         self.0
             .iter()
-            .find(|(name, _)| name == expected_name)
+            .find(|(name, _)| name.as_str() == expected_name)
             .map(|(_, value)| value.as_str())
     }
 }
