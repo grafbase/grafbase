@@ -1,13 +1,15 @@
-use std::path::{Path, PathBuf};
-use std::process::Stdio;
-
 use common::environment::{Environment, Project};
 use common::types::UdfKind;
+
 use itertools::Itertools;
+use std::path::{Path, PathBuf};
+use std::process::Stdio;
+use std::sync::mpsc::Sender;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 use crate::errors::{JavascriptPackageManagerComamndError, ServerError, UdfBuildError};
+use crate::types::ServerMessage;
 
 async fn run_command<P: AsRef<Path>>(
     command_type: JavaScriptPackageManager,
@@ -134,11 +136,16 @@ const UDF_EXTENSIONS: [&str; 2] = ["js", "ts"];
 
 pub async fn install_dependencies(
     project: &Project,
+    sender: &Sender<ServerMessage>,
     tracing: bool,
 ) -> Result<(), JavascriptPackageManagerComamndError> {
     let Some(package_json_file_path) = project.package_json_path.as_deref() else {
         return Ok(());
     };
+
+    let start = std::time::Instant::now();
+    sender.send(ServerMessage::InstallUdfDependencies).unwrap();
+
     let package_manager = determine_package_manager(project)
         .await
         .unwrap_or(JavaScriptPackageManager::Npm);
@@ -157,6 +164,12 @@ pub async fn install_dependencies(
         }
     };
     run_command(package_manager, &arguments, &artifact_directory_path, tracing, &[]).await?;
+
+    sender
+        .send(ServerMessage::CompleteInstallingUdfDependencies {
+            duration: start.elapsed(),
+        })
+        .unwrap();
 
     Ok(())
 }

@@ -180,14 +180,7 @@ async fn spawn_servers(
             return Ok(());
         }
 
-        let start = std::time::Instant::now();
-        sender.send(ServerMessage::InstallUdfDependencies).unwrap();
-        crate::udf_builder::install_dependencies(project, tracing).await?;
-        sender
-            .send(ServerMessage::CompleteInstallingUdfDependencies {
-                duration: start.elapsed(),
-            })
-            .unwrap();
+        crate::udf_builder::install_dependencies(project, &sender, tracing).await?;
     }
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);

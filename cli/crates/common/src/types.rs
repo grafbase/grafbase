@@ -28,6 +28,7 @@ impl LocalAddressType {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, strum::Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum UdfKind {
     Resolver,
     Authorizer,
