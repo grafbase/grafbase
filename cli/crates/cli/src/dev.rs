@@ -15,6 +15,7 @@ static READY: Once = Once::new();
 /// returns [`CliError::BackendError`] if the the local gateway returns an error
 ///
 /// returns [`CliError::ServerPanic`] if the development server panics
+#[allow(clippy::fn_params_excessive_bools)]
 pub fn dev(search: bool, watch: bool, external_port: u16, debug: bool, tracing: bool) -> Result<(), CliError> {
     trace!("attempting to start server");
 

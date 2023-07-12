@@ -10,7 +10,7 @@ use common::{
     consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
     environment::Warning,
 };
-use std::{path::Path, fmt::Debug};
+use std::{path::Path};
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
