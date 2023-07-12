@@ -109,16 +109,16 @@ pub fn add_mutation_create<'a>(
         ..Default::default()
     });
 
-    let batch_input_type = register_many_input(ctx, model_type_definition, MutationKind::Create, input_type);
-    let batch_create_payload = register_many_payload(ctx, model_type_definition, MutationKind::Create, model_auth);
+    let many_input_type = register_many_input(ctx, model_type_definition, MutationKind::Create, input_type);
+    let many_create_payload = register_many_payload(ctx, model_type_definition, MutationKind::Create, model_auth);
     ctx.mutations.push(MetaField {
         name: MetaNames::mutation_create_many(model_type_definition),
         description: Some(format!("Create multiple {type_name}")),
-        args: [MetaInputValue::new(INPUT_ARG_INPUT, format!("[{batch_input_type}!]!"))]
+        args: [MetaInputValue::new(INPUT_ARG_INPUT, format!("[{many_input_type}!]!"))]
             .into_iter()
             .map(|input| (input.name.clone(), input))
             .collect(),
-        ty: batch_create_payload.as_nullable().into(),
+        ty: many_create_payload.as_nullable().into(),
         resolve: Some(Resolver {
             id: None,
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNodes {
@@ -219,16 +219,16 @@ pub fn add_mutation_update<'a>(
         ..Default::default()
     });
 
-    let batch_input_type = register_many_input(ctx, model_type_definition, MutationKind::Update, input_type);
-    let batch_update_payload = register_many_payload(ctx, model_type_definition, MutationKind::Update, model_auth);
+    let many_input_type = register_many_input(ctx, model_type_definition, MutationKind::Update, input_type);
+    let many_update_payload = register_many_payload(ctx, model_type_definition, MutationKind::Update, model_auth);
     ctx.mutations.push(MetaField {
         name: MetaNames::mutation_update_many(model_type_definition),
         description: Some(format!("Update multiple {type_name}")),
-        args: [MetaInputValue::new(INPUT_ARG_INPUT, format!("[{batch_input_type}!]!"))]
+        args: [MetaInputValue::new(INPUT_ARG_INPUT, format!("[{many_input_type}!]!"))]
             .into_iter()
             .map(|input| (input.name.clone(), input))
             .collect(),
-        ty: batch_update_payload.as_nullable().into(),
+        ty: many_update_payload.as_nullable().into(),
         resolve: Some(Resolver {
             id: None,
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNodes {

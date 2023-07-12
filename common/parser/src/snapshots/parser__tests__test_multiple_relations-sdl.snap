@@ -46,6 +46,12 @@ type AuthorCreateManyPayload {
 type AuthorCreatePayload {
 	author: Author
 }
+input AuthorDeleteManyInput {
+	by: AuthorByInput!
+}
+type AuthorDeleteManyPayload {
+	deletedIds: [ID!]!
+}
 type AuthorDeletePayload {
 	deletedId: ID!
 }
@@ -119,6 +125,12 @@ type CommentCreateManyPayload {
 }
 type CommentCreatePayload {
 	comment: Comment
+}
+input CommentDeleteManyInput {
+	by: CommentByInput!
+}
+type CommentDeleteManyPayload {
+	deletedIds: [ID!]!
 }
 type CommentDeletePayload {
 	deletedId: ID!
@@ -287,6 +299,10 @@ type Mutation {
 	"""
 	authorDelete(by: AuthorByInput!): AuthorDeletePayload
 	"""
+	Delete multiple Author
+	"""
+	authorDeleteMany(input: [AuthorDeleteManyInput!]!): AuthorDeleteManyPayload
+	"""
 	Create a Post
 	"""
 	postCreate(input: PostCreateInput!): PostCreatePayload
@@ -307,6 +323,10 @@ type Mutation {
 	"""
 	postDelete(by: PostByInput!): PostDeletePayload
 	"""
+	Delete multiple Post
+	"""
+	postDeleteMany(input: [PostDeleteManyInput!]!): PostDeleteManyPayload
+	"""
 	Create a Comment
 	"""
 	commentCreate(input: CommentCreateInput!): CommentCreatePayload
@@ -326,6 +346,10 @@ type Mutation {
 	Delete a Comment by ID or unique field
 	"""
 	commentDelete(by: CommentByInput!): CommentDeletePayload
+	"""
+	Delete multiple Comment
+	"""
+	commentDeleteMany(input: [CommentDeleteManyInput!]!): CommentDeleteManyPayload
 }
 enum OrderByDirection {
 	ASC
@@ -380,6 +404,12 @@ type PostCreateManyPayload {
 }
 type PostCreatePayload {
 	post: Post
+}
+input PostDeleteManyInput {
+	by: PostByInput!
+}
+type PostDeleteManyPayload {
+	deletedIds: [ID!]!
 }
 type PostDeletePayload {
 	deletedId: ID!

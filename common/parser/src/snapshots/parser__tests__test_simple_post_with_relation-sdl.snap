@@ -48,6 +48,12 @@ type AuthorCreateManyPayload {
 type AuthorCreatePayload {
 	author: Author
 }
+input AuthorDeleteManyInput {
+	by: AuthorByInput!
+}
+type AuthorDeleteManyPayload {
+	deletedIds: [ID!]!
+}
 type AuthorDeletePayload {
 	deletedId: ID!
 }
@@ -142,6 +148,12 @@ type BlogCreateManyPayload {
 }
 type BlogCreatePayload {
 	blog: Blog
+}
+input BlogDeleteManyInput {
+	by: BlogByInput!
+}
+type BlogDeleteManyPayload {
+	deletedIds: [ID!]!
 }
 type BlogDeletePayload {
 	deletedId: ID!
@@ -256,6 +268,10 @@ type Mutation {
 	"""
 	blogDelete(by: BlogByInput!): BlogDeletePayload
 	"""
+	Delete multiple Blog
+	"""
+	blogDeleteMany(input: [BlogDeleteManyInput!]!): BlogDeleteManyPayload
+	"""
 	Create a Post
 	"""
 	postCreate(input: PostCreateInput!): PostCreatePayload
@@ -276,6 +292,10 @@ type Mutation {
 	"""
 	postDelete(by: PostByInput!): PostDeletePayload
 	"""
+	Delete multiple Post
+	"""
+	postDeleteMany(input: [PostDeleteManyInput!]!): PostDeleteManyPayload
+	"""
 	Create a Author
 	"""
 	authorCreate(input: AuthorCreateInput!): AuthorCreatePayload
@@ -295,6 +315,10 @@ type Mutation {
 	Delete a Author by ID or unique field
 	"""
 	authorDelete(by: AuthorByInput!): AuthorDeletePayload
+	"""
+	Delete multiple Author
+	"""
+	authorDeleteMany(input: [AuthorDeleteManyInput!]!): AuthorDeleteManyPayload
 }
 enum OrderByDirection {
 	ASC
@@ -349,6 +373,12 @@ type PostCreateManyPayload {
 }
 type PostCreatePayload {
 	post: Post
+}
+input PostDeleteManyInput {
+	by: PostByInput!
+}
+type PostDeleteManyPayload {
+	deletedIds: [ID!]!
 }
 type PostDeletePayload {
 	deletedId: ID!

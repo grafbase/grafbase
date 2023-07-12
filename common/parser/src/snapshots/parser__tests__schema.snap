@@ -193,6 +193,32 @@ expression: req_string_a
             },
             "t": "UserDeletePayload"
           },
+          "userDeleteMany": {
+            "D": "N",
+            "_r": 16,
+            "a": {
+              "input": {
+                "n": "input",
+                "t": "[UserDeleteManyInput!]!"
+              }
+            },
+            "d": "Delete multiple User",
+            "n": "userDeleteMany",
+            "r_": {
+              "id": null,
+              "type": {
+                "d": {
+                  "DeleteNodes": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "User"
+                  }
+                }
+              }
+            },
+            "t": "UserDeleteManyPayload"
+          },
           "userUpdate": {
             "D": "N",
             "_r": 8,
@@ -724,6 +750,38 @@ expression: req_string_a
         },
         "n": "UserCreatePayload",
         "r": "UserCreatePayload"
+      }
+    },
+    "UserDeleteManyInput": {
+      "i": {
+        "i": {
+          "by": {
+            "n": "by",
+            "t": "UserByInput!"
+          }
+        },
+        "n": "UserDeleteManyInput",
+        "r": "UserDeleteManyInput"
+      }
+    },
+    "UserDeleteManyPayload": {
+      "O": {
+        "f": {
+          "deletedIds": {
+            "D": "N",
+            "T": {
+              "JSONSelect": {
+                "property": "ids"
+              }
+            },
+            "_r": 16,
+            "a": {},
+            "n": "deletedIds",
+            "t": "[ID!]!"
+          }
+        },
+        "n": "UserDeleteManyPayload",
+        "r": "UserDeleteManyPayload"
       }
     },
     "UserDeletePayload": {

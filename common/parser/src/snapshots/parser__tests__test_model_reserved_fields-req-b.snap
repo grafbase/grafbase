@@ -193,6 +193,32 @@ expression: req_string_b
             },
             "t": "ProductDeletePayload"
           },
+          "productDeleteMany": {
+            "D": "N",
+            "_r": 16,
+            "a": {
+              "input": {
+                "n": "input",
+                "t": "[ProductDeleteManyInput!]!"
+              }
+            },
+            "d": "Delete multiple Product",
+            "n": "productDeleteMany",
+            "r_": {
+              "id": null,
+              "type": {
+                "d": {
+                  "DeleteNodes": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Product"
+                  }
+                }
+              }
+            },
+            "t": "ProductDeleteManyPayload"
+          },
           "productUpdate": {
             "D": "N",
             "_r": 8,
@@ -565,6 +591,38 @@ expression: req_string_b
         },
         "n": "ProductCreatePayload",
         "r": "ProductCreatePayload"
+      }
+    },
+    "ProductDeleteManyInput": {
+      "i": {
+        "i": {
+          "by": {
+            "n": "by",
+            "t": "ProductByInput!"
+          }
+        },
+        "n": "ProductDeleteManyInput",
+        "r": "ProductDeleteManyInput"
+      }
+    },
+    "ProductDeleteManyPayload": {
+      "O": {
+        "f": {
+          "deletedIds": {
+            "D": "N",
+            "T": {
+              "JSONSelect": {
+                "property": "ids"
+              }
+            },
+            "_r": 16,
+            "a": {},
+            "n": "deletedIds",
+            "t": "[ID!]!"
+          }
+        },
+        "n": "ProductDeleteManyPayload",
+        "r": "ProductDeleteManyPayload"
       }
     },
     "ProductDeletePayload": {

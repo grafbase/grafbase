@@ -40,6 +40,10 @@ type Mutation {
 	"""
 	todoListDelete(by: TodoListByInput!): TodoListDeletePayload
 	"""
+	Delete multiple TodoList
+	"""
+	todoListDeleteMany(input: [TodoListDeleteManyInput!]!): TodoListDeleteManyPayload
+	"""
 	Create a Todo
 	"""
 	todoCreate(input: TodoCreateInput!): TodoCreatePayload
@@ -59,6 +63,10 @@ type Mutation {
 	Delete a Todo by ID or unique field
 	"""
 	todoDelete(by: TodoByInput!): TodoDeletePayload
+	"""
+	Delete multiple Todo
+	"""
+	todoDeleteMany(input: [TodoDeleteManyInput!]!): TodoDeleteManyPayload
 }
 enum OrderByDirection {
 	ASC
@@ -132,6 +140,12 @@ type TodoCreateManyPayload {
 type TodoCreatePayload {
 	todo: Todo
 }
+input TodoDeleteManyInput {
+	by: TodoByInput!
+}
+type TodoDeleteManyPayload {
+	deletedIds: [ID!]!
+}
 type TodoDeletePayload {
 	deletedId: ID!
 }
@@ -180,6 +194,12 @@ type TodoListCreateManyPayload {
 }
 type TodoListCreatePayload {
 	todoList: TodoList
+}
+input TodoListDeleteManyInput {
+	by: TodoListByInput!
+}
+type TodoListDeleteManyPayload {
+	deletedIds: [ID!]!
 }
 type TodoListDeletePayload {
 	deletedId: ID!

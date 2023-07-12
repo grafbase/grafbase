@@ -37,11 +37,11 @@ use grafbase::auth::Operations;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use crate::registry::add_remove_mutation;
 use crate::registry::generate_pagination_args;
 use crate::registry::names::MetaNames;
-use crate::registry::{add_mutation_create, add_mutation_update};
-use crate::registry::{add_query_paginated_collection, add_query_search};
+use crate::registry::{
+    add_mutation_create, add_mutation_delete, add_mutation_update, add_query_paginated_collection, add_query_search,
+};
 use crate::rules::cache_directive::CacheDirective;
 use crate::utils::to_base_type_str;
 use crate::utils::to_lower_camelcase;
@@ -411,7 +411,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             // GENERATE QUERY ONE OF: type(by: { ... })
             //
 
-            let one_of_type_name = format!("{type_name}ByInput");
+            let one_of_type_name = MetaNames::by_input(&type_definition.node);
             ctx.registry.get_mut().create_type(
                 |registry| {
                     let mut input_fields = vec![];
@@ -469,10 +469,9 @@ impl<'a> Visitor<'a> for ModelDirective {
             //
             add_mutation_create(ctx, &type_definition.node, object, model_auth.as_ref());
             add_mutation_update(ctx, &type_definition.node, object, model_auth.as_ref());
+            add_mutation_delete(ctx, &type_definition.node, model_auth.as_ref(), model_cache);
 
             add_query_paginated_collection(ctx, &type_definition.node, connection_edges, model_auth.as_ref());
-            add_remove_mutation(ctx, &type_name, model_auth.as_ref(), model_cache);
-
             add_query_search(ctx, &type_definition.node, &object.fields, model_auth.as_ref());
         }
     }

@@ -127,6 +127,29 @@ impl MetaNames {
     }
 
     //
+    // DELETE
+    //
+    pub fn mutation_delete(model_type_definition: &TypeDefinition) -> String {
+        to_lower_camelcase(format!("{}Delete", Self::model(model_type_definition)))
+    }
+
+    pub fn mutation_delete_many(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Many", Self::mutation_delete(model_type_definition))
+    }
+
+    pub fn delete_payload_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Payload", Self::mutation_delete(model_type_definition)).to_camel()
+    }
+
+    pub fn delete_many_payload_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Payload", Self::mutation_delete_many(model_type_definition)).to_camel()
+    }
+
+    pub fn delete_many_input(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Input", Self::mutation_delete_many(model_type_definition)).to_camel()
+    }
+
+    //
     // CREATE
     //
     pub fn mutation_create(model_type_definition: &TypeDefinition) -> String {
@@ -138,7 +161,7 @@ impl MetaNames {
     }
 
     pub fn mutation_create_many(model_type_definition: &TypeDefinition) -> String {
-        to_lower_camelcase(format!("{}CreateMany", Self::model(model_type_definition)))
+        format!("{}Many", Self::mutation_create(model_type_definition))
     }
 
     pub fn create_many_payload_type(model_type_definition: &TypeDefinition) -> String {
@@ -194,7 +217,7 @@ impl MetaNames {
     }
 
     pub fn mutation_update_many(model_type_definition: &TypeDefinition) -> String {
-        to_lower_camelcase(format!("{}UpdateMany", Self::model(model_type_definition)))
+        format!("{}Many", Self::mutation_update(model_type_definition))
     }
 
     pub fn update_many_payload_type(model_type_definition: &TypeDefinition) -> String {

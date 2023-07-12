@@ -25,6 +25,7 @@ use std::sync::Arc;
 use ulid::Ulid;
 
 mod create;
+mod delete;
 mod update;
 
 #[non_exhaustive]
@@ -122,6 +123,12 @@ pub enum DynamoMutationResolver {
     /// ```
     DeleteNode {
         by: VariableResolveDefinition,
+        /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
+        /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
+        ty: ModelName,
+    },
+    DeleteNodes {
+        input: VariableResolveDefinition,
         /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
         /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
         ty: ModelName,
@@ -1153,6 +1160,9 @@ impl ResolverTrait for DynamoMutationResolver {
                         "id": serde_json::Value::String(id.to_string()),
                     }))))
                 }
+            }
+            DynamoMutationResolver::DeleteNodes { input, ty } => {
+                delete::resolve_delete_nodes(ctx, last_resolver_value, input, ty).await
             }
             DynamoMutationResolver::DeleteNode { by, ty } => {
                 let new_transaction = &batchers.transaction_new;

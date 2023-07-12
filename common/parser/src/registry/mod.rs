@@ -4,32 +4,28 @@
 //!
 use case::CaseExt;
 
-use dynaql::indexmap::IndexMap;
 use dynaql::registry::enums::DynaqlEnum;
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::transformers::Transformer;
-use dynaql::registry::{
-    self, resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::Resolver, resolvers::ResolverType,
-    variables::VariableResolveDefinition, MetaField, MetaInputValue,
-};
+use dynaql::registry::{self, MetaInputValue};
 use dynaql::registry::{MetaEnumValue, Registry};
 use dynaql::validation::dynamic_validators::DynValidator;
-use dynaql::{AuthConfig, CacheControl};
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, TypeDefinition};
-use grafbase::auth::Operations;
+
 use std::fmt::Display;
 
 use crate::registry::names::MetaNames;
 use crate::rules::length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMENT};
 use crate::rules::visitor::VisitorContext;
-use crate::utils::{to_input_type, to_lower_camelcase};
+use crate::utils::to_input_type;
 
 mod create_update;
+mod delete;
 pub mod names;
 mod pagination;
 mod relations;
 mod search;
 pub use create_update::{add_mutation_create, add_mutation_update, NumericFieldKind};
+pub use delete::add_mutation_delete;
 pub use pagination::{add_query_paginated_collection, generate_pagination_args};
 pub use search::add_query_search;
 
@@ -69,84 +65,6 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
     );
 
     input_type
-}
-
-/// Add the remove mutation for a given Object
-pub fn add_remove_mutation(
-    ctx: &mut VisitorContext<'_>,
-    type_name: &str,
-    auth: Option<&AuthConfig>,
-    cache_control: CacheControl,
-) {
-    let delete_payload_name = dynaql::names::deletion_return_type_name(type_name);
-
-    // DeletePayload
-    ctx.registry.get_mut().create_type(
-        |_| {
-            registry::ObjectType::new(
-                delete_payload_name.clone(),
-                [MetaField {
-                    name: names::OUTPUT_FIELD_DELETED_ID.to_string(),
-                    description: None,
-                    args: Default::default(),
-                    // TODO: Should be infered from the entity depending on the directives
-                    ty: "ID!".into(),
-                    deprecation: Default::default(),
-                    cache_control: cache_control.clone(),
-                    external: false,
-                    requires: None,
-                    provides: None,
-                    visible: None,
-                    compute_complexity: None,
-                    edges: Vec::new(),
-                    relation: None,
-                    resolve: None,
-                    transformer: Some(Transformer::JSONSelect {
-                        property: names::OUTPUT_FIELD_ID.to_string(),
-                    }),
-                    required_operation: Some(Operations::DELETE),
-                    auth: auth.cloned(),
-                }],
-            )
-            .into()
-        },
-        &delete_payload_name,
-        &delete_payload_name,
-    );
-
-    // deleteMutation
-    ctx.mutations.push(MetaField {
-        name: format!("{}Delete", to_lower_camelcase(type_name)),
-        description: Some(format!("Delete a {type_name} by ID or unique field")),
-        args: {
-            let mut args = IndexMap::new();
-            args.insert(
-                "by".to_owned(),
-                MetaInputValue::new("by", format!("{type_name}ByInput!")),
-            );
-            args
-        },
-        ty: delete_payload_name.into(),
-        deprecation: dynaql::registry::Deprecation::NoDeprecated,
-        cache_control,
-        external: false,
-        provides: None,
-        requires: None,
-        visible: None,
-        edges: Vec::new(),
-        relation: None,
-        compute_complexity: None,
-        resolve: Some(Resolver {
-            id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::DeleteNode {
-                ty: type_name.into(),
-                by: VariableResolveDefinition::InputTypeName("by".to_owned()),
-            }),
-        }),
-        transformer: None,
-        required_operation: Some(Operations::DELETE),
-        auth: auth.cloned(),
-    });
 }
 
 fn get_length_validator(field: &FieldDefinition) -> Option<DynValidator> {

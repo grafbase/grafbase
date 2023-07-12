@@ -47,6 +47,10 @@ type Mutation {
 	Delete a Product by ID or unique field
 	"""
 	productDelete(by: ProductByInput!): ProductDeletePayload
+	"""
+	Delete multiple Product
+	"""
+	productDeleteMany(input: [ProductDeleteManyInput!]!): ProductDeleteManyPayload
 }
 enum OrderByDirection {
 	ASC
@@ -105,6 +109,12 @@ type ProductCreateManyPayload {
 }
 type ProductCreatePayload {
 	product: Product
+}
+input ProductDeleteManyInput {
+	by: ProductByInput!
+}
+type ProductDeleteManyPayload {
+	deletedIds: [ID!]!
 }
 type ProductDeletePayload {
 	deletedId: ID!
