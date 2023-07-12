@@ -608,7 +608,7 @@ impl Schema {
                         };
                         futures_util::pin_mut!(fut);
                         env.extensions
-                            .execute(env.operation_name.as_deref(), &mut fut)
+                            .execute(env.operation_name.as_deref(), &env.operation, &mut fut)
                             .await
                     }
                     // here we don't know the type of the operation because it failed preparing the request

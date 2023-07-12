@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use crate::registry::MetaFieldType;
 use crate::Value;
+use dynaql_parser::types::OperationDefinition;
 use dynaql_parser::Positioned;
 use dynaql_value::Name;
 use futures_util::stream::BoxStream;
@@ -263,12 +264,18 @@ pub struct NextExecute<'a> {
 
 impl<'a> NextExecute<'a> {
     /// Call the [Extension::execute] function of next extension.
-    pub async fn run(self, ctx: &ExtensionContext<'_>, operation_name: Option<&str>) -> Response {
+    pub async fn run(
+        self,
+        ctx: &ExtensionContext<'_>,
+        operation_name: Option<&str>,
+        operation: &OperationDefinition,
+    ) -> Response {
         if let Some((first, next)) = self.chain.split_first() {
             first
                 .execute(
                     ctx,
                     operation_name,
+                    operation,
                     NextExecute {
                         chain: next,
                         execute_fut: self.execute_fut,
@@ -314,7 +321,7 @@ impl<'a> NextResolve<'a> {
 /// Represents a GraphQL extension
 #[async_trait::async_trait]
 pub trait Extension: Sync + Send + 'static {
-    /// Called at start query/mutation request.
+    /// Called at the end of a query/mutation request.
     async fn request(&self, ctx: &ExtensionContext<'_>, next: NextRequest<'_>) -> Response {
         next.run(ctx).await
     }
@@ -364,9 +371,10 @@ pub trait Extension: Sync + Send + 'static {
         &self,
         ctx: &ExtensionContext<'_>,
         operation_name: Option<&str>,
+        operation: &OperationDefinition,
         next: NextExecute<'_>,
     ) -> Response {
-        next.run(ctx, operation_name).await
+        next.run(ctx, operation_name, operation).await
     }
 
     /// Called at resolve field.
@@ -480,13 +488,15 @@ impl Extensions {
     pub async fn execute(
         &self,
         operation_name: Option<&str>,
+        operation: &OperationDefinition,
         execute_fut: ExecuteFut<'_>,
     ) -> Response {
         let next = NextExecute {
             chain: &self.extensions,
             execute_fut,
         };
-        next.run(&self.create_context(), operation_name).await
+        next.run(&self.create_context(), operation_name, operation)
+            .await
     }
 
     pub async fn resolve(

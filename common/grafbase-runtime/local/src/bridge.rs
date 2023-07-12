@@ -2,7 +2,8 @@ use std::{error::Error, fmt::Display, future::Future, net::Ipv4Addr, pin::Pin};
 
 use serde::{de::DeserializeOwned, Serialize};
 
-pub(crate) struct Bridge {
+#[derive(Clone)]
+pub struct Bridge {
     port: u16,
 }
 
@@ -30,7 +31,7 @@ impl Display for BridgeError {
 }
 
 impl Bridge {
-    pub(crate) fn new(port: u16) -> Bridge {
+    pub fn new(port: u16) -> Bridge {
         Bridge { port }
     }
 
@@ -39,7 +40,7 @@ impl Bridge {
         endpoint: &str,
         body: B,
     ) -> Pin<Box<dyn Future<Output = Result<R, BridgeError>> + Send + '_>> {
-        let url = format!("http://{}:{}{endpoint}", Ipv4Addr::LOCALHOST, self.port);
+        let url = format!("http://{}:{}/{endpoint}", Ipv4Addr::LOCALHOST, self.port);
         let request = reqwest::Client::new().post(url).json(&body);
         Box::pin(send_wrapper::SendWrapper::new(async move {
             let response = request.send().await?;

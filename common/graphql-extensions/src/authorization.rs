@@ -8,7 +8,7 @@
 //! ----------------------------------------------------------------------------
 use dynaql::extensions::{Extension, ExtensionContext, ExtensionFactory, NextParseQuery, NextResolve, ResolveInfo};
 use dynaql::graph_entities::ResponseNodeId;
-use dynaql::parser::types::{ExecutableDocument, OperationType, Selection};
+use dynaql::parser::types::ExecutableDocument;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::{ModelName, NamedType, Registry, TypeReference};
 use dynaql::Variables;
@@ -51,14 +51,10 @@ impl Extension for AuthExtension {
     ) -> ServerResult<ExecutableDocument> {
         let document = next.run(ctx, query, variables).await?;
         // if type starts with `__` it is part of introspection system, see http://spec.graphql.org/October2021/#sec-Names.Reserved-Names
-        let contains_introspection = document.operations.iter().all(|(_, operation)| {
-            operation.node.ty == OperationType::Query
-                && operation.node.selection_set.node.items.iter().all(|selection| {
-                    matches!(
-                            &selection.node,
-                            Selection::Field(field) if field.node.name.node.starts_with("__"))
-                })
-        });
+        let contains_introspection = document
+            .operations
+            .iter()
+            .all(|(_, operation)| crate::is_operation_introspection(operation));
         // Currently the introspection query auth is not configurable.
         // Locally we allow it with Public access as well when using a JWT token or an API key.
         // In the cloud we only allow it when using API key or a JWT token.

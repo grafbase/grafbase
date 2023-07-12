@@ -24,7 +24,7 @@ impl SearchEngineInner for LocalSearchEngine {
     async fn search(&self, ctx: &GraphqlRequestExecutionContext, request: Request) -> Result<Response, SearchError> {
         self.bridge
             .request::<QueryExecutionRequest, QueryExecutionResponse>(
-                "/search",
+                "search",
                 QueryExecutionRequest::try_build(request, "", &ctx.ray_id).map_err(|err| {
                     log::error!(ctx.ray_id, "Failed to build QueryExecutionRequest: {err}");
                     SearchError::ServerError
