@@ -54,7 +54,7 @@ pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Resu
                     report::udf_message(udf_kind, &udf_name, &message, level);
                 }
                 ServerMessage::OperationStarted { request_id, name } => {
-                    report::operation_started(request_id, name);
+                    report::operation_started(&request_id, &name);
                 }
                 ServerMessage::OperationCompleted {
                     request_id,
@@ -62,7 +62,7 @@ pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Resu
                     duration,
                     r#type,
                 } => {
-                    report::operation_completed(request_id, name, r#type, duration);
+                    report::operation_completed(&request_id, name, r#type, duration);
                 }
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }

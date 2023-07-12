@@ -149,10 +149,10 @@ pub fn udf_message(udf_kind: UdfKind, udf_name: &str, message: &str, level: UdfM
     }
 }
 
-pub fn operation_started(_request_id: String, _name: Option<String>) {}
+pub fn operation_started(_request_id: &str, _name: &Option<String>) {}
 
 pub fn operation_completed(
-    _request_id: String,
+    _request_id: &str,
     name: Option<String>,
     r#type: common::types::OperationType,
     duration: std::time::Duration,
