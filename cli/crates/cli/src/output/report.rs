@@ -135,7 +135,7 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
         format!("{:.1}s", duration.as_secs_f64())
     };
     println!(
-        "- {} {udf_kind} {udf_name} compiled successfully in {formatted_duration}",
+        "- {} compiled {udf_kind} {udf_name} successfully in {formatted_duration}",
         watercolor!("event", @BrightMagenta)
     );
 }
