@@ -362,9 +362,10 @@ impl Resolver {
                     .await
                     .map_err(Into::into)
             }
-            Resolver::MongoResolver(resolver) => {
-                Ok(resolver.resolve(ctx, resolver_ctx).await.unwrap())
-            }
+            Resolver::MongoResolver(resolver) => resolver
+                .resolve(ctx, resolver_ctx)
+                .await
+                .map_err(Into::into),
         }
     }
 

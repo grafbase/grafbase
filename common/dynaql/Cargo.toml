@@ -15,7 +15,6 @@ readme = "README.md"
 [features]
 default = []
 chrono-duration = ["iso8601-duration"]
-decimal = ["rust_decimal"]
 password-strength-validator = ["zxcvbn"]
 string_number = []
 tokio_runtime = ["dynamodb/tokio_runtime"]
@@ -86,7 +85,7 @@ iso8601-duration = { version = "0.2", optional = true }
 log = { version = "0.4", optional = true }
 secrecy = { version = "0.8", features = ["serde"] }
 uuid = { version = "1", optional = true, features = ["v4", "serde"] }
-rust_decimal = { version = "1", optional = true }
+rust_decimal = { version = "1" }
 smol_str = { version = "0.2", optional = true }
 time = { version = "0.3", optional = true, features = [
   "parsing",
@@ -98,6 +97,7 @@ tuple-combinator = { version = "0.2", optional = true }
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }
 zxcvbn = { version = "2", optional = true }
+base64.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
