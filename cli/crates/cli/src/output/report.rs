@@ -163,9 +163,9 @@ pub fn operation_completed(
     }
 
     let formatted_duration = if duration < std::time::Duration::from_secs(1) {
-        format!("{}ms", duration.as_millis())
+        format!("{:.2}ms", duration.as_secs_f64() / 1000.0)
     } else {
-        format!("{:.1}s", duration.as_secs_f64())
+        format!("{:.2}s", duration.as_secs_f64())
     };
 
     // FIXME: Add operation type.
