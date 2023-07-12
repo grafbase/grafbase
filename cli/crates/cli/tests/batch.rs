@@ -2,10 +2,12 @@
 
 mod utils;
 
+use std::collections::HashSet;
+
 use backend::project::ConfigType;
 use serde_json::{json, Value};
 use utils::client::Client;
-use utils::consts::{BATCH_CCOLLECT, BATCH_CREATE, BATCH_SCHEMA, BATCH_UPDATE};
+use utils::consts::{BATCH_COLLECT, BATCH_CREATE, BATCH_DELETE, BATCH_SCHEMA, BATCH_UPDATE};
 use utils::environment::Environment;
 
 #[derive(Debug, serde::Deserialize, PartialEq, Eq)]
@@ -20,12 +22,18 @@ struct Edge {
 
 #[derive(Debug, serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-struct CreateUpdatePayload {
+struct CreateUpdateManyPayload {
     post_collection: Vec<Post>,
 }
 
-impl CreateUpdatePayload {
-    fn content_equal(&self, other: &CreateUpdatePayload) -> bool {
+#[derive(Debug, serde::Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+struct DeleteManyPayload {
+    deleted_ids: Vec<String>,
+}
+
+impl CreateUpdateManyPayload {
+    fn content_equal(&self, other: &CreateUpdateManyPayload) -> bool {
         self.post_collection.len() == other.post_collection.len() && {
             let mut a = self.post_collection.clone();
             let mut b = other.post_collection.clone();
@@ -63,7 +71,7 @@ struct Author {
 fn all_posts(client: &Client) -> Collection {
     dot_get!(
         client
-            .gql::<Value>(BATCH_CCOLLECT)
+            .gql::<Value>(BATCH_COLLECT)
             .variables(json!({
                 "first": 100
             }))
@@ -94,7 +102,7 @@ fn batch_create() {
     let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
-    let create_response: CreateUpdatePayload = dot_get!(
+    let create_response: CreateUpdateManyPayload = dot_get!(
         client
             .gql::<Value>(BATCH_CREATE)
             .variables(json!({
@@ -108,7 +116,7 @@ fn batch_create() {
     );
     assert_content_equal!(
         &create_response,
-        &CreateUpdatePayload {
+        &CreateUpdateManyPayload {
             post_collection: vec![
                 Post {
                     id: String::new(),
@@ -181,9 +189,7 @@ fn batch_update() {
     let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
-    print!(
-        "{:#?}",
-        client
+    client
         .gql::<Value>(BATCH_CREATE)
         .variables(json!({
             "input": [
@@ -192,12 +198,10 @@ fn batch_update() {
                 { "input": { "slug": "Hamlet", "author": { "create": { "name": "Some random englishman, not Jamie" } } } }
             ]
         }))
-        .send()
-    );
+        .send();
     let best_post_ever_id = all_posts(&client).edges.get(0).unwrap().node.id.clone();
 
-    println!("{:#?}", all_posts(&client));
-    let response: CreateUpdatePayload = dot_get!(
+    let response: CreateUpdateManyPayload = dot_get!(
         client
             .gql::<Value>(BATCH_UPDATE)
             .variables(json!({
@@ -209,10 +213,9 @@ fn batch_update() {
             .send(),
         "data.postUpdateMany"
     );
-    println!("{:#?}", all_posts(&client));
     assert_content_equal!(
         &response,
-        &CreateUpdatePayload {
+        &CreateUpdateManyPayload {
             post_collection: vec![
                 Post {
                     id: String::new(),
@@ -278,4 +281,62 @@ fn batch_update() {
     assert!(dot_get_opt!(response, "data", Value).is_none());
     // Nothing was updated
     assert_eq!(all_posts(&client), posts);
+}
+
+#[test]
+fn batch_delete() {
+    let mut env = Environment::init();
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(BATCH_SCHEMA);
+    env.grafbase_dev();
+    let client = env.create_client().with_api_key();
+    client.poll_endpoint(30, 300);
+
+    client
+        .gql::<Value>(BATCH_CREATE)
+        .variables(json!({
+            "input": [
+                { "input": { "slug": "Best Post Ever", "author": { "create": { "name": "Jamie" } } } },
+                { "input": { "slug": "The Bible" } },
+                { "input": { "slug": "Hamlet", "author": { "create": { "name": "Some random englishman, not Jamie" } } } }
+            ]
+        }))
+        .send();
+
+    let best_post_ever_id = all_posts(&client).edges.get(0).unwrap().node.id.clone();
+    let DeleteManyPayload { deleted_ids } = dot_get!(
+        client
+            .gql::<Value>(BATCH_DELETE)
+            .variables(json!({
+                "input": [
+                    { "by": { "id": best_post_ever_id } },
+                    { "by": { "slug": "Hamlet" } }
+                ]
+            }))
+            .send(),
+        "data.postDeleteMany"
+    );
+    assert_eq!(deleted_ids.len(), 2);
+    assert!(deleted_ids.contains(&best_post_ever_id));
+    assert_eq!(deleted_ids.into_iter().collect::<HashSet<_>>().len(), 2);
+
+    let posts = all_posts(&client).edges;
+    assert_eq!(posts.len(), 1, "{posts:#?}");
+    let bible_post = posts.get(0).unwrap().node.clone();
+    assert_eq!(bible_post.slug, "The Bible");
+    let bible_id = bible_post.id;
+
+    let DeleteManyPayload { deleted_ids } = dot_get!(
+        client
+            .gql::<Value>(BATCH_DELETE)
+            .variables(json!({
+                "input": [
+                    { "by": { "id": bible_id } },
+                    { "by": { "slug": "The Bible" } }
+                ]
+            }))
+            .send(),
+        "data.postDeleteMany"
+    );
+    assert_eq!(deleted_ids, vec![bible_id]);
 }

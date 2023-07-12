@@ -1,0 +1,5 @@
+mutation BatchCreate($input: [PostDeleteManyInput!]!) {
+  postDeleteMany(input: $input) {
+    deletedIds
+  }
+}

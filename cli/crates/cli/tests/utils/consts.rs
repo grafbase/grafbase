@@ -126,4 +126,5 @@ pub const COMPILATION_ERROR_RESOLVER_QUERY: &str = include_str!("../graphql/comp
 pub const BATCH_SCHEMA: &str = include_str!("../graphql/batch/schema.graphql");
 pub const BATCH_CREATE: &str = include_str!("../graphql/batch/create.graphql");
 pub const BATCH_UPDATE: &str = include_str!("../graphql/batch/update.graphql");
-pub const BATCH_CCOLLECT: &str = include_str!("../graphql/batch/collect.graphql");
+pub const BATCH_DELETE: &str = include_str!("../graphql/batch/delete.graphql");
+pub const BATCH_COLLECT: &str = include_str!("../graphql/batch/collect.graphql");
