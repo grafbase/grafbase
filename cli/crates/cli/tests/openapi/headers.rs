@@ -92,7 +92,7 @@ fn petstore_schema_with_header_forwarding(address: &SocketAddr) -> String {
             schema: "http://{address}/spec.json",
             headers: [
                 {{ name: "authorization", value: "Bearer {{{{ env.API_KEY }}}}" }}
-                {{ name: "wow-what-a-header", forward: "wow-what-a-header" }}
+                {{ name: "Wow-what-a-header", forward: "Wow-what-a-header" }}
                 {{ name: "another-one", forward: "and-another-one" }}
                 {{ name: "secret-third-header", forward: "secret-third-header" }}
             ],

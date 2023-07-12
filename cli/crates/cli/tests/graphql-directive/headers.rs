@@ -79,7 +79,7 @@ fn schema(port: u16) -> String {
             schema: "http://127.0.0.1:{port}/spec.json",
             headers: [
                 {{ name: "authorization", value: "Bearer {{{{ env.API_KEY }}}}" }}
-                {{ name: "wow-what-a-header", forward: "wow-what-a-header" }}
+                {{ name: "Wow-what-a-header", forward: "Wow-what-a-header" }}
                 {{ name: "another-one", forward: "and-another-one" }}
                 {{ name: "secret-third-header", forward: "secret-third-header" }}
             ],
