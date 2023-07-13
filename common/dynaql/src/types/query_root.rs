@@ -128,21 +128,8 @@ impl<T: ObjectType> LegacyOutputType for QueryRoot<T> {
                         description: Some(
                             "Access the current type schema of this server.".to_string(),
                         ),
-                        args: Default::default(),
                         ty: schema_type,
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
-                        resolve: None,
-                        transformer: None,
-                        required_operation: None,
-                        auth: None,
+                        ..Default::default()
                     },
                 );
 
@@ -162,19 +149,7 @@ impl<T: ObjectType> LegacyOutputType for QueryRoot<T> {
                             args
                         },
                         ty: "__Type".into(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
-                        resolve: None,
-                        transformer: None,
-                        required_operation: None,
-                        auth: None,
+                        ..Default::default()
                     },
                 );
             }

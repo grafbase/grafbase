@@ -6,11 +6,9 @@ use graph_entities::{
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use ulid::Ulid;
 
 use crate::extensions::ResolveInfo;
 use crate::parser::types::Selection;
-use crate::registry::resolvers::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::registry::{MetaType, Registry};
 use crate::{
     relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name,
@@ -682,16 +680,8 @@ async fn resolve_remote_typename<'a>(
     field: &Positioned<dynaql_parser::types::Field>,
     root: &MetaType,
 ) -> Option<String> {
-    let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
-    let execution_id = Ulid::from_datetime(ctx.query_env.current_datetime.clone().into());
-    let resolver_ctx = ResolverContext::new(&execution_id);
-    let resolved_value = ctx
-        .resolver_node
-        .as_ref()?
-        .resolve(&ctx_field, &resolver_ctx, Some(&value))
-        .await
-        .ok()?;
+    let resolved_value = ctx.resolver_node.as_ref()?.resolve(&ctx_field).await.ok()?;
 
     Some(
         resolved_value

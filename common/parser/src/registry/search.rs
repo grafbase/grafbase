@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 
+use dynaql::registry::resolvers::transformer::Transformer;
 use itertools::Itertools;
 
-use dynaql::registry::resolvers::context_data::ContextDataResolver;
 use dynaql::registry::resolvers::query::{
     QueryResolver, SEARCH_RESOLVER_EDGES, SEARCH_RESOLVER_EDGE_CURSOR, SEARCH_RESOLVER_EDGE_SCORE,
     SEARCH_RESOLVER_TOTAL_HITS,
 };
 use dynaql::registry::{self, InputObjectType, MetaTypeName, NamedType, Registry};
-use dynaql::registry::{
-    resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
-};
+use dynaql::registry::{resolvers::Resolver, variables::VariableResolveDefinition, MetaField, MetaInputValue};
 use dynaql::{AuthConfig, Positioned};
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
 use grafbase::auth::Operations;
@@ -257,21 +255,17 @@ pub fn add_query_search(
         compute_complexity: None,
         edges: vec![],
         relation: None,
-        resolve: Some(Resolver {
-            id: None,
-            r#type: ResolverType::Query(QueryResolver::Search {
-                query: VariableResolveDefinition::InputTypeName(INPUT_ARG_QUERY.to_string()),
-                fields: VariableResolveDefinition::InputTypeName(INPUT_ARG_FIELDS.to_string()),
-                filter: VariableResolveDefinition::InputTypeName(INPUT_ARG_FILTER.to_string()),
-                first: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_FIRST.to_string()),
-                after: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_AFTER.to_string()),
-                before: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_BEFORE.to_string()),
-                last: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_LAST.to_string()),
-                type_name,
-                entity_type,
-            }),
+        resolver: Resolver::Query(QueryResolver::Search {
+            query: VariableResolveDefinition::InputTypeName(INPUT_ARG_QUERY.to_string()),
+            fields: VariableResolveDefinition::InputTypeName(INPUT_ARG_FIELDS.to_string()),
+            filter: VariableResolveDefinition::InputTypeName(INPUT_ARG_FILTER.to_string()),
+            first: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_FIRST.to_string()),
+            after: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_AFTER.to_string()),
+            before: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_BEFORE.to_string()),
+            last: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_LAST.to_string()),
+            type_name,
+            entity_type,
         }),
-        transformer: None,
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),
     });
@@ -313,12 +307,7 @@ fn register_connection_type(
                         ty: format!("[{edge_type}!]!").into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                key: SEARCH_RESOLVER_EDGES.to_string(),
-                            }),
-                        }),
+                        resolver: Transformer::select(SEARCH_RESOLVER_EDGES).into(),
                         ..Default::default()
                     },
                 ],
@@ -342,12 +331,7 @@ fn register_search_info(registry: &mut Registry) -> NamedType<'static> {
                 [MetaField {
                     name: SEARCH_INFO_FIELD_TOTAL_HITS.to_string(),
                     ty: "Int!".into(),
-                    resolve: Some(Resolver {
-                        id: None,
-                        r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                            key: SEARCH_RESOLVER_TOTAL_HITS.to_string(),
-                        }),
-                    }),
+                    resolver: Transformer::select(SEARCH_RESOLVER_TOTAL_HITS).into(),
                     ..Default::default()
                 }],
             )
@@ -384,12 +368,7 @@ fn register_edge_type(
                         ty: "String!".into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                key: SEARCH_RESOLVER_EDGE_CURSOR.to_string(),
-                            }),
-                        }),
+                        resolver: Transformer::select(SEARCH_RESOLVER_EDGE_CURSOR).into(),
                         ..Default::default()
                     },
                     MetaField {
@@ -397,12 +376,7 @@ fn register_edge_type(
                         ty: "Float!".into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                key: SEARCH_RESOLVER_EDGE_SCORE.to_string(),
-                            }),
-                        }),
+                        resolver: Transformer::select(SEARCH_RESOLVER_EDGE_SCORE).into(),
                         ..Default::default()
                     },
                 ],

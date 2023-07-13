@@ -9,7 +9,6 @@ pub mod resolvers;
 pub mod scalars;
 mod serde_preserve_enum;
 mod stringify_exec_doc;
-pub mod transformers;
 pub mod type_kinds;
 mod type_names;
 pub mod union_discriminator;
@@ -25,7 +24,6 @@ use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
-use ulid::Ulid;
 
 use crate::auth::AuthConfig;
 pub use crate::model::__DirectiveLocation;
@@ -42,9 +40,8 @@ use crate::{
 use grafbase::auth::Operations;
 
 use self::relations::MetaRelation;
-use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
+use self::resolvers::Resolver;
 use self::scalars::{DynamicScalar, PossibleScalar};
-use self::transformers::Transformer;
 use self::type_kinds::TypeKind;
 pub use self::{
     cache_control::CacheControl,
@@ -325,11 +322,8 @@ pub struct MetaField {
     /// 1: Type,
     /// relation: (String, String)
     pub relation: Option<MetaRelation>,
-    // To be deleted when enabling the new resolution mechanism
-    pub resolve: Option<Resolver>,
-    // To be deleted when enabling the new resolution mechanism
-    /// Transformer to be applied after a Resolver has been called.
-    pub transformer: Option<Transformer>,
+    #[serde(skip_serializing_if = "Resolver::is_parent", default)]
+    pub resolver: Resolver,
     pub required_operation: Option<Operations>,
     pub auth: Option<AuthConfig>,
 }
@@ -341,13 +335,6 @@ impl MetaField {
             ty: ty.into(),
             ..Default::default()
         }
-    }
-
-    pub fn has_custom_resolver(&self) -> bool {
-        self.resolve
-            .as_ref()
-            .map(|resolve| matches!(resolve.r#type, resolvers::ResolverType::CustomResolver(_)))
-            .unwrap_or_default()
     }
 }
 
@@ -364,8 +351,7 @@ impl Hash for MetaField {
         self.provides.hash(state);
         self.edges.hash(state);
         self.relation.hash(state);
-        self.resolve.hash(state);
-        self.transformer.hash(state);
+        self.resolver.hash(state);
     }
 }
 
@@ -382,8 +368,7 @@ impl PartialEq for MetaField {
             && self.provides.eq(&other.provides)
             && self.edges.eq(&other.edges)
             && self.relation.eq(&other.relation)
-            && self.resolve.eq(&other.resolve)
-            && self.transformer.eq(&other.transformer)
+            && self.resolver.eq(&other.resolver)
     }
 }
 
@@ -456,7 +441,6 @@ impl CurrentResolverType {
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
-        let execution_id = Ulid::from_datetime(ctx.query_env.current_datetime.clone().into());
         let registry = ctx.registry();
 
         let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
@@ -466,10 +450,8 @@ impl MetaField {
             // When you are resolving a Primitive
             CurrentResolverType::PRIMITIVE => {
                 let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
-                let resolver_ctx = ResolverContext::new(&execution_id);
-                let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
                 let resolved_value = resolvers
-                    .resolve(&ctx, &resolver_ctx, Some(&value))
+                    .resolve(&ctx)
                     .await
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
@@ -585,10 +567,8 @@ impl MetaField {
                 // If there is a resolver associated to the container we execute it before
                 // asking to resolve the other fields
                 let resolved_value = if let Some(resolvers) = &ctx_obj.resolver_node {
-                    let resolver_ctx = ResolverContext::new(&execution_id);
-                    let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
                     let resolved_value = resolvers
-                        .resolve(&ctx, &resolver_ctx, Some(&value))
+                        .resolve(&ctx)
                         .await
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
@@ -669,10 +649,8 @@ impl MetaField {
                     .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
                 let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
-                let resolver_ctx = ResolverContext::new(&execution_id);
-                let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
                 let resolved_value = resolvers
-                    .resolve(&ctx, &resolver_ctx, Some(&value))
+                    .resolve(&ctx)
                     .await
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
@@ -2068,22 +2046,8 @@ impl Registry {
                     "_service".to_string(),
                     MetaField {
                         name: "_service".to_string(),
-                        description: None,
-                        args: Default::default(),
                         ty: "_Service!".into(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        edges: Vec::new(),
-                        relation: None,
-                        compute_complexity: None,
-                        resolve: None,
-                        transformer: None,
-                        required_operation: None,
-                        auth: None,
+                        ..Default::default()
                     },
                 );
 
@@ -2091,7 +2055,6 @@ impl Registry {
                     "_entities".to_string(),
                     MetaField {
                         name: "_entities".to_string(),
-                        description: None,
                         args: {
                             let mut args = IndexMap::new();
                             args.insert(
@@ -2101,19 +2064,7 @@ impl Registry {
                             args
                         },
                         ty: "[_Entity]!".into(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        edges: Vec::new(),
-                        relation: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        resolve: None,
-                        transformer: None,
-                        required_operation: None,
-                        auth: None,
+                        ..Default::default()
                     },
                 );
             }

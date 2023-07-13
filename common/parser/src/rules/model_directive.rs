@@ -22,13 +22,12 @@ use dynaql::registry::resolvers::custom::CustomResolver;
 use if_chain::if_chain;
 
 use dynaql::indexmap::IndexMap;
-use dynaql::registry::resolvers::context_data::ContextDataResolver;
 use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
 use dynaql::registry::scalars::{DateTimeScalar, IDScalar, SDLDefinitionScalar};
 use dynaql::registry::{self, MetaField};
 use dynaql::registry::{is_array_basic_type, MetaType};
 use dynaql::registry::{
-    resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
+    resolvers::transformer::Transformer, resolvers::Resolver, variables::VariableResolveDefinition,
 };
 use dynaql::registry::{InputObjectType, MetaInputValue};
 use dynaql::{AuthConfig, Positioned};
@@ -121,16 +120,10 @@ fn insert_metadata_field(
             provides: None,
             visible: None,
             compute_complexity: None,
-            resolve: Some(Resolver {
-                id: None,
-                r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                    key: type_name.to_string(),
-                }),
+            resolver: Transformer::select(type_name).and_then(Transformer::DynamoSelect {
+                key: dynamo_property_name.to_owned(),
             }),
             edges: Vec::new(),
-            transformer: Some(Transformer::DynamoSelect {
-                property: dynamo_property_name.to_owned(),
-            }),
             relation: None,
             required_operation: None,
             auth: auth.cloned(),
@@ -240,17 +233,13 @@ impl<'a> Visitor<'a> for ModelDirective {
                             continue;
                         }
 
-                        let (resolver, relation, transformer, edges, args, ty, cache_control) =
+                        let (resolver, relation, edges, args, ty, cache_control) =
                             ResolverDirective::resolver_name(&field.node)
                                 .map(|resolver_name| {
                                     (
-                                        Resolver {
-                                            id: Some(format!("{}_custom_resolver", type_name.to_lowercase())),
-                                            r#type: ResolverType::CustomResolver(CustomResolver {
-                                                resolver_name: resolver_name.to_owned(),
-                                            }),
-                                        },
-                                        None,
+                                        Resolver::CustomResolver(CustomResolver {
+                                            resolver_name: resolver_name.to_owned(),
+                                        }),
                                         None,
                                         vec![],
                                         field
@@ -273,7 +262,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 })
                                 .or_else(|| {
                                     RelationEngine::get(ctx, &type_name, &field.node).map(|relation| {
-                                        let id = Some(format!("{}_edge_resolver", type_name.to_lowercase()));
                                         let edges = {
                                             let edge_type = to_base_type_str(&field.node.ty.node.base);
                                             connection_edges.push(edge_type.clone());
@@ -282,7 +270,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                         let (context_data_resolver, args, ty) =
                                             if is_array_basic_type(&field.node.ty.to_string()) {
                                                 (
-                                                    ContextDataResolver::EdgeArray {
+                                                    Transformer::EdgeArray {
                                                         key: type_name.clone(),
                                                         relation_name: relation.name.clone(),
                                                         expected_ty: to_base_type_str(&field.node.ty.node.base),
@@ -295,7 +283,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                 )
                                             } else {
                                                 (
-                                                    ContextDataResolver::SingleEdge {
+                                                    Transformer::SingleEdge {
                                                         key: type_name.clone(),
                                                         relation_name: relation.name.clone(),
                                                     },
@@ -304,12 +292,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                 )
                                             };
                                         (
-                                            Resolver {
-                                                id,
-                                                r#type: ResolverType::ContextDataResolver(context_data_resolver),
-                                            },
+                                            Resolver::Transformer(context_data_resolver),
                                             Some(relation),
-                                            None,
                                             edges,
                                             args,
                                             ty,
@@ -319,14 +303,11 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 })
                                 .unwrap_or_else(|| {
                                     (
-                                        Resolver {
-                                            id: None,
-                                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                                key: type_name.to_string(),
-                                            }),
-                                        },
+                                        Resolver::Transformer(Transformer::Select {
+                                            key: type_name.to_string(),
+                                        })
+                                        .and_then(Transformer::DynamoSelect { key: name.clone() }),
                                         None,
-                                        Some(Transformer::DynamoSelect { property: name.clone() }),
                                         vec![],
                                         Default::default(),
                                         field.node.ty.clone().node.to_string(),
@@ -343,10 +324,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 args,
                                 ty: ty.into(),
                                 cache_control,
-                                resolve: Some(resolver),
+                                resolver,
                                 edges,
                                 relation,
-                                transformer,
                                 required_operation: None,
                                 ..Default::default()
                             },
@@ -450,14 +430,11 @@ impl<'a> Visitor<'a> for ModelDirective {
                 ty: type_name.clone().into(),
                 deprecation: dynaql::registry::Deprecation::NoDeprecated,
                 cache_control: model_cache.clone(),
-                resolve: Some(Resolver {
-                    id: Some(format!("{}_resolver", type_name.to_lowercase())),
-                    // TODO: Should be defined as a ResolveNode
-                    // Single entity
-                    r#type: ResolverType::DynamoResolver(DynamoResolver::QueryBy {
-                        by: VariableResolveDefinition::InputTypeName("by".to_owned()),
-                        schema: Some(schema_id),
-                    }),
+                // TODO: Should be defined as a ResolveNode
+                // Single entity
+                resolver: Resolver::DynamoResolver(DynamoResolver::QueryBy {
+                    by: VariableResolveDefinition::InputTypeName("by".to_owned()),
+                    schema: Some(schema_id),
                 }),
                 required_operation: Some(Operations::GET),
                 auth: model_auth.clone(),

@@ -7,7 +7,7 @@ use super::model_directive::MODEL_DIRECTIVE;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_input_type_non_primitive;
 use crate::rules::cache_directive::CacheDirective;
-use dynaql::registry::transformers::Transformer;
+use dynaql::registry::resolvers::transformer::Transformer;
 use dynaql::registry::{self, MetaField};
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
@@ -36,23 +36,10 @@ impl<'a> Visitor<'a> for BasicType {
                         MetaField {
                             name: name.clone(),
                             description: field.node.description.clone().map(|x| x.node),
-                            args: Default::default(),
                             ty: field.node.ty.clone().node.to_string().into(),
-                            deprecation: Default::default(),
                             cache_control: CacheDirective::parse(&field.node.directives),
-                            external: false,
-                            requires: None,
-                            provides: None,
-                            visible: None,
-                            compute_complexity: None,
-                            resolve: None,
-                            edges: Vec::new(),
-                            relation: None,
-                            transformer: Some(Transformer::JSONSelect {
-                                property: name
-                            }),
-                            required_operation: None,
-                            auth: None,
+                            resolver: Transformer::select(&name).into(),
+                            ..Default::default()
                         }
                     })
                 )

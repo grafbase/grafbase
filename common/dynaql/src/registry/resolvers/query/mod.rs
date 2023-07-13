@@ -9,7 +9,7 @@ use crate::{registry::variables::VariableResolveDefinition, Context, Error};
 
 use super::{
     dynamo_querying::{DynamoResolver, PAGINATION_LIMIT},
-    ResolvedValue, ResolverContext, ResolverTrait,
+    ResolvedValue, ResolverContext,
 };
 
 mod search_parser;

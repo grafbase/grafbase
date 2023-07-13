@@ -1,6 +1,6 @@
 use dynaql::registry::{
     self,
-    resolvers::{custom::CustomResolver, Resolver, ResolverType},
+    resolvers::{custom::CustomResolver, Resolver},
     MetaField, MetaInputValue, MetaType,
 };
 use dynaql_parser::types::TypeKind;
@@ -54,11 +54,8 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                         .map(|arg| (arg.name.clone(), arg))
                         .collect(),
                     ty: field.ty.clone().node.to_string().into(),
-                    resolve: Some(Resolver {
-                        id: Some(format!("{}_custom_resolver", type_name.to_lowercase())),
-                        r#type: ResolverType::CustomResolver(CustomResolver {
-                            resolver_name: resolver_name.to_owned(),
-                        }),
+                    resolver: Resolver::CustomResolver(CustomResolver {
+                        resolver_name: resolver_name.to_owned(),
                     }),
                     ..MetaField::default()
                 })

@@ -1,4 +1,4 @@
-use super::{ResolvedValue, ResolverContext, ResolverTrait};
+use super::ResolvedValue;
 
 use crate::{Context, Error};
 use dynamodb::attribute_to_value;
@@ -20,12 +20,10 @@ pub struct CustomResolver {
     pub resolver_name: String,
 }
 
-#[async_trait::async_trait]
-impl ResolverTrait for CustomResolver {
-    async fn resolve(
+impl CustomResolver {
+    pub(super) async fn resolve(
         &self,
         ctx: &Context<'_>,
-        _resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
         use crate::registry::resolver_chain::ResolverChainNode;

@@ -28,8 +28,7 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: None,
-                        transformer: None,
+                        resolver: Parent,
                         required_operation: None,
                         auth: None,
                     },
@@ -72,17 +71,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "message",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "message",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -105,17 +98,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "type",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "type",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -138,17 +125,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "code",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "code",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -191,17 +172,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "name",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "name",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -224,17 +199,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "id",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "id",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -345,32 +314,26 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "PUT",
-                                        url: "http://example.com/pet",
-                                        api_name: "petstore",
-                                        path_parameters: [],
-                                        query_parameters: [],
-                                        request_body: Some(
-                                            RequestBody {
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "input",
-                                                ),
-                                                content_type: Json,
-                                            },
+                        resolver: Http(
+                            HttpResolver {
+                                method: "PUT",
+                                url: "http://example.com/pet",
+                                api_name: "petstore",
+                                path_parameters: [],
+                                query_parameters: [],
+                                request_body: Some(
+                                    RequestBody {
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "input",
                                         ),
-                                        expected_status: Exact(
-                                            200,
-                                        ),
+                                        content_type: Json,
                                     },
+                                ),
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -402,32 +365,26 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "POST",
-                                        url: "http://example.com/pet",
-                                        api_name: "petstore",
-                                        path_parameters: [],
-                                        query_parameters: [],
-                                        request_body: Some(
-                                            RequestBody {
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "input",
-                                                ),
-                                                content_type: Json,
-                                            },
+                        resolver: Http(
+                            HttpResolver {
+                                method: "POST",
+                                url: "http://example.com/pet",
+                                api_name: "petstore",
+                                path_parameters: [],
+                                query_parameters: [],
+                                request_body: Some(
+                                    RequestBody {
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "input",
                                         ),
-                                        expected_status: Exact(
-                                            200,
-                                        ),
+                                        content_type: Json,
                                     },
+                                ),
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -467,40 +424,34 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "POST",
-                                        url: "http://example.com/pet/{petId}/uploadImage",
-                                        api_name: "petstore",
-                                        path_parameters: [
-                                            PathParameter {
-                                                name: "petId",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "petId",
-                                                ),
-                                            },
-                                        ],
-                                        query_parameters: [
-                                            QueryParameter {
-                                                name: "additionalMetadata",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "additionalMetadata",
-                                                ),
-                                                encoding_style: FormExploded,
-                                            },
-                                        ],
-                                        request_body: None,
-                                        expected_status: Exact(
-                                            200,
+                        resolver: Http(
+                            HttpResolver {
+                                method: "POST",
+                                url: "http://example.com/pet/{petId}/uploadImage",
+                                api_name: "petstore",
+                                path_parameters: [
+                                    PathParameter {
+                                        name: "petId",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "petId",
                                         ),
                                     },
+                                ],
+                                query_parameters: [
+                                    QueryParameter {
+                                        name: "additionalMetadata",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "additionalMetadata",
+                                        ),
+                                        encoding_style: FormExploded,
+                                    },
+                                ],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -532,32 +483,26 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "POST",
-                                        url: "http://example.com/store/order",
-                                        api_name: "petstore",
-                                        path_parameters: [],
-                                        query_parameters: [],
-                                        request_body: Some(
-                                            RequestBody {
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "input",
-                                                ),
-                                                content_type: Json,
-                                            },
+                        resolver: Http(
+                            HttpResolver {
+                                method: "POST",
+                                url: "http://example.com/store/order",
+                                api_name: "petstore",
+                                path_parameters: [],
+                                query_parameters: [],
+                                request_body: Some(
+                                    RequestBody {
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "input",
                                         ),
-                                        expected_status: Exact(
-                                            200,
-                                        ),
+                                        content_type: Json,
                                     },
+                                ),
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -589,32 +534,26 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "POST",
-                                        url: "http://example.com/user/createWithList",
-                                        api_name: "petstore",
-                                        path_parameters: [],
-                                        query_parameters: [],
-                                        request_body: Some(
-                                            RequestBody {
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "input",
-                                                ),
-                                                content_type: Json,
-                                            },
+                        resolver: Http(
+                            HttpResolver {
+                                method: "POST",
+                                url: "http://example.com/user/createWithList",
+                                api_name: "petstore",
+                                path_parameters: [],
+                                query_parameters: [],
+                                request_body: Some(
+                                    RequestBody {
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "input",
                                         ),
-                                        expected_status: Exact(
-                                            200,
-                                        ),
+                                        content_type: Json,
                                     },
+                                ),
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -657,17 +596,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "complete",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "complete",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -690,24 +623,18 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Composition(
-                                    [
-                                        ContextDataResolver(
-                                            LocalKey {
-                                                key: "status",
-                                            },
-                                        ),
-                                        ContextDataResolver(
-                                            RemoteEnum,
-                                        ),
-                                    ],
+                        resolver: Composition(
+                            [
+                                Transformer(
+                                    Select {
+                                        key: "status",
+                                    },
                                 ),
-                            },
+                                Transformer(
+                                    RemoteEnum,
+                                ),
+                            ],
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -730,17 +657,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "shipDate",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "shipDate",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -763,17 +684,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "quantity",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "quantity",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -796,17 +711,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "petId",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "petId",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -829,17 +738,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "id",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "id",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -973,24 +876,18 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Composition(
-                                    [
-                                        ContextDataResolver(
-                                            LocalKey {
-                                                key: "status",
-                                            },
-                                        ),
-                                        ContextDataResolver(
-                                            RemoteEnum,
-                                        ),
-                                    ],
+                        resolver: Composition(
+                            [
+                                Transformer(
+                                    Select {
+                                        key: "status",
+                                    },
                                 ),
-                            },
+                                Transformer(
+                                    RemoteEnum,
+                                ),
+                            ],
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1013,17 +910,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "tags",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "tags",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1046,17 +937,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "photoUrls",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "photoUrls",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1079,17 +964,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "category",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "category",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1112,17 +991,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "name",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "name",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1145,17 +1018,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "id",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "id",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1304,33 +1171,27 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "GET",
-                                        url: "http://example.com/pet/findByStatus",
-                                        api_name: "petstore",
-                                        path_parameters: [],
-                                        query_parameters: [
-                                            QueryParameter {
-                                                name: "status",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "status",
-                                                ),
-                                                encoding_style: FormExploded,
-                                            },
-                                        ],
-                                        request_body: None,
-                                        expected_status: Exact(
-                                            200,
+                        resolver: Http(
+                            HttpResolver {
+                                method: "GET",
+                                url: "http://example.com/pet/findByStatus",
+                                api_name: "petstore",
+                                path_parameters: [],
+                                query_parameters: [
+                                    QueryParameter {
+                                        name: "status",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "status",
                                         ),
+                                        encoding_style: FormExploded,
                                     },
+                                ],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1362,33 +1223,27 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "GET",
-                                        url: "http://example.com/pet/findByTags",
-                                        api_name: "petstore",
-                                        path_parameters: [],
-                                        query_parameters: [
-                                            QueryParameter {
-                                                name: "tags",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "tags",
-                                                ),
-                                                encoding_style: FormExploded,
-                                            },
-                                        ],
-                                        request_body: None,
-                                        expected_status: Exact(
-                                            200,
+                        resolver: Http(
+                            HttpResolver {
+                                method: "GET",
+                                url: "http://example.com/pet/findByTags",
+                                api_name: "petstore",
+                                path_parameters: [],
+                                query_parameters: [
+                                    QueryParameter {
+                                        name: "tags",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "tags",
                                         ),
+                                        encoding_style: FormExploded,
                                     },
+                                ],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1420,32 +1275,26 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "GET",
-                                        url: "http://example.com/pet/{petId}",
-                                        api_name: "petstore",
-                                        path_parameters: [
-                                            PathParameter {
-                                                name: "petId",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "petId",
-                                                ),
-                                            },
-                                        ],
-                                        query_parameters: [],
-                                        request_body: None,
-                                        expected_status: Exact(
-                                            200,
+                        resolver: Http(
+                            HttpResolver {
+                                method: "GET",
+                                url: "http://example.com/pet/{petId}",
+                                api_name: "petstore",
+                                path_parameters: [
+                                    PathParameter {
+                                        name: "petId",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "petId",
                                         ),
                                     },
+                                ],
+                                query_parameters: [],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1468,25 +1317,19 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "GET",
-                                        url: "http://example.com/store/inventory",
-                                        api_name: "petstore",
-                                        path_parameters: [],
-                                        query_parameters: [],
-                                        request_body: None,
-                                        expected_status: Exact(
-                                            200,
-                                        ),
-                                    },
+                        resolver: Http(
+                            HttpResolver {
+                                method: "GET",
+                                url: "http://example.com/store/inventory",
+                                api_name: "petstore",
+                                path_parameters: [],
+                                query_parameters: [],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1518,32 +1361,26 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "GET",
-                                        url: "http://example.com/store/order/{orderId}",
-                                        api_name: "petstore",
-                                        path_parameters: [
-                                            PathParameter {
-                                                name: "orderId",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "orderId",
-                                                ),
-                                            },
-                                        ],
-                                        query_parameters: [],
-                                        request_body: None,
-                                        expected_status: Exact(
-                                            200,
+                        resolver: Http(
+                            HttpResolver {
+                                method: "GET",
+                                url: "http://example.com/store/order/{orderId}",
+                                api_name: "petstore",
+                                path_parameters: [
+                                    PathParameter {
+                                        name: "orderId",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "orderId",
                                         ),
                                     },
+                                ],
+                                query_parameters: [],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1583,40 +1420,34 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "GET",
-                                        url: "http://example.com/user/login",
-                                        api_name: "petstore",
-                                        path_parameters: [],
-                                        query_parameters: [
-                                            QueryParameter {
-                                                name: "password",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "password",
-                                                ),
-                                                encoding_style: FormExploded,
-                                            },
-                                            QueryParameter {
-                                                name: "username",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "username",
-                                                ),
-                                                encoding_style: FormExploded,
-                                            },
-                                        ],
-                                        request_body: None,
-                                        expected_status: Exact(
-                                            200,
+                        resolver: Http(
+                            HttpResolver {
+                                method: "GET",
+                                url: "http://example.com/user/login",
+                                api_name: "petstore",
+                                path_parameters: [],
+                                query_parameters: [
+                                    QueryParameter {
+                                        name: "password",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "password",
                                         ),
+                                        encoding_style: FormExploded,
                                     },
+                                    QueryParameter {
+                                        name: "username",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "username",
+                                        ),
+                                        encoding_style: FormExploded,
+                                    },
+                                ],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1648,32 +1479,26 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: Http(
-                                    HttpResolver {
-                                        method: "GET",
-                                        url: "http://example.com/user/{username}",
-                                        api_name: "petstore",
-                                        path_parameters: [
-                                            PathParameter {
-                                                name: "username",
-                                                variable_resolve_definition: ConnectorInputTypeName(
-                                                    "username",
-                                                ),
-                                            },
-                                        ],
-                                        query_parameters: [],
-                                        request_body: None,
-                                        expected_status: Exact(
-                                            200,
+                        resolver: Http(
+                            HttpResolver {
+                                method: "GET",
+                                url: "http://example.com/user/{username}",
+                                api_name: "petstore",
+                                path_parameters: [
+                                    PathParameter {
+                                        name: "username",
+                                        variable_resolve_definition: ConnectorInputTypeName(
+                                            "username",
                                         ),
                                     },
+                                ],
+                                query_parameters: [],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
                                 ),
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1716,17 +1541,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "name",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "name",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1749,17 +1568,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "id",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "id",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1828,17 +1641,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "userStatus",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "userStatus",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1861,17 +1668,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "phone",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "phone",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1894,17 +1695,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "password",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "password",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1927,17 +1722,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "email",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "email",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1960,17 +1749,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "lastName",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "lastName",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1993,17 +1776,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "firstName",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "firstName",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -2026,17 +1803,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "username",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "username",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -2059,17 +1830,11 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: Some(
-                            Resolver {
-                                id: None,
-                                type: ContextDataResolver(
-                                    LocalKey {
-                                        key: "id",
-                                    },
-                                ),
+                        resolver: Transformer(
+                            Select {
+                                key: "id",
                             },
                         ),
-                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -2186,8 +1951,7 @@ Registry {
                         provides: None,
                         edges: [],
                         relation: None,
-                        resolve: None,
-                        transformer: None,
+                        resolver: Parent,
                         required_operation: None,
                         auth: None,
                     },

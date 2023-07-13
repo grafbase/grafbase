@@ -154,7 +154,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
         //     Error::UnknownField(field.name.to_string(), current_type.name().to_string())
         // })?;
 
-        if schema_field.has_custom_resolver() {
+        if schema_field.resolver.is_custom() {
             // Skip fields that have resolvers, as they won't exist in the downstream
             // server
             return Ok(());

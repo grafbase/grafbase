@@ -127,15 +127,12 @@ expression: req_string_b
             "d": "Create a Product",
             "n": "productCreate",
             "r_": {
-              "id": "product_create_resolver",
-              "type": {
-                "d": {
-                  "CreateNode": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "Product"
-                  }
+              "d": {
+                "CreateNode": {
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "Product"
                 }
               }
             },
@@ -153,15 +150,12 @@ expression: req_string_b
             "d": "Create multiple Product",
             "n": "productCreateMany",
             "r_": {
-              "id": null,
-              "type": {
-                "d": {
-                  "CreateNodes": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "Product"
-                  }
+              "d": {
+                "CreateNodes": {
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "Product"
                 }
               }
             },
@@ -179,15 +173,12 @@ expression: req_string_b
             "d": "Delete a Product by ID or unique field",
             "n": "productDelete",
             "r_": {
-              "id": "product_delete_resolver",
-              "type": {
-                "d": {
-                  "DeleteNode": {
-                    "by": {
-                      "InputTypeName": "by"
-                    },
-                    "ty": "Product"
-                  }
+              "d": {
+                "DeleteNode": {
+                  "by": {
+                    "InputTypeName": "by"
+                  },
+                  "ty": "Product"
                 }
               }
             },
@@ -205,15 +196,12 @@ expression: req_string_b
             "d": "Delete multiple Product",
             "n": "productDeleteMany",
             "r_": {
-              "id": null,
-              "type": {
-                "d": {
-                  "DeleteNodes": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "Product"
-                  }
+              "d": {
+                "DeleteNodes": {
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "Product"
                 }
               }
             },
@@ -235,18 +223,15 @@ expression: req_string_b
             "d": "Update a Product",
             "n": "productUpdate",
             "r_": {
-              "id": "product_create_resolver",
-              "type": {
-                "d": {
-                  "UpdateNode": {
-                    "by": {
-                      "InputTypeName": "by"
-                    },
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "Product"
-                  }
+              "d": {
+                "UpdateNode": {
+                  "by": {
+                    "InputTypeName": "by"
+                  },
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "Product"
                 }
               }
             },
@@ -264,15 +249,12 @@ expression: req_string_b
             "d": "Update multiple Product",
             "n": "productUpdateMany",
             "r_": {
-              "id": null,
-              "type": {
-                "d": {
-                  "UpdateNodes": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "Product"
-                  }
+              "d": {
+                "UpdateNodes": {
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "Product"
                 }
               }
             },
@@ -302,73 +284,85 @@ expression: req_string_b
         "f": {
           "endCursor": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "end_cursor"
-              }
-            },
             "_r": 4,
             "a": {},
             "n": "endCursor",
             "r_": {
-              "id": null,
-              "type": {
-                "C": "P"
-              }
+              "c": [
+                {
+                  "T": "P"
+                },
+                {
+                  "T": {
+                    "S": {
+                      "k": "end_cursor"
+                    }
+                  }
+                }
+              ]
             },
             "t": "String"
           },
           "hasNextPage": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "has_next_page"
-              }
-            },
             "_r": 4,
             "a": {},
             "n": "hasNextPage",
             "r_": {
-              "id": null,
-              "type": {
-                "C": "P"
-              }
+              "c": [
+                {
+                  "T": "P"
+                },
+                {
+                  "T": {
+                    "S": {
+                      "k": "has_next_page"
+                    }
+                  }
+                }
+              ]
             },
             "t": "Boolean!"
           },
           "hasPreviousPage": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "has_previous_page"
-              }
-            },
             "_r": 4,
             "a": {},
             "n": "hasPreviousPage",
             "r_": {
-              "id": null,
-              "type": {
-                "C": "P"
-              }
+              "c": [
+                {
+                  "T": "P"
+                },
+                {
+                  "T": {
+                    "S": {
+                      "k": "has_previous_page"
+                    }
+                  }
+                }
+              ]
             },
             "t": "Boolean!"
           },
           "startCursor": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "start_cursor"
-              }
-            },
             "_r": 4,
             "a": {},
             "n": "startCursor",
             "r_": {
-              "id": null,
-              "type": {
-                "C": "P"
-              }
+              "c": [
+                {
+                  "T": "P"
+                },
+                {
+                  "T": {
+                    "S": {
+                      "k": "start_cursor"
+                    }
+                  }
+                }
+              ]
             },
             "t": "String"
           }
@@ -383,88 +377,100 @@ expression: req_string_b
         "f": {
           "createdAt": {
             "D": "N",
-            "T": {
-              "DynamoSelect": {
-                "property": "__created_at"
-              }
-            },
             "a": {},
             "d": "when the model was created",
             "n": "createdAt",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "Product"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "Product"
+                    }
+                  }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "__created_at"
+                    }
                   }
                 }
-              }
+              ]
             },
             "t": "DateTime!"
           },
           "id": {
             "D": "N",
-            "T": {
-              "DynamoSelect": {
-                "property": "__sk"
-              }
-            },
             "a": {},
             "d": "Unique identifier",
             "n": "id",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "Product"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "Product"
+                    }
+                  }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "__sk"
+                    }
                   }
                 }
-              }
+              ]
             },
             "t": "ID!"
           },
           "title": {
             "D": "N",
-            "T": {
-              "DynamoSelect": {
-                "property": "title"
-              }
-            },
             "a": {},
             "n": "title",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "Product"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "Product"
+                    }
+                  }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "title"
+                    }
                   }
                 }
-              }
+              ]
             },
             "t": "String"
           },
           "updatedAt": {
             "D": "N",
-            "T": {
-              "DynamoSelect": {
-                "property": "__updated_at"
-              }
-            },
             "a": {},
             "d": "when the model was updated",
             "n": "updatedAt",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "Product"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "Product"
+                    }
+                  }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "__updated_at"
+                    }
                   }
                 }
-              }
+              ]
             },
             "t": "DateTime!"
           }
@@ -543,15 +549,12 @@ expression: req_string_b
             "a": {},
             "n": "productCollection",
             "r_": {
-              "id": null,
-              "type": {
-                "D": {
-                  "QueryIds": {
-                    "ids": {
-                      "LocalData": "ids"
-                    },
-                    "type_name": "Product"
-                  }
+              "D": {
+                "QueryIds": {
+                  "ids": {
+                    "LocalData": "ids"
+                  },
+                  "type_name": "Product"
                 }
               }
             },
@@ -571,17 +574,14 @@ expression: req_string_b
             "a": {},
             "n": "product",
             "r_": {
-              "id": "product_resolver",
-              "type": {
-                "D": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "LocalData": "id"
-                    },
-                    "schema": null,
-                    "sk": {
-                      "LocalData": "id"
-                    }
+              "D": {
+                "QueryPKSK": {
+                  "pk": {
+                    "LocalData": "id"
+                  },
+                  "schema": null,
+                  "sk": {
+                    "LocalData": "id"
                   }
                 }
               }
@@ -610,14 +610,16 @@ expression: req_string_b
         "f": {
           "deletedIds": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "ids"
-              }
-            },
             "_r": 16,
             "a": {},
             "n": "deletedIds",
+            "r_": {
+              "T": {
+                "S": {
+                  "k": "ids"
+                }
+              }
+            },
             "t": "[ID!]!"
           }
         },
@@ -630,14 +632,16 @@ expression: req_string_b
         "f": {
           "deletedId": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "id"
-              }
-            },
             "_r": 16,
             "a": {},
             "n": "deletedId",
+            "r_": {
+              "T": {
+                "S": {
+                  "k": "id"
+                }
+              }
+            },
             "t": "ID!"
           }
         },
@@ -650,28 +654,29 @@ expression: req_string_b
         "f": {
           "cursor": {
             "D": "N",
-            "T": {
-              "Pipeline": [
-                {
-                  "DynamoSelect": {
-                    "property": "__sk"
-                  }
-                },
-                "ConvertSkToCursor"
-              ]
-            },
             "_r": 4,
             "a": {},
             "n": "cursor",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "Product"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "Product"
+                    }
                   }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "__sk"
+                    }
+                  }
+                },
+                {
+                  "T": "C"
                 }
-              }
+              ]
             },
             "t": "String!"
           },
@@ -738,15 +743,12 @@ expression: req_string_b
             "a": {},
             "n": "productCollection",
             "r_": {
-              "id": null,
-              "type": {
-                "D": {
-                  "QueryIds": {
-                    "ids": {
-                      "LocalData": "ids"
-                    },
-                    "type_name": "Product"
-                  }
+              "D": {
+                "QueryIds": {
+                  "ids": {
+                    "LocalData": "ids"
+                  },
+                  "type_name": "Product"
                 }
               }
             },
@@ -766,17 +768,14 @@ expression: req_string_b
             "a": {},
             "n": "product",
             "r_": {
-              "id": "product_resolver",
-              "type": {
-                "D": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "LocalData": "id"
-                    },
-                    "schema": null,
-                    "sk": {
-                      "LocalData": "id"
-                    }
+              "D": {
+                "QueryPKSK": {
+                  "pk": {
+                    "LocalData": "id"
+                  },
+                  "schema": null,
+                  "sk": {
+                    "LocalData": "id"
                   }
                 }
               }
@@ -823,15 +822,12 @@ expression: req_string_b
             "d": "Query a single Product by an ID or a unique field",
             "n": "product",
             "r_": {
-              "id": "product_resolver",
-              "type": {
-                "D": {
-                  "QueryBy": {
-                    "by": {
-                      "InputTypeName": "by"
-                    },
-                    "schema": 0
-                  }
+              "D": {
+                "QueryBy": {
+                  "by": {
+                    "InputTypeName": "by"
+                  },
+                  "schema": 0
                 }
               }
             },
@@ -874,29 +870,26 @@ expression: req_string_b
             "d": "Paginated query to fetch the whole list of `Product`.",
             "n": "productCollection",
             "r_": {
-              "id": "product_resolver",
-              "type": {
-                "D": {
-                  "ListResultByTypePaginated": {
-                    "after": {
-                      "InputTypeName": "after"
-                    },
-                    "before": {
-                      "InputTypeName": "before"
-                    },
-                    "first": {
-                      "InputTypeName": "first"
-                    },
-                    "last": {
-                      "InputTypeName": "last"
-                    },
-                    "nested": null,
-                    "order_by": {
-                      "InputTypeName": "orderBy"
-                    },
-                    "type": {
-                      "DebugString": "Product"
-                    }
+              "D": {
+                "ListResultByTypePaginated": {
+                  "after": {
+                    "InputTypeName": "after"
+                  },
+                  "before": {
+                    "InputTypeName": "before"
+                  },
+                  "first": {
+                    "InputTypeName": "first"
+                  },
+                  "last": {
+                    "InputTypeName": "last"
+                  },
+                  "nested": null,
+                  "order_by": {
+                    "InputTypeName": "orderBy"
+                  },
+                  "type": {
+                    "DebugString": "Product"
                   }
                 }
               }

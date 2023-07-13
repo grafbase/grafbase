@@ -1,27 +1,33 @@
 #![allow(deprecated)]
 
+use dynamodb::attribute_to_value;
+use dynomite::AttributeValue;
 use indexmap::IndexMap;
 
-use super::dynamo_querying::DynamoResolver;
-use super::{ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
+use super::dynamo_querying::{DynamoResolver, IdCursor};
+use super::{ResolvedPaginationInfo, ResolvedValue, Resolver};
 use crate::registry::resolvers::ResolverContext;
-use crate::registry::transformers::Transformer;
 use crate::registry::variables::VariableResolveDefinition;
 use crate::registry::{MetaEnumValue, MetaType, UnionDiscriminator};
-use crate::{context::resolver_data_get_opt_ref, Context, Error, Value};
+use crate::{Context, Error};
 use std::hash::Hash;
 use std::sync::Arc;
 
+// FIXME: SHould be merged with Transformer into Transformer
 #[non_exhaustive]
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-pub enum ContextDataResolver {
+pub enum Transformer {
     /// Key based Resolver for ResolverContext
-    #[deprecated = "Should not use Context anymore in SDL def"]
-    Key { key: String },
-    /// Key based Resolver for ResolverContext
-    LocalKey { key: String },
+    Select {
+        key: String,
+    },
+    ConvertSkToCursor,
+    DynamoSelect {
+        /// The key where this select
+        key: String,
+    },
     /// ContextDataResolver based on Edges.
     ///
     /// When we fetch a Node, we'll also fetch the Edges of that node if needed (note: this is currenly disabled).
@@ -56,7 +62,10 @@ pub enum ContextDataResolver {
     /// resolver it's a Node, so we'll know we need to check at request-time, if
     /// the sub-level edges are requested, and if they are, we'll need to perform
     /// a second query accross our database.
-    SingleEdge { key: String, relation_name: String },
+    SingleEdge {
+        key: String,
+        relation_name: String,
+    },
     /// Used for an array of edges, e.g. [Todo]
     EdgeArray {
         key: String,
@@ -74,23 +83,55 @@ pub enum ContextDataResolver {
     RemoteUnion,
 }
 
-#[async_trait::async_trait]
-impl ResolverTrait for ContextDataResolver {
-    async fn resolve(
+impl From<Transformer> for Resolver {
+    fn from(value: Transformer) -> Self {
+        Resolver::Transformer(value)
+    }
+}
+
+impl Transformer {
+    pub fn and_then(self, resolver: impl Into<Resolver>) -> Resolver {
+        Resolver::Transformer(self).and_then(resolver)
+    }
+
+    pub fn select(key: &str) -> Self {
+        Self::Select {
+            key: key.to_string(),
+        }
+    }
+
+    pub(super) async fn resolve(
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
         match self {
-            ContextDataResolver::LocalKey { key } => Ok(ResolvedValue::new(Arc::new(
+            Self::ConvertSkToCursor => {
+                let result = last_resolver_value
+                    .and_then(|r| r.data_resolved.as_str())
+                    .map(|sk| serde_json::to_value(IdCursor { id: sk.to_string() }))
+                    .transpose()?
+                    .unwrap_or_default();
+                Ok(ResolvedValue::new(Arc::new(result)))
+            }
+            Self::DynamoSelect { key } => {
+                let result = last_resolver_value
+                    .and_then(|r| r.data_resolved.get(key))
+                    .map(|field| serde_json::from_value(field.clone()))
+                    .transpose()?
+                    .map(attribute_to_value)
+                    .unwrap_or_default();
+                Ok(ResolvedValue::new(Arc::new(result)))
+            }
+            Transformer::Select { key } => Ok(ResolvedValue::new(Arc::new(
                 // TODO: Think again with internal modelization
                 last_resolver_value
                     .and_then(|x| x.data_resolved.get(key))
                     .cloned()
                     .unwrap_or(serde_json::Value::Null),
             ))),
-            ContextDataResolver::RemoteEnum => {
+            Transformer::RemoteEnum => {
                 let enum_values = ctx
                     .current_enum_values()
                     .ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
@@ -103,21 +144,7 @@ impl ResolverTrait for ContextDataResolver {
                     enum_values,
                 )?)))
             }
-            #[allow(deprecated)]
-            ContextDataResolver::Key { key } => {
-                let store = ctx
-                    .resolvers_data
-                    .read()
-                    .map_err(|_| Error::new("Internal error"))?;
-                let ctx_value = resolver_data_get_opt_ref::<Value>(&store, key)
-                    .map(std::clone::Clone::clone)
-                    .unwrap_or(Value::Null);
-
-                Ok(ResolvedValue::new(Arc::new(serde_json::to_value(
-                    ctx_value,
-                )?)))
-            }
-            ContextDataResolver::PaginationData => {
+            Transformer::PaginationData => {
                 let pagination = last_resolver_value
                     .and_then(|x| x.pagination.as_ref())
                     .map(ResolvedPaginationInfo::output);
@@ -129,7 +156,7 @@ impl ResolverTrait for ContextDataResolver {
             // between the queried item and it's edges as a nested pagination will not have pk == sk
             // also
             // TODO: look into optimizing nested single edges
-            ContextDataResolver::SingleEdge { key, relation_name } => {
+            Transformer::SingleEdge { key, relation_name } => {
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
                     Some(serde_json::Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
@@ -149,17 +176,15 @@ impl ResolverTrait for ContextDataResolver {
                     }
                 };
 
-                let sk = Transformer::DynamoSelect {
-                    property: "__sk".to_string(),
-                }
-                .transform(old_val)?;
-
-                let sk = match sk {
-                    serde_json::Value::String(inner) => inner,
-                    _ => {
-                        ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
-                        return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
-                    }
+                let sk_attr = serde_json::from_value::<AttributeValue>(
+                    old_val
+                        .get(dynamodb::constant::SK)
+                        .cloned()
+                        .unwrap_or_default(),
+                )?;
+                let Some(sk) = sk_attr.s else {
+                    ctx.add_error(Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
+                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
                 };
 
                 let result = DynamoResolver::QuerySingleRelation {
@@ -169,9 +194,9 @@ impl ResolverTrait for ContextDataResolver {
                 .resolve(ctx, resolver_ctx, last_resolver_value)
                 .await?;
 
-                return Ok(result);
+                Ok(result)
             }
-            ContextDataResolver::EdgeArray {
+            Transformer::EdgeArray {
                 key,
                 relation_name,
                 expected_ty,
@@ -195,17 +220,15 @@ impl ResolverTrait for ContextDataResolver {
                     }
                 };
 
-                let sk = Transformer::DynamoSelect {
-                    property: "__sk".to_string(),
-                }
-                .transform(old_val)?;
-
-                let sk = match sk {
-                    serde_json::Value::String(inner) => inner,
-                    _ => {
-                        ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
-                        return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
-                    }
+                let sk_attr = serde_json::from_value::<AttributeValue>(
+                    old_val
+                        .get(dynamodb::constant::SK)
+                        .cloned()
+                        .unwrap_or_default(),
+                )?;
+                let Some(sk) = sk_attr.s else {
+                    ctx.add_error(Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
+                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
                 };
 
                 // FIXME: this should be used instead of EdgeArray, we're relying on the arguments
@@ -225,9 +248,9 @@ impl ResolverTrait for ContextDataResolver {
                 .resolve(ctx, resolver_ctx, last_resolver_value)
                 .await?;
 
-                return Ok(result);
+                Ok(result)
             }
-            ContextDataResolver::RemoteUnion => {
+            Transformer::RemoteUnion => {
                 let discriminators = ctx
                     .current_discriminators()
                     .ok_or_else(|| Error::new("Internal error resolving remote union"))?;

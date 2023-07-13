@@ -32,7 +32,6 @@
 //!
 //! A memoization is applied on the resolve function.
 
-use crate::registry::{resolvers::Resolver, transformers::Transformer};
 use crate::Result;
 use crate::{Context, Error, QueryPathSegment};
 use cached::Cached;
@@ -49,8 +48,9 @@ use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
 use ulid::Ulid;
 
+use super::resolvers::Resolver;
 use super::{
-    resolvers::{ResolvedValue, ResolverContext, ResolverTrait},
+    resolvers::{ResolvedValue, ResolverContext},
     MetaField, MetaInputValue, MetaType,
 };
 
@@ -84,9 +84,6 @@ pub struct ResolverChainNode<'a> {
     /// The current resolver to apply, if it exists.
     /// There is no resolvers on QueryPathSegment::Index for instance.
     pub resolver: Option<&'a Resolver>,
-
-    /// The current transformer applied to the current resolver, if it exists.
-    pub transformer: Option<&'a Transformer>,
 
     /// The current variables on this node
     pub variables: Option<Vec<(&'a str, &'a MetaInputValue)>>,
@@ -153,14 +150,9 @@ impl<'a> ResolverChainNode<'a> {
     }
 }
 
-#[async_trait::async_trait]
-impl<'a> ResolverTrait for ResolverChainNode<'a> {
-    async fn resolve(
-        &self,
-        ctx: &Context<'_>,
-        _resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&ResolvedValue>,
-    ) -> Result<ResolvedValue, Error> {
+impl<'a> ResolverChainNode<'a> {
+    #[async_recursion::async_recursion]
+    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResolvedValue, Error> {
         let mut hash_value = DefaultHasher::new();
         self.hash(&mut hash_value);
         let hash_value = hash_value.finish();
@@ -174,14 +166,7 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         let mut final_result = ResolvedValue::new(Arc::new(serde_json::Value::Null));
 
         if let Some(parent) = self.parent {
-            let parent_ctx = ResolverContext::new(&parent.execution_id)
-                .with_ty(parent.ty)
-                .with_resolver_id(parent.resolver.and_then(|resolver| resolver.id.as_deref()))
-                .with_selection_set(parent.selections)
-                .with_field(parent.field);
-            final_result = parent
-                .resolve(ctx, &parent_ctx, last_resolver_value)
-                .await?;
+            final_result = parent.resolve(ctx).await?;
         }
 
         if let QueryPathSegment::Index(idx) = self.segment {
@@ -194,31 +179,22 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                     .map(Clone::clone)
                     .unwrap_or(serde_json::Value::Null),
             ));
-        }
+        } else if let Some(resolver) = self.resolver {
+            // Avoiding the early return when we're just propagating downwards data. Container
+            // fields used as namespaces have no value (so Null) but their fields have resolvers.
+            if !resolver.is_parent() {
+                let current_ctx = ResolverContext::new(&self.execution_id)
+                    .with_ty(self.ty)
+                    .with_selection_set(self.selections)
+                    .with_field(self.field);
 
-        if let Some(actual) = self.resolver {
-            let current_ctx = ResolverContext::new(&self.execution_id)
-                .with_resolver_id(actual.id.as_deref())
-                .with_ty(self.ty)
-                .with_selection_set(self.selections)
-                .with_field(self.field);
+                final_result = resolver
+                    .resolve(ctx, &current_ctx, Some(&final_result))
+                    .await?;
 
-            final_result = actual
-                .resolve(ctx, &current_ctx, Some(&final_result))
-                .await?;
-        }
-
-        if let Some(transformers) = self.transformer {
-            // TODO: Ensure it doesn't fail by changing the way the data is modelized withing
-            // resolver, we shouldn't have dynamic typing here.
-            //
-            // It can be done by transforming the Resolver Return type to a struct with the result
-            // and with the extra data, where each resolver can add extra data.
-            final_result.data_resolved =
-                Arc::new(transformers.transform(final_result.data_resolved.as_ref().clone())?);
-
-            if *final_result.data_resolved == serde_json::Value::Null {
-                final_result = final_result.with_early_return();
+                if *final_result.data_resolved == serde_json::Value::Null {
+                    final_result = final_result.with_early_return();
+                }
             }
         }
 

@@ -1,7 +1,7 @@
-use dynaql::registry::transformers::Transformer;
 use dynaql::registry::{
-    resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::Resolver, resolvers::ResolverType,
-    variables::VariableResolveDefinition, MetaField, MetaInputValue,
+    resolvers::{dynamo_mutation::DynamoMutationResolver, transformer::Transformer},
+    variables::VariableResolveDefinition,
+    MetaField, MetaInputValue,
 };
 use dynaql::registry::{InputObjectType, NamedType, ObjectType};
 
@@ -34,14 +34,11 @@ pub fn add_mutation_delete<'a>(
         .map(|input| (input.name.clone(), input))
         .collect(),
         ty: payload.as_nullable().into(),
-        resolve: Some(Resolver {
-            id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::DeleteNode {
-                ty: type_name.clone().into(),
-                by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
-            }),
-        }),
-
+        resolver: DynamoMutationResolver::DeleteNode {
+            ty: type_name.clone().into(),
+            by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
+        }
+        .into(),
         cache_control: cache_control.clone(),
         required_operation: Some(Operations::DELETE),
         auth: model_auth.cloned(),
@@ -58,13 +55,11 @@ pub fn add_mutation_delete<'a>(
             .map(|input| (input.name.clone(), input))
             .collect(),
         ty: delete_many_payload.as_nullable().into(),
-        resolve: Some(Resolver {
-            id: None,
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::DeleteNodes {
-                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
-                ty: type_name.into(),
-            }),
-        }),
+        resolver: DynamoMutationResolver::DeleteNodes {
+            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            ty: type_name.into(),
+        }
+        .into(),
         cache_control,
         required_operation: Some(Operations::DELETE),
         auth: model_auth.cloned(),
@@ -108,9 +103,7 @@ fn register_payload(
                 [MetaField {
                     name: "deletedId".to_string(),
                     ty: NamedType::from("ID").as_non_null().into(),
-                    transformer: Some(Transformer::JSONSelect {
-                        property: "id".to_string(),
-                    }),
+                    resolver: Transformer::select("id").into(),
                     required_operation: Some(Operations::DELETE),
                     auth: model_auth.cloned(),
                     cache_control: cache_control.clone(),
@@ -141,9 +134,7 @@ fn register_many_payload(
                 [MetaField {
                     name: "deletedIds".to_string(),
                     ty: NamedType::from("ID").as_non_null().list().non_null().into(),
-                    transformer: Some(Transformer::JSONSelect {
-                        property: "ids".to_string(),
-                    }),
+                    resolver: Transformer::select("ids").into(),
                     required_operation: Some(Operations::DELETE),
                     auth: model_auth.cloned(),
                     cache_control: cache_control.clone(),

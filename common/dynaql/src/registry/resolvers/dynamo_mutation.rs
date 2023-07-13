@@ -1,4 +1,4 @@
-use super::{ResolvedValue, ResolverContext, ResolverTrait};
+use super::{ResolvedValue, Resolver, ResolverContext};
 use crate::registry::utils::value_to_attribute;
 use crate::registry::variables::id::ObfuscatedID;
 use crate::registry::variables::VariableResolveDefinition;
@@ -158,6 +158,12 @@ pub enum DynamoMutationResolver {
         /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
         ty: ModelName,
     },
+}
+
+impl From<DynamoMutationResolver> for Resolver {
+    fn from(value: DynamoMutationResolver) -> Self {
+        Resolver::DynamoMutationResolver(value)
+    }
 }
 
 type SharedSelectionType<'a> = Shared<
@@ -992,9 +998,8 @@ fn relation_handle<'a>(
     result
 }
 
-#[async_trait::async_trait]
-impl ResolverTrait for DynamoMutationResolver {
-    async fn resolve(
+impl DynamoMutationResolver {
+    pub(super) async fn resolve(
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,

@@ -9,9 +9,8 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use self::{custom::CustomResolver, debug::DebugResolver, graphql::Target};
+use self::{custom::CustomResolver, graphql::Target, transformer::Transformer};
 use crate::{Context, Error, RequestHeaders};
-use context_data::ContextDataResolver;
 use derivative::Derivative;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
@@ -27,37 +26,13 @@ use ulid::Ulid;
 
 use super::{Constraint, MetaField, MetaType};
 
-pub mod context_data;
 pub mod custom;
-pub mod debug;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
 pub mod graphql;
 pub mod http;
 pub mod query;
-
-/// Resolver declarative struct to assign a Resolver for a Field.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-pub struct Resolver {
-    /// Unique id to identify Resolver.
-    pub id: Option<String>,
-    pub r#type: ResolverType,
-}
-
-impl Resolver {
-    pub fn and_then(self, resolver: ResolverType) -> Self {
-        let mut resolvers = match self.r#type {
-            ResolverType::Composition(resolvers) => resolvers,
-            r => vec![r],
-        };
-        resolvers.push(resolver);
-        Resolver {
-            r#type: ResolverType::Composition(resolvers),
-            ..self
-        }
-    }
-}
+pub mod transformer;
 
 /// Resolver Context
 ///
@@ -69,9 +44,6 @@ impl Resolver {
 /// `execution_id` which is linked to the actual execution, a unique ID is
 /// created each time the resolver is called.
 pub struct ResolverContext<'a> {
-    /// Every declared resolver can have an ID, these ID can be used for
-    /// memoization.
-    pub resolver_id: Option<&'a str>,
     /// When a resolver is executed, it gains a Resolver unique ID for his
     /// execution, this ID is used for internal cache strategy
     pub execution_id: &'a Ulid,
@@ -86,17 +58,11 @@ pub struct ResolverContext<'a> {
 impl<'a> ResolverContext<'a> {
     pub fn new(id: &'a Ulid) -> Self {
         Self {
-            resolver_id: None,
             execution_id: id,
             ty: None,
             selections: None,
             field: None,
         }
-    }
-
-    pub fn with_resolver_id(mut self, id: Option<&'a str>) -> Self {
-        self.resolver_id = id;
-        self
     }
 
     pub fn with_ty(mut self, ty: Option<&'a MetaType>) -> Self {
@@ -268,74 +234,36 @@ impl ResolvedValue {
     }
 }
 
-#[async_trait::async_trait]
-pub trait ResolverTrait: Sync {
-    async fn resolve(
-        &self,
-        ctx: &Context<'_>,
-        resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&ResolvedValue>,
-    ) -> Result<ResolvedValue, Error>;
-}
-
-#[async_trait::async_trait]
-impl ResolverTrait for Resolver {
-    /// The `[ResolverTrait]` should be a core element of the resolver chain.
-    /// When you cross the ResolverChain, every Resolver Result is passed on the Children
-    /// By Reference.
-    ///
-    /// WE MUST ENSURE EVERY VALUES ACCEDED BY THE RESOLVER COULD BE GETTED.
-    /// Why? To ensure security.
-    ///
-    /// We resolver can only access the TRANSFORMED result from his resolver ancestor.
-    async fn resolve(
-        &self,
-        ctx: &Context<'_>,
-        resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&ResolvedValue>,
-    ) -> Result<ResolvedValue, Error> {
-        self.r#type
-            .resolve(ctx, resolver_ctx, last_resolver_value)
-            .await
-    }
-}
-
-impl ResolverType {
+impl Resolver {
     #[async_recursion::async_recursion]
-    async fn resolve(
+    pub(crate) async fn resolve(
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&'async_recursion ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
         match self {
-            ResolverType::DebugResolver(debug) => {
-                debug.resolve(ctx, resolver_ctx, last_resolver_value).await
-            }
-            ResolverType::DynamoResolver(dynamodb) => {
+            Resolver::Parent => last_resolver_value
+                .cloned()
+                .ok_or_else(|| Error::new("No data to propagate!")),
+            Resolver::DynamoResolver(dynamodb) => {
                 dynamodb
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
-            ResolverType::DynamoMutationResolver(dynamodb) => {
+            Resolver::DynamoMutationResolver(dynamodb) => {
                 dynamodb
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
-            ResolverType::ContextDataResolver(ctx_data) => {
+            Resolver::Transformer(ctx_data) => {
                 ctx_data
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
-            ResolverType::CustomResolver(resolver) => {
-                resolver
-                    .resolve(ctx, resolver_ctx, last_resolver_value)
-                    .await
-            }
-            ResolverType::Query(query) => {
-                query.resolve(ctx, resolver_ctx, last_resolver_value).await
-            }
-            ResolverType::Composition(resolvers) => {
+            Resolver::CustomResolver(resolver) => resolver.resolve(ctx, last_resolver_value).await,
+            Resolver::Query(query) => query.resolve(ctx, resolver_ctx, last_resolver_value).await,
+            Resolver::Composition(resolvers) => {
                 let [head, tail @ ..] = &resolvers[..] else {
                     unreachable!("Composition of resolvers always have at least one element")
                 };
@@ -345,12 +273,12 @@ impl ResolverType {
                 }
                 Ok(current)
             }
-            ResolverType::Http(resolver) => {
+            Resolver::Http(resolver) => {
                 resolver
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
-            ResolverType::Graphql(resolver) => {
+            Resolver::Graphql(resolver) => {
                 let registry = ctx.registry();
                 let request_headers = ctx.data::<RequestHeaders>().ok();
                 let headers = registry
@@ -434,19 +362,47 @@ impl ResolverType {
             }
         }
     }
+
+    pub fn and_then(mut self, resolver: impl Into<Resolver>) -> Self {
+        let resolver = resolver.into();
+        match &mut self {
+            Resolver::Composition(resolvers) => {
+                resolvers.push(resolver);
+                self
+            }
+            _ => Resolver::Composition(vec![self, resolver]),
+        }
+    }
+
+    pub fn and_then_maybe(self, resolver: Option<impl Into<Resolver>>) -> Self {
+        match resolver {
+            Some(other) => self.and_then(other),
+            None => self,
+        }
+    }
+
+    pub fn is_parent(&self) -> bool {
+        matches!(self, Self::Parent)
+    }
+
+    pub fn is_custom(&self) -> bool {
+        matches!(self, Self::CustomResolver(_))
+    }
 }
 
 #[non_exhaustive]
 #[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-pub enum ResolverType {
+#[derive(Default, Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+pub enum Resolver {
+    // By default a resolver will just return its parent value
+    #[default]
+    Parent,
     DynamoResolver(DynamoResolver),
     Query(QueryResolver),
     DynamoMutationResolver(DynamoMutationResolver),
-    ContextDataResolver(ContextDataResolver),
-    DebugResolver(DebugResolver),
+    Transformer(Transformer),
     CustomResolver(CustomResolver),
-    Composition(Vec<ResolverType>),
+    Composition(Vec<Resolver>),
     Http(http::HttpResolver),
     Graphql(graphql::Resolver),
 }

@@ -2,11 +2,11 @@ use dynamodb::constant;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::enums::OrderByDirection;
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::transformers::Transformer;
 use dynaql::registry::{self, InputObjectType, NamedType, Registry};
 use dynaql::registry::{
-    resolvers::context_data::ContextDataResolver, resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver,
-    resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
+    resolvers::{dynamo_querying::DynamoResolver, transformer::Transformer, Resolver},
+    variables::VariableResolveDefinition,
+    MetaField, MetaInputValue,
 };
 use dynaql::AuthConfig;
 use dynaql_parser::types::{BaseType, Type, TypeDefinition};
@@ -50,18 +50,11 @@ fn register_edge_type(
                     MetaField {
                         name: PAGINATION_FIELD_EDGE_CURSOR.to_string(),
                         ty: "String!".into(),
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                key: MetaNames::model(model_type_definition),
-                            }),
-                        }),
-                        transformer: Some(Transformer::Pipeline(vec![
-                            Transformer::DynamoSelect {
-                                property: constant::SK.to_string(),
-                            },
-                            Transformer::ConvertSkToCursor,
-                        ])),
+                        resolver: Transformer::select(&MetaNames::model(model_type_definition))
+                            .and_then(Transformer::DynamoSelect {
+                                key: constant::SK.to_string(),
+                            })
+                            .and_then(Transformer::ConvertSkToCursor),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                         ..Default::default()
@@ -86,13 +79,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
                     MetaField {
                         name: PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE.to_string(),
                         ty: "Boolean!".into(),
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
-                        }),
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "has_previous_page".to_string(),
-                        }),
+                        resolver: Transformer::PaginationData.and_then(Transformer::select("has_previous_page")),
                         required_operation: Some(Operations::LIST),
                         // TODO: Auth should be propagated down during resolution from the parent
                         // type. PageInfo type is not specific to any data model, what matters is
@@ -103,13 +90,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
                     MetaField {
                         name: PAGE_INFO_FIELD_HAS_NEXT_PAGE.to_string(),
                         ty: "Boolean!".into(),
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
-                        }),
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "has_next_page".to_string(),
-                        }),
+                        resolver: Transformer::PaginationData.and_then(Transformer::select("has_next_page")),
                         required_operation: Some(Operations::LIST),
                         auth: None,
                         ..Default::default()
@@ -117,13 +98,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
                     MetaField {
                         name: PAGE_INFO_FIELD_START_CURSOR.to_string(),
                         ty: "String".into(),
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
-                        }),
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "start_cursor".to_string(),
-                        }),
+                        resolver: Transformer::PaginationData.and_then(Transformer::select("start_cursor")),
                         required_operation: Some(Operations::LIST),
                         auth: None,
                         ..Default::default()
@@ -131,13 +106,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
                     MetaField {
                         name: PAGE_INFO_FIELD_END_CURSOR.to_string(),
                         ty: "String".into(),
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
-                        }),
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "end_cursor".to_string(),
-                        }),
+                        resolver: Transformer::PaginationData.and_then(Transformer::select("end_cursor")),
                         required_operation: Some(Operations::LIST),
                         auth: None,
                         ..Default::default()
@@ -236,22 +205,18 @@ pub fn add_query_paginated_collection(
             field,
             &Type::new(&type_name).expect("Shouldn't fail"),
         )),
-        resolve: Some(Resolver {
-            id: Some(format!("{}_resolver", type_name.to_lowercase())),
-            // Multiple entities
-            r#type: ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
-                r#type: VariableResolveDefinition::DebugString(type_name.to_string()),
-                first: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_FIRST.to_string()),
-                after: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_AFTER.to_string()),
-                before: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_BEFORE.to_string()),
-                last: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_LAST.to_string()),
-                order_by: Some(VariableResolveDefinition::InputTypeName(
-                    PAGINATION_INPUT_ARG_ORDER_BY.to_string(),
-                )),
-                nested: None,
-            }),
+        // Multiple entities
+        resolver: Resolver::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
+            r#type: VariableResolveDefinition::DebugString(type_name.to_string()),
+            first: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_FIRST.to_string()),
+            after: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_AFTER.to_string()),
+            before: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_BEFORE.to_string()),
+            last: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_LAST.to_string()),
+            order_by: Some(VariableResolveDefinition::InputTypeName(
+                PAGINATION_INPUT_ARG_ORDER_BY.to_string(),
+            )),
+            nested: None,
         }),
-        transformer: None,
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),
     });

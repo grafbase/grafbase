@@ -308,8 +308,7 @@ pub fn generate(
                     edges: Vec::new(),
                     relation: None,
                     compute_complexity: #complexity,
-                    resolve: ::std::option::Option::None,
-                    transformer: ::std::option::Option::None,
+                    resolver: #crate_name::registry::resolvers::Resolver::Parent,
                     required_operation: None,
                     auth: None,
                 });

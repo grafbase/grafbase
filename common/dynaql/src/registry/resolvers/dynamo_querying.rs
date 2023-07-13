@@ -1,4 +1,4 @@
-use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
+use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, Resolver};
 
 use crate::registry::enums::OrderByDirection;
 use crate::registry::relations::{MetaRelation, MetaRelationKind};
@@ -163,6 +163,12 @@ pub enum DynamoResolver {
     },
 }
 
+impl From<DynamoResolver> for Resolver {
+    fn from(value: DynamoResolver) -> Self {
+        Resolver::DynamoResolver(value)
+    }
+}
+
 // Cursor "implementation" for DynamoDB collections
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "Cursor", into = "Cursor")]
@@ -184,9 +190,8 @@ impl TryFrom<Cursor> for IdCursor {
     }
 }
 
-#[async_trait::async_trait]
-impl ResolverTrait for DynamoResolver {
-    async fn resolve(
+impl DynamoResolver {
+    pub(super) async fn resolve(
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,

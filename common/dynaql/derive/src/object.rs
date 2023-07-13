@@ -488,8 +488,7 @@ pub fn generate(
                         compute_complexity: #complexity,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: None,
-                        transformer: None,
+                        resolver: #crate_name::registry::resolvers::Resolver::Parent,
                         required_operation: None,
                         auth: None,
                     });

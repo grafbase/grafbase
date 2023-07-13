@@ -19,8 +19,7 @@ use cynic::{
 use cynic_introspection::{query::IntrospectionQuery, SchemaError};
 use dynaql::{
     registry::{
-        resolvers::{graphql, Resolver, ResolverType},
-        transformers::Transformer,
+        resolvers::{graphql, transformer::Transformer, Resolver},
         ConnectorHeaders, Deprecation, MetaField, ObjectType, Registry,
     },
     CacheControl,
@@ -244,13 +243,9 @@ impl Parser {
             };
 
             for f in i.values_mut() {
-                if f.resolve.is_some() {
-                    continue;
-                };
-
-                f.transformer = Some(Transformer::JSONSelect {
-                    property: f.name.clone(),
-                });
+                if f.resolver.is_parent() {
+                    f.resolver = Transformer::select(&f.name).into();
+                }
             }
         }
     }
@@ -293,13 +288,10 @@ impl Parser {
                 ty: format!("{}{}!", prefix.to_pascal_case(), &registry.query_type).into(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
-                resolve: Some(Resolver {
-                    id: None,
-                    r#type: ResolverType::Graphql(graphql::Resolver {
-                        id: self.id,
-                        url: self.url.clone(),
-                        namespace: Some(prefix.to_owned()),
-                    }),
+                resolver: Resolver::Graphql(graphql::Resolver {
+                    id: self.id,
+                    url: self.url.clone(),
+                    namespace: Some(prefix.to_owned()),
                 }),
                 ..Default::default()
             },
@@ -321,13 +313,10 @@ impl Parser {
         // fields from the upstream API. No fields, means no API access exposed by the upstream
         // server.
         for (_name, field) in fields {
-            field.resolve = Some(Resolver {
-                id: None,
-                r#type: ResolverType::Graphql(graphql::Resolver {
-                    id: self.id,
-                    url: self.url.clone(),
-                    namespace: None,
-                }),
+            field.resolver = Resolver::Graphql(graphql::Resolver {
+                id: self.id,
+                url: self.url.clone(),
+                namespace: None,
             });
         }
     }
@@ -355,13 +344,10 @@ impl Parser {
                 ty: format!("{}{mutation_type}!", prefix.to_pascal_case()).into(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
-                resolve: Some(Resolver {
-                    id: None,
-                    r#type: ResolverType::Graphql(graphql::Resolver {
-                        id: self.id,
-                        url: self.url.clone(),
-                        namespace: Some(prefix.to_owned()),
-                    }),
+                resolver: Resolver::Graphql(graphql::Resolver {
+                    id: self.id,
+                    url: self.url.clone(),
+                    namespace: Some(prefix.to_owned()),
                 }),
                 ..Default::default()
             },
@@ -387,13 +373,10 @@ impl Parser {
         // fields from the upstream API. No fields, means no API access exposed by the upstream
         // server.
         for (_name, field) in fields {
-            field.resolve = Some(Resolver {
-                id: None,
-                r#type: ResolverType::Graphql(graphql::Resolver {
-                    id: self.id,
-                    url: self.url.clone(),
-                    namespace: None,
-                }),
+            field.resolver = Resolver::Graphql(graphql::Resolver {
+                id: self.id,
+                url: self.url.clone(),
+                namespace: None,
             });
         }
     }

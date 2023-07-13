@@ -127,15 +127,12 @@ expression: req_string_a
             "d": "Create a User",
             "n": "userCreate",
             "r_": {
-              "id": "user_create_resolver",
-              "type": {
-                "d": {
-                  "CreateNode": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "User"
-                  }
+              "d": {
+                "CreateNode": {
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "User"
                 }
               }
             },
@@ -153,15 +150,12 @@ expression: req_string_a
             "d": "Create multiple User",
             "n": "userCreateMany",
             "r_": {
-              "id": null,
-              "type": {
-                "d": {
-                  "CreateNodes": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "User"
-                  }
+              "d": {
+                "CreateNodes": {
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "User"
                 }
               }
             },
@@ -179,15 +173,12 @@ expression: req_string_a
             "d": "Delete a User by ID or unique field",
             "n": "userDelete",
             "r_": {
-              "id": "user_delete_resolver",
-              "type": {
-                "d": {
-                  "DeleteNode": {
-                    "by": {
-                      "InputTypeName": "by"
-                    },
-                    "ty": "User"
-                  }
+              "d": {
+                "DeleteNode": {
+                  "by": {
+                    "InputTypeName": "by"
+                  },
+                  "ty": "User"
                 }
               }
             },
@@ -205,15 +196,12 @@ expression: req_string_a
             "d": "Delete multiple User",
             "n": "userDeleteMany",
             "r_": {
-              "id": null,
-              "type": {
-                "d": {
-                  "DeleteNodes": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "User"
-                  }
+              "d": {
+                "DeleteNodes": {
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "User"
                 }
               }
             },
@@ -235,18 +223,15 @@ expression: req_string_a
             "d": "Update a User",
             "n": "userUpdate",
             "r_": {
-              "id": "user_create_resolver",
-              "type": {
-                "d": {
-                  "UpdateNode": {
-                    "by": {
-                      "InputTypeName": "by"
-                    },
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "User"
-                  }
+              "d": {
+                "UpdateNode": {
+                  "by": {
+                    "InputTypeName": "by"
+                  },
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "User"
                 }
               }
             },
@@ -264,15 +249,12 @@ expression: req_string_a
             "d": "Update multiple User",
             "n": "userUpdateMany",
             "r_": {
-              "id": null,
-              "type": {
-                "d": {
-                  "UpdateNodes": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "User"
-                  }
+              "d": {
+                "UpdateNodes": {
+                  "input": {
+                    "InputTypeName": "input"
+                  },
+                  "ty": "User"
                 }
               }
             },
@@ -288,13 +270,15 @@ expression: req_string_a
         "f": {
           "requiredField": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "requiredField"
-              }
-            },
             "a": {},
             "n": "requiredField",
+            "r_": {
+              "T": {
+                "S": {
+                  "k": "requiredField"
+                }
+              }
+            },
             "t": "String!"
           }
         },
@@ -334,73 +318,85 @@ expression: req_string_a
         "f": {
           "endCursor": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "end_cursor"
-              }
-            },
             "_r": 4,
             "a": {},
             "n": "endCursor",
             "r_": {
-              "id": null,
-              "type": {
-                "C": "P"
-              }
+              "c": [
+                {
+                  "T": "P"
+                },
+                {
+                  "T": {
+                    "S": {
+                      "k": "end_cursor"
+                    }
+                  }
+                }
+              ]
             },
             "t": "String"
           },
           "hasNextPage": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "has_next_page"
-              }
-            },
             "_r": 4,
             "a": {},
             "n": "hasNextPage",
             "r_": {
-              "id": null,
-              "type": {
-                "C": "P"
-              }
+              "c": [
+                {
+                  "T": "P"
+                },
+                {
+                  "T": {
+                    "S": {
+                      "k": "has_next_page"
+                    }
+                  }
+                }
+              ]
             },
             "t": "Boolean!"
           },
           "hasPreviousPage": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "has_previous_page"
-              }
-            },
             "_r": 4,
             "a": {},
             "n": "hasPreviousPage",
             "r_": {
-              "id": null,
-              "type": {
-                "C": "P"
-              }
+              "c": [
+                {
+                  "T": "P"
+                },
+                {
+                  "T": {
+                    "S": {
+                      "k": "has_previous_page"
+                    }
+                  }
+                }
+              ]
             },
             "t": "Boolean!"
           },
           "startCursor": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "start_cursor"
-              }
-            },
             "_r": 4,
             "a": {},
             "n": "startCursor",
             "r_": {
-              "id": null,
-              "type": {
-                "C": "P"
-              }
+              "c": [
+                {
+                  "T": "P"
+                },
+                {
+                  "T": {
+                    "S": {
+                      "k": "start_cursor"
+                    }
+                  }
+                }
+              ]
             },
             "t": "String"
           }
@@ -444,15 +440,12 @@ expression: req_string_a
             "d": "Query a single User by an ID or a unique field",
             "n": "user",
             "r_": {
-              "id": "user_resolver",
-              "type": {
-                "D": {
-                  "QueryBy": {
-                    "by": {
-                      "InputTypeName": "by"
-                    },
-                    "schema": 0
-                  }
+              "D": {
+                "QueryBy": {
+                  "by": {
+                    "InputTypeName": "by"
+                  },
+                  "schema": 0
                 }
               }
             },
@@ -495,29 +488,26 @@ expression: req_string_a
             "d": "Paginated query to fetch the whole list of `User`.",
             "n": "userCollection",
             "r_": {
-              "id": "user_resolver",
-              "type": {
-                "D": {
-                  "ListResultByTypePaginated": {
-                    "after": {
-                      "InputTypeName": "after"
-                    },
-                    "before": {
-                      "InputTypeName": "before"
-                    },
-                    "first": {
-                      "InputTypeName": "first"
-                    },
-                    "last": {
-                      "InputTypeName": "last"
-                    },
-                    "nested": null,
-                    "order_by": {
-                      "InputTypeName": "orderBy"
-                    },
-                    "type": {
-                      "DebugString": "User"
-                    }
+              "D": {
+                "ListResultByTypePaginated": {
+                  "after": {
+                    "InputTypeName": "after"
+                  },
+                  "before": {
+                    "InputTypeName": "before"
+                  },
+                  "first": {
+                    "InputTypeName": "first"
+                  },
+                  "last": {
+                    "InputTypeName": "last"
+                  },
+                  "nested": null,
+                  "order_by": {
+                    "InputTypeName": "orderBy"
+                  },
+                  "type": {
+                    "DebugString": "User"
                   }
                 }
               }
@@ -542,88 +532,100 @@ expression: req_string_a
         "f": {
           "createdAt": {
             "D": "N",
-            "T": {
-              "DynamoSelect": {
-                "property": "__created_at"
-              }
-            },
             "a": {},
             "d": "when the model was created",
             "n": "createdAt",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "User"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "User"
+                    }
+                  }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "__created_at"
+                    }
                   }
                 }
-              }
+              ]
             },
             "t": "DateTime!"
           },
           "id": {
             "D": "N",
-            "T": {
-              "DynamoSelect": {
-                "property": "__sk"
-              }
-            },
             "a": {},
             "d": "Unique identifier",
             "n": "id",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "User"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "User"
+                    }
+                  }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "__sk"
+                    }
                   }
                 }
-              }
+              ]
             },
             "t": "ID!"
           },
           "nested": {
             "D": "N",
-            "T": {
-              "DynamoSelect": {
-                "property": "nested"
-              }
-            },
             "a": {},
             "n": "nested",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "User"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "User"
+                    }
+                  }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "nested"
+                    }
                   }
                 }
-              }
+              ]
             },
             "t": "Nested"
           },
           "updatedAt": {
             "D": "N",
-            "T": {
-              "DynamoSelect": {
-                "property": "__updated_at"
-              }
-            },
             "a": {},
             "d": "when the model was updated",
             "n": "updatedAt",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "User"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "User"
+                    }
+                  }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "__updated_at"
+                    }
                   }
                 }
-              }
+              ]
             },
             "t": "DateTime!"
           }
@@ -702,15 +704,12 @@ expression: req_string_a
             "a": {},
             "n": "userCollection",
             "r_": {
-              "id": null,
-              "type": {
-                "D": {
-                  "QueryIds": {
-                    "ids": {
-                      "LocalData": "ids"
-                    },
-                    "type_name": "User"
-                  }
+              "D": {
+                "QueryIds": {
+                  "ids": {
+                    "LocalData": "ids"
+                  },
+                  "type_name": "User"
                 }
               }
             },
@@ -730,17 +729,14 @@ expression: req_string_a
             "a": {},
             "n": "user",
             "r_": {
-              "id": "user_resolver",
-              "type": {
-                "D": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "LocalData": "id"
-                    },
-                    "schema": null,
-                    "sk": {
-                      "LocalData": "id"
-                    }
+              "D": {
+                "QueryPKSK": {
+                  "pk": {
+                    "LocalData": "id"
+                  },
+                  "schema": null,
+                  "sk": {
+                    "LocalData": "id"
                   }
                 }
               }
@@ -769,14 +765,16 @@ expression: req_string_a
         "f": {
           "deletedIds": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "ids"
-              }
-            },
             "_r": 16,
             "a": {},
             "n": "deletedIds",
+            "r_": {
+              "T": {
+                "S": {
+                  "k": "ids"
+                }
+              }
+            },
             "t": "[ID!]!"
           }
         },
@@ -789,14 +787,16 @@ expression: req_string_a
         "f": {
           "deletedId": {
             "D": "N",
-            "T": {
-              "JSONSelect": {
-                "property": "id"
-              }
-            },
             "_r": 16,
             "a": {},
             "n": "deletedId",
+            "r_": {
+              "T": {
+                "S": {
+                  "k": "id"
+                }
+              }
+            },
             "t": "ID!"
           }
         },
@@ -809,28 +809,29 @@ expression: req_string_a
         "f": {
           "cursor": {
             "D": "N",
-            "T": {
-              "Pipeline": [
-                {
-                  "DynamoSelect": {
-                    "property": "__sk"
-                  }
-                },
-                "ConvertSkToCursor"
-              ]
-            },
             "_r": 4,
             "a": {},
             "n": "cursor",
             "r_": {
-              "id": null,
-              "type": {
-                "C": {
-                  "L": {
-                    "K": "User"
+              "c": [
+                {
+                  "T": {
+                    "S": {
+                      "k": "User"
+                    }
                   }
+                },
+                {
+                  "T": {
+                    "D": {
+                      "K": "__sk"
+                    }
+                  }
+                },
+                {
+                  "T": "C"
                 }
-              }
+              ]
             },
             "t": "String!"
           },
@@ -897,15 +898,12 @@ expression: req_string_a
             "a": {},
             "n": "userCollection",
             "r_": {
-              "id": null,
-              "type": {
-                "D": {
-                  "QueryIds": {
-                    "ids": {
-                      "LocalData": "ids"
-                    },
-                    "type_name": "User"
-                  }
+              "D": {
+                "QueryIds": {
+                  "ids": {
+                    "LocalData": "ids"
+                  },
+                  "type_name": "User"
                 }
               }
             },
@@ -925,17 +923,14 @@ expression: req_string_a
             "a": {},
             "n": "user",
             "r_": {
-              "id": "user_resolver",
-              "type": {
-                "D": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "LocalData": "id"
-                    },
-                    "schema": null,
-                    "sk": {
-                      "LocalData": "id"
-                    }
+              "D": {
+                "QueryPKSK": {
+                  "pk": {
+                    "LocalData": "id"
+                  },
+                  "schema": null,
+                  "sk": {
+                    "LocalData": "id"
                   }
                 }
               }

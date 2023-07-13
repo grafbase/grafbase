@@ -4,7 +4,7 @@ use dynaql::registry::relations::MetaRelationKind;
 use dynaql::registry::{self, InputObjectType, NamedType, Registry};
 use dynaql::registry::{
     resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
-    resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
+    variables::VariableResolveDefinition, MetaField, MetaInputValue,
 };
 
 use dynaql::AuthConfig;
@@ -97,13 +97,11 @@ pub fn add_mutation_create<'a>(
             .map(|input| (input.name.clone(), input))
             .collect(),
         ty: create_payload.as_nullable().into(),
-        resolve: Some(Resolver {
-            id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNode {
-                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
-                ty: type_name.clone().into(),
-            }),
-        }),
+        resolver: DynamoMutationResolver::CreateNode {
+            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            ty: type_name.clone().into(),
+        }
+        .into(),
         required_operation: Some(Operations::CREATE),
         auth: model_auth.cloned(),
         ..Default::default()
@@ -119,13 +117,11 @@ pub fn add_mutation_create<'a>(
             .map(|input| (input.name.clone(), input))
             .collect(),
         ty: many_create_payload.as_nullable().into(),
-        resolve: Some(Resolver {
-            id: None,
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNodes {
-                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
-                ty: type_name.into(),
-            }),
-        }),
+        resolver: DynamoMutationResolver::CreateNodes {
+            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            ty: type_name.into(),
+        }
+        .into(),
         required_operation: Some(Operations::CREATE),
         auth: model_auth.cloned(),
         ..Default::default()
@@ -206,14 +202,12 @@ pub fn add_mutation_update<'a>(
         .map(|input| (input.name.clone(), input))
         .collect(),
         ty: update_payload.as_nullable().into(),
-        resolve: Some(Resolver {
-            id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNode {
-                by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
-                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
-                ty: type_name.clone().into(),
-            }),
-        }),
+        resolver: DynamoMutationResolver::UpdateNode {
+            by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
+            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            ty: type_name.clone().into(),
+        }
+        .into(),
         required_operation: Some(Operations::UPDATE),
         auth: model_auth.cloned(),
         ..Default::default()
@@ -229,14 +223,11 @@ pub fn add_mutation_update<'a>(
             .map(|input| (input.name.clone(), input))
             .collect(),
         ty: many_update_payload.as_nullable().into(),
-        resolve: Some(Resolver {
-            id: None,
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNodes {
-                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
-                ty: type_name.into(),
-            }),
-        }),
-        transformer: None,
+        resolver: DynamoMutationResolver::UpdateNodes {
+            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            ty: type_name.into(),
+        }
+        .into(),
         required_operation: Some(Operations::UPDATE),
         auth: model_auth.cloned(),
         ..Default::default()
@@ -522,19 +513,17 @@ fn register_payload<'a>(
         |_| {
             registry::ObjectType::new(payload_type_name.clone(), {
                 let model_type_name = model_type_definition.name.node.to_string();
-                let name = to_lower_camelcase(&model_type_name);
+                let name = to_lower_camelcase(model_type_name);
                 [MetaField {
                     name,
                     ty: MetaNames::model(model_type_definition).into(),
-                    resolve: Some(Resolver {
-                        id: Some(format!("{}_resolver", model_type_name.to_lowercase())),
-                        // Single entity
-                        r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
-                            pk: VariableResolveDefinition::LocalData("id".to_string()),
-                            sk: VariableResolveDefinition::LocalData("id".to_string()),
-                            schema: None,
-                        }),
-                    }),
+                    // Single entity
+                    resolver: DynamoResolver::QueryPKSK {
+                        pk: VariableResolveDefinition::LocalData("id".to_string()),
+                        sk: VariableResolveDefinition::LocalData("id".to_string()),
+                        schema: None,
+                    }
+                    .into(),
                     required_operation: Some(if mutation_kind.is_update() {
                         Operations::UPDATE
                     } else {
@@ -577,13 +566,11 @@ fn register_many_payload<'a>(
                         .list()
                         .non_null()
                         .into(),
-                    resolve: Some(Resolver {
-                        id: None,
-                        r#type: ResolverType::DynamoResolver(DynamoResolver::QueryIds {
-                            ids: VariableResolveDefinition::LocalData("ids".to_string()),
-                            type_name,
-                        }),
-                    }),
+                    resolver: DynamoResolver::QueryIds {
+                        ids: VariableResolveDefinition::LocalData("ids".to_string()),
+                        type_name,
+                    }
+                    .into(),
                     required_operation: Some(if mutation_kind.is_update() {
                         Operations::UPDATE
                     } else {

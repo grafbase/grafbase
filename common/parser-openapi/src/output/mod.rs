@@ -7,12 +7,11 @@ use dynaql::{
     indexmap::IndexMap,
     registry::{
         resolvers::{
-            context_data::ContextDataResolver,
             http::{self, HttpResolver},
-            Resolver, ResolverType,
+            transformer::Transformer,
+            Resolver,
         },
         variables::VariableResolveDefinition,
-        Deprecation::NoDeprecated,
         EnumType, InputObjectType, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry, UnionType,
     },
 };
@@ -108,12 +107,7 @@ impl IntoMetaType for OutputType {
                 Some(object(
                     name,
                     vec![MetaField {
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                key: "data".into(),
-                            }),
-                        }),
+                        resolver: Transformer::select("data").into(),
                         ..meta_field("data".into(), scalar_name)
                     }],
                 ))
@@ -160,19 +154,11 @@ impl OutputField {
         let api_name = &self.openapi_name;
         let graphql_name = self.graphql_name(graph);
 
-        let mut resolver_type = ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-            key: api_name.to_string(),
-        });
-
-        resolver_type = resolver_type.and_then_maybe(self.ty.transforming_resolver(graph));
-
-        let resolve = Some(Resolver {
-            id: None,
-            r#type: resolver_type,
-        });
+        let resolver: Resolver = Transformer::select(api_name).into();
+        let resolver = resolver.and_then_maybe(self.ty.transforming_resolver(graph));
 
         Some(MetaField {
-            resolve,
+            resolver,
             ..meta_field(
                 graphql_name,
                 TypeDisplay::from_output_field_type(&self.ty, graph)?.to_string(),
@@ -184,10 +170,10 @@ impl OutputField {
 impl OutputFieldType {
     /// Some output types require transformation between their remote representation and their
     /// GraphQL representation.  This function returns an appropriate resolver to do that.
-    pub fn transforming_resolver(&self, graph: &OpenApiGraph) -> Option<ResolverType> {
+    pub fn transforming_resolver(&self, graph: &OpenApiGraph) -> Option<Resolver> {
         match self.inner_kind(graph) {
-            OutputFieldKind::Enum => Some(ResolverType::ContextDataResolver(ContextDataResolver::RemoteEnum)),
-            OutputFieldKind::Union => Some(ResolverType::ContextDataResolver(ContextDataResolver::RemoteUnion)),
+            OutputFieldKind::Enum => Some(Resolver::Transformer(Transformer::RemoteEnum)),
+            OutputFieldKind::Union => Some(Resolver::Transformer(Transformer::RemoteUnion)),
             OutputFieldKind::Other => None,
         }
     }
@@ -265,12 +251,9 @@ impl Operation {
         let type_string = TypeDisplay::from_output_field_type(&output_type, graph)?.to_string();
 
         Some(MetaField {
-            resolve: Some(Resolver {
-                id: None,
-                r#type: self
-                    .http_resolver(graph, path_parameters, query_parameters)?
-                    .and_then_maybe(output_type.transforming_resolver(graph)),
-            }),
+            resolver: self
+                .http_resolver(graph, path_parameters, query_parameters)?
+                .and_then_maybe(output_type.transforming_resolver(graph)),
             args,
             ..meta_field(self.name(graph)?.to_string(), type_string)
         })
@@ -281,8 +264,8 @@ impl Operation {
         graph: &OpenApiGraph,
         path_parameters: Vec<PathParameter>,
         query_parameters: Vec<QueryParameter>,
-    ) -> Option<ResolverType> {
-        Some(ResolverType::Http(HttpResolver {
+    ) -> Option<Resolver> {
+        Some(Resolver::Http(HttpResolver {
             method: self.http_method(graph),
             url: self.url(graph),
             api_name: graph.metadata.unique_namespace().to_string(),
@@ -391,49 +374,12 @@ impl IntoMetaType for Enum {
 fn meta_field(name: String, ty: String) -> MetaField {
     MetaField {
         name,
-        description: None,
         args: IndexMap::new(),
         ty: ty.into(),
-        deprecation: NoDeprecated,
-        cache_control: Default::default(),
-        external: false,
-        requires: None,
-        provides: None,
-        visible: None,
-        compute_complexity: None,
-        edges: vec![],
-        relation: None,
-        resolve: None,
-        transformer: None,
-        required_operation: None,
-        auth: None,
+        ..Default::default()
     }
 }
 
 fn object(name: String, fields: impl IntoIterator<Item = MetaField>) -> MetaType {
     ObjectType::new(name, fields).into()
-}
-
-trait ResolverTypeExt {
-    fn and_then(self, other_resolver: ResolverType) -> Self;
-    fn and_then_maybe(self, other_resolver: Option<ResolverType>) -> Self;
-}
-
-impl ResolverTypeExt for ResolverType {
-    fn and_then(mut self, other_resolver: ResolverType) -> Self {
-        match &mut self {
-            ResolverType::Composition(resolvers) => {
-                resolvers.push(other_resolver);
-                self
-            }
-            _ => ResolverType::Composition(vec![self, other_resolver]),
-        }
-    }
-
-    fn and_then_maybe(self, other_resolver: Option<ResolverType>) -> Self {
-        match other_resolver {
-            Some(other) => self.and_then(other),
-            None => self,
-        }
-    }
 }

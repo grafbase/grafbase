@@ -1,7 +1,7 @@
 use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
 use crate::rules::resolver_directive::ResolverDirective;
 use dynaql::registry::resolvers::custom::CustomResolver;
-use dynaql::registry::resolvers::{Resolver, ResolverType};
+use dynaql::registry::resolvers::Resolver;
 use dynaql::registry::{MetaField, MetaInputValue};
 use dynaql_parser::types::{ObjectType, TypeKind};
 use grafbase::auth::Operations;
@@ -79,15 +79,11 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     provides: None,
                     visible: None,
                     compute_complexity: None,
-                    resolve: Some(Resolver {
-                        id: Some(format!("{}_custom_resolver", type_name.to_lowercase())),
-                        r#type: ResolverType::CustomResolver(CustomResolver {
-                            resolver_name: resolver_name.to_owned(),
-                        }),
+                    resolver: Resolver::CustomResolver(CustomResolver {
+                        resolver_name: resolver_name.to_owned(),
                     }),
                     edges: Vec::new(),
                     relation: None,
-                    transformer: None,
                     required_operation,
                     auth: None,
                 });

@@ -99,7 +99,7 @@ impl Resolver {
     ///
     /// See [`Error`] for more details.
     #[allow(clippy::too_many_arguments)] // I know clippy, I know
-    pub fn resolve<'a>(
+    pub(super) fn resolve<'a>(
         &'a self,
         operation: OperationType,
         headers: &[(&str, &str)],
