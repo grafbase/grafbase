@@ -9,13 +9,12 @@ use crate::{
     registry::names::MetaNames,
     rules::{
         auth_directive::AuthDirective,
-        model_directive::MODEL_DIRECTIVE,
         visitor::{Visitor, VisitorContext},
     },
-    MongoDBDirective,
 };
 use dynaql::{
     names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT},
+    registry::MongoDBConfiguration,
     Positioned,
 };
 use dynaql_parser::types::{ObjectType, TypeDefinition, TypeKind};
@@ -34,7 +33,7 @@ pub struct MongoDBModelDirective;
 
 impl<'a> Visitor<'a> for MongoDBModelDirective {
     fn enter_type_definition(&mut self, ctx: &mut VisitorContext<'a>, r#type: &'a Positioned<TypeDefinition>) {
-        let Some(directive) = get_directive(ctx, r#type) else { return };
+        let Some(config) = get_config(ctx, r#type) else { return };
         let TypeKind::Object(ref object) = r#type.node.kind else { return };
 
         if !validate_model_name(ctx, r#type) {
@@ -51,7 +50,7 @@ impl<'a> Visitor<'a> for MongoDBModelDirective {
             }
         };
 
-        let create_ctx = CreateTypeContext::new(ctx, object, model_auth, r#type, directive);
+        let create_ctx = CreateTypeContext::new(ctx, object, model_auth, r#type, config);
 
         model_type::create(ctx, &create_ctx);
         queries::create(ctx, &create_ctx);
@@ -88,13 +87,13 @@ fn validate_model_name(ctx: &mut VisitorContext<'_>, r#type: &Positioned<TypeDef
     is_valid
 }
 
-fn get_directive<'a>(ctx: &'a VisitorContext<'_>, r#type: &'a Positioned<TypeDefinition>) -> Option<MongoDBDirective> {
+fn get_config<'a>(ctx: &'a VisitorContext<'_>, r#type: &'a Positioned<TypeDefinition>) -> Option<MongoDBConfiguration> {
     if !matches!(r#type.node.kind, TypeKind::Object(_)) {
         return None;
     }
 
     for directive in &r#type.node.directives {
-        if directive.node.name.node != MODEL_DIRECTIVE {
+        if !directive.is_model() {
             continue;
         }
 
@@ -106,9 +105,11 @@ fn get_directive<'a>(ctx: &'a VisitorContext<'_>, r#type: &'a Positioned<TypeDef
             }
 
             return ctx
-                .mongodb_directives
+                .registry
+                .borrow()
+                .mongodb_configurations
                 .get(connector_name)
-                .map(|(directive, _)| directive.clone());
+                .cloned();
         }
     }
 

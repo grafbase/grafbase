@@ -1947,6 +1947,7 @@ Registry {
         ),
         provider: None,
     },
+    mongodb_configurations: {},
     http_headers: {
         "OpenAPI1": ConnectorHeaders(
             [],

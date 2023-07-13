@@ -7,7 +7,6 @@
 //!
 //! We keep those types as internal types.
 
-use super::model_directive::MODEL_DIRECTIVE;
 use super::visitor::{Visitor, VisitorContext};
 use if_chain::if_chain;
 
@@ -23,7 +22,7 @@ impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
         if_chain! {
             let name = &field.node.name.node;
             if name.starts_with("__");
-            if parent.node.directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
+            if parent.node.directives.iter().any(|directive| directive.is_model());
             then {
                 ctx.report_error(
                     vec![field.pos],

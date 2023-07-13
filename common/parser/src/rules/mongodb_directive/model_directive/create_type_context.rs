@@ -1,11 +1,8 @@
-use crate::{
-    rules::{
-        cache_directive::CacheDirective, model_directive::MODEL_DIRECTIVE, unique_directive::UniqueDirective,
-        visitor::VisitorContext,
-    },
-    MongoDBDirective,
+use crate::rules::{cache_directive::CacheDirective, unique_directive::UniqueDirective, visitor::VisitorContext};
+use dynaql::{
+    registry::{Constraint, MongoDBConfiguration},
+    AuthConfig, CacheControl, Positioned,
 };
-use dynaql::{registry::Constraint, AuthConfig, CacheControl, Positioned};
 use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
 
 use super::COLLECTION_KEY;
@@ -13,12 +10,12 @@ use super::COLLECTION_KEY;
 pub(super) struct CreateTypeContext<'a> {
     pub(super) r#type: &'a Positioned<TypeDefinition>,
     pub(super) object: &'a ObjectType,
-    type_name: &'a str,
+    model_name: &'a str,
     model_cache: CacheControl,
     model_auth: Option<AuthConfig>,
-    directive: MongoDBDirective,
     collection: String,
     unique_directives: Vec<UniqueDirective>,
+    config: MongoDBConfiguration,
 }
 
 impl<'a> CreateTypeContext<'a> {
@@ -27,7 +24,7 @@ impl<'a> CreateTypeContext<'a> {
         object: &'a ObjectType,
         model_auth: Option<AuthConfig>,
         r#type: &'a Positioned<TypeDefinition>,
-        directive: MongoDBDirective,
+        config: MongoDBConfiguration,
     ) -> Self {
         let model_cache = CacheDirective::parse(&r#type.node.directives);
 
@@ -35,42 +32,38 @@ impl<'a> CreateTypeContext<'a> {
             .node
             .directives
             .iter()
-            .filter(|directive| directive.node.name.node == MODEL_DIRECTIVE)
+            .filter(|directive| directive.is_model())
             .filter_map(|directive| directive.node.get_argument(COLLECTION_KEY))
             .find_map(|argument| argument.node.as_str())
             .unwrap_or_else(|| r#type.node.name.as_str())
             .to_string();
 
-        let type_name = r#type.node.name.node.as_str();
+        let model_name = r#type.node.name.node.as_str();
 
         let unique_directives = object
             .fields
             .iter()
-            .filter_map(|field| UniqueDirective::parse(visitor_ctx, object, type_name, field))
+            .filter_map(|field| UniqueDirective::parse(visitor_ctx, object, model_name, field))
             .collect();
 
         Self {
             r#type,
             object,
-            type_name,
+            model_name,
             model_cache,
             model_auth,
-            directive,
             collection,
             unique_directives,
+            config,
         }
     }
 
-    pub(super) fn type_name(&self) -> &str {
-        self.type_name
+    pub(super) fn model_name(&self) -> &str {
+        self.model_name
     }
 
     pub(super) fn type_description(&self) -> Option<&str> {
-        self.r#type
-            .node
-            .description
-            .as_ref()
-            .map(|description| description.node.as_str())
+        self.r#type.description()
     }
 
     pub(super) fn model_cache(&self) -> &CacheControl {
@@ -93,8 +86,8 @@ impl<'a> CreateTypeContext<'a> {
         self.unique_directives().map(UniqueDirective::to_constraint)
     }
 
-    pub(super) fn directive(&self) -> &MongoDBDirective {
-        &self.directive
+    pub(super) fn config(&self) -> &MongoDBConfiguration {
+        &self.config
     }
 
     pub(super) fn collection(&self) -> &str {

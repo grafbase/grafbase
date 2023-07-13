@@ -5,6 +5,7 @@ use super::{
     visitor::{Visitor, VisitorContext},
 };
 use crate::directive_de::parse_directive;
+use dynaql::registry::MongoDBConfiguration;
 use dynaql_parser::types::SchemaDefinition;
 use std::collections::HashMap;
 
@@ -75,13 +76,13 @@ impl Directive for MongoDBDirective {
           An API key for the MongoDB Atlas Data API. Generated
           in the Atlas dashboard.
           """
-          api_key: String!
+          apiKey: String!
 
           """
           A unique ID for the application. Found from the
           MongoDB Atlas dashboard.
           """
-          app_id: String!
+          appId: String!
 
           """
           The name of the database cluster. Found from the
@@ -126,8 +127,16 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                         .or_default()
                         .push(directive.name.pos);
 
-                    ctx.mongodb_directives
-                        .insert(parsed_directive.name().to_string(), (parsed_directive, directive.pos));
+                    ctx.registry.get_mut().create_mongo_directive(
+                        |_| MongoDBConfiguration {
+                            name: parsed_directive.name().to_string(),
+                            api_key: parsed_directive.api_key().to_string(),
+                            app_id: parsed_directive.app_id().to_string(),
+                            data_source: parsed_directive.data_source().to_string(),
+                            database: parsed_directive.database().to_string(),
+                        },
+                        parsed_directive.name(),
+                    );
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }

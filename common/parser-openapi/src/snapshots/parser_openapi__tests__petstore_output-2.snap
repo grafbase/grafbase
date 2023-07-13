@@ -2035,6 +2035,7 @@ Registry {
         ),
         provider: None,
     },
+    mongodb_configurations: {},
     http_headers: {
         "petstore": ConnectorHeaders(
             [],

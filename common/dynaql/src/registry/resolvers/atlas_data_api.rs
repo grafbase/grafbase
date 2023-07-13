@@ -5,7 +5,10 @@ mod projection;
 pub use operation::OperationType;
 
 use super::{ResolvedValue, ResolverContext};
-use crate::{registry::type_kinds::SelectionSetTarget, Context, Error};
+use crate::{
+    registry::{type_kinds::SelectionSetTarget, MongoDBConfiguration},
+    Context, Error,
+};
 use futures_util::Future;
 use http::{
     header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
@@ -31,50 +34,50 @@ type JsonMap = serde_json::Map<String, serde_json::Value>;
 pub struct AtlasDataApiResolver {
     /// The type of operation to execute in the target.
     pub operation_type: OperationType,
-    /// The application id, found in the App Services dashboard.
-    pub app_id: String,
-    /// The key is generated separately for the Data API.
-    pub api_key: String,
-    /// The name of the cluster.
-    pub datasource: String,
-    /// The name of the database in the cluster.
-    pub database: String,
-    /// The name of the collection in the database.
+    pub directive_name: String,
     pub collection: String,
 }
 
 impl AtlasDataApiResolver {
-    pub fn resolve(
-        &self,
-        ctx: &Context<'_>,
-        resolver_ctx: &ResolverContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + '_>> {
+    pub fn resolve<'a>(
+        &'a self,
+        ctx: &'a Context<'_>,
+        resolver_ctx: &'a ResolverContext<'_>,
+    ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         let current_object: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
         let selection = ctx.item.node.selection();
 
+        let config = ctx
+            .get_mongodb_config(&self.directive_name)
+            .expect("directive must exist");
+
+        let url = format!(
+            "https://data.mongodb-api.com/app/{}/endpoint/data/v1/action/{}",
+            config.app_id, self.operation_type
+        );
+
         let request_builder = reqwest::Client::new()
-            .post(self.url(self.operation_type))
+            .post(url)
             .header(CONTENT_TYPE, headers::APPLICATION_JSON_CONTENT_TYPE)
             .header(ACCEPT, headers::APPLICATION_JSON_CONTENT_TYPE)
-            .header(headers::API_KEY_HEADER_NAME, &self.api_key)
+            .header(headers::API_KEY_HEADER_NAME, &config.api_key)
             .header(USER_AGENT, "Grafbase");
 
-        let projection = projection::project(selection, current_object, ctx);
-
-        let mut body = self.body_base();
-
-        match self.operation_type {
-            OperationType::FindOne => {
-                body.insert(String::from("projection"), projection.into());
-
-                body.insert(
-                    String::from("filter"),
-                    filter::by(current_object, ctx).unwrap(),
-                );
-            }
-        }
-
         Box::pin(SendWrapper::new(async move {
+            let mut body = self.base_body(config);
+
+            match self.operation_type {
+                OperationType::FindOne => {
+                    let projection = projection::project(selection, current_object, ctx)?;
+                    body.insert(String::from("projection"), projection.into());
+
+                    body.insert(
+                        String::from("filter"),
+                        filter::by(current_object, ctx).unwrap(),
+                    );
+                }
+            }
+
             let value = request_builder
                 .json(&body)
                 .send()
@@ -97,34 +100,25 @@ impl AtlasDataApiResolver {
         }))
     }
 
-    fn url(&self, operation: OperationType) -> url::Url {
-        format!(
-            "https://data.mongodb-api.com/app/{}/endpoint/data/v1/action/{}",
-            self.app_id, operation
-        )
-        .parse()
-        .expect("has to be a real url")
-    }
+    fn base_body(&self, config: &MongoDBConfiguration) -> JsonMap {
+        let mut body = JsonMap::new();
 
-    fn body_base(&self) -> JsonMap {
-        let mut map = JsonMap::new();
-
-        map.insert(
+        body.insert(
             String::from("dataSource"),
-            serde_json::Value::String(self.datasource.clone()),
+            serde_json::Value::String(config.data_source.clone()),
         );
 
-        map.insert(
+        body.insert(
             String::from("database"),
-            serde_json::Value::String(self.database.clone()),
+            serde_json::Value::String(config.database.clone()),
         );
 
-        map.insert(
+        body.insert(
             String::from("collection"),
             serde_json::Value::String(self.collection.clone()),
         );
 
-        map
+        body
     }
 }
 

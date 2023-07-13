@@ -42,7 +42,7 @@ impl DynamicParse for BigIntScalar {
         match value {
             serde_json::Value::Number(number) => Ok(ConstValue::String(number.to_string())),
             _ => Err(crate::Error::new(
-                "Data violation: Cannot coerce the initial value into a Decimal",
+                "Data violation: Cannot coerce the initial value into a BigInt",
             )),
         }
     }

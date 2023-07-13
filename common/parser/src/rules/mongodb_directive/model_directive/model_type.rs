@@ -9,7 +9,7 @@ use dynaql::{
 use resolver_data::ResolverData;
 
 pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) {
-    let type_name = create_ctx.type_name().to_string();
+    let type_name = create_ctx.model_name().to_string();
     let mut fields = IndexMap::new();
 
     for field in create_ctx.fields() {
@@ -49,7 +49,7 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
 
     let description = create_ctx.type_description().map(ToString::to_string);
     let cache_control = create_ctx.model_cache().clone();
-    let rust_typename = create_ctx.type_name().to_string();
+    let rust_typename = create_ctx.model_name().to_string();
     let constraints = create_ctx.unique_constraints().collect();
 
     let object = MetaType::Object(registry::ObjectType {

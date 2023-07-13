@@ -16,6 +16,8 @@
 //!
 //! TODO: Should have either: an ID or a PK
 
+pub mod types;
+
 use case::CaseExt;
 use dynaql::names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT};
 use dynaql::registry::resolvers::custom::CustomResolver;
@@ -24,12 +26,12 @@ use if_chain::if_chain;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
 use dynaql::registry::scalars::{DateTimeScalar, IDScalar, SDLDefinitionScalar};
+use dynaql::registry::MetaInputValue;
 use dynaql::registry::{self, MetaField};
 use dynaql::registry::{is_array_basic_type, MetaType};
 use dynaql::registry::{
     resolvers::transformer::Transformer, resolvers::Resolver, variables::VariableResolveDefinition,
 };
-use dynaql::registry::{InputObjectType, MetaInputValue};
 use dynaql::{AuthConfig, Positioned};
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
 use grafbase::auth::Operations;
@@ -87,10 +89,8 @@ impl ModelDirective {
                 if_chain!(
                     if let TypeKind::Object(_) = &ty.node.kind;
                     if ty.node.directives.iter().any(|directive| {
-                        let is_model = directive.node.name.node == MODEL_DIRECTIVE;
                         let has_no_attributes = directive.node.arguments.is_empty();
-
-                        is_model && has_no_attributes
+                        directive.is_model() && has_no_attributes
                     });
                     then { Some(ty) }
                     else { None }
@@ -156,7 +156,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             .node
             .directives
             .iter()
-            .filter(|directive| directive.node.name.node == MODEL_DIRECTIVE)
+            .filter(|directive| directive.is_model())
             .any(|directive| directive.node.arguments.is_empty())
         {
             return;
@@ -398,28 +398,11 @@ impl<'a> Visitor<'a> for ModelDirective {
             // GENERATE QUERY ONE OF: type(by: { ... })
             //
 
-            let one_of_type_name = MetaNames::by_input(&type_definition.node);
-            ctx.registry.get_mut().create_type(
-                |registry| {
-                    let mut input_fields = vec![];
-                    input_fields.push(MetaInputValue::new(dynaql::names::OUTPUT_FIELD_ID, "ID".to_string()));
-                    for unique_directive in &unique_directives {
-                        input_fields.push(unique_directive.lookup_by_field(registry));
-                    }
-                    InputObjectType::new(one_of_type_name.clone(), input_fields)
-                        .with_description(
-                            type_definition
-                                .node
-                                .description
-                                .clone()
-                                .map(|description| description.node),
-                        )
-                        .with_oneof(true)
-                        .into()
-                },
-                &one_of_type_name,
-                &one_of_type_name,
-            );
+            let one_of_type_name = {
+                let extra_fields = vec![MetaInputValue::new(dynaql::names::OUTPUT_FIELD_ID, "ID".to_string())];
+
+                types::register_oneof_type(ctx, type_definition, &unique_directives, extra_fields)
+            };
 
             ctx.queries.push(MetaField {
                 // "by" query

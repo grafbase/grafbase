@@ -62,6 +62,15 @@ pub struct TypeDefinition {
     pub kind: TypeKind,
 }
 
+impl TypeDefinition {
+    /// The description of the type, if present. This is never present on an extension type.
+    pub fn description(&self) -> Option<&str> {
+        self.description
+            .as_ref()
+            .map(|description| description.node.as_str())
+    }
+}
+
 /// A kind of type; scalar, object, enum, etc.
 #[derive(Debug, Clone)]
 pub enum TypeKind {

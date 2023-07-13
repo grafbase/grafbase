@@ -20,7 +20,6 @@ use crate::rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget}
 use crate::ParseResult;
 
 use super::graphql_directive::GraphqlDirective;
-use super::mongodb_directive::MongoDBDirective;
 use super::openapi_directive::OpenApiDirective;
 
 type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;
@@ -58,7 +57,6 @@ pub struct VisitorContext<'a> {
     pub(crate) required_resolvers: HashSet<String>,
     pub(crate) openapi_directives: Vec<(OpenApiDirective, Pos)>,
     pub(crate) graphql_directives: Vec<(GraphqlDirective, Pos)>,
-    pub(crate) mongodb_directives: HashMap<String, (MongoDBDirective, Pos)>,
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
 }
 
@@ -155,7 +153,6 @@ impl<'a> VisitorContext<'a> {
             required_resolvers: Default::default(),
             openapi_directives: Vec::new(),
             graphql_directives: Vec::new(),
-            mongodb_directives: HashMap::new(),
             global_cache_rules: Default::default(),
         }
     }

@@ -1,7 +1,7 @@
 //! Implement the Relation Engine
 use crate::registry::names::MetaNames;
 use crate::rules::directive::Directive;
-use crate::rules::model_directive::{ModelDirective, MODEL_DIRECTIVE};
+use crate::rules::model_directive::ModelDirective;
 use crate::{Visitor, VisitorContext};
 use dynaql::indexmap::map::Entry;
 use dynaql::registry::relations::MetaRelation;
@@ -111,7 +111,7 @@ impl<'a> Visitor<'a> for RelationEngine {
         if_chain! {
             // We do check if it's a modelized node
             // TODO: Create an abstraction over it
-            if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
+            if directives.iter().any(|directive| directive.is_model());
             if let TypeKind::Object(object) = &type_definition.node.kind;
             // We do check if it's a modelized node
             then {

@@ -1,4 +1,5 @@
 use crate::{
+    registry::names::INPUT_ARG_BY,
     rules::{mongodb_directive::model_directive::CreateTypeContext, visitor::VisitorContext},
     utils::to_lower_camelcase,
 };
@@ -20,25 +21,20 @@ pub(super) fn create(
     create_ctx: &CreateTypeContext<'_>,
     filter_oneof_type: &str,
 ) {
-    let type_name = create_ctx.type_name();
+    let type_name = create_ctx.model_name();
     let query_name = to_lower_camelcase(type_name);
     let query_description = format!("Query a single {type_name} by a field");
 
     let filter_description = format!("The field and value by which to query the {type_name}");
-    let filter_input = MetaInputValue::new("by", filter_oneof_type).with_description(filter_description);
+    let filter_input = MetaInputValue::new(INPUT_ARG_BY, filter_oneof_type).with_description(filter_description);
 
     let mut args = IndexMap::new();
-    args.insert("by".to_string(), filter_input);
-
-    let directive = create_ctx.directive();
+    args.insert(INPUT_ARG_BY.to_string(), filter_input);
 
     let resolver = AtlasDataApiResolver {
-        app_id: directive.app_id.clone(),
-        api_key: directive.api_key.clone(),
-        datasource: directive.data_source.clone(),
-        database: directive.database.clone(),
         collection: create_ctx.collection().to_string(),
         operation_type: OperationType::FindOne,
+        directive_name: create_ctx.config().name.clone(),
     };
 
     let mongo_resolver = Resolver::MongoResolver(resolver);

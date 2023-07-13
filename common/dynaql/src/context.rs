@@ -30,8 +30,8 @@ use crate::parser::types::{
 use crate::registry::relations::MetaRelation;
 use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::ResolvedValue;
-use crate::registry::Registry;
 use crate::registry::{MetaInputValue, MetaType, TypeReference};
+use crate::registry::{MongoDBConfiguration, Registry};
 use crate::resolver_utils::{resolve_input, InputResolveMode};
 use crate::schema::SchemaEnv;
 use crate::{
@@ -445,6 +445,11 @@ impl<'a, T> ContextBase<'a, T> {
     /// Find a type definition by name.
     pub fn get_type(&self, name: &str) -> Option<&MetaType> {
         self.schema_env.registry.types.get(name)
+    }
+
+    /// Find a mongodb configuration with name.
+    pub fn get_mongodb_config(&self, name: &str) -> Option<&MongoDBConfiguration> {
+        self.schema_env.registry.mongodb_configurations.get(name)
     }
 }
 

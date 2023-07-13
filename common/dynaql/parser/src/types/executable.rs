@@ -253,6 +253,13 @@ impl InlineFragment {
             .iter()
             .map(|selection| &selection.node)
     }
+
+    /// The type condition.
+    pub fn type_condition(&self) -> Option<&TypeCondition> {
+        self.type_condition
+            .as_ref()
+            .map(|condition| &condition.node)
+    }
 }
 
 /// The definition of a fragment, such as `fragment userFields on User { name age }`.
@@ -276,6 +283,11 @@ impl FragmentDefinition {
             .items
             .iter()
             .map(|selection| &selection.node)
+    }
+
+    /// The type condition.
+    pub fn type_condition(&self) -> &TypeCondition {
+        &self.type_condition.node
     }
 }
 

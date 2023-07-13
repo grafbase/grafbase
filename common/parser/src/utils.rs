@@ -1,4 +1,3 @@
-use crate::rules::model_directive::MODEL_DIRECTIVE;
 use case::CaseExt;
 
 use dynaql::{Name, Positioned};
@@ -50,13 +49,7 @@ pub fn is_type_basic_type(ctx: &HashMap<String, &'_ Positioned<TypeDefinition>>,
 
     let is_a_basic_type = ctx
         .get(ty)
-        .map(|type_def| {
-            !type_def
-                .node
-                .directives
-                .iter()
-                .any(|directive| directive.node.name.node == MODEL_DIRECTIVE)
-        })
+        .map(|type_def| !type_def.node.directives.iter().any(|directive| directive.is_model()))
         .expect("weird");
 
     is_a_basic_type
@@ -68,12 +61,7 @@ fn to_input_base_type(ctx: &HashMap<String, Cow<'_, Positioned<TypeDefinition>>>
             let ty = ctx.get(name.as_ref());
             let type_def = ty.map(|x| &x.node.kind);
             let is_modelized = ty
-                .map(|ty| {
-                    ty.node
-                        .directives
-                        .iter()
-                        .any(|directive| directive.node.name.node == MODEL_DIRECTIVE)
-                })
+                .map(|ty| ty.node.directives.iter().any(|directive| directive.is_search()))
                 .unwrap_or(false);
             match (type_def, is_modelized) {
                 (Some(TypeKind::Scalar | TypeKind::Enum(_)), _) => BaseType::Named(name),

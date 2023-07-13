@@ -21,7 +21,7 @@ impl AuthDirective {
         directives: &[Positioned<ConstDirective>],
         is_global: bool,
     ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
-        if let Some(directive) = directives.iter().find(|d| d.node.name.node == AUTH_DIRECTIVE) {
+        if let Some(directive) = directives.iter().find(|d| d.is_auth()) {
             config::parse_auth_config(ctx, directive, is_global).map(Some)
         } else {
             Ok(None)
@@ -62,16 +62,8 @@ impl<'a> Visitor<'a> for AuthDirective {
         type_definition: &'a dynaql::Positioned<TypeDefinition>,
     ) {
         if let (Some(auth_directive), false) = (
-            type_definition
-                .node
-                .directives
-                .iter()
-                .find(|d| d.node.name.node == AUTH_DIRECTIVE),
-            type_definition
-                .node
-                .directives
-                .iter()
-                .any(|d| d.node.name.node == MODEL_DIRECTIVE),
+            type_definition.node.directives.iter().find(|d| d.is_auth()),
+            type_definition.node.directives.iter().any(|d| d.is_model()),
         ) {
             ctx.report_error(
                 vec![auth_directive.pos],
@@ -89,16 +81,8 @@ impl<'a> Visitor<'a> for AuthDirective {
         parent_type: &'a Positioned<TypeDefinition>,
     ) {
         if let (Some(auth_directive), false) = (
-            field
-                .node
-                .directives
-                .iter()
-                .find(|d| d.node.name.node == AUTH_DIRECTIVE),
-            parent_type
-                .node
-                .directives
-                .iter()
-                .any(|d| d.node.name.node == MODEL_DIRECTIVE),
+            field.node.directives.iter().find(|d| d.is_auth()),
+            parent_type.node.directives.iter().any(|d| d.is_model()),
         ) {
             ctx.report_error(
                 vec![auth_directive.pos],
