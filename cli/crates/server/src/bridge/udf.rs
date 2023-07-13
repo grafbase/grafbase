@@ -27,8 +27,7 @@ struct UdfMessage {
 #[serde(rename_all = "camelCase")]
 struct UdfResponse {
     log_entries: Vec<UdfMessage>,
-    #[serde(flatten)]
-    rest: serde_json::Value,
+    value: serde_json::Value,
 }
 
 pub enum UdfBuild {
@@ -313,7 +312,7 @@ pub async fn invoke(
         .await
         .map_err(|_| ApiError::UdfInvocation)?;
 
-    let UdfResponse { log_entries, rest } = serde_json::from_str(&json_string).map_err(|err| {
+    let UdfResponse { log_entries, value } = serde_json::from_str(&json_string).map_err(|err| {
         error!("deserialization from '{json_string}' failed: {err:?}");
         ApiError::UdfInvocation
     })?;
@@ -330,5 +329,5 @@ pub async fn invoke(
             .unwrap();
     }
 
-    Ok(rest)
+    Ok(value)
 }
