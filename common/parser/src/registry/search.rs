@@ -108,7 +108,7 @@ pub fn build_search_schema(
     let search_fields = if model_type_definition
         .directives
         .iter()
-        .any(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
+        .any(|directive| directive.is_search())
     {
         let mut search_fields: HashMap<String, search::FieldEntry> = fields
             .iter()
@@ -133,7 +133,7 @@ pub fn build_search_schema(
                     .node
                     .directives
                     .iter()
-                    .find(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
+                    .find(|directive| directive.is_search())
                     .map(|directive| {
                         let field_type =
                             convert_to_search_field_type(&ctx.registry.borrow(), &field.node.ty.node.to_string(), None);
@@ -215,6 +215,7 @@ pub fn add_query_search(
     let connection_type = register_connection_type(ctx.registry.get_mut(), model_type_definition, model_auth);
     ctx.queries.push(MetaField {
         name: MetaNames::query_search(model_type_definition),
+        mapped_name: None,
         description: Some(format!("Search `{type_name}`")),
         args: {
             let mut pagination_args = generate_pagination_args(ctx.registry.get_mut(), model_type_definition);

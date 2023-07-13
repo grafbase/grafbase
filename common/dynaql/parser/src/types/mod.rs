@@ -18,6 +18,15 @@ use std::fmt::{self, Display, Formatter, Write};
 pub use executable::*;
 pub use service::*;
 
+/// The name of a directive that can be considered as a model.
+pub const MODEL_DIRECTIVE: &str = "model";
+
+/// The name of a directive representing authentication.
+pub const AUTH_DIRECTIVE: &str = "auth";
+
+/// The name of a search directive.
+pub const SEARCH_DIRECTIVE: &str = "search";
+
 /// The type of an operation; `query`, `mutation` or `subscription`.
 ///
 /// [Reference](https://spec.graphql.org/October2021/#OperationType).
@@ -196,6 +205,21 @@ impl ConstDirective {
             .iter()
             .find(|item| item.0.node == name)
             .map(|item| &item.1)
+    }
+
+    /// Is the directive a model.
+    pub fn is_model(&self) -> bool {
+        self.name.as_str() == MODEL_DIRECTIVE
+    }
+
+    /// Is an auth directive.
+    pub fn is_auth(&self) -> bool {
+        self.name.as_str() == AUTH_DIRECTIVE
+    }
+
+    /// Is a search directive.
+    pub fn is_search(&self) -> bool {
+        self.name.as_str() == SEARCH_DIRECTIVE
     }
 }
 

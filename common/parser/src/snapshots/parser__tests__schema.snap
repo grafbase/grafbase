@@ -70,6 +70,7 @@ expression: req_string_a
   "federation_subscription": false,
   "http_headers": {},
   "implements": {},
+  "mongodb_configurations": {},
   "mutation_type": "Mutation",
   "query_type": "Query",
   "search_config": {

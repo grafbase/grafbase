@@ -28,6 +28,12 @@ mod timestamp;
 pub use timestamp::TimestampScalar;
 mod phone;
 pub use phone::PhoneNumberScalar;
+mod decimal;
+pub use decimal::DecimalScalar;
+mod bigint;
+pub use bigint::BigIntScalar;
+mod bytes;
+pub use self::bytes::BytesScalar;
 
 /// ` SDLDefinitionScalar` trait is to be implemented for every custom scalar we add into `dynaql`
 ///
@@ -273,5 +279,8 @@ pub type PossibleScalar = merge_scalar!(
     IPAddressScalar,
     URLScalar,
     TimestampScalar,
-    PhoneNumberScalar
+    PhoneNumberScalar,
+    DecimalScalar,
+    BigIntScalar,
+    BytesScalar
 );

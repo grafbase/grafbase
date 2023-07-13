@@ -189,6 +189,7 @@ pub fn add_query_paginated_collection(
 
     ctx.queries.push(MetaField {
         name: field.clone(),
+        mapped_name: None,
         description: Some(format!("Paginated query to fetch the whole list of `{type_name}`.")),
         args: generate_pagination_args(ctx.registry.get_mut(), model_type_definition),
         // TODO: Should this be really nullable?

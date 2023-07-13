@@ -298,6 +298,7 @@ impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition
 #[derivative(Debug)]
 pub struct MetaField {
     pub name: String,
+    pub mapped_name: Option<String>,
     pub description: Option<String>,
     pub args: IndexMap<String, MetaInputValue>,
     pub ty: MetaFieldType,
@@ -336,11 +337,16 @@ impl MetaField {
             ..Default::default()
         }
     }
+
+    pub fn target_field_name(&self) -> &str {
+        self.mapped_name.as_deref().unwrap_or(&self.name)
+    }
 }
 
 impl Hash for MetaField {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
+        self.mapped_name.hash(state);
         self.description.hash(state);
         self.args.as_slice().hash(state);
         self.ty.hash(state);
@@ -391,6 +397,7 @@ pub fn is_array_basic_type(meta: &str) -> bool {
     false
 }
 
+#[derive(Debug)]
 enum CurrentResolverType {
     PRIMITIVE,
     ARRAY,
@@ -1587,6 +1594,15 @@ pub struct MetaDirective {
     pub visible: Option<MetaVisibleFn>,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct MongoDBConfiguration {
+    pub name: String,
+    pub api_key: String,
+    pub app_id: String,
+    pub data_source: String,
+    pub database: String,
+}
+
 #[derive(
     Debug,
     Clone,
@@ -1642,6 +1658,8 @@ pub struct Registry {
     pub enable_federation: bool,
     pub federation_subscription: bool,
     pub auth: AuthConfig,
+    #[serde(default)]
+    pub mongodb_configurations: HashMap<String, MongoDBConfiguration>,
     #[serde(default)]
     pub http_headers: BTreeMap<String, ConnectorHeaders>,
     #[serde(default)]
@@ -1890,6 +1908,18 @@ impl Registry {
     pub fn insert_type(&mut self, ty: impl Into<MetaType>) {
         let ty = ty.into();
         self.types.insert(ty.name().to_string(), ty);
+    }
+
+    pub fn create_mongo_directive<F>(&mut self, f: F, name: &str)
+    where
+        F: FnOnce(&mut Registry) -> MongoDBConfiguration,
+    {
+        if self.mongodb_configurations.get(name).is_some() {
+            panic!("MongoDB directive with `{name}` already exists.");
+        }
+
+        let config = f(self);
+        self.mongodb_configurations.insert(name.to_string(), config);
     }
 
     pub fn create_type<F: FnOnce(&mut Registry) -> MetaType>(

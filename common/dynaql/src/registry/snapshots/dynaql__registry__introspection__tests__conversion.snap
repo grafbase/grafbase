@@ -3107,6 +3107,7 @@ expression: "Registry::from(schema)"
     "allowed_owner_ops": 0,
     "provider": null
   },
+  "mongodb_configurations": {},
   "http_headers": {},
   "search_config": {
     "indices": {}

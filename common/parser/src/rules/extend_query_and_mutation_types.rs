@@ -59,6 +59,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                 };
                 field_collection.push(MetaField {
                     name: name.clone(),
+                    mapped_name: None,
                     description: field.node.description.clone().map(|x| x.node),
                     args: field
                         .node

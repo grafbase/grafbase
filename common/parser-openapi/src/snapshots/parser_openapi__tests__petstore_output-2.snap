@@ -11,6 +11,7 @@ Registry {
                 fields: {
                     "petstore": MetaField {
                         name: "petstore",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -54,6 +55,7 @@ Registry {
                 fields: {
                     "message": MetaField {
                         name: "message",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -81,6 +83,7 @@ Registry {
                     },
                     "type": MetaField {
                         name: "type",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -108,6 +111,7 @@ Registry {
                     },
                     "code": MetaField {
                         name: "code",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -155,6 +159,7 @@ Registry {
                 fields: {
                     "name": MetaField {
                         name: "name",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -182,6 +187,7 @@ Registry {
                     },
                     "id": MetaField {
                         name: "id",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -288,6 +294,7 @@ Registry {
                 fields: {
                     "updatePet": MetaField {
                         name: "updatePet",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "input": MetaInputValue {
@@ -339,6 +346,7 @@ Registry {
                     },
                     "addPet": MetaField {
                         name: "addPet",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "input": MetaInputValue {
@@ -390,6 +398,7 @@ Registry {
                     },
                     "uploadFile": MetaField {
                         name: "uploadFile",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "petId": MetaInputValue {
@@ -457,6 +466,7 @@ Registry {
                     },
                     "placeOrder": MetaField {
                         name: "placeOrder",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "input": MetaInputValue {
@@ -508,6 +518,7 @@ Registry {
                     },
                     "createUsersWithListInput": MetaField {
                         name: "createUsersWithListInput",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "input": MetaInputValue {
@@ -579,6 +590,7 @@ Registry {
                 fields: {
                     "complete": MetaField {
                         name: "complete",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -606,6 +618,7 @@ Registry {
                     },
                     "status": MetaField {
                         name: "status",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -640,6 +653,7 @@ Registry {
                     },
                     "shipDate": MetaField {
                         name: "shipDate",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -667,6 +681,7 @@ Registry {
                     },
                     "quantity": MetaField {
                         name: "quantity",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -694,6 +709,7 @@ Registry {
                     },
                     "petId": MetaField {
                         name: "petId",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -721,6 +737,7 @@ Registry {
                     },
                     "id": MetaField {
                         name: "id",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -859,6 +876,7 @@ Registry {
                 fields: {
                     "status": MetaField {
                         name: "status",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -893,6 +911,7 @@ Registry {
                     },
                     "tags": MetaField {
                         name: "tags",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -920,6 +939,7 @@ Registry {
                     },
                     "photoUrls": MetaField {
                         name: "photoUrls",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -947,6 +967,7 @@ Registry {
                     },
                     "category": MetaField {
                         name: "category",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -974,6 +995,7 @@ Registry {
                     },
                     "name": MetaField {
                         name: "name",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1001,6 +1023,7 @@ Registry {
                     },
                     "id": MetaField {
                         name: "id",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1139,6 +1162,7 @@ Registry {
                 fields: {
                     "findPetsByStatus": MetaField {
                         name: "findPetsByStatus",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "status": MetaInputValue {
@@ -1197,6 +1221,7 @@ Registry {
                     },
                     "findPetsByTags": MetaField {
                         name: "findPetsByTags",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "tags": MetaInputValue {
@@ -1249,6 +1274,7 @@ Registry {
                     },
                     "pet": MetaField {
                         name: "pet",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "petId": MetaInputValue {
@@ -1300,6 +1326,7 @@ Registry {
                     },
                     "inventory": MetaField {
                         name: "inventory",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1335,6 +1362,7 @@ Registry {
                     },
                     "order": MetaField {
                         name: "order",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "orderId": MetaInputValue {
@@ -1386,6 +1414,7 @@ Registry {
                     },
                     "loginUser": MetaField {
                         name: "loginUser",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "password": MetaInputValue {
@@ -1453,6 +1482,7 @@ Registry {
                     },
                     "user": MetaField {
                         name: "user",
+                        mapped_name: None,
                         description: None,
                         args: {
                             "username": MetaInputValue {
@@ -1524,6 +1554,7 @@ Registry {
                 fields: {
                     "name": MetaField {
                         name: "name",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1551,6 +1582,7 @@ Registry {
                     },
                     "id": MetaField {
                         name: "id",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1624,6 +1656,7 @@ Registry {
                 fields: {
                     "userStatus": MetaField {
                         name: "userStatus",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1651,6 +1684,7 @@ Registry {
                     },
                     "phone": MetaField {
                         name: "phone",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1678,6 +1712,7 @@ Registry {
                     },
                     "password": MetaField {
                         name: "password",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1705,6 +1740,7 @@ Registry {
                     },
                     "email": MetaField {
                         name: "email",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1732,6 +1768,7 @@ Registry {
                     },
                     "lastName": MetaField {
                         name: "lastName",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1759,6 +1796,7 @@ Registry {
                     },
                     "firstName": MetaField {
                         name: "firstName",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1786,6 +1824,7 @@ Registry {
                     },
                     "username": MetaField {
                         name: "username",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1813,6 +1852,7 @@ Registry {
                     },
                     "id": MetaField {
                         name: "id",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1934,6 +1974,7 @@ Registry {
                 fields: {
                     "petstore": MetaField {
                         name: "petstore",
+                        mapped_name: None,
                         description: None,
                         args: {},
                         ty: MetaFieldType(
@@ -1994,6 +2035,7 @@ Registry {
         ),
         provider: None,
     },
+    mongodb_configurations: {},
     http_headers: {
         "petstore": ConnectorHeaders(
             [],

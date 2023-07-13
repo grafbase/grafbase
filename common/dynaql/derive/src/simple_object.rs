@@ -169,6 +169,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
             schema_fields.push(quote! {
                 fields.insert(::std::borrow::ToOwned::to_owned(#field_name), #crate_name::registry::MetaField {
                     name: ::std::borrow::ToOwned::to_owned(#field_name),
+                    mapped_name: None,
                     description: #field_desc,
                     args: ::std::default::Default::default(),
                     ty: <#ty as #crate_name::LegacyOutputType>::create_type_info(registry),

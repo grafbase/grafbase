@@ -26,7 +26,9 @@ use rules::extend_query_and_mutation_types::ExtendQueryAndMutationTypes;
 use rules::graphql_directive::GraphqlVisitor;
 use rules::input_object::InputObjectVisitor;
 use rules::length_directive::LengthDirective;
+use rules::map_directive::MapDirective;
 use rules::model_directive::ModelDirective;
+use rules::mongodb_directive::MongoDBModelDirective;
 use rules::one_of_directive::OneOfDirective;
 use rules::openapi_directive::OpenApiVisitor;
 use rules::relations::{relations_rules, RelationEngine};
@@ -40,11 +42,13 @@ mod type_names;
 
 use crate::rules::cache_directive::visitor::CacheVisitor;
 use crate::rules::cache_directive::CacheDirective;
+use crate::rules::mongodb_directive::MongoDBVisitor;
 pub use connector_parsers::ConnectorParsers;
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
 pub use rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget};
 pub use rules::graphql_directive::GraphqlDirective;
+pub use rules::mongodb_directive::MongoDBDirective;
 pub use rules::openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms};
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
@@ -107,6 +111,7 @@ pub async fn parse<'a>(
     let directives = Directives::new()
         .with::<AuthDirective>()
         .with::<DefaultDirective>()
+        .with::<MapDirective>()
         .with::<LengthDirective>()
         .with::<ModelDirective>()
         .with::<OneOfDirective>()
@@ -116,7 +121,8 @@ pub async fn parse<'a>(
         .with::<SearchDirective>()
         .with::<OpenApiDirective>()
         .with::<GraphqlDirective>()
-        .with::<CacheDirective>();
+        .with::<CacheDirective>()
+        .with::<MongoDBDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -154,7 +160,10 @@ async fn parse_connectors<'a>(
     ctx: &mut VisitorContext<'a>,
     connector_parsers: &dyn ConnectorParsers,
 ) -> Result<(), Error> {
-    let mut connector_rules = rules::visitor::VisitorNil.with(OpenApiVisitor).with(GraphqlVisitor);
+    let mut connector_rules = rules::visitor::VisitorNil
+        .with(OpenApiVisitor)
+        .with(GraphqlVisitor)
+        .with(MongoDBVisitor);
 
     visit(&mut connector_rules, ctx, schema);
 
@@ -196,6 +205,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CheckTypeValidity)
         .with(SearchDirective)
         .with(ModelDirective)
+        .with(MongoDBModelDirective)
         .with(AuthDirective)
         .with(ResolverDirective)
         .with(CacheVisitor)

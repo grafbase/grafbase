@@ -3,7 +3,6 @@
 //! When a basic type is stubble uppon on the definition of the schema, if it
 //! got no specialized behavior, we apply this behavior uppon it.
 //!
-use super::model_directive::MODEL_DIRECTIVE;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_input_type_non_primitive;
 use crate::rules::cache_directive::CacheDirective;
@@ -23,7 +22,7 @@ impl<'a> Visitor<'a> for BasicType {
         let directives = &type_definition.node.directives;
         if_chain! {
             if !["Query", "Mutation"].contains(&type_definition.node.name.node.as_str());
-            if !directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
+            if !directives.iter().any(|directive| directive.is_model());
             if let TypeKind::Object(object) = &type_definition.node.kind;
             then {
                 let type_name = type_definition.node.name.node.to_string();
@@ -32,9 +31,12 @@ impl<'a> Visitor<'a> for BasicType {
                 ctx.registry.get_mut().create_type(|_| registry::ObjectType::new(
                     type_name.clone(),
                     object.fields.iter().map(|field| {
-                        let name = field.node.name.node.to_string();
+                        let name = field.name().to_string();
+                        let mapped_name = field.mapped_name().map(ToString::to_string);
+
                         MetaField {
                             name: name.clone(),
+                            mapped_name,
                             description: field.node.description.clone().map(|x| x.node),
                             ty: field.node.ty.clone().node.to_string().into(),
                             cache_control: CacheDirective::parse(&field.node.directives),

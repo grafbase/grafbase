@@ -62,6 +62,15 @@ pub struct TypeDefinition {
     pub kind: TypeKind,
 }
 
+impl TypeDefinition {
+    /// The description of the type, if present. This is never present on an extension type.
+    pub fn description(&self) -> Option<&str> {
+        self.description
+            .as_ref()
+            .map(|description| description.node.as_str())
+    }
+}
+
 /// A kind of type; scalar, object, enum, etc.
 #[derive(Debug, Clone)]
 pub enum TypeKind {
@@ -105,6 +114,22 @@ pub struct FieldDefinition {
     pub ty: Positioned<Type>,
     /// The directives of the field.
     pub directives: Vec<Positioned<ConstDirective>>,
+}
+
+impl FieldDefinition {
+    /// The name of the field in the source, if different than the field name.
+    pub fn mapped_name(&self) -> Option<&str> {
+        self.directives
+            .iter()
+            .find(|directive| directive.name.as_str() == "map")
+            .and_then(|directive| directive.get_argument("name"))
+            .and_then(|argument| argument.as_str())
+    }
+
+    /// The name of the field
+    pub fn name(&self) -> &str {
+        self.name.node.as_str()
+    }
 }
 
 /// The definition of an interface type.

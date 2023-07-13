@@ -268,6 +268,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         schema_fields.push(quote! {
             fields.insert(::std::string::ToString::to_string(#name), #crate_name::registry::MetaField {
                 name: ::std::string::ToString::to_string(#name),
+                mapped_name: None,
                 description: #desc,
                 args: {
                     let mut args = #crate_name::indexmap::IndexMap::new();

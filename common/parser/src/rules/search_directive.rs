@@ -26,13 +26,13 @@ impl<'a> Visitor<'a> for SearchDirective {
             .node
             .directives
             .iter()
-            .any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
+            .any(|directive| directive.is_model());
         if !is_model
             && type_definition
                 .node
                 .directives
                 .iter()
-                .any(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
+                .any(|directive| directive.is_search())
         {
             ctx.report_error(
                 vec![type_definition.pos],
@@ -41,12 +41,7 @@ impl<'a> Visitor<'a> for SearchDirective {
         }
         if let TypeKind::Object(object) = &type_definition.node.kind {
             for field in &object.fields {
-                if let Some(directive) = field
-                    .node
-                    .directives
-                    .iter()
-                    .find(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
-                {
+                if let Some(directive) = field.node.directives.iter().find(|directive| directive.is_search()) {
                     if !is_model {
                         ctx.report_error(
                             vec![directive.pos],
