@@ -28,6 +28,7 @@ impl LocalAddressType {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, strum::Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum UdfKind {
     Resolver,
     Authorizer,
@@ -38,4 +39,12 @@ impl Default for UdfKind {
     fn default() -> Self {
         Self::Resolver
     }
+}
+
+#[derive(serde::Deserialize, Clone, Copy, Debug, strum::Display)]
+#[strum(serialize_all = "lowercase")]
+pub enum OperationType {
+    Query { is_introspection: bool },
+    Mutation,
+    Subscription,
 }

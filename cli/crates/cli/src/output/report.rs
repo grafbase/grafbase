@@ -107,8 +107,8 @@ pub fn goodbye() {
 
 pub fn install_udf_dependencies() {
     println!(
-        "{}  - installing dependencies from package.json…",
-        watercolor!("wait", @Blue)
+        "- {} installing dependencies from package.json...",
+        watercolor!("wait", @Cyan)
     );
 }
 
@@ -119,13 +119,13 @@ pub fn complete_installing_udf_dependencies(duration: std::time::Duration) {
         format!("{:.1}s", duration.as_secs_f64())
     };
     println!(
-        "{} - installed successfully in {formatted_duration}",
-        watercolor!("event", @Green)
+        "- {} installed successfully in {formatted_duration}",
+        watercolor!("event", @BrightMagenta)
     );
 }
 
 pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
-    println!("{}  - compiling {udf_kind} '{udf_name}'…", watercolor!("wait", @Blue));
+    println!("- {} compiling {udf_kind} {udf_name}...", watercolor!("wait", @Cyan));
 }
 
 pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time::Duration) {
@@ -135,8 +135,8 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
         format!("{:.1}s", duration.as_secs_f64())
     };
     println!(
-        "{} - {udf_kind} '{udf_name}' compiled successfully in {formatted_duration}",
-        watercolor!("event", @Green)
+        "- {} compiled {udf_kind} {udf_name} successfully in {formatted_duration}",
+        watercolor!("event", @BrightMagenta)
     );
 }
 
@@ -147,6 +147,51 @@ pub fn udf_message(udf_kind: UdfKind, udf_name: &str, message: &str, level: UdfM
         UdfMessageLevel::Info => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Cyan),
         UdfMessageLevel::Warn => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Yellow),
     }
+}
+
+pub fn operation_started(_request_id: &str, _name: &Option<String>) {}
+
+pub fn format_duration(duration: std::time::Duration) -> String {
+    [
+        ("ns", duration.as_nanos()),
+        ("μs", duration.as_micros()),
+        ("ms", duration.as_millis()),
+    ]
+    .into_iter()
+    .find(|(_, value)| *value < 1000)
+    .map_or_else(
+        || format!("{:.2}s", duration.as_secs_f64()),
+        |(suffix, value)| format!("{value}{suffix}"),
+    )
+}
+
+pub fn operation_completed(
+    _request_id: &str,
+    name: Option<String>,
+    r#type: common::types::OperationType,
+    duration: std::time::Duration,
+    debug: bool,
+) {
+    let colour = match r#type {
+        common::types::OperationType::Query { is_introspection } => {
+            if is_introspection && !debug {
+                return;
+            }
+            watercolor::colored::Color::Green
+        }
+        // Pink.
+        common::types::OperationType::Mutation => watercolor::colored::Color::TrueColor { r: 255, g: 105, b: 180 },
+        common::types::OperationType::Subscription => {
+            return;
+        }
+    };
+
+    let formatted_duration = format_duration(duration);
+    let formatted_name = name.map(|name| format!(" {name}")).unwrap_or_default();
+    println!(
+        "- {type}{formatted_name} {formatted_duration}",
+        r#type = r#type.to_string().color(colour)
+    );
 }
 
 pub fn reload<P: AsRef<Path>>(path: P) {

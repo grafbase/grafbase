@@ -15,7 +15,8 @@ static READY: Once = Once::new();
 /// returns [`CliError::BackendError`] if the the local gateway returns an error
 ///
 /// returns [`CliError::ServerPanic`] if the development server panics
-pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Result<(), CliError> {
+#[allow(clippy::fn_params_excessive_bools)]
+pub fn dev(search: bool, watch: bool, external_port: u16, debug: bool, tracing: bool) -> Result<(), CliError> {
     trace!("attempting to start server");
 
     let (server_handle, receiver) =
@@ -52,6 +53,17 @@ pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Resu
                     level,
                 } => {
                     report::udf_message(udf_kind, &udf_name, &message, level);
+                }
+                ServerMessage::OperationStarted { request_id, name } => {
+                    report::operation_started(&request_id, &name);
+                }
+                ServerMessage::OperationCompleted {
+                    request_id,
+                    name,
+                    duration,
+                    r#type,
+                } => {
+                    report::operation_completed(&request_id, name, r#type, duration, debug);
                 }
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }

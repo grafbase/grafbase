@@ -1,19 +1,27 @@
-use std::net::{IpAddr, Ipv6Addr};
-
+use axum::extract::State;
+use axum::Json;
 use chrono::{DateTime, NaiveDate, NaiveTime, TimeZone, Utc};
+use common::environment::Project;
 use futures_util::TryStreamExt;
 use serde_json::Value;
 use sqlx::SqlitePool;
 
 use tantivy::query::QueryParserError;
 use tantivy::schema::Field;
-
 use tantivy::{Document, TantivyError};
 
+use std::fs::File;
+use std::io::BufReader;
+use std::net::{IpAddr, Ipv6Addr};
+use std::sync::Arc;
+
+use super::api_counterfeit::registry::{Registry, VersionedRegistry};
 use super::api_counterfeit::search::{
-    self, PaginatedHits, Pagination, Query, TantivyQueryBuilder, TopDocsPaginatedSearcher,
+    self, PaginatedHits, Pagination, Query, QueryExecutionRequest, QueryExecutionResponse, TantivyQueryBuilder,
+    TopDocsPaginatedSearcher,
 };
 use super::errors::ApiError;
+use super::server::HandlerState;
 use super::types::RecordDocument;
 
 const DATE_FORMAT: &str = "%Y-%m-%d";
@@ -306,6 +314,32 @@ impl DynamoItemExt {
                 IpAddr::V6(addr) => addr,
             })
     }
+}
+
+pub async fn search_endpoint(
+    State(handler_state): State<Arc<HandlerState>>,
+    Json(request): Json<QueryExecutionRequest>,
+) -> Result<Json<QueryExecutionResponse>, ApiError> {
+    let project = Project::get();
+
+    let registry: Registry = {
+        let path = &project.registry_path;
+        let file = File::open(path).map_err(|err| {
+            error!("Failed to open {path:?}: {err:?}");
+            ApiError::ServerError
+        })?;
+        let reader = BufReader::new(file);
+        let versioned: VersionedRegistry = serde_json::from_reader(reader).map_err(|err| {
+            error!("Failed to deserialize registry: {err:?}");
+            ApiError::ServerError
+        })?;
+        versioned.registry
+    };
+
+    let response = Index::build(&handler_state.pool, &request.entity_type, &registry.search_config)
+        .await?
+        .search(request.query, request.pagination)?;
+    Ok(Json(response))
 }
 
 #[cfg(test)]

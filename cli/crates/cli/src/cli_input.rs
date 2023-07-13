@@ -17,6 +17,9 @@ pub struct DevCommand {
     /// Do not listen for schema changes and reload
     #[arg(long)]
     pub disable_watch: bool,
+    /// Log more events taking place such as introspection queries
+    #[arg(short, long)]
+    pub debug: bool,
 }
 
 #[derive(Debug, Parser, Clone, Copy)]
