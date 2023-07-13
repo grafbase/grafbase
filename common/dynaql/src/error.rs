@@ -12,7 +12,7 @@ use crate::{parser, LegacyInputType, Pos, Value};
 /// Extensions to the error.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(transparent)]
-pub struct ErrorExtensionValues(BTreeMap<String, Value>);
+pub struct ErrorExtensionValues(pub BTreeMap<String, Value>);
 
 impl ErrorExtensionValues {
     /// Set an extension value.

@@ -1,12 +1,12 @@
 use super::ResolvedValue;
 
-use crate::{Context, Error};
+use crate::{Context, Error, ErrorExtensionValues};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase::UdfKind;
 use grafbase_runtime::udf::{
-    CustomResolverRequestPayload, CustomResolversEngine, UdfRequest, UdfRequestContext,
-    UdfRequestContextRequest,
+    CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse,
+    CustomResolversEngine, UdfRequest, UdfRequestContext, UdfRequestContextRequest,
 };
 use grafbase_runtime::GraphqlRequestExecutionContext;
 
@@ -89,8 +89,27 @@ impl CustomResolver {
             },
         ));
 
-        let value = Box::pin(future).await?;
-        Ok(ResolvedValue::new(Arc::new(value.value)))
+        match Box::pin(future).await? {
+            CustomResolverResponse::Success(value) => Ok(ResolvedValue::new(Arc::new(value))),
+            CustomResolverResponse::GraphQLError {
+                message,
+                extensions,
+            } => {
+                let mut error = Error::new(message);
+                error.extensions = extensions.map(|extensions| {
+                    ErrorExtensionValues(
+                        extensions
+                            .into_iter()
+                            .filter_map(|(key, value)| {
+                                Some((key, crate::Value::from_json(value).ok()?))
+                            })
+                            .collect(),
+                    )
+                });
+                Err(error)
+            }
+            CustomResolverResponse::Error(_) => Err(CustomResolverError::InvocationError.into()),
+        }
     }
 }
 
