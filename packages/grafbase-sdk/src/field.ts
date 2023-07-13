@@ -1,11 +1,14 @@
-import { ModelFieldShape } from './model'
+import { FieldShape as DynamoFieldShape } from './connector/dynamodb/model'
+import { FieldShape as MongoFieldShape } from './connector/mongodb/model'
 import { validateIdentifier } from './validation'
+
+type FieldShape = DynamoFieldShape | MongoFieldShape
 
 export class Field {
   private _name: string
-  private shape: ModelFieldShape
+  private shape: FieldShape
 
-  constructor(name: string, shape: ModelFieldShape) {
+  constructor(name: string, shape: FieldShape) {
     validateIdentifier(name)
 
     this._name = name

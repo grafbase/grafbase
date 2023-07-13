@@ -3,6 +3,7 @@ import { ListDefinition } from './list'
 import { Type } from '../type'
 import { AuthDefinition } from './auth'
 import { ResolverDefinition } from './resolver'
+import { MapDefinition } from './map'
 
 export class ReferenceDefinition {
   private referencedType: string
@@ -45,6 +46,13 @@ export class ReferenceDefinition {
    */
   public resolver(name: string): ResolverDefinition {
     return new ResolverDefinition(this, name)
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   */
+  public map(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {

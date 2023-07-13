@@ -1,4 +1,4 @@
-import { Model, ModelFields } from './model'
+import { Model } from './model'
 import { RelationDefinition, RelationRef } from './relation'
 import { Enum, EnumShape } from './enum'
 import { Type, TypeExtension, TypeFields } from './type'
@@ -9,7 +9,9 @@ import { Query, QueryInput } from './query'
 import { OpenAPI, PartialOpenAPI } from './connector/openapi'
 import { GraphQLAPI, PartialGraphQLAPI } from './connector/graphql'
 import {
+  BigIntDefinition,
   BooleanDefinition,
+  BytesDefinition,
   DateDefinition,
   NumberDefinition,
   ObjectDefinition,
@@ -19,9 +21,14 @@ import { FieldType } from './typedefs'
 import { EnumDefinition } from './typedefs/enum'
 import { Input, InputFields } from './input_type'
 import { InputDefinition } from './typedefs/input'
+import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
+import { DynamoDBModel, ModelFields } from './connector/dynamodb/model'
 
-export type PartialDatasource = PartialOpenAPI | PartialGraphQLAPI
-export type Datasource = OpenAPI | GraphQLAPI
+export type PartialDatasource =
+  | PartialOpenAPI
+  | PartialGraphQLAPI
+  | PartialMongoDBAPI
+export type Datasource = OpenAPI | GraphQLAPI | MongoDBAPI
 
 export class Datasources {
   private inner: Datasource[]
@@ -80,7 +87,13 @@ export class GrafbaseSchema {
    * @param params - The introspection parameters.
    */
   public datasource(datasource: PartialDatasource, params?: IntrospectParams) {
-    this.datasources.push(datasource.finalize(params?.namespace))
+    const finalDatasource = datasource.finalize(params?.namespace)
+
+    if (finalDatasource instanceof MongoDBAPI) {
+      this.models = this.models.concat(finalDatasource.models)
+    }
+
+    this.datasources.push(finalDatasource)
   }
 
   /**
@@ -89,10 +102,10 @@ export class GrafbaseSchema {
    * @param name - The name of the model.
    * @param fields - The fields to be included.
    */
-  public model(name: string, fields: ModelFields): Model {
+  public model(name: string, fields: ModelFields): DynamoDBModel {
     const model = Object.entries(fields).reduce(
       (model, [name, definition]) => model.field(name, definition),
-      new Model(name)
+      new DynamoDBModel(name)
     )
 
     this.models.push(model)
@@ -323,6 +336,27 @@ export class GrafbaseSchema {
    */
   public phoneNumber(): StringDefinition {
     return new StringDefinition(FieldType.PhoneNumber)
+  }
+
+  /**
+   * Create a new decimal field.
+   */
+  public decimal(): StringDefinition {
+    return new StringDefinition(FieldType.Decimal)
+  }
+
+  /**
+   * Create a new bytes field.
+   */
+  public bytes(): BytesDefinition {
+    return new BytesDefinition(FieldType.Bytes)
+  }
+
+  /**
+   * Create a new bigint field.
+   */
+  public bigint(): BigIntDefinition {
+    return new BigIntDefinition(FieldType.BigInt)
   }
 
   /**

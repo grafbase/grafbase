@@ -5,6 +5,7 @@ import { DefaultDefinition } from './default'
 import { ReferenceDefinition } from './reference'
 import { ScalarDefinition } from './scalar'
 import { EnumDefinition } from './enum'
+import { MapDefinition } from './map'
 
 /**
  * A list of field types that can hold a `@resolver` attribute.
@@ -41,6 +42,15 @@ export class ResolverDefinition {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   *
+   * @param name - The mapped name
+   */
+  public map(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {

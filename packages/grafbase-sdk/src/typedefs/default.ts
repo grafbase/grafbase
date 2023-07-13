@@ -7,6 +7,7 @@ import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ScalarDefinition } from './scalar'
 import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
+import { MapDefinition } from './map'
 
 export type DefaultValueType = string | number | Date | object | boolean
 
@@ -61,6 +62,13 @@ export class DefaultDefinition {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   */
+  public map(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {

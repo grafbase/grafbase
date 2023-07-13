@@ -4,6 +4,7 @@ import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
 import { ListDefinition } from './list'
+import { MapDefinition } from './map'
 import { ResolverDefinition } from './resolver'
 import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
@@ -85,6 +86,15 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   *
+   * @param name - The mapped name
+   */
+  public map(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {

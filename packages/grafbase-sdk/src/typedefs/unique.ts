@@ -4,6 +4,7 @@ import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
 import { EnumDefinition } from './enum'
 import { LengthLimitedStringDefinition } from './length-limited-string'
+import { MapDefinition } from './map'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { SearchDefinition } from './search'
@@ -50,6 +51,13 @@ export class UniqueDefinition {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   */
+  public map(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {
