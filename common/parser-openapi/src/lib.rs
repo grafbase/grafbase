@@ -1,7 +1,6 @@
-use std::borrow::Cow;
-
 use dynaql::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
 use graph::OpenApiGraph;
+use inflector::Inflector;
 use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
 use tracing as _;
 use url::Url;
@@ -36,7 +35,7 @@ pub fn parse_spec(
 
     registry
         .http_headers
-        .insert(metadata.unique_namespace().to_string(), metadata.headers);
+        .insert(metadata.unique_namespace(), metadata.headers);
 
     Ok(())
 }
@@ -51,11 +50,11 @@ pub struct ApiMetadata {
 }
 
 impl ApiMetadata {
-    pub fn unique_namespace(&self) -> Cow<'_, str> {
+    pub fn unique_namespace(&self) -> String {
         self.namespace
             .as_deref()
-            .map(Cow::Borrowed)
-            .unwrap_or_else(|| Cow::Owned(format!("OpenAPI{}", self.id)))
+            .map(|namespace| namespace.to_camel_case())
+            .unwrap_or_else(|| format!("openAPI{}", self.id))
     }
 
     pub fn namespaced(&self, name: &str) -> String {

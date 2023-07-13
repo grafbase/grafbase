@@ -41,7 +41,7 @@ Registry {
                             HttpResolver {
                                 method: "PUT",
                                 url: "http://example.com/pet",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: Some(
@@ -92,7 +92,7 @@ Registry {
                             HttpResolver {
                                 method: "POST",
                                 url: "http://example.com/pet",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: Some(
@@ -151,7 +151,7 @@ Registry {
                             HttpResolver {
                                 method: "POST",
                                 url: "http://example.com/pet/{petId}/uploadImage",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [
                                     PathParameter {
                                         name: "petId",
@@ -210,7 +210,7 @@ Registry {
                             HttpResolver {
                                 method: "POST",
                                 url: "http://example.com/store/order",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: Some(
@@ -261,7 +261,7 @@ Registry {
                             HttpResolver {
                                 method: "POST",
                                 url: "http://example.com/user/createWithList",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: Some(
@@ -1542,7 +1542,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/pet/findByStatus",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [],
                                 query_parameters: [
                                     QueryParameter {
@@ -1594,7 +1594,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/pet/findByTags",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [],
                                 query_parameters: [
                                     QueryParameter {
@@ -1646,7 +1646,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/pet/{petId}",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [
                                     PathParameter {
                                         name: "petId",
@@ -1688,7 +1688,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/store/inventory",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: None,
@@ -1732,7 +1732,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/store/order/{orderId}",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [
                                     PathParameter {
                                         name: "orderId",
@@ -1791,7 +1791,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/user/login",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [],
                                 query_parameters: [
                                     QueryParameter {
@@ -1850,7 +1850,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/user/{username}",
-                                api_name: "OpenAPI1",
+                                api_name: "openAPI1",
                                 path_parameters: [
                                     PathParameter {
                                         name: "username",
@@ -1909,7 +1909,7 @@ Registry {
         provider: None,
     },
     http_headers: {
-        "OpenAPI1": ConnectorHeaders(
+        "openAPI1": ConnectorHeaders(
             [],
         ),
     },

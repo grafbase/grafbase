@@ -268,7 +268,7 @@ impl Operation {
         Some(Resolver::Http(HttpResolver {
             method: self.http_method(graph),
             url: self.url(graph),
-            api_name: graph.metadata.unique_namespace().to_string(),
+            api_name: graph.metadata.unique_namespace(),
             expected_status: self.expected_status(graph)?,
             path_parameters: path_parameters
                 .iter()

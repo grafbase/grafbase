@@ -27,7 +27,7 @@ impl RegistryExt for Registry {
 
         insert_field(
             self.query_root_mut().fields_mut().expect("QueryRoot to be an Object"),
-            api_metadata.unique_namespace().to_string(),
+            api_metadata.unique_namespace(),
             format!("{object_name}!"),
         );
 
