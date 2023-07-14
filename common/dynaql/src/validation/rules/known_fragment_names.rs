@@ -28,7 +28,7 @@ mod tests {
     use super::*;
 
     pub fn factory() -> KnownFragmentNames {
-        KnownFragmentNames::default()
+        KnownFragmentNames
     }
 
     #[test]

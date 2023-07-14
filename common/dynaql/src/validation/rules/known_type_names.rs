@@ -56,7 +56,7 @@ mod tests {
     use super::*;
 
     pub fn factory() -> KnownTypeNames {
-        KnownTypeNames::default()
+        KnownTypeNames
     }
 
     #[test]
