@@ -60,14 +60,10 @@ pub async fn handle_graphql_request(mut req: Request, route_context: RouteContex
         "Handling admin request"
     );
 
-    let schema = Schema::build(
-        graphql::Query::default(),
-        graphql::Mutation::default(),
-        EmptySubscription,
-    )
-    .data(SendWrapper::new(global_cache_provider))
-    .data(SendWrapper::new(request_context))
-    .finish();
+    let schema = Schema::build(graphql::Query, graphql::Mutation::default(), EmptySubscription)
+        .data(SendWrapper::new(global_cache_provider))
+        .data(SendWrapper::new(request_context))
+        .finish();
 
     let response_bytes = {
         let gql_response = schema
