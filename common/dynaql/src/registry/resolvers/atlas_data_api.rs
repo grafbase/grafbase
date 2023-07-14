@@ -20,6 +20,7 @@ use std::{pin::Pin, sync::Arc};
 mod headers {
     pub const API_KEY_HEADER_NAME: &str = "apiKey";
     pub const APPLICATION_JSON_CONTENT_TYPE: &str = "application/json";
+    pub const APPLICATION_EJSON_CONTENT_TYPE: &str = "application/ejson";
 }
 
 type JsonMap = serde_json::Map<String, serde_json::Value>;
@@ -44,7 +45,7 @@ impl AtlasDataApiResolver {
         ctx: &'a Context<'_>,
         resolver_ctx: &'a ResolverContext<'_>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
-        let current_object: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
+        let selection_set: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
         let selection = ctx.item.node.selection();
 
         let config = ctx
@@ -58,7 +59,7 @@ impl AtlasDataApiResolver {
 
         let request_builder = reqwest::Client::new()
             .post(url)
-            .header(CONTENT_TYPE, headers::APPLICATION_JSON_CONTENT_TYPE)
+            .header(CONTENT_TYPE, headers::APPLICATION_EJSON_CONTENT_TYPE)
             .header(ACCEPT, headers::APPLICATION_JSON_CONTENT_TYPE)
             .header(headers::API_KEY_HEADER_NAME, &config.api_key)
             .header(USER_AGENT, "Grafbase");
@@ -68,13 +69,12 @@ impl AtlasDataApiResolver {
 
             match self.operation_type {
                 OperationType::FindOne => {
-                    let projection = projection::project(selection, current_object, ctx)?;
+                    let projection = projection::project(selection, selection_set, ctx)?;
                     body.insert(String::from("projection"), projection.into());
-
-                    body.insert(
-                        String::from("filter"),
-                        filter::by(current_object, ctx).unwrap(),
-                    );
+                    body.insert(String::from("filter"), filter::by(ctx)?);
+                }
+                OperationType::InsertOne => {
+                    body.insert(String::from("document"), filter::input(ctx)?);
                 }
             }
 

@@ -880,6 +880,14 @@ impl MetaType {
             _ => false,
         }
     }
+
+    pub fn get_input_field(&self, name: &str) -> Option<&MetaInputValue> {
+        if let MetaType::InputObject(ref object) = self {
+            object.input_fields.get(name)
+        } else {
+            None
+        }
+    }
 }
 
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]

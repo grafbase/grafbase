@@ -4,12 +4,14 @@ use std::fmt;
 #[serde(rename_all = "camelCase")]
 pub enum OperationType {
     FindOne,
+    InsertOne,
 }
 
 impl AsRef<str> for OperationType {
     fn as_ref(&self) -> &str {
         match self {
             Self::FindOne => "findOne",
+            Self::InsertOne => "insertOne",
         }
     }
 }
