@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use dynaql::{
-    extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute},
+    extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute, NextPrepareRequest},
     parser::types::OperationDefinition,
-    Response,
+    Request, Response, ServerResult,
 };
 use grafbase_runtime::{
     log::{LogEventReceiver, LogEventType, OperationType},
@@ -32,6 +32,40 @@ impl ExtensionFactory for RuntimeLogExtension {
 
 #[async_trait::async_trait]
 impl Extension for RuntimeLogExtension {
+    /// Called at prepare request.
+    async fn prepare_request(
+        &self,
+        ctx: &ExtensionContext<'_>,
+        request: Request,
+        next: NextPrepareRequest<'_>,
+    ) -> ServerResult<Request> {
+        let start = wasm_timer::SystemTime::now();
+
+        let operation_name = request.operation_name.clone();
+        let prepare_result = next.run(ctx, request).await;
+        let end = wasm_timer::SystemTime::now();
+        let duration: std::time::Duration = end.duration_since(start).unwrap();
+
+        if prepare_result.is_err() {
+            let request_id = &ctx
+                .data::<GraphqlRequestExecutionContext>()
+                .expect("must be set")
+                .ray_id;
+
+            self.log_event_receiver
+                .invoke(
+                    request_id,
+                    LogEventType::BadRequest {
+                        name: operation_name.as_deref(),
+                        duration,
+                    },
+                )
+                .await;
+        }
+
+        prepare_result
+    }
+
     /// Called at execute query.
     async fn execute(
         &self,
@@ -52,12 +86,10 @@ impl Extension for RuntimeLogExtension {
             .await;
 
         let start = wasm_timer::SystemTime::now();
-
         let response = next.run(ctx, operation_name, operation).await;
-
         let end = wasm_timer::SystemTime::now();
+        let duration: std::time::Duration = end.duration_since(start).unwrap();
 
-        let duration = end.duration_since(start).unwrap();
         self.log_event_receiver
             .invoke(
                 request_id,
