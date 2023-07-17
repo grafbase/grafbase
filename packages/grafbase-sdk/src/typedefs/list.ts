@@ -3,8 +3,11 @@ import { ReferenceDefinition } from './reference'
 import { RelationDefinition } from '../relation'
 import { DefaultValueType, renderDefault } from './default'
 import {
+  BigIntDefinition,
   BooleanDefinition,
+  BytesDefinition,
   DateDefinition,
+  DecimalDefinition,
   NumberDefinition,
   ScalarDefinition,
   StringDefinition
@@ -16,6 +19,7 @@ import { InputDefinition } from './input'
 import { RequireAtLeastOne } from 'type-fest'
 import { FieldLength } from './length-limited-string'
 import { LengthLimitedStringDefinition } from './length-limited-string'
+import { MapDefinition } from './map'
 
 export type ListScalarType =
   | ScalarDefinition
@@ -75,6 +79,15 @@ export class ListDefinition {
     this.resolverName = name
 
     return this
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   *
+   * @param name - The mapped name
+   */
+  public mapped(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {
@@ -169,6 +182,78 @@ class ListWithDefaultDefinition extends ListDefinition {
   }
 }
 
+export class DecimalListDefinition extends ListWithDefaultDefinition {
+  constructor(fieldDefinition: DecimalDefinition) {
+    super(fieldDefinition)
+  }
+
+  /**
+   * The type of the field
+   */
+  public get fieldType(): FieldType {
+    return this._fieldType
+  }
+
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(val: string[]): this {
+    this.defaultValue = val
+
+    return this
+  }
+}
+
+export class BytesListDefinition extends ListWithDefaultDefinition {
+  constructor(fieldDefinition: BytesDefinition) {
+    super(fieldDefinition)
+  }
+
+  /**
+   * The type of the field
+   */
+  public get fieldType(): FieldType {
+    return this._fieldType
+  }
+
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(val: string[]): this {
+    this.defaultValue = val
+
+    return this
+  }
+}
+
+export class BigIntListDefinition extends ListWithDefaultDefinition {
+  constructor(fieldDefinition: BigIntDefinition) {
+    super(fieldDefinition)
+  }
+
+  /**
+   * The type of the field
+   */
+  public get fieldType(): FieldType {
+    return this._fieldType
+  }
+
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(val: string[]): this {
+    this.defaultValue = val
+
+    return this
+  }
+}
+
 export class StringListDefinition extends ListWithDefaultDefinition {
   constructor(fieldDefinition: StringDefinition) {
     super(fieldDefinition)
@@ -190,6 +275,15 @@ export class StringListDefinition extends ListWithDefaultDefinition {
     fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
   ): LengthLimitedStringDefinition {
     return new LengthLimitedStringDefinition(this, fieldLength)
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   *
+   * @param name - The mapped name
+   */
+  public map(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   /**

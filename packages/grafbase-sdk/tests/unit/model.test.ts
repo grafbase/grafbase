@@ -323,20 +323,6 @@ describe('Model generator', () => {
     `)
   })
 
-  it('generates a live model', () => {
-    const model = g
-      .model('User', {
-        name: g.string()
-      })
-      .live()
-
-    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
-      "type User @model @live {
-        name: String!
-      }"
-    `)
-  })
-
   it('generates a length with minimum and unique + search', () => {
     const model = g.model('User', {
       name: g.string().length({ min: 2 }).unique().search()

@@ -8,6 +8,7 @@ import { JWKSAuth, JWKSParams } from './auth/jwks'
 import { RequireAtLeastOne } from 'type-fest'
 import dotenv from 'dotenv'
 import { Authorizer, AuthorizerParams } from './auth/authorizer'
+import { MongoDBParams, PartialMongoDBAPI } from './connector/mongodb'
 
 dotenv.config()
 
@@ -41,6 +42,14 @@ export const connector = {
    */
   GraphQL: (params: GraphQLParams): PartialGraphQLAPI => {
     return new PartialGraphQLAPI(params)
+  },
+  /**
+   * Create a new MongoDB connector object.
+   *
+   * @param params = The configuration parameters.
+   */
+  MongoDB: (params: MongoDBParams): PartialMongoDBAPI => {
+    return new PartialMongoDBAPI(params)
   }
 }
 

@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.2.0] - Wed Jul 12 2023
+## [0.2.1] - Mon Jul 17 2023
+
+[CHANGELOG](changelog/0.2.1.md)
+
+## [0.2.0] - Thu Jul 13 2023
 
 [CHANGELOG](changelog/0.2.0.md)
 

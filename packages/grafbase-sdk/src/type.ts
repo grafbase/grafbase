@@ -11,6 +11,7 @@ import { ScalarDefinition } from './typedefs/scalar'
 import { EnumDefinition } from './typedefs/enum'
 import { validateIdentifier } from './validation'
 import { InputType, OutputType, Query, QueryArgument } from './query'
+import { MapDefinition } from './typedefs/map'
 
 /**
  * A collection of fields in a model.
@@ -25,6 +26,7 @@ export type TypeFieldShape =
   | ListDefinition
   | ReferenceDefinition
   | CacheDefinition
+  | MapDefinition
   | EnumDefinition<any, any>
 
 /**
