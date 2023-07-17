@@ -1,61 +1,36 @@
-import { connect, cast } from "@planetscale/database";
+import { connect } from '@planetscale/database'
+import { GraphQLError } from 'graphql'
 
-const config = {
-  host: process.env.DATABASE_HOST,
-  username: process.env.DATABASE_USERNAME,
-  password: process.env.DATABASE_PASSWORD,
-};
+import { config, options } from '../../lib'
 
-const conn = connect(config);
+const conn = connect(config)
 
-export const options = {
-  cast(field, value) {
-    switch (field.name) {
-      case "id": {
-        return String(value);
-      }
-      case "onSale": {
-        return Boolean(value);
-      }
-      default: {
-        return cast(field, value);
-      }
-    }
-  },
-};
-
-export default async function ProductsSingle(_, args) {
-  const {
-    by: { id, slug },
-  } = args;
+export default async function ProductsSingle(_, { by }) {
+  let results
 
   try {
-    if (id !== undefined) {
-      const results = await conn.execute(
-        "SELECT * FROM Products WHERE id = ? LIMIT 1",
-        [id],
+    if (by.id !== undefined && by.slug !== undefined) {
+      throw new GraphQLError('Only one of ID or Slug should be provided')
+    } else if (by.id !== undefined) {
+      results = await conn.execute(
+        'SELECT * FROM products WHERE id = ? LIMIT 1',
+        [by.id],
         options
-      );
-
-      console.log(JSON.stringify(results, null, 2));
-
-      return results?.rows[0] ?? null;
+      )
+    } else if (by.slug !== undefined) {
+      results = await conn.execute(
+        'SELECT * FROM products WHERE slug = ? LIMIT 1',
+        [by.slug],
+        options
+      )
+    } else {
+      throw new GraphQLError('ID or Slug must be provided')
     }
 
-    if (slug !== undefined) {
-      const results = await conn.execute(
-        "SELECT * FROM Products WHERE slug = ? LIMIT 1",
-        [slug],
-        options
-      );
-
-      return results?.rows[0] ?? null;
-    }
-
-    // Throw new GraphQLError('ID or Slug must be provided')
+    return results?.rows[0] ?? null
   } catch (error) {
-    console.log(error);
+    console.log(error)
 
-    return null;
+    return null
   }
 }

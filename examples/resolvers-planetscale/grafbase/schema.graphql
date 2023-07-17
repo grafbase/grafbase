@@ -19,6 +19,8 @@ type Product {
   slug: String!
   price: Int!
   onSale: Boolean @default(value: false)
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input ProductByInput {

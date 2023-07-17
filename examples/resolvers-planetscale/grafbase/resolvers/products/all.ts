@@ -1,81 +1,54 @@
-import { connect, cast } from "@planetscale/database";
+import { connect } from '@planetscale/database'
+import { GraphQLError } from 'graphql'
 
-const config = {
-  host: process.env.DATABASE_HOST,
-  username: process.env.DATABASE_USERNAME,
-  password: process.env.DATABASE_PASSWORD,
-};
+import { config, options } from '../../lib'
 
-const conn = connect(config);
-
-export const options = {
-  cast(field, value) {
-    switch (field.name) {
-      case "id": {
-        return String(value);
-      }
-      case "onSale": {
-        return Boolean(value);
-      }
-      default: {
-        return cast(field, value);
-      }
-    }
-  },
-};
+const conn = connect(config)
 
 export default async function ProductsAll(_, args) {
-  const { first, last, before, after } = args;
-
-  // Throw GraphQLError when arg is missing when supported
+  const { first, last, before, after } = args
 
   try {
+    let results
+
     if (first !== undefined && after !== undefined) {
-      const results = await conn.execute(
-        "SELECT * FROM Products WHERE id > ? ORDER BY id ASC LIMIT ?",
+      results = await conn.execute(
+        'SELECT * FROM products WHERE id > ? ORDER BY id ASC LIMIT ?',
         [after, first],
         options
-      );
-
-      return results?.rows || [];
-    }
-
-    if (last !== undefined && before !== undefined) {
-      const results = await conn.execute(
+      )
+    } else if (last !== undefined && before !== undefined) {
+      results = await conn.execute(
         `SELECT * FROM (
-          SELECT * FROM Products WHERE id < ? ORDER BY id DESC LIMIT ?
+          SELECT * FROM products WHERE id < ? ORDER BY id DESC LIMIT ?
         ) AS sub ORDER BY id ASC`,
         [before, last],
         options
-      );
-
-      return results?.rows || [];
-    }
-
-    if (first !== undefined) {
-      const results = await conn.execute(
-        "SELECT * FROM Products ORDER BY id ASC LIMIT ?",
+      )
+    } else if (first !== undefined) {
+      results = await conn.execute(
+        'SELECT * FROM products ORDER BY id ASC LIMIT ?',
         [first],
         options
-      );
-
-      return results?.rows || [];
-    }
-
-    if (last !== undefined) {
-      const results = await conn.execute(
+      )
+    } else if (last !== undefined) {
+      results = await conn.execute(
         `SELECT * FROM (
-          SELECT * FROM Products ORDER BY id DESC LIMIT ?
+          SELECT * FROM products ORDER BY id DESC LIMIT ?
         ) AS sub ORDER BY id ASC`,
         [last],
         options
-      );
-
-      return results?.rows || [];
+      )
+    } else {
+      throw new GraphQLError(
+        'You must provide one of the following arguments: first, last, (first and after), or (last and before)'
+      )
     }
-  } catch (error) {
-    console.log(error);
 
-    return [];
+    return results?.rows || []
+  } catch (error) {
+    console.log(error)
+
+    return []
   }
 }

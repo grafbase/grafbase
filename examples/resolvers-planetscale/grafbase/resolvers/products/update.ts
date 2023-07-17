@@ -1,94 +1,68 @@
-import { connect, cast } from "@planetscale/database";
+import { connect } from '@planetscale/database'
+import { GraphQLError } from 'graphql'
 
-const config = {
-  host: process.env.DATABASE_HOST,
-  username: process.env.DATABASE_USERNAME,
-  password: process.env.DATABASE_PASSWORD,
-};
+import { config, options } from '../../lib'
 
-const conn = connect(config);
+const conn = connect(config)
 
-export const options = {
-  cast(field, value) {
-    switch (field.name) {
-      case "id": {
-        return String(value);
-      }
-      case "onSale": {
-        return Boolean(value);
-      }
-      default: {
-        return cast(field, value);
+export default async function ProductsUpdate(_: unknown, args: any) {
+  const { by, input } = args
+
+  let updateClauses: string[] = []
+  let params: (string | number | boolean)[] = []
+  let selectStatement: string = ''
+  let selectParams: (string | number)[] = []
+
+  Object.entries(input).forEach(([field, value]) => {
+    if (
+      value !== undefined &&
+      value !== null &&
+      !(typeof value === 'object' && Object.keys(value).length === 0)
+    ) {
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
+        updateClauses.push(`${field} = ?`)
+        params.push(value)
       }
     }
-  },
-};
-
-export default async function ProductsUpdate(_, args) {
-  const {
-    by: { id, slug },
-    input: { name: newName, slug: newSlug, price: newPrice, onSale: newOnSale },
-  } = args;
-
-  let updateStatement = "UPDATE Products SET ";
-  let params = [];
-
-  if (newName !== undefined) {
-    updateStatement += "name = ?, ";
-    params.push(newName);
-  }
-  if (newSlug !== undefined) {
-    updateStatement += "slug = ?, ";
-    params.push(newSlug);
-  }
-  if (newPrice !== undefined) {
-    updateStatement += "price = ?, ";
-    params.push(newPrice);
-  }
-  if (newOnSale !== undefined) {
-    updateStatement += "onSale = ?, ";
-    params.push(newOnSale);
-  }
+  })
 
   if (params.length === 0) {
-    throw new Error("At least one field to update must be provided.");
+    throw new Error('At least one field to update must be provided.')
   }
 
-  updateStatement = updateStatement.slice(0, -2);
+  let updateStatement = 'UPDATE Products SET ' + updateClauses.join(', ')
 
-  if (id !== undefined) {
-    updateStatement += " WHERE id = ?";
-    params.push(id);
-  } else if (slug !== undefined) {
-    updateStatement += " WHERE slug = ?";
-    params.push(slug);
-  } else {
-    // Throw new GraphQLError('ID or Slug must be provided')
-  }
+  Object.entries(by).forEach(([field, value]) => {
+    if (
+      value !== undefined &&
+      value !== null &&
+      (typeof value === 'string' || typeof value === 'number')
+    ) {
+      updateStatement += ` WHERE ${field} = ?`
+      params.push(value)
+      selectStatement = `SELECT * FROM Products WHERE ${field} = ?`
+      selectParams = [value]
+    }
+  })
 
-  let selectStatement;
-  let selectParams;
-
-  if (id !== undefined) {
-    selectParams = [id];
-    selectStatement = "SELECT * FROM Products WHERE id = ?";
-  } else {
-    selectParams = [slug];
-    selectStatement = "SELECT * FROM Products WHERE slug = ?";
+  if (!selectStatement) {
+    throw new GraphQLError('ID or Slug must be provided')
   }
 
   try {
     const [_, results] = await conn.transaction(async (tx) => {
-      const update = await tx.execute(updateStatement, params, options);
-      const select = await tx.execute(selectStatement, selectParams, options);
+      const update = await tx.execute(updateStatement, params, options)
+      const select = await tx.execute(selectStatement, selectParams, options)
 
-      return [update, select];
-    });
+      return [update, select]
+    })
 
-    return results?.rows[0] ?? null;
+    return results?.rows[0] ?? null
   } catch (error) {
-    console.log(error);
-
-    return null;
+    return null
   }
 }

@@ -1,48 +1,42 @@
-import { connect, cast } from "@planetscale/database";
+import { connect } from '@planetscale/database'
 
-const config = {
-  host: process.env.DATABASE_HOST,
-  username: process.env.DATABASE_USERNAME,
-  password: process.env.DATABASE_PASSWORD,
-};
+import { config, options } from '../../lib'
 
-const conn = connect(config);
-
-export const options = {
-  cast(field, value) {
-    switch (field.name) {
-      case "onSale": {
-        return Boolean(value);
-      }
-      default: {
-        return cast(field, value);
-      }
-    }
-  },
-};
+const conn = connect(config)
 
 export default async function ProductsCreate(_, { input }) {
-  const { name, slug, price, onSale } = input;
+  const fields: string[] = []
+  const placeholders: string[] = []
+  const values: (string | number | boolean)[] = []
 
-  // Check for unique constraint and error when supported
+  Object.entries(input).forEach(([field, value]) => {
+    if (
+      value !== undefined &&
+      value !== null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      fields.push(`\`${field}\``) // field names should be escaped
+      placeholders.push('?')
+      values.push(value)
+    }
+  })
+
+  const statement = `INSERT INTO products (${fields.join(
+    ', '
+  )}) VALUES (${placeholders.join(', ')})`
 
   try {
-    const { insertId } = await conn.execute(
-      "INSERT INTO Products (`name`, `slug`, `price`, `onSale`) VALUES (?, ?, ?, ?)",
-      [name, slug, price, onSale],
-      options
-    );
+    const { insertId } = await conn.execute(statement, values, options)
 
     return {
       id: insertId,
-      name,
-      slug,
-      price,
-      onSale,
-    };
+      ...input
+    }
   } catch (error) {
-    console.log(error);
+    console.log(error)
 
-    return null;
+    return null
   }
 }

@@ -1,12 +1,12 @@
 ```shell
-CREATE TABLE Products (
-    id INT NOT NULL AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) NOT NULL UNIQUE,
-    price INT NOT NULL DEFAULT 0,
-    onSale BOOLEAN DEFAULT FALSE,
+CREATE TABLE `products` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    `slug` VARCHAR(255) NOT NULL UNIQUE,
+    `price` INT NOT NULL DEFAULT 0,
+    `onSale` BOOLEAN DEFAULT FALSE,
     PRIMARY KEY (id),
-    INDEX slug_index (slug)
+    INDEX slug_index (slug),
 );
 ```
 

@@ -1,60 +1,42 @@
-import { connect, cast } from "@planetscale/database";
+import { connect, cast } from '@planetscale/database'
+import { GraphQLError } from 'graphql'
 
-const config = {
-  host: process.env.DATABASE_HOST,
-  username: process.env.DATABASE_USERNAME,
-  password: process.env.DATABASE_PASSWORD,
-};
+import { config, options } from '../../lib'
 
-const conn = connect(config);
+const conn = connect(config)
 
-export const options = {
-  cast(field, value) {
-    switch (field.name) {
-      case "id": {
-        return String(value);
-      }
-      case "onSale": {
-        return Boolean(value);
-      }
-      default: {
-        return cast(field, value);
-      }
+export default async function ProductsDelete(_, { by }) {
+  let statement: string = ''
+  let params: (string | number | boolean | {})[] = []
+
+  Object.entries(by).forEach(([field, value]) => {
+    if (
+      value !== undefined &&
+      value !== null &&
+      (typeof value === 'string' || typeof value === 'number')
+    ) {
+      statement = `DELETE FROM Products WHERE ${field} = ?`
+      params = [value]
     }
-  },
-};
+  })
 
-export default async function ProductsDelete(_, args) {
-  const {
-    by: { id, slug },
-  } = args;
-
-  let statement;
-  let params;
-
-  if (id !== undefined) {
-    statement = "DELETE FROM Products WHERE id = ?";
-    params = [id];
-  } else if (slug !== undefined) {
-    statement = "DELETE FROM Products WHERE slug = ?";
-    params = [slug];
-  } else {
-    // Throw new GraphQLError('ID or Slug must be provided')
+  if (!statement) {
+    throw new GraphQLError('ID or Slug must be provided')
   }
 
   try {
-    const results = await conn.execute(statement, params, options);
+    const results = await conn.execute(statement, params, options)
 
-    console.log(JSON.stringify(results, null, 2));
+    console.log(JSON.stringify(results, null, 2))
 
     if (results.rowsAffected === 1) {
-      return { deleted: true };
+      return { deleted: true }
     }
 
-    return { deleted: false };
+    return { deleted: false }
   } catch (error) {
-    console.log(error);
+    console.log(error)
 
-    return { deleted: false };
+    return { deleted: false }
   }
 }
