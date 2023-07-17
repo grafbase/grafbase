@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use dynaql::names::INPUT_FIELD_FILTER_REGEX;
 use dynaql::registry::resolvers::transformer::Transformer;
 use itertools::Itertools;
 
@@ -498,6 +499,9 @@ fn register_scalar_filter(registry: &mut Registry, scalar: &str, is_nullable: bo
                     MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
                     MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
                 ]);
+                if range_scalar == "String" {
+                    args.push(MetaInputValue::new(INPUT_FIELD_FILTER_REGEX, range_scalar));
+                }
             }
             if is_nullable {
                 args.push(MetaInputValue::new(INPUT_FIELD_FILTER_IS_NULL, "Boolean"));

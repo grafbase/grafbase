@@ -99,6 +99,7 @@ input EmailSearchFilterInput {
 	lt: String
 	in: [Email!]
 	notIn: [Email!]
+	regex: String
 }
 """
 Possible operations for a Float field
@@ -227,6 +228,7 @@ input PhoneNumberOrNullSearchFilterInput {
 	lt: String
 	in: [PhoneNumber!]
 	notIn: [PhoneNumber!]
+	regex: String
 	isNull: Boolean
 }
 type Product {
@@ -401,6 +403,7 @@ input StringSearchFilterInput {
 	lt: String
 	in: [String!]
 	notIn: [String!]
+	regex: String
 }
 """
 A Unix Timestamp with milliseconds precision.
@@ -437,6 +440,7 @@ input URLOrNullSearchFilterInput {
 	lt: String
 	in: [URL!]
 	notIn: [URL!]
+	regex: String
 	isNull: Boolean
 }
 schema {

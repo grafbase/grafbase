@@ -179,6 +179,7 @@ input StringOrNullSearchFilterInput {
 	lt: String
 	in: [String!]
 	notIn: [String!]
+	regex: String
 	isNull: Boolean
 }
 schema {
