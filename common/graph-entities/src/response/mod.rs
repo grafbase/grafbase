@@ -389,8 +389,8 @@ impl QueryResponse {
         self.get_node(id).is_some()
     }
 
-    pub fn add_cache_tag(&mut self, tag: String) {
-        self.cache_tags.insert(tag);
+    pub fn add_cache_tags<Tag: Into<String>>(&mut self, tags: impl IntoIterator<Item = Tag>) {
+        self.cache_tags.extend(tags.into_iter().map(|tag| tag.into()));
     }
 }
 

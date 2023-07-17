@@ -19,6 +19,7 @@ use dynaql_value::ConstValue;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
+use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
@@ -418,6 +419,12 @@ pub enum CacheTag {
     },
 }
 
+impl From<CacheTag> for String {
+    fn from(value: CacheTag) -> Self {
+        value.to_string()
+    }
+}
+
 impl Display for CacheTag {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
@@ -718,6 +725,10 @@ impl MetaField {
         resolved_field_name: &str,
         resolved_field_value: Option<&ConstValue>,
     ) {
+        use crate::names::{
+            DELETE_PAYLOAD_RETURN_TY_SUFFIX, OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS,
+            OUTPUT_FIELD_ID,
+        };
         let cache_invalidation = ctx
             .query_env
             .cache_invalidations
@@ -732,60 +743,74 @@ impl MetaField {
             // Deletions return a `xDeletionPayload` with only a `deletedId`
             if cache_invalidation
                 .ty
-                .ends_with(crate::names::DELETE_PAYLOAD_RETURN_TY_SUFFIX)
+                .ends_with(DELETE_PAYLOAD_RETURN_TY_SUFFIX)
             {
                 cache_type = cache_invalidation
                     .ty
-                    .replace(crate::names::DELETE_PAYLOAD_RETURN_TY_SUFFIX, "");
+                    .replace(DELETE_PAYLOAD_RETURN_TY_SUFFIX, "");
             }
 
-            let cache_tag = match &cache_invalidation.policy {
+            let cache_tags = match &cache_invalidation.policy {
                 CacheInvalidationPolicy::Entity {
                     field: target_field,
-                } if target_field == resolved_field_name
+                } => {
+                    if target_field == resolved_field_name
                     // Deletions return a `xDeletionPayload` with only a `deletedId`
                     // If an invalidation policy is of type `entity.id`, on deletes `id` is the `deletedId`
-                    || (target_field == crate::names::OUTPUT_FIELD_ID && resolved_field_name == crate::names::OUTPUT_FIELD_DELETED_ID) =>
-                {
-                    let Some(resolved_field_value) = resolved_field_value else {
-                        #[cfg(feature = "tracing_worker")]
-                        logworker::warn!(
-                            ctx.data_unchecked::<Arc<dynamodb::DynamoDBBatchersData>>()
-                                .ctx
-                                .trace_id,
-                            "missing field valued for resolved {}#{} and cache type {}",
-                            resolved_field_type, resolved_field_name, cache_invalidation.ty,
-                        );
+                    || (target_field == OUTPUT_FIELD_ID && resolved_field_name == OUTPUT_FIELD_DELETED_ID)
+                    {
+                        let Some(resolved_field_value) = resolved_field_value else {
+                            #[cfg(feature = "tracing_worker")]
+                            logworker::warn!(
+                                ctx.data_unchecked::<Arc<dynamodb::DynamoDBBatchersData>>()
+                                    .ctx
+                                    .trace_id,
+                                "missing field valued for resolved {}#{} and cache type {}",
+                                resolved_field_type, resolved_field_name, cache_invalidation.ty,
+                            );
 
+                            return;
+                        };
+
+                        let resolved_field_value = match resolved_field_value {
+                            // remove double quotes
+                            ConstValue::String(quoted_string) => quoted_string.as_str().to_string(),
+                            value => value.to_string(),
+                        };
+
+                        vec![CacheTag::Field {
+                            type_name: cache_type,
+                            field_name: target_field.to_string(),
+                            value: resolved_field_value,
+                        }]
+                    } else if target_field == OUTPUT_FIELD_ID
+                        && OUTPUT_FIELD_DELETED_IDS == resolved_field_name
+                    {
+                        let ids = Vec::<String>::deserialize(
+                            resolved_field_value.unwrap_or(&ConstValue::Null).clone(),
+                        )
+                        .unwrap_or_default();
+
+                        ids.into_iter()
+                            .map(|value| CacheTag::Field {
+                                type_name: cache_type.clone(),
+                                field_name: target_field.to_string(),
+                                value,
+                            })
+                            .collect()
+                    } else {
                         return;
-                    };
-
-                    let resolved_field_value = match resolved_field_value {
-                        // remove double quotes
-                        ConstValue::String(quoted_string) => quoted_string.as_str().to_string(),
-                        value => value.to_string(),
-                    };
-
-                    CacheTag::Field {
-                        type_name: cache_type,
-                        field_name: target_field.to_string(),
-                        value: resolved_field_value,
                     }
                 }
-                // we're only interested in the variant above
-                CacheInvalidationPolicy::Entity { .. } => return,
-                CacheInvalidationPolicy::List => CacheTag::List {
+                CacheInvalidationPolicy::List => vec![CacheTag::List {
                     type_name: cache_type,
-                },
-                CacheInvalidationPolicy::Type => CacheTag::Type {
+                }],
+                CacheInvalidationPolicy::Type => vec![CacheTag::Type {
                     type_name: cache_type,
-                },
+                }],
             };
 
-            ctx.response_graph
-                .write()
-                .await
-                .add_cache_tag(cache_tag.to_string());
+            ctx.response_graph.write().await.add_cache_tags(cache_tags);
         }
     }
 }

@@ -1,9 +1,13 @@
-use dynaql::registry::{
-    resolvers::{dynamo_mutation::DynamoMutationResolver, transformer::Transformer},
-    variables::VariableResolveDefinition,
-    MetaField, MetaInputValue,
-};
+use dynaql::names::OUTPUT_FIELD_DELETED_IDS;
 use dynaql::registry::{InputObjectType, NamedType, ObjectType};
+use dynaql::{
+    names::OUTPUT_FIELD_DELETED_ID,
+    registry::{
+        resolvers::{dynamo_mutation::DynamoMutationResolver, transformer::Transformer},
+        variables::VariableResolveDefinition,
+        MetaField, MetaInputValue,
+    },
+};
 
 use dynaql::{AuthConfig, CacheControl};
 use dynaql_parser::types::{BaseType, TypeDefinition};
@@ -101,7 +105,7 @@ fn register_payload(
             ObjectType::new(
                 payload_type_name.clone(),
                 [MetaField {
-                    name: "deletedId".to_string(),
+                    name: OUTPUT_FIELD_DELETED_ID.to_string(),
                     ty: NamedType::from("ID").as_non_null().into(),
                     resolver: Transformer::select("id").into(),
                     required_operation: Some(Operations::DELETE),
@@ -132,7 +136,7 @@ fn register_many_payload(
             ObjectType::new(
                 payload_type_name.clone(),
                 [MetaField {
-                    name: "deletedIds".to_string(),
+                    name: OUTPUT_FIELD_DELETED_IDS.to_string(),
                     ty: NamedType::from("ID").as_non_null().list().non_null().into(),
                     resolver: Transformer::select("ids").into(),
                     required_operation: Some(Operations::DELETE),
