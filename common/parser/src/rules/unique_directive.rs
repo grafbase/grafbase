@@ -20,6 +20,7 @@ pub struct UniqueDirective {
 
 struct UniqueDirectiveField {
     name: String,
+    mapped_name: Option<String>,
     ty: BaseType,
 }
 
@@ -184,6 +185,7 @@ impl UniqueDirectiveField {
 
         UniqueDirectiveField {
             name: field.name.to_string(),
+            mapped_name: field.mapped_name().map(ToString::to_string),
             ty: field.ty.node.base.clone(),
         }
     }
@@ -194,7 +196,7 @@ impl UniqueDirectiveField {
             ty.push('!');
         }
 
-        MetaInputValue::new(self.name.clone(), ty)
+        MetaInputValue::new(self.name.clone(), ty).with_rename(self.mapped_name.clone())
     }
 }
 

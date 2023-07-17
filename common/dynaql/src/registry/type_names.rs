@@ -75,6 +75,10 @@ impl MetaFieldType {
         // lists.
         self.0.starts_with('[')
     }
+
+    pub fn base_type_name(&self) -> &str {
+        named_type_from_type_str(&self.0)
+    }
 }
 
 impl TypeReference for MetaFieldType {

@@ -845,6 +845,29 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         self.get_param_value(&self.item.node.arguments, name, default)
     }
 
+    pub fn find_argument_type(&self, name: &str) -> ServerResult<&MetaType> {
+        let meta = self
+            .resolver_node
+            .as_ref()
+            .and_then(|r| r.field)
+            .ok_or_else(|| {
+                ServerError::new(
+                    "Context does not have any field associated.",
+                    Some(self.item.pos),
+                )
+            })?;
+
+        meta.args
+            .get(name)
+            .and_then(|input| self.schema_env.registry.types.get(&input.ty))
+            .ok_or_else(|| {
+                ServerError::new(
+                    &format!("Internal Error: Unknown argument '{name}'"),
+                    Some(self.item.pos),
+                )
+            })
+    }
+
     pub fn param_value_dynamic(
         &self,
         name: &str,

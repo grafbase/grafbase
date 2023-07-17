@@ -130,6 +130,13 @@ impl FieldDefinition {
     pub fn name(&self) -> &str {
         self.name.node.as_str()
     }
+
+    /// The description of the field.
+    pub fn description(&self) -> Option<&str> {
+        self.description
+            .as_ref()
+            .map(|description| description.node.as_str())
+    }
 }
 
 /// The definition of an interface type.

@@ -13,7 +13,10 @@ use crate::{
     },
 };
 use dynaql::{
-    names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT},
+    names::{
+        INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT,
+        OUTPUT_FIELD_ID,
+    },
     registry::MongoDBConfiguration,
     Positioned,
 };
@@ -22,7 +25,8 @@ use dynaql_parser::types::{ObjectType, TypeDefinition, TypeKind};
 const CONNECTOR_KEY: &str = "connector";
 const COLLECTION_KEY: &str = "collection";
 
-const RESERVED_FIELDS: [&str; 4] = [
+const RESERVED_FIELDS: [&str; 5] = [
+    OUTPUT_FIELD_ID,
     INPUT_FIELD_FILTER_ALL,
     INPUT_FIELD_FILTER_ANY,
     INPUT_FIELD_FILTER_NONE,

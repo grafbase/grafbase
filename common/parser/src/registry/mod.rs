@@ -67,7 +67,7 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
     input_type
 }
 
-fn get_length_validator(field: &FieldDefinition) -> Option<DynValidator> {
+pub fn get_length_validator(field: &FieldDefinition) -> Option<DynValidator> {
     use tuple::Map;
     field
         .directives
