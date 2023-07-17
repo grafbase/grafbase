@@ -65,7 +65,7 @@ serde_with = { workspace = true }
 static_assertions = "1"
 tempfile = "3"
 thiserror = { workspace = true }
-ulid = { version = "1", features = ["wasm"] }
+ulid = { workspace = true, features = ["wasm"] }
 url = { workspace = true, features = ["serde"] }
 unindent = "0.2"
 grafbase-runtime = { path = "../grafbase-runtime" }
