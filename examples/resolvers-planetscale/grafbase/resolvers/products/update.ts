@@ -36,18 +36,24 @@ export default async function ProductsUpdate(_: unknown, args: any) {
 
   let updateStatement = 'UPDATE Products SET ' + updateClauses.join(', ')
 
-  Object.entries(by).forEach(([field, value]) => {
-    if (
-      value !== undefined &&
-      value !== null &&
-      (typeof value === 'string' || typeof value === 'number')
-    ) {
-      updateStatement += ` WHERE ${field} = ?`
-      params.push(value)
-      selectStatement = `SELECT * FROM Products WHERE ${field} = ?`
-      selectParams = [value]
-    }
-  })
+  const byEntries = Object.entries(by)
+
+  if (byEntries.length > 1) {
+    throw new GraphQLError('Only one of ID or Slug should be provided')
+  }
+
+  const [field, value] = byEntries[0]
+
+  if (
+    value !== undefined &&
+    value !== null &&
+    (typeof value === 'string' || typeof value === 'number')
+  ) {
+    updateStatement += ` WHERE ${field} = ?`
+    params.push(value)
+    selectStatement = `SELECT * FROM Products WHERE ${field} = ?`
+    selectParams = [value]
+  }
 
   if (!selectStatement) {
     throw new GraphQLError('ID or Slug must be provided')
