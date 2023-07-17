@@ -40,13 +40,11 @@ export type FieldShape =
 
 export class DynamoDBModel extends Model {
   private isSearch: boolean
-  private isLive: boolean
 
   constructor(name: string) {
     super(name)
 
     this.isSearch = false
-    this.isLive = false
   }
 
   /**
@@ -70,21 +68,11 @@ export class DynamoDBModel extends Model {
     return this
   }
 
-  /**
-   * Enable live queries to the model.
-   */
-  public live(): Model {
-    this.isLive = true
-
-    return this
-  }
-
   public toString(): string {
     const search = this.isSearch ? ' @search' : ''
-    const live = this.isLive ? ' @live' : ''
     const auth = this.authRules ? ` @auth(\n    rules: ${this.authRules})` : ''
     const cache = this.cacheDirective ? ` ${this.cacheDirective}` : ''
-    const header = `type ${this.name} @model${search}${live}${auth}${cache} {`
+    const header = `type ${this.name} @model${search}${auth}${cache} {`
 
     const fields = this.fields.map((field) => `  ${field}`).join('\n')
 

@@ -34,7 +34,7 @@ describe('MongoDB generator', () => {
 
     mongo
       .model('User', {
-        id: g.id().unique().map('_id'),
+        id: g.id().unique().mapped('_id'),
         field: g.string()
       })
       .collection('users')
@@ -62,7 +62,7 @@ describe('MongoDB generator', () => {
     const mongo = connector.MongoDB(mongoParams)
 
     mongo.model('User', {
-      id: g.id().unique().map('_id'),
+      id: g.id().unique().mapped('_id'),
       field: g.string()
     })
 
@@ -90,7 +90,7 @@ describe('MongoDB generator', () => {
 
     mongo
       .model('User', {
-        id: g.id().unique().map('_id'),
+        id: g.id().unique().mapped('_id'),
         field: g.decimal()
       })
       .collection('users')
@@ -119,7 +119,7 @@ describe('MongoDB generator', () => {
 
     mongo
       .model('User', {
-        id: g.id().unique().map('_id'),
+        id: g.id().unique().mapped('_id'),
         field: g.bytes()
       })
       .collection('users')
@@ -148,7 +148,7 @@ describe('MongoDB generator', () => {
 
     mongo
       .model('User', {
-        id: g.id().unique().map('_id'),
+        id: g.id().unique().mapped('_id'),
         field: g.bigint()
       })
       .collection('users')
@@ -177,7 +177,7 @@ describe('MongoDB generator', () => {
 
     mongo
       .model('User', {
-        id: g.id().unique().map('_id'),
+        id: g.id().unique().mapped('_id'),
         field: g.string()
       })
       .collection('users')
@@ -212,7 +212,7 @@ describe('MongoDB generator', () => {
 
     mongo
       .model('User', {
-        id: g.id().unique().map('_id'),
+        id: g.id().unique().mapped('_id'),
         field: g.string()
       })
       .collection('users')
@@ -250,13 +250,13 @@ describe('MongoDB generator', () => {
 
     test
       .model('User', {
-        id: g.id().unique().map('_id')
+        id: g.id().unique().mapped('_id')
       })
       .collection('users')
 
     another
       .model('Post', {
-        id: g.id().unique().map('_id')
+        id: g.id().unique().mapped('_id')
       })
       .collection('posts')
 

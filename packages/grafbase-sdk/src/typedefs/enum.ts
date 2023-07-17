@@ -93,7 +93,7 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
    *
    * @param name - The mapped name
    */
-  public map(name: string): MapDefinition {
+  public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
   }
 

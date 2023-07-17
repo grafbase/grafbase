@@ -5,7 +5,6 @@ import { EnumDefinition } from './enum'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ListDefinition } from './list'
 import { ReferenceDefinition } from './reference'
-import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { UniqueDefinition } from './unique'
 
@@ -16,7 +15,6 @@ export type Mappable =
   | UniqueDefinition
   | LengthLimitedStringDefinition
   | AuthDefinition
-  | ResolverDefinition
   | CacheDefinition
   | ListDefinition
   | EnumDefinition<any, any>

@@ -105,7 +105,7 @@ export class ScalarDefinition {
    *
    * Only supported on MongoDB.
    */
-  public map(name: string): MapDefinition {
+  public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
   }
 

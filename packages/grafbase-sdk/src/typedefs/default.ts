@@ -67,7 +67,7 @@ export class DefaultDefinition {
   /**
    * Sets the name of the field in the database, if different than the name of the field.
    */
-  public map(name: string): MapDefinition {
+  public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
   }
 

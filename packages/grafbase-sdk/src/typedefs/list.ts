@@ -86,7 +86,7 @@ export class ListDefinition {
    *
    * @param name - The mapped name
    */
-  public map(name: string): MapDefinition {
+  public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
   }
 
