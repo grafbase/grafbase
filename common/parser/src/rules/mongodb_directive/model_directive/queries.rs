@@ -1,4 +1,5 @@
 mod create_one;
+mod delete_one;
 mod filter_one;
 
 use super::{types, CreateTypeContext};
@@ -10,4 +11,5 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
 
     filter_one::create(visitor_ctx, create_ctx, &filter_oneof_type);
     create_one::create(visitor_ctx, create_ctx, &create_input_type);
+    delete_one::create(visitor_ctx, create_ctx, &filter_oneof_type);
 }

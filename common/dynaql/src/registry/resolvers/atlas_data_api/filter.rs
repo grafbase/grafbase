@@ -1,8 +1,9 @@
+use chrono::{DateTime, NaiveDate};
 use serde_json::{json, Value};
 
 use super::JsonMap;
 use crate::{
-    registry::{variables::VariableResolveDefinition, MetaType},
+    registry::{variables::VariableResolveDefinition, MetaType, MetaTypeName},
     Context, ServerResult,
 };
 use std::sync::OnceLock;
@@ -16,7 +17,7 @@ pub(super) fn by(ctx: &Context<'_>) -> ServerResult<Value> {
     let map: JsonMap = resolve_definition.resolve(ctx, Option::<Value>::None)?;
     let input_type = ctx.find_argument_type("by")?;
 
-    Ok(Value::Object(normalize(map, input_type)))
+    Ok(Value::Object(normalize(ctx, map, input_type)))
 }
 
 pub(super) fn input(ctx: &Context<'_>) -> ServerResult<Value> {
@@ -28,22 +29,57 @@ pub(super) fn input(ctx: &Context<'_>) -> ServerResult<Value> {
     let map: JsonMap = resolve_definition.resolve(ctx, Option::<Value>::None)?;
     let input_type = ctx.find_argument_type("input")?;
 
-    Ok(Value::Object(normalize(map, input_type)))
+    Ok(Value::Object(normalize(ctx, map, input_type)))
 }
 
-fn normalize(map: JsonMap, input_type: &MetaType) -> JsonMap {
+fn normalize(ctx: &Context<'_>, map: JsonMap, input_type: &MetaType) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {
         let meta_field = input_type.get_input_field(&key).unwrap();
         let key = meta_field.rename.clone().unwrap_or(key);
 
-        let value = match meta_field.ty.as_str() {
+        let nested_type = ctx
+            .schema_env
+            .registry
+            .types
+            .get(MetaTypeName::concrete_typename(&meta_field.ty))
+            .filter(|r#type| r#type.is_input_object());
+
+        let value = match (value, nested_type) {
+            (Value::Object(value), Some(nested_type)) => {
+                let value = normalize(ctx, value, nested_type);
+                Value::Object(value)
+            }
+            (Value::Array(values), Some(nested_type)) => {
+                let values = values
+                    .into_iter()
+                    .map(|value| match value {
+                        Value::Object(value) => {
+                            let value = normalize(ctx, value, nested_type);
+                            Value::Object(value)
+                        }
+                        value => value,
+                    })
+                    .collect();
+
+                Value::Array(values)
+            }
+            (value, _) => value,
+        };
+
+        let value = match MetaTypeName::concrete_typename(&meta_field.ty) {
             "ID" => json!({ "$oid": value }),
-            "Date" | "DateTime" => json!({ "$date": value }),
+            "Date" => {
+                json!({ "$date": { "$numberLong": date_to_timestamp(value) } })
+            }
+            "DateTime" => {
+                json!({ "$date": { "$numberLong": datetime_to_timestamp(value) } })
+            }
             "Timestamp" => json!({ "$timestamp": { "t": value, "i": 1 }}),
             "Decimal" => json!({ "$numberDecimal": value }),
-            "Binary" => json!({ "$binary": { "base64": value, "subType": "05", }}),
+            "Bytes" => json!({ "$binary": { "base64": value, "subType": "05", }}),
+            "BigInt" => json!({ "$numberLong": value.to_string() }),
             _ => value,
         };
 
@@ -51,4 +87,29 @@ fn normalize(map: JsonMap, input_type: &MetaType) -> JsonMap {
     }
 
     result
+}
+
+fn date_to_timestamp(input: Value) -> Value {
+    match input {
+        Value::String(ref value) => {
+            let date = NaiveDate::parse_from_str(value, "%Y-%m-%d").unwrap();
+
+            let duration = date
+                .signed_duration_since(NaiveDate::from_ymd_opt(1970, 1, 1).unwrap())
+                .num_milliseconds();
+
+            Value::String(duration.to_string())
+        }
+        value => value,
+    }
+}
+
+fn datetime_to_timestamp(input: Value) -> Value {
+    match input {
+        Value::String(ref value) => {
+            let date = DateTime::parse_from_rfc3339(value).unwrap();
+            Value::String(date.timestamp_millis().to_string())
+        }
+        value => value,
+    }
 }

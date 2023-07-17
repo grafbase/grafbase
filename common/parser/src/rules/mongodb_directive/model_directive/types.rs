@@ -12,6 +12,7 @@ use super::create_type_context::CreateTypeContext;
 use crate::{
     registry::{get_length_validator, names::MetaNames},
     rules::{default_directive::DefaultDirective, visitor::VisitorContext},
+    utils::to_input_type,
 };
 
 pub(super) fn register_oneof_type(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) -> String {
@@ -39,7 +40,8 @@ pub(super) fn register_create_input_type(
     });
 
     let explicit_fields = create_ctx.object.fields.iter().map(|field| {
-        let mut input = MetaInputValue::new(field.name(), field.ty.node.to_string());
+        let r#type = to_input_type(&visitor_ctx.types, field.r#type().clone());
+        let mut input = MetaInputValue::new(field.node.name.node.to_string(), r#type);
 
         input.description = field.description().map(ToString::to_string);
         input.rename = field.mapped_name().map(ToString::to_string);
@@ -74,6 +76,31 @@ pub(super) fn register_create_output_type(
 
     output_field.resolver = Resolver::from(transformer);
     output_field.required_operation = Some(Operations::CREATE);
+    output_field.auth = create_ctx.model_auth().clone();
+
+    let object_type = ObjectType::new(&output_type_name, [output_field]);
+
+    visitor_ctx
+        .registry
+        .get_mut()
+        .create_type(|_| object_type.into(), &output_type_name, &output_type_name);
+
+    output_type_name
+}
+
+pub(super) fn register_delete_output_type(
+    visitor_ctx: &mut VisitorContext<'_>,
+    create_ctx: &CreateTypeContext<'_>,
+) -> String {
+    let output_type_name = MetaNames::delete_payload_type(create_ctx.r#type);
+    let mut output_field = MetaField::new("deletedCount", "Int");
+
+    let transformer = Transformer::Select {
+        key: String::from("deletedCount"),
+    };
+
+    output_field.resolver = Resolver::from(transformer);
+    output_field.required_operation = Some(Operations::DELETE);
     output_field.auth = create_ctx.model_auth().clone();
 
     let object_type = ObjectType::new(&output_type_name, [output_field]);

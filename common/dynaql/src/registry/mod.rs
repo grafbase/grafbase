@@ -899,6 +899,10 @@ impl MetaType {
         }
     }
 
+    pub fn is_input_object(&self) -> bool {
+        matches!(self, MetaType::InputObject(_))
+    }
+
     pub fn is_node(&self) -> bool {
         match self {
             MetaType::Object(object) => object.is_node,
@@ -1634,6 +1638,7 @@ pub struct MongoDBConfiguration {
     pub app_id: String,
     pub data_source: String,
     pub database: String,
+    pub host_url: String,
 }
 
 #[derive(

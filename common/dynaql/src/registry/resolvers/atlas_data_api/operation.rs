@@ -5,6 +5,7 @@ use std::fmt;
 pub enum OperationType {
     FindOne,
     InsertOne,
+    DeleteOne,
 }
 
 impl AsRef<str> for OperationType {
@@ -12,6 +13,7 @@ impl AsRef<str> for OperationType {
         match self {
             Self::FindOne => "findOne",
             Self::InsertOne => "insertOne",
+            Self::DeleteOne => "deleteOne",
         }
     }
 }
