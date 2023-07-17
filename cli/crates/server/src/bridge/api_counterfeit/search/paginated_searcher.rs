@@ -5,7 +5,7 @@ use integer_encoding::{VarIntReader, VarIntWriter};
 use tantivy::{self, collector::Count, collector::TopDocs, schema::Field, Document};
 use tantivy::{DocAddress, Searcher};
 
-use super::{Cursor, Hit, Info, PaginatedHits, SearchError, SearchResult};
+use super::{BadRequestError, Cursor, Hit, Info, PaginatedHits, SearchError, SearchResult};
 
 type DocId = Vec<u8>;
 
@@ -32,7 +32,7 @@ impl TryFrom<Cursor> for SearchCursor {
         Ok(SearchCursor {
             offset: cursor
                 .read_varint()
-                .map_err(|_| SearchError::InternalError(format!("Cannot read the cursor: {bytes:?}")))?,
+                .map_err(|_| BadRequestError::InvalidCursor(Cursor::from(&bytes[..])))?,
             doc_id: DocId::from(&bytes[(cursor.position() as usize)..]),
         })
     }
@@ -213,9 +213,9 @@ impl TopDocsPaginatedSearcher {
 fn get_document_id(doc: &Document, id_field: Field) -> SearchResult<DocId> {
     let id = doc
         .get_first(id_field)
-        .ok_or_else(|| SearchError::InternalError("Document is missing 'id' field".to_string()))?;
+        .ok_or_else(|| "Document is missing 'id' field".to_string())?;
     match id {
         tantivy::schema::Value::Bytes(bytes) => Ok(bytes.clone()),
-        x => Err(SearchError::InternalError(format!("Unexpected data for 'id': {x:?}"))),
+        x => Err(format!("Unexpected data for 'id': {x:?}").into()),
     }
 }

@@ -6,9 +6,8 @@ use futures_util::TryStreamExt;
 use serde_json::Value;
 use sqlx::SqlitePool;
 
-use tantivy::query::QueryParserError;
 use tantivy::schema::Field;
-use tantivy::{Document, TantivyError};
+use tantivy::Document;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -17,8 +16,8 @@ use std::sync::Arc;
 
 use super::api_counterfeit::registry::{Registry, VersionedRegistry};
 use super::api_counterfeit::search::{
-    self, PaginatedHits, Pagination, Query, QueryExecutionRequest, QueryExecutionResponse, TantivyQueryBuilder,
-    TopDocsPaginatedSearcher,
+    self, PaginatedHits, Pagination, Query, QueryExecutionRequest, QueryExecutionResponse, SearchError,
+    TantivyQueryBuilder, TopDocsPaginatedSearcher,
 };
 use super::errors::ApiError;
 use super::server::HandlerState;
@@ -27,20 +26,6 @@ use super::types::RecordDocument;
 const DATE_FORMAT: &str = "%Y-%m-%d";
 const DOCUMENT_FIELD_CREATED_AT: &str = "__created_at";
 const DOCUMENT_FIELD_UPDATED_AT: &str = "__updated_at";
-
-impl From<TantivyError> for ApiError {
-    fn from(error: TantivyError) -> Self {
-        error!("TantivyError: {error}");
-        Self::ServerError
-    }
-}
-
-impl From<QueryParserError> for ApiError {
-    fn from(error: QueryParserError) -> Self {
-        error!("Tantivy QueryParserError: {error}");
-        Self::ServerError
-    }
-}
 
 pub struct Index<'a> {
     inner: tantivy::Index,
@@ -52,7 +37,7 @@ impl<'a> Index<'a> {
     // needless_pass_by_value: Complains about pagination argument which has no other purpose anyway
     // cast_possible_truncation: Complains about u64 -> usize, which shouldn't matter for anything sensible.
     #[allow(clippy::needless_pass_by_value, clippy::cast_possible_truncation)]
-    pub fn search(&self, query: Query, pagination: Pagination) -> Result<PaginatedHits<String>, ApiError> {
+    pub fn search(&self, query: Query, pagination: Pagination) -> Result<PaginatedHits<String>, SearchError> {
         trace!("Executing query: {query:?}");
         let query = TantivyQueryBuilder::new(&self.inner, self.schema).build(query)?;
         let searcher = TopDocsPaginatedSearcher {
@@ -78,13 +63,13 @@ impl<'a> Index<'a> {
         pool: &SqlitePool,
         entity_type: &str,
         config: &'a search::Config,
-    ) -> Result<Index<'a>, ApiError> {
+    ) -> Result<Index<'a>, SearchError> {
         let schema = &config
             .indices
             .get(entity_type)
             .ok_or_else(|| {
                 error!("Unknown index: {entity_type}");
-                ApiError::ServerError
+                SearchError::ServerError
             })?
             .schema;
 
@@ -104,14 +89,18 @@ impl<'a> Index<'a> {
         .fetch(pool);
 
         let mut record_count: usize = 0;
-        while let Some::<RecordDocument>(record) = fut.try_next().await? {
+        while let Some::<RecordDocument>(record) = fut
+            .try_next()
+            .await
+            .map_err(|err| format!("Failed loading documents: {err:?}"))?
+        {
             record_count += 1;
             let mut doc = Document::default();
             doc.add_bytes(id_field, record.id.as_bytes());
             for field in &fields {
                 add_field(&mut doc, field, &record).map_err(|err| {
                     error!("{:?} for record '{}' on field '{}'", err, &record.id, &field.name);
-                    ApiError::ServerError
+                    SearchError::ServerError
                 })?;
             }
             writer.add_document(doc)?;
@@ -337,8 +326,8 @@ pub async fn search_endpoint(
     };
 
     let response = Index::build(&handler_state.pool, &request.entity_type, &registry.search_config)
-        .await?
-        .search(request.query, request.pagination)?;
+        .await
+        .and_then(|index| index.search(request.query, request.pagination));
     Ok(Json(response))
 }
 

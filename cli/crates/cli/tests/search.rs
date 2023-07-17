@@ -173,6 +173,62 @@ fn search_enums() {
 }
 
 #[cfg(not(feature = "dynamodb"))] // GB-3636
+#[test]
+fn search_regex() {
+    use backend::project::ConfigType;
+
+    let mut env = Environment::init();
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(SEARCH_SCHEMA);
+    env.grafbase_dev();
+    let client = env.create_client().with_api_key();
+    client.poll_endpoint(30, 300);
+
+    let create = |variables: Value| {
+        let response = client.gql::<Value>(SEARCH_CREATE_OPTIONAL).variables(variables).send();
+        dot_get!(response, "data.fieldsCreate.fields.id", String)
+    };
+    let search = |variables: Value| {
+        let response = client.gql::<Value>(SEARCH_SEARCH_OPTIONAL).variables(variables).send();
+        dot_get!(response, "data.fieldsSearch", Collection<Value>)
+    };
+    let filter = |filter: Value| search(json!({"first": 10, "filter": filter}));
+
+    let dog = create(json!({
+        "url": "https://bestfriends.com/",
+        "email": "contact@bestfriends.com",
+        "phone": "+33612121212",
+        "text": "Dogs are the best! Who doesn't love them???",
+    }));
+    let cat = create(json!({
+        "url": "https://cats-world-domination.com/",
+        "email": "overlord@cats-world-domination.com",
+        "phone": "+33700000000",
+        "text": "Cats dominate Youtube today, the World tomorrow.",
+    }));
+
+    // URL
+    assert_hits_unordered!(filter(json!({"url": {"regex": ".*best.*"}})), dog);
+    assert_hits_unordered!(filter(json!({"url": {"regex": ".*world.*"}})), cat);
+    assert_hits_unordered!(filter(json!({"url": {"regex": "https.*"}})), cat, dog);
+
+    // Email
+    assert_hits_unordered!(filter(json!({"email": {"regex": "contact.*"}})), dog);
+    assert_hits_unordered!(filter(json!({"email": {"regex": ".*overlord.*"}})), cat);
+    assert_hits_unordered!(filter(json!({"email": {"regex": ".*@.*\\.com"}})), cat, dog);
+
+    // Phone
+    assert_hits_unordered!(filter(json!({"phone": {"regex": "\\+336[12]*"}})), dog);
+    assert_hits_unordered!(filter(json!({"phone": {"regex": "\\+3370{8}"}})), cat);
+    assert_hits_unordered!(filter(json!({"phone": {"regex": "\\+\\d+"}})), cat, dog);
+
+    // Text
+    assert_hits_unordered!(filter(json!({"text": {"regex": ".*Dogs.*"}})), dog);
+    assert_hits_unordered!(filter(json!({"text": {"regex": "Cats\\s\\w.*"}})), cat);
+    assert_hits_unordered!(filter(json!({"text": {"regex": ".*"}})), cat, dog);
+}
+
+#[cfg(not(feature = "dynamodb"))] // GB-3636
 #[rstest]
 #[case("fields", SEARCH_CREATE_OPTIONAL, SEARCH_SEARCH_OPTIONAL)]
 #[case("requiredFields", SEARCH_CREATE_REQUIRED, SEARCH_SEARCH_REQUIRED)]
