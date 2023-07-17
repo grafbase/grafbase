@@ -4,6 +4,7 @@ import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { EnumDefinition } from './enum'
 import { LengthLimitedStringDefinition } from './length-limited-string'
+import { MapDefinition } from './map'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { SearchDefinition } from './search'
@@ -95,6 +96,15 @@ export class CacheDefinition {
    */
   public search(): SearchDefinition {
     return new SearchDefinition(this)
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   *
+   * @param name - The mapped name
+   */
+  public mapped(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {

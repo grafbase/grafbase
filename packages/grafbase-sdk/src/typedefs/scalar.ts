@@ -1,8 +1,11 @@
 import { RequireAtLeastOne } from 'type-fest'
 import { Enum } from '../enum'
 import {
+  BigIntListDefinition,
   BooleanListDefinition,
+  BytesListDefinition,
   DateListDefinition,
+  DecimalListDefinition,
   ListDefinition,
   NumberListDefinition,
   StringListDefinition
@@ -19,6 +22,7 @@ import { AuthDefinition } from './auth'
 import { AuthRuleF } from '../auth'
 import { ResolverDefinition } from './resolver'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
+import { MapDefinition } from './map'
 
 export class ScalarDefinition {
   private _fieldType: FieldType | Enum<any, any>
@@ -96,6 +100,15 @@ export class ScalarDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
   }
 
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   *
+   * Only supported on MongoDB.
+   */
+  public mapped(name: string): MapDefinition {
+    return new MapDefinition(this, name)
+  }
+
   fieldTypeVal(): FieldType | Enum<any, any> {
     return this.fieldType
   }
@@ -111,6 +124,60 @@ export class ScalarDefinition {
     }
 
     return `${fieldType}${required}`
+  }
+}
+
+export class DecimalDefinition extends ScalarDefinition {
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(value: string): DefaultDefinition {
+    return new DefaultDefinition(this, value)
+  }
+
+  /**
+   * Allow multiple scalars to be used as values for the field.
+   */
+  public list(): DecimalListDefinition {
+    return new DecimalListDefinition(this)
+  }
+}
+
+export class BytesDefinition extends ScalarDefinition {
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(value: string): DefaultDefinition {
+    return new DefaultDefinition(this, value)
+  }
+
+  /**
+   * Allow multiple scalars to be used as values for the field.
+   */
+  public list(): BytesListDefinition {
+    return new BytesListDefinition(this)
+  }
+}
+
+export class BigIntDefinition extends ScalarDefinition {
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(value: string): DefaultDefinition {
+    return new DefaultDefinition(this, value)
+  }
+
+  /**
+   * Allow multiple scalars to be used as values for the field.
+   */
+  public list(): BigIntListDefinition {
+    return new BigIntListDefinition(this)
   }
 }
 
@@ -136,7 +203,7 @@ export class StringDefinition extends ScalarDefinition {
   }
 
   /**
-   * Specify a minimum or a maximum (or both) length of the field.
+   * Allow multiple scalars to be used as values for the field.
    */
   public list(): StringListDefinition {
     return new StringListDefinition(this)

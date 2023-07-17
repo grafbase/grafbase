@@ -14,5 +14,8 @@ export enum FieldType {
   Timestamp = 'Timestamp',
   URL = 'URL',
   JSON = 'JSON',
-  PhoneNumber = 'PhoneNumber'
+  PhoneNumber = 'PhoneNumber',
+  Decimal = 'Decimal',
+  Bytes = 'Bytes',
+  BigInt = 'BigInt'
 }

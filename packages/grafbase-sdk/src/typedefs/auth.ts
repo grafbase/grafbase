@@ -9,6 +9,7 @@ import { ScalarDefinition } from './scalar'
 import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
+import { MapDefinition } from './map'
 
 export type Authenticable =
   | ScalarDefinition
@@ -57,6 +58,13 @@ export class AuthDefinition {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   */
+  public mapped(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {
