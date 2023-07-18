@@ -1074,9 +1074,9 @@ dependencies = [
 
 [[package]]
 name = "cynic"
-version = "3.1.0"
+version = "3.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af45de62a5baba48f35d775d7fdc2f072f94c375058def187eed6f15054abb0e"
+checksum = "bf035d785657f3621eee03fdfeefab48127d8b1643b6f9edf8b3cd66cbd86e9b"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
@@ -1089,9 +1089,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-codegen"
-version = "3.1.0"
+version = "3.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bae9fba24ecfe751572a782cabff22d1290eccf04495d2eaadb514f2ccf6fb6"
+checksum = "4e8e65b71a8bd2751712ab38326b73a5f98405b6b5f8fd4dae658e58c1576d09"
 dependencies = [
  "counter",
  "darling 0.14.4",
@@ -1107,10 +1107,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "cynic-proc-macros"
-version = "3.1.0"
+name = "cynic-introspection"
+version = "3.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dae8a968c33f0c21842f68ea3f11a33afb2cc60faad6ded19b7466f6c5412f18"
+checksum = "185b6d9ba2093fc13b607f7b5142bde7267c72968f3c155c44b6fededf0a2f03"
+dependencies = [
+ "cynic",
+ "cynic-codegen",
+ "indenter",
+ "thiserror",
+]
+
+[[package]]
+name = "cynic-proc-macros"
+version = "3.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a933ea1f357cbd48f2068c59457631696ae58d554f89290e4da272b1f69ebf1"
 dependencies = [
  "cynic-codegen",
  "quote",
@@ -1796,6 +1808,8 @@ dependencies = [
  "clap_complete",
  "colored",
  "ctrlc",
+ "cynic",
+ "cynic-introspection",
  "derive_builder",
  "dirs",
  "duct",
@@ -2311,6 +2325,12 @@ dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
+
+[[package]]
+name = "indenter"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"

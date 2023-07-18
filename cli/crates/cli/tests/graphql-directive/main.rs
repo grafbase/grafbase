@@ -10,6 +10,7 @@ mod utils;
 
 mod headers;
 mod server;
+mod transforms;
 
 const NAMESPACED_QUERY: &str = "
     query($id: ID!) {

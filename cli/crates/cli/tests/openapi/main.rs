@@ -6,6 +6,7 @@ mod headers;
 mod http_spy;
 mod introspection_headers;
 mod remote_unions;
+mod transforms;
 
 use std::net::SocketAddr;
 
