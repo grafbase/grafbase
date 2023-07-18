@@ -61,22 +61,8 @@ pub fn dev(
                 } => {
                     report::udf_message(udf_kind, &udf_name, &message, level, log_level_filters.functions);
                 }
-                ServerMessage::OperationStarted { request_id, name } => {
-                    report::operation_started(&request_id, &name);
-                }
-                ServerMessage::OperationCompleted {
-                    request_id,
-                    name,
-                    duration,
-                    r#type,
-                } => {
-                    report::operation_completed(
-                        &request_id,
-                        name,
-                        r#type,
-                        duration,
-                        log_level_filters.graphql_operations,
-                    );
+                ServerMessage::OperationLogMessage { request_id, event_type } => {
+                    report::operation_log(&request_id, event_type, log_level_filters.graphql_operations)
                 }
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }

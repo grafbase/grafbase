@@ -9,10 +9,32 @@ use std::{fmt, path::PathBuf};
 
 const DEFAULT_PORT: u16 = 4000;
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, clap::ValueEnum)]
+#[clap(rename_all = "snake_case")]
+pub enum LogLevelFilter {
+    None,
+    Error,
+    Warn,
+    Info,
+    Debug,
+}
+
+impl From<LogLevelFilter> for Option<LogLevel> {
+    fn from(value: LogLevelFilter) -> Self {
+        match value {
+            LogLevelFilter::None => None,
+            LogLevelFilter::Error => Some(LogLevel::Error),
+            LogLevelFilter::Warn => Some(LogLevel::Warn),
+            LogLevelFilter::Info => Some(LogLevel::Info),
+            LogLevelFilter::Debug => Some(LogLevel::Debug),
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct LogLevelFilters {
-    pub functions: LogLevel,
-    pub graphql_operations: LogLevel,
+    pub functions: Option<LogLevel>,
+    pub graphql_operations: Option<LogLevel>,
 }
 
 #[derive(Debug, Parser)]
@@ -26,31 +48,22 @@ pub struct DevCommand {
     /// Do not listen for schema changes and reload
     #[arg(long)]
     pub disable_watch: bool,
-    /// Level of logs coming from function (resolver, authorizer) invocations to print, overrides 'log-level'
+    /// Log level to print from function invocations, defaults to 'log-level'
     #[arg(long)]
-    pub log_level_functions: Option<LogLevel>,
-    /// Level of logs related to incoming GraphQL operations to print, overrides 'log-level'
+    pub log_level_functions: Option<LogLevelFilter>,
+    /// Log level to print for GraphQL operations, defaults to 'log-level'
     #[arg(long)]
-    pub log_level_graphql_operations: Option<LogLevel>,
-    /// Default level of logs to print
-    #[arg(long)]
-    pub log_level: Option<LogLevel>,
+    pub log_level_graphql_operations: Option<LogLevelFilter>,
+    /// Default log level to print
+    #[arg(long, default_value = "info")]
+    pub log_level: LogLevelFilter,
 }
 
 impl DevCommand {
     pub fn log_levels(&self) -> LogLevelFilters {
-        const DEFAULT_LOG_LEVEL_FUNCTIONS: LogLevel = LogLevel::Info;
-        const DEFAULT_LOG_LEVEL_GRAPHQL_OPERATIONS: LogLevel = LogLevel::Info;
-
         LogLevelFilters {
-            functions: self
-                .log_level_functions
-                .or(self.log_level)
-                .unwrap_or(DEFAULT_LOG_LEVEL_FUNCTIONS),
-            graphql_operations: self
-                .log_level_functions
-                .or(self.log_level)
-                .unwrap_or(DEFAULT_LOG_LEVEL_GRAPHQL_OPERATIONS),
+            functions: self.log_level_functions.unwrap_or(self.log_level).into(),
+            graphql_operations: self.log_level_graphql_operations.unwrap_or(self.log_level).into(),
         }
     }
 }

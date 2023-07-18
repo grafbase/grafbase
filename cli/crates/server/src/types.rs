@@ -3,6 +3,25 @@ use std::path::PathBuf;
 
 pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
 
+#[serde_with::serde_as]
+#[derive(serde::Deserialize, Clone, Debug)]
+pub enum LogEventType {
+    OperationStarted {
+        name: Option<String>,
+    },
+    OperationCompleted {
+        name: Option<String>,
+        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+        duration: std::time::Duration,
+        r#type: common::types::OperationType,
+    },
+    BadRequest {
+        name: Option<String>,
+        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+        duration: std::time::Duration,
+    },
+}
+
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
     Ready(u16),
@@ -26,15 +45,9 @@ pub enum ServerMessage {
         level: LogLevel,
         message: String,
     },
-    OperationStarted {
+    OperationLogMessage {
         request_id: String,
-        name: Option<String>,
-    },
-    OperationCompleted {
-        request_id: String,
-        name: Option<String>,
-        duration: std::time::Duration,
-        r#type: common::types::OperationType,
+        event_type: LogEventType,
     },
     CompilationError(String),
 }

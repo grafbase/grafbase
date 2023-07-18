@@ -1,1 +1,1 @@
-pub use server::types::ServerMessage;
+pub use server::types::{LogEventType, ServerMessage};

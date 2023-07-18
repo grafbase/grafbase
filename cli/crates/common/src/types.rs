@@ -9,8 +9,6 @@ pub enum LocalAddressType {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize)]
-#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-#[cfg_attr(feature = "clap", clap(rename_all = "snake_case"))]
 pub enum LogLevel {
     Error,
     Warn,
@@ -33,13 +31,6 @@ impl LocalAddressType {
 pub enum UdfKind {
     Resolver,
     Authorizer,
-}
-
-// FIXME: remove after api repo is updated
-impl Default for UdfKind {
-    fn default() -> Self {
-        Self::Resolver
-    }
 }
 
 #[derive(serde::Deserialize, Clone, Copy, Debug, strum::Display)]

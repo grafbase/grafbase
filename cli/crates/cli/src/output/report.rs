@@ -2,7 +2,10 @@ use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
-use backend::project::{ConfigType, Template};
+use backend::{
+    project::{ConfigType, Template},
+    types::LogEventType,
+};
 use colored::Colorize;
 use common::consts::GRAFBASE_TS_CONFIG_FILE_NAME;
 use common::types::{LogLevel, UdfKind};
@@ -145,8 +148,11 @@ pub fn udf_message(
     udf_name: &str,
     message: &str,
     message_level: LogLevel,
-    log_level_filter: LogLevel,
+    log_level_filter: Option<LogLevel>,
 ) {
+    let Some(log_level_filter) = log_level_filter else {
+        return;
+    };
     if message_level > log_level_filter {
         return;
     }
@@ -160,7 +166,44 @@ pub fn udf_message(
     println!("{}", format!("[{udf_kind} '{udf_name}'] {message}").color(colour));
 }
 
-pub fn operation_started(_request_id: &str, _name: &Option<String>) {}
+pub fn operation_log(_request_id: &str, log_event_type: LogEventType, log_level_filter: Option<LogLevel>) {
+    let Some(log_level_filter) = log_level_filter else {
+        return;
+    };
+    if log_level_filter < LogLevel::Info {
+        return;
+    }
+
+    let (name, r#type, colour, duration) = match log_event_type {
+        LogEventType::OperationStarted { .. } => return,
+        LogEventType::OperationCompleted { name, duration, r#type } => {
+            let colour = match r#type {
+                common::types::OperationType::Query { is_introspection } => {
+                    if is_introspection && log_level_filter < LogLevel::Debug {
+                        return;
+                    }
+                    watercolor::colored::Color::Green
+                }
+                common::types::OperationType::Mutation => watercolor::colored::Color::Green,
+                common::types::OperationType::Subscription => {
+                    return;
+                }
+            };
+            (name, Some(r#type), colour, duration)
+        }
+        LogEventType::BadRequest { name, duration } => (name, None, watercolor::colored::Color::Red, duration),
+    };
+
+    let formatted_duration = format_duration(duration);
+    let formatted_name = name.map(|name| format!(" {name}")).unwrap_or_default();
+    let formatted_type = r#type
+        .map(|r#type| r#type.to_string())
+        .unwrap_or_else(|| "operation".to_owned());
+    println!(
+        "- {formatted_type}{formatted_name} {formatted_duration}",
+        formatted_type = formatted_type.color(colour)
+    );
+}
 
 pub fn format_duration(duration: std::time::Duration) -> String {
     [
@@ -174,39 +217,6 @@ pub fn format_duration(duration: std::time::Duration) -> String {
         || format!("{:.2}s", duration.as_secs_f64()),
         |(suffix, value)| format!("{value}{suffix}"),
     )
-}
-
-pub fn operation_completed(
-    _request_id: &str,
-    name: Option<String>,
-    r#type: common::types::OperationType,
-    duration: std::time::Duration,
-    log_level: LogLevel,
-) {
-    if log_level < LogLevel::Info {
-        return;
-    }
-
-    let colour = match r#type {
-        common::types::OperationType::Query { is_introspection } => {
-            if is_introspection && log_level < LogLevel::Debug {
-                return;
-            }
-            watercolor::colored::Color::Green
-        }
-        // Pink.
-        common::types::OperationType::Mutation => watercolor::colored::Color::TrueColor { r: 255, g: 105, b: 180 },
-        common::types::OperationType::Subscription => {
-            return;
-        }
-    };
-
-    let formatted_duration = format_duration(duration);
-    let formatted_name = name.map(|name| format!(" {name}")).unwrap_or_default();
-    println!(
-        "- {type}{formatted_name} {formatted_duration}",
-        r#type = r#type.to_string().color(colour)
-    );
 }
 
 pub fn reload<P: AsRef<Path>>(path: P) {
