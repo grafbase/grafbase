@@ -27,8 +27,6 @@ export default async function ProductsDelete(_, { by }) {
   try {
     const results = await conn.execute(statement, params, options)
 
-    console.log(JSON.stringify(results, null, 2))
-
     if (results.rowsAffected === 1) {
       return { deleted: true }
     }

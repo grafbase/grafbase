@@ -56,4 +56,7 @@ See how easy it is to use features of Grafbase by browsing the examples below.
 - [Field Resolvers + Fetch](/examples/resolvers-field)
 - [Query Resolvers + OpenAI](/examples/resolvers-query)
 - [Mutation Resolvers + Stripe](/examples/resolvers-mutation)
+- [Resolvers + Upstash](/examples/resolvers-upstash-ratelimit)
 - [Resolvers + MongoDB Data API](/examples/resolvers-mongodb)
+- [Resolvers + Turso](/examples/resolvers-turso)
+- [Resolvers + PlanetScale](/examples/resolvers-planetscale)

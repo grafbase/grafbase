@@ -1,102 +1,12 @@
-```shell
-CREATE TABLE `products` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(255) NOT NULL,
-    `slug` VARCHAR(255) NOT NULL UNIQUE,
-    `price` INT NOT NULL DEFAULT 0,
-    `onSale` BOOLEAN DEFAULT FALSE,
-    PRIMARY KEY (id),
-    INDEX slug_index (slug),
-);
-```
+# Grafbase ⨯ PlanetScale
 
-```graphql
-mutation {
-  productCreate(input: { name: "Shoes", price: 1000, onSale: true }) {
-    id
-    name
-    onSale
-    price
-  }
-}
-```
+This examples hows how to create a GraphQL API using Grafbase Resolvers that can read and write data to a MySQL database hosted by PlanetScale &mdash; [Read the guide](https://grafbase.com/guides/build-and-deploy-a-graphql-api-to-the-edge-with-mysql-and-planetscale)
 
-```graphql
-{
-  products(first: 100) {
-    id
-    name
-    slug
-    price
-    onSale
-  }
-}
-```
+## Getting Started
 
-```graphql
-{
-  products(last: 100) {
-    id
-    name
-    slug
-    price
-    onSale
-  }
-}
-```
-
-```graphql
-{
-  products(first: 100, after: "1") {
-    id
-    name
-    slug
-    price
-    onSale
-  }
-}
-```
-
-```graphql
-{
-  products(last: 100, before: "7") {
-    id
-    name
-    slug
-    price
-    onSale
-  }
-}
-```
-
-```graphql
-{
-  product(by: { id: "1" }) {
-    id
-    name
-    slug
-    onSale
-    price
-  }
-}
-```
-
-```graphql
-mutation {
-  productUpdate(by: { id: "7" }, input: { name: "New shoes" }) {
-    id
-    name
-    slug
-    price
-    onSale
-  }
-}
-```
-
-```graphql
-mutation {
-  productDelete(by: { id: "7" }) {
-    deleted
-  }
-}
-```
+1. Run `npx degit grafbase/grafbase/examples/resolvers-planetscale grafbase-with-resolvers-planetscale` to clone this example
+2. Change directory into the new folder `cd grafbase-with-resolvers-planetscale`
+3. Run `cp grafbase/.env.example grafbase/.env`
+4. Open `grafbase/.env` in your code editor and provide your [PlanetScale](https://planetscale.com) Database host, username and password.
+5. Run `npx grafbase dev` to start local dev server
+6. Open [Pathfinder](http://localhost:4000)
