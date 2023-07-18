@@ -53,8 +53,8 @@ impl AtlasDataApiResolver {
             .expect("directive must exist");
 
         let url = format!(
-            "https://data.mongodb-api.com/app/{}/endpoint/data/v1/action/{}",
-            config.app_id, self.operation_type
+            "{}/app/{}/endpoint/data/v1/action/{}",
+            config.host_url, config.app_id, self.operation_type
         );
 
         let request_builder = reqwest::Client::new()
@@ -75,6 +75,9 @@ impl AtlasDataApiResolver {
                 }
                 OperationType::InsertOne => {
                     body.insert(String::from("document"), filter::input(ctx)?);
+                }
+                OperationType::DeleteOne => {
+                    body.insert(String::from("filter"), filter::by(ctx).unwrap());
                 }
             }
 

@@ -131,6 +131,11 @@ impl FieldDefinition {
         self.name.node.as_str()
     }
 
+    /// The type of the field
+    pub fn r#type(&self) -> &Type {
+        &self.ty.node
+    }
+
     /// The description of the field.
     pub fn description(&self) -> Option<&str> {
         self.description

@@ -20,9 +20,15 @@ pub struct MongoDBDirective {
     data_source: String,
     database: String,
     namespace: Option<String>,
+    host_url: Option<String>,
 }
 
 impl MongoDBDirective {
+    /// The host url for the Atlas Data API.
+    pub fn host_url(&self) -> &str {
+        self.host_url.as_deref().unwrap_or("https://data.mongodb-api.com")
+    }
+
     /// A unique name for the given directive. Used in the model
     /// definitions to map them into the correct datasource.
     pub fn name(&self) -> &str {
@@ -101,6 +107,11 @@ impl Directive for MongoDBDirective {
           types when implementing introspection for the connector.
           """
           namespace: String
+
+          """
+          Overrides the Atlas Data API host URL.
+          """
+          hostUrl: String
         ) on SCHEMA
         "#
         .to_string()
@@ -134,6 +145,7 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                             app_id: parsed_directive.app_id().to_string(),
                             data_source: parsed_directive.data_source().to_string(),
                             database: parsed_directive.database().to_string(),
+                            host_url: parsed_directive.host_url().to_string(),
                         },
                         parsed_directive.name(),
                     );

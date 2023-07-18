@@ -55,6 +55,7 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
                         field.name.node.to_string(),
                         to_input_type(&ctx.types, field.node.ty.clone().node),
                     )
+                    .with_rename(field.mapped_name().map(ToString::to_string))
                 }),
             )
             .with_description(Some(format!("{type_name} input type.")))
