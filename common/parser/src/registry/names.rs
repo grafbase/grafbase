@@ -10,6 +10,7 @@ use super::NumericFieldKind;
 
 pub const PAGINATION_INPUT_ARG_FIRST: &str = "first";
 pub const PAGINATION_INPUT_ARG_LAST: &str = "last";
+pub const PAGINATION_INPUT_ARG_SKIP: &str = "skip";
 pub const PAGINATION_INPUT_ARG_BEFORE: &str = "before";
 pub const PAGINATION_INPUT_ARG_AFTER: &str = "after";
 pub const PAGINATION_INPUT_ARG_ORDER_BY: &str = "orderBy";
@@ -123,9 +124,13 @@ impl MetaNames {
         format!("{}Edge", Self::model(model_type_definition))
     }
 
+    pub fn pagination_orderby_input_by_str(type_name: &str) -> NamedType<'static> {
+        format!("{type_name}OrderByInput").into()
+    }
+
     pub fn pagination_orderby_input(model_type_definition: &TypeDefinition) -> NamedType<'static> {
         // FIXME: Should have been postCollectionOrderByInput instead of postOrderByInput...
-        format!("{}OrderByInput", Self::model(model_type_definition)).into()
+        Self::pagination_orderby_input_by_str(Self::model(model_type_definition).as_str())
     }
 
     pub fn collection_filter_input(model_type_definition: &TypeDefinition) -> String {

@@ -900,6 +900,10 @@ impl MetaType {
         }
     }
 
+    pub fn is_object(&self) -> bool {
+        matches!(self, MetaType::Object(_))
+    }
+
     pub fn is_input_object(&self) -> bool {
         matches!(self, MetaType::InputObject(_))
     }
@@ -1038,6 +1042,12 @@ pub struct InterfaceType {
     #[serde(skip)]
     pub visible: Option<MetaVisibleFn>,
     pub rust_typename: String,
+}
+
+impl InterfaceType {
+    pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
+        self.fields.get(name)
+    }
 }
 
 impl From<InterfaceType> for MetaType {

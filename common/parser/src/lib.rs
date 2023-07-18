@@ -29,7 +29,7 @@ use rules::input_object::InputObjectVisitor;
 use rules::length_directive::LengthDirective;
 use rules::map_directive::MapDirective;
 use rules::model_directive::ModelDirective;
-use rules::mongodb_directive::MongoDBModelDirective;
+use rules::mongodb_directive::{MongoDBModelDirective, MongoDBTypeDirective};
 use rules::one_of_directive::OneOfDirective;
 use rules::openapi_directive::OpenApiVisitor;
 use rules::relations::{relations_rules, RelationEngine};
@@ -218,7 +218,6 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
         .with(ModelDirective)
-        .with(MongoDBModelDirective)
         .with(AuthDirective)
         .with(ResolverDirective)
         .with(CacheVisitor)
@@ -228,6 +227,8 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(ExtendConnectorTypes)
         .with(EnumType)
         .with(ScalarHydratation)
+        .with(MongoDBTypeDirective)
+        .with(MongoDBModelDirective)
         .with(LengthDirective)
         .with(UniqueObjectFields)
         .with(CheckAllDirectivesAreKnown::default());

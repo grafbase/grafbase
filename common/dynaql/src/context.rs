@@ -1059,6 +1059,11 @@ impl<'a> SelectionField<'a> {
         Ok(arguments)
     }
 
+    /// True, if selecting nested fields from the given object.
+    pub fn has_nested_items(&self) -> bool {
+        !self.field.selection_set.node.items.is_empty()
+    }
+
     /// Get all subfields of the current selection set.
     pub fn selection_set(&self) -> impl Iterator<Item = SelectionField<'a>> {
         SelectionFieldsIter {

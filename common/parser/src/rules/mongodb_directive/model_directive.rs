@@ -1,7 +1,7 @@
-mod create_type_context;
+pub(crate) mod create_type_context;
 mod model_type;
 mod queries;
-mod types;
+pub(super) mod types;
 
 use create_type_context::CreateTypeContext;
 

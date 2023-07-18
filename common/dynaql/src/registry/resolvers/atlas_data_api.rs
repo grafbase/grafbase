@@ -1,12 +1,17 @@
-mod filter;
+mod input;
+mod normalize;
 mod operation;
 mod projection;
 
+use grafbase_runtime::search::Cursor;
 pub use operation::OperationType;
 
-use super::{ResolvedValue, ResolverContext};
+use super::{ResolvedPaginationInfo, ResolvedValue, ResolverContext};
 use crate::{
-    registry::{type_kinds::SelectionSetTarget, MongoDBConfiguration},
+    registry::{
+        type_kinds::{OutputType, SelectionSetTarget},
+        MongoDBConfiguration,
+    },
     Context, Error,
 };
 use futures_util::Future;
@@ -45,9 +50,6 @@ impl AtlasDataApiResolver {
         ctx: &'a Context<'_>,
         resolver_ctx: &'a ResolverContext<'_>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
-        let selection_set: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
-        let selection = ctx.item.node.selection();
-
         let config = ctx
             .get_mongodb_config(&self.directive_name)
             .expect("directive must exist");
@@ -69,15 +71,25 @@ impl AtlasDataApiResolver {
 
             match self.operation_type {
                 OperationType::FindOne => {
-                    let projection = projection::project(selection, selection_set, ctx)?;
-                    body.insert(String::from("projection"), projection.into());
-                    body.insert(String::from("filter"), filter::by(ctx)?);
+                    let selection_set: SelectionSetTarget<'_> =
+                        resolver_ctx.ty.unwrap().try_into().unwrap();
+
+                    let available_fields = selection_set.field_map().unwrap();
+                    let selection = ctx.look_ahead().selection_fields();
+                    let projection =
+                        projection::project(ctx, selection.into_iter(), available_fields)?;
+
+                    body.insert(String::from("projection"), projection);
+                    body.insert(String::from("filter"), input::by(ctx)?);
+                }
+                OperationType::FindMany => {
+                    self.find_many(ctx, resolver_ctx, &mut body)?;
                 }
                 OperationType::InsertOne => {
-                    body.insert(String::from("document"), filter::input(ctx)?);
+                    body.insert(String::from("document"), input::input(ctx)?);
                 }
                 OperationType::DeleteOne => {
-                    body.insert(String::from("filter"), filter::by(ctx).unwrap());
+                    body.insert(String::from("filter"), input::by(ctx).unwrap());
                 }
             }
 
@@ -93,7 +105,11 @@ impl AtlasDataApiResolver {
                 .map_err(map_err)?
                 .take();
 
+            let pagination = self.pagination(&value);
+            let value = self.convert_value(value);
+
             let mut resolved_value = ResolvedValue::new(Arc::new(value));
+            resolved_value.pagination = pagination;
 
             if resolved_value.data_resolved.is_null() {
                 resolved_value.early_return_null = true;
@@ -101,6 +117,107 @@ impl AtlasDataApiResolver {
 
             Ok(resolved_value)
         }))
+    }
+
+    fn convert_value(&self, value: serde_json::Value) -> serde_json::Value {
+        let mut object = match value {
+            serde_json::Value::Object(object) => object,
+            value => return value,
+        };
+
+        match self.operation_type {
+            OperationType::FindMany => object
+                .remove("documents")
+                .unwrap_or(serde_json::Value::Null),
+            OperationType::FindOne => object.remove("document").unwrap_or(serde_json::Value::Null),
+            _ => object.into(),
+        }
+    }
+
+    fn pagination(&self, value: &serde_json::Value) -> Option<ResolvedPaginationInfo> {
+        if OperationType::FindMany != self.operation_type {
+            return None;
+        }
+
+        let ids = value
+            .as_object()
+            .and_then(|obj| obj.get("documents"))
+            .and_then(serde_json::Value::as_array)
+            .and_then(|values| {
+                let first = values
+                    .first()
+                    .and_then(serde_json::Value::as_object)
+                    .and_then(|obj| obj.get("_id"))
+                    .and_then(serde_json::Value::as_str);
+
+                let last = values
+                    .last()
+                    .and_then(serde_json::Value::as_object)
+                    .and_then(|obj| obj.get("_id"))
+                    .and_then(serde_json::Value::as_str);
+
+                first.zip(last)
+            });
+
+        let start_cursor = ids.map(|(first, _)| first.as_bytes()).map(Cursor::from);
+        let end_cursor = ids.map(|(_, last)| last.as_bytes()).map(Cursor::from);
+
+        Some(ResolvedPaginationInfo {
+            start_cursor,
+            end_cursor,
+            // TODO: implemented in a subsequent PR
+            has_next_page: false,
+            // TODO: implemented in a subsequent PR
+            has_previous_page: false,
+        })
+    }
+
+    fn find_many(
+        &self,
+        ctx: &Context<'_>,
+        resolver_ctx: &ResolverContext<'_>,
+        body: &mut JsonMap,
+    ) -> Result<(), Error> {
+        let selection_target: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
+
+        let selection_type = selection_target
+            .field("edges")
+            .and_then(|field| ctx.registry().lookup(&field.ty).ok());
+
+        let selection_field = selection_type
+            .as_ref()
+            .and_then(|output| output.field("node"));
+
+        let selection_type =
+            selection_field.and_then(|field| ctx.registry().lookup(&field.ty).ok());
+
+        let selection_field_types = selection_type
+            .as_ref()
+            .and_then(OutputType::field_map)
+            .unwrap();
+
+        let selection = ctx
+            .look_ahead()
+            .field("edges")
+            .field("node")
+            .selection_fields();
+
+        let projection = projection::project(ctx, selection.into_iter(), selection_field_types)?;
+
+        body.insert(String::from("projection"), projection);
+        body.insert(String::from("filter"), input::filter(ctx)?);
+
+        if let Some(ordering) = input::order_by(ctx)? {
+            body.insert(String::from("sort"), ordering);
+        }
+
+        body.insert(String::from("limit"), input::limit(ctx));
+
+        if let Some(skip) = input::skip(ctx) {
+            body.insert(String::from("skip"), skip);
+        }
+
+        Ok(())
     }
 
     fn base_body(&self, config: &MongoDBConfiguration) -> JsonMap {

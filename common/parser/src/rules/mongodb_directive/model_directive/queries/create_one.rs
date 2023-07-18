@@ -22,7 +22,7 @@ pub(super) fn create(
     create_ctx: &CreateTypeContext<'_>,
     create_input_type: &str,
 ) {
-    let output_type_name = types::register_create_output_type(visitor_ctx, create_ctx);
+    let output_type_name = types::create::register_output(visitor_ctx, create_ctx);
     let query_name = MetaNames::mutation_create(create_ctx.r#type);
 
     let mut query = MetaField::new(query_name, output_type_name);

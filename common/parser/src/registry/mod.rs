@@ -21,7 +21,7 @@ use crate::utils::to_input_type;
 mod create_update;
 mod delete;
 pub mod names;
-mod pagination;
+pub(crate) mod pagination;
 mod relations;
 mod search;
 pub use create_update::{add_mutation_create, add_mutation_update, NumericFieldKind};
@@ -29,7 +29,7 @@ pub use delete::add_mutation_delete;
 pub use pagination::{add_query_paginated_collection, generate_pagination_args};
 pub use search::add_query_search;
 
-fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> NamedType<'static> {
+pub fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> NamedType<'static> {
     let type_name = T::ty().to_string();
     registry.create_type(
         |_| registry::EnumType::new(type_name.clone(), T::values().into_iter().map(MetaEnumValue::new)).into(),
