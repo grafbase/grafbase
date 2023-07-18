@@ -8,13 +8,14 @@ pub enum LocalAddressType {
     Unspecified,
 }
 
-#[derive(Clone, Copy, Debug, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum UdfMessageLevel {
-    Debug,
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+#[cfg_attr(feature = "clap", clap(rename_all = "snake_case"))]
+pub enum LogLevel {
     Error,
-    Info,
     Warn,
+    Info,
+    Debug,
 }
 
 impl LocalAddressType {

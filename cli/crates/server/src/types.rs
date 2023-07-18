@@ -1,4 +1,4 @@
-use common::types::{UdfKind, UdfMessageLevel};
+use common::types::{LogLevel, UdfKind};
 use std::path::PathBuf;
 
 pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
@@ -23,7 +23,7 @@ pub enum ServerMessage {
     UdfMessage {
         udf_kind: UdfKind,
         udf_name: String,
-        level: UdfMessageLevel,
+        level: LogLevel,
         message: String,
     },
     OperationStarted {

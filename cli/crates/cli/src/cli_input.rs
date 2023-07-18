@@ -1,10 +1,19 @@
 use crate::create::CreateArguments;
 use clap::{arg, command, CommandFactory, Parser, ValueEnum};
 use clap_complete::{shells, Generator};
-use common::consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER};
+use common::{
+    consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
+    types::LogLevel,
+};
 use std::{fmt, path::PathBuf};
 
 const DEFAULT_PORT: u16 = 4000;
+
+#[derive(Clone, Copy)]
+pub struct LogLevelFilters {
+    pub functions: LogLevel,
+    pub graphql_operations: LogLevel,
+}
 
 #[derive(Debug, Parser)]
 pub struct DevCommand {
@@ -17,9 +26,33 @@ pub struct DevCommand {
     /// Do not listen for schema changes and reload
     #[arg(long)]
     pub disable_watch: bool,
-    /// Log more events taking place such as introspection queries
-    #[arg(short, long)]
-    pub debug: bool,
+    /// Level of logs coming from function (resolver, authorizer) invocations to print, overrides 'log-level'
+    #[arg(long)]
+    pub log_level_functions: Option<LogLevel>,
+    /// Level of logs related to incoming GraphQL operations to print, overrides 'log-level'
+    #[arg(long)]
+    pub log_level_graphql_operations: Option<LogLevel>,
+    /// Default level of logs to print
+    #[arg(long)]
+    pub log_level: Option<LogLevel>,
+}
+
+impl DevCommand {
+    pub fn log_levels(&self) -> LogLevelFilters {
+        const DEFAULT_LOG_LEVEL_FUNCTIONS: LogLevel = LogLevel::Info;
+        const DEFAULT_LOG_LEVEL_GRAPHQL_OPERATIONS: LogLevel = LogLevel::Info;
+
+        LogLevelFilters {
+            functions: self
+                .log_level_functions
+                .or(self.log_level)
+                .unwrap_or(DEFAULT_LOG_LEVEL_FUNCTIONS),
+            graphql_operations: self
+                .log_level_functions
+                .or(self.log_level)
+                .unwrap_or(DEFAULT_LOG_LEVEL_GRAPHQL_OPERATIONS),
+        }
+    }
 }
 
 #[derive(Debug, Parser, Clone, Copy)]
@@ -61,11 +94,10 @@ pub struct CompletionsCommand {
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
+#[clap(rename_all = "lowercase")]
 pub enum ConfigFormat {
     /// Adds a TypeScript configuration file
-    #[value(name = "typescript")]
     TypeScript,
-    #[value(name = "graphql")]
     /// Adds a GraphQL configuration file
     GraphQL,
 }

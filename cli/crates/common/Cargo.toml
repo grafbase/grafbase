@@ -11,6 +11,7 @@ repository.workspace = true
 
 [dependencies]
 chrono = "0.4.26"
+clap = { version = "4", features = ["cargo", "wrap_help", "derive"], optional = true }
 derivative = "2.2.0"
 dirs = "5"
 rudderanalytics = { version = "1", features = [
@@ -21,3 +22,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 strum = { version = "0.25", features = ["derive"] }
 thiserror = "1"
 ulid = { version = "1", features = ["serde"] }
+
+[features]
+default = []
+clap = ["dep:clap"]

@@ -4,8 +4,8 @@ use crate::{
 };
 use backend::project::{ConfigType, Template};
 use colored::Colorize;
-use common::types::UdfKind;
-use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, types::UdfMessageLevel};
+use common::consts::GRAFBASE_TS_CONFIG_FILE_NAME;
+use common::types::{LogLevel, UdfKind};
 use common::{
     consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
     environment::Warning,
@@ -140,13 +140,24 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
     );
 }
 
-pub fn udf_message(udf_kind: UdfKind, udf_name: &str, message: &str, level: UdfMessageLevel) {
-    match level {
-        UdfMessageLevel::Debug => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @BrightBlack),
-        UdfMessageLevel::Error => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Red),
-        UdfMessageLevel::Info => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Cyan),
-        UdfMessageLevel::Warn => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Yellow),
+pub fn udf_message(
+    udf_kind: UdfKind,
+    udf_name: &str,
+    message: &str,
+    message_level: LogLevel,
+    log_level_filter: LogLevel,
+) {
+    if message_level > log_level_filter {
+        return;
     }
+
+    let colour = match message_level {
+        LogLevel::Debug => watercolor::colored::Color::BrightBlack,
+        LogLevel::Error => watercolor::colored::Color::Red,
+        LogLevel::Info => watercolor::colored::Color::Cyan,
+        LogLevel::Warn => watercolor::colored::Color::Yellow,
+    };
+    println!("{}", format!("[{udf_kind} '{udf_name}'] {message}").color(colour));
 }
 
 pub fn operation_started(_request_id: &str, _name: &Option<String>) {}
@@ -170,11 +181,15 @@ pub fn operation_completed(
     name: Option<String>,
     r#type: common::types::OperationType,
     duration: std::time::Duration,
-    debug: bool,
+    log_level: LogLevel,
 ) {
+    if log_level < LogLevel::Info {
+        return;
+    }
+
     let colour = match r#type {
         common::types::OperationType::Query { is_introspection } => {
-            if is_introspection && !debug {
+            if is_introspection && log_level < LogLevel::Debug {
                 return;
             }
             watercolor::colored::Color::Green
