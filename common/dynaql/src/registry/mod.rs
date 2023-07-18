@@ -24,7 +24,6 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::sync::atomic::AtomicU16;
-use std::sync::Arc;
 
 use crate::auth::AuthConfig;
 pub use crate::model::__DirectiveLocation;
@@ -476,7 +475,7 @@ impl MetaField {
                         {
                             #[cfg(feature = "tracing_worker")]
                             logworker::warn!(
-                                ctx.data_unchecked::<Arc<dynamodb::DynamoDBBatchersData>>().ctx.trace_id,
+                                ctx.data_unchecked::<std::sync::Arc<dynamodb::DynamoDBBatchersData>>().ctx.trace_id,
                                 "{}",
                                 serde_json::to_string_pretty(&serde_json::json!({
                                     "message": "Something went wrong here",
@@ -762,7 +761,7 @@ impl MetaField {
                         let Some(resolved_field_value) = resolved_field_value else {
                             #[cfg(feature = "tracing_worker")]
                             logworker::warn!(
-                                ctx.data_unchecked::<Arc<dynamodb::DynamoDBBatchersData>>()
+                                ctx.data_unchecked::<std::sync::Arc<dynamodb::DynamoDBBatchersData>>()
                                     .ctx
                                     .trace_id,
                                 "missing field valued for resolved {}#{} and cache type {}",
