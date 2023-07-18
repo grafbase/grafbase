@@ -83,6 +83,10 @@ pub fn parse_auth_config(
         .flatten()
         .collect();
 
+    #[cfg(feature = "local")] // Allow public introspection locally for backwards compatibility.
+    let allowed_public_ops =
+        allowed_public_ops.with(crate::rules::auth_directive::operations::Operation::Introspection);
+
     let allowed_group_ops = rules
         .iter()
         .filter_map(|rule| match rule {
