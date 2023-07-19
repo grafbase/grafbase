@@ -196,9 +196,7 @@ pub fn operation_log(_request_id: &str, log_event_type: LogEventType, log_level_
 
     let formatted_duration = format_duration(duration);
     let formatted_name = name.map(|name| format!(" {name}")).unwrap_or_default();
-    let formatted_type = r#type
-        .map(|r#type| r#type.to_string())
-        .unwrap_or_else(|| "operation".to_owned());
+    let formatted_type = r#type.map_or_else(|| "operation".to_owned(), |r#type| r#type.to_string());
     println!(
         "- {formatted_type}{formatted_name} {formatted_duration}",
         formatted_type = formatted_type.color(colour)
