@@ -72,5 +72,14 @@ g.query('products', {
 })
 
 export default config({
-  schema: g
+  schema: g,
+  cache: {
+    rules: [
+      {
+        maxAge: 60,
+        types: [{ name: 'Query', fields: ['products', 'product'] }],
+        mutationInvalidation: 'entity'
+      }
+    ]
+  }
 })
