@@ -42,10 +42,6 @@ pub struct Request {
     /// Disable introspection queries for this request.
     #[serde(skip)]
     pub disable_introspection: bool,
-
-    /// Return the logic plan instead of executing the request
-    #[serde(skip)]
-    pub logic_plan: bool,
 }
 
 impl Request {
@@ -59,7 +55,6 @@ impl Request {
             data: Data::default(),
             extensions: Default::default(),
             disable_introspection: false,
-            logic_plan: false,
         }
     }
 
@@ -89,13 +84,6 @@ impl Request {
     #[must_use]
     pub fn disable_introspection(mut self) -> Self {
         self.disable_introspection = true;
-        self
-    }
-
-    /// Enable logic plan analyze for this request.
-    #[must_use]
-    pub fn return_logic_plan(mut self) -> Self {
-        self.logic_plan = true;
         self
     }
 
