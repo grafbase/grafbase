@@ -1,4 +1,5 @@
 use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
+use crate::rules::cache_directive::CacheDirective;
 use crate::rules::resolver_directive::ResolverDirective;
 use dynaql::registry::resolvers::custom::CustomResolver;
 use dynaql::registry::resolvers::Resolver;
@@ -53,9 +54,9 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                         );
                         continue;
                     };
-                let field_collection = match entry_point {
-                    EntryPoint::Query => &mut ctx.queries,
-                    EntryPoint::Mutation => &mut ctx.mutations,
+                let (field_collection, cache_control) = match entry_point {
+                    EntryPoint::Query => (&mut ctx.queries, CacheDirective::parse(&field.node.directives)),
+                    EntryPoint::Mutation => (&mut ctx.mutations, Default::default()),
                 };
                 field_collection.push(MetaField {
                     name: name.clone(),
@@ -74,7 +75,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                         .collect(),
                     ty: field.node.ty.clone().node.to_string().into(),
                     deprecation: Default::default(),
-                    cache_control: Default::default(),
+                    cache_control,
                     external: false,
                     requires: None,
                     provides: None,
@@ -97,6 +98,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
 mod tests {
     use super::*;
     use crate::rules::visitor::visit;
+    use dynaql::CacheControl;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
@@ -146,5 +148,49 @@ mod tests {
 
         let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();
         assert_eq!(actual_messages.as_slice(), expected_messages);
+    }
+
+    #[test]
+    fn test_parse_result_with_cache() {
+        // prepare
+        let schema = r#"
+            extend type Query {
+                foo: String! @resolver(name: "foo") @cache(maxAge: 60)
+            }
+
+            extend type Mutation {
+                foo: String! @resolver(name: "foo") @cache(maxAge: 60)
+            }
+        "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+
+        // act
+        visit(&mut ExtendQueryAndMutationTypes, &mut ctx, &schema);
+
+        // assert
+        assert!(ctx.errors.is_empty());
+
+        let foo_query = ctx
+            .queries
+            .iter()
+            .find(|query| query.name == "foo")
+            .expect("Should find foo query");
+        let foo_mutation = ctx
+            .mutations
+            .iter()
+            .find(|mutation| mutation.name == "foo")
+            .expect("Should find foo mutation");
+
+        assert_eq!(
+            foo_query.cache_control,
+            CacheControl {
+                max_age: 60,
+                ..Default::default()
+            }
+        );
+
+        assert_eq!(foo_mutation.cache_control, Default::default());
     }
 }
