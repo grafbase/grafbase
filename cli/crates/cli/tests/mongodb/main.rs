@@ -2,6 +2,7 @@
 
 mod create_one;
 mod delete_one;
+mod find_many;
 mod find_one;
 #[path = "../utils/mod.rs"]
 mod utils;
@@ -11,7 +12,7 @@ use std::{fmt, net::SocketAddr};
 use backend::project::ConfigType;
 use indoc::formatdoc;
 use reqwest::header::USER_AGENT;
-use serde_json::Value;
+use serde_json::{json, Value};
 use utils::environment::Environment;
 use wiremock::{
     matchers::{body_json, header, method, path},
@@ -41,26 +42,44 @@ impl Server {
     ///
     /// - config: the models and types as SDL
     /// - collection: the collection we're expected to query
+    /// - body: the expected request body we send to `MongoDB`
+    ///
+    /// [docs](https://www.mongodb.com/docs/atlas/api/data-api-resources/#find-a-single-document)
+    pub async fn find_one(config: impl fmt::Display, collection: &'static str, body: Value) -> Self {
+        let server = MockServer::start().await;
+        let request = body.as_object().cloned().unwrap();
+        let response = ResponseTemplate::new(200).set_body_json(json!({ "document": null }));
+
+        Self {
+            action: "findOne",
+            config: Self::merge_config(config, server.address()),
+            server,
+            request: Self::create_request(collection, request),
+            response,
+        }
+    }
+
+    /// Construct a mock server to catch a findMany query.
+    ///
+    /// ## Parameters
+    ///
+    /// - config: the models and types as SDL
+    /// - collection: the collection we're expected to query
     /// - filter: the expected filter we send to `MongoDB`
     /// - projection: the expected projection we send to `MongoDB`
     /// - response: the mock response we expect `MongoDB` to send us
     ///
     /// [docs](https://www.mongodb.com/docs/atlas/api/data-api-resources/#find-a-single-document)
-    pub async fn find_one(
-        config: impl fmt::Display,
-        collection: &'static str,
-        filter: Value,
-        projection: Value,
-        response: ResponseTemplate,
-    ) -> Self {
+    pub async fn find_many(config: impl fmt::Display, collection: &'static str, body: Value) -> Self {
         let server = MockServer::start().await;
-        let mut request = JsonMap::new();
+        let request = body.as_object().cloned().unwrap();
 
-        request.insert("filter".to_string(), filter);
-        request.insert("projection".to_string(), projection);
+        let response = ResponseTemplate::new(200).set_body_json(json!({
+            "documents": []
+        }));
 
         Self {
-            action: "findOne",
+            action: "find",
             config: Self::merge_config(config, server.address()),
             server,
             request: Self::create_request(collection, request),
@@ -78,16 +97,13 @@ impl Server {
     /// - response: the mock response we expect `MongoDB` to send us
     ///
     /// [docs](https://www.mongodb.com/docs/atlas/api/data-api-resources/#insert-a-single-document)
-    pub async fn create_one(
-        config: impl fmt::Display,
-        collection: &'static str,
-        document: Value,
-        response: ResponseTemplate,
-    ) -> Self {
+    pub async fn create_one(config: impl fmt::Display, collection: &'static str, body: Value) -> Self {
         let server = MockServer::start().await;
-        let mut request = JsonMap::new();
+        let request = body.as_object().cloned().unwrap();
 
-        request.insert("document".to_string(), document);
+        let response = ResponseTemplate::new(200).set_body_json(json!({
+            "insertedId": "5ca4bbc7a2dd94ee5816238d"
+        }));
 
         Self {
             action: "insertOne",
@@ -108,16 +124,13 @@ impl Server {
     /// - response: the mock response we expect `MongoDB` to send us
     ///
     /// [docs](https://www.mongodb.com/docs/atlas/api/data-api-resources/#delete-a-single-document)
-    async fn delete_one(
-        config: impl fmt::Display,
-        collection: &'static str,
-        filter: Value,
-        response: ResponseTemplate,
-    ) -> Self {
+    async fn delete_one(config: impl fmt::Display, collection: &'static str, body: Value) -> Self {
         let server = MockServer::start().await;
-        let mut request = JsonMap::new();
+        let request = body.as_object().cloned().unwrap();
 
-        request.insert("filter".to_string(), filter);
+        let response = ResponseTemplate::new(200).set_body_json(json!({
+            "deletedCount": 1
+        }));
 
         Self {
             action: "deleteOne",
@@ -138,6 +151,7 @@ impl Server {
             .and(header(USER_AGENT, "Grafbase"))
             .and(body_json(&self.request))
             .respond_with(self.response.clone())
+            .expect(1)
             .mount(&self.server)
             .await;
 
@@ -151,6 +165,11 @@ impl Server {
 
         client.poll_endpoint(30, 300).await;
         client.gql(request).await
+    }
+
+    /// Changes the response from the default.
+    pub fn set_response(&mut self, response: ResponseTemplate) {
+        self.response = response;
     }
 
     fn merge_config(config: impl fmt::Display, address: &SocketAddr) -> String {
