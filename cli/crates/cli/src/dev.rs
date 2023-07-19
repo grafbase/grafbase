@@ -61,8 +61,8 @@ pub fn dev(
                 } => {
                     report::udf_message(udf_kind, &udf_name, &message, level, log_level_filters.functions);
                 }
-                ServerMessage::OperationLogMessage { request_id, event_type } => {
-                    report::operation_log(&request_id, event_type, log_level_filters.graphql_operations);
+                ServerMessage::OperationLogMessage { event_type, .. } => {
+                    report::operation_log(event_type, log_level_filters.graphql_operations);
                 }
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }

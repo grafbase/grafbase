@@ -166,7 +166,7 @@ pub fn udf_message(
     println!("{}", format!("[{udf_kind} '{udf_name}'] {message}").color(colour));
 }
 
-pub fn operation_log(_request_id: &str, log_event_type: LogEventType, log_level_filter: Option<LogLevel>) {
+pub fn operation_log(log_event_type: LogEventType, log_level_filter: Option<LogLevel>) {
     let Some(log_level_filter) = log_level_filter else {
         return;
     };
