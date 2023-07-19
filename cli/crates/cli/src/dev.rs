@@ -1,3 +1,4 @@
+use crate::cli_input::LogLevelFilters;
 use crate::output::report;
 use crate::CliError;
 use backend::server_api::start_server;
@@ -16,7 +17,13 @@ static READY: Once = Once::new();
 ///
 /// returns [`CliError::ServerPanic`] if the development server panics
 #[allow(clippy::fn_params_excessive_bools)]
-pub fn dev(search: bool, watch: bool, external_port: u16, debug: bool, tracing: bool) -> Result<(), CliError> {
+pub fn dev(
+    search: bool,
+    watch: bool,
+    external_port: u16,
+    log_level_filters: LogLevelFilters,
+    tracing: bool,
+) -> Result<(), CliError> {
     trace!("attempting to start server");
 
     let (server_handle, receiver) =
@@ -52,18 +59,10 @@ pub fn dev(search: bool, watch: bool, external_port: u16, debug: bool, tracing: 
                     message,
                     level,
                 } => {
-                    report::udf_message(udf_kind, &udf_name, &message, level);
+                    report::udf_message(udf_kind, &udf_name, &message, level, log_level_filters.functions);
                 }
-                ServerMessage::OperationStarted { request_id, name } => {
-                    report::operation_started(&request_id, &name);
-                }
-                ServerMessage::OperationCompleted {
-                    request_id,
-                    name,
-                    duration,
-                    r#type,
-                } => {
-                    report::operation_completed(&request_id, name, r#type, duration, debug);
+                ServerMessage::OperationLogMessage { event_type, .. } => {
+                    report::operation_log(event_type, log_level_filters.graphql_operations);
                 }
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }

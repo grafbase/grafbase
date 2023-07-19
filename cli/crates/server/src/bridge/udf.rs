@@ -7,7 +7,7 @@ use crate::types::ServerMessage;
 use axum::extract::State;
 use axum::Json;
 use common::types::UdfKind;
-use common::{environment::Environment, types::UdfMessageLevel};
+use common::{environment::Environment, types::LogLevel};
 use futures_util::{pin_mut, TryFutureExt, TryStreamExt};
 use tokio::process::Command;
 use tokio::sync::Notify;
@@ -20,7 +20,7 @@ use super::types::UdfInvocation;
 #[serde(rename_all = "camelCase")]
 struct UdfMessage {
     message: String,
-    level: UdfMessageLevel,
+    level: LogLevel,
 }
 
 #[derive(serde::Deserialize)]
