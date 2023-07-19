@@ -121,7 +121,7 @@ impl TypeReference for TypeCondition {
 }
 
 /// A named GraphQL type without any non-null or list wrappers
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct NamedType<'a>(Cow<'a, str>);
 
 impl NamedType<'_> {
@@ -158,6 +158,12 @@ impl From<String> for NamedType<'static> {
 impl<'a> From<&'a str> for NamedType<'a> {
     fn from(value: &'a str) -> Self {
         NamedType(Cow::Borrowed(value))
+    }
+}
+
+impl<'a> From<&'a String> for NamedType<'a> {
+    fn from(value: &'a String) -> Self {
+        NamedType(Cow::Borrowed(value.as_str()))
     }
 }
 

@@ -7,6 +7,7 @@ use crate::directive_de::parse_directive;
 
 use super::{
     connector_headers::{Header, IntrospectionHeader},
+    connector_transforms::Transforms,
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
@@ -49,6 +50,9 @@ pub struct GraphqlDirective {
     headers: Vec<Header>,
     #[serde(default)]
     introspection_headers: Option<Vec<IntrospectionHeader>>,
+
+    #[serde(default)]
+    pub transforms: Option<Transforms>,
 }
 
 fn deprecated_name<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -233,6 +237,7 @@ mod tests {
                         },
                     ],
                 ),
+                transforms: None,
             },
         ]
         "###);
@@ -297,6 +302,7 @@ mod tests {
                         },
                     ],
                 ),
+                transforms: None,
             },
         ]
         "###);

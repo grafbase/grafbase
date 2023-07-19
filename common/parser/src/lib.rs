@@ -17,6 +17,7 @@ use rules::check_known_directives::CheckAllDirectivesAreKnown;
 use rules::check_type_collision::CheckTypeCollision;
 use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
+use rules::connector_transforms::run_transforms;
 use rules::default_directive::DefaultDirective;
 use rules::default_directive_types::DefaultDirectiveTypes;
 use rules::directive::Directives;
@@ -172,8 +173,12 @@ async fn parse_connectors<'a>(
     for (mut directive, position) in std::mem::take(&mut ctx.openapi_directives) {
         directive.id = Some(ctx.connector_id_generator.new_id());
         let directive_name = directive.namespace.clone();
+        let transforms = directive.transforms.transforms.clone();
         match connector_parsers.fetch_and_parse_openapi(directive).await {
-            Ok(registry) => {
+            Ok(mut registry) => {
+                if let Some(transforms) = &transforms {
+                    run_transforms(&mut registry, transforms);
+                }
                 connector_parsers::merge_registry(ctx, registry, position);
             }
             Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),
@@ -183,8 +188,12 @@ async fn parse_connectors<'a>(
     for (mut directive, position) in std::mem::take(&mut ctx.graphql_directives) {
         directive.id = Some(ctx.connector_id_generator.new_id());
         let directive_name = directive.namespace().map(ToOwned::to_owned);
+        let transforms = directive.transforms.clone();
         match connector_parsers.fetch_and_parse_graphql(directive).await {
-            Ok(registry) => {
+            Ok(mut registry) => {
+                if let Some(transforms) = &transforms {
+                    run_transforms(&mut registry, transforms);
+                }
                 connector_parsers::merge_registry(ctx, registry, position);
             }
             Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),

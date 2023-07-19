@@ -6,11 +6,16 @@
 //!
 //! The enums in this file provide alternative groupings for all of these different cases.
 
+use std::iter;
+
 use once_cell::sync::Lazy;
 
 use crate::Error;
 
-use super::{EnumType, InterfaceType, MetaField, MetaType, ObjectType, ScalarType, UnionType};
+use super::{
+    EnumType, InputObjectType, InterfaceType, MetaField, MetaInputValue, MetaType, ObjectType,
+    ScalarType, UnionType,
+};
 
 /// The kinds of types we work with in GraphQL
 ///
@@ -29,6 +34,7 @@ pub enum TypeKind {
     InputObject,
     SelectionSetTarget,
     OutputType,
+    InputType,
 }
 
 impl MetaType {
@@ -67,6 +73,16 @@ impl OutputType<'_> {
     pub fn is_leaf(&self) -> bool {
         matches!(self, OutputType::Scalar(_) | OutputType::Enum(_))
     }
+
+    pub fn fields(&self) -> Box<dyn Iterator<Item = &MetaField> + '_> {
+        match self {
+            OutputType::Scalar(_) | OutputType::Union(_) | OutputType::Enum(_) => {
+                Box::new(iter::empty())
+            }
+            OutputType::Object(ObjectType { fields, .. })
+            | OutputType::Interface(InterfaceType { fields, .. }) => Box::new(fields.values()),
+        }
+    }
 }
 
 impl<'a> TryFrom<&'a MetaType> for OutputType<'a> {
@@ -80,6 +96,43 @@ impl<'a> TryFrom<&'a MetaType> for OutputType<'a> {
             MetaType::Union(union) => Ok(OutputType::Union(union)),
             MetaType::Enum(en) => Ok(OutputType::Enum(en)),
             MetaType::InputObject(_) => Err(Error::unexpected_kind(value, TypeKind::OutputType)),
+        }
+    }
+}
+
+/// A type in output position - i.e. an argument or field of an input object
+pub enum InputType<'a> {
+    Scalar(&'a ScalarType),
+    Enum(&'a EnumType),
+    InputObject(&'a InputObjectType),
+}
+
+impl InputType<'_> {
+    pub fn name(&self) -> &str {
+        match self {
+            InputType::Scalar(scalar) => &scalar.name,
+            InputType::Enum(en) => &en.name,
+            InputType::InputObject(input_object) => &input_object.name,
+        }
+    }
+
+    pub fn fields(&self) -> Box<dyn Iterator<Item = &MetaInputValue> + '_> {
+        match self {
+            InputType::Scalar(_) | InputType::Enum(_) => Box::new(iter::empty()),
+            InputType::InputObject(input_object) => Box::new(input_object.input_fields.values()),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a MetaType> for InputType<'a> {
+    type Error = Error;
+
+    fn try_from(value: &'a MetaType) -> Result<Self, Self::Error> {
+        match value {
+            MetaType::Scalar(scalar) => Ok(InputType::Scalar(scalar)),
+            MetaType::Enum(en) => Ok(InputType::Enum(en)),
+            MetaType::InputObject(object) => Ok(InputType::InputObject(object)),
+            _ => Err(Error::unexpected_kind(value, TypeKind::InputType)),
         }
     }
 }

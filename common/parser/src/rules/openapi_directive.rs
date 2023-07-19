@@ -5,6 +5,7 @@ use crate::directive_de::parse_directive;
 
 use super::{
     connector_headers::{Header, IntrospectionHeader},
+    connector_transforms::Transforms,
     directive::Directive,
     visitor::Visitor,
 };
@@ -36,6 +37,8 @@ pub struct OpenApiDirective {
 pub struct OpenApiTransforms {
     #[serde(default)]
     pub query_naming: OpenApiQueryNamingStrategy,
+    #[serde(default, flatten)]
+    pub transforms: Option<Transforms>,
 }
 
 #[derive(Clone, Copy, Debug, Default, serde::Deserialize, PartialEq, Eq)]
@@ -195,6 +198,7 @@ mod tests {
                 introspection_headers: [],
                 transforms: OpenApiTransforms {
                     query_naming: SchemaName,
+                    transforms: None,
                 },
             },
         ]

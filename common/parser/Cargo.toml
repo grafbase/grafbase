@@ -25,6 +25,7 @@ url = { version = "2" }
 thiserror = { workspace = true }
 tuple = "0.5"
 futures = "0.3"
+nom = "7"
 
 [dev-dependencies]
 insta = { version = "1", features = ["json"] }
