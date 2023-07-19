@@ -1,5 +1,6 @@
 use dynamodb::constant;
 use dynaql::indexmap::IndexMap;
+use dynaql::names::INPUT_FIELD_FILTER_IN;
 use dynaql::registry::enums::OrderByDirection;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::{self, InputObjectType, NamedType, Registry};
@@ -23,8 +24,8 @@ use crate::rules::visitor::VisitorContext;
 use crate::type_names::TypeNameExt;
 
 use super::names::{
-    PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST,
-    PAGINATION_INPUT_ARG_ORDER_BY,
+    INPUT_ARG_FILTER, PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST,
+    PAGINATION_INPUT_ARG_LAST, PAGINATION_INPUT_ARG_ORDER_BY,
 };
 use super::register_dynaql_enum;
 
@@ -191,7 +192,17 @@ pub fn add_query_paginated_collection(
         name: field.clone(),
         mapped_name: None,
         description: Some(format!("Paginated query to fetch the whole list of `{type_name}`.")),
-        args: generate_pagination_args(ctx.registry.get_mut(), model_type_definition),
+        args: {
+            let mut args = generate_pagination_args(ctx.registry.get_mut(), model_type_definition);
+            args.insert(
+                INPUT_ARG_FILTER.to_string(),
+                MetaInputValue::new(
+                    INPUT_ARG_FILTER,
+                    register_collection_filter(ctx.registry.get_mut(), model_type_definition),
+                ),
+            );
+            args
+        },
         // TODO: Should this be really nullable?
         ty: connection_type.as_nullable().into(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
@@ -216,11 +227,45 @@ pub fn add_query_paginated_collection(
             order_by: Some(VariableResolveDefinition::InputTypeName(
                 PAGINATION_INPUT_ARG_ORDER_BY.to_string(),
             )),
-            nested: None,
+            filter: Some(VariableResolveDefinition::InputTypeName(INPUT_ARG_FILTER.to_string())),
+            nested: Box::new(None),
         }),
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),
     });
+}
+
+fn register_collection_filter(registry: &mut Registry, model_type_definition: &TypeDefinition) -> String {
+    let input_type_name = MetaNames::collection_filter_input(model_type_definition);
+    registry.create_type(
+        |registry| {
+            InputObjectType::new(
+                input_type_name.clone(),
+                [MetaInputValue::new("id", register_scalar_filter(registry, "ID"))],
+            )
+            .into()
+        },
+        &input_type_name,
+        &input_type_name,
+    );
+
+    input_type_name
+}
+
+fn register_scalar_filter(registry: &mut Registry, scalar: &str) -> String {
+    let input_type_name = MetaNames::collection_scalar_filter_input(scalar);
+    registry.create_type(
+        |_| {
+            InputObjectType::new(
+                input_type_name.clone(),
+                [MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]"))],
+            )
+            .into()
+        },
+        &input_type_name,
+        &input_type_name,
+    );
+    input_type_name
 }
 
 pub fn generate_pagination_args(

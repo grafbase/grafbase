@@ -4,7 +4,7 @@ use crate::registry::enums::OrderByDirection;
 use crate::registry::relations::{MetaRelation, MetaRelationKind};
 use crate::registry::variables::oneof::OneOf;
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
-use crate::registry::{MetaType, SchemaID};
+use crate::registry::{MetaType, ModelName, SchemaID};
 use crate::{Context, Error, Value};
 use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::{
@@ -63,7 +63,7 @@ pub enum DynamoResolver {
     },
     QueryIds {
         ids: VariableResolveDefinition,
-        type_name: String,
+        type_name: ModelName,
     },
     // FIXME: kind of a hack into the resolver system for search to query for ids. This resolver is
     // never saved in the schema. Ideally we would use `QueryIds`, but there's no good way to
@@ -71,7 +71,7 @@ pub enum DynamoResolver {
     // currently.
     _SearchQueryIds {
         ids: Vec<String>,
-        type_name: String,
+        type_name: ModelName,
     },
     /// A Paginated Query based on the type of the entity.
     ///
@@ -109,9 +109,10 @@ pub enum DynamoResolver {
         after: VariableResolveDefinition,
         before: VariableResolveDefinition,
         order_by: Option<VariableResolveDefinition>,
+        filter: Option<VariableResolveDefinition>,
         // (relation_name, parent_pk)
         // TODO: turn this into a struct
-        nested: Option<(String, String)>,
+        nested: Box<Option<(String, String)>>,
     },
     /// A Query based on the PK and the relation name.
     ///
@@ -190,6 +191,18 @@ impl TryFrom<Cursor> for IdCursor {
     }
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct CollectionFilter {
+    #[serde(default)]
+    id: Option<IdScalarFilter>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct IdScalarFilter {
+    #[serde(rename = "in")]
+    r#in: Option<HashSet<String>>,
+}
+
 impl DynamoResolver {
     pub(super) async fn resolve(
         &self,
@@ -217,9 +230,10 @@ impl DynamoResolver {
                 last,
                 first,
                 order_by,
+                filter,
                 nested,
             } => {
-                let pk = r#type
+                let ty = r#type
                     .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
                 // TODO: optimize single edges for the top level
@@ -254,6 +268,13 @@ impl DynamoResolver {
                 let after: Option<IdCursor> = after.resolve(ctx, last_resolver_value)?;
                 let before: Option<IdCursor> = before.resolve(ctx, last_resolver_value)?;
                 let last = last.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
+                let filter: Option<CollectionFilter> = filter
+                    .as_ref()
+                    .map(|filter| {
+                        filter.resolve::<Option<CollectionFilter>>(ctx, last_resolver_value)
+                    })
+                    .transpose()?
+                    .flatten();
                 let order_by: Option<OneOf<OrderByDirection>> = match order_by {
                     Some(order_by) => order_by.resolve(ctx, last_resolver_value)?,
                     None => None,
@@ -265,8 +286,6 @@ impl DynamoResolver {
                     OrderByDirection::ASC => PaginationOrdering::ASC,
                     OrderByDirection::DESC => PaginationOrdering::DESC,
                 };
-                let len = edges.len();
-
                 let cursor = PaginatedCursor::from_graphql(
                     first,
                     last,
@@ -277,9 +296,15 @@ impl DynamoResolver {
                         parent_id,
                     }),
                 )?;
+
+                if let Some(ids) = filter.and_then(|filter| filter.id.and_then(|f| f.r#in)) {
+                    return get::paginated_by_ids(ctx, ids, cursor, ordering, &ty.into()).await;
+                }
+
+                let len = edges.len();
                 let result = query_loader_fat_paginated
                     .load_one(QueryTypePaginatedKey::new(
-                        pk.clone(),
+                        ty.clone(),
                         edges,
                         cursor.clone(),
                         ordering,
@@ -335,10 +360,10 @@ impl DynamoResolver {
 
                         match serde_json::to_value(&query_value.node) {
                             Ok(value) => {
-                                value_result.insert(pk.clone(), value);
+                                value_result.insert(ty.clone(), value);
                             }
                             Err(err) => {
-                                value_result.insert(pk.clone(), serde_json::Value::Null);
+                                value_result.insert(ty.clone(), serde_json::Value::Null);
                                 ctx.add_error(
                                     Error::new_with_source(err).into_server_error(ctx.item.pos),
                                 );

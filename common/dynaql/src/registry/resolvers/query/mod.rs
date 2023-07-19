@@ -5,7 +5,10 @@ use serde_json::{json, Value};
 
 use grafbase_runtime::search::{self, Cursor};
 
-use crate::{registry::variables::VariableResolveDefinition, Context, Error};
+use crate::{
+    registry::{variables::VariableResolveDefinition, ModelName},
+    Context, Error,
+};
 
 use super::{
     dynamo_querying::{DynamoResolver, PAGINATION_LIMIT},
@@ -22,7 +25,7 @@ pub const SEARCH_RESOLVER_TOTAL_HITS: &str = "totalHits";
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub enum QueryResolver {
     Search {
-        type_name: String,
+        type_name: ModelName,
         entity_type: String,
         query: VariableResolveDefinition,
         fields: VariableResolveDefinition,
@@ -100,7 +103,7 @@ impl QueryResolver {
                 let edges: Vec<serde_json::Value> = {
                     let data_resolved = DynamoResolver::_SearchQueryIds {
                         ids: response.hits.iter().map(|hit| hit.id.clone()).collect(),
-                        type_name: type_name.to_string(),
+                        type_name: type_name.clone(),
                     }
                     .resolve(ctx, resolver_ctx, None)
                     .await?

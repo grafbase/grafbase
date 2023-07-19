@@ -109,6 +109,9 @@ input FloatOrNullSearchFilterInput {
 	notIn: [Float!]
 	isNull: Boolean
 }
+input IDCollectionFilterInput {
+	in: [ID!]
+}
 """
 A valid IPv4 or IPv6 address. IPv4 addresses are expected in quad-dotted notation `(123.12.34.56)`. IPv6 addresses are expected in non-bracketed, colon-separated format `(1a2b:3c4b::1234:4567)`.
 
@@ -236,6 +239,9 @@ type Product {
 input ProductByInput {
 	id: ID
 }
+input ProductCollectionFilterInput {
+	id: IDCollectionFilterInput
+}
 type ProductConnection {
 	"""
 	Information to aid in pagination
@@ -345,7 +351,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Product`.
 	"""
-	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput): ProductConnection
+	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput, filter: ProductCollectionFilterInput): ProductConnection
 	"""
 	Search `Product`
 	"""

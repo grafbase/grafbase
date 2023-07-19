@@ -18,6 +18,9 @@ Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it 
 For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
 """
 scalar DateTime
+input IDCollectionFilterInput {
+	in: [ID!]
+}
 """
 Possible operations for an Int field
 """
@@ -83,6 +86,9 @@ type Product {
 }
 input ProductByInput {
 	id: ID
+}
+input ProductCollectionFilterInput {
+	id: IDCollectionFilterInput
 }
 type ProductConnection {
 	"""
@@ -154,7 +160,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Product`.
 	"""
-	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput): ProductConnection
+	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput, filter: ProductCollectionFilterInput): ProductConnection
 }
 schema {
 	query: Query

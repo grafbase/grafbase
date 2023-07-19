@@ -22,6 +22,9 @@ type Author {
 input AuthorByInput {
 	id: ID
 }
+input AuthorCollectionFilterInput {
+	id: IDCollectionFilterInput
+}
 type AuthorConnection {
 	"""
 	Information to aid in pagination
@@ -100,6 +103,9 @@ type Comment {
 }
 input CommentByInput {
 	id: ID
+}
+input CommentCollectionFilterInput {
+	id: IDCollectionFilterInput
 }
 type CommentConnection {
 	"""
@@ -269,6 +275,9 @@ Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it 
 For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
 """
 scalar DateTime
+input IDCollectionFilterInput {
+	in: [ID!]
+}
 """
 Possible operations for an Int field
 """
@@ -381,6 +390,9 @@ type Post {
 input PostByInput {
 	id: ID
 }
+input PostCollectionFilterInput {
+	id: IDCollectionFilterInput
+}
 type PostConnection {
 	"""
 	Information to aid in pagination
@@ -492,7 +504,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Author`.
 	"""
-	authorCollection(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): AuthorConnection
+	authorCollection(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput, filter: AuthorCollectionFilterInput): AuthorConnection
 	"""
 	Query a single Post by an ID or a unique field
 	"""
@@ -500,7 +512,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Post`.
 	"""
-	postCollection(after: String, before: String, first: Int, last: Int, orderBy: PostOrderByInput): PostConnection
+	postCollection(after: String, before: String, first: Int, last: Int, orderBy: PostOrderByInput, filter: PostCollectionFilterInput): PostConnection
 	"""
 	Query a single Comment by an ID or a unique field
 	"""
@@ -508,7 +520,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Comment`.
 	"""
-	commentCollection(after: String, before: String, first: Int, last: Int, orderBy: CommentOrderByInput): CommentConnection
+	commentCollection(after: String, before: String, first: Int, last: Int, orderBy: CommentOrderByInput, filter: CommentCollectionFilterInput): CommentConnection
 }
 schema {
 	query: Query

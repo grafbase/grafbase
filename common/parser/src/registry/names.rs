@@ -108,7 +108,7 @@ impl MetaNames {
     }
 
     //
-    // PAGINATION
+    // COLLECTION
     //
     pub fn query_collection(model_type_definition: &TypeDefinition) -> String {
         to_lower_camelcase(Self::collection(model_type_definition))
@@ -123,7 +123,16 @@ impl MetaNames {
     }
 
     pub fn pagination_orderby_input(model_type_definition: &TypeDefinition) -> String {
+        // FIXME: Should have been postCollectionOrderByInput instead of postOrderByInput...
         format!("{}OrderByInput", Self::model(model_type_definition))
+    }
+
+    pub fn collection_filter_input(model_type_definition: &TypeDefinition) -> String {
+        format!("{}FilterInput", Self::query_collection(model_type_definition)).to_camel()
+    }
+
+    pub fn collection_scalar_filter_input(scalar: &str) -> String {
+        format!("{scalar}CollectionFilterInput")
     }
 
     //

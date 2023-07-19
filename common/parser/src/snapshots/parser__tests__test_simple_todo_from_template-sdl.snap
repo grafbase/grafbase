@@ -18,6 +18,9 @@ Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it 
 For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
 """
 scalar DateTime
+input IDCollectionFilterInput {
+	in: [ID!]
+}
 type Mutation {
 	"""
 	Create a TodoList
@@ -86,7 +89,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `TodoList`.
 	"""
-	todoListCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoListOrderByInput): TodoListConnection
+	todoListCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoListOrderByInput, filter: TodoListCollectionFilterInput): TodoListConnection
 	"""
 	Query a single Todo by an ID or a unique field
 	"""
@@ -94,7 +97,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Todo`.
 	"""
-	todoCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoOrderByInput): TodoConnection
+	todoCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoOrderByInput, filter: TodoCollectionFilterInput): TodoConnection
 }
 type Todo {
 	title: String!
@@ -115,6 +118,9 @@ type Todo {
 }
 input TodoByInput {
 	id: ID
+}
+input TodoCollectionFilterInput {
+	id: IDCollectionFilterInput
 }
 type TodoConnection {
 	"""
@@ -171,6 +177,9 @@ type TodoList {
 }
 input TodoListByInput {
 	id: ID
+}
+input TodoListCollectionFilterInput {
+	id: IDCollectionFilterInput
 }
 type TodoListConnection {
 	"""

@@ -149,7 +149,7 @@ impl PaginatedCursor {
         self.maybe_parent_edge().is_some()
     }
 
-    const fn limit(&self) -> usize {
+    pub fn limit(&self) -> usize {
         match self {
             PaginatedCursor::Forward { first, .. } => *first,
             PaginatedCursor::Backward { last, .. } => *last,

@@ -13,7 +13,6 @@ use crate::{Context, Error};
 use std::hash::Hash;
 use std::sync::Arc;
 
-// FIXME: SHould be merged with Transformer into Transformer
 #[non_exhaustive]
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
@@ -243,7 +242,8 @@ impl Transformer {
                     order_by: Some(VariableResolveDefinition::InputTypeName(
                         "orderBy".to_string(),
                     )),
-                    nested: Some((relation_name.clone(), sk.clone())),
+                    filter: None,
+                    nested: Box::new(Some((relation_name.clone(), sk.clone()))),
                 }
                 .resolve(ctx, resolver_ctx, last_resolver_value)
                 .await?;

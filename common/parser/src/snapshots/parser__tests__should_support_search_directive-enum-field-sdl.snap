@@ -32,6 +32,9 @@ input DateTimeSearchFilterInput {
 	in: [DateTime!]
 	notIn: [DateTime!]
 }
+input IDCollectionFilterInput {
+	in: [ID!]
+}
 type Mutation {
 	"""
 	Create a Product
@@ -103,6 +106,9 @@ type Product {
 }
 input ProductByInput {
 	id: ID
+}
+input ProductCollectionFilterInput {
+	id: IDCollectionFilterInput
 }
 type ProductConnection {
 	"""
@@ -194,7 +200,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Product`.
 	"""
-	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput): ProductConnection
+	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput, filter: ProductCollectionFilterInput): ProductConnection
 	"""
 	Search `Product`
 	"""

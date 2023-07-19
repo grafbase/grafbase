@@ -264,7 +264,7 @@ pub fn add_query_search(
             after: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_AFTER.to_string()),
             before: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_BEFORE.to_string()),
             last: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_LAST.to_string()),
-            type_name,
+            type_name: type_name.into(),
             entity_type,
         }),
         required_operation: Some(Operations::LIST),

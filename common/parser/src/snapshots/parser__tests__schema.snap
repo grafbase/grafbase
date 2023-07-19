@@ -106,6 +106,18 @@ expression: req_string_a
         "p": "BestEffort"
       }
     },
+    "IDCollectionFilterInput": {
+      "i": {
+        "i": {
+          "in": {
+            "n": "in",
+            "t": "[ID!]"
+          }
+        },
+        "n": "IDCollectionFilterInput",
+        "r": "IDCollectionFilterInput"
+      }
+    },
     "Int": {
       "S": {
         "d": "The `Int` scalar type represents non-fractional whole numeric values.",
@@ -473,6 +485,10 @@ expression: req_string_a
                 "n": "before",
                 "t": "String"
               },
+              "filter": {
+                "n": "filter",
+                "t": "UserCollectionFilterInput"
+              },
               "first": {
                 "n": "first",
                 "t": "Int"
@@ -496,6 +512,9 @@ expression: req_string_a
                   },
                   "before": {
                     "InputTypeName": "before"
+                  },
+                  "filter": {
+                    "InputTypeName": "filter"
                   },
                   "first": {
                     "InputTypeName": "first"
@@ -646,6 +665,18 @@ expression: req_string_a
         "n": "UserByInput",
         "o": true,
         "r": "UserByInput"
+      }
+    },
+    "UserCollectionFilterInput": {
+      "i": {
+        "i": {
+          "id": {
+            "n": "id",
+            "t": "IDCollectionFilterInput"
+          }
+        },
+        "n": "UserCollectionFilterInput",
+        "r": "UserCollectionFilterInput"
       }
     },
     "UserConnection": {

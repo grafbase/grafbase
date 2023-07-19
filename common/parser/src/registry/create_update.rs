@@ -568,7 +568,7 @@ fn register_many_payload<'a>(
                         .into(),
                     resolver: DynamoResolver::QueryIds {
                         ids: VariableResolveDefinition::LocalData("ids".to_string()),
-                        type_name,
+                        type_name: type_name.into(),
                     }
                     .into(),
                     required_operation: Some(if mutation_kind.is_update() {
