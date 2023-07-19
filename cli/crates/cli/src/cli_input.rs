@@ -49,10 +49,10 @@ pub struct DevCommand {
     #[arg(long)]
     pub disable_watch: bool,
     /// Log level to print from function invocations, defaults to 'log-level'
-    #[arg(long)]
+    #[arg(long, value_name = "FUNCTION_LOG_LEVEL")]
     pub log_level_functions: Option<LogLevelFilter>,
     /// Log level to print for GraphQL operations, defaults to 'log-level'
-    #[arg(long)]
+    #[arg(long, value_name = "GRAPHQL_OPERATION_LOG_LEVEL")]
     pub log_level_graphql_operations: Option<LogLevelFilter>,
     /// Default log level to print
     #[arg(long, default_value = "info")]
