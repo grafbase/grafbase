@@ -147,6 +147,12 @@ git pull
 ../../scripts/dev/build-cli-assets.sh
 '''
 
+[tasks.update-assets-remote]
+description = "Updates the CLI assets built in release mode from the API repo main branch"
+script = '''
+./scripts/load-assets.sh
+'''
+
 [tasks.delete-assets]
 description = "Deletes the exported CLI assets"
 script = '''
