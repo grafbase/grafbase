@@ -148,7 +148,7 @@ git pull
 '''
 
 [tasks.update-assets-remote]
-description = "Updates the CLI assets built in release mode from the API repo main branch"
+description = "Updates the CLI assets from the latest assets produced by the CI"
 script = '''
 ./scripts/load-assets.sh
 '''
