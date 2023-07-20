@@ -111,6 +111,7 @@ pub mod mutations {
     }
 
     #[derive(cynic::InlineFragments, Debug)]
+    #[cynic(exhaustive)]
     pub enum ProjectCreatePayload {
         ProjectCreateSuccess(ProjectCreateSuccess),
         SlugAlreadyExistsError(SlugAlreadyExistsError),
@@ -172,6 +173,7 @@ pub mod mutations {
     }
 
     #[derive(cynic::InlineFragments, Debug)]
+    #[cynic(exhaustive)]
     pub enum DeploymentCreatePayload {
         DeploymentCreateSuccess(DeploymentCreateSuccess),
         ProjectDoesNotExistError(ProjectDoesNotExistError),
