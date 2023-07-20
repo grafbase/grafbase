@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "dependencies": {
+    "@grafbase/sdk": "0.2.1",
+    "@planetscale/database": "^1.8.0",
+    "graphql": "^16.7.1"
+  }
+}
