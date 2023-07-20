@@ -1,4 +1,4 @@
-export type HeaderGenerator = (headers: Headers) => any
+export type HeaderGenerator = (headers: Headers) => void
 export type HeaderValue =
   | { type: 'static'; value: string }
   | { type: 'forward'; from: string }

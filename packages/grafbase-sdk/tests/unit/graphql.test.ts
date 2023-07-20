@@ -30,6 +30,10 @@ describe('GraphQL connector', () => {
 
         headers.set('X-Features', 'Foo,Bar')
         headers.set('Foo', { forward: 'Bar' })
+      },
+      transforms: (schema) => {
+        schema.exclude('Foo.Bar', 'Bar.Foo')
+        schema.exclude('Foo.*.bar')
       }
     })
 
@@ -49,6 +53,13 @@ describe('GraphQL connector', () => {
           introspectionHeaders: [
             { name: "Foo", value: "BAR" }
           ]
+          transforms: {
+            exclude: [
+              "Foo.Bar"
+              "Bar.Foo"
+              "Foo.*.bar"
+            ]
+          }
         )"
     `)
   })
