@@ -75,9 +75,9 @@ if [[ -z "$assets" ]]; then
 	fi
 fi
 if [[ "$branch" == "main" ]]; then
-	url="https://assets.grafbase.com/cli/release/$assets.zip"
+	url="https://assets.grafbase.com/cli/release/$assets.tar.gz"
 else
-	url="https://assets.grafbase.dev/cli/$branch/$assets.zip"
+	url="https://assets.grafbase.dev/cli/$branch/$assets.tar.gz"
 fi
 
 printf "Cleaning up old assets...\n"
@@ -87,9 +87,7 @@ mkdir -p "$assets_dir"
 cd "$assets_dir"
 
 printf "Loading new assets: %s...\n" "$url"
-curl --fail "$url" -o assets.zip
-unzip assets.zip &>/dev/null
-rm assets.zip
+curl --fail "$url" -o assets.tar.gz
 cat >"$assets_dir/.gitignore" <<EOM
 *
 !.gitignore
