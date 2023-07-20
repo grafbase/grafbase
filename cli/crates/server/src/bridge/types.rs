@@ -70,9 +70,13 @@ pub struct RecordDocument {
 
 #[derive(Deserialize, Debug)]
 pub struct UdfInvocation {
-    #[serde(alias = "resolver_name")] // FIXME: remove after api repo is updated
     pub name: String,
     pub payload: serde_json::Value,
-    #[serde(default)] // FIXME: remove after api repo is updated
     pub udf_kind: UdfKind,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct LogEvent {
+    pub request_id: String,
+    pub r#type: crate::types::LogEventType,
 }

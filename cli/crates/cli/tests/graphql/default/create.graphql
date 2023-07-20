@@ -11,6 +11,7 @@ mutation {
     todoList {
       id
       title
+      status
       todos(last: 100) {
         edges {
           node {

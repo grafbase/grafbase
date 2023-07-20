@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 
 use crate::consts::AUTHORIZERS_DIRECTORY_NAME;
+use crate::types::UdfKind;
 use crate::{
     consts::{
         DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
-        GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_NAME, REGISTRY_FILE,
+        GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_FILE_NAME, REGISTRY_FILE,
         RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
     },
     errors::CommonError,
@@ -110,16 +111,32 @@ pub struct Project {
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file
     pub registry_path: PathBuf,
-    /// the path of the `grafbase/resolvers` directory.
-    pub resolvers_source_path: PathBuf,
-    /// the path within `$PROJECT/.grafbase/` containing build artifacts for custom resolvers.
-    pub resolvers_build_artifact_path: PathBuf,
-    /// the path of the `grafbase/auth` directory.
-    pub authorizers_source_path: PathBuf,
-    /// the path within `$PROJECT/.grafbase/` containing build artifacts for custom resolvers.
-    pub authorizers_build_artifact_path: PathBuf,
     /// the path within '$PROJECT/.grafbase' containing the database
     pub database_directory_path: PathBuf,
+    /// the location of package.json either in '$PROJECT/grafbase' or '$PROJECT'
+    pub package_json_path: Option<PathBuf>,
+}
+
+impl Project {
+    /// the path of the directory containing the sources corresponding to the UDF type (resolvers, authorizers).
+    #[must_use]
+    pub fn udfs_source_path(&self, kind: UdfKind) -> std::path::PathBuf {
+        let subdirectory_name = match kind {
+            UdfKind::Resolver => RESOLVERS_DIRECTORY_NAME,
+            UdfKind::Authorizer => AUTHORIZERS_DIRECTORY_NAME,
+        };
+        self.grafbase_directory_path.join(subdirectory_name)
+    }
+
+    /// the path of the directory containing the build artifacts corresponding to the UDF type (resolvers, authorizers).
+    #[must_use]
+    pub fn udfs_build_artifact_path(&self, kind: UdfKind) -> std::path::PathBuf {
+        let subdirectory_name = match kind {
+            UdfKind::Resolver => RESOLVERS_DIRECTORY_NAME,
+            UdfKind::Authorizer => AUTHORIZERS_DIRECTORY_NAME,
+        };
+        self.dot_grafbase_directory_path.join(subdirectory_name)
+    }
 }
 
 /// a static representation of the current environment
@@ -175,11 +192,11 @@ impl Project {
 
         let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY);
         let registry_path = dot_grafbase_directory_path.join(REGISTRY_FILE);
-        let resolvers_source_path = grafbase_directory_path.join(RESOLVERS_DIRECTORY_NAME);
-        let resolvers_build_artifact_path = dot_grafbase_directory_path.join(RESOLVERS_DIRECTORY_NAME);
-        let authorizers_source_path = grafbase_directory_path.join(AUTHORIZERS_DIRECTORY_NAME);
-        let authorizers_build_artifact_path = dot_grafbase_directory_path.join(AUTHORIZERS_DIRECTORY_NAME);
         let database_directory_path = dot_grafbase_directory_path.join(DATABASE_DIRECTORY);
+        let package_json_path = [grafbase_directory_path.as_path(), path.as_path()]
+            .into_iter()
+            .map(|candidate| candidate.join(PACKAGE_JSON_FILE_NAME))
+            .find(|candidate| candidate.exists());
 
         Ok(Project {
             path,
@@ -187,11 +204,8 @@ impl Project {
             dot_grafbase_directory_path,
             grafbase_directory_path,
             registry_path,
-            resolvers_source_path,
-            resolvers_build_artifact_path,
-            authorizers_source_path,
-            authorizers_build_artifact_path,
             database_directory_path,
+            package_json_path,
         })
     }
 
@@ -331,7 +345,7 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
 }
 
 pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), CommonError> {
-    let package_json_path = project_dir.join(PACKAGE_JSON_NAME);
+    let package_json_path = project_dir.join(PACKAGE_JSON_FILE_NAME);
 
     let mut package_json = if package_json_path.exists() {
         let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;

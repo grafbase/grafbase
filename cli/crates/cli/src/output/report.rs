@@ -2,10 +2,13 @@ use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
-use backend::project::{ConfigType, Template};
+use backend::{
+    project::{ConfigType, Template},
+    types::LogEventType,
+};
 use colored::Colorize;
-use common::types::UdfKind;
-use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, types::UdfMessageLevel};
+use common::consts::GRAFBASE_TS_CONFIG_FILE_NAME;
+use common::types::{LogLevel, UdfKind};
 use common::{
     consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
     environment::Warning,
@@ -105,8 +108,27 @@ pub fn goodbye() {
     watercolor::output!("\n👋 See you next time!", @BrightBlue);
 }
 
+pub fn install_udf_dependencies() {
+    println!(
+        "- {} installing dependencies from package.json...",
+        watercolor!("wait", @Cyan)
+    );
+}
+
+pub fn complete_installing_udf_dependencies(duration: std::time::Duration) {
+    let formatted_duration = if duration < std::time::Duration::from_secs(1) {
+        format!("{}ms", duration.as_millis())
+    } else {
+        format!("{:.1}s", duration.as_secs_f64())
+    };
+    println!(
+        "- {} installed successfully in {formatted_duration}",
+        watercolor!("event", @BrightMagenta)
+    );
+}
+
 pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
-    println!("{}  - compiling {udf_kind} '{udf_name}'…", watercolor!("wait", @Blue));
+    println!("- {} compiling {udf_kind} {udf_name}...", watercolor!("wait", @Cyan));
 }
 
 pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time::Duration) {
@@ -116,18 +138,83 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
         format!("{:.1}s", duration.as_secs_f64())
     };
     println!(
-        "{} - {udf_kind} '{udf_name}' compiled successfully in {formatted_duration}",
-        watercolor!("event", @Green)
+        "- {} compiled {udf_kind} {udf_name} successfully in {formatted_duration}",
+        watercolor!("event", @BrightMagenta)
     );
 }
 
-pub fn udf_message(udf_kind: UdfKind, udf_name: &str, message: &str, level: UdfMessageLevel) {
-    match level {
-        UdfMessageLevel::Debug => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @BrightBlack),
-        UdfMessageLevel::Error => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Red),
-        UdfMessageLevel::Info => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Cyan),
-        UdfMessageLevel::Warn => watercolor::output!("[{udf_kind} '{udf_name}'] {message}", @Yellow),
+pub fn udf_message(
+    udf_kind: UdfKind,
+    udf_name: &str,
+    message: &str,
+    message_level: LogLevel,
+    log_level_filter: Option<LogLevel>,
+) {
+    let Some(log_level_filter) = log_level_filter else {
+        return;
+    };
+    if message_level > log_level_filter {
+        return;
     }
+
+    let colour = match message_level {
+        LogLevel::Debug => watercolor::colored::Color::BrightBlack,
+        LogLevel::Error => watercolor::colored::Color::Red,
+        LogLevel::Info => watercolor::colored::Color::Cyan,
+        LogLevel::Warn => watercolor::colored::Color::Yellow,
+    };
+    println!("{}", format!("[{udf_kind} '{udf_name}'] {message}").color(colour));
+}
+
+pub fn operation_log(log_event_type: LogEventType, log_level_filter: Option<LogLevel>) {
+    let Some(log_level_filter) = log_level_filter else {
+        return;
+    };
+    if log_level_filter < LogLevel::Info {
+        return;
+    }
+
+    let (name, r#type, colour, duration) = match log_event_type {
+        LogEventType::OperationStarted { .. } => return,
+        LogEventType::OperationCompleted { name, duration, r#type } => {
+            let colour = match r#type {
+                common::types::OperationType::Query { is_introspection } => {
+                    if is_introspection && log_level_filter < LogLevel::Debug {
+                        return;
+                    }
+                    watercolor::colored::Color::Green
+                }
+                common::types::OperationType::Mutation => watercolor::colored::Color::Green,
+                common::types::OperationType::Subscription => {
+                    return;
+                }
+            };
+            (name, Some(r#type), colour, duration)
+        }
+        LogEventType::BadRequest { name, duration } => (name, None, watercolor::colored::Color::Red, duration),
+    };
+
+    let formatted_duration = format_duration(duration);
+    let formatted_name = name.map(|name| format!(" {name}")).unwrap_or_default();
+    let formatted_type = r#type.map_or_else(|| "operation".to_owned(), |r#type| r#type.to_string());
+    println!(
+        "- {formatted_type}{formatted_name} {formatted_duration}",
+        formatted_type = formatted_type.color(colour)
+    );
+}
+
+pub fn format_duration(duration: std::time::Duration) -> String {
+    [
+        ("ns", duration.as_nanos()),
+        ("μs", duration.as_micros()),
+        ("ms", duration.as_millis()),
+    ]
+    .into_iter()
+    .find(|(_, value)| *value < 1000)
+    .map_or_else(
+        || format!("{:.2}s", duration.as_secs_f64()),
+        |(suffix, value)| format!("{value}{suffix}"),
+    )
 }
 
 pub fn reload<P: AsRef<Path>>(path: P) {

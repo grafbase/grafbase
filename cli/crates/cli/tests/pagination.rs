@@ -342,3 +342,163 @@ fn pagination_order() {
         &reversed_todos[2..4]
     );
 }
+
+#[test]
+fn collection_id_filter() {
+    let mut env = Environment::init();
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(PAGINATION_SCHEMA);
+    env.grafbase_dev();
+    let client = env.create_client().with_api_key();
+    client.poll_endpoint(30, 300);
+
+    let mut todos = generate_todos(&client, 5);
+    let todo_collection = |variables: Value| {
+        let response = client
+            .gql::<Value>(PAGINATION_PAGINATE_TODOS)
+            .variables(variables)
+            .send();
+        dot_get!(response, "data.todoCollection", Collection<Todo>)
+    };
+    let mut todo_ids = todos.iter().map(|todo| todo.id.clone()).collect::<Vec<_>>();
+
+    // all ids
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 100,
+            "filter": { "id": { "in": todo_ids } }
+        })),
+        &todos[..]
+    );
+    // single one
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 100,
+            "filter": { "id": { "in": [todo_ids[0]] } }
+        })),
+        &todos[..1]
+    );
+    // duplicate
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 100,
+            "filter": { "id": { "in": [todo_ids[0], todo_ids[0]] } }
+        })),
+        &todos[..1]
+    );
+
+    // non-existant
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 100,
+            "filter": { "id": { "in": [todo_ids[0], "random"] } }
+        })),
+        &todos[..1]
+    );
+
+    //
+    // ORDER BY ASC
+    //
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 100,
+            "filter": { "id": { "in": todo_ids } },
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[..]
+    );
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 100,
+            "filter": { "id": { "in": todo_ids } },
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[..]
+    );
+
+    let page = todo_collection(json!({
+        "first": 3,
+        "filter": { "id": { "in": todo_ids } },
+        "orderBy": { "createdAt": "ASC" }
+    }));
+    assert_same_todos!(page, &todos[..3]);
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 3,
+            "after": page.edges.last().unwrap().cursor,
+            "filter": { "id": { "in": todo_ids } },
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[3..]
+    );
+
+    let page = todo_collection(json!({
+        "last": 3,
+        "filter": { "id": { "in": todo_ids } },
+        "orderBy": { "createdAt": "ASC" }
+    }));
+    assert_same_todos!(page, &todos[2..]);
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 3,
+            "before": page.edges.first().unwrap().cursor,
+            "filter": { "id": { "in": todo_ids } },
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[..2]
+    );
+
+    //
+    // ORDER BY DESC
+    //
+    todos.reverse();
+    todo_ids.reverse();
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 100,
+            "filter": { "id": { "in": todo_ids } },
+            "orderBy": { "createdAt": "DESC" }
+        })),
+        &todos[..]
+    );
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 100,
+            "filter": { "id": { "in": todo_ids } },
+            "orderBy": { "createdAt": "DESC" }
+        })),
+        &todos[..]
+    );
+
+    let page = todo_collection(json!({
+        "first": 3,
+        "filter": { "id": { "in": todo_ids } },
+        "orderBy": { "createdAt": "DESC" }
+    }));
+    assert_same_todos!(page, &todos[..3]);
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 3,
+            "after": page.edges.last().unwrap().cursor,
+            "filter": { "id": { "in": todo_ids } },
+            "orderBy": { "createdAt": "DESC" }
+        })),
+        &todos[3..]
+    );
+
+    let page = todo_collection(json!({
+        "last": 3,
+        "filter": { "id": { "in": todo_ids } },
+        "orderBy": { "createdAt": "DESC" }
+    }));
+    assert_same_todos!(page, &todos[2..]);
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 3,
+            "before": page.edges.first().unwrap().cursor,
+            "filter": { "id": { "in": todo_ids } },
+            "orderBy": { "createdAt": "DESC" }
+        })),
+        &todos[..2]
+    );
+}

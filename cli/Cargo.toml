@@ -1,8 +1,10 @@
 [workspace]
 members = ["crates/*"]
 
+resolver = "2"
+
 [workspace.package]
-version = "0.25.1"
+version = "0.27.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"

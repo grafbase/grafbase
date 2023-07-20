@@ -1,27 +1,168 @@
 use std::process::Stdio;
+use std::sync::Arc;
 
+use crate::errors::UdfBuildError;
 use crate::types::ServerMessage;
 
+use axum::extract::State;
+use axum::Json;
 use common::types::UdfKind;
-use common::{environment::Environment, types::UdfMessageLevel};
-use futures_util::{pin_mut, TryStreamExt};
+use common::{environment::Environment, types::LogLevel};
+use futures_util::{pin_mut, TryFutureExt, TryStreamExt};
 use tokio::process::Command;
+use tokio::sync::Notify;
 
 use super::errors::ApiError;
+use super::server::HandlerState;
+use super::types::UdfInvocation;
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UdfMessage {
     message: String,
-    level: UdfMessageLevel,
+    level: LogLevel,
 }
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UdfResponse {
     log_entries: Vec<UdfMessage>,
-    #[serde(flatten)]
-    rest: serde_json::Value,
+    value: serde_json::Value,
+}
+
+pub enum UdfBuild {
+    InProgress {
+        notify: Arc<Notify>,
+    },
+    Succeeded {
+        #[allow(dead_code)]
+        miniflare_handle: tokio::task::JoinHandle<()>,
+        worker_port: u16,
+    },
+    Failed,
+}
+
+#[allow(clippy::too_many_lines)]
+pub async fn invoke_udf_endpoint(
+    State(handler_state): State<Arc<HandlerState>>,
+    Json(payload): Json<UdfInvocation>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    trace!("UDF invocation\n\n{:#?}\n", payload);
+
+    let environment = Environment::get();
+    let udf_kind = payload.udf_kind;
+
+    let udf_worker_port = loop {
+        let notify = {
+            let mut udf_builds: tokio::sync::MutexGuard<'_, _> = handler_state.udf_builds.lock().await;
+
+            if let Some(udf_build) = udf_builds.get(&(payload.name.clone(), udf_kind)) {
+                match udf_build {
+                    UdfBuild::Succeeded { worker_port, .. } => break *worker_port,
+                    UdfBuild::Failed => return Err(ApiError::UdfInvocation),
+                    UdfBuild::InProgress { notify } => {
+                        // If the resolver build happening within another invocation has been cancelled
+                        // due to the invocation having been interrupted by the HTTP client, start a new build.
+                        if Arc::strong_count(notify) == 1 {
+                            notify.clone()
+                        } else {
+                            let notify = notify.clone();
+                            drop(udf_builds);
+                            notify.notified().await;
+                            continue;
+                        }
+                    }
+                }
+            } else {
+                let notify = Arc::new(Notify::new());
+                udf_builds.insert(
+                    (payload.name.clone(), udf_kind),
+                    UdfBuild::InProgress { notify: notify.clone() },
+                );
+                notify
+            }
+        };
+
+        let start = std::time::Instant::now();
+        handler_state
+            .bridge_sender
+            .send(ServerMessage::StartUdfBuild {
+                udf_kind,
+                udf_name: payload.name.clone(),
+            })
+            .await
+            .unwrap();
+
+        let tracing = handler_state.tracing;
+
+        match crate::udf_builder::build(
+            environment,
+            &handler_state.environment_variables,
+            udf_kind,
+            &payload.name,
+            tracing,
+        )
+        .and_then(|(package_json_path, wrangler_toml_path)| {
+            super::udf::spawn_miniflare(udf_kind, &payload.name, package_json_path, wrangler_toml_path, tracing)
+        })
+        .await
+        {
+            Ok((miniflare_handle, worker_port)) => {
+                handler_state.udf_builds.lock().await.insert(
+                    (payload.name.clone(), udf_kind),
+                    UdfBuild::Succeeded {
+                        miniflare_handle,
+                        worker_port,
+                    },
+                );
+                notify.notify_waiters();
+
+                handler_state
+                    .bridge_sender
+                    .send(ServerMessage::CompleteUdfBuild {
+                        udf_kind,
+                        udf_name: payload.name.clone(),
+                        duration: start.elapsed(),
+                    })
+                    .await
+                    .unwrap();
+
+                break worker_port;
+            }
+            Err(err) => {
+                error!(
+                    "Build of {udf_kind} '{udf_name}' failed: {err:?}",
+                    udf_name = payload.name
+                );
+                handler_state
+                    .bridge_sender
+                    .send(ServerMessage::CompilationError(format!(
+                        "{udf_kind} '{udf_name}' failed to build: {err}",
+                        udf_name = payload.name
+                    )))
+                    .await
+                    .unwrap();
+            }
+        };
+
+        handler_state
+            .udf_builds
+            .lock()
+            .await
+            .insert((payload.name.clone(), udf_kind), UdfBuild::Failed);
+        notify.notify_waiters();
+        return Err(ApiError::UdfInvocation);
+    };
+
+    super::udf::invoke(
+        &handler_state.bridge_sender,
+        udf_worker_port,
+        udf_kind,
+        &payload.name,
+        &payload.payload,
+    )
+    .await
+    .map(Json)
 }
 
 async fn wait_until_udf_ready(worker_port: u16, udf_kind: UdfKind, udf_name: &str) -> Result<bool, reqwest::Error> {
@@ -58,8 +199,8 @@ pub async fn spawn_miniflare(
     udf_name: &str,
     package_json_path: std::path::PathBuf,
     wrangler_toml_path: std::path::PathBuf,
-    _tracing: bool,
-) -> Result<(tokio::task::JoinHandle<()>, u16), ApiError> {
+    tracing: bool,
+) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
     use tokio::io::AsyncBufReadExt;
     use tokio_stream::wrappers::LinesStream;
 
@@ -72,12 +213,11 @@ pub async fn spawn_miniflare(
         .unwrap();
 
     let (join_handle, resolver_worker_port) = {
-        let miniflare_arguments = &[
+        let mut miniflare_arguments = vec![
             // used by miniflare when running normally as well
             "--experimental-vm-modules",
             miniflare_path.to_str().unwrap(),
             "--modules",
-            "--debug",
             "--host",
             "127.0.0.1",
             "--port",
@@ -89,6 +229,9 @@ pub async fn spawn_miniflare(
             "--wrangler-config",
             wrangler_toml_path.to_str().unwrap(),
         ];
+        if tracing {
+            miniflare_arguments.push("--debug");
+        }
         let miniflare_command = miniflare_arguments.join(" ");
 
         let mut miniflare = Command::new("node");
@@ -105,24 +248,25 @@ pub async fn spawn_miniflare(
         let mut miniflare = miniflare.spawn().unwrap();
         let bound_port = {
             let stdout = miniflare.stdout.as_mut().unwrap();
-            let lines_stream = LinesStream::new(tokio::io::BufReader::new(stdout).lines())
-                .inspect_ok(|line| trace!("miniflare: {line}"));
-
-            let filtered_lines_stream = lines_stream.try_filter_map(|line: String| {
-                futures_util::future::ready(Ok(line
-                    .split("Listening on")
-                    .skip(1)
-                    .flat_map(|bound_address| bound_address.split(':'))
-                    .nth(1)
-                    .and_then(|value| value.trim().parse::<u16>().ok())))
-            });
+            let mut lines_skipped_over = vec![];
+            let filtered_lines_stream =
+                LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
+                    trace!("miniflare: {line}");
+                    let port = line
+                        .split("Listening on")
+                        .skip(1)
+                        .flat_map(|bound_address| bound_address.split(':'))
+                        .nth(1)
+                        .and_then(|value| value.trim().parse::<u16>().ok());
+                    lines_skipped_over.push(line);
+                    futures_util::future::ready(Ok(port))
+                });
             pin_mut!(filtered_lines_stream);
-            filtered_lines_stream
-                .try_next()
-                .await
-                .ok()
-                .flatten()
-                .expect("must be present")
+            filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
+                UdfBuildError::MiniflareSpawnFailedWithOutput {
+                    output: lines_skipped_over.join("\n"),
+                }
+            })?
         };
         trace!("Bound to port: {bound_port}");
         let udf_name = udf_name.to_owned();
@@ -140,11 +284,11 @@ pub async fn spawn_miniflare(
 
     if wait_until_udf_ready(resolver_worker_port, udf_kind, udf_name)
         .await
-        .map_err(|_| ApiError::UdfSpawnError)?
+        .map_err(|_| UdfBuildError::MiniflareSpawnFailed)?
     {
         Ok((join_handle, resolver_worker_port))
     } else {
-        Err(ApiError::UdfSpawnError)
+        Err(UdfBuildError::MiniflareSpawnFailed)
     }
 }
 
@@ -155,7 +299,6 @@ pub async fn invoke(
     udf_name: &str,
     payload: &serde_json::Value,
 ) -> Result<serde_json::Value, ApiError> {
-    use futures_util::TryFutureExt;
     trace!("Invocation of {udf_kind} '{udf_name}' with payload {payload}");
     let json_string = reqwest::Client::new()
         .post(format!("http://127.0.0.1:{udf_worker_port}/invoke"))
@@ -169,7 +312,7 @@ pub async fn invoke(
         .await
         .map_err(|_| ApiError::UdfInvocation)?;
 
-    let UdfResponse { log_entries, rest } = serde_json::from_str(&json_string).map_err(|err| {
+    let UdfResponse { log_entries, value } = serde_json::from_str(&json_string).map_err(|err| {
         error!("deserialization from '{json_string}' failed: {err:?}");
         ApiError::UdfInvocation
     })?;
@@ -186,5 +329,5 @@ pub async fn invoke(
             .unwrap();
     }
 
-    Ok(rest)
+    Ok(value)
 }

@@ -1,3 +1,4 @@
+use crate::cli_input::LogLevelFilters;
 use crate::output::report;
 use crate::CliError;
 use backend::server_api::start_server;
@@ -15,7 +16,14 @@ static READY: Once = Once::new();
 /// returns [`CliError::BackendError`] if the the local gateway returns an error
 ///
 /// returns [`CliError::ServerPanic`] if the development server panics
-pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Result<(), CliError> {
+#[allow(clippy::fn_params_excessive_bools)]
+pub fn dev(
+    search: bool,
+    watch: bool,
+    external_port: u16,
+    log_level_filters: LogLevelFilters,
+    tracing: bool,
+) -> Result<(), CliError> {
     trace!("attempting to start server");
 
     let (server_handle, receiver) =
@@ -30,6 +38,10 @@ pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Resu
                     READY.call_once(|| report::start_server(resolvers_reported, port, external_port));
                 }
                 ServerMessage::Reload(path) => report::reload(path),
+                ServerMessage::InstallUdfDependencies => report::install_udf_dependencies(),
+                ServerMessage::CompleteInstallingUdfDependencies { duration } => {
+                    report::complete_installing_udf_dependencies(duration);
+                }
                 ServerMessage::StartUdfBuild { udf_kind, udf_name } => {
                     report::start_udf_build(udf_kind, &udf_name);
                 }
@@ -47,7 +59,10 @@ pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Resu
                     message,
                     level,
                 } => {
-                    report::udf_message(udf_kind, &udf_name, &message, level);
+                    report::udf_message(udf_kind, &udf_name, &message, level, log_level_filters.functions);
+                }
+                ServerMessage::OperationLogMessage { event_type, .. } => {
+                    report::operation_log(event_type, log_level_filters.graphql_operations);
                 }
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }

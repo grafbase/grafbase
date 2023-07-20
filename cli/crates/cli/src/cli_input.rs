@@ -1,10 +1,41 @@
 use crate::create::CreateArguments;
 use clap::{arg, command, CommandFactory, Parser, ValueEnum};
 use clap_complete::{shells, Generator};
-use common::consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER};
+use common::{
+    consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
+    types::LogLevel,
+};
 use std::{fmt, path::PathBuf};
 
 const DEFAULT_PORT: u16 = 4000;
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, clap::ValueEnum)]
+#[clap(rename_all = "snake_case")]
+pub enum LogLevelFilter {
+    None,
+    Error,
+    Warn,
+    Info,
+    Debug,
+}
+
+impl From<LogLevelFilter> for Option<LogLevel> {
+    fn from(value: LogLevelFilter) -> Self {
+        match value {
+            LogLevelFilter::None => None,
+            LogLevelFilter::Error => Some(LogLevel::Error),
+            LogLevelFilter::Warn => Some(LogLevel::Warn),
+            LogLevelFilter::Info => Some(LogLevel::Info),
+            LogLevelFilter::Debug => Some(LogLevel::Debug),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct LogLevelFilters {
+    pub functions: Option<LogLevel>,
+    pub graphql_operations: Option<LogLevel>,
+}
 
 #[derive(Debug, Parser)]
 pub struct DevCommand {
@@ -17,6 +48,24 @@ pub struct DevCommand {
     /// Do not listen for schema changes and reload
     #[arg(long)]
     pub disable_watch: bool,
+    /// Log level to print from function invocations, defaults to 'log-level'
+    #[arg(long, value_name = "FUNCTION_LOG_LEVEL")]
+    pub log_level_functions: Option<LogLevelFilter>,
+    /// Log level to print for GraphQL operations, defaults to 'log-level'
+    #[arg(long, value_name = "GRAPHQL_OPERATION_LOG_LEVEL")]
+    pub log_level_graphql_operations: Option<LogLevelFilter>,
+    /// Default log level to print
+    #[arg(long, default_value = "info")]
+    pub log_level: LogLevelFilter,
+}
+
+impl DevCommand {
+    pub fn log_levels(&self) -> LogLevelFilters {
+        LogLevelFilters {
+            functions: self.log_level_functions.unwrap_or(self.log_level).into(),
+            graphql_operations: self.log_level_graphql_operations.unwrap_or(self.log_level).into(),
+        }
+    }
 }
 
 #[derive(Debug, Parser, Clone, Copy)]
@@ -58,11 +107,10 @@ pub struct CompletionsCommand {
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
+#[clap(rename_all = "lowercase")]
 pub enum ConfigFormat {
     /// Adds a TypeScript configuration file
-    #[value(name = "typescript")]
     TypeScript,
-    #[value(name = "graphql")]
     /// Adds a GraphQL configuration file
     GraphQL,
 }

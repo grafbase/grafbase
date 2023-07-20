@@ -7,6 +7,8 @@ import { JWTAuth, JWTParams } from './auth/jwt'
 import { JWKSAuth, JWKSParams } from './auth/jwks'
 import { RequireAtLeastOne } from 'type-fest'
 import dotenv from 'dotenv'
+import { Authorizer, AuthorizerParams } from './auth/authorizer'
+import { MongoDBParams, PartialMongoDBAPI } from './connector/mongodb'
 
 dotenv.config()
 
@@ -40,6 +42,14 @@ export const connector = {
    */
   GraphQL: (params: GraphQLParams): PartialGraphQLAPI => {
     return new PartialGraphQLAPI(params)
+  },
+  /**
+   * Create a new MongoDB connector object.
+   *
+   * @param params = The configuration parameters.
+   */
+  MongoDB: (params: MongoDBParams): PartialMongoDBAPI => {
+    return new PartialMongoDBAPI(params)
   }
 }
 
@@ -69,5 +79,13 @@ export const auth = {
     params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>
   ): JWKSAuth => {
     return new JWKSAuth(params)
+  },
+  /**
+   * Create a new authorizer authenticator.
+   *
+   * @param params - The configuration parameters.
+   */
+  Authorizer: (params: AuthorizerParams): Authorizer => {
+    return new Authorizer(params)
   }
 }

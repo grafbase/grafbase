@@ -1,5 +1,12 @@
-query PaginateTodos($first: Int, $last: Int, $before: String, $after: String, $orderBy: TodoOrderByInput) {
-  todoCollection(first: $first, last: $last, before: $before, after: $after, orderBy: $orderBy) {
+query PaginateTodos(
+  $first: Int
+  $last: Int
+  $before: String
+  $after: String
+  $orderBy: TodoOrderByInput
+  $filter: TodoCollectionFilterInput
+) {
+  todoCollection(first: $first, last: $last, before: $before, after: $after, orderBy: $orderBy, filter: $filter) {
     pageInfo {
       hasNextPage
       hasPreviousPage

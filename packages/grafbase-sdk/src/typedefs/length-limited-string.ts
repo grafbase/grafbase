@@ -9,6 +9,7 @@ import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { StringListDefinition } from './list'
+import { MapDefinition } from './map'
 
 export interface FieldLength {
   min?: number
@@ -79,6 +80,13 @@ export class LengthLimitedStringDefinition {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  /**
+   * Sets the name of the field in the database, if different than the name of the field.
+   */
+  public mapped(name: string): MapDefinition {
+    return new MapDefinition(this, name)
   }
 
   public toString(): string {

@@ -17,7 +17,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: release/b835250-2023-06-23
+  ASSETS_VERSION: release/9d65ad1-2023-07-19
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
   CARGO_PROFILE_DEV_DEBUG: 0
@@ -159,6 +159,12 @@ jobs:
           name: windows-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
 
+      - name: Upload the binary as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: x86_64-pc-windows-msvc.exe
+          path: cli/target/x86_64-pc-windows-msvc/release/grafbase.exe
+
       - name: Parse version tag
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
@@ -180,10 +186,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        archs: [
-          { runner: buildjet-8vcpu-ubuntu-2204, target: x86_64-unknown-linux-musl, platform: linux },
-          { runner: buildjet-8vcpu-ubuntu-2204-arm, target: aarch64-unknown-linux-musl, platform: linux-arm }
-        ]
+        archs:
+          [
+            {
+              runner: buildjet-8vcpu-ubuntu-2204,
+              target: x86_64-unknown-linux-musl,
+              platform: linux
+            },
+            {
+              runner: buildjet-8vcpu-ubuntu-2204-arm,
+              target: aarch64-unknown-linux-musl,
+              platform: linux-arm
+            }
+          ]
     runs-on: ${{ matrix.archs.runner }}
     steps:
       - name: Get sources
@@ -217,6 +232,12 @@ jobs:
         with:
           name: linux-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
+
+      - name: Upload the binary as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.archs.target }}
+          path: cli/target/${{ matrix.archs.target }}/release/grafbase
 
       - name: Parse version tag
         if: startsWith(github.ref, 'refs/tags/')
@@ -279,6 +300,12 @@ jobs:
           VERSION_BUMP="${{ github.ref_name }}"
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
+      - name: Upload the binary as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.target }}
+          path: cli/target/${{ matrix.target }}/release/grafbase
 
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload ${{ matrix.target }} binary

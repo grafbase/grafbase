@@ -88,7 +88,13 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
-            dev(cmd.search, !cmd.disable_watch, cmd.port, args.trace >= 2)
+            dev(
+                cmd.search,
+                !cmd.disable_watch,
+                cmd.port,
+                cmd.log_levels(),
+                args.trace >= 2,
+            )
         }
         SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.config_format),
         SubCommand::Reset => reset(),

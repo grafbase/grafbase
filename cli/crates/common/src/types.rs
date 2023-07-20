@@ -8,13 +8,12 @@ pub enum LocalAddressType {
     Unspecified,
 }
 
-#[derive(Clone, Copy, Debug, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum UdfMessageLevel {
-    Debug,
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize)]
+pub enum LogLevel {
     Error,
-    Info,
     Warn,
+    Info,
+    Debug,
 }
 
 impl LocalAddressType {
@@ -27,15 +26,17 @@ impl LocalAddressType {
     }
 }
 
-#[derive(Clone, Copy, Debug, serde::Deserialize, strum::Display)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, strum::Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum UdfKind {
     Resolver,
     Authorizer,
 }
 
-// FIXME: remove after api repo is updated
-impl Default for UdfKind {
-    fn default() -> Self {
-        Self::Resolver
-    }
+#[derive(serde::Deserialize, Clone, Copy, Debug, strum::Display)]
+#[strum(serialize_all = "lowercase")]
+pub enum OperationType {
+    Query { is_introspection: bool },
+    Mutation,
+    Subscription,
 }

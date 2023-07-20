@@ -52,7 +52,9 @@ export class GraphQLAPI {
 
   public toString(): string {
     const header = '  @graphql(\n'
-    const namespace = this.namespace ? `    namespace: "${this.namespace}"\n` : ''
+    const namespace = this.namespace
+      ? `    namespace: "${this.namespace}"\n`
+      : ''
     const url = this.url ? `    url: "${this.url}"\n` : ''
 
     var headers = this.headers.map((header) => `      ${header}`).join('\n')

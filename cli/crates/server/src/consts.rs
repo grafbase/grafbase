@@ -1,6 +1,6 @@
 pub const ASSET_VERSION_FILE: &str = "version.txt";
 pub const CONFIG_PARSER_SCRIPT: &str = "parse-config.ts";
-pub const DOT_ENV_FILE: &str = ".env";
+pub const DOT_ENV_FILE_NAME: &str = ".env";
 pub const GENERATED_SCHEMAS_DIR: &str = "generated/schemas";
 pub const GIT_IGNORE_CONTENTS: &str = "*\n";
 pub const GIT_IGNORE_FILE: &str = ".gitignore";

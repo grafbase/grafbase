@@ -22,6 +22,7 @@ fn dev() {
     let todo_list: Value = dot_get!(response, "data.todoListCreate.todoList");
     let todo_list_id: String = dot_get!(todo_list, "id");
     assert!(!todo_list_id.is_empty());
+    assert_eq!(dot_get!(todo_list, "status", String), "BACKLOG");
     assert_eq!(dot_get!(todo_list, "title", String), "My todo list");
 
     let todos: Vec<Value> = dot_get!(todo_list, "todos.edges", Value)
@@ -79,8 +80,24 @@ fn dev() {
     //
     let response = client
         .gql::<Value>(DEFAULT_UPDATE)
-        .variables(json!({ "id": todo_list_id }))
+        .variables(json!({ "id": todo_list_id, "input": {
+            "title": "Sweet and Sour",
+            "tags": ["Plum"],
+            "likes": { "set": 10 }
+        }}))
         .send();
     let updated_todo_list: Value = dot_get!(response, "data.todoListUpdate.todoList");
-    assert_eq!(dot_get!(updated_todo_list, "title", String), "Updated Title");
+    assert_eq!(dot_get!(updated_todo_list, "title", String), "Sweet and Sour");
+    assert_eq!(dot_get!(updated_todo_list, "likes", i32), 10);
+    assert_eq!(dot_get!(updated_todo_list, "tags", Vec<String>), vec!["Plum"]);
+
+    let response = client
+        .gql::<Value>(DEFAULT_UPDATE)
+        .variables(json!({ "id": todo_list_id, "input": { "tags": Value::Null, "status": "IN_PROGRESS" } }))
+        .send();
+    let updated_todo_list: Value = dot_get!(response, "data.todoListUpdate.todoList");
+    assert_eq!(dot_get!(updated_todo_list, "title", String), "Sweet and Sour");
+    assert_eq!(dot_get!(updated_todo_list, "likes", i32), 10);
+    assert_eq!(dot_get!(updated_todo_list, "status", String), "IN_PROGRESS");
+    assert_eq!(dot_get_opt!(updated_todo_list, "tags", Vec<String>), None);
 }

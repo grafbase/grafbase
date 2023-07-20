@@ -34,13 +34,18 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.25.1" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.25.1" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.27.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.27.0" }
 
 [dev-dependencies]
+async-graphql = "5"
+async-graphql-axum = "5"
+async-trait = "0.1"
+axum = "0.6"
 cfg-if = "1"
 chrono = "0.4"
-crossbeam-channel = "0.5"
+cynic = "3"
+cynic-introspection = "3"
 derive_builder = "0.12"
 dirs = "5"
 duct = "0.13"

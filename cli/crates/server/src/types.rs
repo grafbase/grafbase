@@ -1,12 +1,35 @@
-use common::types::{UdfKind, UdfMessageLevel};
+use common::types::{LogLevel, UdfKind};
 use std::path::PathBuf;
 
 pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
+
+#[serde_with::serde_as]
+#[derive(serde::Deserialize, Clone, Debug)]
+pub enum LogEventType {
+    OperationStarted {
+        name: Option<String>,
+    },
+    OperationCompleted {
+        name: Option<String>,
+        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+        duration: std::time::Duration,
+        r#type: common::types::OperationType,
+    },
+    BadRequest {
+        name: Option<String>,
+        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+        duration: std::time::Duration,
+    },
+}
 
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
     Ready(u16),
     Reload(PathBuf),
+    InstallUdfDependencies,
+    CompleteInstallingUdfDependencies {
+        duration: std::time::Duration,
+    },
     StartUdfBuild {
         udf_kind: UdfKind,
         udf_name: String,
@@ -19,8 +42,12 @@ pub enum ServerMessage {
     UdfMessage {
         udf_kind: UdfKind,
         udf_name: String,
-        level: UdfMessageLevel,
+        level: LogLevel,
         message: String,
+    },
+    OperationLogMessage {
+        request_id: String,
+        event_type: LogEventType,
     },
     CompilationError(String),
 }
