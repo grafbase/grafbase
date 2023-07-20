@@ -40,6 +40,7 @@ yarn-error.log*
 .vscode
 .now
 
+# direnv
 .envrc
 .direnv/
 
