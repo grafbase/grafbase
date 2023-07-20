@@ -34,13 +34,6 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
     ) {
         if let Some((entry_point, object)) = find_entry_point(type_definition) {
             let type_name = type_definition.node.name.node.to_string();
-            if !type_definition.node.extend {
-                ctx.report_error(
-                    vec![type_definition.pos],
-                    format!("Type `{type_name}` can only appear with the `extend` keyword."),
-                );
-                return;
-            }
             let required_operation = match entry_point {
                 EntryPoint::Query => Some(Operations::READ),
                 EntryPoint::Mutation => Some(Operations::WRITE),
@@ -48,12 +41,12 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
             for field in &object.fields {
                 let name = field.node.name.node.to_string();
                 let Some(resolver_name) = ResolverDirective::resolver_name(&field.node) else {
-                        ctx.report_error(
-                            vec![field.pos],
-                            format!("Field '{name}' of extended '{type_name}' must hold a `@resolver` directive.")
-                        );
-                        continue;
-                    };
+                    ctx.report_error(
+                        vec![field.pos],
+                        format!("Field '{name}' of '{type_name}' must have a resolver defined.")
+                    );
+                    continue;
+                };
                 let (field_collection, cache_control) = match entry_point {
                     EntryPoint::Query => (&mut ctx.queries, CacheDirective::parse(&field.node.directives)),
                     EntryPoint::Mutation => (&mut ctx.mutations, Default::default()),
@@ -105,17 +98,15 @@ mod tests {
     #[rstest::rstest]
     #[case(r#"
         type Query {
-            foo: String!
+            foo: String! @resolver(name: "blah")
         }
-    "#, &[
-        "Type `Query` can only appear with the `extend` keyword."
-    ])]
+    "#, &[])]
     #[case(r#"
         extend type Query {
             foo: String!
         }
     "#, &[
-        "Field 'foo' of extended 'Query' must hold a `@resolver` directive."
+        "Field 'foo' of 'Query' must have a resolver defined."
     ])]
     #[case(r#"
         extend type Query {
@@ -124,17 +115,15 @@ mod tests {
     "#, &[])]
     #[case(r#"
         type Mutation {
-            foo: String!
+            foo: String! @resolver(name: "blah")
         }
-    "#, &[
-        "Type `Mutation` can only appear with the `extend` keyword."
-    ])]
+    "#, &[])]
     #[case(r#"
         extend type Mutation {
             foo: String!
         }
     "#, &[
-        "Field 'foo' of extended 'Mutation' must hold a `@resolver` directive."
+        "Field 'foo' of 'Mutation' must have a resolver defined."
     ])]
     #[case(r#"
         extend type Mutation {
