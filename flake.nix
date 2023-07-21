@@ -48,7 +48,6 @@
             openssl.dev
             pkg-config
             rustup
-            sccache
 
             # for sqlx-macros
             libiconv
@@ -74,8 +73,6 @@
             darwin.apple_sdk.frameworks.CoreFoundation
             darwin.apple_sdk.frameworks.CoreServices
           ];
-
-        RUSTC_WRAPPER = "${pkgs.sccache.out}/bin/sccache";
 
         shellHook = ''
           export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo"
