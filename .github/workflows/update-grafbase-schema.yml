@@ -1,8 +1,9 @@
 name: Check grafbase.com for GraphQL schema updates
 on: 
   workflow_dispatch:
-  schedule:
-    - cron: 0 9 * * *
+  # Will uncomment schedule when I'm sure this works
+  #schedule:
+  #  - cron: 0 9 * * *
 jobs:
   update-grafbase-schema:
     runs-on: ubuntu-latest
