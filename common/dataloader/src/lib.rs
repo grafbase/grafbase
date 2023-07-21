@@ -84,6 +84,7 @@ use fnv::FnvHashMap;
 use futures_channel::oneshot;
 use futures_timer::Delay;
 use futures_util::future::BoxFuture;
+
 #[cfg(feature = "tracing")]
 use tracing::{info_span, instrument, Instrument};
 
@@ -393,6 +394,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
                 };
                 #[cfg(feature = "tracing")]
                 let task = task.instrument(info_span!("start_fetch")).in_current_span();
+
                 (self.spawner)(Box::pin(task));
             }
             Action::Delay => {}

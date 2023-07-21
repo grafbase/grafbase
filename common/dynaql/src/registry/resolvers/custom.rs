@@ -15,6 +15,9 @@ use send_wrapper::SendWrapper;
 use std::hash::Hash;
 use std::sync::Arc;
 
+#[cfg(feature = "tracing_worker")]
+use tracing::{info_span, Instrument};
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct CustomResolver {
     pub resolver_name: String,
@@ -87,6 +90,12 @@ impl CustomResolver {
                 },
                 udf_kind: UdfKind::Resolver,
             },
+        ));
+
+        #[cfg(feature = "tracing_worker")]
+        let future = future.instrument(info_span!(
+            "custom_resolver",
+            resolver_name = self.resolver_name
         ));
 
         match Box::pin(future).await? {

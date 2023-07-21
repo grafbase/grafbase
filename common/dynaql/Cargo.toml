@@ -18,7 +18,7 @@ chrono-duration = ["iso8601-duration"]
 password-strength-validator = ["zxcvbn"]
 string_number = []
 tokio_runtime = ["dynamodb/tokio_runtime"]
-tracing_worker = ["logworker"]
+tracing_worker = ["logworker", "dynamodb/tracing", "tracing"]
 unblock = ["blocking"]
 unstable_oneof = ["dynaql-derive/unstable_oneof"]
 wasm_runtime = ["dynamodb/wasm_runtime"]
@@ -72,7 +72,7 @@ grafbase-runtime = { path = "../grafbase-runtime" }
 grafbase = { path = "../grafbase", features = ["json"] }
 
 # API dependencies
-dynamodb = { path = "../dynamodb", features = ["tracing"] }
+dynamodb = { path = "../dynamodb" }
 graph-entities = { path = "../graph-entities" }
 logworker = { path = "../log", package = "log", features = [
   "with-worker",
@@ -92,6 +92,7 @@ time = { version = "0.3", optional = true, features = [
   "formatting",
   "macros",
 ] }
+tracing = { workspace = true, optional = true }
 tuple-combinator = { version = "0.2", optional = true }
 
 # Non-feature optional dependencies
