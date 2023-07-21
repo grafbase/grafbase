@@ -25,7 +25,11 @@ impl<'a> __InputValue<'a> {
     #[graphql(name = "type")]
     #[inline]
     async fn ty(&self) -> __Type<'a> {
-        __Type::new(self.registry, self.visible_types, &self.input_value.ty)
+        __Type::new(
+            self.registry,
+            self.visible_types,
+            self.input_value.ty.as_str(),
+        )
     }
 
     #[inline]

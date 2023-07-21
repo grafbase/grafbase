@@ -59,7 +59,7 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
             if let Some(reason) = value.and_then(|value| {
                 is_valid_input_value(
                     ctx.registry,
-                    &arg.ty,
+                    arg.ty.as_str(),
                     &value,
                     QueryPathNode {
                         parent: None,

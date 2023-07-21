@@ -5,8 +5,10 @@ use dynaql_value::ConstValue;
 use crate::parser::types::{
     ExecutableDocument, FragmentDefinition, OperationType, Selection, SelectionSet,
 };
-use crate::registry::{MetaInputValue, MetaType, MetaTypeName, Registry};
+use crate::registry::{MetaInputValue, MetaType, Registry};
 use crate::Variables;
+
+use super::type_kinds::InputType;
 
 impl Registry {
     pub(crate) fn stringify_exec_doc(
@@ -113,11 +115,9 @@ impl Registry {
 
         match value {
             ConstValue::Object(obj) => {
-                let parent_type = meta_input_value.and_then(|input_value| {
-                    self.types
-                        .get(MetaTypeName::concrete_typename(&input_value.ty))
-                });
-                if let Some(MetaType::InputObject(input_object)) = parent_type {
+                let parent_type =
+                    meta_input_value.and_then(|input_value| self.lookup(&input_value.ty).ok());
+                if let Some(InputType::InputObject(input_object)) = parent_type {
                     output.push('{');
                     for (idx, (key, value)) in obj.iter().enumerate() {
                         if idx > 0 {

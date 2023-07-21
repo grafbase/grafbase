@@ -30,7 +30,7 @@ where
         <StdHashMap<K, V> as InputType>::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::InputValueType {
         <StdHashMap<K, V> as InputType>::create_type_info(registry)
     }
 

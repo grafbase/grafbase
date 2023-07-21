@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use crate::{registry::ParentRelation, utils::to_lower_camelcase};
 use case::CaseExt;
 pub use dynaql::names::*;
+use dynaql::registry::NamedType;
 use dynaql_parser::types::TypeDefinition;
 
 use super::NumericFieldKind;
@@ -122,9 +123,9 @@ impl MetaNames {
         format!("{}Edge", Self::model(model_type_definition))
     }
 
-    pub fn pagination_orderby_input(model_type_definition: &TypeDefinition) -> String {
+    pub fn pagination_orderby_input(model_type_definition: &TypeDefinition) -> NamedType<'static> {
         // FIXME: Should have been postCollectionOrderByInput instead of postOrderByInput...
-        format!("{}OrderByInput", Self::model(model_type_definition))
+        format!("{}OrderByInput", Self::model(model_type_definition)).into()
     }
 
     pub fn collection_filter_input(model_type_definition: &TypeDefinition) -> String {

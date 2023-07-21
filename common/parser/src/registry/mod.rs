@@ -6,10 +6,10 @@ use case::CaseExt;
 
 use dynaql::registry::enums::DynaqlEnum;
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{self, MetaInputValue};
+use dynaql::registry::{self, MetaInputValue, NamedType};
 use dynaql::registry::{MetaEnumValue, Registry};
 use dynaql::validation::dynamic_validators::DynValidator;
-use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, TypeDefinition};
+use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
 
 use std::fmt::Display;
 
@@ -29,14 +29,14 @@ pub use delete::add_mutation_delete;
 pub use pagination::{add_query_paginated_collection, generate_pagination_args};
 pub use search::add_query_search;
 
-fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> BaseType {
+fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> NamedType<'static> {
     let type_name = T::ty().to_string();
     registry.create_type(
         |_| registry::EnumType::new(type_name.clone(), T::values().into_iter().map(MetaEnumValue::new)).into(),
         &type_name,
         &type_name,
     );
-    BaseType::named(&type_name)
+    type_name.into()
 }
 
 /// Create an input type for a non_primitive Type.
@@ -53,7 +53,7 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
                     description: field.node.description.clone().map(|x| x.node),
                     ..MetaInputValue::new(
                         field.name.node.to_string(),
-                        to_input_type(&ctx.types, field.node.ty.clone().node),
+                        to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
                     )
                     .with_rename(field.mapped_name().map(ToString::to_string))
                 }),

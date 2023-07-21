@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use self::field_lookup::FieldLookup;
 use dynaql::registry::{
     type_kinds::{InputType, OutputType},
-    InputObjectType, InterfaceType, MetaType, NamedType, ObjectType, Registry, TypeReference,
+    InputObjectType, InterfaceType, MetaType, ObjectType, Registry,
 };
 
 mod field_lookup;
@@ -55,14 +55,14 @@ fn lookup_fields(registry: &Registry, lookup: &FieldLookup) -> HashSet<SelectedF
                 next_types.extend(output_type.fields().filter_map(|field| {
                     segment
                         .is_match(&field.name)
-                        .then(|| registry.types.get(field.ty.named_type().as_str()))
+                        .then(|| registry.lookup_expecting::<&MetaType>(&field.ty).ok())
                         .flatten()
                 }));
             } else if let Ok(input_type) = InputType::try_from(ty) {
                 next_types.extend(input_type.fields().filter_map(|field| {
                     segment
                         .is_match(&field.name)
-                        .then(|| registry.types.get(NamedType::from(&field.ty).as_str()))
+                        .then(|| registry.lookup_expecting::<&MetaType>(&field.ty).ok())
                         .flatten()
                 }));
             }

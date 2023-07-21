@@ -48,7 +48,7 @@ pub fn generate(
                 ::std::borrow::Cow::Borrowed(#gql_typename)
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
                 registry.create_input_type::<#self_ty, _>(|_|
                     #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),

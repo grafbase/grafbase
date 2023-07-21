@@ -471,7 +471,7 @@ pub fn generate(
             }
 
             #[allow(bare_trait_objects)]
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
                 registry.create_subscription_type::<Self, _>(|registry|
                     #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -490,7 +490,7 @@ pub fn generate(
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         constraints: vec![],
                     })
-                )
+                ).into()
             }
 
             fn create_field_stream<'__life>(

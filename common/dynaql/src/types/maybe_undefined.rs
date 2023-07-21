@@ -181,13 +181,13 @@ impl<T: LegacyInputType> LegacyInputType for MaybeUndefined<T> {
         T::type_name()
     }
 
-    fn qualified_type_name() -> String {
-        T::type_name().to_string()
+    fn qualified_type_name() -> crate::registry::InputValueType {
+        T::type_name().as_ref().into()
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::InputValueType {
         T::create_type_info(registry);
-        T::type_name().to_string()
+        T::type_name().as_ref().into()
     }
 
     fn parse(value: Option<Value>) -> InputValueResult<Self> {
@@ -286,9 +286,7 @@ mod tests {
     #[test]
     fn test_maybe_undefined_type() {
         assert_eq!(MaybeUndefined::<i32>::type_name(), "Int");
-        assert_eq!(MaybeUndefined::<i32>::qualified_type_name(), "Int");
-        assert_eq!(&MaybeUndefined::<i32>::type_name(), "Int");
-        assert_eq!(&MaybeUndefined::<i32>::qualified_type_name(), "Int");
+        assert_eq!(MaybeUndefined::<i32>::qualified_type_name().as_str(), "Int");
     }
 
     #[test]

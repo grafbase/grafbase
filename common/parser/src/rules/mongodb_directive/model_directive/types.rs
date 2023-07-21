@@ -41,7 +41,7 @@ pub(super) fn register_create_input_type(
 
     let explicit_fields = create_ctx.object.fields.iter().map(|field| {
         let r#type = to_input_type(&visitor_ctx.types, field.r#type().clone());
-        let mut input = MetaInputValue::new(field.node.name.node.to_string(), r#type);
+        let mut input = MetaInputValue::new(field.node.name.node.to_string(), r#type.to_string());
 
         input.description = field.description().map(ToString::to_string);
         input.rename = field.mapped_name().map(ToString::to_string);

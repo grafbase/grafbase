@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use super::JsonMap;
 use crate::{
-    registry::{variables::VariableResolveDefinition, MetaType, MetaTypeName},
+    registry::{type_kinds::InputType, variables::VariableResolveDefinition, TypeReference},
     Context, ServerResult,
 };
 use std::sync::OnceLock;
@@ -32,19 +32,19 @@ pub(super) fn input(ctx: &Context<'_>) -> ServerResult<Value> {
     Ok(Value::Object(normalize(ctx, map, input_type)))
 }
 
-fn normalize(ctx: &Context<'_>, map: JsonMap, input_type: &MetaType) -> JsonMap {
+fn normalize(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {
-        let meta_field = input_type.get_input_field(&key).unwrap();
+        let meta_field = input_type.field(&key).unwrap();
         let key = meta_field.rename.clone().unwrap_or(key);
 
         let nested_type = ctx
             .schema_env
             .registry
-            .types
-            .get(MetaTypeName::concrete_typename(&meta_field.ty))
-            .filter(|r#type| r#type.is_input_object());
+            .lookup(&meta_field.ty)
+            .ok()
+            .filter(InputType::is_input_object);
 
         let value = match (value, nested_type) {
             (Value::Object(value), Some(nested_type)) => {
@@ -68,7 +68,7 @@ fn normalize(ctx: &Context<'_>, map: JsonMap, input_type: &MetaType) -> JsonMap 
             (value, _) => value,
         };
 
-        let value = match MetaTypeName::concrete_typename(&meta_field.ty) {
+        let value = match meta_field.ty.named_type().as_str() {
             "ID" => json!({ "$oid": value }),
             "Date" => {
                 json!({ "$date": { "$numberLong": date_to_timestamp(value) } })

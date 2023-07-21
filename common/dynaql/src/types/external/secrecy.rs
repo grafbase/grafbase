@@ -11,11 +11,11 @@ impl<T: InputType + Zeroize> InputType for Secret<T> {
         T::type_name()
     }
 
-    fn qualified_type_name() -> String {
+    fn qualified_type_name() -> crate::registry::InputValueType {
         T::qualified_type_name()
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::InputValueType {
         T::create_type_info(registry)
     }
 

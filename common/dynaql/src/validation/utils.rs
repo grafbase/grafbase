@@ -154,7 +154,7 @@ pub fn is_valid_input_value(
                             if let Some(value) = values.get::<str>(&field.name) {
                                 if let Some(reason) = is_valid_input_value(
                                     registry,
-                                    &field.ty,
+                                    field.ty.as_str(),
                                     value,
                                     QueryPathNode {
                                         parent: Some(&path_node),
@@ -163,9 +163,7 @@ pub fn is_valid_input_value(
                                 ) {
                                     return Some(reason);
                                 }
-                            } else if registry::MetaTypeName::create(&field.ty).is_non_null()
-                                && field.default_value.is_none()
-                            {
+                            } else if field.ty.is_non_null() && field.default_value.is_none() {
                                 return Some(valid_error(
                                     &path_node,
                                     format!(

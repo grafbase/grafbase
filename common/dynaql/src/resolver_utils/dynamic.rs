@@ -26,7 +26,7 @@ pub fn resolve_input(
         ResolveContext {
             ctx: ctx_field,
             path: PathNode::new(arg_name),
-            ty: &meta_input_value.ty,
+            ty: meta_input_value.ty.as_str(),
             allow_list_coercion: true,
             default_value: meta_input_value.default_value.as_ref(),
         },
@@ -81,7 +81,7 @@ impl<'a> ResolveContext<'a> {
         ResolveContext {
             ctx: &self.ctx,
             path: self.path.with(path),
-            ty: &input.ty,
+            ty: input.ty.as_str(),
             allow_list_coercion: true,
             default_value: input.default_value.as_ref(),
         }

@@ -214,7 +214,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                     ::std::borrow::Cow::Borrowed(#gql_typename)
                 }
 
-                fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+                fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
                     registry.create_input_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::InputObject(#crate_name::registry::InputObjectType {
                             name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -263,7 +263,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         code.push(quote! {
             #[allow(clippy::all, clippy::pedantic)]
             impl #impl_generics #ident #ty_generics #where_clause {
-                fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> ::std::string::String where Self: #crate_name::LegacyInputType {
+                fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> #crate_name::registry::InputValueType where Self: #crate_name::LegacyInputType {
                     registry.create_input_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::InputObject(#crate_name::registry::InputObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),
@@ -315,7 +315,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                         ::std::borrow::Cow::Borrowed(#gql_typename)
                     }
 
-                    fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+                    fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
                         Self::__internal_create_type_info(registry, #gql_typename)
                     }
 

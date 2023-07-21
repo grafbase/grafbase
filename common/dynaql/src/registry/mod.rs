@@ -48,7 +48,9 @@ pub use self::{
     cache_control::CacheInvalidation,
     cache_control::CacheInvalidationPolicy,
     connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
-    type_names::{MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
+    type_names::{
+        InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference,
+    },
     union_discriminator::UnionDiscriminator,
 };
 
@@ -144,7 +146,7 @@ impl<'a> MetaTypeName<'a> {
 pub struct MetaInputValue {
     pub name: String,
     pub description: Option<String>,
-    pub ty: String,
+    pub ty: InputValueType,
     #[derivative(Hash = "ignore")]
     #[serde(with = "serde_preserve_enum")]
     pub default_value: Option<dynaql_value::ConstValue>,
@@ -158,7 +160,7 @@ pub struct MetaInputValue {
 }
 
 impl MetaInputValue {
-    pub fn new(name: impl Into<String>, ty: impl Into<String>) -> MetaInputValue {
+    pub fn new(name: impl Into<String>, ty: impl Into<InputValueType>) -> MetaInputValue {
         MetaInputValue {
             name: name.into(),
             description: None,
@@ -1915,7 +1917,7 @@ impl Registry {
     pub fn create_input_type<T: LegacyInputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
-    ) -> String {
+    ) -> InputValueType {
         self.create_type(f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
@@ -1939,7 +1941,7 @@ impl Registry {
         f: F,
     ) -> String {
         self.create_type(f, &T::type_name(), std::any::type_name::<T>());
-        T::qualified_type_name()
+        T::qualified_type_name().to_string()
     }
 
     pub fn insert_type(&mut self, ty: impl Into<MetaType>) {
@@ -2238,11 +2240,7 @@ impl Registry {
             used_types: &mut BTreeSet<&'a str>,
             input_value: &'a MetaInputValue,
         ) {
-            traverse_type(
-                types,
-                used_types,
-                MetaTypeName::concrete_typename(&input_value.ty),
-            );
+            traverse_type(types, used_types, input_value.ty.named_type().as_str());
         }
 
         fn traverse_type<'a>(
@@ -2356,7 +2354,7 @@ impl Registry {
                 ctx,
                 types,
                 visible_types,
-                MetaTypeName::concrete_typename(&input_value.ty),
+                input_value.ty.named_type().as_str(),
             );
         }
 

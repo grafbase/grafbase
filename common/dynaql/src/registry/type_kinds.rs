@@ -51,6 +51,7 @@ impl MetaType {
 }
 
 /// A type in output position - i.e. the type of a field in an Object/Interface/selection set.
+#[derive(Clone, Copy)]
 pub enum OutputType<'a> {
     Scalar(&'a ScalarType),
     Object(&'a ObjectType),
@@ -101,6 +102,7 @@ impl<'a> TryFrom<&'a MetaType> for OutputType<'a> {
 }
 
 /// A type in output position - i.e. an argument or field of an input object
+#[derive(Clone, Copy)]
 pub enum InputType<'a> {
     Scalar(&'a ScalarType),
     Enum(&'a EnumType),
@@ -116,11 +118,22 @@ impl InputType<'_> {
         }
     }
 
+    pub fn field(&self, name: &str) -> Option<&MetaInputValue> {
+        match self {
+            InputType::Scalar(_) | InputType::Enum(_) => None,
+            InputType::InputObject(input_object) => input_object.input_fields.get(name),
+        }
+    }
+
     pub fn fields(&self) -> Box<dyn Iterator<Item = &MetaInputValue> + '_> {
         match self {
             InputType::Scalar(_) | InputType::Enum(_) => Box::new(iter::empty()),
             InputType::InputObject(input_object) => Box::new(input_object.input_fields.values()),
         }
+    }
+
+    pub fn is_input_object(&self) -> bool {
+        matches!(self, InputType::InputObject(_))
     }
 }
 

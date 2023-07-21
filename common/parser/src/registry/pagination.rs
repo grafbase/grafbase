@@ -10,7 +10,7 @@ use dynaql::registry::{
     MetaField, MetaInputValue,
 };
 use dynaql::AuthConfig;
-use dynaql_parser::types::{BaseType, Type, TypeDefinition};
+use dynaql_parser::types::{Type, TypeDefinition};
 use grafbase::auth::Operations;
 
 use crate::registry::names::{
@@ -292,28 +292,28 @@ pub fn generate_pagination_args(
         ),
         (
             PAGINATION_INPUT_ARG_ORDER_BY.to_string(),
-            MetaInputValue::new(PAGINATION_INPUT_ARG_ORDER_BY, Type::nullable(orderby_input_type)),
+            MetaInputValue::new(PAGINATION_INPUT_ARG_ORDER_BY, orderby_input_type.as_nullable()),
         ),
     ])
 }
 
-fn register_orderby_input(registry: &mut Registry, model_type_definition: &TypeDefinition) -> BaseType {
+fn register_orderby_input(registry: &mut Registry, model_type_definition: &TypeDefinition) -> NamedType<'static> {
     let input_type_name = MetaNames::pagination_orderby_input(model_type_definition);
     registry.create_type(
         |registry| {
             let order_by_direction_type = register_dynaql_enum::<OrderByDirection>(registry);
             InputObjectType::new(
-                input_type_name.clone(),
+                input_type_name.to_string(),
                 [MetaInputValue::new(
                     METADATA_FIELD_CREATED_AT,
-                    Type::nullable(order_by_direction_type),
+                    order_by_direction_type.as_nullable(),
                 )],
             )
             .with_oneof(true)
             .into()
         },
-        &input_type_name,
-        &input_type_name,
+        input_type_name.as_str(),
+        input_type_name.as_str(),
     );
-    BaseType::named(&input_type_name)
+    input_type_name
 }

@@ -5,7 +5,7 @@ use dynaql_value::ConstValue;
 use graph_entities::ResponseNodeId;
 
 use crate::parser::types::Field;
-use crate::registry::{self, Registry};
+use crate::registry::{self, InputValueType, Registry};
 use crate::{
     ContainerType, Context, ContextSelectionSet, Error, InputValueError, InputValueResult,
     Positioned, Result, ServerResult, Value,
@@ -32,12 +32,12 @@ pub trait LegacyInputType: Send + Sync + Sized {
     fn type_name() -> Cow<'static, str>;
 
     /// Qualified typename.
-    fn qualified_type_name() -> String {
-        format!("{}!", Self::type_name())
+    fn qualified_type_name() -> InputValueType {
+        format!("{}!", Self::type_name()).into()
     }
 
     /// Create type information in the registry and return qualified typename.
-    fn create_type_info(registry: &mut registry::Registry) -> String;
+    fn create_type_info(registry: &mut registry::Registry) -> InputValueType;
 
     /// Parse from `Value`. None represents undefined.
     fn parse(value: Option<Value>) -> InputValueResult<Self>;
@@ -195,7 +195,7 @@ impl<T: LegacyInputType> LegacyInputType for Box<T> {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::InputValueType {
         T::create_type_info(registry)
     }
 
@@ -241,7 +241,7 @@ impl<T: LegacyInputType> LegacyInputType for Arc<T> {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::InputValueType {
         T::create_type_info(registry)
     }
 

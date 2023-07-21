@@ -406,7 +406,8 @@ fn register_input(
                         } else {
                             r#type
                         })
-                        .to_string(),
+                        .to_string()
+                        .into(),
                         validators: super::get_length_validator(&field.node).map(|val| vec![val]),
                         visible: None,
                         default_value: (if mutation_kind.is_update() {

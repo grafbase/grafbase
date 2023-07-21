@@ -680,7 +680,8 @@ fn visit_field<'a, V: Visitor<'a>>(
             .and_then(|ty| ty.field_by_name(&field.node.name.node))
             .and_then(|schema_field| schema_field.args.get(&*name.node));
 
-        let expected_ty = meta_input_value.map(|input_ty| MetaTypeName::create(&input_ty.ty));
+        let expected_ty =
+            meta_input_value.map(|input_ty| MetaTypeName::create(input_ty.ty.as_str()));
 
         ctx.with_input_type(expected_ty, |ctx| {
             visit_input_value(
@@ -729,7 +730,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
                     let inner_meta = meta.map(|meta| MetaInputValue {
                         name,
                         description,
-                        ty: expected_ty.to_string(),
+                        ty: expected_ty.into(),
                         default_value: None,
                         visible: meta.visible,
                         validators: None,
@@ -766,7 +767,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
                                     v,
                                     ctx,
                                     pos,
-                                    Some(MetaTypeName::create(&input_value.ty)),
+                                    Some(MetaTypeName::create(input_value.ty.as_str())),
                                     item_value,
                                     Some(input_value),
                                 );
@@ -815,7 +816,8 @@ fn visit_directives<'a, V: Visitor<'a>>(
             v.enter_argument(ctx, name, value);
             let meta_input_value = schema_directive
                 .and_then(|schema_directive| schema_directive.args.get(&*name.node));
-            let expected_ty = meta_input_value.map(|input_ty| MetaTypeName::create(&input_ty.ty));
+            let expected_ty =
+                meta_input_value.map(|input_ty| MetaTypeName::create(input_ty.ty.as_str()));
             ctx.with_input_type(expected_ty, |ctx| {
                 visit_input_value(v, ctx, d.pos, expected_ty, &value.node, meta_input_value)
             });

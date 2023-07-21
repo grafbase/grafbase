@@ -38,8 +38,8 @@ macro_rules! impl_input_string_for_smart_ptr {
                 Cow::Borrowed("String")
             }
 
-            fn create_type_info(registry: &mut Registry) -> String {
-                <String as LegacyOutputType>::create_type_info(registry).to_string()
+            fn create_type_info(registry: &mut Registry) -> crate::registry::InputValueType {
+                <String as LegacyInputType>::create_type_info(registry)
             }
 
             fn parse(value: Option<Value>) -> InputValueResult<Self> {

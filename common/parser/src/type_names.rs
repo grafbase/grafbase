@@ -1,6 +1,6 @@
 //! Utilities for correctly constructing graphql types from names
 
-use dynaql::registry::{MetaFieldType, NamedType};
+use dynaql::registry::{InputValueType, MetaFieldType, NamedType};
 
 /// An extension trait for `dynaql::registry::TypeName`
 ///
@@ -64,6 +64,12 @@ impl<'a> TypeBuilder<'a> {
 }
 
 impl From<TypeBuilder<'_>> for MetaFieldType {
+    fn from(value: TypeBuilder<'_>) -> Self {
+        value.to_string().into()
+    }
+}
+
+impl From<TypeBuilder<'_>> for InputValueType {
     fn from(value: TypeBuilder<'_>) -> Self {
         value.to_string().into()
     }

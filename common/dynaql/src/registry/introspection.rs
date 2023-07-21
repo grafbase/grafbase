@@ -95,7 +95,7 @@ impl From<cynic_introspection::InputValue> for MetaInputValue {
         Self {
             name: input.name,
             description: input.description,
-            ty: input.ty.to_string(),
+            ty: input.ty.to_string().into(),
             default_value: input.default_value.map(Into::into),
             visible: None,
             validators: None,

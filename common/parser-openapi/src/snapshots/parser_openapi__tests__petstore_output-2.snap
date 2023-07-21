@@ -236,7 +236,9 @@ Registry {
                     "name": MetaInputValue {
                         name: "name",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -244,7 +246,9 @@ Registry {
                     "id": MetaInputValue {
                         name: "id",
                         description: None,
-                        ty: "Int",
+                        ty: InputValueType(
+                            "Int",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -300,7 +304,9 @@ Registry {
                             "input": MetaInputValue {
                                 name: "input",
                                 description: None,
-                                ty: "PetstorePetInput!",
+                                ty: InputValueType(
+                                    "PetstorePetInput!",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -352,7 +358,9 @@ Registry {
                             "input": MetaInputValue {
                                 name: "input",
                                 description: None,
-                                ty: "PetstorePetInput!",
+                                ty: InputValueType(
+                                    "PetstorePetInput!",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -404,7 +412,9 @@ Registry {
                             "petId": MetaInputValue {
                                 name: "petId",
                                 description: None,
-                                ty: "Int!",
+                                ty: InputValueType(
+                                    "Int!",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -412,7 +422,9 @@ Registry {
                             "additionalMetadata": MetaInputValue {
                                 name: "additionalMetadata",
                                 description: None,
-                                ty: "String",
+                                ty: InputValueType(
+                                    "String",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -472,7 +484,9 @@ Registry {
                             "input": MetaInputValue {
                                 name: "input",
                                 description: None,
-                                ty: "PetstoreOrderInput!",
+                                ty: InputValueType(
+                                    "PetstoreOrderInput!",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -524,7 +538,9 @@ Registry {
                             "input": MetaInputValue {
                                 name: "input",
                                 description: None,
-                                ty: "[PetstoreUserInput!]!",
+                                ty: InputValueType(
+                                    "[PetstoreUserInput!]!",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -786,7 +802,9 @@ Registry {
                     "complete": MetaInputValue {
                         name: "complete",
                         description: None,
-                        ty: "Boolean",
+                        ty: InputValueType(
+                            "Boolean",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -794,7 +812,9 @@ Registry {
                     "status": MetaInputValue {
                         name: "status",
                         description: None,
-                        ty: "PetstoreOrderStatus",
+                        ty: InputValueType(
+                            "PetstoreOrderStatus",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -802,7 +822,9 @@ Registry {
                     "shipDate": MetaInputValue {
                         name: "shipDate",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -810,7 +832,9 @@ Registry {
                     "quantity": MetaInputValue {
                         name: "quantity",
                         description: None,
-                        ty: "Int",
+                        ty: InputValueType(
+                            "Int",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -818,7 +842,9 @@ Registry {
                     "petId": MetaInputValue {
                         name: "petId",
                         description: None,
-                        ty: "Int",
+                        ty: InputValueType(
+                            "Int",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -826,7 +852,9 @@ Registry {
                     "id": MetaInputValue {
                         name: "id",
                         description: None,
-                        ty: "Int",
+                        ty: InputValueType(
+                            "Int",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1072,7 +1100,9 @@ Registry {
                     "status": MetaInputValue {
                         name: "status",
                         description: None,
-                        ty: "PetstorePetStatus",
+                        ty: InputValueType(
+                            "PetstorePetStatus",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1080,7 +1110,9 @@ Registry {
                     "tags": MetaInputValue {
                         name: "tags",
                         description: None,
-                        ty: "[PetstoreTagInput!]!",
+                        ty: InputValueType(
+                            "[PetstoreTagInput!]!",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1088,7 +1120,9 @@ Registry {
                     "photoUrls": MetaInputValue {
                         name: "photoUrls",
                         description: None,
-                        ty: "[String!]!",
+                        ty: InputValueType(
+                            "[String!]!",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1096,7 +1130,9 @@ Registry {
                     "category": MetaInputValue {
                         name: "category",
                         description: None,
-                        ty: "PetstoreCategoryInput!",
+                        ty: InputValueType(
+                            "PetstoreCategoryInput!",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1104,7 +1140,9 @@ Registry {
                     "name": MetaInputValue {
                         name: "name",
                         description: None,
-                        ty: "String!",
+                        ty: InputValueType(
+                            "String!",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1112,7 +1150,9 @@ Registry {
                     "id": MetaInputValue {
                         name: "id",
                         description: None,
-                        ty: "Int",
+                        ty: InputValueType(
+                            "Int",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1168,7 +1208,9 @@ Registry {
                             "status": MetaInputValue {
                                 name: "status",
                                 description: None,
-                                ty: "PetstoreFindPetsByStatusStatus",
+                                ty: InputValueType(
+                                    "PetstoreFindPetsByStatusStatus",
+                                ),
                                 default_value: Some(
                                     Enum(
                                         Name(
@@ -1227,7 +1269,9 @@ Registry {
                             "tags": MetaInputValue {
                                 name: "tags",
                                 description: None,
-                                ty: "[String!]",
+                                ty: InputValueType(
+                                    "[String!]",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -1280,7 +1324,9 @@ Registry {
                             "petId": MetaInputValue {
                                 name: "petId",
                                 description: None,
-                                ty: "Int!",
+                                ty: InputValueType(
+                                    "Int!",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -1368,7 +1414,9 @@ Registry {
                             "orderId": MetaInputValue {
                                 name: "orderId",
                                 description: None,
-                                ty: "Int!",
+                                ty: InputValueType(
+                                    "Int!",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -1420,7 +1468,9 @@ Registry {
                             "password": MetaInputValue {
                                 name: "password",
                                 description: None,
-                                ty: "String",
+                                ty: InputValueType(
+                                    "String",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -1428,7 +1478,9 @@ Registry {
                             "username": MetaInputValue {
                                 name: "username",
                                 description: None,
-                                ty: "String",
+                                ty: InputValueType(
+                                    "String",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -1488,7 +1540,9 @@ Registry {
                             "username": MetaInputValue {
                                 name: "username",
                                 description: None,
-                                ty: "String!",
+                                ty: InputValueType(
+                                    "String!",
+                                ),
                                 default_value: None,
                                 is_secret: false,
                                 rename: None,
@@ -1631,7 +1685,9 @@ Registry {
                     "name": MetaInputValue {
                         name: "name",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1639,7 +1695,9 @@ Registry {
                     "id": MetaInputValue {
                         name: "id",
                         description: None,
-                        ty: "Int",
+                        ty: InputValueType(
+                            "Int",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1901,7 +1959,9 @@ Registry {
                     "userStatus": MetaInputValue {
                         name: "userStatus",
                         description: None,
-                        ty: "Int",
+                        ty: InputValueType(
+                            "Int",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1909,7 +1969,9 @@ Registry {
                     "phone": MetaInputValue {
                         name: "phone",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1917,7 +1979,9 @@ Registry {
                     "password": MetaInputValue {
                         name: "password",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1925,7 +1989,9 @@ Registry {
                     "email": MetaInputValue {
                         name: "email",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1933,7 +1999,9 @@ Registry {
                     "lastName": MetaInputValue {
                         name: "lastName",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1941,7 +2009,9 @@ Registry {
                     "firstName": MetaInputValue {
                         name: "firstName",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1949,7 +2019,9 @@ Registry {
                     "username": MetaInputValue {
                         name: "username",
                         description: None,
-                        ty: "String",
+                        ty: InputValueType(
+                            "String",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,
@@ -1957,7 +2029,9 @@ Registry {
                     "id": MetaInputValue {
                         name: "id",
                         description: None,
-                        ty: "Int",
+                        ty: InputValueType(
+                            "Int",
+                        ),
                         default_value: None,
                         is_secret: false,
                         rename: None,

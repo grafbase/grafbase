@@ -129,7 +129,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                 ::std::borrow::Cow::Borrowed(#gql_typename)
             }
 
-            fn __create_type_info(registry: &mut #crate_name::registry::Registry) -> String {
+            fn __create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
                 registry.create_input_type::<Self, _>(|registry| {
                     #crate_name::registry::MetaType::Enum(#crate_name::registry::EnumType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -154,7 +154,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                 Self::__type_name()
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
                 Self::__create_type_info(registry)
             }
 
@@ -178,7 +178,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
-                Self::__create_type_info(registry).into()
+                Self::__create_type_info(registry).as_str().into()
             }
 
             async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {

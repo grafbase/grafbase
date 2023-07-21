@@ -100,36 +100,38 @@ where
         Cow::Owned(format!("{}_{}", A::type_name(), B::type_name()))
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
-        registry.create_subscription_type::<Self, _>(|registry| {
-            let mut fields = IndexMap::new();
-            let mut cc = CacheControl::default();
+    fn create_type_info(registry: &mut Registry) -> crate::registry::InputValueType {
+        registry
+            .create_subscription_type::<Self, _>(|registry| {
+                let mut fields = IndexMap::new();
+                let mut cc = CacheControl::default();
 
-            if let MetaType::Object(ObjectType {
-                fields: b_fields,
-                cache_control: b_cc,
-                ..
-            }) = registry.create_fake_subscription_type::<B>()
-            {
-                fields.extend(b_fields);
-                cc.merge(b_cc);
-            }
+                if let MetaType::Object(ObjectType {
+                    fields: b_fields,
+                    cache_control: b_cc,
+                    ..
+                }) = registry.create_fake_subscription_type::<B>()
+                {
+                    fields.extend(b_fields);
+                    cc.merge(b_cc);
+                }
 
-            if let MetaType::Object(ObjectType {
-                fields: a_fields,
-                cache_control: a_cc,
-                ..
-            }) = registry.create_fake_subscription_type::<A>()
-            {
-                fields.extend(a_fields);
-                cc.merge(a_cc);
-            }
+                if let MetaType::Object(ObjectType {
+                    fields: a_fields,
+                    cache_control: a_cc,
+                    ..
+                }) = registry.create_fake_subscription_type::<A>()
+                {
+                    fields.extend(a_fields);
+                    cc.merge(a_cc);
+                }
 
-            let mut object = ObjectType::new(Self::type_name().to_string(), []);
-            object.fields = fields;
-            object.rust_typename = std::any::type_name::<Self>().to_owned();
-            object.into()
-        })
+                let mut object = ObjectType::new(Self::type_name().to_string(), []);
+                object.fields = fields;
+                object.rust_typename = std::any::type_name::<Self>().to_owned();
+                object.into()
+            })
+            .into()
     }
 
     fn create_field_stream<'a>(
@@ -150,12 +152,14 @@ impl SubscriptionType for MergedObjectTail {
         Cow::Borrowed("MergedSubscriptionTail")
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
-        registry.create_subscription_type::<Self, _>(|_| {
-            let mut object = ObjectType::new("MergedSubscriptionTail", []);
-            object.rust_typename = std::any::type_name::<Self>().to_owned();
-            object.into()
-        })
+    fn create_type_info(registry: &mut Registry) -> crate::registry::InputValueType {
+        registry
+            .create_subscription_type::<Self, _>(|_| {
+                let mut object = ObjectType::new("MergedSubscriptionTail", []);
+                object.rust_typename = std::any::type_name::<Self>().to_owned();
+                object.into()
+            })
+            .into()
     }
 
     fn create_field_stream<'a>(

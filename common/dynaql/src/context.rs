@@ -30,6 +30,7 @@ use crate::parser::types::{
 use crate::registry::relations::MetaRelation;
 use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::ResolvedValue;
+use crate::registry::type_kinds::InputType;
 use crate::registry::{MetaInputValue, MetaType, TypeReference};
 use crate::registry::{MongoDBConfiguration, Registry};
 use crate::resolver_utils::{resolve_input, InputResolveMode};
@@ -845,7 +846,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         self.get_param_value(&self.item.node.arguments, name, default)
     }
 
-    pub fn find_argument_type(&self, name: &str) -> ServerResult<&MetaType> {
+    pub fn find_argument_type(&self, name: &str) -> ServerResult<InputType<'_>> {
         let meta = self
             .resolver_node
             .as_ref()
@@ -859,12 +860,17 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
         meta.args
             .get(name)
-            .and_then(|input| self.schema_env.registry.types.get(&input.ty))
             .ok_or_else(|| {
                 ServerError::new(
                     &format!("Internal Error: Unknown argument '{name}'"),
                     Some(self.item.pos),
                 )
+            })
+            .and_then(|input| {
+                self.schema_env
+                    .registry
+                    .lookup(&input.ty)
+                    .map_err(|error| error.into_server_error(self.item.pos))
             })
     }
 

@@ -76,11 +76,13 @@ macro_rules! impl_input_slice_for_smart_ptr {
                 Cow::Owned(format!("[{}]", T::qualified_type_name()))
             }
 
-            fn qualified_type_name() -> String {
-                format!("[{}]!", T::qualified_type_name())
+            fn qualified_type_name() -> crate::registry::InputValueType {
+                format!("[{}]!", T::qualified_type_name()).into()
             }
 
-            fn create_type_info(registry: &mut registry::Registry) -> String {
+            fn create_type_info(
+                registry: &mut registry::Registry,
+            ) -> crate::registry::InputValueType {
                 T::create_type_info(registry);
                 Self::qualified_type_name()
             }

@@ -405,7 +405,7 @@ fn register_model_filter(
                 MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
                 MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
                 MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
-                MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
+                MetaInputValue::new(INPUT_FIELD_FILTER_NOT, input_type_name.as_str()),
             ];
             args.extend({
                 let mut field_args = filters
@@ -446,8 +446,8 @@ fn register_scalar_list_filter(registry: &mut Registry, scalar: &str) -> String 
             InputObjectType::new(
                 list_input_type_name.clone(),
                 [
-                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_INCLUDES, &item_input_type_name),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_INCLUDES_NONE, &item_input_type_name),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_INCLUDES, item_input_type_name.as_str()),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_INCLUDES_NONE, item_input_type_name.as_str()),
                     MetaInputValue::new(INPUT_FIELD_FILTER_LIST_IS_EMPTY, "Boolean"),
                 ],
             )
@@ -483,7 +483,7 @@ fn register_scalar_filter(registry: &mut Registry, scalar: &str, is_nullable: bo
                     MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
                     MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
                     MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NOT, input_type_name.as_str()),
                     MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
                     MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
                 ]);

@@ -19,11 +19,11 @@ impl<T: InputType + Hash + Eq> InputType for HashSet<T> {
         <StdHashSet<T> as InputType>::type_name()
     }
 
-    fn qualified_type_name() -> String {
+    fn qualified_type_name() -> crate::registry::InputValueType {
         <StdHashSet<T> as InputType>::qualified_type_name()
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::InputValueType {
         <StdHashSet<T> as InputType>::create_type_info(registry)
     }
 

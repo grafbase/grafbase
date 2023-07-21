@@ -108,7 +108,7 @@ impl LegacyInputType for Upload {
         Cow::Borrowed("Upload")
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::InputValueType {
         registry.create_input_type::<Self, _>(|_| {
             registry::MetaType::Scalar(registry::ScalarType {
                 name: Self::type_name().to_string(),

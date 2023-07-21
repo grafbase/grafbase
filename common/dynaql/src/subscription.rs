@@ -16,12 +16,12 @@ pub trait SubscriptionType: Send + Sync {
     fn type_name() -> Cow<'static, str>;
 
     /// Qualified typename.
-    fn qualified_type_name() -> String {
-        format!("{}!", Self::type_name())
+    fn qualified_type_name() -> crate::registry::InputValueType {
+        format!("{}!", Self::type_name()).into()
     }
 
     /// Create type information in the registry and return qualified typename.
-    fn create_type_info(registry: &mut registry::Registry) -> String;
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::InputValueType;
 
     /// This function returns true of type `EmptySubscription` only.
     #[doc(hidden)]
@@ -107,7 +107,7 @@ impl<T: SubscriptionType> SubscriptionType for &T {
         T::type_name()
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::InputValueType {
         T::create_type_info(registry)
     }
 

@@ -91,7 +91,7 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
                 #type_name
             }
 
-            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> ::std::string::String {
+            fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
                 #create_type_info
             }
 

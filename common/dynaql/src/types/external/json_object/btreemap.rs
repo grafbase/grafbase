@@ -30,7 +30,7 @@ where
         Cow::Borrowed("JSONObject")
     }
 
-    fn create_type_info(registry: &mut Registry) -> String {
+    fn create_type_info(registry: &mut Registry) -> crate::registry::InputValueType {
         registry.create_input_type::<Self, _>(|_| {
             MetaType::Scalar(ScalarType {
                 name: <Self as LegacyInputType>::type_name().to_string(),

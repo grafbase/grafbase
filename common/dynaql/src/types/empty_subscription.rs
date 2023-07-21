@@ -17,10 +17,12 @@ impl SubscriptionType for EmptySubscription {
         Cow::Borrowed("EmptyMutation")
     }
 
-    fn create_type_info(registry: &mut registry::Registry) -> String {
-        registry.create_subscription_type::<Self, _>(|_| {
-            registry::ObjectType::new("EmptySubscription", []).into()
-        })
+    fn create_type_info(registry: &mut registry::Registry) -> crate::registry::InputValueType {
+        registry
+            .create_subscription_type::<Self, _>(|_| {
+                registry::ObjectType::new("EmptySubscription", []).into()
+            })
+            .into()
     }
 
     fn is_empty() -> bool {

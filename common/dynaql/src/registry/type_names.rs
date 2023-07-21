@@ -3,7 +3,7 @@
 use std::borrow::{Borrow, Cow};
 
 use super::{
-    type_kinds::{OutputType, SelectionSetTarget},
+    type_kinds::{InputType, OutputType, SelectionSetTarget},
     MetaType, ObjectType,
 };
 
@@ -83,6 +83,38 @@ impl MetaFieldType {
 
 impl TypeReference for MetaFieldType {
     type ExpectedType<'a> = OutputType<'a>;
+
+    fn named_type(&self) -> NamedType<'_> {
+        NamedType(Cow::Borrowed(named_type_from_type_str(&self.0)))
+    }
+}
+
+/// The type of a MetaInputValue
+///
+/// This is just a newtype around a string in SDL type notation (e.g. `[Int]!`).
+///
+/// Using a newtype allows us to enforce a bit of type safety, implement methods
+/// on the type etc. etc.
+#[derive(Clone, Default, Hash, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
+pub struct InputValueType(String);
+
+def_string_conversions!(InputValueType);
+
+impl InputValueType {
+    pub fn is_non_null(&self) -> bool {
+        // This makes me sad, but for now lets live with it
+        self.0.ends_with('!')
+    }
+
+    pub fn is_list(&self) -> bool {
+        // Note that we do starts_with here to include both nullable and non-nullable
+        // lists.
+        self.0.starts_with('[')
+    }
+}
+
+impl TypeReference for InputValueType {
+    type ExpectedType<'a> = InputType<'a>;
 
     fn named_type(&self) -> NamedType<'_> {
         NamedType(Cow::Borrowed(named_type_from_type_str(&self.0)))
