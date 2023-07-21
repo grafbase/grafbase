@@ -11,6 +11,7 @@ pub const INPUT_FIELD_FILTER_GTE: &str = "gte";
 pub const INPUT_FIELD_FILTER_LTE: &str = "lte";
 pub const INPUT_FIELD_FILTER_LT: &str = "lt";
 pub const INPUT_FIELD_FILTER_IN: &str = "in";
+pub const INPUT_FIELD_FILTER_REGEX: &str = "regex";
 pub const INPUT_FIELD_FILTER_NOT_IN: &str = "notIn";
 pub const INPUT_FIELD_FILTER_IS_NULL: &str = "isNull";
 

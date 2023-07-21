@@ -35,5 +35,6 @@ impl SearchEngineInner for LocalSearchEngine {
                 log::error!(ctx.ray_id, "Search Request failed with: {}", error);
                 SearchError::ServerError
             })
+            .and_then(|r| r)
     }
 }

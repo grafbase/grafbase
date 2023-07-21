@@ -11,6 +11,7 @@ use crate::{
         INPUT_FIELD_FILTER_LIST_INCLUDES_NONE, INPUT_FIELD_FILTER_LIST_IS_EMPTY,
         INPUT_FIELD_FILTER_LT, INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ,
         INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN,
+        INPUT_FIELD_FILTER_REGEX,
     },
     registry::scalars::{DateScalar, DateTimeScalar, IPAddressScalar, TimestampScalar},
     Error,
@@ -184,6 +185,9 @@ fn parse_scalar_condition(
                     INPUT_FIELD_FILTER_ALL => All(parse_scalar_condition_array(field, value)?),
                     INPUT_FIELD_FILTER_ANY => Any(parse_scalar_condition_array(field, value)?),
                     INPUT_FIELD_FILTER_NOT => Not(Box::new(parse_scalar_condition(field, value)?)),
+                    INPUT_FIELD_FILTER_REGEX => Regex {
+                        pattern: serde_json::from_value(value)?,
+                    },
                     _ => return Err(Error::new(format!("Unknown condition {name}"))),
                 })
             })
