@@ -34,8 +34,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.27.0" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.27.0" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.28.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.28.0" }
 
 [dev-dependencies]
 async-graphql = "5"

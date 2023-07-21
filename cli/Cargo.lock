@@ -1805,7 +1805,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.27.0"
+version = "0.28.0"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -1861,7 +1861,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.27.0"
+version = "0.28.0"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -1891,7 +1891,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.27.0"
+version = "0.28.0"
 dependencies = [
  "chrono",
  "derivative",
@@ -1906,7 +1906,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.27.0"
+version = "0.28.0"
 dependencies = [
  "axum",
  "base64 0.21.2",
