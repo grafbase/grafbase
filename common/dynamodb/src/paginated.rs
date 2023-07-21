@@ -271,8 +271,9 @@ where
         };
 
         let mut exp_att_name = HashMap::from([
-            ("#pk".to_string(), primary_index),
+            ("#pk".to_string(), primary_index.clone()),
             ("#type".to_string(), TYPE.to_string()),
+            ("#sk".to_string(), sort_index.clone()),
         ]);
 
         let edge_query = if edges_len > 0 {
@@ -297,10 +298,10 @@ where
 
             exp.insert(":relation".to_string(), cursor.relation_name().into_attr());
             exp.insert(":type".to_string(), node_type.clone().into_attr());
-            format!("(begins_with(#type, :type) AND contains(#relationname, :relation)) {edge_query}")
+            format!("contains(#relationname, :relation) AND #type = :type {edge_query}")
         } else {
             exp.insert(":type".to_string(), node_type.clone().into_attr());
-            format!("begins_with(#type, :type) {edge_query}")
+            format!("#type = :type {edge_query}")
         };
 
         if let Some(owned_by) = owned_by {
@@ -326,18 +327,22 @@ where
             !ordering.is_asc()
         };
 
-        let key_condition_expression = if cursor.maybe_origin().is_some() {
-            let op = if scan_index_forward { ">" } else { "<" };
-            Some(format!("#pk = :pk AND #sk {op} :origin"))
-        } else {
-            Some("#pk = :pk".to_string())
-        };
-
-        if let Some(origin) = cursor.maybe_origin() {
-            exp_att_name.insert("#sk".to_string(), sort_index);
-            exp.insert(":origin".to_string(), origin.into_attr());
-        }
-
+        let key_condition_expression = Some("#pk = :pk AND begins_with(#sk, :type) ".to_string());
+        let exclusive_start_key = cursor.maybe_origin().map(|origin| {
+            let attr = origin.into_attr();
+            let mut key = HashMap::from([
+                (
+                    primary_index,
+                    exp.get(":pk").expect(":pk is used in the query").clone().into_attr(),
+                ),
+                (sort_index, attr.clone()),
+            ]);
+            if !key.contains_key(PK) {
+                key.insert(PK.to_string(), attr.clone());
+                key.insert(SK.to_string(), attr.clone());
+            }
+            key
+        });
         let input: QueryInput = QueryInput {
             table_name: table,
             key_condition_expression,
@@ -367,7 +372,7 @@ where
             End(Option<String>),
         }
 
-        let mut actual_state = PageState::Next(None, input);
+        let mut actual_state = PageState::Next(exclusive_start_key, input);
 
         // While we do not have enough value, we try to get more.
         while result.values.len() <= limit {
@@ -377,13 +382,13 @@ where
                     break;
                 }
             };
+            let input = QueryInput {
+                exclusive_start_key,
+                ..input
+            };
             log::debug!(trace_id, "QueryPaginated Input {:?}", input);
             let request_fut = crate::retry::rusoto_retry(|| {
-                self.query(QueryInput {
-                    exclusive_start_key: exclusive_start_key.clone(),
-                    ..input.clone()
-                })
-                .inspect_err(|err| {
+                self.query(input.clone()).inspect_err(|err| {
                     log::error!(trace_id, "Query Paginated Error {:?}", err);
                 })
             });
