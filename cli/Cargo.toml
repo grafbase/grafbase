@@ -11,9 +11,6 @@ homepage = "https://grafbase.com"
 keywords = ["grafbase"]
 repository = "https://github.com/grafbase/grafbase"
 
-[profile.dev]
-incremental = true
-
 [profile.release]
 strip = "symbols"
 lto = false
