@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{cursor::Cursor, query::Query};
+use super::{cursor::Cursor, query::Query, SearchError};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryExecutionRequest {
@@ -10,7 +10,7 @@ pub struct QueryExecutionRequest {
     pub database: String,
 }
 
-pub type QueryExecutionResponse = PaginatedHits<String>;
+pub type QueryExecutionResponse = Result<PaginatedHits<String>, SearchError>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Pagination {

@@ -1,7 +1,14 @@
 import { Header, Headers, HeaderGenerator } from './header'
+import {
+  OpenApiQueryNamingStrategy,
+  OpenApiTransform,
+  OpenApiTransforms,
+  OpenApiTransformsGenerator
+} from './openapi/transforms'
 
-export type OpenApiQueryNamingStrategy = 'OPERATION_ID' | 'SCHEMA_NAME'
-
+/**
+ * @deprecated Use the function form of transforms instead
+ */
 export interface OpenApiTransformParams {
   queryNaming: OpenApiQueryNamingStrategy
 }
@@ -9,28 +16,14 @@ export interface OpenApiTransformParams {
 export interface OpenAPIParams {
   schema: string
   url?: string
-  transforms?: OpenApiTransformParams
+  transforms?: OpenApiTransformParams | OpenApiTransformsGenerator
   headers?: HeaderGenerator
-}
-
-export class OpenApiTransforms {
-  private params: OpenApiTransformParams
-
-  constructor(params: OpenApiTransformParams) {
-    this.params = params
-  }
-
-  public toString(): string {
-    return Object.entries(this.params)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(', ')
-  }
 }
 
 export class PartialOpenAPI {
   private schema: string
   private apiUrl?: string
-  private transforms?: OpenApiTransforms
+  private transforms: OpenApiTransform[]
   private headers: Header[]
   private introspectionHeaders: Header[]
 
@@ -41,11 +34,16 @@ export class PartialOpenAPI {
       params.headers(headers)
     }
 
+    const transforms = new OpenApiTransforms()
+    if (typeof params.transforms === 'function') {
+      params.transforms(transforms)
+    } else if (params.transforms) {
+      transforms.queryNaming(params.transforms.queryNaming)
+    }
+
     this.schema = params.schema
     this.apiUrl = params.url
-    this.transforms = params.transforms
-      ? new OpenApiTransforms(params.transforms)
-      : undefined
+    this.transforms = transforms.transforms
     this.headers = headers.headers
     this.introspectionHeaders = headers.introspectionHeaders
   }
@@ -66,7 +64,7 @@ export class OpenAPI {
   private namespace?: string
   private schema: string
   private apiUrl?: string
-  private transforms?: OpenApiTransforms
+  private transforms: OpenApiTransform[]
   private headers: Header[]
   private introspectionHeaders: Header[]
 
@@ -74,7 +72,7 @@ export class OpenAPI {
     schema: string,
     headers: Header[],
     introspectionHeaders: Header[],
-    transforms?: OpenApiTransforms,
+    transforms: OpenApiTransform[],
     url?: string,
     namespace?: string
   ) {
@@ -94,14 +92,18 @@ export class OpenAPI {
     const url = this.apiUrl ? `    url: "${this.apiUrl}"\n` : ''
     const schema = `    schema: "${this.schema}"\n`
 
-    const transforms = this.transforms
-      ? `    transforms: { ${this.transforms} }\n`
-      : ''
+    let transforms = this.transforms
+      .map((transform) => `      ${transform}`)
+      .join('\n')
+    transforms =
+      this.transforms.length != 0
+        ? `    transforms: {\n${transforms}\n    }\n`
+        : ''
 
-    var headers = this.headers.map((header) => `      ${header}`).join('\n')
+    let headers = this.headers.map((header) => `      ${header}`).join('\n')
     headers = headers ? `    headers: [\n${headers}\n    ]\n` : ''
 
-    var introspectionHeaders = this.introspectionHeaders
+    let introspectionHeaders = this.introspectionHeaders
       .map((header) => `      ${header}`)
       .join('\n')
 
