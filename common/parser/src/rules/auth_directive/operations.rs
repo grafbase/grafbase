@@ -30,9 +30,18 @@ impl Operations {
     pub fn values(&self) -> &HashSet<Operation> {
         &self.0
     }
+
+    pub fn into_inner(self) -> HashSet<Operation> {
+        self.0
+    }
+
     pub fn with(mut self, operation: Operation) -> Self {
         self.0.insert(operation);
         self
+    }
+
+    pub fn contains(&self, operation: Operation) -> bool {
+        self.0.contains(&operation)
     }
 }
 

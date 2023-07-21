@@ -759,6 +759,42 @@ query: Query
         }
     );
 
+    parse_fail!(
+        model_level_with_introspection,
+        r#"
+      schema @auth(
+        providers: [ { type: jwt, issuer: "myidp", secret: "s" } ],
+        rules: [ { allow: private, operations: [read] } ]
+
+      ){
+        query: Query
+      }
+      type Todo @model @auth(rules: [ { allow: private, operations: [introspection, read] } ]) {
+        id: ID!
+      }
+
+      "#,
+        "introspection rule can be only configured globally"
+    );
+
+    parse_fail!(
+        field_level_with_introspection,
+        r#"
+    schema @auth(
+      providers: [ { type: jwt, issuer: "myidp", secret: "s" } ],
+      rules: [ { allow: private, operations: [read] } ]
+
+    ){
+      query: Query
+    }
+    type Todo @model {
+      id: ID! @auth(rules: [ { allow: private, operations: [introspection, read] } ])
+    }
+
+    "#,
+        "introspection rule can be only configured globally"
+    );
+
     #[cfg(feature = "local")] // Allow public introspection locally for backwards compatibility.
     pub fn allowed_public_ops(allowed_public_ops: Operations) -> Operations {
         allowed_public_ops.union(Operations::INTROSPECTION)

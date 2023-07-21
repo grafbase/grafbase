@@ -615,9 +615,7 @@ mod tests {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
         visit(&mut ModelDirective, &mut ctx, &schema);
-
         assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
-
         let expected_model_auth = AuthConfig {
             allowed_private_ops: Operations::all(),
             allowed_public_ops: allowed_public_ops(Operations::empty()),

@@ -1,8 +1,4 @@
 //! ----------------------------------------------------------------------------
-//! /!\ Right now we have duplicated the AuthRules here and in the
-//! `common/dynaql/src/logical_plan_utils/auth.rs`. If you do a change take it
-//! into account.
-//!
 //! The Auth is going to be injected inside dynaql instead of just living as an
 //! Extension as it's adding complexity without much gain.
 //! ----------------------------------------------------------------------------

@@ -57,7 +57,7 @@ pub fn parse_auth_config(
         Some(arg) => match &arg.node {
             ConstValue::List(value) if !value.is_empty() => value
                 .iter()
-                .map(AuthRule::from_value)
+                .map(|const_value| AuthRule::from_value(const_value, is_global))
                 .collect::<Result<_, _>>()
                 .map_err(|err| ServerError::new(err.message, pos))?,
             _ => return Err(ServerError::new("auth rules must be a non-empty list", pos)),
@@ -111,9 +111,9 @@ pub fn parse_auth_config(
         })?;
 
     let allowed_owner_ops: Operations = rules
-        .iter()
+        .into_iter()
         .filter_map(|rule| match rule {
-            AuthRule::Owner { operations, .. } => Some(operations.values().clone()),
+            AuthRule::Owner { operations } => Some(operations.into_inner()),
             _ => None,
         })
         .flatten()

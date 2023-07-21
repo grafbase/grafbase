@@ -54,7 +54,7 @@ pub enum AuthRule {
 }
 
 impl AuthRule {
-    pub fn from_value(value: &ConstValue) -> Result<Self, ServerError> {
+    pub fn from_value(value: &ConstValue, is_global: bool) -> Result<Self, ServerError> {
         // We convert the value to JSON to leverage serde for deserialization
         let value = match value {
             ConstValue::Object(_) => value
@@ -64,9 +64,27 @@ impl AuthRule {
             _ => return Err(ServerError::new("auth rule must be an object", None)),
         };
 
+        let default_ops = value.get("operations").is_none(); // operations are not enumerated.
+
         let rule: AuthRule =
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth rule: {err}"), None))?;
 
-        Ok(rule)
+        if !is_global && !default_ops && rule.operations().contains(super::operations::Operation::Introspection) {
+            Err(ServerError::new(
+                "introspection rule can be only configured globally",
+                None,
+            ))
+        } else {
+            Ok(rule)
+        }
+    }
+
+    fn operations(&self) -> &Operations {
+        match self {
+            AuthRule::Private { operations }
+            | AuthRule::Public { operations }
+            | AuthRule::Groups { groups: _, operations }
+            | AuthRule::Owner { operations } => operations,
+        }
     }
 }
