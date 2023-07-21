@@ -43,7 +43,7 @@ sqlx = { version = "0.6", features = [
 ] }
 strip-ansi-escapes = "0.1"
 strum = { version = "0.25", features = ["derive"] }
-tantivy = { version = "0.19", default-features = false }
+tantivy = { version = "0.19", default-features = false, features = ["mmap"] }
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is release
 tar = { git = "https://github.com/obmarg/tar-rs.git", rev = "bffee32190d531c03d806680daebd89cb1544be1" }
 tempfile = "3"
@@ -57,7 +57,10 @@ uuid = { version = "1", features = ["v4"] }
 version-compare = "0.1"
 which = "4"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.27.0" }
+# Same version as Tantivy
+tantivy-fst = "0.4.0"
+
+common = { package = "grafbase-local-common", path = "../common", version = "0.28.0" }
 
 [dev-dependencies]
 serde_json = "1"

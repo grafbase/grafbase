@@ -6,30 +6,20 @@ use tantivy::query::{
 };
 use tantivy::schema::Value;
 use tantivy::tokenizer::TextAnalyzer;
+use tantivy::Index;
 use tantivy::{
     self,
     query::{FuzzyTermQuery, Occur, PhraseQuery, Query as TantivyQuery, TermQuery},
     schema::{Field, IndexRecordOption},
     Term,
 };
-use tantivy::{Index, TantivyError};
 
 use combine::Parser;
-use thiserror::Error;
 
 use super::query::{Query, Range};
 use super::runtime::{FieldType, ScalarValue, Schema};
 use super::utils::tokenized_field_name;
-
-#[derive(Error, Debug)]
-pub enum SearchError {
-    #[error("Tantivy Error: {0}")]
-    TantivyError(#[from] TantivyError),
-    #[error("Internal error: '{0}'")]
-    InternalError(String),
-}
-
-pub type SearchResult<T> = Result<T, SearchError>;
+use super::{BadRequestError, SearchResult};
 
 pub struct TantivyQueryBuilder<'a> {
     index: &'a Index,
@@ -144,7 +134,13 @@ impl<'a> TantivyQueryBuilder<'a> {
                 let field = self.get_field(&field)?;
                 Box::new(TermSetQuery::new(values.into_iter().map(|value| to_term(field, value))))
             }
-            Query::Regex { field, pattern } => Box::new(RegexQuery::from_pattern(&pattern, self.get_field(&field)?)?),
+            Query::Regex { field, pattern } => {
+                let reg = tantivy_fst::Regex::new(&pattern).map_err(|err| BadRequestError::InvalidRegex {
+                    pattern,
+                    err: err.to_string(),
+                })?;
+                Box::new(RegexQuery::from_regex(reg, self.get_field(&field)?))
+            }
             Query::All => Box::new(AllQuery),
             Query::Empty => Box::new(EmptyQuery),
             Query::Text { value, fields } => self.build_text_query(&value, fields)?,
@@ -191,7 +187,7 @@ impl<'a> TantivyQueryBuilder<'a> {
 
         // Each phrase includes one or more words
         let Ok((phrases, "")) = parser().parse(text) else {
-            return Err(SearchError::InternalError(format!("Could not parse text: {text}")));
+            return Err(format!("Could not parse text: {text}").into());
         };
 
         let mut subqueries: Vec<Box<dyn TantivyQuery>> = vec![];
@@ -240,9 +236,7 @@ impl<'a> TantivyQueryBuilder<'a> {
                 }
                 // Shouldn't happen unless gateway validation didn't do its job correctly
                 ty => {
-                    return Err(SearchError::InternalError(format!(
-                        "Unexpected text query on field {field_name} having type {ty:?}"
-                    )));
+                    return Err(format!("Unexpected text query on field {field_name} having type {ty:?}").into());
                 }
             };
         }
@@ -268,14 +262,14 @@ impl<'a> TantivyQueryBuilder<'a> {
         self.index
             .schema()
             .get_field(name)
-            .ok_or_else(|| SearchError::InternalError(format!("Unknown field: '{name}'")))
+            .ok_or_else(|| format!("Unknown field: '{name}'").into())
     }
 
     fn is_nullable_field(&self, name: &str) -> SearchResult<bool> {
         self.schema
             .fields
             .get(name)
-            .ok_or_else(|| SearchError::InternalError(format!("Unknown field: '{name}'")))
+            .ok_or_else(|| format!("Unknown field: '{name}'").into())
             .map(|field| field.ty.is_nullable())
     }
 
@@ -291,10 +285,11 @@ impl<'a> TantivyQueryBuilder<'a> {
                         .tokenizer(),
                 )
                 .expect("String is always tokenized with our tokenizer")),
-            _ => Err(SearchError::InternalError(format!(
+            _ => Err(format!(
                 "Tried to retrieve the tokenzier for a non string field {}",
                 self.index.schema().get_field_name(field)
-            ))),
+            )
+            .into()),
         }
     }
 }

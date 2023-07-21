@@ -12,12 +12,42 @@ pub use cursor::Cursor;
 pub use paginated_searcher::TopDocsPaginatedSearcher;
 pub use protocol::{Hit, Info, PaginatedHits, Pagination, QueryExecutionRequest, QueryExecutionResponse};
 pub use query::Query;
-pub use query_builder::{SearchError, SearchResult, TantivyQueryBuilder};
+pub use query_builder::TantivyQueryBuilder;
 pub use runtime::{Config, FieldType, Schema};
 use tantivy::{directory::RamDirectory, Index};
 use tantivy::{store::Compressor, tokenizer::TokenizerManager, IndexSettings};
 pub use utils::ID_FIELD;
 
+#[derive(thiserror::Error, Debug, serde::Serialize, serde::Deserialize)]
+pub enum SearchError {
+    #[error("Search request failed.")]
+    ServerError,
+    #[error(transparent)]
+    BadRequestError(#[from] BadRequestError),
+}
+
+impl From<tantivy::TantivyError> for SearchError {
+    fn from(_value: tantivy::TantivyError) -> Self {
+        Self::ServerError
+    }
+}
+
+impl From<String> for SearchError {
+    fn from(err: String) -> Self {
+        log::error!("Search Error: {err}");
+        Self::ServerError
+    }
+}
+
+#[derive(thiserror::Error, Debug, serde::Serialize, serde::Deserialize)]
+pub enum BadRequestError {
+    #[error("Invalid Cursor: {0:?}")]
+    InvalidCursor(Cursor),
+    #[error("Invalid regex '{pattern}': {err}")]
+    InvalidRegex { pattern: String, err: String },
+}
+
+pub type SearchResult<T> = Result<T, SearchError>;
 pub fn open_index(schema: &Schema) -> tantivy::Result<(Index, Vec<IndexedField>)> {
     use tokenizer::{simple_normalized_tokenizer, TOKENIZER_NAME};
     use utils::{to_tantivy, tokenized_field_name};
