@@ -14,32 +14,22 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
-    };
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    flake-utils,
-    rust-overlay,
-    ...
-  }: let
-    inherit
-      (nixpkgs.lib)
-      optional
-      ;
-    systems = flake-utils.lib.system;
-  in
-    flake-utils.lib.eachDefaultSystem (system: let
+  outputs =
+    { self
+    , nixpkgs
+    , flake-utils
+    , ...
+    }:
+    let
+      inherit (nixpkgs.lib) optional;
+      systems = flake-utils.lib.system;
+    in
+    flake-utils.lib.eachDefaultSystem (system:
+    let
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [(import rust-overlay)];
       };
 
       x86_64LinuxPkgs = import nixpkgs {
@@ -48,25 +38,21 @@
           config = "x86_64-unknown-linux-musl";
         };
       };
-
       x86_64LinuxBuildPkgs = x86_64LinuxPkgs.buildPackages;
-      rustToolChain = pkgs.rust-bin.fromRustupToolchainFile ./cli/rust-toolchain.toml;
+
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
           [
-            # I gave up, it's just too cumbersome over time with rust-analyzer because of:
-            # https://github.com/rust-lang/cargo/issues/10096
-            # So I ended up using rustup
-            # rustToolChain
+            cargo-insta
+            cargo-nextest
+            openssl.dev
+            pkg-config
             rustup
             sccache
-            pkg-config
-            openssl.dev
+
             # for sqlx-macros
             libiconv
 
-            cargo-nextest
-            cargo-insta
             # Used for resolver tests
             nodePackages.pnpm
             nodePackages.yarn
@@ -96,18 +82,19 @@
           export PATH="$CARGO_INSTALL_ROOT/bin:$PATH"
         '';
       };
-    in {
+    in
+    {
       devShells.default = pkgs.mkShell defaultShellConf;
       devShells.full = pkgs.mkShell (defaultShellConf
         // {
-          buildInputs = with pkgs; [
-            rustToolChain
-            x86_64LinuxBuildPkgs.gcc
-          ];
+        buildInputs = with pkgs; [
+          rustToolChain
+          x86_64LinuxBuildPkgs.gcc
+        ];
 
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
-          CC_x86_64_unknown_linux_musl = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
-        });
+        CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
+        CC_x86_64_unknown_linux_musl = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
+      });
       # Nightly Rust
       #
       # Clippy:
@@ -120,7 +107,7 @@
           (rust-bin.selectLatestNightlyWith
             (toolchain:
               toolchain.minimal.override {
-                extensions = ["clippy"];
+                extensions = [ "clippy" ];
               }))
         ];
       };
