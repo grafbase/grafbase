@@ -16,18 +16,16 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , flake-utils
-    , ...
-    }:
-    let
-      inherit (nixpkgs.lib) optional;
-      systems = flake-utils.lib.system;
-    in
-    flake-utils.lib.eachDefaultSystem (system:
-    let
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    ...
+  }: let
+    inherit (nixpkgs.lib) optional;
+    systems = flake-utils.lib.system;
+  in
+    flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
       };
@@ -79,19 +77,18 @@
           export PATH="$CARGO_INSTALL_ROOT/bin:$PATH"
         '';
       };
-    in
-    {
+    in {
       devShells.default = pkgs.mkShell defaultShellConf;
       devShells.full = pkgs.mkShell (defaultShellConf
         // {
-        buildInputs = with pkgs; [
-          rustToolChain
-          x86_64LinuxBuildPkgs.gcc
-        ];
+          buildInputs = with pkgs; [
+            rustToolChain
+            x86_64LinuxBuildPkgs.gcc
+          ];
 
-        CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
-        CC_x86_64_unknown_linux_musl = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
-      });
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
+          CC_x86_64_unknown_linux_musl = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
+        });
       # Nightly Rust
       #
       # Clippy:
@@ -104,7 +101,7 @@
           (rust-bin.selectLatestNightlyWith
             (toolchain:
               toolchain.minimal.override {
-                extensions = [ "clippy" ];
+                extensions = ["clippy"];
               }))
         ];
       };
