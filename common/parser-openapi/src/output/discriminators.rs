@@ -58,7 +58,7 @@ impl crate::graph::OutputType {
             .into_iter()
             .filter_map(|(discriminator, ty)| {
                 if discriminator.is_none() {
-                    tracing::warn!(
+                    tracing::info!(
                         "Couldn't find a discriminator for {} in {}",
                         ty.name(graph).unwrap(),
                         self.name(graph).unwrap()
