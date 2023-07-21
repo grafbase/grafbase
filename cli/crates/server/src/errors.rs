@@ -166,6 +166,10 @@ pub enum ServerError {
     #[error("A file watcher encountered an error\nCaused by: {0}")]
     FileWatcher(#[from] NotifyError),
 
+    /// returned if change me
+    #[error("{0}")]
+    ChangeMe(hyper::Error),
+
     #[error("Could not create a lock for the wrangler installation: {0}")]
     Lock(fslock::Error),
 
