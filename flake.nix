@@ -14,32 +14,20 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
-    };
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
-    rust-overlay,
     ...
   }: let
-    inherit
-      (nixpkgs.lib)
-      optional
-      ;
+    inherit (nixpkgs.lib) optional;
     systems = flake-utils.lib.system;
   in
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [(import rust-overlay)];
       };
 
       x86_64LinuxPkgs = import nixpkgs {
@@ -48,25 +36,20 @@
           config = "x86_64-unknown-linux-musl";
         };
       };
-
       x86_64LinuxBuildPkgs = x86_64LinuxPkgs.buildPackages;
-      rustToolChain = pkgs.rust-bin.fromRustupToolchainFile ./cli/rust-toolchain.toml;
+
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
           [
-            # I gave up, it's just too cumbersome over time with rust-analyzer because of:
-            # https://github.com/rust-lang/cargo/issues/10096
-            # So I ended up using rustup
-            # rustToolChain
-            rustup
-            sccache
-            pkg-config
+            cargo-insta
+            cargo-nextest
             openssl.dev
+            pkg-config
+            rustup
+
             # for sqlx-macros
             libiconv
 
-            cargo-nextest
-            cargo-insta
             # Used for resolver tests
             nodePackages.pnpm
             nodePackages.yarn
@@ -88,8 +71,6 @@
             darwin.apple_sdk.frameworks.CoreFoundation
             darwin.apple_sdk.frameworks.CoreServices
           ];
-
-        RUSTC_WRAPPER = "${pkgs.sccache.out}/bin/sccache";
 
         shellHook = ''
           export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo"
