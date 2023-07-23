@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, sync::Arc};
 
-use grafbase_runtime::search::{self, Cursor};
+use grafbase_runtime::search::{self, GraphqlCursor};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -66,11 +66,11 @@ impl QueryResolver {
 
                 let first = first.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
                 let last = last.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
-                let before: Option<Cursor> = before.resolve(ctx, last_val)?;
-                let after: Option<Cursor> = after.resolve(ctx, last_val)?;
+                let before: Option<GraphqlCursor> = before.resolve(ctx, last_val)?;
+                let after: Option<GraphqlCursor> = after.resolve(ctx, last_val)?;
 
                 let response = search_engine
-                    .search(
+                    .query(
                         ctx.data()?,
                         search::Request {
                             query: search::GraphqlQuery {
@@ -82,7 +82,7 @@ impl QueryResolver {
                                 },
                             },
                             pagination: search_parser::parse_pagination(first, before, last, after)?,
-                            entity_type: entity_type.clone(),
+                            index: entity_type.clone(),
                         },
                     )
                     .await?;

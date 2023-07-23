@@ -6,7 +6,7 @@ mod projection;
 use std::{pin::Pin, sync::Arc};
 
 use futures_util::Future;
-use grafbase_runtime::search::Cursor;
+use grafbase_runtime::search::GraphqlCursor;
 use http::{
     header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
     StatusCode,
@@ -156,8 +156,8 @@ impl AtlasDataApiResolver {
                 first.zip(last)
             });
 
-        let start_cursor = ids.map(|(first, _)| first.as_bytes()).map(Cursor::from);
-        let end_cursor = ids.map(|(_, last)| last.as_bytes()).map(Cursor::from);
+        let start_cursor = ids.map(|(first, _)| first.as_bytes()).map(GraphqlCursor::from);
+        let end_cursor = ids.map(|(_, last)| last.as_bytes()).map(GraphqlCursor::from);
 
         Some(ResolvedPaginationInfo {
             start_cursor,
