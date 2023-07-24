@@ -1,4 +1,4 @@
 target
 crates/cli/tests/graphql/compilation_error/schema.graphql
 crates/backend/assets/grafbase.default.config.ts
-about.hbs
+*.hbs
