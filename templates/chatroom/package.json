@@ -10,6 +10,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@grafbase/sdk": "~0.1.0"
+    "@grafbase/sdk": "~0.3.0"
   }
 }
