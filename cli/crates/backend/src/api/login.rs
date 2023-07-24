@@ -8,7 +8,6 @@ use axum::{
     Router,
 };
 use common::environment::Environment;
-use common::{consts::EPHEMERAL_PORT_RANGE, types::LocalAddressType, utils::find_available_port_in_range};
 use serde::Deserialize;
 use std::{
     fs::create_dir_all,
@@ -16,6 +15,7 @@ use std::{
     path::PathBuf,
     sync::mpsc::Sender as MspcSender,
 };
+use tokio::net::TcpListener;
 use tokio::sync::mpsc::Sender;
 use tower_http::trace::TraceLayer;
 use urlencoding::encode;
@@ -86,8 +86,12 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
         Err(error) => return Err(ApiError::ReadUserDotGrafbaseFolder(error)),
     }
 
-    let port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
-        .ok_or(ApiError::FindAvailablePort)?;
+    let port = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+        .await
+        .map_err(|_| ApiError::FindAvailablePort)?
+        .local_addr()
+        .map_err(|_| ApiError::FindAvailablePort)?
+        .port();
 
     let url = &format!("{AUTH_URL}?callback={}", encode(&format!("http://127.0.0.1:{port}")));
 
