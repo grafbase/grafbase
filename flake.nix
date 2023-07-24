@@ -57,7 +57,7 @@
             nodePackages.semver
 
             # Native SSL
-            openssl.dev
+            openssl
             pkg-config
 
             # Rust
