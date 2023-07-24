@@ -45,28 +45,16 @@
             cargo-make
             cargo-nextest
             cargo-release
+            dynein
+            libiconv
+            nodejs
+            nodePackages.pnpm
+            nodePackages.prettier
+            nodePackages.semver
+            nodePackages.yarn
             openssl.dev
             pkg-config
             rustup
-
-            # for sqlx-macros
-            libiconv
-
-            # Used for resolver tests
-            nodePackages.pnpm
-            nodePackages.yarn
-
-            # Miniflare
-            nodejs
-
-            # Formatting
-            nodePackages.prettier
-
-            # Versioning
-            nodePackages.semver
-
-            # Local DynamoDB handling
-            dynein
           ]
           ++ optional (system == systems.aarch64-darwin) [
             darwin.apple_sdk.frameworks.CoreFoundation
