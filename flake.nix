@@ -41,19 +41,22 @@
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
           [
-            # Cargo crates
-            cargo-about
+            # Testing
             cargo-insta
-            cargo-make
             cargo-nextest
+
+            # Versioning, automation and releasing
+            cargo-about
+            cargo-make
             cargo-release
-            cargo-sd
+            sd
 
             # DynamoDB local
             dynein
 
             # Node.js
             nodejs
+            nodePackages.npm
             nodePackages.prettier
             nodePackages.semver
 
@@ -62,6 +65,7 @@
             pkg-config
 
             # Rust
+            cargo-binstall
             rustup
 
             # SQLx macros
@@ -72,7 +76,6 @@
             nodePackages.yarn
           ]
           ++ optional (system == systems.aarch64-darwin) [
-            cargo-binstall
             darwin.apple_sdk.frameworks.CoreFoundation
             darwin.apple_sdk.frameworks.CoreServices
             darwin.apple_sdk.frameworks.Security
@@ -81,6 +84,7 @@
         shellHook = ''
           export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo";
           export PATH="$CARGO_INSTALL_ROOT/bin:$PATH";
+            cargo binstall --no-confirm --no-symlinks --quiet cargo-sd@0.4.8
           if [[ "${system}" == "aarch64-darwin" ]]; then
             cargo binstall --no-confirm --no-symlinks --quiet cargo-instruments@0.4.8
           fi
