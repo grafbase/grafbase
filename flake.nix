@@ -71,14 +71,18 @@
             nodePackages.yarn
           ]
           ++ optional (system == systems.aarch64-darwin) [
+            cargo-binstall
             darwin.apple_sdk.frameworks.CoreFoundation
             darwin.apple_sdk.frameworks.CoreServices
             darwin.apple_sdk.frameworks.Security
           ];
 
         shellHook = ''
-          export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo"
-          export PATH="$CARGO_INSTALL_ROOT/bin:$PATH"
+          export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo";
+          export PATH="$CARGO_INSTALL_ROOT/bin:$PATH";
+          if [[ "${system}" == "aarch64-darwin" ]]; then
+            cargo binstall --no-confirm --no-symlinks --quiet cargo-instruments@0.4.8
+          fi
         '';
       };
     in {
