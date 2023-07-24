@@ -15,7 +15,7 @@ use tower_http::services::ServeDir;
 
 pub async fn serve(port: u16, worker_port: u16) -> Result<(), ServerError> {
     let mut handlebars = Handlebars::new();
-    let template = include_str!("../templates/playground.html");
+    let template = include_str!("../templates/playground.hbs");
     handlebars
         .register_template_string("playground.html", template)
         .expect("must be valid");
