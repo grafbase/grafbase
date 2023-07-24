@@ -1,6 +1,9 @@
 #![allow(unused)]
 
-use crate::errors::ServerError;
+use crate::{
+    errors::ServerError,
+    event::{wait_for_event, Event},
+};
 use axum::{
     extract::State,
     response::{Html, IntoResponse},
@@ -13,7 +16,11 @@ use serde_json::json;
 use std::net::{Ipv4Addr, SocketAddr};
 use tower_http::services::ServeDir;
 
-pub async fn serve(port: u16, worker_port: u16) -> Result<(), ServerError> {
+pub async fn start(
+    port: u16,
+    worker_port: u16,
+    event_bus: tokio::sync::broadcast::Sender<Event>,
+) -> Result<(), ServerError> {
     let mut handlebars = Handlebars::new();
     let template = include_str!("../templates/playground.hbs");
     handlebars
@@ -42,22 +49,17 @@ pub async fn serve(port: u16, worker_port: u16) -> Result<(), ServerError> {
     // if we upgrade to miniflare 3 / stop using miniflare
     axum::Server::bind(&SocketAddr::from((Ipv4Addr::LOCALHOST, port)))
         .serve(router.into_make_service())
+        .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
+            event.should_restart_servers()
+        }))
         .await
         // FIXME
         .map_err(ServerError::ChangeMe);
 
     Ok(())
-
-    // TODO handle codicon download
 }
 
 #[allow(clippy::unused_async)]
 async fn root(State(playground_html): State<Html<String>>) -> impl IntoResponse {
     playground_html
-}
-
-#[tokio::test]
-async fn test() {
-    Environment::try_init(None).unwrap();
-    serve(3030, 4000).await;
 }
