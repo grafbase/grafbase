@@ -47,6 +47,7 @@
             cargo-make
             cargo-nextest
             cargo-release
+            cargo-sd
 
             # DynamoDB local
             dynein
