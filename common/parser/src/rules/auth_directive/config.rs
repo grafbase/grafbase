@@ -68,7 +68,7 @@ pub fn parse_auth_config(
     let allowed_private_ops: Operations = rules
         .iter()
         .filter_map(|rule| match rule {
-            AuthRule::Private { operations, .. } => Some(operations.values().clone()),
+            AuthRule::Private { operations, .. } => Some(operations.clone().unwrap_or_default().values().clone()),
             _ => None,
         })
         .flatten()
@@ -77,7 +77,7 @@ pub fn parse_auth_config(
     let allowed_public_ops: Operations = rules
         .iter()
         .filter_map(|rule| match rule {
-            AuthRule::Public { operations, .. } => Some(operations.values().clone()),
+            AuthRule::Public { operations, .. } => Some(operations.clone().unwrap_or_default().values().clone()),
             _ => None,
         })
         .flatten()
@@ -90,7 +90,10 @@ pub fn parse_auth_config(
     let allowed_group_ops = rules
         .iter()
         .filter_map(|rule| match rule {
-            AuthRule::Groups { groups, operations } => Some((groups, operations)),
+            AuthRule::Groups {
+                groups,
+                operations: maybe_operations,
+            } => Some((groups, maybe_operations.clone().unwrap_or_default())),
             _ => None,
         })
         .try_fold(HashMap::new(), |mut res, (groups, operations)| {
@@ -113,7 +116,7 @@ pub fn parse_auth_config(
     let allowed_owner_ops: Operations = rules
         .into_iter()
         .filter_map(|rule| match rule {
-            AuthRule::Owner { operations } => Some(operations.into_inner()),
+            AuthRule::Owner { operations } => Some(operations.unwrap_or_default().into_inner()),
             _ => None,
         })
         .flatten()
