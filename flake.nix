@@ -22,13 +22,15 @@
     flake-utils,
     ...
   }: let
-    inherit (nixpkgs.lib) optional;
+    inherit (nixpkgs.lib) optional concatStringsSep;
     systems = flake-utils.lib.system;
   in
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
       };
+
+      aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8"];
 
       x86_64LinuxPkgs = import nixpkgs {
         inherit system;
@@ -85,7 +87,7 @@
           export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo";
           export PATH="$CARGO_INSTALL_ROOT/bin:$PATH";
           if [[ "${system}" == "aarch64-darwin" ]]; then
-            cargo binstall --no-confirm --no-symlinks --quiet cargo-instruments@0.4.8
+            cargo binstall --no-confirm --no-symlinks --quiet ${aarch64DarwinExternalCargoCrates}
           fi
         '';
       };
