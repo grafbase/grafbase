@@ -42,7 +42,9 @@
         nativeBuildInputs = with pkgs;
           [
             cargo-insta
+            cargo-make
             cargo-nextest
+            cargo-release
             openssl.dev
             pkg-config
             rustup
