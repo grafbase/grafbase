@@ -65,7 +65,6 @@
             pkg-config
 
             # Rust
-            cargo-binstall
             rustup
 
             # SQLx macros
@@ -76,6 +75,7 @@
             nodePackages.yarn
           ]
           ++ optional (system == systems.aarch64-darwin) [
+            cargo-binstall
             darwin.apple_sdk.frameworks.CoreFoundation
             darwin.apple_sdk.frameworks.CoreServices
             darwin.apple_sdk.frameworks.Security
