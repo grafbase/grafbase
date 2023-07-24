@@ -67,7 +67,12 @@ impl AuthRule {
         let rule: AuthRule =
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth rule: {err}"), None))?;
 
-        if !is_global && rule.maybe_operations().map(|ops| ops.contains(super::operations::Operation::Introspection)).unwrap_or_default() {
+        if !is_global
+            && rule
+                .maybe_operations()
+                .map(|ops| ops.contains(super::operations::Operation::Introspection))
+                .unwrap_or_default()
+        {
             Err(ServerError::new(
                 "introspection rule can be only configured globally",
                 None,
