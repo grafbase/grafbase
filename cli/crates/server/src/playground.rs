@@ -21,6 +21,8 @@ pub async fn start(
     worker_port: u16,
     event_bus: tokio::sync::broadcast::Sender<Event>,
 ) -> Result<(), ServerError> {
+    trace!("starting playground at port {port}");
+
     let mut handlebars = Handlebars::new();
     let template = include_str!("../templates/playground.hbs");
     handlebars

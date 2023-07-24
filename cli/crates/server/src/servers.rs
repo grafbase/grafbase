@@ -12,10 +12,10 @@ use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBAS
 use common::environment::{Environment, Project, SchemaLocation};
 use common::types::UdfKind;
 use flate2::read::GzDecoder;
-use futures_util::FutureExt;
+use futures_util::{try_join, FutureExt};
 use std::borrow::Cow;
 use std::env;
-use std::net::{Ipv4Addr, TcpListener};
+use std::net::Ipv4Addr;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
@@ -24,6 +24,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 use tokio::io::AsyncWriteExt;
+use tokio::net::TcpListener;
 use tokio::process::Command;
 use tokio::runtime::Builder;
 use tokio::sync::broadcast::{self, channel};
@@ -57,9 +58,6 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
 
         create_project_dot_grafbase_directory()?;
 
-        let bridge_port = find_available_port_for_internal_use()?;
-        let playground_port = find_available_port_for_internal_use()?;
-
         // manual implementation of #[tokio::main] due to a rust analyzer issue
         Builder::new_current_thread()
             .enable_all()
@@ -76,10 +74,10 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                             let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
                             watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
                         }) => { result }
-                        result = server_loop(port, bridge_port, playground_port, watch, sender, event_bus, tracing) => { result }
+                        result = server_loop(port, watch, sender, event_bus, tracing) => { result }
                     }
                 } else {
-                    server_loop(port, bridge_port, playground_port, watch, sender, event_bus, tracing).await
+                    server_loop(port, watch, sender, event_bus, tracing).await
                 }
             })
     });
@@ -89,8 +87,6 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
 
 async fn server_loop(
     worker_port: u16,
-    bridge_port: u16,
-    playground_port: u16,
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
@@ -100,7 +96,7 @@ async fn server_loop(
     loop {
         let receiver = event_bus.subscribe();
         tokio::select! {
-            result = spawn_servers(worker_port, bridge_port, playground_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
+            result = spawn_servers(worker_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
             path = wait_for_event_and_match(receiver, |event| match event {
@@ -119,8 +115,6 @@ async fn server_loop(
 #[tracing::instrument(level = "trace")]
 async fn spawn_servers(
     worker_port: u16,
-    bridge_port: u16,
-    playground_port: u16,
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
@@ -184,16 +178,18 @@ async fn spawn_servers(
         crate::udf_builder::install_dependencies(project, &sender, tracing).await?;
     }
 
-    let playground_handle =
-        tokio::spawn(async move { playground::start(playground_port, worker_port, playground_event_bus).await }).fuse();
-
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
+
+    let (bridge_port, playground_port) = try_join!(find_random_available_port(), find_random_available_port())?;
 
     let mut bridge_handle =
         tokio::spawn(
             async move { bridge::start(bridge_port, worker_port, bridge_sender, bridge_event_bus, tracing).await },
         )
         .fuse();
+
+    let playground_handle =
+        tokio::spawn(async move { playground::start(playground_port, worker_port, playground_event_bus).await }).fuse();
 
     let sender_cloned = sender.clone();
     tokio::spawn(async move {
@@ -584,8 +580,9 @@ async fn validate_dependencies() -> Result<(), ServerError> {
     Ok(())
 }
 
-pub fn find_available_port_for_internal_use() -> Result<u16, ServerError> {
+pub async fn find_random_available_port() -> Result<u16, ServerError> {
     Ok(TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+        .await
         .map_err(|_| ServerError::AvailablePort)?
         .local_addr()
         .map_err(|_| ServerError::AvailablePort)?
