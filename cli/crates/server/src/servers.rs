@@ -180,16 +180,26 @@ async fn spawn_servers(
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
 
-    let (bridge_port, playground_port) = try_join!(find_random_available_port(), find_random_available_port())?;
+    let ((bridge_listener, bridge_port), (playground_listener, playground_port)) =
+        try_join!(get_listener_for_random_port(), get_listener_for_random_port())?;
 
-    let mut bridge_handle =
-        tokio::spawn(
-            async move { bridge::start(bridge_port, worker_port, bridge_sender, bridge_event_bus, tracing).await },
+    let mut bridge_handle = tokio::spawn(async move {
+        bridge::start(
+            bridge_listener,
+            bridge_port,
+            worker_port,
+            bridge_sender,
+            bridge_event_bus,
+            tracing,
         )
-        .fuse();
+        .await
+    })
+    .fuse();
 
-    let playground_handle =
-        tokio::spawn(async move { playground::start(playground_port, worker_port, playground_event_bus).await }).fuse();
+    let playground_handle = tokio::spawn(async move {
+        playground::start(playground_listener, playground_port, worker_port, playground_event_bus).await
+    })
+    .fuse();
 
     let sender_cloned = sender.clone();
     tokio::spawn(async move {
@@ -580,11 +590,10 @@ async fn validate_dependencies() -> Result<(), ServerError> {
     Ok(())
 }
 
-pub async fn find_random_available_port() -> Result<u16, ServerError> {
-    Ok(TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+pub async fn get_listener_for_random_port() -> Result<(std::net::TcpListener, u16), ServerError> {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
         .await
-        .map_err(|_| ServerError::AvailablePort)?
-        .local_addr()
-        .map_err(|_| ServerError::AvailablePort)?
-        .port())
+        .map_err(|_| ServerError::AvailablePort)?;
+    let port = listener.local_addr().map_err(|_| ServerError::AvailablePort)?.port();
+    Ok((listener.into_std().map_err(|_| ServerError::AvailablePort)?, port))
 }

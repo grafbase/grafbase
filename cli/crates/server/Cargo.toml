@@ -51,7 +51,7 @@ tempfile = "3"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["io-util"] }
-tower-http = { version = "0.4", features = ["fs", "trace"] }
+tower-http = { version = "0.4", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 unicode-normalization = "0.1"
 uuid = { version = "1", features = ["v4"] }
