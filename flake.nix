@@ -46,11 +46,14 @@
             # Testing
             cargo-insta
             cargo-nextest
+            nodePackages.npm
+            nodePackages.prettier
 
             # Versioning, automation and releasing
             cargo-about
             cargo-make
             cargo-release
+            nodePackages.semver
             sd
 
             # DynamoDB local
@@ -58,9 +61,6 @@
 
             # Node.js
             nodejs
-            nodePackages.npm
-            nodePackages.prettier
-            nodePackages.semver
 
             # Native SSL
             openssl
