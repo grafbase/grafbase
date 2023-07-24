@@ -16,7 +16,7 @@ use futures_util::FutureExt;
 use flate2::read::GzDecoder;
 use std::borrow::Cow;
 use std::env;
-use std::net::TcpListener;
+use std::net::{Ipv4Addr, SocketAddr, TcpListener};
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
@@ -586,7 +586,7 @@ async fn validate_dependencies() -> Result<(), ServerError> {
 }
 
 pub fn find_available_port_for_internal_use() -> Result<u16, ServerError> {
-    let tcp_listener = TcpListener::bind("127.0.0.1:0").map_err(|_| ServerError::AvailablePort)?;
+    let tcp_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).map_err(|_| ServerError::AvailablePort)?;
     Ok(tcp_listener
         .local_addr()
         .map_err(|_| ServerError::AvailablePort)?
