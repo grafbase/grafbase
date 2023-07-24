@@ -59,6 +59,7 @@ impl IntoResponse for ApiError {
 impl ApiError {
     pub fn from_error_and_operation(error: SqlxError, operation: Operation) -> Self {
         match (operation.kind, error.as_database_error()) {
+            // TODO: change this to use the new SQLx errors
             (Some(OperationKind::Constraint(constraint)), Some(db_error)) => match db_error.code().as_deref() {
                 Some(extended_error_codes::SQLITE_CONSTRAINT_PRIMARYKEY) => {
                     ApiError::User(UserError::ConstraintViolation(constraint))

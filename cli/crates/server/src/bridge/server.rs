@@ -78,7 +78,7 @@ async fn mutation_endpoint(
 
         let query = operation.iter_variables().fold(template, Query::bind);
 
-        query.execute(&mut transaction).await.map_err(|error| {
+        query.execute(&mut *transaction).await.map_err(|error| {
             error!("mutation error: {error}");
             match operation.kind {
                 Some(OperationKind::Constraint(Constraint {
