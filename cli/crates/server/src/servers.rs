@@ -586,8 +586,8 @@ async fn validate_dependencies() -> Result<(), ServerError> {
 }
 
 pub fn find_available_port_for_internal_use() -> Result<u16, ServerError> {
-    let tcp_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).map_err(|_| ServerError::AvailablePort)?;
-    Ok(tcp_listener
+    Ok(TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+        .map_err(|_| ServerError::AvailablePort)?
         .local_addr()
         .map_err(|_| ServerError::AvailablePort)?
         .port())
