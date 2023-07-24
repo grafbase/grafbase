@@ -41,6 +41,7 @@
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
           [
+            cargo-about
             cargo-insta
             cargo-make
             cargo-nextest
