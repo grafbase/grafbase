@@ -268,10 +268,10 @@ importers:
     dependencies:
       '@n1ru4l/graphql-live-query':
         specifier: 0.10.0
-        version: 0.10.0(graphql@16.6.0)
+        version: 0.10.0(graphql@16.7.1)
       '@n1ru4l/graphql-live-query-patch-json-patch':
         specifier: 0.7.0
-        version: 0.7.0(graphql@16.6.0)
+        version: 0.7.0(graphql@16.7.1)
       '@n1ru4l/push-pull-async-iterable-iterator':
         specifier: 3.2.0
         version: 3.2.0
@@ -279,17 +279,17 @@ importers:
         specifier: 3.0.4
         version: 3.0.4
       '@urql/core':
-        specifier: 4.0.10
-        version: 4.0.10(graphql@16.6.0)
+        specifier: 4.1.0
+        version: 4.1.0(graphql@16.7.1)
       graphql:
-        specifier: 16.6.0
-        version: 16.6.0
+        specifier: 16.7.1
+        version: 16.7.1
       reconnecting-eventsource:
         specifier: 1.6.2
         version: 1.6.2
       wonka:
-        specifier: 6.3.2
-        version: 6.3.2
+        specifier: 6.3.3
+        version: 6.3.3
     devDependencies:
       eslint:
         specifier: ^8.0.0
@@ -311,7 +311,7 @@ importers:
 
 packages:
 
-  /@0no-co/graphql.web@1.0.1(graphql@16.6.0):
+  /@0no-co/graphql.web@1.0.1(graphql@16.7.1):
     resolution: {integrity: sha512-6Yaxyv6rOwRkLIvFaL0NrLDgfNqC/Ng9QOPmTmlqW4mORXMEKmh5NYGkIvvt5Yw8fZesnMAqkj8cIqTj8f40cQ==}
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -319,7 +319,7 @@ packages:
       graphql:
         optional: true
     dependencies:
-      graphql: 16.6.0
+      graphql: 16.7.1
     dev: false
 
   /@ampproject/remapping@2.2.1:
@@ -2158,11 +2158,11 @@ packages:
       '@typescript-eslint/types': 5.59.2
       eslint-visitor-keys: 3.4.0
 
-  /@urql/core@4.0.10(graphql@16.6.0):
-    resolution: {integrity: sha512-Vs3nOSAnYftqOCg034Ostp/uSqWlQg5ryLIzcOrm8+O43s4M+Ew4GQAuemIH7ZDB8dek6h61zzWI3ujd8FH3NA==}
+  /@urql/core@4.1.0(graphql@16.7.1):
+    resolution: {integrity: sha512-mQLO6RAOhITvq6oktFzsEuAngdVwJbTuS+XaZi6evUQu797MXhI0smldEkWg9osvn/I2dyO57oR3LpxpMr9nTg==}
     dependencies:
-      '@0no-co/graphql.web': 1.0.1(graphql@16.6.0)
-      wonka: 6.3.2
+      '@0no-co/graphql.web': 1.0.1(graphql@16.7.1)
+      wonka: 6.3.3
     transitivePeerDependencies:
       - graphql
     dev: false
@@ -6704,8 +6704,8 @@ packages:
     dependencies:
       isexe: 2.0.0
 
-  /wonka@6.3.2:
-    resolution: {integrity: sha512-2xXbQ1LnwNS7egVm1HPhW2FyKrekolzhpM3mCwXdQr55gO+tAiY76rhb32OL9kKsW8taj++iP7C6hxlVzbnvrw==}
+  /wonka@6.3.3:
+    resolution: {integrity: sha512-id4wYGsT6aEc8/3+by7NTHvTe0DwsOjv7vah0K0+AorV1MHKuS3OQ2g8DGsem1OEXrNShbVLPsg4kG2O6GZ2SQ==}
     dev: false
 
   /word-wrap@1.2.3:
