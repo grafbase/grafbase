@@ -46,13 +46,12 @@
             # Testing
             cargo-insta
             cargo-nextest
-            nodePackages.npm
-            nodePackages.prettier
 
             # Versioning, automation and releasing
             cargo-about
             cargo-make
             cargo-release
+            nodePackages.npm
             nodePackages.semver
             sd
 
@@ -61,6 +60,7 @@
 
             # Node.js
             nodejs
+            nodePackages.prettier
 
             # Native SSL
             openssl
