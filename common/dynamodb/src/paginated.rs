@@ -368,8 +368,7 @@ where
         #[allow(clippy::large_enum_variant)]
         enum PageState {
             Next(Option<HashMap<String, AttributeValue>>, QueryInput),
-            // Optional Cursor
-            End(Option<String>),
+            End,
         }
 
         let mut actual_state = PageState::Next(exclusive_start_key, input);
@@ -378,7 +377,7 @@ where
         while result.values.len() <= limit {
             let (exclusive_start_key, input) = match actual_state {
                 PageState::Next(start, input) => (start, input),
-                PageState::End(_) => {
+                PageState::End => {
                     break;
                 }
             };
@@ -479,7 +478,7 @@ where
             // - Enough elements (n+1) so we won't go into another cycle.
             // - No enough elements, but we can't fetch another elements.
             // - Not enough elements, but we can still fetch more, so we'll go into another cycle
-            if result.values.len() > limit || result.last_evaluated_key.is_some() {
+            actual_state = if result.values.len() > limit {
                 result.values = result
                     .values
                     .into_iter()
@@ -494,14 +493,12 @@ where
                     })
                     .take(limit)
                     .collect();
-            }
-
-            actual_state = match resp.last_evaluated_key {
-                Some(elm) => PageState::Next(Some(elm), input),
-                None => PageState::End(
-                    resp.last_evaluated_key
-                        .and_then(|x| x.get(PK).and_then(|s| s.s.clone())),
-                ),
+                PageState::End
+            } else {
+                match resp.last_evaluated_key {
+                    Some(elm) => PageState::Next(Some(elm), input),
+                    None => PageState::End,
+                }
             };
         }
 
