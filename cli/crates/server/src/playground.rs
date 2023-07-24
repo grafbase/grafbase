@@ -59,14 +59,13 @@ pub async fn start(
     // TODO change this to `Ipv6Addr::UNSPECIFIED`
     // if we upgrade to miniflare 3 / stop using miniflare
     axum::Server::from_tcp(tcp_listener)
-        .map_err(ServerError::ChangeMe)?
+        .map_err(ServerError::StartPlaygroundServer)?
         .serve(router.into_make_service())
         .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
             event.should_restart_servers()
         }))
         .await
-        // FIXME
-        .map_err(ServerError::ChangeMe);
+        .map_err(ServerError::StartPlaygroundServer);
 
     Ok(())
 }
