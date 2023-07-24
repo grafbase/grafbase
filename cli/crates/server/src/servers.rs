@@ -58,6 +58,7 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
 
         create_project_dot_grafbase_directory()?;
 
+        // TODO change these to occupy a port and then return it with an event
         let bridge_port = find_available_port_for_internal_use()?;
         let playground_port = find_available_port_for_internal_use()?;
 
