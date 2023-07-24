@@ -41,21 +41,34 @@
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
           [
+            # Cargo crates
             cargo-about
             cargo-insta
             cargo-make
             cargo-nextest
             cargo-release
+
+            # DynamoDB local
             dynein
-            libiconv
+
+            # Node.js
             nodejs
-            nodePackages.pnpm
             nodePackages.prettier
             nodePackages.semver
-            nodePackages.yarn
+
+            # Native SSL
             openssl.dev
             pkg-config
+
+            # Rust
             rustup
+
+            # SQLx macros
+            libiconv
+
+            # Resolver tests
+            nodePackages.pnpm
+            nodePackages.yarn
           ]
           ++ optional (system == systems.aarch64-darwin) [
             darwin.apple_sdk.frameworks.CoreFoundation
