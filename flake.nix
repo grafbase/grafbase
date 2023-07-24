@@ -67,9 +67,9 @@
             dynein
           ]
           ++ optional (system == systems.aarch64-darwin) [
-            darwin.apple_sdk.frameworks.Security
             darwin.apple_sdk.frameworks.CoreFoundation
             darwin.apple_sdk.frameworks.CoreServices
+            darwin.apple_sdk.frameworks.Security
           ];
 
         shellHook = ''
