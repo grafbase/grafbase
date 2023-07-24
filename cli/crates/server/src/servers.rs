@@ -11,9 +11,8 @@ use crate::{error_server, playground};
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project, SchemaLocation};
 use common::types::UdfKind;
-use futures_util::FutureExt;
-
 use flate2::read::GzDecoder;
+use futures_util::FutureExt;
 use std::borrow::Cow;
 use std::env;
 use std::net::{Ipv4Addr, TcpListener};
