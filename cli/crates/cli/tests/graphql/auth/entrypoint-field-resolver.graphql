@@ -1,7 +1,10 @@
 schema
   @auth(
     providers: [{ type: jwt, issuer: "{{ env.ISSUER_URL }}", secret: "{{ env.JWT_SECRET }}" }]
-    rules: [{ allow: private }]
+    rules: [
+      { allow: groups, groups: ["reader"], operations: [read] }
+      { allow: groups, groups: ["writer"], operations: [create, update, delete] }
+    ]
   ) {
   query: Query
 }
