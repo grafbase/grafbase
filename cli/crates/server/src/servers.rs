@@ -15,7 +15,7 @@ use flate2::read::GzDecoder;
 use futures_util::{try_join, FutureExt};
 use std::borrow::Cow;
 use std::env;
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::Ipv4Addr;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
