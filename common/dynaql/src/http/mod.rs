@@ -1,10 +1,12 @@
 //! A helper module that supports HTTP
 
 mod multipart;
+#[cfg(feature = "tokio_runtime")]
 mod pathfinder_source;
 // mod websocket;
 
 pub use multipart::MultipartOptions;
+#[cfg(feature = "tokio_runtime")]
 pub use pathfinder_source::{pathfinder_source, PathfinderConfig};
 /*
 pub use websocket::{
