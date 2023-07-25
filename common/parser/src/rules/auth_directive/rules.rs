@@ -19,7 +19,7 @@ pub enum AuthRule {
     #[serde(rename_all = "camelCase")]
     Private {
         #[serde(default)]
-        operations: Operations,
+        operations: Option<Operations>,
     },
 
     /// Public data access
@@ -28,7 +28,7 @@ pub enum AuthRule {
     #[serde(rename_all = "camelCase")]
     Public {
         #[serde(default)]
-        operations: Operations,
+        operations: Option<Operations>,
     },
 
     /// Group-based data access. Access is allowed when a group is found in the JWT token.
@@ -40,7 +40,7 @@ pub enum AuthRule {
         groups: HashSet<String>,
 
         #[serde(default)]
-        operations: Operations,
+        operations: Option<Operations>,
     },
 
     /// Owner-based data access - document(row) based security. Owner can only see their own documents.
@@ -49,12 +49,12 @@ pub enum AuthRule {
     #[serde(rename_all = "camelCase")]
     Owner {
         #[serde(default)]
-        operations: Operations,
+        operations: Option<Operations>,
     },
 }
 
 impl AuthRule {
-    pub fn from_value(value: &ConstValue) -> Result<Self, ServerError> {
+    pub fn from_value(value: &ConstValue, is_global: bool) -> Result<Self, ServerError> {
         // We convert the value to JSON to leverage serde for deserialization
         let value = match value {
             ConstValue::Object(_) => value
@@ -67,6 +67,28 @@ impl AuthRule {
         let rule: AuthRule =
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth rule: {err}"), None))?;
 
-        Ok(rule)
+        if !is_global
+            && rule
+                .maybe_operations()
+                .map(|ops| ops.contains(super::operations::Operation::Introspection))
+                .unwrap_or_default()
+        {
+            Err(ServerError::new(
+                "introspection rule can be only configured globally",
+                None,
+            ))
+        } else {
+            Ok(rule)
+        }
+    }
+
+    fn maybe_operations(&self) -> Option<&Operations> {
+        match self {
+            AuthRule::Private { operations }
+            | AuthRule::Public { operations }
+            | AuthRule::Groups { groups: _, operations }
+            | AuthRule::Owner { operations } => operations,
+        }
+        .as_ref()
     }
 }
