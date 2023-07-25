@@ -15,7 +15,7 @@ use flate2::read::GzDecoder;
 use futures_util::{try_join, FutureExt};
 use std::borrow::Cow;
 use std::env;
-use std::net::Ipv6Addr;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
@@ -592,7 +592,7 @@ async fn validate_dependencies() -> Result<(), ServerError> {
 
 pub async fn get_listener_for_random_port() -> Result<(std::net::TcpListener, u16), ServerError> {
     // allows both IPv6 and IPv4
-    let listener = TcpListener::bind((Ipv6Addr::UNSPECIFIED, 0))
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
         .await
         .map_err(|_| ServerError::AvailablePort)?;
     let port = listener.local_addr().map_err(|_| ServerError::AvailablePort)?.port();
