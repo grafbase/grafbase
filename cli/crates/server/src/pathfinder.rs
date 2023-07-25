@@ -51,13 +51,11 @@ pub async fn start(
         .nest_service("/static", ServeDir::new(static_asset_path))
         .layer(
             CorsLayer::new()
-                .allow_origin(worker_url.parse::<HeaderValue>().expect("must parse"))
+                .allow_origin("*".parse::<HeaderValue>().expect("must parse"))
                 .allow_methods([Method::GET]),
         )
         .with_state(Html(pathfinder_html));
 
-    // TODO change this to `Ipv6Addr::UNSPECIFIED`
-    // if we upgrade to miniflare 3 / stop using miniflare
     axum::Server::from_tcp(tcp_listener)
         .map_err(ServerError::StartPathfinderServer)?
         .serve(router.into_make_service())
