@@ -1,8 +1,4 @@
 //! ----------------------------------------------------------------------------
-//! /!\ Right now we have duplicated the AuthRules here and in the
-//! `common/dynaql/src/logical_plan_utils/auth.rs`. If you do a change take it
-//! into account.
-//!
 //! The Auth is going to be injected inside dynaql instead of just living as an
 //! Extension as it's adding complexity without much gain.
 //! ----------------------------------------------------------------------------
@@ -58,27 +54,18 @@ impl Extension for AuthExtension {
         // Currently the introspection query auth is not configurable.
         // Locally we allow it with Public access as well when using a JWT token or an API key.
         // In the cloud we only allow it when using API key or a JWT token.
-        if contains_introspection {
-            match ctx
+        if contains_introspection
+            && !ctx
                 .data::<ExecutionAuth>()
                 .expect("auth must be injected into the context")
-            {
-                ExecutionAuth::ApiKey | ExecutionAuth::Token(_) => Ok(document),
-                ExecutionAuth::Public { .. } => {
-                    cfg_if::cfg_if! {
-                        if #[cfg(feature = "local")] {
-                            Ok(document)
-                        } else {
-                            Err(dynaql::ServerError::new(
-                                "Unauthorized. Please set 'authorization' header with a JWT token or \
-                                    'x-api-key' header with an API key from the project settings page. \
-                                    More info: https://grafbase.com/docs/auth",
-                                None,
-                            ))
-                        }
-                    }
-                }
-            }
+                .is_introspection_allowed()
+        {
+            Err(dynaql::ServerError::new(
+                "Unauthorized for introspection. Please set 'authorization' header with a JWT token or \
+                                'x-api-key' header with an API key from the project settings page. \
+                                More info: https://grafbase.com/docs/auth",
+                None,
+            ))
         } else {
             Ok(document)
         }

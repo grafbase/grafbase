@@ -14,15 +14,34 @@ impl std::iter::FromIterator<Operation> for Operations {
 
 impl Default for Operations {
     fn default() -> Self {
-        [Operation::Create, Operation::Read, Operation::Update, Operation::Delete]
-            .into_iter()
-            .collect()
+        [
+            Operation::Create,
+            Operation::Read,
+            Operation::Update,
+            Operation::Delete,
+            Operation::Introspection,
+        ]
+        .into_iter()
+        .collect()
     }
 }
 
 impl Operations {
     pub fn values(&self) -> &HashSet<Operation> {
         &self.0
+    }
+
+    pub fn into_inner(self) -> HashSet<Operation> {
+        self.0
+    }
+
+    pub fn with(mut self, operation: Operation) -> Self {
+        self.0.insert(operation);
+        self
+    }
+
+    pub fn contains(&self, operation: Operation) -> bool {
+        self.0.contains(&operation)
     }
 }
 
@@ -36,6 +55,7 @@ pub enum Operation {
     List, // More granular read access
     Update,
     Delete,
+    Introspection,
 }
 
 impl From<Operations> for grafbase::auth::Operations {
@@ -49,6 +69,7 @@ impl From<Operations> for grafbase::auth::Operations {
                 Operation::List => Self::LIST,
                 Operation::Update => Self::UPDATE,
                 Operation::Delete => Self::DELETE,
+                Operation::Introspection => Self::INTROSPECTION,
             };
         }
         res

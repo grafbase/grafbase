@@ -477,14 +477,16 @@ fn has_any_invalid_metadata_fields(ctx: &mut VisitorContext<'_>, object_name: &s
 mod tests {
     use serde_json as _;
 
+    use super::ModelDirective;
+    use crate::rules::{
+        auth_directive::tests::allowed_public_ops,
+        visitor::{visit, VisitorContext},
+    };
     use dynaql::AuthConfig;
     use dynaql_parser::parse_schema;
     use grafbase::auth::Operations;
+    use pretty_assertions::assert_eq;
     use std::collections::HashMap;
-
-    use crate::rules::visitor::{visit, VisitorContext};
-
-    use super::ModelDirective;
 
     #[test]
     fn should_not_error_when_id() {
@@ -521,6 +523,7 @@ mod tests {
 
         let expected_model_auth = AuthConfig {
             allowed_private_ops: Operations::all(),
+            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         };
 
@@ -579,6 +582,7 @@ mod tests {
 
         let expected_field_auth = AuthConfig {
             allowed_owner_ops: Operations::all(),
+            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         };
 
@@ -591,9 +595,9 @@ mod tests {
 
         let types = &ctx.registry.borrow().types;
 
-        for (type_name, field_name, auth, required_op) in tests {
+        for (type_name, field_name, expected_auth, required_op) in tests {
             let field = types[type_name].field_by_name(field_name).unwrap();
-            assert_eq!(field.auth.as_ref(), auth, "{type_name}.{field_name}");
+            assert_eq!(field.auth.as_ref(), expected_auth, "{type_name}.{field_name}");
             assert_eq!(field.required_operation, required_op, "{type_name}.{field_name}");
         }
     }
@@ -611,15 +615,15 @@ mod tests {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
         visit(&mut ModelDirective, &mut ctx, &schema);
-
         assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
-
         let expected_model_auth = AuthConfig {
             allowed_private_ops: Operations::all(),
+            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         };
         let expected_field_auth = AuthConfig {
             allowed_owner_ops: Operations::all(),
+            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         };
 
@@ -632,9 +636,9 @@ mod tests {
 
         let types = &ctx.registry.borrow().types;
 
-        for (type_name, field_name, auth, required_op) in tests {
+        for (type_name, field_name, expected_auth, required_op) in tests {
             let field = types[type_name].field_by_name(field_name).unwrap();
-            assert_eq!(field.auth.as_ref(), auth, "{type_name}.{field_name}");
+            assert_eq!(field.auth.as_ref(), expected_auth, "{type_name}.{field_name}");
             assert_eq!(field.required_operation, required_op, "{type_name}.{field_name}");
         }
     }
