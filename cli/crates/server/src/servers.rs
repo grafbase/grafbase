@@ -591,7 +591,6 @@ async fn validate_dependencies() -> Result<(), ServerError> {
 }
 
 pub async fn get_listener_for_random_port() -> Result<(std::net::TcpListener, u16), ServerError> {
-    // allows both IPv6 and IPv4
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
         .await
         .map_err(|_| ServerError::AvailablePort)?;
