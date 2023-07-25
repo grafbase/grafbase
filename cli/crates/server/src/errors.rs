@@ -166,9 +166,9 @@ pub enum ServerError {
     #[error("A file watcher encountered an error\nCaused by: {0}")]
     FileWatcher(#[from] NotifyError),
 
-    /// returned if the playground server could not be started
-    #[error("{0}")]
-    StartPlaygroundServer(hyper::Error),
+    /// returned if the Pathfinder server could not be started
+    #[error("could not start the Pathfinder server\nCaused by:{0}")]
+    StartPathfinderServer(hyper::Error),
 
     #[error("Could not create a lock for the wrangler installation: {0}")]
     Lock(fslock::Error),

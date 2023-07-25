@@ -23,19 +23,19 @@ pub async fn start(
     worker_port: u16,
     event_bus: tokio::sync::broadcast::Sender<Event>,
 ) -> Result<(), ServerError> {
-    trace!("starting playground at port {port}");
+    trace!("starting pathfinder at port {port}");
 
     let mut handlebars = Handlebars::new();
-    let template = include_str!("../templates/playground.hbs");
+    let template = include_str!("../templates/pathfinder.hbs");
     handlebars
-        .register_template_string("playground.html", template)
+        .register_template_string("pathfinder.html", template)
         .expect("must be valid");
     let worker_url = format!("http://127.0.0.1:{worker_port}");
     let graphql_url = format!("{worker_url}/graphql");
     let asset_url = format!("http://127.0.0.1:{port}/static");
-    let playground_html = handlebars
+    let pathfinder_html = handlebars
         .render(
-            "playground.html",
+            "pathfinder.html",
             &json!({
                 "ASSET_URL": asset_url,
                 "GRAPHQL_URL": graphql_url
@@ -54,23 +54,23 @@ pub async fn start(
                 .allow_origin(worker_url.parse::<HeaderValue>().expect("must parse"))
                 .allow_methods([Method::GET]),
         )
-        .with_state(Html(playground_html));
+        .with_state(Html(pathfinder_html));
 
     // TODO change this to `Ipv6Addr::UNSPECIFIED`
     // if we upgrade to miniflare 3 / stop using miniflare
     axum::Server::from_tcp(tcp_listener)
-        .map_err(ServerError::StartPlaygroundServer)?
+        .map_err(ServerError::StartPathfinderServer)?
         .serve(router.into_make_service())
         .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
             event.should_restart_servers()
         }))
         .await
-        .map_err(ServerError::StartPlaygroundServer);
+        .map_err(ServerError::StartPathfinderServer);
 
     Ok(())
 }
 
 #[allow(clippy::unused_async)]
-async fn root(State(playground_html): State<Html<String>>) -> impl IntoResponse {
-    playground_html
+async fn root(State(pathfinder_html): State<Html<String>>) -> impl IntoResponse {
+    pathfinder_html
 }

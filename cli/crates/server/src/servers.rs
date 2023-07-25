@@ -7,7 +7,7 @@ use crate::file_watcher::start_watcher;
 use crate::types::{ServerMessage, ASSETS_GZIP};
 use crate::udf_builder::install_wrangler;
 use crate::{bridge, errors::ServerError};
-use crate::{error_server, playground};
+use crate::{error_server, pathfinder};
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project, SchemaLocation};
 use common::types::UdfKind;
@@ -122,7 +122,7 @@ async fn spawn_servers(
     tracing: bool,
 ) -> Result<(), ServerError> {
     let bridge_event_bus = event_bus.clone();
-    let playground_event_bus = event_bus.clone();
+    let pathfinder_event_bus = event_bus.clone();
 
     let receiver = event_bus.subscribe();
 
@@ -180,7 +180,7 @@ async fn spawn_servers(
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
 
-    let ((bridge_listener, bridge_port), (playground_listener, playground_port)) =
+    let ((bridge_listener, bridge_port), (pathfinder_listener, pathfinder_port)) =
         try_join!(get_listener_for_random_port(), get_listener_for_random_port())?;
 
     let mut bridge_handle = tokio::spawn(async move {
@@ -196,8 +196,8 @@ async fn spawn_servers(
     })
     .fuse();
 
-    let playground_handle = tokio::spawn(async move {
-        playground::start(playground_listener, playground_port, worker_port, playground_event_bus).await
+    let pathfinder_handle = tokio::spawn(async move {
+        pathfinder::start(pathfinder_listener, pathfinder_port, worker_port, pathfinder_event_bus).await
     })
     .fuse();
 
@@ -221,7 +221,7 @@ async fn spawn_servers(
 
     let worker_port_string = worker_port.to_string();
     let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
-    let playground_port_binding_string = format!("PLAYGROUND_PORT={playground_port}");
+    let pathfinder_port_binding_string = format!("PATHFINDER_PORT={pathfinder_port}");
     let registry_text_blob_string = format!("REGISTRY={registry_path}");
 
     #[allow(unused_mut)]
@@ -243,7 +243,7 @@ async fn spawn_servers(
             "--binding",
             &bridge_port_binding_string,
             "--binding",
-            &playground_port_binding_string,
+            &pathfinder_port_binding_string,
             "--text-blob",
             &registry_text_blob_string,
             "--mount",
@@ -300,7 +300,7 @@ async fn spawn_servers(
                 .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
         }
         bridge_handle_result = bridge_handle => { bridge_handle_result??; }
-        playground_handle_result = playground_handle => { playground_handle_result??; }
+        pathfinder_handle_result = pathfinder_handle => { pathfinder_handle_result??; }
     }
 
     Ok(())

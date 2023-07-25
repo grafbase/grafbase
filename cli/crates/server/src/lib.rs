@@ -27,7 +27,7 @@ mod environment;
 mod error_server;
 mod event;
 mod file_watcher;
-mod playground;
+mod pathfinder;
 mod servers;
 mod udf_builder;
 
