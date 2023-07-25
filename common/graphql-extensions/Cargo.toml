@@ -5,8 +5,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-trait = "0.1"
 cfg-if = "1"
+async-trait = "0.1"
 dynaql = { path = "../../common/dynaql", default-features = false }
 dynaql-value = { path = "../../common/dynaql/value" }
 lazy_static = "1"
