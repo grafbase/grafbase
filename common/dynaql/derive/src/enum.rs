@@ -20,7 +20,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
         .clone()
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
-    let desc = get_rustdoc(&enum_args.attrs)?
+    let desc = get_rustdoc(&enum_args.attrs)
         .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
@@ -47,7 +47,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                 .rename(variant.ident.unraw().to_string(), RenameTarget::EnumItem)
         });
         let item_deprecation = gen_deprecation(&variant.deprecation, &crate_name);
-        let item_desc = get_rustdoc(&variant.attrs)?
+        let item_desc = get_rustdoc(&variant.attrs)
             .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
             .unwrap_or_else(|| quote! {::std::option::Option::None});
 

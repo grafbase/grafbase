@@ -31,12 +31,34 @@ mod validators;
 use darling::{FromDeriveInput, FromMeta};
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
-use syn::{AttributeArgs, DeriveInput, ItemFn, ItemImpl};
+use syn::{DeriveInput, ItemFn, ItemImpl};
+
+struct AttributeArgs(Vec<darling::ast::NestedMeta>);
+
+impl syn::parse::Parse for AttributeArgs {
+    fn parse(input: syn::parse::ParseStream<'_>) -> syn::Result<Self> {
+        let mut metas = Vec::new();
+
+        loop {
+            if input.is_empty() {
+                break;
+            }
+            let value = input.parse()?;
+            metas.push(value);
+            if input.is_empty() {
+                break;
+            }
+            input.parse::<syn::Token![,]>()?;
+        }
+
+        Ok(Self(metas))
+    }
+}
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Object(args: TokenStream, input: TokenStream) -> TokenStream {
-    let object_args = match args::Object::from_list(&parse_macro_input!(args as AttributeArgs)) {
+    let object_args = match args::Object::from_list(&parse_macro_input!(args as AttributeArgs).0) {
         Ok(object_args) => object_args,
         Err(err) => return TokenStream::from(err.write_errors()),
     };
@@ -64,7 +86,7 @@ pub fn derive_simple_object(input: TokenStream) -> TokenStream {
 #[allow(non_snake_case)]
 pub fn ComplexObject(args: TokenStream, input: TokenStream) -> TokenStream {
     let object_args =
-        match args::ComplexObject::from_list(&parse_macro_input!(args as AttributeArgs)) {
+        match args::ComplexObject::from_list(&parse_macro_input!(args as AttributeArgs).0) {
             Ok(object_args) => object_args,
             Err(err) => return TokenStream::from(err.write_errors()),
         };
@@ -130,7 +152,7 @@ pub fn derive_union(input: TokenStream) -> TokenStream {
 #[allow(non_snake_case)]
 pub fn Subscription(args: TokenStream, input: TokenStream) -> TokenStream {
     let object_args =
-        match args::Subscription::from_list(&parse_macro_input!(args as AttributeArgs)) {
+        match args::Subscription::from_list(&parse_macro_input!(args as AttributeArgs).0) {
             Ok(object_args) => object_args,
             Err(err) => return TokenStream::from(err.write_errors()),
         };
@@ -144,7 +166,7 @@ pub fn Subscription(args: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Scalar(args: TokenStream, input: TokenStream) -> TokenStream {
-    let scalar_args = match args::Scalar::from_list(&parse_macro_input!(args as AttributeArgs)) {
+    let scalar_args = match args::Scalar::from_list(&parse_macro_input!(args as AttributeArgs).0) {
         Ok(scalar_args) => scalar_args,
         Err(err) => return TokenStream::from(err.write_errors()),
     };
@@ -189,10 +211,7 @@ pub fn derive_description(input: TokenStream) -> TokenStream {
             Ok(desc_args) => desc_args,
             Err(err) => return TokenStream::from(err.write_errors()),
         };
-    match description::generate(&desc_args) {
-        Ok(expanded) => expanded,
-        Err(err) => err.write_errors().into(),
-    }
+    description::generate(&desc_args)
 }
 
 #[proc_macro_derive(NewType, attributes(graphql))]
@@ -212,7 +231,7 @@ pub fn derive_newtype(input: TokenStream) -> TokenStream {
 #[allow(non_snake_case)]
 pub fn Directive(args: TokenStream, input: TokenStream) -> TokenStream {
     let directive_args =
-        match args::Directive::from_list(&parse_macro_input!(args as AttributeArgs)) {
+        match args::Directive::from_list(&parse_macro_input!(args as AttributeArgs).0) {
             Ok(directive_args) => directive_args,
             Err(err) => return TokenStream::from(err.write_errors()),
         };

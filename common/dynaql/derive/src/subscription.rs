@@ -32,7 +32,7 @@ pub fn generate(
     let desc = if subscription_args.use_type_description {
         quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(<Self as #crate_name::Description>::description())) }
     } else {
-        get_rustdoc(&item_impl.attrs)?
+        get_rustdoc(&item_impl.attrs)
             .map(|s| quote!(::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))))
             .unwrap_or_else(|| quote!(::std::option::Option::None))
     };
@@ -41,7 +41,7 @@ pub fn generate(
     let mut schema_fields = Vec::new();
 
     for item in &mut item_impl.items {
-        if let ImplItem::Method(method) = item {
+        if let ImplItem::Fn(method) = item {
             let field: SubscriptionField = parse_graphql_attrs(&method.attrs)?.unwrap_or_default();
             if field.skip {
                 remove_graphql_attrs(&mut method.attrs);
@@ -54,7 +54,7 @@ pub fn generate(
                     .rename_fields
                     .rename(method.sig.ident.unraw().to_string(), RenameTarget::Field)
             });
-            let field_desc = get_rustdoc(&method.attrs)?
+            let field_desc = get_rustdoc(&method.attrs)
                 .map(|s| quote! {::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))})
                 .unwrap_or_else(|| quote! {::std::option::Option::None});
             let field_deprecation = gen_deprecation(&field.deprecation, &crate_name);

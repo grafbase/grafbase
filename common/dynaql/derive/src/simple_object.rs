@@ -6,7 +6,7 @@ use quote::quote;
 use std::str::FromStr;
 use syn::ext::IdentExt;
 use syn::visit::Visit;
-use syn::{Error, Ident, LifetimeDef, Path, Type};
+use syn::{Error, Ident, Lifetime, Path, Type};
 
 use crate::args::{self, RenameRuleExt, RenameTarget, SimpleObjectField};
 use crate::utils::{
@@ -36,7 +36,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
         .clone()
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
-    let desc = get_rustdoc(&object_args.attrs)?
+    let desc = get_rustdoc(&object_args.attrs)
         .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
@@ -113,7 +113,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 .rename_fields
                 .rename(ident.unraw().to_string(), RenameTarget::Field)
         });
-        let field_desc = get_rustdoc(&field.attrs)?
+        let field_desc = get_rustdoc(&field.attrs)
             .map(|s| quote! {::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))})
             .unwrap_or_else(|| quote! {::std::option::Option::None});
         let field_deprecation = gen_deprecation(&field.deprecation, &crate_name);
@@ -357,11 +357,11 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
 
         #[derive(Default)]
         struct GetLifetimes<'a> {
-            lifetimes: Vec<&'a LifetimeDef>,
+            lifetimes: Vec<&'a Lifetime>,
         }
 
         impl<'a> Visit<'a> for GetLifetimes<'a> {
-            fn visit_lifetime_def(&mut self, i: &'a LifetimeDef) {
+            fn visit_lifetime(&mut self, i: &'a Lifetime) {
                 self.lifetimes.push(i);
             }
         }

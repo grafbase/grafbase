@@ -1,12 +1,10 @@
 use std::fmt::{self, Display, Formatter};
 
-use darling::ast::{Data, Fields};
+use darling::ast::{Data, Fields, NestedMeta};
 use darling::util::{Ignored, SpannedValue};
 use darling::{FromDeriveInput, FromField, FromMeta, FromVariant};
 use inflector::Inflector;
-use syn::{
-    Attribute, Generics, Ident, Lit, LitBool, LitStr, Meta, NestedMeta, Path, Type, Visibility,
-};
+use syn::{Attribute, Generics, Ident, Lit, LitBool, LitStr, Meta, Path, Type, Visibility};
 
 use crate::validators::Validators;
 
@@ -433,7 +431,7 @@ pub struct InterfaceFieldArgument {
     pub name: String,
     #[darling(default)]
     pub desc: Option<String>,
-    #[darling(rename = "type")]
+    #[darling(rename = "r#type")]
     pub ty: LitStr,
     #[darling(default)]
     pub default: Option<DefaultValue>,
@@ -448,7 +446,7 @@ pub struct InterfaceFieldArgument {
 #[derive(FromMeta)]
 pub struct InterfaceField {
     pub name: String,
-    #[darling(rename = "type")]
+    #[darling(rename = "r#type")]
     pub ty: LitStr,
     #[darling(default)]
     pub method: Option<String>,

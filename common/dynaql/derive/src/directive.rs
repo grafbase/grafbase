@@ -21,7 +21,7 @@ pub fn generate(
         .name
         .clone()
         .unwrap_or_else(|| item_fn.sig.ident.to_string());
-    let desc = get_rustdoc(&item_fn.attrs)?
+    let desc = get_rustdoc(&item_fn.attrs)
         .map(|s| quote!(::std::option::Option::Some(#s)))
         .unwrap_or_else(|| quote!(::std::option::Option::None));
     let visible = visible_fn(&directive_args.visible);
