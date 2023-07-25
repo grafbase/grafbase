@@ -93,7 +93,7 @@ impl<'a> Visitor<'a> for AuthDirective {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use std::collections::HashMap;
 
     use super::*;
@@ -187,7 +187,6 @@ pub mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_private_ops: Operations::all(),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -203,7 +202,6 @@ pub mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_private_ops: Operations::CREATE | Operations::DELETE,
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -219,7 +217,6 @@ pub mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_private_ops: Operations::empty(),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -238,7 +235,6 @@ pub mod tests {
                 ("admin".to_string(), Operations::all()),
                 ("moderator".to_string(), Operations::all()),
             ]),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -261,7 +257,6 @@ pub mod tests {
                 ("moderator".to_string(), Operations::GET | Operations::LIST),
                 ("editor".to_string(), Operations::GET | Operations::LIST)
             ]),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -325,7 +320,6 @@ pub mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_owner_ops: Operations::all(),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -341,7 +335,6 @@ pub mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_owner_ops: Operations::CREATE,
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -362,7 +355,6 @@ pub mod tests {
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -441,7 +433,6 @@ pub mod tests {
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -517,7 +508,6 @@ pub mod tests {
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -538,7 +528,6 @@ pub mod tests {
                 client_id: Some("some-id".to_string()),
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -559,7 +548,6 @@ pub mod tests {
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -592,7 +580,6 @@ pub mod tests {
                 groups_claim: "grps".to_string(),
                 client_id: None,
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -613,7 +600,6 @@ pub mod tests {
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -634,7 +620,6 @@ schema @auth(
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -655,7 +640,6 @@ schema @auth(
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -676,7 +660,6 @@ schema @auth(
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -702,7 +685,6 @@ query: Query
                 groups_claim: "grps".to_string(),
                 client_id: Some("some-id".to_string()),
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -723,7 +705,6 @@ query: Query
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
             })),
-            allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
     );
@@ -753,55 +734,9 @@ query: Query
       }
       "#,
         dynaql::AuthConfig {
-            allowed_public_ops: allowed_public_ops(Operations::GET),
+            allowed_public_ops: Operations::GET,
             allowed_private_ops: Operations::all(),
             ..Default::default()
         }
     );
-
-    parse_fail!(
-        model_level_with_introspection,
-        r#"
-      schema @auth(
-        providers: [ { type: jwt, issuer: "myidp", secret: "s" } ],
-        rules: [ { allow: private, operations: [read] } ]
-
-      ){
-        query: Query
-      }
-      type Todo @model @auth(rules: [ { allow: private, operations: [introspection, read] } ]) {
-        id: ID!
-      }
-
-      "#,
-        "introspection rule can be only configured globally"
-    );
-
-    parse_fail!(
-        field_level_with_introspection,
-        r#"
-    schema @auth(
-      providers: [ { type: jwt, issuer: "myidp", secret: "s" } ],
-      rules: [ { allow: private, operations: [read] } ]
-
-    ){
-      query: Query
-    }
-    type Todo @model {
-      id: ID! @auth(rules: [ { allow: private, operations: [introspection, read] } ])
-    }
-
-    "#,
-        "introspection rule can be only configured globally"
-    );
-
-    #[cfg(feature = "local")] // Allow public introspection locally for backwards compatibility.
-    pub fn allowed_public_ops(allowed_public_ops: Operations) -> Operations {
-        allowed_public_ops.union(Operations::INTROSPECTION)
-    }
-
-    #[cfg(not(feature = "local"))]
-    pub fn allowed_public_ops(allowed_public_ops: Operations) -> Operations {
-        allowed_public_ops
-    }
 }

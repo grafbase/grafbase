@@ -57,7 +57,7 @@ pub fn parse_auth_config(
         Some(arg) => match &arg.node {
             ConstValue::List(value) if !value.is_empty() => value
                 .iter()
-                .map(|const_value| AuthRule::from_value(const_value, is_global))
+                .map(AuthRule::from_value)
                 .collect::<Result<_, _>>()
                 .map_err(|err| ServerError::new(err.message, pos))?,
             _ => return Err(ServerError::new("auth rules must be a non-empty list", pos)),
@@ -68,7 +68,7 @@ pub fn parse_auth_config(
     let allowed_private_ops: Operations = rules
         .iter()
         .filter_map(|rule| match rule {
-            AuthRule::Private { operations, .. } => Some(operations.clone().unwrap_or_default().values().clone()),
+            AuthRule::Private { operations, .. } => Some(operations.values().clone()),
             _ => None,
         })
         .flatten()
@@ -77,23 +77,16 @@ pub fn parse_auth_config(
     let allowed_public_ops: Operations = rules
         .iter()
         .filter_map(|rule| match rule {
-            AuthRule::Public { operations, .. } => Some(operations.clone().unwrap_or_default().values().clone()),
+            AuthRule::Public { operations, .. } => Some(operations.values().clone()),
             _ => None,
         })
         .flatten()
         .collect();
 
-    #[cfg(feature = "local")] // Allow public introspection locally for backwards compatibility.
-    let allowed_public_ops =
-        allowed_public_ops.with(crate::rules::auth_directive::operations::Operation::Introspection);
-
     let allowed_group_ops = rules
         .iter()
         .filter_map(|rule| match rule {
-            AuthRule::Groups {
-                groups,
-                operations: maybe_operations,
-            } => Some((groups, maybe_operations.clone().unwrap_or_default())),
+            AuthRule::Groups { groups, operations } => Some((groups, operations)),
             _ => None,
         })
         .try_fold(HashMap::new(), |mut res, (groups, operations)| {
@@ -114,9 +107,9 @@ pub fn parse_auth_config(
         })?;
 
     let allowed_owner_ops: Operations = rules
-        .into_iter()
+        .iter()
         .filter_map(|rule| match rule {
-            AuthRule::Owner { operations } => Some(operations.unwrap_or_default().into_inner()),
+            AuthRule::Owner { operations, .. } => Some(operations.values().clone()),
             _ => None,
         })
         .flatten()
