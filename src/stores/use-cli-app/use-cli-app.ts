@@ -1,4 +1,4 @@
-import { useEditor } from 'ui'
+import { useEditor } from 'pathfinder'
 import { create } from 'zustand'
 
 import { UseCliAppStore } from './use-cli-app.types'

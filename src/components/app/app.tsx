@@ -33,9 +33,7 @@ export const App = () => {
         fetcherOptions={{
           endpoint,
           http: {
-            headers: {
-              'x-api-key': apiKey
-            }
+            headers: [['x-api-key', apiKey]]
           },
           sse: {
             protocol: 'EVENT_SOURCE'
