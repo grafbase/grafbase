@@ -414,6 +414,35 @@ fn test_field_resolver(
         ),
     ],
 )]
+#[case(
+    4,
+    r#"
+        extend type Query {
+            hello: String @resolver(name: "hello")
+        }
+    "#,
+    &[
+        (
+            "hello.js",
+            r#"
+                export default function Resolver(parent, args, context, info) {
+                    console.log("Hello")
+                    return "Hello"
+                }
+            "#,
+        )
+    ],
+    &[
+        (
+            r#"
+                {
+                    hello
+                }
+            "#,
+            "data.hello"
+        ),
+    ],
+)]
 fn test_query_mutation_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
