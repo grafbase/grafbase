@@ -1,8 +1,6 @@
 mod constants;
 mod types;
 
-// FIXME: To keep Clippy happy.
-#[cfg(not(feature = "sentry-cf-worker"))]
 use futures_util as _;
 pub use log_;
 
@@ -68,9 +66,7 @@ macro_rules! log {
                 $crate::LogSeverity::Error => $crate::log_::error!("{}", message),
             }
         }
-        #[cfg(feature = "with-sentry")]
-        let intersection = $crate::Config::DATADOG | $crate::Config::SENTRY;
-        #[cfg(not(feature = "with-sentry"))]
+
         let intersection = $crate::Config::DATADOG;
 
         if config.intersects(intersection) {
@@ -216,50 +212,6 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
         let response_text = response.text().await.ok();
         Err(Error::DatadogPushFailed(response_status, response_text))
     }
-}
-
-#[cfg(feature = "with-sentry")]
-pub async fn push_logs_to_sentry(log_config: &LogConfig<'_>, entries: &[LogEntry]) -> Result<(), Error> {
-    use sentry_cf_worker::{send_envelope, Envelope, Event, Level};
-
-    let Some(sentry_config) = log_config.sentry_config.as_ref() else { return Ok(()) };
-
-    let sentry_ingest_url = format!("https://{}@{}", sentry_config.api_key, sentry_config.dsn);
-
-    let futures = entries
-        .iter()
-        .filter(|entry| entry.severity == LogSeverity::Error)
-        .map(|entry| {
-            let mut envelope = Envelope::new();
-            let mut tags = maplit::btreemap! {
-                "environment".to_owned() => log_config.environment.clone(),
-                "file_path".to_owned() => entry.file_path.clone(),
-                "hostname".to_owned() => log_config.host_name.clone(),
-                "line_number".to_owned() => entry.line_number.to_string(),
-                "module".to_owned() => MODULE.to_owned(),
-                "request_id".to_owned() => entry.trace_id.clone(),
-            };
-            if let Some(branch) = log_config.branch.as_ref() {
-                tags.extend([("branch".to_owned(), branch.clone())]);
-            }
-            envelope.add_item(Event {
-                message: Some(entry.message.clone()),
-                level: Level::Error,
-                timestamp: entry.timestamp,
-                tags,
-                ..Default::default()
-            });
-            envelope
-        })
-        .map(|envelope| async {
-            let dsn = sentry_ingest_url.clone();
-            send_envelope(dsn, envelope).await
-        });
-
-    futures_util::future::try_join_all(futures)
-        .await
-        .map(|_| ())
-        .map_err(Error::SentryError)
 }
 
 /// [`std::dbg`] modified to use [`worker::console_debug`]
