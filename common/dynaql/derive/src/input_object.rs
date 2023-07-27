@@ -31,7 +31,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         let attrs = field
             .attrs
             .iter()
-            .filter(|attr| !attr.path.is_ident("field"))
+            .filter(|attr| !attr.path().is_ident("field"))
             .collect::<Vec<_>>();
         struct_fields.push(quote! {
             #(#attrs)*
@@ -45,7 +45,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         .or_else(|| object_args.input_name.clone())
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
-    let desc = get_rustdoc(&object_args.attrs)?
+    let desc = get_rustdoc(&object_args.attrs)
         .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
@@ -115,7 +115,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
             continue;
         }
 
-        let desc = get_rustdoc(&field.attrs)?
+        let desc = get_rustdoc(&field.attrs)
             .map(|s| quote! { ::std::option::Option::Some(#s) })
             .unwrap_or_else(|| quote! {::std::option::Option::None});
         let default = generate_default(&field.default, &field.default_with)?;

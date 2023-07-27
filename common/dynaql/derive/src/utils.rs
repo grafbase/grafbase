@@ -8,8 +8,8 @@ use quote::quote;
 use syn::visit::Visit;
 use syn::visit_mut::VisitMut;
 use syn::{
-    visit_mut, Attribute, Error, Expr, ExprPath, FnArg, Ident, ImplItemMethod, Lifetime, Lit,
-    LitStr, Meta, Pat, PatIdent, Type, TypeGroup, TypeParamBound, TypeReference,
+    visit_mut, Attribute, Error, Expr, ExprPath, FnArg, Ident, ImplItemFn, Lifetime, Lit, LitStr,
+    Meta, Pat, PatIdent, Type, TypeGroup, TypeParamBound, TypeReference,
 };
 use thiserror::Error;
 
@@ -63,28 +63,30 @@ pub fn generate_guards(
     })
 }
 
-pub fn get_rustdoc(attrs: &[Attribute]) -> GeneratorResult<Option<String>> {
+pub fn get_rustdoc(attrs: &[Attribute]) -> Option<String> {
     let mut full_docs = String::new();
     for attr in attrs {
-        match attr.parse_meta()? {
-            Meta::NameValue(nv) if nv.path.is_ident("doc") => {
-                if let Lit::Str(doc) = nv.lit {
-                    let doc = doc.value();
-                    let doc_str = doc.trim();
-                    if !full_docs.is_empty() {
-                        full_docs += "\n";
+        match attr.meta {
+            Meta::NameValue(ref nv) if nv.path.is_ident("doc") => {
+                if let Expr::Lit(ref lit) = nv.value {
+                    if let Lit::Str(ref doc) = lit.lit {
+                        let doc = doc.value();
+                        let doc_str = doc.trim();
+                        if !full_docs.is_empty() {
+                            full_docs += "\n";
+                        }
+                        full_docs += doc_str;
                     }
-                    full_docs += doc_str;
                 }
             }
             _ => {}
         }
     }
-    Ok(if full_docs.is_empty() {
+    if full_docs.is_empty() {
         None
     } else {
         Some(full_docs)
-    })
+    }
 }
 
 fn generate_default_value(lit: &Lit) -> GeneratorResult<TokenStream> {
@@ -137,16 +139,15 @@ pub fn generate_default(
 pub fn get_cfg_attrs(attrs: &[Attribute]) -> Vec<Attribute> {
     attrs
         .iter()
-        .filter(|attr| !attr.path.segments.is_empty() && attr.path.segments[0].ident == "cfg")
+        .filter(|attr| !attr.path().segments.is_empty() && attr.path().segments[0].ident == "cfg")
         .cloned()
         .collect()
 }
 
 pub fn parse_graphql_attrs<T: FromMeta>(attrs: &[Attribute]) -> GeneratorResult<Option<T>> {
     for attr in attrs {
-        if attr.path.is_ident("graphql") {
-            let meta = attr.parse_meta()?;
-            return Ok(Some(T::from_meta(&meta)?));
+        if attr.path().is_ident("graphql") {
+            return Ok(Some(T::from_meta(&attr.meta)?));
         }
     }
     Ok(None)
@@ -156,7 +157,7 @@ pub fn remove_graphql_attrs(attrs: &mut Vec<Attribute>) {
     if let Some((idx, _)) = attrs
         .iter()
         .enumerate()
-        .find(|(_, a)| a.path.is_ident("graphql"))
+        .find(|(_, a)| a.path().is_ident("graphql"))
     {
         attrs.remove(idx);
     }
@@ -240,7 +241,7 @@ pub fn gen_deprecation(deprecation: &Deprecation, crate_name: &TokenStream) -> T
 
 pub fn extract_input_args(
     crate_name: &proc_macro2::TokenStream,
-    method: &mut ImplItemMethod,
+    method: &mut ImplItemFn,
 ) -> GeneratorResult<Vec<(PatIdent, Type, Argument)>> {
     let mut args = Vec::new();
     let mut create_ctx = true;
