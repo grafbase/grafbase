@@ -19,6 +19,7 @@ dotenv = "0.15"
 flate2 = "1.0"
 fslock = "0.2"
 futures-util = "0.3"
+handlebars = "4"
 hyper = "0.14"
 integer-encoding = "4"
 itertools = "0.11"
@@ -50,7 +51,7 @@ tempfile = "3"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["io-util"] }
-tower-http = { version = "0.4", features = ["trace"] }
+tower-http = { version = "0.4", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 unicode-normalization = "0.1"
 uuid = { version = "1", features = ["v4"] }

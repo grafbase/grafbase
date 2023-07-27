@@ -8,14 +8,9 @@ use axum::{
     Router,
 };
 use common::environment::Environment;
-use common::{consts::EPHEMERAL_PORT_RANGE, types::LocalAddressType, utils::find_available_port_in_range};
 use serde::Deserialize;
-use std::{
-    fs::create_dir_all,
-    net::{Ipv4Addr, SocketAddr},
-    path::PathBuf,
-    sync::mpsc::Sender as MspcSender,
-};
+use std::{fs::create_dir_all, net::Ipv4Addr, path::PathBuf, sync::mpsc::Sender as MspcSender};
+use tokio::net::TcpListener;
 use tokio::sync::mpsc::Sender;
 use tower_http::trace::TraceLayer;
 use urlencoding::encode;
@@ -86,8 +81,13 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
         Err(error) => return Err(ApiError::ReadUserDotGrafbaseFolder(error)),
     }
 
-    let port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
-        .ok_or(ApiError::FindAvailablePort)?;
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+        .await
+        .map_err(|_| ApiError::FindAvailablePort)?;
+
+    let port = listener.local_addr().map_err(|_| ApiError::FindAvailablePort)?.port();
+
+    let std_listener = listener.into_std().map_err(|_| ApiError::FindAvailablePort)?;
 
     let url = &format!("{AUTH_URL}?callback={}", encode(&format!("http://127.0.0.1:{port}")));
 
@@ -105,9 +105,8 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
             user_dot_grafbase_path: environment.user_dot_grafbase_path.clone(),
         });
 
-    let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
-
-    let server = axum::Server::bind(&socket_address)
+    let server = axum::Server::from_tcp(std_listener)
+        .map_err(|_| ApiError::StartLoginServer)?
         .serve(router.into_make_service())
         .with_graceful_shutdown(async {
             let shutdown_result = shutdown_receiver.recv().await.expect("must be open");

@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 /// the default port on which the server will run
 pub const DEFAULT_PORT: u16 = 4000;
 /// the max port to use when searching for an available port
@@ -28,8 +26,6 @@ pub const WRANGLER_DIRECTORY_NAME: &str = "wrangler";
 pub const TRACE_LOG_FILTER: &str = "grafbase=trace,grafbase_local_common=trace,grafbase_local_server=trace,grafbase_local_backend=trace,tower_http=debug";
 /// the tracing filter to be used when tracing is off
 pub const DEFAULT_LOG_FILTER: &str = "off";
-/// the range suggested for ephemeral ports by IANA
-pub const EPHEMERAL_PORT_RANGE: Range<u16> = 49152..65535;
 /// the subdirectory within '$PROJECT/.grafbase' containing the database
 pub const DATABASE_DIRECTORY: &str = "database";
 /// an environment variable that sets the path of the home directory
