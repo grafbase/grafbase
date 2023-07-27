@@ -16,7 +16,7 @@ export default config({
       {
         types: ['StrapiQuery'],
         maxAge: 60,
-        mutationInvalidation: 'entity'
+        staleWhileRevalidate: 60
       }
     ]
   }
