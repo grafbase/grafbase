@@ -32,7 +32,7 @@ pub fn generate(
     // Computation of the derivated fields
     let mut derived_impls = vec![];
     for item in &mut item_impl.items {
-        if let ImplItem::Method(method) = item {
+        if let ImplItem::Fn(method) = item {
             let method_args: args::ComplexObjectField =
                 parse_graphql_attrs(&method.attrs)?.unwrap_or_default();
 
@@ -105,7 +105,7 @@ pub fn generate(
 
                     new_impl.block = syn::parse2::<Block>(new_block).expect("invalid block");
 
-                    derived_impls.push(ImplItem::Method(new_impl));
+                    derived_impls.push(ImplItem::Fn(new_impl));
                 }
             }
         }
@@ -113,7 +113,7 @@ pub fn generate(
     item_impl.items.append(&mut derived_impls);
 
     for item in &mut item_impl.items {
-        if let ImplItem::Method(method) = item {
+        if let ImplItem::Fn(method) = item {
             let method_args: args::ComplexObjectField =
                 parse_graphql_attrs(&method.attrs)?.unwrap_or_default();
             if method_args.skip {
@@ -164,7 +164,7 @@ pub fn generate(
                     .rename_fields
                     .rename(method.sig.ident.unraw().to_string(), RenameTarget::Field)
             });
-            let field_desc = get_rustdoc(&method.attrs)?
+            let field_desc = get_rustdoc(&method.attrs)
                 .map(|s| quote! { ::std::option::Option::Some(#s) })
                 .unwrap_or_else(|| quote! {::std::option::Option::None});
             let field_deprecation = gen_deprecation(&method_args.deprecation, &crate_name);

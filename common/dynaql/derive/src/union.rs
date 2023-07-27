@@ -24,7 +24,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
         .clone()
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
-    let desc = get_rustdoc(&union_args.attrs)?
+    let desc = get_rustdoc(&union_args.attrs)
         .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 

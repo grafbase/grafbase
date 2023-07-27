@@ -17,7 +17,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
         .clone()
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
-    let desc = get_rustdoc(&object_args.attrs)?
+    let desc = get_rustdoc(&object_args.attrs)
         .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 

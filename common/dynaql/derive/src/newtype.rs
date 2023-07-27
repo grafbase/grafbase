@@ -16,7 +16,7 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
         NewTypeName::Rust => Some(RenameTarget::Type.rename(ident.to_string())),
         NewTypeName::Original => None,
     };
-    let desc = get_rustdoc(&newtype_args.attrs)?
+    let desc = get_rustdoc(&newtype_args.attrs)
         .map(|s| quote! { ::std::option::Option::Some(#s) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
     let visible = visible_fn(&newtype_args.visible);

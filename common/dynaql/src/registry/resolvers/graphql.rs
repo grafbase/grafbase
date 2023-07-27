@@ -25,6 +25,7 @@
 #![deny(unused)]
 #![deny(rustdoc::all)]
 
+mod response;
 pub mod serializer;
 
 use std::{
@@ -48,7 +49,7 @@ use crate::{
     ServerError,
 };
 
-use self::serializer::Serializer;
+use self::{response::UpstreamResponse, serializer::Serializer};
 
 use super::ResolvedValue;
 
@@ -105,7 +106,7 @@ impl Resolver {
         headers: &[(&str, &str)],
         fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
         target: Target<'a>,
-        error_handler: impl FnMut(ServerError) + 'a,
+        mut error_handler: impl FnMut(ServerError) + 'a,
         variables: Variables,
         variable_definitions: HashMap<&'a Name, &'a VariableDefinition>,
         registry: &'a Registry,
@@ -152,27 +153,25 @@ impl Resolver {
                 })
                 .collect();
 
-            let mut value = request_builder
+            let response = request_builder
                 .json(&Query { query, variables })
                 .send()
-                .await?
-                .json::<serde_json::Value>()
-                .await?
-                .take();
+                .await?;
 
-            // Merge any upstream GraphQL errors.
-            if let Some(errors) = value.get_mut("errors") {
-                serde_json::from_value(errors.take())
-                    .map_err(|_| Error::MalformedUpstreamResponse)
-                    .map(|errors: Vec<ServerError>| {
-                        errors.into_iter().for_each(error_handler);
-                    })?;
+            let http_status = response.status();
+
+            let UpstreamResponse { mut data, errors } =
+                UpstreamResponse::from_response_text(http_status, response.text().await)?;
+
+            if !http_status.is_success() {
+                // If we haven't had a fatal error we should still report the http error
+                error_handler(ServerError::new(
+                    format!("Remote returned http error code: {http_status}"),
+                    None,
+                ));
             }
 
-            let mut data = match value.get_mut("data") {
-                Some(value) => value.take(),
-                None => serde_json::Value::Null,
-            };
+            errors.into_iter().for_each(error_handler);
 
             if let Some(prefix) = prefix {
                 prefix_result_typename(&mut data, &prefix);
@@ -181,7 +180,7 @@ impl Resolver {
             let mut resolved_value = ResolvedValue::new(Arc::new(match wrapping_field {
                 Some(field) => data
                     .as_object_mut()
-                    .and_then(|m| m.get_mut(&field).map(serde_json::Value::take))
+                    .and_then(|m| m.remove(&field))
                     .unwrap_or(serde_json::Value::Null),
                 None => data,
             }));
@@ -206,8 +205,14 @@ pub enum Error {
     #[error("request to upstream server failed: {0}")]
     RequestError(#[from] reqwest::Error),
 
+    #[error("couldnt decode JSON from upstream server: {0}")]
+    JsonDecodeError(#[from] serde_json::Error),
+
     #[error("received invalid response from upstream server")]
     MalformedUpstreamResponse,
+
+    #[error("received an unexpected status from the downstream server: {0}")]
+    HttpErrorResponse(u16),
 }
 
 /// Before the resolver returns the JSON to the caller, it needs to iterate the JSON, find any
