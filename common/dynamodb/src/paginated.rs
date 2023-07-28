@@ -383,7 +383,6 @@ where
             };
             let input = QueryInput {
                 exclusive_start_key,
-                limit: Some((limit - result.values.len()) as i64 + 1),
                 ..input
             };
             log::debug!(trace_id, "QueryPaginated Input {:?}", input);
