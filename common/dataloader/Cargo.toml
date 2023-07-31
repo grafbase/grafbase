@@ -20,7 +20,7 @@ tokio = { version = "1.29", features = [
   "sync",
   "time",
 ] }
-async-graphql = "5"
+async-graphql = "6"
 
 [features]
 tracing = ["dep:tracing"]
