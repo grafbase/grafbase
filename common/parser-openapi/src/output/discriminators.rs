@@ -157,7 +157,7 @@ impl TryFrom<ScalarKind> for dynaql::registry::union_discriminator::ScalarKind {
             ScalarKind::String => Ok(DynaqlScalarKind::String),
             ScalarKind::Integer | ScalarKind::Float => Ok(DynaqlScalarKind::Number),
             ScalarKind::Boolean => Ok(DynaqlScalarKind::Boolean),
-            ScalarKind::JsonObject => {
+            ScalarKind::Json => {
                 // I'm really hoping there are no schemas that do this...
                 Err(())
             }

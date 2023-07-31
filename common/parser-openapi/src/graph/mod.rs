@@ -213,7 +213,7 @@ pub enum ScalarKind {
     Integer,
     Float,
     Boolean,
-    JsonObject,
+    Json,
 }
 
 impl ScalarKind {
@@ -225,7 +225,7 @@ impl ScalarKind {
             ScalarKind::Integer => "Int".to_string(),
             ScalarKind::Float => "Float".to_string(),
             ScalarKind::Boolean => "Boolean".to_string(),
-            ScalarKind::JsonObject => JSONScalar::name().expect("JSONScalar to have a name").to_owned(),
+            ScalarKind::Json => JSONScalar::name().expect("JSONScalar to have a name").to_owned(),
         }
     }
 }

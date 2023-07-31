@@ -49,7 +49,7 @@ fn impossible_unions_to_json(graph: &mut OpenApiGraph) {
                 continue;
             }
 
-            let json_node = graph.graph.add_node(Node::Scalar(super::ScalarKind::JsonObject));
+            let json_node = graph.graph.add_node(Node::Scalar(super::ScalarKind::Json));
 
             for type_edge in type_edges {
                 let (source_node, _) = graph.graph.edge_endpoints(type_edge).unwrap();

@@ -125,6 +125,8 @@ pub enum Error {
     YamlParsingError(String),
     #[error("The schema component {0} was a reference, which we don't currently support.")]
     TopLevelSchemaWasReference(String),
+    #[error("The schema component {0} was a boolean, which we don't currently support.")]
+    TopLevelSchemaWasBoolean(String),
     #[error("The path component {0} was a reference, which we don't currently support.")]
     TopLevelPathWasReference(String),
     #[error("The response component {0} was a reference, which we don't currently support.")]
@@ -143,6 +145,8 @@ pub enum Error {
     OperationMissingRequestSchema(String),
     #[error("Encountered an array without items, which we don't currently support")]
     ArrayWithoutItems,
+    #[error("Encountered an array with a list of items, which we don't currently support")]
+    ArrayWithManyItems,
     #[error("Encountered a not schema, which we don't currently support")]
     NotSchema,
     #[error("Found a reference {0} which didn't seem to exist in the spec")]
@@ -275,6 +279,21 @@ mod tests {
             ApiMetadata {
                 url: None,
                 ..metadata(Some("planetscale"))
+            }
+        )
+        .unwrap()
+        .export_sdl(false));
+    }
+
+    #[test]
+    fn test_orb() {
+        // Orb is a 3.1 spec
+        insta::assert_snapshot!(build_registry(
+            "test_data/orb.json",
+            Format::Json,
+            ApiMetadata {
+                url: None,
+                ..metadata(Some("orb"))
             }
         )
         .unwrap()

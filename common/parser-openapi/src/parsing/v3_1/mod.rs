@@ -1,10 +1,13 @@
-//! This module handles parsing a v3 OpenAPI spec into our intermediate graph
+//! This module handles parsing a v3.1 OpenAPI spec into our intermediate graph
 
-use indexmap::IndexMap;
 use inflector::Inflector;
 use once_cell::sync::Lazy;
-use openapiv3::{AdditionalProperties, ReferenceOr, Type};
+use openapiv3::{
+    schemars::schema::{InstanceType, ObjectValidation, Schema, SchemaObject, SingleOrVec},
+    v3_1::{self as openapiv3_1},
+};
 use regex::Regex;
+use serde_json::Value;
 use url::Url;
 
 use crate::{
@@ -21,7 +24,7 @@ use super::grouping;
 mod components;
 mod operations;
 
-pub fn parse(spec: openapiv3::OpenAPI) -> Context {
+pub fn parse(spec: openapiv3_1::OpenApi) -> Context {
     let mut ctx = Context {
         url: Some(url_from_spec(&spec)),
         ..Context::default()
@@ -33,20 +36,25 @@ pub fn parse(spec: openapiv3::OpenAPI) -> Context {
         extract_components(&mut ctx, spec_components);
     }
 
-    extract_operations(&mut ctx, &spec.paths, components);
+    extract_operations(&mut ctx, spec.paths.as_ref(), components);
 
     grouping::determine_resource_relationships(&mut ctx);
 
     ctx
 }
 
-fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
+fn extract_components(ctx: &mut Context, components: &openapiv3_1::Components) {
     for (name, schema) in &components.schemas {
         // I'm just going to assume that a top-level schema won't be a reference for now.
         // I think the only case where a user would do that is to reference a remote schema,
         // which is a PITA to support so lets not do that right now.
-        let Some(schema) = schema.as_item() else {
+        if schema.json_schema.is_ref() {
             ctx.errors.push(Error::TopLevelSchemaWasReference(name.clone()));
+            continue;
+        }
+
+        let Schema::Object(schema) = &schema.json_schema else {
+            ctx.errors.push(Error::TopLevelSchemaWasBoolean(name.clone()));
             continue;
         };
 
@@ -54,11 +62,7 @@ fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
         // but the spec doesn't enforce that it's unique and (certainly in stripes case) it is not.
         // Might do some stuff to work around htat, but for now it's either "x-resourceId"
         // which stripe use or the name of the schema in components.
-        let resource_id = schema
-            .schema_data
-            .extensions
-            .get("x-resourceId")
-            .map(|value| value.to_string());
+        let resource_id = schema.extensions.get("x-resourceId").map(|value| value.to_string());
 
         let index = ctx
             .graph
@@ -69,11 +73,19 @@ fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
 
     // Now we want to extract the spec for each of these schemas into our graph
     for (name, schema) in &components.schemas {
-        extract_types(ctx, schema, ParentNode::Schema(ctx.schema_index[&Ref::v3_schema(name)]));
+        extract_types(
+            ctx,
+            &schema.json_schema,
+            ParentNode::Schema(ctx.schema_index[&Ref::v3_schema(name)]),
+        );
     }
 }
 
-fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: Components) {
+fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, components: Components) {
+    let Some(paths) = paths else {
+        return
+    };
+
     for (path, path_item) in &paths.paths {
         // Also going to assume that paths can't be references for now
         let Some(path_item) = path_item.as_item() else {
@@ -109,7 +121,7 @@ fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: C
                     operation_index,
                 };
                 match parameter.schema {
-                    Some(schema) => extract_types(ctx, &schema, parent),
+                    Some(schema) => extract_types(ctx, &schema.json_schema, parent),
                     None => {
                         // If the parameter has no schema we just assume it's a string.
                         ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false);
@@ -125,7 +137,7 @@ fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: C
                     required: parameter.required,
                 };
                 match parameter.schema {
-                    Some(schema) => extract_types(ctx, &schema, parent),
+                    Some(schema) => extract_types(ctx, &schema.json_schema, parent),
                     None => {
                         // If the parameter has no schema we just assume it's a string.
                         ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false);
@@ -141,7 +153,7 @@ fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: C
 
                 extract_types(
                     ctx,
-                    schema,
+                    &schema.json_schema,
                     ParentNode::OperationResponse {
                         status_code: response.status_code,
                         content_type: response.content_type,
@@ -157,7 +169,7 @@ fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: C
                 };
                 extract_types(
                     ctx,
-                    schema,
+                    &schema.json_schema,
                     ParentNode::OperationRequest {
                         content_type: request.content_type.clone(),
                         operation_index,
@@ -171,72 +183,47 @@ fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: C
     }
 }
 
-fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schema>, parent: ParentNode) {
-    use openapiv3::SchemaKind;
-
-    match schema_or_ref {
-        ReferenceOr::Reference { reference } => {
-            let reference = Ref::absolute(reference);
-            let Some(schema) = ctx.schema_index.get(&reference) else {
-                ctx.errors.push(reference.to_unresolved_error());
-                return;
-            };
-
-            ctx.add_type_edge(parent, *schema, false);
+fn extract_types(ctx: &mut Context, schema: &Schema, parent: ParentNode) {
+    let schema = match &schema {
+        Schema::Bool(_) => {
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), false);
+            return;
         }
-        ReferenceOr::Item(schema) => match &schema.schema_kind {
-            SchemaKind::Type(Type::String(ty)) => {
-                if ty.enumeration.is_empty() || !ty.enumeration.iter().all(is_valid_enum_value) {
-                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), schema.schema_data.nullable)
-                        .add_default(schema.schema_data.default.as_ref())
-                        .add_possible_values(&ty.enumeration);
-                } else {
-                    ctx.add_type_node(parent, Node::Enum, schema.schema_data.nullable)
-                        .add_default(schema.schema_data.default.as_ref())
-                        .add_possible_values(&ty.enumeration.iter().flatten().rev().cloned().collect::<Vec<_>>());
-                }
-            }
-            SchemaKind::Type(Type::Boolean {}) => {
-                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), schema.schema_data.nullable)
-                    .add_default(schema.schema_data.default.as_ref());
-            }
-            SchemaKind::Type(Type::Integer(integer)) => {
-                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Integer), schema.schema_data.nullable)
-                    .add_default(schema.schema_data.default.as_ref())
-                    .add_possible_values(&integer.enumeration);
-            }
-            SchemaKind::Type(Type::Number(number)) => {
-                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), schema.schema_data.nullable)
-                    .add_default(schema.schema_data.default.as_ref())
-                    .add_possible_values(&number.enumeration);
-            }
-            SchemaKind::Type(Type::Object(obj)) => {
-                extract_object(
-                    ctx,
-                    parent,
-                    &schema.schema_data,
-                    &obj.properties,
-                    obj.additional_properties.as_ref(),
-                    &obj.required,
-                );
-            }
-            SchemaKind::Type(Type::Array(arr)) => {
-                let Some(items) = arr.items.clone() else {
-                    // We don't support array without items, so error if it's missing
-                    ctx.errors.push(Error::ArrayWithoutItems);
-                    return;
-                };
+        Schema::Object(schema_object) => schema_object,
+    };
 
-                extract_types(
-                    ctx,
-                    &items.unbox(),
-                    ParentNode::List {
-                        nullable: schema.schema_data.nullable,
-                        parent: Box::new(parent),
-                    },
-                );
+    if let Some(reference) = &schema.reference {
+        let reference = Ref::absolute(reference);
+        let Some(schema) = ctx.schema_index.get(&reference) else {
+            ctx.errors.push(reference.to_unresolved_error());
+            return;
+        };
+
+        ctx.add_type_edge(parent, *schema, false);
+        return;
+    }
+
+    match &schema.instance_type {
+        None => {}
+        Some(SingleOrVec::Single(inner)) => {
+            extract_instance_type(ctx, parent, **inner, schema, false);
+            return;
+        }
+        Some(SingleOrVec::Vec(types)) => {
+            let nullable = types.contains(&InstanceType::Null);
+            let other_types = types.iter().filter(|ty| **ty != InstanceType::Null).collect::<Vec<_>>();
+            if other_types.len() == 1 {
+                extract_instance_type(ctx, parent, **other_types.last().unwrap(), schema, true);
+            } else {
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), nullable);
             }
-            SchemaKind::OneOf { one_of: schemas } | SchemaKind::AnyOf { any_of: schemas } => {
+            return;
+        }
+    }
+
+    if let Some(subschemas) = &schema.subschemas {
+        match (&subschemas.one_of, &subschemas.any_of) {
+            (Some(schemas), _) | (_, Some(schemas)) => {
                 if schemas.len() == 1 {
                     // The Stripe API has anyOfs containing a single item.
                     // For ease of use we simplify this to just point direct at the underlying type.
@@ -245,79 +232,146 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 }
 
                 let union_index = ctx
-                    .add_type_node(parent, Node::Union, schema.schema_data.nullable)
-                    .add_default(schema.schema_data.default.as_ref())
+                    .add_type_node(parent, Node::Union, false)
+                    .add_default(schema.metadata.as_ref().and_then(|metadata| metadata.default.as_ref()))
                     .node_index();
 
                 for schema in schemas {
                     extract_types(ctx, schema, ParentNode::Union(union_index));
                 }
+                return;
             }
-            SchemaKind::AllOf { all_of } => {
-                let node_index = ctx.graph.add_node(Node::AllOf);
-                ctx.add_type_edge(parent, node_index, false);
+            _ => {}
+        }
+        if let Some(all_of) = &subschemas.all_of {
+            let node_index = ctx.graph.add_node(Node::AllOf);
+            ctx.add_type_edge(parent, node_index, false);
 
-                for schema in all_of {
-                    extract_types(ctx, schema, ParentNode::AllOf(node_index));
-                }
+            for schema in all_of {
+                extract_types(ctx, schema, ParentNode::AllOf(node_index));
             }
-            SchemaKind::Not { .. } => {
-                ctx.errors.push(Error::NotSchema);
-            }
-            SchemaKind::Any(any) => {
-                // For now we're assuming this is just an object that openapiv3 doesn't understand
-                extract_object(
-                    ctx,
-                    parent,
-                    &schema.schema_data,
-                    &any.properties,
-                    any.additional_properties.as_ref(),
-                    &any.required,
-                );
-            }
-        },
+        }
+        return;
     }
+
+    // If we've got this far we might have to infer type from what other properties are present
+    let default = schema.metadata.as_ref().and_then(|metadata| metadata.default.as_ref());
+    if schema.object.is_some() {
+        extract_object(ctx, parent, dbg!(schema.object.as_deref()), default, false);
+        return;
+    }
+    if schema.array.is_some() {
+        extract_array_type(ctx, parent, schema, false);
+    }
+}
+
+fn extract_instance_type(
+    ctx: &mut Context,
+    parent: ParentNode,
+    instance_type: InstanceType,
+    schema: &SchemaObject,
+    nullable: bool,
+) {
+    let default = schema.metadata.as_ref().and_then(|metadata| metadata.default.as_ref());
+    match instance_type {
+        InstanceType::Null => {}
+        InstanceType::Boolean => {
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), nullable)
+                .add_default(default);
+        }
+        InstanceType::Object => {
+            extract_object(ctx, parent, schema.object.as_deref(), default, nullable);
+        }
+        InstanceType::Array => {
+            extract_array_type(ctx, parent, schema, nullable);
+        }
+        InstanceType::String => {
+            let enum_values = schema.enum_values.clone().unwrap_or_default();
+            if enum_values.is_empty() || !enum_values.iter().all(is_valid_enum_value) {
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), nullable)
+                    .add_default(default)
+                    .add_possible_values(&enum_values);
+            } else {
+                ctx.add_type_node(parent, Node::Enum, nullable)
+                    .add_default(default)
+                    .add_possible_values(&enum_values);
+            }
+        }
+        InstanceType::Integer => {
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Integer), nullable)
+                .add_default(default)
+                .add_possible_values(&schema.enum_values.clone().unwrap_or_default());
+        }
+        InstanceType::Number => {
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), nullable)
+                .add_default(default)
+                .add_possible_values(&schema.enum_values.clone().unwrap_or_default());
+        }
+    }
+}
+
+fn extract_array_type(ctx: &mut Context, parent: ParentNode, schema: &SchemaObject, nullable: bool) {
+    let Some(SingleOrVec::Single(items)) = schema.array.as_ref().and_then(|array| array.items.as_ref()) else {
+        // Arrays with no item spec _or_ with multiple are hard to deal with properly, so
+        // make this a JSON
+        ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), nullable);
+        return;
+    };
+
+    extract_types(
+        ctx,
+        items.as_ref(),
+        ParentNode::List {
+            nullable,
+            parent: Box::new(parent),
+        },
+    );
 }
 
 fn extract_object(
     ctx: &mut Context,
     parent: ParentNode,
-    schema_data: &openapiv3::SchemaData,
-    properties: &IndexMap<String, ReferenceOr<Box<openapiv3::Schema>>>,
-    additional_properties: Option<&AdditionalProperties>,
-    required_fields: &[String],
+    object: Option<&ObjectValidation>,
+    default: Option<&Value>,
+    nullable: bool,
 ) {
-    if properties.is_empty() {
+    let Some(object) = object else {
+        // If we have no object we can't really extract anything...
+        return;
+    };
+
+    if object.properties.is_empty() {
         // If the object is empty _and_ there's no additionalProperties we don't bother
         // emiting an object for it.  Not sure if this is a good idea - could be some APIs
         // that _require_ an empty object.  But lets see what happens
-        if additional_properties != Some(&AdditionalProperties::Any(false)) {
-            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), false);
+        if object.additional_properties != Some(Box::new(Schema::Bool(false))) {
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), nullable);
         }
         return;
     }
 
-    if properties
+    if object
+        .properties
         .iter()
         .any(|(field_name, _)| !is_valid_field_name(field_name))
     {
         // There's an edge case where field names are made up entirely of symbols and numbers,
         // making it tricky to generate a good GQL name for those fields.
         // For now, I'm just making those objects JSON.
-        ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), false);
+        ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), nullable);
         return;
     }
 
     let object_index = ctx
-        .add_type_node(parent, Node::Object, schema_data.nullable)
-        .add_default(schema_data.default.as_ref())
+        .add_type_node(parent, Node::Object, nullable)
+        .add_default(default)
         .node_index();
 
-    for (field_name, field_schema_or_ref) in properties {
-        let required = required_fields.contains(field_name);
+    for (field_name, field_schema) in &object.properties {
+        let required = object.required.contains(field_name);
         extract_types(
             ctx,
-            &field_schema_or_ref.clone().unbox(),
+            field_schema,
             ParentNode::Field {
                 object_index,
                 field_name: field_name.clone(),
@@ -329,10 +383,11 @@ fn extract_object(
 
 // OpenAPI enums can be basically any string, but we're much more limited
 /// in GraphQL.  This checks if this value is valid in GraphQL or not.
-fn is_valid_enum_value(value: &Option<String>) -> bool {
+fn is_valid_enum_value(value: &Value) -> bool {
     static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
+
     value
-        .as_deref()
+        .as_str()
         .map(|value| value.to_screaming_snake_case())
         .filter(|value| REGEX.is_match(value))
         .is_some()
@@ -344,25 +399,7 @@ fn is_valid_field_name(value: &str) -> bool {
     FieldName::from_openapi_name(value).will_be_valid_graphql()
 }
 
-impl Ref {
-    pub(super) fn v3_schema(name: &str) -> Ref {
-        Ref(format!("#/components/schemas/{name}"))
-    }
-
-    pub(super) fn v3_response(name: &str) -> Ref {
-        Ref(format!("#/components/responses/{name}"))
-    }
-
-    pub(super) fn v3_request_body(name: &str) -> Ref {
-        Ref(format!("#/components/request_bodies/{name}"))
-    }
-
-    pub(super) fn v3_parameter(name: &str) -> Ref {
-        Ref(format!("#/components/parameters/{name}"))
-    }
-}
-
-fn url_from_spec(spec: &openapiv3::OpenAPI) -> Result<Url, Error> {
+fn url_from_spec(spec: &openapiv3_1::OpenApi) -> Result<Url, Error> {
     let url_str = spec
         .servers
         .first()

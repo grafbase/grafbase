@@ -125,7 +125,7 @@ fn extract_operations(ctx: &mut Context, components: &Components, paths: &BTreeM
                     // This happens all the time in the planetscale schema.  Often just for errors,
                     // but most of the delete operations also have no schema so lets just mark them
                     // as JSON
-                    ctx.add_type_node(parent_node, Node::Scalar(ScalarKind::JsonObject), true);
+                    ctx.add_type_node(parent_node, Node::Scalar(ScalarKind::Json), true);
                     continue;
                 };
 
@@ -225,7 +225,7 @@ fn extract_object(
         // There's an edge case where field names are made up entirely of symbols and numbers,
         // making it tricky to generate a good GQL name for those fields.
         // For now, I'm just making those objects JSON.
-        ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+        ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), false);
         return;
     }
 

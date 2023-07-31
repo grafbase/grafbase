@@ -1,11 +1,12 @@
 mod grouping;
 mod v2;
 mod v3;
+mod v3_1;
 mod version;
 
 use std::collections::HashMap;
 
-use petgraph::{graph::NodeIndex, Graph};
+use petgraph::{dot::Dot, graph::NodeIndex, Graph};
 use url::Url;
 
 use crate::{
@@ -29,7 +30,13 @@ pub fn parse(data: String, format: Format) -> Result<ParseOutput, Vec<Error>> {
             drop(data);
             v3::parse(spec).try_into()
         }
-        OpenApiVersion::V3_1 => Err(vec![Error::UnsupportedVersion("3.1".into())]),
+        OpenApiVersion::V3_1 => {
+            let spec = from_str(&data, format)?;
+            drop(data);
+            let result: ParseOutput = v3_1::parse(spec).try_into()?;
+            // println!("{:?}", result.dot());
+            Ok(result)
+        }
         OpenApiVersion::Unknown(version) => Err(vec![Error::UnsupportedVersion(version)]),
     }
 }
@@ -37,6 +44,13 @@ pub fn parse(data: String, format: Format) -> Result<ParseOutput, Vec<Error>> {
 pub struct ParseOutput {
     pub graph: Graph<Node, Edge>,
     pub url: Result<Url, Error>,
+}
+
+impl ParseOutput {
+    #[allow(dead_code)] // This is for debugging
+    pub fn dot(&self) -> impl std::fmt::Debug + '_ {
+        Dot::new(&self.graph)
+    }
 }
 
 #[derive(Default)]

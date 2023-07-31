@@ -22,11 +22,15 @@ This crate is divided into a few modules:
 
 ### Versions of OpenAPI
 
-There's at least three incompatible versions of OpenAPI in the wild.
+There's at least three incompatible versions of OpenAPI in the wild. The rust ecosystem
+around these is also a bit of a mess, so here's the details of what we support:
 
 1. `v2` is old, but still disappointingly widly used. We use the `openapi` crate to parse this.
+   We've currently forked it because the version on crates.io is very old and has a lot of
+   problems.
 2. `v3` is newer and seems to be the most commonly used. We use `openapiv3` to parse these
    (The `openapi` crate also has a `v3_0` module, but `openapi` seems less maintained so we're
-   using `openapiv3` instead.)
+   using `openapiv3` instead.) We have forked `openapiv3` in order to support `v3.1` below,
+   but the version of `openapiv3` on crates.io is sufficient for our `v3` support.
 3. `v3.1` is the newest. Despite what the name might suggest, it's a breaking change from v3.
-   At the time of writing we don't support this.
+   We currently use a fork of `openapiv3` that provides support for this.
