@@ -153,6 +153,11 @@ pub async fn parse<'a>(
         return Err(ctx.errors.into());
     }
 
+    parse_post_types(&schema, &mut ctx);
+    if !ctx.errors.is_empty() {
+        return Err(ctx.errors.into());
+    }
+
     Ok(ctx.finish())
 }
 
@@ -212,7 +217,6 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
-        .with(SearchDirective)
         .with(ModelDirective)
         .with(MongoDBModelDirective)
         .with(AuthDirective)
@@ -229,10 +233,15 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CheckAllDirectivesAreKnown::default());
 
     visit(&mut rules, ctx, schema);
+}
 
-    // FIXME: Get rid of the ugly double pass.
-    let mut second_pass_rules = rules::visitor::VisitorNil.with(DefaultDirectiveTypes);
-    visit(&mut second_pass_rules, ctx, schema);
+/// Visitors that require all user-defined types to be parsed already.
+fn parse_post_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
+    let mut rules = rules::visitor::VisitorNil
+        .with(DefaultDirectiveTypes)
+        .with(SearchDirective);
+
+    visit(&mut rules, ctx, schema);
 }
 
 pub fn parse_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {

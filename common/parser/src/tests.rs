@@ -649,6 +649,25 @@ fn should_support_search_directive() {
 }
 
 #[test]
+#[named]
+fn test_search_enums_placed_after_use() {
+    let registry = super::parse_registry(
+        r#"
+        type User @model @search {
+            role: UserRoles! @default(value: EMPLOYEE)
+        }
+
+        enum UserRoles {
+            EMPLOYEE
+            CEO
+        }
+        "#,
+    )
+    .unwrap();
+    assert_snapshot(function_name!(), registry);
+}
+
+#[test]
 fn test_name_clashes_dont_cause_panic() {
     let schema = r#"
         type User {
