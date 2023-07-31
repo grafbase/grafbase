@@ -24,7 +24,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "jest": "29.6.1"
+    "jest": "29.6.2"
   },
   "optionalDependencies": {
     "@grafbase/cli-aarch64-apple-darwin": "^0.29.0",
