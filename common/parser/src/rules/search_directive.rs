@@ -1,4 +1,7 @@
+use crate::registry::add_query_search;
+
 use super::{
+    auth_directive::AuthDirective,
     directive::Directive,
     model_directive::MODEL_DIRECTIVE,
     visitor::{Visitor, VisitorContext},
@@ -60,6 +63,15 @@ impl<'a> Visitor<'a> for SearchDirective {
                     }
                 }
             }
+
+            let model_auth = match AuthDirective::parse(ctx, &type_definition.node.directives, false) {
+                Ok(auth) => auth,
+                Err(err) => {
+                    ctx.report_error(err.locations, err.message);
+                    None
+                }
+            };
+            add_query_search(ctx, &type_definition.node, &object.fields, model_auth.as_ref());
         }
     }
 }
