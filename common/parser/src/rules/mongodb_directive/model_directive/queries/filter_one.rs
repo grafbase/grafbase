@@ -8,7 +8,6 @@ use dynaql::{
     registry::{
         resolvers::{
             atlas_data_api::{AtlasDataApiResolver, OperationType},
-            transformer::Transformer,
             Resolver,
         },
         Deprecation, MetaField, MetaInputValue,
@@ -31,18 +30,11 @@ pub(super) fn create(
     let mut args = IndexMap::new();
     args.insert(INPUT_ARG_BY.to_string(), filter_input);
 
-    let resolver = AtlasDataApiResolver {
+    let resolver = Resolver::MongoResolver(AtlasDataApiResolver {
         collection: create_ctx.collection().to_string(),
         operation_type: OperationType::FindOne,
         directive_name: create_ctx.config().name.clone(),
-    };
-
-    let mongo_resolver = Resolver::MongoResolver(resolver);
-    let local_key = Resolver::Transformer(Transformer::Select {
-        key: "document".to_string(),
     });
-
-    let resolver = Resolver::Composition(vec![mongo_resolver, local_key]);
 
     let meta_field = MetaField {
         name: query_name,

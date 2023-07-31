@@ -1,4 +1,5 @@
 mod model_directive;
+mod type_directive;
 
 use super::{
     directive::Directive,
@@ -10,6 +11,24 @@ use dynaql_parser::types::SchemaDefinition;
 use std::collections::HashMap;
 
 pub use model_directive::MongoDBModelDirective;
+pub use type_directive::MongoDBTypeDirective;
+
+static MONGODB_SCALARS: &[&str] = &[
+    "Boolean",
+    "BigInt",
+    "Bytes",
+    "Decimal",
+    "Date",
+    "DateTime",
+    "Float",
+    "ID",
+    "Int",
+    "JSON",
+    "PhoneNumber",
+    "String",
+    "Timestamp",
+    "URL",
+];
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -129,6 +148,7 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
             .filter(|d| d.node.name.node == MONGODB_DIRECTIVE_NAME);
 
         let mut directive_names: HashMap<String, Vec<dynaql::Pos>> = HashMap::new();
+        let mut found_directive = false;
 
         for directive in directives {
             match parse_directive::<MongoDBDirective>(&directive.node, ctx.variables) {
@@ -149,9 +169,15 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                         },
                         parsed_directive.name(),
                     );
+
+                    found_directive = true;
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }
+        }
+
+        if found_directive {
+            model_directive::types::generic::register_input(ctx);
         }
 
         for (name, positions) in directive_names.into_iter().filter(|(_, positions)| positions.len() > 1) {

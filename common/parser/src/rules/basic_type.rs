@@ -34,13 +34,16 @@ impl<'a> Visitor<'a> for BasicType {
                         let name = field.name().to_string();
                         let mapped_name = field.mapped_name().map(ToString::to_string);
 
+                        let resolver_key = mapped_name.as_deref().unwrap_or(&name);
+                        let resolver = Transformer::select(resolver_key).into();
+
                         MetaField {
                             name: name.clone(),
                             mapped_name,
                             description: field.node.description.clone().map(|x| x.node),
                             ty: field.node.ty.clone().node.to_string().into(),
                             cache_control: CacheDirective::parse(&field.node.directives),
-                            resolver: Transformer::select(&name).into(),
+                            resolver,
                             ..Default::default()
                         }
                     })

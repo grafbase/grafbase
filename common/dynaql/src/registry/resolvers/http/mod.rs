@@ -130,7 +130,7 @@ impl HttpResolver {
                 .map_err(|e| Error::new(e.to_string()))?;
 
             let is_null = data.is_null();
-            let mut resolved_value = ResolvedValue::new(Arc::new(dbg!(data)));
+            let mut resolved_value = ResolvedValue::new(Arc::new(data));
 
             if is_null {
                 resolved_value.early_return_null = true;

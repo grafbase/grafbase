@@ -4,6 +4,7 @@ use std::fmt;
 #[serde(rename_all = "camelCase")]
 pub enum OperationType {
     FindOne,
+    FindMany,
     InsertOne,
     DeleteOne,
 }
@@ -12,6 +13,7 @@ impl AsRef<str> for OperationType {
     fn as_ref(&self) -> &str {
         match self {
             Self::FindOne => "findOne",
+            Self::FindMany => "find",
             Self::InsertOne => "insertOne",
             Self::DeleteOne => "deleteOne",
         }

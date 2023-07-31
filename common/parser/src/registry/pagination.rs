@@ -71,7 +71,7 @@ fn register_edge_type(
     type_name.into()
 }
 
-pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'static> {
+pub(crate) fn register_page_info_type(registry: &mut Registry) -> NamedType<'static> {
     registry.create_type(
         |_| {
             registry::ObjectType::new(
@@ -122,7 +122,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> NamedType<'sta
     PAGE_INFO_TYPE.into()
 }
 
-fn register_connection_type(
+pub fn register_connection_type(
     registry: &mut Registry,
     model_type_definition: &TypeDefinition,
     _connection_edges: Vec<String>,

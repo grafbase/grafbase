@@ -7,7 +7,7 @@ use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
 
 use super::COLLECTION_KEY;
 
-pub(super) struct CreateTypeContext<'a> {
+pub(crate) struct CreateTypeContext<'a> {
     pub(super) r#type: &'a Positioned<TypeDefinition>,
     pub(super) object: &'a ObjectType,
     model_name: &'a str,
@@ -19,7 +19,7 @@ pub(super) struct CreateTypeContext<'a> {
 }
 
 impl<'a> CreateTypeContext<'a> {
-    pub(super) fn new(
+    pub(crate) fn new(
         visitor_ctx: &mut VisitorContext<'_>,
         object: &'a ObjectType,
         model_auth: Option<AuthConfig>,

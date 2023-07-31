@@ -123,13 +123,15 @@ impl Transformer {
                     .unwrap_or_default();
                 Ok(ResolvedValue::new(Arc::new(result)))
             }
-            Transformer::Select { key } => Ok(ResolvedValue::new(Arc::new(
-                // TODO: Think again with internal modelization
-                last_resolver_value
-                    .and_then(|x| x.data_resolved.get(key))
-                    .cloned()
-                    .unwrap_or(serde_json::Value::Null),
-            ))),
+            Transformer::Select { key } => {
+                Ok(ResolvedValue::new(Arc::new(
+                    // TODO: Think again with internal modelization
+                    last_resolver_value
+                        .and_then(|x| x.data_resolved.get(key))
+                        .cloned()
+                        .unwrap_or(serde_json::Value::Null),
+                )))
+            }
             Transformer::RemoteEnum => {
                 let enum_values = ctx
                     .current_enum_values()

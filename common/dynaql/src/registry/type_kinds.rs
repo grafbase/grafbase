@@ -8,6 +8,7 @@
 
 use std::iter;
 
+use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 
 use crate::Error;
@@ -68,6 +69,22 @@ impl OutputType<'_> {
             OutputType::Interface(interface) => &interface.name,
             OutputType::Union(union) => &union.name,
             OutputType::Enum(en) => &en.name,
+        }
+    }
+
+    pub fn field(&self, name: &str) -> Option<&MetaField> {
+        match self {
+            OutputType::Object(ref object) => object.field_by_name(name),
+            OutputType::Interface(ref interface) => interface.field_by_name(name),
+            _ => None,
+        }
+    }
+
+    pub fn field_map(&self) -> Option<&IndexMap<String, MetaField>> {
+        match self {
+            OutputType::Object(ref object) => Some(&object.fields),
+            OutputType::Interface(ref interface) => Some(&interface.fields),
+            _ => None,
         }
     }
 
@@ -180,6 +197,14 @@ impl<'a> SelectionSetTarget<'a> {
         match self {
             SelectionSetTarget::Object(obj) => obj.field_by_name(name),
             SelectionSetTarget::Interface(iface) => iface.fields.get(name),
+            SelectionSetTarget::Union(_) => None,
+        }
+    }
+
+    pub fn field_map(&self) -> Option<&IndexMap<String, MetaField>> {
+        match self {
+            SelectionSetTarget::Object(obj) => Some(&obj.fields),
+            SelectionSetTarget::Interface(iface) => Some(&iface.fields),
             SelectionSetTarget::Union(_) => None,
         }
     }
