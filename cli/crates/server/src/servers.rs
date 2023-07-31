@@ -174,8 +174,6 @@ async fn spawn_servers(
             tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
             return Ok(());
         }
-
-        crate::udf_builder::install_dependencies(project, &sender, tracing).await?;
     }
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);

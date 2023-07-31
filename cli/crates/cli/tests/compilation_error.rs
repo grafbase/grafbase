@@ -94,7 +94,7 @@ fn compilation_error_resolvers() {
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
 
-    // FIXME: Uncomment before we figure out the weird race with file change modification.
+    // FIXME: Uncomment after we figure out the weird race with file change modification.
     /*
     client.snapshot();
 
