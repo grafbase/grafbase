@@ -513,7 +513,11 @@ mod tests {
     macro_rules! set_snapshot_suffix {
         ($($expr:expr),*) => {
             let mut settings = insta::Settings::clone_current();
-            settings.set_snapshot_suffix(format!($($expr,)*));
+            let options = sanitize_filename::Options {
+                windows: true,
+                ..Default::default()
+            };
+            settings.set_snapshot_suffix(sanitize_filename::sanitize_with_options(format!($($expr,)*), options));
             let _guard = settings.bind_to_scope();
         }
     }
