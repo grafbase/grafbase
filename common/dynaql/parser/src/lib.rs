@@ -1,5 +1,4 @@
-//! A parser for GraphQL. Used in the [`async-graphql`](https://crates.io/crates/async-graphql)
-//! crate.
+//! A parser for GraphQL. Used in the [`dynaql`] crate.
 //!
 //! It uses the [pest](https://crates.io/crates/pest) crate to parse the input and then transforms
 //! it into Rust types.
