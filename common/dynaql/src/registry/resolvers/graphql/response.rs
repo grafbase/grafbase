@@ -6,7 +6,7 @@ use crate::ServerError;
 use super::Error;
 
 #[derive(PartialEq, Debug)]
-#[allow(clippy::module_name_repetitions)] // Honestly clippy, get fucked
+#[allow(clippy::module_name_repetitions)]
 pub struct UpstreamResponse {
     pub data: serde_json::Value,
     pub errors: Vec<ServerError>,

@@ -117,7 +117,7 @@ pub(super) async fn paginated_by_ids(
                 .collect::<Vec<_>>();
             pos = end;
             let mut result = loader.load_many(keys.clone()).await?;
-            // Looks a bit stupid, but it's the easiest way to keep the ordering of the candidates
+            // Looks a bit silly, but it's the easiest way to keep the ordering of the candidates
             // we want for the specifying ordering & cursor.
             for key in keys {
                 if let Some(item) = result.remove(&key) {

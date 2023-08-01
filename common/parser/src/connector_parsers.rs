@@ -47,7 +47,7 @@ impl ConnectorParsers for MockConnectorParsers {
 /// Merges a bunch of registries into our vistor context
 ///
 /// This allows each connector to get it's own registry so we can process them in paralell,
-/// avoiding problems with multiple concurrent &mut Registry, or having to fuck about with
+/// avoiding problems with multiple concurrent &mut Registry, or having to deal with
 /// mutexes etc.
 pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Registry, position: Pos) {
     ctx.queries.extend(type_fields(
