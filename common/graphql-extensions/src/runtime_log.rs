@@ -3,7 +3,7 @@ use std::sync::Arc;
 use dynaql::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute, NextPrepareRequest},
     parser::types::OperationDefinition,
-    Request, Response, ServerResult,
+    Positioned, Request, Response, ServerResult,
 };
 use grafbase_runtime::{
     log::{LogEventReceiver, LogEventType, OperationType},
@@ -75,6 +75,7 @@ impl Extension for RuntimeLogExtension {
         next: NextExecute<'_>,
     ) -> Response {
         use dynaql::parser::types::OperationType as ParserOperationType;
+        use dynaql::parser::types::Selection;
 
         let request_id = &ctx
             .data::<GraphqlRequestExecutionContext>()
@@ -89,6 +90,14 @@ impl Extension for RuntimeLogExtension {
         let response = next.run(ctx, operation_name, operation).await;
         let end = wasm_timer::SystemTime::now();
         let duration: std::time::Duration = end.duration_since(start).unwrap();
+
+        let operation_name = operation_name.or_else(|| match operation.selection_set.node.items.as_slice() {
+            [Positioned {
+                node: Selection::Field(field),
+                ..
+            }] => Some(field.node.name.node.as_str()),
+            _ => None,
+        });
 
         self.log_event_receiver
             .invoke(
