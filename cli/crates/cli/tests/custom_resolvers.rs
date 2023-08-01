@@ -6,6 +6,8 @@ use backend::project::ConfigType;
 use serde_json::Value;
 use utils::environment::Environment;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, strum::Display)]
+#[strum(serialize_all = "lowercase")]
 enum JavaScriptPackageManager {
     Npm,
     Pnpm,
@@ -279,11 +281,10 @@ fn test_field_resolver(
     env.write_resolver(resolver_name, resolver_contents);
     if let Some((package_manager, package_json)) = package_json {
         env.write_file("package.json", package_json);
-        let command = match package_manager {
-            JavaScriptPackageManager::Npm => duct::cmd!("npm", "install"),
-            JavaScriptPackageManager::Pnpm => duct::cmd!("pnpm", "install"),
-            JavaScriptPackageManager::Yarn => duct::cmd!("yarn", "install"),
-        };
+        // Use `which` to work-around weird path search issues on Windows.
+        // See https://github.com/rust-lang/rust/issues/37519.
+        let program_path = which::which(package_manager.to_string()).expect("command must be found");
+        let command = duct::cmd!(program_path, "install");
         command
             .dir(env.directory.join("grafbase"))
             .run()
