@@ -1,6 +1,6 @@
 mod order_by_direction;
+use indoc::indoc;
 pub use order_by_direction::OrderByDirection;
-use unindent::unindent;
 
 pub struct DynaqlEnums;
 
@@ -14,14 +14,14 @@ pub trait DynaqlEnum {
     fn ty() -> &'static str;
     fn values() -> Vec<String>;
     fn sdl() -> String {
-        unindent(&format!(
-            r#"
-            enum {ty} {{
-                {values}
-            }}
-            "#,
+        format!(
+            indoc! {r#"
+                enum {ty} {{
+                    {values}
+                }}
+            "#},
             ty = Self::ty(),
             values = Self::values().join("\n    ")
-        ))
+        )
     }
 }
