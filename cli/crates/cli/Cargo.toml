@@ -72,6 +72,8 @@ regex = "1"
 rstest = "0.18"
 rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
+strum = { version = "0.25", features = ["derive"] }
+which = "4"
 wiremock = "0.5"
 
 [[bin]]

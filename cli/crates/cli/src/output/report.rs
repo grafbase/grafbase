@@ -108,25 +108,6 @@ pub fn goodbye() {
     watercolor::output!("\n👋 See you next time!", @BrightBlue);
 }
 
-pub fn install_udf_dependencies() {
-    println!(
-        "- {} installing dependencies from package.json...",
-        watercolor!("wait", @Cyan)
-    );
-}
-
-pub fn complete_installing_udf_dependencies(duration: std::time::Duration) {
-    let formatted_duration = if duration < std::time::Duration::from_secs(1) {
-        format!("{}ms", duration.as_millis())
-    } else {
-        format!("{:.1}s", duration.as_secs_f64())
-    };
-    println!(
-        "- {} installed successfully in {formatted_duration}",
-        watercolor!("event", @BrightMagenta)
-    );
-}
-
 pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
     println!("- {} compiling {udf_kind} {udf_name}...", watercolor!("wait", @Cyan));
 }

@@ -38,10 +38,6 @@ pub fn dev(
                     READY.call_once(|| report::start_server(resolvers_reported, port, external_port));
                 }
                 ServerMessage::Reload(path) => report::reload(path),
-                ServerMessage::InstallUdfDependencies => report::install_udf_dependencies(),
-                ServerMessage::CompleteInstallingUdfDependencies { duration } => {
-                    report::complete_installing_udf_dependencies(duration);
-                }
                 ServerMessage::StartUdfBuild { udf_kind, udf_name } => {
                     report::start_udf_build(udf_kind, &udf_name);
                 }

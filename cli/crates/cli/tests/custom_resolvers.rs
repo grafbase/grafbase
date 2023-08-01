@@ -6,6 +6,14 @@ use backend::project::ConfigType;
 use serde_json::Value;
 use utils::environment::Environment;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, strum::Display)]
+#[strum(serialize_all = "lowercase")]
+enum JavaScriptPackageManager {
+    Npm,
+    Pnpm,
+    Yarn,
+}
+
 #[rstest::rstest]
 #[case(
     1,
@@ -195,14 +203,14 @@ use utils::environment::Environment;
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
     ],
-    Some(r#"
+    Some((JavaScriptPackageManager::Npm, r#"
         {
             "name": "my-package",
             "dependencies": {
                 "is-palindrome": "^0.3.0"
             }
         }
-    "#)
+    "#))
 )]
 #[case(
     9,
@@ -222,14 +230,14 @@ use utils::environment::Environment;
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
     ],
-    Some(r#"
+    Some((JavaScriptPackageManager::Pnpm, r#"
         {
             "dependencies": {
                 "is-palindrome": "^0.3.0"
             },
             "packageManager": "^pnpm@8.2.0"
         }
-    "#)
+    "#))
 )]
 #[case(
     10,
@@ -249,14 +257,14 @@ use utils::environment::Environment;
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
     ],
-    Some(r#"
+    Some((JavaScriptPackageManager::Yarn, r#"
         {
             "dependencies": {
                 "is-palindrome": "^0.3.0"
             },
             "packageManager": "^yarn@1.22.0"
         }
-    "#)
+    "#))
 )]
 fn test_field_resolver(
     #[case] case_index: usize,
@@ -264,15 +272,23 @@ fn test_field_resolver(
     #[case] resolver_name: &str,
     #[case] resolver_contents: &str,
     #[case] queries: &[(&str, &str)],
-    #[case] package_json: Option<&str>,
+    #[case] package_json: Option<(JavaScriptPackageManager, &str)>,
 ) {
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
     std::fs::write(env.directory.join("grafbase/.env"), "MY_OWN_VARIABLE=test_value").unwrap();
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
-    if let Some(package_json) = package_json {
+    if let Some((package_manager, package_json)) = package_json {
         env.write_file("package.json", package_json);
+        // Use `which` to work-around weird path search issues on Windows.
+        // See https://github.com/rust-lang/rust/issues/37519.
+        let program_path = which::which(package_manager.to_string()).expect("command must be found");
+        let command = duct::cmd!(program_path, "install");
+        command
+            .dir(env.directory.join("grafbase"))
+            .run()
+            .expect("should have succeeded");
     }
     env.grafbase_dev();
     let client = env

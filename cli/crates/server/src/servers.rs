@@ -163,19 +163,15 @@ async fn spawn_servers(
 
     if detected_udfs.is_empty() {
         trace!("Skipping wrangler installation");
-    } else {
-        if let Err(error) = install_wrangler(environment, tracing).await {
-            let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
-            // TODO consider disabling colored output from wrangler
-            let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
-                .ok()
-                .and_then(|stripped| String::from_utf8(stripped).ok())
-                .unwrap_or_else(|| error.to_string());
-            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
-            return Ok(());
-        }
-
-        crate::udf_builder::install_dependencies(project, &sender, tracing).await?;
+    } else if let Err(error) = install_wrangler(environment, tracing).await {
+        let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
+        // TODO consider disabling colored output from wrangler
+        let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
+            .ok()
+            .and_then(|stripped| String::from_utf8(stripped).ok())
+            .unwrap_or_else(|| error.to_string());
+        tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
+        return Ok(());
     }
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);

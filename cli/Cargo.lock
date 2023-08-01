@@ -1878,6 +1878,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "slugify",
+ "strum",
  "sysinfo",
  "tempfile",
  "thiserror",
@@ -1886,6 +1887,7 @@ dependencies = [
  "url",
  "uuid",
  "webbrowser",
+ "which",
  "wiremock",
 ]
 
