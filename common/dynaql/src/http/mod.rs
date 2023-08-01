@@ -3,16 +3,10 @@
 mod multipart;
 #[cfg(feature = "tokio_runtime")]
 mod pathfinder_source;
-// mod websocket;
 
 pub use multipart::MultipartOptions;
 #[cfg(feature = "tokio_runtime")]
 pub use pathfinder_source::{pathfinder_source, PathfinderConfig};
-/*
-pub use websocket::{
-    ClientMessage, Protocols as WebSocketProtocols, WebSocket, WsMessage, ALL_WEBSOCKET_PROTOCOLS,
-};
-*/
 
 use futures_util::io::{AsyncRead, AsyncReadExt};
 use mime;

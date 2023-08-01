@@ -131,35 +131,17 @@ pub type FieldError = Error;
 /// reasons.
 pub type FieldResult<T> = Result<T>;
 
-#[doc = include_str!("docs/complex_object.md")]
 pub use dynaql_derive::ComplexObject;
-#[doc = include_str!("docs/description.md")]
 pub use dynaql_derive::Description;
-#[doc = include_str!("docs/directive.md")]
 pub use dynaql_derive::Directive;
-#[doc = include_str!("docs/enum.md")]
 pub use dynaql_derive::Enum;
-#[doc = include_str!("docs/input_object.md")]
 pub use dynaql_derive::InputObject;
-#[doc = include_str!("docs/interface.md")]
 pub use dynaql_derive::Interface;
-#[doc = include_str!("docs/merged_object.md")]
 pub use dynaql_derive::MergedObject;
-#[doc = include_str!("docs/merged_subscription.md")]
 pub use dynaql_derive::MergedSubscription;
-#[doc = include_str!("docs/newtype.md")]
 pub use dynaql_derive::NewType;
-#[doc = include_str!("docs/object.md")]
 pub use dynaql_derive::Object;
-#[cfg(feature = "unstable_oneof")]
-#[cfg_attr(docsrs, doc(cfg(feature = "unstable_oneof")))]
-#[doc = include_str!("docs/oneof_object.md")]
-pub use dynaql_derive::OneofObject;
-#[doc = include_str!("docs/scalar.md")]
 pub use dynaql_derive::Scalar;
-#[doc = include_str!("docs/simple_object.md")]
 pub use dynaql_derive::SimpleObject;
-#[doc = include_str!("docs/subscription.md")]
 pub use dynaql_derive::Subscription;
-#[doc = include_str!("docs/union.md")]
 pub use dynaql_derive::Union;

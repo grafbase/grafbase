@@ -1,9 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::num::ParseIntError;
 use std::ops::{Deref, DerefMut};
-
-#[cfg(feature = "bson")]
-use bson::oid::{self, ObjectId};
-use serde::{Deserialize, Serialize};
 
 use crate::{InputValueError, InputValueResult, LegacyScalarType, Scalar, Value};
 
@@ -55,24 +52,6 @@ macro_rules! try_from_integers {
 }
 
 try_from_integers!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128, isize, usize);
-
-#[cfg(feature = "uuid")]
-impl TryFrom<ID> for uuid::Uuid {
-    type Error = uuid::Error;
-
-    fn try_from(id: ID) -> Result<Self, Self::Error> {
-        uuid::Uuid::parse_str(&id.0)
-    }
-}
-
-#[cfg(feature = "bson")]
-impl TryFrom<ID> for ObjectId {
-    type Error = oid::Error;
-
-    fn try_from(id: ID) -> std::result::Result<Self, oid::Error> {
-        ObjectId::parse_str(&id.0)
-    }
-}
 
 impl PartialEq<&str> for ID {
     fn eq(&self, other: &&str) -> bool {

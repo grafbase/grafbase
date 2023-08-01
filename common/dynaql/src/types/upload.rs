@@ -2,9 +2,6 @@ use std::borrow::Cow;
 use std::fs::File;
 use std::io::Read;
 
-#[cfg(feature = "unblock")]
-use futures_util::io::AsyncRead;
-
 use crate::{registry, Context, InputValueError, InputValueResult, LegacyInputType, Value};
 
 /// A file upload value.
@@ -37,13 +34,6 @@ impl UploadValue {
     /// **Note**: this is a *synchronous/blocking* reader.
     pub fn into_read(self) -> impl Read + Sync + Send + 'static {
         self.content
-    }
-
-    #[cfg(feature = "unblock")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "unblock")))]
-    /// Convert to a `AsyncRead`.
-    pub fn into_async_read(self) -> impl AsyncRead + Sync + Send + 'static {
-        blocking::Unblock::new(self.content)
     }
 
     /// Returns the size of the file, in bytes.
