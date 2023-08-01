@@ -22,13 +22,15 @@
     flake-utils,
     ...
   }: let
-    inherit (nixpkgs.lib) optional;
+    inherit (nixpkgs.lib) optional concatStringsSep;
     systems = flake-utils.lib.system;
   in
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
       };
+
+      aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8"];
 
       x86_64LinuxPkgs = import nixpkgs {
         inherit system;
@@ -41,40 +43,52 @@
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
           [
+            # Testing
             cargo-insta
             cargo-nextest
-            openssl.dev
-            pkg-config
-            rustup
 
-            # for sqlx-macros
-            libiconv
+            # Versioning, automation and releasing
+            cargo-about
+            cargo-make
+            cargo-release
+            nodePackages.npm
+            nodePackages.semver
+            sd
 
-            # Used for resolver tests
-            nodePackages.pnpm
-            nodePackages.yarn
+            # DynamoDB local
+            dynein
 
-            # Miniflare
+            # Node.js
             nodejs
-
-            # Formatting
             nodePackages.prettier
 
-            # Versioning
-            nodePackages.semver
+            # Native SSL
+            openssl
+            pkg-config
 
-            # Local DynamoDB handling
-            dynein
+            # Rust
+            rustup
+
+            # SQLx macros
+            libiconv
+
+            # Resolver tests
+            nodePackages.pnpm
+            nodePackages.yarn
           ]
           ++ optional (system == systems.aarch64-darwin) [
-            darwin.apple_sdk.frameworks.Security
+            cargo-binstall
             darwin.apple_sdk.frameworks.CoreFoundation
             darwin.apple_sdk.frameworks.CoreServices
+            darwin.apple_sdk.frameworks.Security
           ];
 
         shellHook = ''
-          export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo"
-          export PATH="$CARGO_INSTALL_ROOT/bin:$PATH"
+          export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo";
+          export PATH="$CARGO_INSTALL_ROOT/bin:$PATH";
+          if [[ "${system}" == "aarch64-darwin" ]]; then
+            cargo binstall --no-confirm --no-symlinks --quiet ${aarch64DarwinExternalCargoCrates}
+          fi
         '';
       };
     in {

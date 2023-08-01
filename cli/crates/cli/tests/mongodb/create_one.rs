@@ -1,7 +1,6 @@
 use super::MONGODB_CONNECTOR;
 use crate::Server;
 use serde_json::json;
-use wiremock::ResponseTemplate;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn with_id_and_mapped_string() {
@@ -11,16 +10,14 @@ async fn with_id_and_mapped_string() {
         }}
     "#};
 
-    let document = json!({
-        "_id": { "$oid": "5ca4bbc7a2dd94ee5816238d" },
-        "real_name": "Jack",
+    let expected_request = json!({
+        "document": {
+            "_id": { "$oid": "5ca4bbc7a2dd94ee5816238d" },
+            "real_name": "Jack",
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", expected_request).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -57,18 +54,16 @@ async fn with_nested_data() {
         }}
     "#};
 
-    let document = json!({
-        "address_data": {
-            "street_name": "Wall",
-            "city": "New York"
+    let expected_request = json!({
+        "document": {
+            "address_data": {
+                "street_name": "Wall",
+                "city": "New York"
+            }
         }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", expected_request).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -102,20 +97,18 @@ async fn with_binary_data() {
         }}
     "#};
 
-    let document = json!({
-        "data": {
-            "$binary": {
-                "base64": "e67803a39588be8a95731a21e27d7391",
-                "subType": "05",
+    let expected_request = json!({
+        "document": {
+            "data": {
+                "$binary": {
+                    "base64": "e67803a39588be8a95731a21e27d7391",
+                    "subType": "05",
+                },
             },
-        },
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(config, "users", document, template).await;
+    let server = Server::create_one(config, "users", expected_request).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -147,18 +140,16 @@ async fn with_date() {
     "#};
 
     let document = json!({
-        "date": {
-            "$date": {
-                "$numberLong": "1641945600000",
+        "document": {
+            "date": {
+                "$date": {
+                    "$numberLong": "1641945600000",
+                },
             },
-        },
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -190,18 +181,16 @@ async fn with_datetime() {
     "#};
 
     let document = json!({
-        "date": {
-            "$date": {
-                "$numberLong": "1641954803067",
+        "document": {
+            "date": {
+                "$date": {
+                    "$numberLong": "1641954803067",
+                },
             },
-        },
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -233,16 +222,14 @@ async fn with_decimal() {
     "#};
 
     let document = json!({
-        "dec": {
-            "$numberDecimal": "1.2345",
-        },
+        "document": {
+            "dec": {
+                "$numberDecimal": "1.2345",
+            },
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -274,16 +261,14 @@ async fn with_bigint() {
     "#};
 
     let document = json!({
-        "num": {
-            "$numberLong": "9223372036854775807",
-        },
+        "document": {
+            "num": {
+                "$numberLong": "9223372036854775807",
+            },
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -315,19 +300,17 @@ async fn with_timestamp() {
     "#};
 
     let document = json!({
-        "time": {
-            "$timestamp": {
-                "t": 1_565_545_664,
-                "i": 1
+        "document": {
+            "time": {
+                "$timestamp": {
+                    "t": 1_565_545_664,
+                    "i": 1
+                }
             }
         }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -359,14 +342,12 @@ async fn with_boolean() {
     "#};
 
     let document = json!({
-        "truth": true
+        "document": {
+            "truth": true
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(config, "users", document, template).await;
+    let server = Server::create_one(config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -398,14 +379,12 @@ async fn with_float() {
     "#};
 
     let document = json!({
-        "num": 1.23
+        "document": {
+            "num": 1.23
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -437,14 +416,12 @@ async fn with_simple_array() {
     "#};
 
     let document = json!({
-        "ints": [1, 2, 3]
+        "document": {
+            "ints": [1, 2, 3]
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {
@@ -480,14 +457,12 @@ async fn with_complex_array() {
     "#};
 
     let document = json!({
-        "ints": [{ "renamed": 1 }, { "renamed": 2 }, { "renamed": 3 }]
+        "document": {
+            "ints": [{ "renamed": 1 }, { "renamed": 2 }, { "renamed": 3 }]
+        }
     });
 
-    let template = ResponseTemplate::new(200).set_body_json(json!({
-        "insertedId": "5ca4bbc7a2dd94ee5816238d"
-    }));
-
-    let server = Server::create_one(&config, "users", document, template).await;
+    let server = Server::create_one(&config, "users", document).await;
 
     let response = server.request(indoc::indoc! {r#"
         mutation {

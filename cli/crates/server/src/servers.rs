@@ -2,23 +2,20 @@ use crate::consts::{
     ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
     MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT_PATH,
 };
-use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{ServerMessage, ASSETS_GZIP};
 use crate::udf_builder::install_wrangler;
 use crate::{bridge, errors::ServerError};
-use common::consts::{
-    EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME,
-};
+use crate::{error_server, pathfinder};
+use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project, SchemaLocation};
-use common::types::{LocalAddressType, UdfKind};
-use common::utils::find_available_port_in_range;
-use futures_util::FutureExt;
-
+use common::types::UdfKind;
 use flate2::read::GzDecoder;
+use futures_util::{try_join, FutureExt};
 use std::borrow::Cow;
 use std::env;
+use std::net::Ipv4Addr;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
@@ -27,6 +24,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 use tokio::io::AsyncWriteExt;
+use tokio::net::TcpListener;
 use tokio::process::Command;
 use tokio::runtime::Builder;
 use tokio::sync::broadcast::{self, channel};
@@ -60,8 +58,6 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
 
         create_project_dot_grafbase_directory()?;
 
-        let bridge_port = find_available_port_for_internal_use(port)?;
-
         // manual implementation of #[tokio::main] due to a rust analyzer issue
         Builder::new_current_thread()
             .enable_all()
@@ -78,10 +74,10 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                             let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
                             watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
                         }) => { result }
-                        result = server_loop(port, bridge_port, watch, sender, event_bus, tracing) => { result }
+                        result = server_loop(port, watch, sender, event_bus, tracing) => { result }
                     }
                 } else {
-                    server_loop(port, bridge_port, watch, sender, event_bus, tracing).await
+                    server_loop(port, watch, sender, event_bus, tracing).await
                 }
             })
     });
@@ -91,7 +87,6 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
 
 async fn server_loop(
     worker_port: u16,
-    bridge_port: u16,
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
@@ -101,7 +96,7 @@ async fn server_loop(
     loop {
         let receiver = event_bus.subscribe();
         tokio::select! {
-            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
+            result = spawn_servers(worker_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
             path = wait_for_event_and_match(receiver, |event| match event {
@@ -120,7 +115,6 @@ async fn server_loop(
 #[tracing::instrument(level = "trace")]
 async fn spawn_servers(
     worker_port: u16,
-    bridge_port: u16,
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
@@ -128,6 +122,7 @@ async fn spawn_servers(
     tracing: bool,
 ) -> Result<(), ServerError> {
     let bridge_event_bus = event_bus.clone();
+    let pathfinder_event_bus = event_bus.clone();
 
     let receiver = event_bus.subscribe();
 
@@ -168,28 +163,39 @@ async fn spawn_servers(
 
     if detected_udfs.is_empty() {
         trace!("Skipping wrangler installation");
-    } else {
-        if let Err(error) = install_wrangler(environment, tracing).await {
-            let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
-            // TODO consider disabling colored output from wrangler
-            let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
-                .ok()
-                .and_then(|stripped| String::from_utf8(stripped).ok())
-                .unwrap_or_else(|| error.to_string());
-            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
-            return Ok(());
-        }
-
-        crate::udf_builder::install_dependencies(project, &sender, tracing).await?;
+    } else if let Err(error) = install_wrangler(environment, tracing).await {
+        let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
+        // TODO consider disabling colored output from wrangler
+        let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
+            .ok()
+            .and_then(|stripped| String::from_utf8(stripped).ok())
+            .unwrap_or_else(|| error.to_string());
+        tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
+        return Ok(());
     }
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
 
-    let mut bridge_handle =
-        tokio::spawn(
-            async move { bridge::start(bridge_port, worker_port, bridge_sender, bridge_event_bus, tracing).await },
+    let ((bridge_listener, bridge_port), (pathfinder_listener, pathfinder_port)) =
+        try_join!(get_listener_for_random_port(), get_listener_for_random_port())?;
+
+    let mut bridge_handle = tokio::spawn(async move {
+        bridge::start(
+            bridge_listener,
+            bridge_port,
+            worker_port,
+            bridge_sender,
+            bridge_event_bus,
+            tracing,
         )
-        .fuse();
+        .await
+    })
+    .fuse();
+
+    let pathfinder_handle = tokio::spawn(async move {
+        pathfinder::start(pathfinder_listener, pathfinder_port, worker_port, pathfinder_event_bus).await
+    })
+    .fuse();
 
     let sender_cloned = sender.clone();
     tokio::spawn(async move {
@@ -211,6 +217,7 @@ async fn spawn_servers(
 
     let worker_port_string = worker_port.to_string();
     let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
+    let pathfinder_port_binding_string = format!("PATHFINDER_PORT={pathfinder_port}");
     let registry_text_blob_string = format!("REGISTRY={registry_path}");
 
     #[allow(unused_mut)]
@@ -231,6 +238,8 @@ async fn spawn_servers(
             "./wrangler.toml",
             "--binding",
             &bridge_port_binding_string,
+            "--binding",
+            &pathfinder_port_binding_string,
             "--text-blob",
             &registry_text_blob_string,
             "--mount",
@@ -287,6 +296,7 @@ async fn spawn_servers(
                 .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
         }
         bridge_handle_result = bridge_handle => { bridge_handle_result??; }
+        pathfinder_handle_result = pathfinder_handle => { pathfinder_handle_result??; }
     }
 
     Ok(())
@@ -576,23 +586,10 @@ async fn validate_dependencies() -> Result<(), ServerError> {
     Ok(())
 }
 
-// the bridge runs on an available port within the ephemeral port range which is also supplied to the worker,
-// making the port choice and availability transprent to the user.
-// to avoid issues when starting multiple CLIs simultainiously,
-// we segment the ephemeral port range into 100 segments and select a segment based on the last two digits of the process ID.
-// this allows for simultainious start of up to 100 CLIs
-pub fn find_available_port_for_internal_use(http_port: u16) -> Result<u16, ServerError> {
-    // must be 0-99, will fit in u16
-    #[allow(clippy::cast_possible_truncation)]
-    let segment = http_port % 100;
-    // since the size is `max - min` in a u16 range, will fit in u16
-    #[allow(clippy::cast_possible_truncation)]
-    let size = EPHEMERAL_PORT_RANGE.len() as u16;
-    let offset = size / 100 * segment;
-    let start = EPHEMERAL_PORT_RANGE.min().expect("must exist");
-    // allows us to loop back to the start of the range, giving any offset the same amount of potential ports
-    let range = EPHEMERAL_PORT_RANGE.map(|port| (port + offset) % size + start);
-
-    // TODO: loop back and limit iteration to get an even range for each
-    find_available_port_in_range(range, LocalAddressType::Localhost).ok_or(ServerError::AvailablePort)
+pub async fn get_listener_for_random_port() -> Result<(std::net::TcpListener, u16), ServerError> {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+        .await
+        .map_err(|_| ServerError::AvailablePort)?;
+    let port = listener.local_addr().map_err(|_| ServerError::AvailablePort)?.port();
+    Ok((listener.into_std().map_err(|_| ServerError::AvailablePort)?, port))
 }

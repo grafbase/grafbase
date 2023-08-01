@@ -1,15 +1,13 @@
-use common::environment::{Environment, Project};
+use common::environment::Environment;
 use common::types::UdfKind;
 
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::mpsc::Sender;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 use crate::errors::{JavascriptPackageManagerComamndError, ServerError, UdfBuildError};
-use crate::types::ServerMessage;
 
 async fn run_command<P: AsRef<Path>>(
     command_type: JavaScriptPackageManager,
@@ -75,50 +73,11 @@ pub enum JavaScriptPackageManager {
     Yarn,
 }
 
-async fn guess_package_manager_from_package_json(path: impl AsRef<Path>) -> Option<JavaScriptPackageManager> {
-    let path = path.as_ref();
-    // FIXME: In the future, we may honour the version too.
-    // "packageManager": "^pnpm@1.2.3"
-    // "packageManager": "^yarn@2.3.4"
-    // etc.
-    let object = match serde_json::from_slice(&tokio::fs::read(&path).await.ok()?) {
-        Ok(serde_json::Value::Object(object)) => object,
-        other => {
-            warn!("Invalid package.json contents: {other:?} in path {}.", path.display());
-            return None;
-        }
-    };
-    object
-        .get("packageManager")
-        .and_then(serde_json::Value::as_str)
-        .and_then(|value| value.trim_start_matches('^').split('@').next().unwrap().parse().ok())
-}
-
 pub const LOCK_FILE_NAMES: &[(&str, JavaScriptPackageManager)] = &[
     ("package-lock.json", JavaScriptPackageManager::Npm),
     ("pnpm-lock.yaml", JavaScriptPackageManager::Pnpm),
     ("yarn.lock", JavaScriptPackageManager::Yarn),
 ];
-
-async fn guess_package_manager_from_package_root(path: impl AsRef<Path>) -> Option<JavaScriptPackageManager> {
-    let package_root = path.as_ref();
-
-    futures_util::future::join_all(LOCK_FILE_NAMES.iter().map(|(file_name, package_manager)| {
-        let path_to_check = package_root.join(file_name);
-        async move {
-            let file_exists = tokio::fs::try_exists(&path_to_check).await.ok().unwrap_or_default();
-            if file_exists {
-                Some(*package_manager)
-            } else {
-                None
-            }
-        }
-    }))
-    .await
-    .into_iter()
-    .flatten()
-    .next()
-}
 
 async fn extract_udf_wrapper_worker_contents(udf_kind: UdfKind) -> Result<String, UdfBuildError> {
     trace!("extracting {udf_kind} wrapper worker contents");
@@ -133,62 +92,6 @@ async fn extract_udf_wrapper_worker_contents(udf_kind: UdfKind) -> Result<String
 }
 
 const UDF_EXTENSIONS: [&str; 2] = ["js", "ts"];
-
-pub async fn install_dependencies(
-    project: &Project,
-    sender: &Sender<ServerMessage>,
-    tracing: bool,
-) -> Result<(), JavascriptPackageManagerComamndError> {
-    let Some(package_json_file_path) = project.package_json_path.as_deref() else {
-        return Ok(());
-    };
-
-    let start = std::time::Instant::now();
-    sender.send(ServerMessage::InstallUdfDependencies).unwrap();
-
-    let package_manager = determine_package_manager(project)
-        .await
-        .unwrap_or(JavaScriptPackageManager::Npm);
-    let artifact_directory_path = package_json_file_path.parent().unwrap();
-    let artifact_directory_path_string = artifact_directory_path.to_str().unwrap();
-    let artifact_directory_modules_path = artifact_directory_path.join("node_modules");
-    let artifact_directory_modules_path_string = artifact_directory_modules_path
-        .to_str()
-        .expect("must be valid if `artifact_directory_path_string` is valid");
-
-    let arguments = match package_manager {
-        JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "install"],
-        JavaScriptPackageManager::Pnpm => vec!["install"],
-        JavaScriptPackageManager::Yarn => {
-            vec!["install", "--modules-folder", artifact_directory_modules_path_string]
-        }
-    };
-    run_command(package_manager, &arguments, &artifact_directory_path, tracing, &[]).await?;
-
-    sender
-        .send(ServerMessage::CompleteInstallingUdfDependencies {
-            duration: start.elapsed(),
-        })
-        .unwrap();
-
-    Ok(())
-}
-
-pub async fn determine_package_manager(project: &Project) -> Option<JavaScriptPackageManager> {
-    let package_json_path = project.package_json_path.as_deref()?;
-    (|| async {
-        if tokio::fs::try_exists(&package_json_path).await.ok()? {
-            let (guessed_from_package_json, guessed_from_package_root) = futures_util::join!(
-                guess_package_manager_from_package_json(package_json_path),
-                guess_package_manager_from_package_root(package_json_path.parent().unwrap())
-            );
-            guessed_from_package_json.or(guessed_from_package_root)
-        } else {
-            None
-        }
-    })()
-    .await
-}
 
 #[allow(clippy::too_many_lines)]
 pub async fn build(

@@ -34,8 +34,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.28.0" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.28.0" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.29.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.29.0" }
 
 [dev-dependencies]
 async-graphql = "5"
@@ -50,7 +50,7 @@ derive_builder = "0.12"
 dirs = "5"
 duct = "0.13"
 fslock = "0.2"
-insta = { version = "1.29", features = ["json", "redactions", "yaml"] }
+insta = { version = "1.31", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.8.0-beta.1", default-features = false, features = [
   "clock",
@@ -69,9 +69,11 @@ tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 url = "2"
 regex = "1"
-rstest = "0.17"
+rstest = "0.18"
 rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
+strum = { version = "0.25", features = ["derive"] }
+which = "4"
 wiremock = "0.5"
 
 [[bin]]

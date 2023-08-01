@@ -22,7 +22,7 @@ use tokio::fs;
 use tokio::sync::Mutex;
 
 use std::collections::HashMap;
-use std::net::{Ipv4Addr, SocketAddr};
+use std::net::TcpListener;
 use std::sync::Arc;
 
 use tower_http::trace::TraceLayer;
@@ -78,7 +78,7 @@ async fn mutation_endpoint(
 
         let query = operation.iter_variables().fold(template, Query::bind);
 
-        query.execute(&mut transaction).await.map_err(|error| {
+        query.execute(&mut *transaction).await.map_err(|error| {
             error!("mutation error: {error}");
             match operation.kind {
                 Some(OperationKind::Constraint(Constraint {
@@ -99,6 +99,7 @@ async fn mutation_endpoint(
 }
 
 pub async fn start(
+    tcp_listener: TcpListener,
     port: u16,
     worker_port: u16,
     bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
@@ -152,9 +153,7 @@ pub async fn start(
         .with_state(handler_state.clone())
         .layer(TraceLayer::new_for_http());
 
-    let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
-
-    let server = axum::Server::bind(&socket_address)
+    let server = axum::Server::from_tcp(tcp_listener)?
         .serve(router.into_make_service())
         .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
             event.should_restart_servers()
