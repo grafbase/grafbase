@@ -9,7 +9,6 @@ use std::time::Duration;
 use tracing::{info_span, Instrument};
 
 use crate::constant::{OWNED_BY, PK, SK};
-use crate::runtime::Runtime;
 use crate::{DynamoDBContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation};
 
 // TODO: Should ensure Rosoto Errors impl clone
@@ -125,11 +124,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 }
 
 pub fn get_loader_batch_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<BatchGetItemLoader, LruCache> {
-    DataLoader::with_cache(
-        BatchGetItemLoader { ctx },
-        |f| Runtime::locate().spawn(f),
-        LruCache::new(128),
-    )
-    .max_batch_size(100)
-    .delay(Duration::from_millis(2))
+    DataLoader::with_cache(BatchGetItemLoader { ctx }, async_runtime::spawn, LruCache::new(128))
+        .max_batch_size(100)
+        .delay(Duration::from_millis(2))
 }

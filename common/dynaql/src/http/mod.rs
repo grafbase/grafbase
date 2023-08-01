@@ -1,11 +1,11 @@
 //! A helper module that supports HTTP
 
 mod multipart;
-#[cfg(feature = "tokio_runtime")]
+#[cfg(not(target_arch = "wasm32"))]
 mod pathfinder_source;
 
 pub use multipart::MultipartOptions;
-#[cfg(feature = "tokio_runtime")]
+#[cfg(not(target_arch = "wasm32"))]
 pub use pathfinder_source::{pathfinder_source, PathfinderConfig};
 
 use futures_util::io::{AsyncRead, AsyncReadExt};

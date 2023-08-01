@@ -1,4 +1,3 @@
-use crate::runtime::Runtime;
 use crate::DynamoDBContext;
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
@@ -148,11 +147,7 @@ impl Loader<TxItem> for TransactionLoader {
 }
 
 pub fn get_loader_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<TransactionLoader, LruCache> {
-    DataLoader::with_cache(
-        TransactionLoader { ctx },
-        |f| Runtime::locate().spawn(f),
-        LruCache::new(256),
-    )
-    .max_batch_size(25)
-    .delay(Duration::from_millis(1))
+    DataLoader::with_cache(TransactionLoader { ctx }, async_runtime::spawn, LruCache::new(256))
+        .max_batch_size(25)
+        .delay(Duration::from_millis(1))
 }

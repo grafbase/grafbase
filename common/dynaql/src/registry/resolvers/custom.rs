@@ -117,9 +117,11 @@ impl CustomResolver {
                 });
                 Err(error)
             }
+            #[allow(unused_variables)]
             CustomResolverResponse::Error(err) => {
                 #[cfg(feature = "tracing_worker")]
                 logworker::error!(ctx.trace_id(), "UDF error: {err}");
+
                 Err(CustomResolverError::InvocationError.into())
             }
         }

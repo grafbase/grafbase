@@ -14,15 +14,14 @@ readme = "README.md"
 
 [features]
 default = []
-tokio_runtime = ["dynamodb/tokio_runtime"]
 tracing_worker = ["logworker", "dynamodb/tracing", "tracing"]
-wasm_runtime = ["dynamodb/wasm_runtime"]
 
 [dependencies]
 dynaql-derive = { path = "derive", version = "3" }
 dynaql-value = { path = "value", version = "3" }
 dynaql-parser = { path = "parser", version = "3" }
 
+dataloader = { path = "../dataloader" }
 async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
@@ -77,6 +76,7 @@ logworker = { path = "../log", package = "log", features = [
 # Feature optional dependencies
 rust_decimal = { version = "1" }
 tracing = { workspace = true, optional = true }
+async-runtime = { path = "../async-runtime" }
 
 # Non-feature optional dependencies
 base64.workspace = true

@@ -173,7 +173,7 @@ pub fn get_loader_query_type(
 ) -> DataLoader<QueryTypeLoader, LruCache> {
     DataLoader::with_cache(
         QueryTypeLoader { local_context, index },
-        wasm_bindgen_futures::spawn_local,
+        async_runtime::spawn,
         LruCache::new(256),
     )
     .max_batch_size(10)

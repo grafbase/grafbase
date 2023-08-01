@@ -1,7 +1,6 @@
 use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
 use crate::paginated::QueryResult;
-use crate::runtime::Runtime;
 use crate::{DynamoDBRequestedIndex, LocalContext};
 use dataloader::{DataLoader, Loader, LruCache};
 use graph_entities::{NodeID, ID};
@@ -127,7 +126,7 @@ pub fn get_loader_single_relation_query(
 ) -> DataLoader<QuerySingleRelationLoader, LruCache> {
     DataLoader::with_cache(
         QuerySingleRelationLoader { local_context, index },
-        |f| Runtime::locate().spawn(f),
+        async_runtime::spawn,
         LruCache::new(256),
     )
     .max_batch_size(10)
