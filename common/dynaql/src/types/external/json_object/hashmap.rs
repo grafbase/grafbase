@@ -1,20 +1,14 @@
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::fmt::Display;
-use std::hash::Hash;
-use std::str::FromStr;
+use std::{borrow::Cow, collections::HashMap, fmt::Display, hash::Hash, str::FromStr};
 
-use dynaql_parser::types::Field;
-use dynaql_parser::Positioned;
+use dynaql_parser::{types::Field, Positioned};
 use dynaql_value::{from_value, to_value};
 use graph_entities::ResponseNodeId;
 use indexmap::IndexMap;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 
-use crate::graph::selection_set_into_node;
-use crate::registry::{self, MetaType, Registry, ScalarType};
 use crate::{
+    graph::selection_set_into_node,
+    registry::{self, MetaType, Registry, ScalarType},
     ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Name, ServerResult,
     Value,
 };

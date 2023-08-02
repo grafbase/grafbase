@@ -9,12 +9,8 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use self::{
-    custom::CustomResolver,
-    graphql::{QueryBatcher, Target},
-    transformer::Transformer,
-};
-use crate::{Context, Error, RequestHeaders};
+use std::{borrow::Borrow, sync::Arc};
+
 use derivative::Derivative;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
@@ -24,11 +20,15 @@ use dynaql_value::{ConstValue, Name};
 use grafbase_runtime::cursor::Cursor;
 use graph_entities::ConstraintID;
 use query::QueryResolver;
-
-use std::{borrow::Borrow, sync::Arc};
 use ulid::Ulid;
 
+use self::{
+    custom::CustomResolver,
+    graphql::{QueryBatcher, Target},
+    transformer::Transformer,
+};
 use super::{Constraint, MetaField, MetaType};
+use crate::{Context, Error, RequestHeaders};
 
 pub mod atlas_data_api;
 pub mod custom;

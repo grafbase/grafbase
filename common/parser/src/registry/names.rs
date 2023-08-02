@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
-use crate::{registry::ParentRelation, utils::to_lower_camelcase};
 use case::CaseExt;
 pub use dynaql::names::*;
 use dynaql::registry::NamedType;
 use dynaql_parser::types::TypeDefinition;
 
 use super::NumericFieldKind;
+use crate::{registry::ParentRelation, utils::to_lower_camelcase};
 
 pub const PAGINATION_INPUT_ARG_FIRST: &str = "first";
 pub const PAGINATION_INPUT_ARG_LAST: &str = "last";

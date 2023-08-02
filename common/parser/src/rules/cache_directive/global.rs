@@ -1,17 +1,24 @@
-use crate::rules::cache_directive::global::GlobalCacheRulesError::{
-    ForbiddenRegistryType, UnknownRegistryType, UnknownRegistryTypeField,
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    ops::{Deref, DerefMut},
 };
-use crate::rules::visitor::MUTATION_TYPE;
-use dynaql::indexmap::IndexMap;
-use dynaql::registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference};
-use dynaql::CacheControl;
+
+use dynaql::{
+    indexmap::IndexMap,
+    registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference},
+    CacheControl,
+};
 use if_chain::if_chain;
 use itertools::Itertools;
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
 
-use crate::rules::cache_directive::de_mutation_invalidation;
+use crate::rules::{
+    cache_directive::{
+        de_mutation_invalidation,
+        global::GlobalCacheRulesError::{ForbiddenRegistryType, UnknownRegistryType, UnknownRegistryTypeField},
+    },
+    visitor::MUTATION_TYPE,
+};
 
 #[derive(Debug, Eq, PartialEq, thiserror::Error)]
 pub enum GlobalCacheRulesError {
@@ -226,18 +233,28 @@ fn validate_mutation_invalidation(
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::cache_directive::global::GlobalCacheRulesError::{
-        ForbiddenRegistryType, UnknownRegistryType, UnknownRegistryTypeField,
+    use std::{borrow::Cow, collections::HashMap};
+
+    use dynaql::{
+        registry::{CacheInvalidationPolicy, MetaField},
+        CacheControl,
     };
-    use crate::rules::cache_directive::global::{GlobalCacheRulesError, GlobalCacheTarget};
-    use crate::rules::cache_directive::visitor::CacheVisitor;
-    use crate::rules::visitor::{visit, VisitorContext, MUTATION_TYPE};
-    use crate::{to_parse_result_with_variables, ParseResult};
-    use dynaql::registry::{CacheInvalidationPolicy, MetaField};
-    use dynaql::CacheControl;
     use dynaql_parser::parse_schema;
-    use std::borrow::Cow;
-    use std::collections::HashMap;
+
+    use crate::{
+        rules::{
+            cache_directive::{
+                global::{
+                    GlobalCacheRulesError,
+                    GlobalCacheRulesError::{ForbiddenRegistryType, UnknownRegistryType, UnknownRegistryTypeField},
+                    GlobalCacheTarget,
+                },
+                visitor::CacheVisitor,
+            },
+            visitor::{visit, VisitorContext, MUTATION_TYPE},
+        },
+        to_parse_result_with_variables, ParseResult,
+    };
 
     #[rstest::rstest]
     // errors

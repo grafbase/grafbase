@@ -6,9 +6,8 @@ use dynaql::{
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType};
 use dynaql_value::ConstValue;
 
-use crate::registry::names::MetaNames;
-
 use super::{directive::Directive, relations::RelationEngine, visitor::VisitorContext};
+use crate::registry::names::MetaNames;
 
 pub const UNIQUE_DIRECTIVE: &str = "unique";
 pub const UNIQUE_FIELDS_ARGUMENT: &str = "fields";
@@ -59,19 +58,27 @@ impl UniqueDirective {
             }
 
             let ConstValue::List(fields_list) = &argument.node else {
-                ctx.report_error(vec![argument.pos], "The fields argument to @unique must be a list of strings");
+                ctx.report_error(
+                    vec![argument.pos],
+                    "The fields argument to @unique must be a list of strings",
+                );
                 return None;
             };
 
             for field in fields_list {
                 let ConstValue::String(field) = field else {
-                    ctx.report_error(vec![argument.pos], "The fields argument to @unique must be a list of strings");
+                    ctx.report_error(
+                        vec![argument.pos],
+                        "The fields argument to @unique must be a list of strings",
+                    );
                     return None;
                 };
                 let Some(model_field) = model.fields.iter().find(|f| f.node.name.node == *field) else {
                     ctx.report_error(
                         vec![argument.pos],
-                        format!("The field {field} referenced in the @unique on {field_name} doesn't exist on {model_name}"),
+                        format!(
+                            "The field {field} referenced in the @unique on {field_name} doesn't exist on {model_name}"
+                        ),
                     );
                     return None;
                 };

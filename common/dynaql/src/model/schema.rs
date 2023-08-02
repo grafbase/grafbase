@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 
-use crate::model::{__Directive, __Type};
-use crate::{registry, Object};
+use crate::{
+    model::{__Directive, __Type},
+    registry, Object,
+};
 
 pub struct __Schema<'a> {
     registry: &'a registry::Registry,

@@ -31,7 +31,10 @@ impl InputValue {
                     .edges(index)
                     .find(|edge| matches!(edge.weight(), Edge::HasType { .. }))?;
 
-                let Edge::HasType { wrapping: edge_wrapping } = type_edge.weight() else {
+                let Edge::HasType {
+                    wrapping: edge_wrapping,
+                } = type_edge.weight()
+                else {
                     unreachable!()
                 };
 

@@ -1,9 +1,11 @@
 use std::fmt::{self, Formatter};
 
 use dynaql_value::Number;
-use serde::de::{Error as DeError, MapAccess, SeqAccess, Visitor};
-use serde::ser::SerializeMap;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{Error as DeError, MapAccess, SeqAccess, Visitor},
+    ser::SerializeMap,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
 use super::CompactValue;
 

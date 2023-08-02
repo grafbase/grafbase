@@ -1,21 +1,25 @@
-use super::types::{Constraint, OperationKind, Record, Row, Sql};
-use crate::constant::*;
-use crate::graph_transaction::{
-    DeleteAllRelationsInternalInput, DeleteMultipleRelationsInternalInput, DeleteNodeConstraintInternalInput,
-    DeleteNodeInternalInput, DeleteRelationInternalInput, DeleteUnitNodeConstraintInput, ExecuteChangesOnDatabase,
-    InsertNodeConstraintInternalInput, InsertNodeInternalInput, InsertRelationInternalInput, InsertUniqueConstraint,
-    InternalChanges, InternalNodeChanges, InternalNodeConstraintChanges, InternalRelationChanges, ToTransactionError,
-    ToTransactionFuture, UpdateNodeConstraintInternalInput, UpdateNodeInternalInput, UpdateRelation,
-    UpdateRelationInternalInput, UpdateUniqueConstraint,
-};
-use crate::local::types::SqlValue;
-use crate::{DynamoDBBatchersData, DynamoDBContext, OperationAuthorization, RequestedOperation};
+use std::collections::{HashMap, HashSet, VecDeque};
+
 use chrono::{DateTime, Utc};
 use dynomite::{Attribute, AttributeValue};
 use graph_entities::{ConstraintID, NodeID};
 use itertools::Itertools;
 use maplit::hashmap;
-use std::collections::{HashMap, HashSet, VecDeque};
+
+use super::types::{Constraint, OperationKind, Record, Row, Sql};
+use crate::{
+    constant::*,
+    graph_transaction::{
+        DeleteAllRelationsInternalInput, DeleteMultipleRelationsInternalInput, DeleteNodeConstraintInternalInput,
+        DeleteNodeInternalInput, DeleteRelationInternalInput, DeleteUnitNodeConstraintInput, ExecuteChangesOnDatabase,
+        InsertNodeConstraintInternalInput, InsertNodeInternalInput, InsertRelationInternalInput,
+        InsertUniqueConstraint, InternalChanges, InternalNodeChanges, InternalNodeConstraintChanges,
+        InternalRelationChanges, ToTransactionError, ToTransactionFuture, UpdateNodeConstraintInternalInput,
+        UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput, UpdateUniqueConstraint,
+    },
+    local::types::SqlValue,
+    DynamoDBBatchersData, DynamoDBContext, OperationAuthorization, RequestedOperation,
+};
 
 impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
     fn to_transaction<'a>(

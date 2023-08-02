@@ -1,17 +1,18 @@
 mod constants;
 mod types;
 
+use std::{
+    collections::HashMap,
+    sync::atomic::{AtomicU8, Ordering},
+};
+
 use futures_util as _;
 pub use log_;
-
 // Re-export.
 pub use types::*;
 pub use wasm_timer;
 #[cfg(feature = "with-worker")]
 pub use worker;
-
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicU8, Ordering};
 
 pub static LOG_CONFIG: AtomicU8 = AtomicU8::new(Config::STDLOG.bits());
 
@@ -159,7 +160,9 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
         return Ok(());
     }
 
-    let Some(datadog_api_key) = log_config.datadog_api_key.as_ref() else { return Ok(()) };
+    let Some(datadog_api_key) = log_config.datadog_api_key.as_ref() else {
+        return Ok(());
+    };
 
     // We use `Cow` to avoid needless cloning.
     let mut tags: HashMap<&'static str, Cow<'_, str>> = maplit::hashmap! {

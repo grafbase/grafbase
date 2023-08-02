@@ -2,17 +2,18 @@
 //! The Auth is going to be injected inside dynaql instead of just living as an
 //! Extension as it's adding complexity without much gain.
 //! ----------------------------------------------------------------------------
-use dynaql::extensions::{Extension, ExtensionContext, ExtensionFactory, NextParseQuery, NextResolve, ResolveInfo};
-use dynaql::graph_entities::ResponseNodeId;
-use dynaql::parser::types::ExecutableDocument;
-use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{ModelName, NamedType, Registry, TypeReference};
-use dynaql::Variables;
-use dynaql::{AuthConfig, ServerError, ServerResult};
+use std::sync::Arc;
+
+use dynaql::{
+    extensions::{Extension, ExtensionContext, ExtensionFactory, NextParseQuery, NextResolve, ResolveInfo},
+    graph_entities::ResponseNodeId,
+    parser::types::ExecutableDocument,
+    registry::{relations::MetaRelation, ModelName, NamedType, Registry, TypeReference},
+    AuthConfig, ServerError, ServerResult, Variables,
+};
 use dynaql_value::{indexmap::IndexMap, ConstValue};
 use grafbase::auth::{ExecutionAuth, Operations};
 use log::{trace, warn};
-use std::sync::Arc;
 
 const INPUT_ARG: &str = "input";
 const CREATE_FIELD: &str = "create";

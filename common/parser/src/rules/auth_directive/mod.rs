@@ -1,8 +1,7 @@
 use dynaql::{Positioned, ServerError};
 use dynaql_parser::types::{ConstDirective, FieldDefinition, SchemaDefinition, TypeDefinition};
 
-use crate::rules::model_directive::MODEL_DIRECTIVE;
-use crate::{Visitor, VisitorContext};
+use crate::{rules::model_directive::MODEL_DIRECTIVE, Visitor, VisitorContext};
 
 mod config;
 mod operations;
@@ -96,13 +95,13 @@ impl<'a> Visitor<'a> for AuthDirective {
 pub mod tests {
     use std::collections::HashMap;
 
-    use super::*;
-    use crate::rules::model_directive::ModelDirective;
-    use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
     use grafbase::auth::Operations;
     use pretty_assertions::assert_eq;
     use providers::DEFAULT_GROUPS_CLAIM;
+
+    use super::*;
+    use crate::rules::{model_directive::ModelDirective, visitor::visit};
 
     macro_rules! parse_test {
         ($fn_name:ident, $schema:literal, $expect:expr) => {

@@ -1,13 +1,7 @@
-use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, Resolver};
+use std::{borrow::Borrow, collections::HashSet, hash::Hash, string::FromUtf8Error, sync::Arc};
 
-use crate::registry::enums::OrderByDirection;
-use crate::registry::relations::{MetaRelation, MetaRelationKind};
-use crate::registry::variables::oneof::OneOf;
-use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
-use crate::registry::{MetaType, ModelName, SchemaID};
-use crate::{Context, Error, Value};
-use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::{
+    constant::{INVERTED_INDEX_PK, SK},
     DynamoDBBatchersData, PaginatedCursor, PaginationOrdering, ParentEdge, QueryKey, QuerySingleRelationKey,
     QueryTypePaginatedKey,
 };
@@ -17,11 +11,18 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
-use std::borrow::Borrow;
-use std::collections::HashSet;
-use std::hash::Hash;
-use std::string::FromUtf8Error;
-use std::sync::Arc;
+
+use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, Resolver};
+use crate::{
+    registry::{
+        enums::OrderByDirection,
+        relations::{MetaRelation, MetaRelationKind},
+        resolvers::ResolverContext,
+        variables::{oneof::OneOf, VariableResolveDefinition},
+        MetaType, ModelName, SchemaID,
+    },
+    Context, Error, Value,
+};
 
 mod get;
 

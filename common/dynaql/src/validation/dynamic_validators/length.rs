@@ -1,12 +1,9 @@
-use dynaql_value::{ConstValue, Value};
-
 use std::cmp::Ordering;
 
-use crate::registry::MetaInputValue;
-use crate::validation::visitor::VisitorContext;
+use dynaql_value::{ConstValue, Value};
 
 use super::DynValidate;
-use crate::Pos;
+use crate::{registry::MetaInputValue, validation::visitor::VisitorContext, Pos};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LengthValidator {
@@ -77,12 +74,15 @@ impl DynValidate<&Value> for LengthValidator {
 
 #[test]
 fn test_length_validator() {
-    use super::{DynValidator, MetaInputValue};
-    use crate::parser::parse_query;
-    use crate::registry::MetaTypeName;
-    use crate::validation::{visitor::test::visit_input_value, VisitorNil};
-    use crate::{EmptyMutation, EmptySubscription, Object, Schema};
     use insta::assert_snapshot;
+
+    use super::{DynValidator, MetaInputValue};
+    use crate::{
+        parser::parse_query,
+        registry::MetaTypeName,
+        validation::{visitor::test::visit_input_value, VisitorNil},
+        EmptyMutation, EmptySubscription, Object, Schema,
+    };
 
     struct Query;
 

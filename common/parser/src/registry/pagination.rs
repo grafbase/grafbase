@@ -1,33 +1,36 @@
 use dynamodb::constant;
-use dynaql::indexmap::IndexMap;
-use dynaql::names::INPUT_FIELD_FILTER_IN;
-use dynaql::registry::enums::OrderByDirection;
-use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{self, InputObjectType, NamedType, Registry};
-use dynaql::registry::{
-    resolvers::{dynamo_querying::DynamoResolver, transformer::Transformer, Resolver},
-    variables::VariableResolveDefinition,
-    MetaField, MetaInputValue,
+use dynaql::{
+    indexmap::IndexMap,
+    names::INPUT_FIELD_FILTER_IN,
+    registry::{
+        self,
+        enums::OrderByDirection,
+        relations::MetaRelation,
+        resolvers::{dynamo_querying::DynamoResolver, transformer::Transformer, Resolver},
+        variables::VariableResolveDefinition,
+        InputObjectType, MetaField, MetaInputValue, NamedType, Registry,
+    },
+    AuthConfig,
 };
-use dynaql::AuthConfig;
 use dynaql_parser::types::{Type, TypeDefinition};
 use grafbase::auth::Operations;
 
-use crate::registry::names::{
-    MetaNames, PAGE_INFO_FIELD_END_CURSOR, PAGE_INFO_FIELD_HAS_NEXT_PAGE, PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE,
-    PAGE_INFO_FIELD_START_CURSOR, PAGE_INFO_TYPE, PAGINATION_FIELD_EDGES, PAGINATION_FIELD_EDGE_CURSOR,
-    PAGINATION_FIELD_EDGE_NODE, PAGINATION_FIELD_PAGE_INFO,
+use super::{
+    names::{
+        INPUT_ARG_FILTER, PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST,
+        PAGINATION_INPUT_ARG_LAST, PAGINATION_INPUT_ARG_ORDER_BY,
+    },
+    register_dynaql_enum,
 };
-use crate::rules::cache_directive::CacheDirective;
-use crate::rules::model_directive::METADATA_FIELD_CREATED_AT;
-use crate::rules::visitor::VisitorContext;
-use crate::type_names::TypeNameExt;
-
-use super::names::{
-    INPUT_ARG_FILTER, PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST,
-    PAGINATION_INPUT_ARG_LAST, PAGINATION_INPUT_ARG_ORDER_BY,
+use crate::{
+    registry::names::{
+        MetaNames, PAGE_INFO_FIELD_END_CURSOR, PAGE_INFO_FIELD_HAS_NEXT_PAGE, PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE,
+        PAGE_INFO_FIELD_START_CURSOR, PAGE_INFO_TYPE, PAGINATION_FIELD_EDGES, PAGINATION_FIELD_EDGE_CURSOR,
+        PAGINATION_FIELD_EDGE_NODE, PAGINATION_FIELD_PAGE_INFO,
+    },
+    rules::{cache_directive::CacheDirective, model_directive::METADATA_FIELD_CREATED_AT, visitor::VisitorContext},
+    type_names::TypeNameExt,
 };
-use super::register_dynaql_enum;
 
 fn register_edge_type(
     registry: &mut Registry,

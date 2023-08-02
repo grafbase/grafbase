@@ -1,13 +1,10 @@
-use std::borrow::Cow;
-use std::collections::BTreeSet;
+use std::{borrow::Cow, collections::BTreeSet};
 
 use graph_entities::ResponseNodeId;
 
-use crate::parser::types::Field;
-use crate::resolver_utils::resolve_list_native;
 use crate::{
-    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Positioned,
-    ServerResult, Value,
+    parser::types::Field, registry, resolver_utils::resolve_list_native, ContextSelectionSet, InputValueError,
+    InputValueResult, LegacyInputType, LegacyOutputType, Positioned, ServerResult, Value,
 };
 
 impl<T: LegacyInputType + Ord> LegacyInputType for BTreeSet<T> {

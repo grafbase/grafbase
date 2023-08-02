@@ -1,11 +1,13 @@
+use std::sync::OnceLock;
+
+use grafbase_runtime::search::Cursor;
+use serde_json::{json, Value};
+
 use super::JsonMap;
 use crate::{
     registry::{resolvers::atlas_data_api::normalize, variables::VariableResolveDefinition},
     Context, ServerResult,
 };
-use grafbase_runtime::search::Cursor;
-use serde_json::{json, Value};
-use std::sync::OnceLock;
 
 pub(super) fn by(ctx: &Context<'_>) -> ServerResult<Value> {
     static BY_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();

@@ -7,16 +7,13 @@ use openapiv3::{AdditionalProperties, ReferenceOr, Type};
 use regex::Regex;
 use url::Url;
 
+use self::{components::Components, operations::OperationDetails};
+use super::grouping;
 use crate::{
-    graph::construction::ParentNode,
-    graph::{FieldName, Node, ScalarKind, SchemaDetails},
+    graph::{construction::ParentNode, FieldName, Node, ScalarKind, SchemaDetails},
     parsing::{Context, Ref},
     Error,
 };
-
-use self::{components::Components, operations::OperationDetails};
-
-use super::grouping;
 
 mod components;
 mod operations;
@@ -135,7 +132,12 @@ fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: C
 
             for response in operation.responses {
                 let Some(schema) = &response.schema else {
-                    ctx.errors.push(Error::OperationMissingResponseSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {method:?} {path}"))));
+                    ctx.errors.push(Error::OperationMissingResponseSchema(
+                        operation
+                            .operation_id
+                            .clone()
+                            .unwrap_or_else(|| format!("HTTP {method:?} {path}")),
+                    ));
                     continue;
                 };
 
@@ -152,7 +154,12 @@ fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: C
 
             for request in operation.request_bodies.iter() {
                 let Some(schema) = &request.schema else {
-                    ctx.errors.push(Error::OperationMissingRequestSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {method:?} {path}"))));
+                    ctx.errors.push(Error::OperationMissingRequestSchema(
+                        operation
+                            .operation_id
+                            .clone()
+                            .unwrap_or_else(|| format!("HTTP {method:?} {path}")),
+                    ));
                     continue;
                 };
                 extract_types(

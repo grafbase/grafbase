@@ -1,7 +1,8 @@
+use std::collections::{HashMap, HashSet};
+
 use grafbase::auth::Operations;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthConfig {

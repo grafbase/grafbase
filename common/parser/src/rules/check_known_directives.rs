@@ -9,8 +9,7 @@
 // Based on dynaql's visitor.
 
 use dynaql::Positioned;
-use dynaql_parser::types::DirectiveLocation;
-use dynaql_parser::types::{ConstDirective, TypeDefinition};
+use dynaql_parser::types::{ConstDirective, DirectiveLocation, TypeDefinition};
 
 use super::visitor::VisitorContext;
 
@@ -129,6 +128,9 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
 
 #[cfg(test)]
 mod tests {
+    use dynaql_parser::parse_schema;
+    use serde_json as _;
+
     use super::CheckAllDirectivesAreKnown;
     use crate::rules::{
         self,
@@ -139,9 +141,6 @@ mod tests {
         unique_directive::UniqueDirective,
         visitor::{visit, VisitorContext},
     };
-
-    use dynaql_parser::parse_schema;
-    use serde_json as _;
 
     fn directives() -> Directives {
         Directives::new()

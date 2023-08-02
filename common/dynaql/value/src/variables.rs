@@ -1,6 +1,8 @@
-use std::collections::BTreeMap;
-use std::fmt::{self, Display, Formatter};
-use std::ops::{Deref, DerefMut};
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Display, Formatter},
+    ops::{Deref, DerefMut},
+};
 
 use serde::{Deserialize, Deserializer, Serialize};
 

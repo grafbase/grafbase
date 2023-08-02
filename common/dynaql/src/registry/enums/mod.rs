@@ -1,6 +1,5 @@
 mod order_by_direction;
 pub use order_by_direction::OrderByDirection;
-
 use unindent::unindent;
 
 pub struct DynaqlEnums;

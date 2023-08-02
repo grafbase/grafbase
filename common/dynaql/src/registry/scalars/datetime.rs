@@ -1,7 +1,8 @@
-use super::{DynamicParse, SDLDefinitionScalar};
-use crate::{Error, InputValueError, InputValueResult};
 use chrono::{DateTime, SecondsFormat, Utc};
 use dynaql_value::ConstValue;
+
+use super::{DynamicParse, SDLDefinitionScalar};
+use crate::{Error, InputValueError, InputValueResult};
 
 pub struct DateTimeScalar;
 
@@ -76,9 +77,9 @@ impl DynamicParse for DateTimeScalar {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SDLDefinitionScalar;
-    use super::DateTimeScalar;
     use insta::assert_snapshot;
+
+    use super::{super::SDLDefinitionScalar, DateTimeScalar};
 
     #[test]
     fn ensure_directives_sdl() {

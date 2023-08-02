@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
-use self::field_lookup::FieldLookup;
 use dynaql::registry::{
     type_kinds::{InputType, OutputType},
     InputObjectType, InterfaceType, MetaType, ObjectType, Registry,
 };
+
+use self::field_lookup::FieldLookup;
 
 mod field_lookup;
 
@@ -100,11 +101,11 @@ fn lookup_fields(registry: &Registry, lookup: &FieldLookup) -> HashSet<SelectedF
 
 #[cfg(test)]
 mod tests {
-    use serde::Deserialize;
-    use serde_json::json;
     use std::collections::HashMap;
 
     use dynaql::registry::Registry;
+    use serde::Deserialize;
+    use serde_json::json;
 
     use super::*;
 

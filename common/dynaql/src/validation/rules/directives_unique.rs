@@ -1,10 +1,12 @@
-use crate::parser::types::{
-    Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition, VariableDefinition,
-};
-use crate::validation::visitor::Visitor;
-use crate::VisitorContext;
-use crate::{Name, Positioned};
 use std::collections::HashSet;
+
+use crate::{
+    parser::types::{
+        Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition, VariableDefinition,
+    },
+    validation::visitor::Visitor,
+    Name, Positioned, VisitorContext,
+};
 
 #[derive(Default)]
 pub struct DirectivesUnique;

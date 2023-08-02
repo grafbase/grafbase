@@ -3,8 +3,16 @@ mod normalize;
 mod operation;
 mod projection;
 
+use std::{pin::Pin, sync::Arc};
+
+use futures_util::Future;
 use grafbase_runtime::search::Cursor;
+use http::{
+    header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
+    StatusCode,
+};
 pub use operation::OperationType;
+use send_wrapper::SendWrapper;
 
 use super::{ResolvedPaginationInfo, ResolvedValue, ResolverContext};
 use crate::{
@@ -14,13 +22,6 @@ use crate::{
     },
     Context, Error,
 };
-use futures_util::Future;
-use http::{
-    header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
-    StatusCode,
-};
-use send_wrapper::SendWrapper;
-use std::{pin::Pin, sync::Arc};
 
 mod headers {
     pub const API_KEY_HEADER_NAME: &str = "apiKey";

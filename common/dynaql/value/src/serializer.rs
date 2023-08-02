@@ -1,9 +1,10 @@
-use std::error::Error;
-use std::fmt;
+use std::{error::Error, fmt};
 
 use indexmap::IndexMap;
-use serde::ser::{self, Impossible};
-use serde::Serialize;
+use serde::{
+    ser::{self, Impossible},
+    Serialize,
+};
 
 use crate::{ConstValue, Name, Number};
 

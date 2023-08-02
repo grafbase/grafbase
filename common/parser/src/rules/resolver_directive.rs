@@ -1,10 +1,11 @@
+use dynaql::Positioned;
+use dynaql_parser::types::{FieldDefinition, TypeDefinition};
+use dynaql_value::ConstValue;
+
 use super::{
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
-use dynaql::Positioned;
-use dynaql_parser::types::{FieldDefinition, TypeDefinition};
-use dynaql_value::ConstValue;
 
 pub const RESOLVER_DIRECTIVE: &str = "resolver";
 pub const NAME_ARGUMENT: &str = "name";
@@ -64,10 +65,11 @@ impl Directive for ResolverDirective {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
+
+    use super::*;
+    use crate::rules::visitor::visit;
 
     #[rstest::rstest]
     #[case(r#"

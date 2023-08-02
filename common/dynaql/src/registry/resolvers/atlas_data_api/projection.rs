@@ -1,10 +1,11 @@
+use indexmap::IndexMap;
+use serde_json::Value;
+
 use super::{normalize, JsonMap};
 use crate::{
     registry::{MetaField, MetaType},
     Context, Error, SelectionField,
 };
-use indexmap::IndexMap;
-use serde_json::Value;
 
 pub(super) fn project<'a>(
     ctx: &'a Context<'a>,

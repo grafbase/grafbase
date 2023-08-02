@@ -4,55 +4,63 @@ extern crate assert_matches;
 
 use std::collections::{HashMap, HashSet};
 
-use dynaql::registry::enums::DynaqlEnums;
-use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
-use dynaql::Pos;
-use dynaql_parser::types::ServiceDocument;
-use dynaql_parser::{parse_schema, Error as ParserError};
+use dynaql::{
+    registry::{
+        enums::DynaqlEnums,
+        scalars::{PossibleScalar, SDLDefinitionScalar},
+    },
+    Pos,
+};
+use dynaql_parser::{parse_schema, types::ServiceDocument, Error as ParserError};
 use grafbase::UdfKind;
-use rules::auth_directive::AuthDirective;
-use rules::basic_type::BasicType;
-use rules::check_field_lowercase::CheckFieldCamelCase;
-use rules::check_known_directives::CheckAllDirectivesAreKnown;
-use rules::check_type_collision::CheckTypeCollision;
-use rules::check_type_validity::CheckTypeValidity;
-use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
-use rules::connector_transforms::run_transforms;
-use rules::default_directive::DefaultDirective;
-use rules::default_directive_types::DefaultDirectiveTypes;
-use rules::directive::Directives;
-use rules::enum_type::EnumType;
-use rules::extend_connector_types::ExtendConnectorTypes;
-use rules::extend_query_and_mutation_types::ExtendQueryAndMutationTypes;
-use rules::graphql_directive::GraphqlVisitor;
-use rules::input_object::InputObjectVisitor;
-use rules::length_directive::LengthDirective;
-use rules::map_directive::MapDirective;
-use rules::model_directive::ModelDirective;
-use rules::mongodb_directive::{MongoDBModelDirective, MongoDBTypeDirective};
-use rules::one_of_directive::OneOfDirective;
-use rules::openapi_directive::OpenApiVisitor;
-use rules::relations::{relations_rules, RelationEngine};
-use rules::resolver_directive::ResolverDirective;
-use rules::search_directive::SearchDirective;
-use rules::unique_directive::UniqueDirective;
-use rules::unique_fields::UniqueObjectFields;
-use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
+use rules::{
+    auth_directive::AuthDirective,
+    basic_type::BasicType,
+    check_field_lowercase::CheckFieldCamelCase,
+    check_known_directives::CheckAllDirectivesAreKnown,
+    check_type_collision::CheckTypeCollision,
+    check_type_validity::CheckTypeValidity,
+    check_types_underscore::CheckBeginsWithDoubleUnderscore,
+    connector_transforms::run_transforms,
+    default_directive::DefaultDirective,
+    default_directive_types::DefaultDirectiveTypes,
+    directive::Directives,
+    enum_type::EnumType,
+    extend_connector_types::ExtendConnectorTypes,
+    extend_query_and_mutation_types::ExtendQueryAndMutationTypes,
+    graphql_directive::GraphqlVisitor,
+    input_object::InputObjectVisitor,
+    length_directive::LengthDirective,
+    map_directive::MapDirective,
+    model_directive::ModelDirective,
+    mongodb_directive::{MongoDBModelDirective, MongoDBTypeDirective},
+    one_of_directive::OneOfDirective,
+    openapi_directive::OpenApiVisitor,
+    relations::{relations_rules, RelationEngine},
+    resolver_directive::ResolverDirective,
+    search_directive::SearchDirective,
+    unique_directive::UniqueDirective,
+    unique_fields::UniqueObjectFields,
+    visitor::{visit, RuleError, Visitor, VisitorContext},
+};
 
 mod type_names;
 
-use crate::rules::cache_directive::visitor::CacheVisitor;
-use crate::rules::cache_directive::CacheDirective;
-use crate::rules::mongodb_directive::MongoDBVisitor;
 pub use connector_parsers::ConnectorParsers;
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
-pub use rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget};
-pub use rules::graphql_directive::GraphqlDirective;
-pub use rules::mongodb_directive::MongoDBDirective;
-pub use rules::openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms};
+pub use rules::{
+    cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
+    graphql_directive::GraphqlDirective,
+    mongodb_directive::MongoDBDirective,
+    openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms},
+};
 
-use crate::rules::scalar_hydratation::ScalarHydratation;
+use crate::rules::{
+    cache_directive::{visitor::CacheVisitor, CacheDirective},
+    mongodb_directive::MongoDBVisitor,
+    scalar_hydratation::ScalarHydratation,
+};
 
 pub mod connector_parsers;
 

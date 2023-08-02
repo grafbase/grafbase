@@ -48,14 +48,12 @@ use inflector::Inflector;
 use send_wrapper::SendWrapper;
 use url::Url;
 
+use self::serializer::Serializer;
+use super::ResolvedValue;
 use crate::{
     registry::{resolvers::graphql::response::UpstreamResponse, type_kinds::SelectionSetTarget, MetaField, Registry},
     ServerError,
 };
-
-use self::serializer::Serializer;
-
-use super::ResolvedValue;
 
 pub struct QueryBatcher {
     loader: DataLoader<QueryLoader, NoCache>,
@@ -352,7 +350,7 @@ impl Resolver {
             };
 
             let Some(value) = value else {
-                return Err(Error::MalformedUpstreamResponse)
+                return Err(Error::MalformedUpstreamResponse);
             };
 
             let (UpstreamResponse { mut data, errors }, http_status) = value;
@@ -442,9 +440,8 @@ mod tests {
         Mock, MockServer, ResponseTemplate,
     };
 
-    use crate::registry::builder::RegistryBuilder;
-
     use super::*;
+    use crate::registry::builder::RegistryBuilder;
 
     #[tokio::test]
     async fn resolve() {

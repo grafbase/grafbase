@@ -1,10 +1,12 @@
 use dynaql_parser::types::{ExecutableDocument, OperationDefinition, VariableDefinition};
 use dynaql_value::Name;
 
-use crate::parser::types::Field;
-use crate::registry::{ComplexityType, MetaType, MetaTypeName};
-use crate::validation::visitor::{VisitMode, Visitor, VisitorContext};
-use crate::Positioned;
+use crate::{
+    parser::types::Field,
+    registry::{ComplexityType, MetaType, MetaTypeName},
+    validation::visitor::{VisitMode, Visitor, VisitorContext},
+    Positioned,
+};
 
 pub struct ComplexityCalculate<'ctx, 'a> {
     pub complexity: &'a mut usize,
@@ -84,11 +86,14 @@ impl<'ctx, 'a> Visitor<'ctx> for ComplexityCalculate<'ctx, 'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::parser::parse_query;
-    use crate::validation::{visit, VisitorContext};
-    use crate::{EmptyMutation, Object, Schema, Subscription};
     use futures_util::stream::BoxStream;
+
+    use super::*;
+    use crate::{
+        parser::parse_query,
+        validation::{visit, VisitorContext},
+        EmptyMutation, Object, Schema, Subscription,
+    };
 
     struct Query;
 

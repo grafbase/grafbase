@@ -7,8 +7,7 @@
 //!
 //! To avoid having an invalid schema
 use super::visitor::{Visitor, VisitorContext};
-use crate::utils::is_type_primitive;
-use crate::utils::to_base_type_str;
+use crate::utils::{is_type_primitive, to_base_type_str};
 
 pub struct CheckTypeValidity;
 
@@ -42,10 +41,13 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::check_type_validity::CheckTypeValidity;
-    use crate::rules::visitor::{visit, VisitorContext};
     use dynaql_parser::parse_schema;
     use serde_json as _;
+
+    use crate::rules::{
+        check_type_validity::CheckTypeValidity,
+        visitor::{visit, VisitorContext},
+    };
 
     #[test]
     fn should_not_error_with_basic_type() {

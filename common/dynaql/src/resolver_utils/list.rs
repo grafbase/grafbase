@@ -1,11 +1,16 @@
-use crate::extensions::ResolveInfo;
-use crate::parser::types::Field;
-use crate::registry::scalars::{DynamicScalar, PossibleScalar};
-use crate::registry::MetaType;
-use crate::resolver_utils::resolve_container;
-use crate::{ContextSelectionSet, Error, LegacyOutputType, Positioned, ServerError, ServerResult, Value};
 use dynaql_value::Name;
 use graph_entities::{ResponseList, ResponseNodeId, ResponsePrimitive};
+
+use crate::{
+    extensions::ResolveInfo,
+    parser::types::Field,
+    registry::{
+        scalars::{DynamicScalar, PossibleScalar},
+        MetaType,
+    },
+    resolver_utils::resolve_container,
+    ContextSelectionSet, Error, LegacyOutputType, Positioned, ServerError, ServerResult, Value,
+};
 
 /// Resolve an list by executing each of the items concurrently.
 pub async fn resolve_list<'a>(

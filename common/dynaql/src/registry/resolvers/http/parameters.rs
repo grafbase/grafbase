@@ -7,9 +7,8 @@ use std::{
 use reqwest::Url;
 use url::form_urlencoded;
 
-use crate::Error;
-
 use super::{PathParameter, QueryParameter, QueryParameterEncodingStyle};
+use crate::Error;
 
 pub trait ParamApply {
     fn apply_path_parameter(self, param: &PathParameter, variable: serde_json::Value) -> Result<String, Error>;
@@ -231,10 +230,10 @@ impl<'a> Iterator for DeepObjectIter<'a> {
 #[cfg(test)]
 #[allow(clippy::redundant_clone)]
 mod tests {
-    use crate::registry::variables::VariableResolveDefinition;
+    use serde_json::json;
 
     use super::*;
-    use serde_json::json;
+    use crate::registry::variables::VariableResolveDefinition;
 
     #[test]
     fn test_path_parameter() {

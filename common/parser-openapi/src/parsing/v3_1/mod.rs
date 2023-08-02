@@ -10,16 +10,13 @@ use regex::Regex;
 use serde_json::Value;
 use url::Url;
 
+use self::{components::Components, operations::OperationDetails};
+use super::grouping;
 use crate::{
-    graph::construction::ParentNode,
-    graph::{FieldName, Node, ScalarKind, SchemaDetails},
+    graph::{construction::ParentNode, FieldName, Node, ScalarKind, SchemaDetails},
     parsing::{Context, Ref},
     Error,
 };
-
-use self::{components::Components, operations::OperationDetails};
-
-use super::grouping;
 
 mod components;
 mod operations;
@@ -83,9 +80,7 @@ fn extract_components(ctx: &mut Context, components: &openapiv3_1::Components) {
 }
 
 fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, components: Components) {
-    let Some(paths) = paths else {
-        return
-    };
+    let Some(paths) = paths else { return };
 
     for (path, path_item) in &paths.paths {
         // Also going to assume that paths can't be references for now
@@ -154,7 +149,12 @@ fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, com
 
             for response in operation.responses {
                 let Some(schema) = &response.schema else {
-                    ctx.errors.push(Error::OperationMissingResponseSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {method:?} {path}"))));
+                    ctx.errors.push(Error::OperationMissingResponseSchema(
+                        operation
+                            .operation_id
+                            .clone()
+                            .unwrap_or_else(|| format!("HTTP {method:?} {path}")),
+                    ));
                     continue;
                 };
                 tracing::trace!(
@@ -176,7 +176,12 @@ fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, com
 
             for request in operation.request_bodies.iter() {
                 let Some(schema) = &request.schema else {
-                    ctx.errors.push(Error::OperationMissingRequestSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {method:?} {path}"))));
+                    ctx.errors.push(Error::OperationMissingRequestSchema(
+                        operation
+                            .operation_id
+                            .clone()
+                            .unwrap_or_else(|| format!("HTTP {method:?} {path}")),
+                    ));
                     continue;
                 };
 

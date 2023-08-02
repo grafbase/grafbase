@@ -1,7 +1,5 @@
-use crate::constant::{OWNED_BY, PK, RELATION_NAMES, SK, TYPE};
-use crate::paginated::QueryResult;
-use crate::{DynamoDBContext, DynamoDBRequestedIndex};
-use crate::{OperationAuthorization, OperationAuthorizationError};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
@@ -9,11 +7,14 @@ use graph_entities::{NodeID, ID};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rusoto_dynamodb::QueryInput;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
+
+use crate::{
+    constant::{OWNED_BY, PK, RELATION_NAMES, SK, TYPE},
+    paginated::QueryResult,
+    DynamoDBContext, DynamoDBRequestedIndex, OperationAuthorization, OperationAuthorizationError,
+};
 #[cfg(not(feature = "wasm"))]
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum QueryLoaderError {
@@ -68,8 +69,8 @@ impl Loader<QueryKey> for QueryLoader {
         for query_key in keys {
             // TODO: Handle this when dealing with Custom ID
             let Ok(pk) = NodeID::from_borrowed(&query_key.pk) else {
-                    h.insert(query_key.clone(), QueryResult::default());
-                    continue;
+                h.insert(query_key.clone(), QueryResult::default());
+                continue;
             };
             let mut exp = dynomite::attr_map! {
                 ":pk" => pk.to_string(),

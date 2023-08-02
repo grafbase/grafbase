@@ -13,15 +13,15 @@
 #![allow(clippy::use_self)]
 #![forbid(unsafe_code)]
 
-use crate::types::OperationType;
-use dynaql_value::Name;
-use pest::error::LineColLocation;
-use pest::RuleType;
-use serde::{Serialize, Serializer};
 use std::fmt::{self, Display, Formatter};
 
+use dynaql_value::Name;
 pub use parse::{parse_query, parse_schema};
+use pest::{error::LineColLocation, RuleType};
 pub use pos::{Pos, Positioned};
+use serde::{Serialize, Serializer};
+
+use crate::types::OperationType;
 
 pub mod types;
 

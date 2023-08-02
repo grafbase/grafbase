@@ -1,15 +1,16 @@
-use super::bridge_api;
-use super::types::{Operation, Sql, SqlValue};
-use crate::paginated::QueryResult;
-use crate::{DynamoDBRequestedIndex, LocalContext};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+
 use dataloader::{DataLoader, Loader, LruCache};
 use graph_entities::{NodeID, ID};
 use indexmap::IndexMap;
 use maplit::hashmap;
 use quick_error::quick_error;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
+
+use super::{
+    bridge_api,
+    types::{Operation, Sql, SqlValue},
+};
+use crate::{paginated::QueryResult, DynamoDBRequestedIndex, LocalContext};
 
 quick_error! {
     #[derive(Debug, Clone)]
@@ -55,7 +56,7 @@ impl Loader<QuerySingleRelationKey> for QuerySingleRelationLoader {
         let mut query_result = HashMap::new();
         let mut concurrent_futures = vec![];
         for query_key in keys {
-            let Ok(parent_pk) = NodeID::from_borrowed(&query_key.parent_pk)  else {
+            let Ok(parent_pk) = NodeID::from_borrowed(&query_key.parent_pk) else {
                 query_result.insert(query_key.clone(), QueryResult::default());
                 continue;
             };

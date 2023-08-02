@@ -1,8 +1,10 @@
-use std::any::Any;
-use std::collections::BTreeMap;
-use std::fmt::{self, Debug, Display, Formatter};
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::{
+    any::Any,
+    collections::BTreeMap,
+    fmt::{self, Debug, Display, Formatter},
+    marker::PhantomData,
+    sync::Arc,
+};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

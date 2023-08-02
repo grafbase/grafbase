@@ -1,18 +1,16 @@
 use std::{borrow::Borrow, sync::Arc};
 
+use grafbase_runtime::search::{self, Cursor};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-
-use grafbase_runtime::search::{self, Cursor};
-
-use crate::{
-    registry::{variables::VariableResolveDefinition, ModelName},
-    Context, Error,
-};
 
 use super::{
     dynamo_querying::{DynamoResolver, PAGINATION_LIMIT},
     ResolvedValue, ResolverContext,
+};
+use crate::{
+    registry::{variables::VariableResolveDefinition, ModelName},
+    Context, Error,
 };
 
 mod search_parser;

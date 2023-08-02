@@ -1,10 +1,13 @@
 use dynaql_value::{ConstValue, Name};
 use indexmap::IndexMap;
 
-use crate::registry::scalars::{DynamicScalar, PossibleScalar};
-use crate::registry::{MetaEnumValue, MetaInputValue, MetaType, MetaTypeName};
-
-use crate::{Context, Error, ServerResult};
+use crate::{
+    registry::{
+        scalars::{DynamicScalar, PossibleScalar},
+        MetaEnumValue, MetaInputValue, MetaType, MetaTypeName,
+    },
+    Context, Error, ServerResult,
+};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum InputResolveMode {

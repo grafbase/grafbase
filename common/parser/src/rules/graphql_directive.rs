@@ -3,14 +3,13 @@ use dynaql_parser::types::SchemaDefinition;
 use tracing::warn;
 use url::Url;
 
-use crate::directive_de::parse_directive;
-
 use super::{
     connector_headers::{Header, IntrospectionHeader},
     connector_transforms::Transforms,
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
+use crate::directive_de::parse_directive;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -1,8 +1,10 @@
 use std::fmt::{self, Display, Formatter};
 
-use darling::ast::{Data, Fields, NestedMeta};
-use darling::util::{Ignored, SpannedValue};
-use darling::{FromDeriveInput, FromField, FromMeta, FromVariant};
+use darling::{
+    ast::{Data, Fields, NestedMeta},
+    util::{Ignored, SpannedValue},
+    FromDeriveInput, FromField, FromMeta, FromVariant,
+};
 use inflector::Inflector;
 use syn::{Attribute, Generics, Ident, Lit, LitBool, LitStr, Meta, Path, Type, Visibility};
 

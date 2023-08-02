@@ -12,8 +12,6 @@ mod multiple_of;
 mod regex;
 mod url;
 
-pub use self::regex::regex;
-pub use self::url::url;
 pub use chars_max_length::chars_max_length;
 pub use chars_min_length::chars_min_length;
 pub use email::email;
@@ -26,6 +24,7 @@ pub use min_length::min_length;
 pub use minimum::minimum;
 pub use multiple_of::multiple_of;
 
+pub use self::{regex::regex, url::url};
 use crate::LegacyInputType;
 
 /// Represents a custom input value validator.

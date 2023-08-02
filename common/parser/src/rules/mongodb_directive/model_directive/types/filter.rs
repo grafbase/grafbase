@@ -1,13 +1,14 @@
-use super::generic;
-use crate::{
-    registry::names::MetaNames,
-    rules::{mongodb_directive::model_directive::create_type_context::CreateTypeContext, visitor::VisitorContext},
-};
 use dynaql::{
     names::OUTPUT_FIELD_ID,
     registry::{EnumType, InputObjectType, MetaEnumValue, MetaInputValue},
 };
 use dynaql_parser::types::{BaseType, ObjectType, Type};
+
+use super::generic;
+use crate::{
+    registry::names::MetaNames,
+    rules::{mongodb_directive::model_directive::create_type_context::CreateTypeContext, visitor::VisitorContext},
+};
 
 const LOGICAL_OPERATIONS: &[(&str, &str, &str)] = &[
     ("ALL", "$and", "All of the filters must match"),

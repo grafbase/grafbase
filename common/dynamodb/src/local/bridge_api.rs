@@ -1,12 +1,10 @@
+use std::{future::Future, pin::Pin};
+
 use reqwest::StatusCode;
 use send_wrapper::SendWrapper;
 use serde::Deserialize;
 
-use std::future::Future;
-use std::pin::Pin;
-
-use super::types::Record;
-use super::types::{BridgeUrl, Constraint, Mutation, Operation};
+use super::types::{BridgeUrl, Constraint, Mutation, Operation, Record};
 
 #[derive(Deserialize, Debug)]
 pub enum ApiErrorKind {

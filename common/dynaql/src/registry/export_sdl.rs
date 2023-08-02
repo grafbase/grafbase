@@ -1,8 +1,7 @@
 use std::fmt::Write;
 
-use crate::registry::{MetaField, MetaInputValue, MetaType, Registry};
-
 use super::{EnumType, InputObjectType, InterfaceType, ObjectType, ScalarType, UnionType};
+use crate::registry::{MetaField, MetaInputValue, MetaType, Registry};
 
 impl Registry {
     pub fn export_sdl(&self, federation: bool) -> String {

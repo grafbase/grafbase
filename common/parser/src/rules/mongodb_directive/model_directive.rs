@@ -4,14 +4,6 @@ mod queries;
 pub(super) mod types;
 
 use create_type_context::CreateTypeContext;
-
-use crate::{
-    registry::names::MetaNames,
-    rules::{
-        auth_directive::AuthDirective,
-        visitor::{Visitor, VisitorContext},
-    },
-};
 use dynaql::{
     names::{
         INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT,
@@ -21,6 +13,14 @@ use dynaql::{
     Positioned,
 };
 use dynaql_parser::types::{ObjectType, TypeDefinition, TypeKind};
+
+use crate::{
+    registry::names::MetaNames,
+    rules::{
+        auth_directive::AuthDirective,
+        visitor::{Visitor, VisitorContext},
+    },
+};
 
 const CONNECTOR_KEY: &str = "connector";
 const COLLECTION_KEY: &str = "collection";
@@ -38,7 +38,9 @@ pub struct MongoDBModelDirective;
 impl<'a> Visitor<'a> for MongoDBModelDirective {
     fn enter_type_definition(&mut self, ctx: &mut VisitorContext<'a>, r#type: &'a Positioned<TypeDefinition>) {
         let Some(config) = get_config(ctx, r#type) else { return };
-        let TypeKind::Object(ref object) = r#type.node.kind else { return };
+        let TypeKind::Object(ref object) = r#type.node.kind else {
+            return;
+        };
 
         if !validate_model_name(ctx, r#type) {
             return;
@@ -102,7 +104,9 @@ fn get_config<'a>(ctx: &'a VisitorContext<'_>, r#type: &'a Positioned<TypeDefini
         }
 
         for (key, argument) in &directive.node.arguments {
-            let Some(connector_name) = argument.node.as_str() else { continue };
+            let Some(connector_name) = argument.node.as_str() else {
+                continue;
+            };
 
             if key.node.as_str() != CONNECTOR_KEY {
                 continue;

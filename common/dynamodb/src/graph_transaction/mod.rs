@@ -1,9 +1,11 @@
-use crate::constant::{PK, RELATION_NAMES, SK};
-use crate::paginated::QueryValue;
-use crate::utils::ConvertExtension;
-use crate::{constant, CurrentDateTime, OperationAuthorizationError, QueryKey};
-use crate::{BatchGetItemLoaderError, TransactionError};
-use crate::{DynamoDBBatchersData, DynamoDBContext};
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+    ops::Add,
+    pin::Pin,
+    sync::{Arc, Weak},
+    time::Duration,
+};
 
 use dataloader::{DataLoader, Loader, LruCache};
 use derivative::Derivative;
@@ -14,12 +16,14 @@ use graph_entities::{normalize_constraint_value, ConstraintDefinition, Constrain
 use itertools::Itertools;
 use log::info;
 
-use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
-use std::ops::Add;
-use std::pin::Pin;
-use std::sync::{Arc, Weak};
-use std::time::Duration;
+use crate::{
+    constant,
+    constant::{PK, RELATION_NAMES, SK},
+    paginated::QueryValue,
+    utils::ConvertExtension,
+    BatchGetItemLoaderError, CurrentDateTime, DynamoDBBatchersData, DynamoDBContext, OperationAuthorizationError,
+    QueryKey, TransactionError,
+};
 
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "sqlite"))] {
@@ -1590,8 +1594,9 @@ async fn load_keys(
 
     #[cfg(feature = "sqlite")]
     {
-        use crate::local::types::Constraint;
         use bridge_api::{mutation, ApiErrorKind, MutationError};
+
+        use crate::local::types::Constraint;
 
         let operations = execute(batcher, ctx, tx).await?;
 

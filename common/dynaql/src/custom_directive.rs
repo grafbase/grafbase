@@ -1,9 +1,8 @@
 use graph_entities::ResponseNodeId;
 
-use crate::extensions::ResolveFut;
-use crate::parser::types::Directive;
-use crate::registry::Registry;
-use crate::{Context, ContextDirective, ServerResult};
+use crate::{
+    extensions::ResolveFut, parser::types::Directive, registry::Registry, Context, ContextDirective, ServerResult,
+};
 
 #[doc(hidden)]
 pub trait CustomDirectiveFactory: Send + Sync + 'static {

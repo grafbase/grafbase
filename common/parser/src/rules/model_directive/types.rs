@@ -1,9 +1,10 @@
+use dynaql::registry::{InputObjectType, MetaInputValue};
+use dynaql_parser::types::TypeDefinition;
+
 use crate::{
     registry::names::MetaNames,
     rules::{unique_directive::UniqueDirective, visitor::VisitorContext},
 };
-use dynaql::registry::{InputObjectType, MetaInputValue};
-use dynaql_parser::types::TypeDefinition;
 
 pub(crate) fn register_oneof_type<'a>(
     ctx: &'a mut VisitorContext<'_>,

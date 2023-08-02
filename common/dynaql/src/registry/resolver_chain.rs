@@ -32,27 +32,27 @@
 //!
 //! A memoization is applied on the resolve function.
 
-use crate::Result;
-use crate::{Context, Error, QueryPathSegment};
+use std::{
+    collections::hash_map::DefaultHasher,
+    fmt::{self, Debug, Display, Formatter},
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
+
 use cached::Cached;
 use dynaql_parser::{
     types::{Field, SelectionSet},
     Positioned,
 };
 use dynaql_value::{Name, Value};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-use std::sync::Arc;
-
 use serde::ser::{SerializeSeq, Serializer};
-use std::fmt::{self, Debug, Display, Formatter};
 use ulid::Ulid;
 
-use super::resolvers::Resolver;
 use super::{
-    resolvers::{ResolvedValue, ResolverContext},
+    resolvers::{ResolvedValue, Resolver, ResolverContext},
     MetaField, MetaInputValue, MetaType,
 };
+use crate::{Context, Error, QueryPathSegment, Result};
 
 /// A path to the current query with resolvers, transformers and associated type.
 /// Reverse linked list used to help us construct the whole resolving flow.

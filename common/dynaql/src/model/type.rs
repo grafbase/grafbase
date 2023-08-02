@@ -1,8 +1,11 @@
 use std::collections::HashSet;
 
-use crate::model::{__EnumValue, __Field, __InputValue, __TypeKind};
-use crate::registry::{is_visible, ObjectType};
-use crate::{registry, Context, Object};
+use crate::{
+    model::{__EnumValue, __Field, __InputValue, __TypeKind},
+    registry,
+    registry::{is_visible, ObjectType},
+    Context, Object,
+};
 
 enum TypeDetail<'a> {
     Named(&'a registry::MetaType),

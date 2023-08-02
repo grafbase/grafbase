@@ -1,39 +1,40 @@
 //! Query context.
 
+use std::{
+    any::{Any, TypeId},
+    collections::{hash_map::Entry, HashMap, HashSet},
+    fmt::{self, Debug, Display, Formatter, Write},
+    hash::Hash,
+    ops::Deref,
+    sync::{Arc, Mutex, RwLock},
+};
+
 use async_lock::RwLock as AsynRwLock;
-
-use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
-use graph_entities::QueryResponse;
-use std::any::{Any, TypeId};
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
-use std::fmt::Write;
-use std::fmt::{self, Debug, Display, Formatter};
-use std::hash::Hash;
-use std::ops::Deref;
-use std::sync::{Arc, Mutex, RwLock};
-use ulid::Ulid;
-
 use cached::UnboundCache;
 use derivative::Derivative;
+use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
 use dynaql_value::{Value as InputValue, Variables};
 use fnv::FnvHashMap;
-use http::header::{AsHeaderName, HeaderMap, IntoHeaderName};
-use http::HeaderValue;
-use serde::ser::{SerializeSeq, Serializer};
-use serde::Serialize;
+use graph_entities::QueryResponse;
+use http::{
+    header::{AsHeaderName, HeaderMap, IntoHeaderName},
+    HeaderValue,
+};
+use serde::{
+    ser::{SerializeSeq, Serializer},
+    Serialize,
+};
+use ulid::Ulid;
 
-use crate::extensions::Extensions;
-use crate::parser::types::{Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet};
-use crate::registry::relations::MetaRelation;
-use crate::registry::resolver_chain::ResolverChainNode;
-use crate::registry::resolvers::ResolvedValue;
-use crate::registry::type_kinds::InputType;
-use crate::registry::{MetaInputValue, MetaType, TypeReference};
-use crate::registry::{MongoDBConfiguration, Registry};
-use crate::resolver_utils::{resolve_input, InputResolveMode};
-use crate::schema::SchemaEnv;
 use crate::{
+    extensions::Extensions,
+    parser::types::{Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
+    registry::{
+        relations::MetaRelation, resolver_chain::ResolverChainNode, resolvers::ResolvedValue, type_kinds::InputType,
+        MetaInputValue, MetaType, MongoDBConfiguration, Registry, TypeReference,
+    },
+    resolver_utils::{resolve_input, InputResolveMode},
+    schema::SchemaEnv,
     CacheInvalidation, Error, LegacyInputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
     ServerResult, UploadValue, Value,
 };

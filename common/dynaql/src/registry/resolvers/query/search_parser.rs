@@ -1,7 +1,6 @@
+use grafbase_runtime::search::{self, Cursor, ScalarCondition};
 use serde_json::Value;
 use thiserror::Error;
-
-use grafbase_runtime::search::{self, Cursor, ScalarCondition};
 
 use crate::{
     names::{
@@ -193,8 +192,7 @@ fn parse_scalar_condition_array(field: &search::FieldEntry, conditions: Value) -
 }
 
 fn parse_scalar(field: &search::FieldEntry, value: Value) -> Result<search::ScalarValue, Error> {
-    use search::FieldType::*;
-    use search::ScalarValue;
+    use search::{FieldType::*, ScalarValue};
     Ok(match field.ty {
         URL { .. } => ScalarValue::URL(serde_json::from_value(value)?),
         Email { .. } => ScalarValue::Email(serde_json::from_value(value)?),

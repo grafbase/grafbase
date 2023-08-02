@@ -1,15 +1,10 @@
-use std::borrow::Cow;
-use std::cmp::Eq;
-use std::collections::HashSet;
-use std::hash::Hash;
+use std::{borrow::Cow, cmp::Eq, collections::HashSet, hash::Hash};
 
 use graph_entities::ResponseNodeId;
 
-use crate::parser::types::Field;
-use crate::resolver_utils::resolve_list_native;
 use crate::{
-    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Positioned,
-    Result, ServerResult, Value,
+    parser::types::Field, registry, resolver_utils::resolve_list_native, ContextSelectionSet, InputValueError,
+    InputValueResult, LegacyInputType, LegacyOutputType, Positioned, Result, ServerResult, Value,
 };
 
 impl<T: LegacyInputType + Hash + Eq> LegacyInputType for HashSet<T> {

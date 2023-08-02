@@ -1,28 +1,27 @@
-use std::any::Any;
-use std::collections::HashMap;
-use std::ops::Deref;
-use std::sync::Arc;
+use std::{any::Any, collections::HashMap, ops::Deref, sync::Arc};
 
 use async_lock::RwLock;
 use cached::UnboundCache;
-
 use dynamodb::CurrentDateTime;
 use futures_util::stream::{self, Stream, StreamExt};
 use graph_entities::QueryResponse;
 use indexmap::map::IndexMap;
 
-use crate::context::{Data, QueryEnvInner};
-use crate::custom_directive::CustomDirectiveFactory;
-use crate::extensions::{ExtensionFactory, Extensions};
-use crate::model::__DirectiveLocation;
-use crate::parser::types::{Directive, DocumentOperations, OperationType, Selection, SelectionSet};
-use crate::parser::{parse_query, Positioned};
-use crate::registry::{MetaDirective, MetaInputValue, Registry};
-use crate::resolver_utils::{resolve_container, resolve_container_serial};
-use crate::subscription::collect_subscription_streams;
-use crate::types::QueryRoot;
-use crate::validation::{check_rules, ValidationMode};
 use crate::{
+    context::{Data, QueryEnvInner},
+    custom_directive::CustomDirectiveFactory,
+    extensions::{ExtensionFactory, Extensions},
+    model::__DirectiveLocation,
+    parser::{
+        parse_query,
+        types::{Directive, DocumentOperations, OperationType, Selection, SelectionSet},
+        Positioned,
+    },
+    registry::{MetaDirective, MetaInputValue, Registry},
+    resolver_utils::{resolve_container, resolve_container_serial},
+    subscription::collect_subscription_streams,
+    types::QueryRoot,
+    validation::{check_rules, ValidationMode},
     BatchRequest, BatchResponse, CacheControl, ContextBase, LegacyInputType, LegacyOutputType, ObjectType, QueryEnv,
     Request, Response, ServerError, SubscriptionType, Variables, ID,
 };

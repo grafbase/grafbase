@@ -1,14 +1,14 @@
 //! Implement the Relation Engine
-use crate::registry::names::MetaNames;
-use crate::rules::directive::Directive;
-use crate::rules::model_directive::ModelDirective;
-use crate::{Visitor, VisitorContext};
-use dynaql::indexmap::map::Entry;
-use dynaql::registry::relations::MetaRelation;
-use dynaql::{Positioned, Value};
+use dynaql::{indexmap::map::Entry, registry::relations::MetaRelation, Positioned, Value};
 use dynaql_parser::types::{FieldDefinition, Type, TypeKind};
 use if_chain::if_chain;
 use regex::Regex;
+
+use crate::{
+    registry::names::MetaNames,
+    rules::{directive::Directive, model_directive::ModelDirective},
+    Visitor, VisitorContext,
+};
 
 /// Implement the Relation Engine
 ///
@@ -154,11 +154,12 @@ impl<'a> Visitor<'a> for RelationEngine {
 
 #[cfg(test)]
 mod tests {
-    use super::RelationEngine;
-    use crate::rules::visitor::{visit, VisitorContext};
     use dynaql_parser::parse_schema;
     use insta::assert_debug_snapshot;
     use serde_json as _;
+
+    use super::RelationEngine;
+    use crate::rules::visitor::{visit, VisitorContext};
 
     #[test]
     fn one_to_one_relation_monodirectional() {

@@ -1,7 +1,8 @@
-use super::{DynamicParse, SDLDefinitionScalar};
-use crate::{Error, InputValueError, InputValueResult};
 use chrono::{DateTime, TimeZone, Utc};
 use dynaql_value::ConstValue;
+
+use super::{DynamicParse, SDLDefinitionScalar};
+use crate::{Error, InputValueError, InputValueResult};
 
 // TODO: Input coercion to accept either ms or a date
 pub struct TimestampScalar;
@@ -71,10 +72,11 @@ impl DynamicParse for TimestampScalar {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SDLDefinitionScalar;
-    use crate::registry::scalars::{DynamicParse, TimestampScalar};
     use dynaql_value::ConstValue;
     use insta::assert_snapshot;
+
+    use super::super::SDLDefinitionScalar;
+    use crate::registry::scalars::{DynamicParse, TimestampScalar};
 
     #[test]
     fn check_test_timestamp() {

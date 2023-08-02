@@ -1,16 +1,14 @@
-use std::borrow::Cow;
-use std::pin::Pin;
+use std::{borrow::Cow, pin::Pin};
 
 use graph_entities::ResponseNodeId;
 use indexmap::IndexMap;
 
-use crate::futures_util::Stream;
-use crate::parser::types::Field;
-use crate::registry::{MetaType, ObjectType, Registry};
-use crate::SimpleObject;
 use crate::{
+    futures_util::Stream,
+    parser::types::Field,
+    registry::{MetaType, ObjectType, Registry},
     CacheControl, ContainerType, Context, ContextSelectionSet, LegacyOutputType, Positioned, Response, ServerResult,
-    SubscriptionType, Value,
+    SimpleObject, SubscriptionType, Value,
 };
 
 #[doc(hidden)]

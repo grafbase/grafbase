@@ -1,26 +1,31 @@
-use dynaql::indexmap::IndexMap;
-use dynaql::model::{__Schema, __Type};
-use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{ConnectorIdGenerator, MetaField, MetaInputValue, Registry, SchemaID, SchemaIDGenerator};
-use dynaql::{AuthorizerProvider, LegacyOutputType, Name, Pos, Positioned, Schema};
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    collections::{hash_map::Entry, HashMap, HashSet},
+    fmt::{self, Display, Formatter},
+    sync::RwLock,
+};
+
+use dynaql::{
+    indexmap::IndexMap,
+    model::{__Schema, __Type},
+    registry::{
+        relations::MetaRelation, ConnectorIdGenerator, MetaField, MetaInputValue, Registry, SchemaID, SchemaIDGenerator,
+    },
+    AuthorizerProvider, LegacyOutputType, Name, Pos, Positioned, Schema,
+};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
 use dynaql_value::ConstValue;
 use grafbase::UdfKind;
-use std::borrow::Cow;
-use std::cell::RefCell;
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
-use std::fmt::{self, Display, Formatter};
-use std::sync::RwLock;
 
-use crate::rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget};
-use crate::ParseResult;
-
-use super::graphql_directive::GraphqlDirective;
-use super::openapi_directive::OpenApiDirective;
+use super::{graphql_directive::GraphqlDirective, openapi_directive::OpenApiDirective};
+use crate::{
+    rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
+    ParseResult,
+};
 
 type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;
 

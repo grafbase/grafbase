@@ -3,13 +3,11 @@
 //! There is no specialied behavior for enum right now.
 //!
 //! TODO: Manage deprecation
-use super::visitor::{Visitor, VisitorContext};
-
-use dynaql::registry;
-use dynaql::registry::MetaEnumValue;
-
+use dynaql::{registry, registry::MetaEnumValue};
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
+
+use super::visitor::{Visitor, VisitorContext};
 
 pub struct EnumType;
 

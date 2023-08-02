@@ -74,8 +74,7 @@ impl Extension for RuntimeLogExtension {
         operation: &OperationDefinition,
         next: NextExecute<'_>,
     ) -> Response {
-        use dynaql::parser::types::OperationType as ParserOperationType;
-        use dynaql::parser::types::Selection;
+        use dynaql::parser::types::{OperationType as ParserOperationType, Selection};
 
         let request_id = &ctx
             .data::<GraphqlRequestExecutionContext>()

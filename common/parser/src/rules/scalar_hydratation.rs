@@ -3,8 +3,10 @@
 //! The user defined scalars can be hydrated to the generated API only if those scalars belongs to
 //! the list of PossibleScalar from dynaql for now.
 //!
-use dynaql::registry::scalars::{DynamicScalar, PossibleScalar};
-use dynaql::{Positioned, Value};
+use dynaql::{
+    registry::scalars::{DynamicScalar, PossibleScalar},
+    Positioned, Value,
+};
 use dynaql_parser::types::TypeDefinition;
 
 use super::visitor::{Visitor, VisitorContext};
@@ -60,10 +62,11 @@ impl<'a> Visitor<'a> for ScalarHydratation {
 
 #[cfg(test)]
 mod tests {
-    use super::ScalarHydratation;
-    use crate::rules::visitor::{visit, VisitorContext};
     use dynaql_parser::parse_schema;
     use serde_json as _;
+
+    use super::ScalarHydratation;
+    use crate::rules::visitor::{visit, VisitorContext};
 
     #[test]
     fn should_error_when_defining_a_invalid_scalar() {

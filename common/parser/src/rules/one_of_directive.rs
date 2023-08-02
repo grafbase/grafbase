@@ -1,14 +1,16 @@
-use super::{
-    directive::Directive,
-    visitor::{Visitor, VisitorContext},
-};
+use std::vec;
+
 use dynaql::{
     indexmap::IndexMap,
     registry::{InputObjectType, MetaDirective, MetaInputValue, __DirectiveLocation},
 };
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
-use std::vec;
+
+use super::{
+    directive::Directive,
+    visitor::{Visitor, VisitorContext},
+};
 
 pub struct OneOfDirective;
 
@@ -80,9 +82,10 @@ impl<'a> Visitor<'a> for OneOfDirective {
 
 #[test]
 fn test_not_usable_on_nullable_fields() {
-    use super::visitor::{visit, VisitorContext};
     use dynaql::registry::MetaType;
     use dynaql_parser::parse_schema;
+
+    use super::visitor::{visit, VisitorContext};
 
     let schema = r#"
         input UserByInput @oneOf {

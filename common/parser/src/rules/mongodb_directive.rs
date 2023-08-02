@@ -1,17 +1,18 @@
 mod model_directive;
 mod type_directive;
 
+use std::collections::HashMap;
+
+use dynaql::registry::MongoDBConfiguration;
+use dynaql_parser::types::SchemaDefinition;
+pub use model_directive::MongoDBModelDirective;
+pub use type_directive::MongoDBTypeDirective;
+
 use super::{
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
 use crate::directive_de::parse_directive;
-use dynaql::registry::MongoDBConfiguration;
-use dynaql_parser::types::SchemaDefinition;
-use std::collections::HashMap;
-
-pub use model_directive::MongoDBModelDirective;
-pub use type_directive::MongoDBTypeDirective;
 
 static MONGODB_SCALARS: &[&str] = &[
     "Boolean",

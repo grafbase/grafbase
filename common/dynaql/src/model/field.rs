@@ -1,8 +1,11 @@
 use std::collections::HashSet;
 
-use crate::model::{__InputValue, __Type};
-use crate::registry::is_visible;
-use crate::{registry, Context, Object};
+use crate::{
+    model::{__InputValue, __Type},
+    registry,
+    registry::is_visible,
+    Context, Object,
+};
 
 pub struct __Field<'a> {
     pub registry: &'a registry::Registry,

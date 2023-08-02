@@ -1,9 +1,10 @@
-use std::fmt::Display;
-use std::hash::{Hash, Hasher};
+use std::{
+    fmt::Display,
+    hash::{Hash, Hasher},
+};
 
 use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
 use dynomite::{Attribute, AttributeValue};
-
 use wasm_timer::{SystemTime, UNIX_EPOCH};
 
 // TODO: It should be placed in a different crate than dynamodb

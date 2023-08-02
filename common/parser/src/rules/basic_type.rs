@@ -3,13 +3,12 @@
 //! When a basic type is stubble uppon on the definition of the schema, if it
 //! got no specialized behavior, we apply this behavior uppon it.
 //!
-use super::visitor::{Visitor, VisitorContext};
-use crate::registry::add_input_type_non_primitive;
-use crate::rules::cache_directive::CacheDirective;
-use dynaql::registry::resolvers::transformer::Transformer;
-use dynaql::registry::{self, MetaField};
+use dynaql::registry::{self, resolvers::transformer::Transformer, MetaField};
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
+
+use super::visitor::{Visitor, VisitorContext};
+use crate::{registry::add_input_type_non_primitive, rules::cache_directive::CacheDirective};
 
 pub struct BasicType;
 

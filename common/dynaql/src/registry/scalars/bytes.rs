@@ -1,9 +1,9 @@
-use crate::InputValueError;
-
-use super::{DynamicParse, SDLDefinitionScalar};
 use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
 use dynaql_value::ConstValue;
 use serde_json::Value;
+
+use super::{DynamicParse, SDLDefinitionScalar};
+use crate::InputValueError;
 pub struct BytesScalar;
 
 impl<'a> SDLDefinitionScalar<'a> for BytesScalar {

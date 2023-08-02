@@ -2,6 +2,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use dynamodb::{DynamoDBBatchersData, PaginatedCursor, PaginationOrdering};
 
+use super::IdCursor;
 use crate::{
     registry::{
         resolvers::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue},
@@ -9,8 +10,6 @@ use crate::{
     },
     Context, Error,
 };
-
-use super::IdCursor;
 
 pub(super) async fn by_ids(ctx: &Context<'_>, ids: &[String], ty: &ModelName) -> Result<ResolvedValue, Error> {
     let keys = ids.iter().map(|id| (id.clone(), id.clone())).collect::<Vec<_>>();

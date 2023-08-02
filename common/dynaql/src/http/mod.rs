@@ -4,12 +4,11 @@ mod multipart;
 #[cfg(not(target_arch = "wasm32"))]
 mod pathfinder_source;
 
+use futures_util::io::{AsyncRead, AsyncReadExt};
+use mime;
 pub use multipart::MultipartOptions;
 #[cfg(not(target_arch = "wasm32"))]
 pub use pathfinder_source::{pathfinder_source, PathfinderConfig};
-
-use futures_util::io::{AsyncRead, AsyncReadExt};
-use mime;
 
 use crate::{BatchRequest, ParseRequestError, Request};
 

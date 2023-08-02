@@ -2,9 +2,12 @@ use std::collections::HashSet;
 
 use dynaql_value::{ConstValue, Value};
 
-use crate::context::QueryPathNode;
-use crate::registry::scalars::{DynamicScalar, PossibleScalar};
-use crate::{registry, QueryPathSegment};
+use crate::{
+    context::QueryPathNode,
+    registry,
+    registry::scalars::{DynamicScalar, PossibleScalar},
+    QueryPathSegment,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Scope<'a> {

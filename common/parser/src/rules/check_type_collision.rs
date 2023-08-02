@@ -7,9 +7,10 @@
 //! To avoid having an invalid schema
 use std::collections::HashSet;
 
-use super::visitor::{Visitor, VisitorContext};
 use dynaql::Positioned;
 use dynaql_parser::types::TypeDefinition;
+
+use super::visitor::{Visitor, VisitorContext};
 
 #[derive(Default)]
 pub struct CheckTypeCollision {
@@ -33,10 +34,13 @@ impl<'a> Visitor<'a> for CheckTypeCollision {
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::check_type_collision::CheckTypeCollision;
-    use crate::rules::visitor::{visit, VisitorContext};
     use dynaql_parser::parse_schema;
     use serde_json as _;
+
+    use crate::rules::{
+        check_type_collision::CheckTypeCollision,
+        visitor::{visit, VisitorContext},
+    };
 
     #[test]
     fn should_error_with_invalid_types() {

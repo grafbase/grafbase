@@ -1,8 +1,3 @@
-use crate::{
-    registry::names::INPUT_ARG_BY,
-    rules::{mongodb_directive::model_directive::CreateTypeContext, visitor::VisitorContext},
-    utils::to_lower_camelcase,
-};
 use dynaql::{
     indexmap::IndexMap,
     registry::{
@@ -14,6 +9,12 @@ use dynaql::{
     },
 };
 use grafbase::auth::Operations;
+
+use crate::{
+    registry::names::INPUT_ARG_BY,
+    rules::{mongodb_directive::model_directive::CreateTypeContext, visitor::VisitorContext},
+    utils::to_lower_camelcase,
+};
 
 pub(super) fn create(
     visitor_ctx: &mut VisitorContext<'_>,

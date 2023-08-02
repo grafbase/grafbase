@@ -1,9 +1,8 @@
 //! Pulls input objects into the registry
-use super::visitor::{Visitor, VisitorContext};
-use dynaql::registry::InputObjectType;
-use dynaql::registry::MetaInputValue;
-
+use dynaql::registry::{InputObjectType, MetaInputValue};
 use dynaql_parser::types::TypeKind;
+
+use super::visitor::{Visitor, VisitorContext};
 
 pub struct InputObjectVisitor;
 

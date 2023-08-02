@@ -7,16 +7,16 @@
 //! resolve this variable.
 use std::borrow::Borrow;
 
-use crate::resolver_utils::InputResolveMode;
-use crate::{context::resolver_data_get_opt_ref, Context, Value};
-use crate::{Error, ServerError, ServerResult};
 use dynaql_value::{ConstValue, Name};
 use grafbase_runtime::cursor::Cursor;
 use indexmap::IndexMap;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 
 use self::oneof::OneOf;
+use crate::{
+    context::resolver_data_get_opt_ref, resolver_utils::InputResolveMode, Context, Error, ServerError, ServerResult,
+    Value,
+};
 
 pub mod id;
 pub mod oneof;

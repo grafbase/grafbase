@@ -9,12 +9,11 @@ use std::collections::HashMap;
 use petgraph::{dot::Dot, graph::NodeIndex, Graph};
 use url::Url;
 
+use self::version::OpenApiVersion;
 use crate::{
     graph::{Edge, Node},
     Error, Format,
 };
-
-use self::version::OpenApiVersion;
 
 pub fn parse(data: String, format: Format) -> Result<ParseOutput, Vec<Error>> {
     let version = from_str::<OpenApiVersion>(&data, format)?;

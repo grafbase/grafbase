@@ -1,6 +1,8 @@
-use std::any::Any;
-use std::collections::HashMap;
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    any::Any,
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 use serde::{Deserialize, Deserializer, Serialize};
 

@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use dynaql::ServerError;
+use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_GROUPS_CLAIM: &str = "groups";
 

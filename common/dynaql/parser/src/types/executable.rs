@@ -1,7 +1,8 @@
 //! Executable document-related GraphQL types.
 
-use super::*;
 use dynaql_value::{ConstValue, Name, Value};
+
+use super::*;
 
 /// An executable GraphQL file or request string.
 ///

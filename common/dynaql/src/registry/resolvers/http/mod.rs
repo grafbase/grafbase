@@ -4,11 +4,9 @@ use futures_util::Future;
 use reqwest::Url;
 use send_wrapper::SendWrapper;
 
-use crate::{registry::variables::VariableResolveDefinition, Context, Error, RequestHeaders};
-
 use self::parameters::ParamApply;
-
 use super::{ResolvedValue, ResolverContext};
+use crate::{registry::variables::VariableResolveDefinition, Context, Error, RequestHeaders};
 
 mod parameters;
 

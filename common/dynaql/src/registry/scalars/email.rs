@@ -1,7 +1,8 @@
-use super::{DynamicParse, SDLDefinitionScalar};
-use crate::{Error, InputValueError, InputValueResult};
 use dynaql_value::ConstValue;
 use fast_chemail::parse_email;
+
+use super::{DynamicParse, SDLDefinitionScalar};
+use crate::{Error, InputValueError, InputValueResult};
 
 pub struct EmailScalar;
 
@@ -48,10 +49,11 @@ impl DynamicParse for EmailScalar {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SDLDefinitionScalar;
-    use crate::registry::scalars::{DynamicParse, EmailScalar};
     use dynaql_value::ConstValue;
     use insta::assert_snapshot;
+
+    use super::super::SDLDefinitionScalar;
+    use crate::registry::scalars::{DynamicParse, EmailScalar};
 
     #[test]
     fn check_mail_valid() {

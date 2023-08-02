@@ -1,6 +1,8 @@
-use crate::{Error, InputValueError, InputValueResult};
-use dynaql_value::ConstValue;
 use std::fmt::Write;
+
+use dynaql_value::ConstValue;
+
+use crate::{Error, InputValueError, InputValueResult};
 
 mod string;
 pub use string::StringScalar;

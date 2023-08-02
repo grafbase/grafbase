@@ -17,6 +17,5 @@ pub use empty_subscription::EmptySubscription;
 pub use id::ID;
 pub use maybe_undefined::MaybeUndefined;
 pub use merged_object::{MergedObject, MergedObjectTail};
-pub use upload::{Upload, UploadValue};
-
 pub(crate) use query_root::QueryRoot;
+pub use upload::{Upload, UploadValue};

@@ -1,15 +1,14 @@
-use crate::DynamoDBContext;
+use std::{collections::HashMap, hash::Hash, sync::Arc, time::Duration};
+
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
 use log::debug;
 use rusoto_dynamodb::{DynamoDb, TransactWriteItem, TransactWriteItemsInput};
-use std::collections::HashMap;
-use std::hash::Hash;
-use std::sync::Arc;
-use std::time::Duration;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
+
+use crate::DynamoDBContext;
 
 #[derive(Clone, Debug)]
 pub enum TxItemMetadata {

@@ -1,21 +1,20 @@
-use dynaql::names::OUTPUT_FIELD_DELETED_IDS;
-use dynaql::registry::{InputObjectType, NamedType, ObjectType};
 use dynaql::{
-    names::OUTPUT_FIELD_DELETED_ID,
+    names::{OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS},
     registry::{
         resolvers::{dynamo_mutation::DynamoMutationResolver, transformer::Transformer},
         variables::VariableResolveDefinition,
-        MetaField, MetaInputValue,
+        InputObjectType, MetaField, MetaInputValue, NamedType, ObjectType,
     },
+    AuthConfig, CacheControl,
 };
-
-use dynaql::{AuthConfig, CacheControl};
 use dynaql_parser::types::{BaseType, TypeDefinition};
 use grafbase::auth::Operations;
 
-use crate::registry::names::{MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT};
-use crate::rules::visitor::VisitorContext;
-use crate::type_names::TypeNameExt;
+use crate::{
+    registry::names::{MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT},
+    rules::visitor::VisitorContext,
+    type_names::TypeNameExt,
+};
 
 pub fn add_mutation_delete<'a>(
     ctx: &mut VisitorContext<'a>,

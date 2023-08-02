@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::pin::Pin;
+use std::{borrow::Cow, pin::Pin};
 
 use dynaql_parser::types::OperationType;
 use futures_util::stream::{self, Stream};
