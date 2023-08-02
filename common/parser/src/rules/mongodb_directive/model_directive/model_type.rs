@@ -2,7 +2,7 @@ mod resolver_data;
 
 use dynaql::{
     indexmap::IndexMap,
-    names::OUTPUT_FIELD_ID,
+    names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::{self, resolvers::transformer::Transformer, MetaField, MetaType},
 };
 use resolver_data::ResolverData;
@@ -16,11 +16,11 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
 
     fields.insert(OUTPUT_FIELD_ID.to_string(), {
         let mut id = MetaField::new(OUTPUT_FIELD_ID, "ID!");
-        id.mapped_name = Some(String::from("_id"));
+        id.mapped_name = Some(String::from(MONGODB_OUTPUT_FIELD_ID));
         id.description = Some(String::from("Unique identifier"));
 
         let transformer = Transformer::Select {
-            key: String::from("_id"),
+            key: String::from(MONGODB_OUTPUT_FIELD_ID),
         };
         id.resolver = transformer.into();
         id.auth = create_ctx.model_auth().clone();

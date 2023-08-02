@@ -1,6 +1,6 @@
 use case::CaseExt;
 use dynaql::{
-    names::OUTPUT_FIELD_ID,
+    names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::{
         resolvers::{transformer::Transformer, Resolver},
         InputObjectType, MetaField, MetaInputValue, ObjectType,
@@ -22,7 +22,7 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
 
     let implicit_fields = std::iter::once({
         let mut input = MetaInputValue::new(OUTPUT_FIELD_ID, "ID");
-        input.rename = Some("_id".to_string());
+        input.rename = Some(MONGODB_OUTPUT_FIELD_ID.to_string());
 
         input
     });

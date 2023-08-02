@@ -23,6 +23,10 @@ pub const OUTPUT_FIELD_ID: &str = "id";
 pub const OUTPUT_FIELD_DELETED_ID: &str = "deletedId";
 pub const OUTPUT_FIELD_DELETED_IDS: &str = "deletedIds";
 
+pub const OUTPUT_EDGE_CURSOR: &str = "#cursor";
+
+pub const MONGODB_OUTPUT_FIELD_ID: &str = "_id";
+
 pub const DELETE_PAYLOAD_RETURN_TY_SUFFIX: &str = "DeletePayload";
 
 /// Creates the return type name for deletions

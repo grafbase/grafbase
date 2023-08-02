@@ -7,6 +7,7 @@ use super::{
     ResolvedValue, ResolverContext,
 };
 use crate::{
+    names::OUTPUT_EDGE_CURSOR,
     registry::{variables::VariableResolveDefinition, ModelName},
     Context, Error,
 };
@@ -14,7 +15,6 @@ use crate::{
 mod search_parser;
 
 pub const SEARCH_RESOLVER_EDGES: &str = "edges";
-pub const SEARCH_RESOLVER_EDGE_CURSOR: &str = "#cursor";
 pub const SEARCH_RESOLVER_EDGE_SCORE: &str = "#score";
 pub const SEARCH_RESOLVER_TOTAL_HITS: &str = "totalHits";
 
@@ -113,10 +113,7 @@ impl QueryResolver {
                                         SEARCH_RESOLVER_EDGE_SCORE.to_string(),
                                         serde_json::to_value(hit.score)?,
                                     );
-                                    fields.insert(
-                                        SEARCH_RESOLVER_EDGE_CURSOR.to_string(),
-                                        serde_json::to_value(hit.cursor)?,
-                                    );
+                                    fields.insert(OUTPUT_EDGE_CURSOR.to_string(), serde_json::to_value(hit.cursor)?);
                                     Ok(Value::Object(fields))
                                 }
                                 _ => Err(Error::new("Unexpected data from DynamoDB")),

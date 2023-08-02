@@ -3,6 +3,7 @@ use serde_json::Value;
 
 use super::{normalize, JsonMap};
 use crate::{
+    names::MONGODB_OUTPUT_FIELD_ID,
     registry::{MetaField, MetaType},
     Context, Error, SelectionField,
 };
@@ -11,17 +12,17 @@ pub(super) fn project<'a>(
     ctx: &'a Context<'a>,
     selection: impl Iterator<Item = SelectionField<'a>> + 'a,
     target: &IndexMap<String, MetaField>,
-) -> Result<Value, Error> {
+) -> Result<JsonMap, Error> {
     let mut map = JsonMap::new();
     let selection = selection.flat_map(|selection| selection.selection_set());
 
     recurse(ctx, selection, target, &mut map)?;
 
-    if !map.contains_key("_id") {
-        map.insert("_id".to_string(), Value::from(1));
+    if !map.contains_key(MONGODB_OUTPUT_FIELD_ID) {
+        map.insert(MONGODB_OUTPUT_FIELD_ID.to_string(), Value::from(1));
     }
 
-    Ok(Value::Object(normalize::flatten_keys(map)))
+    Ok(normalize::flatten_keys(map))
 }
 
 fn recurse<'a>(

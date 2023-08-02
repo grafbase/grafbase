@@ -59,6 +59,7 @@ url = { workspace = true, features = ["serde"] }
 unindent = "0.2"
 grafbase-runtime = { path = "../grafbase-runtime" }
 grafbase = { path = "../grafbase", features = ["json"] }
+flexbuffers = { workspace = true }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }

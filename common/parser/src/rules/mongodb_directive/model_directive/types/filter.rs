@@ -1,5 +1,5 @@
 use dynaql::{
-    names::OUTPUT_FIELD_ID,
+    names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::{EnumType, InputObjectType, MetaEnumValue, MetaInputValue},
 };
 use dynaql_parser::types::{BaseType, ObjectType, Type};
@@ -21,7 +21,7 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
 
     let implicit_fields = std::iter::once({
         let mut input = MetaInputValue::new(OUTPUT_FIELD_ID, generic::filter_type_name("ID"));
-        input.rename = Some("_id".to_string());
+        input.rename = Some(MONGODB_OUTPUT_FIELD_ID.to_string());
 
         input
     });
@@ -97,9 +97,7 @@ pub(crate) fn register_orderby_input<'a>(
 
     let extra_fields = extra_fields.map(|(name, rename)| {
         let mut input = MetaInputValue::new(name.to_string(), Type::nullable(direction_type.clone()).to_string());
-
         input.rename = Some(rename.to_string());
-
         input
     });
 
@@ -115,14 +113,12 @@ pub(crate) fn register_orderby_input<'a>(
         };
 
         let mut input = MetaInputValue::new(field.node.name.node.to_string(), type_name);
-
         input.rename = field.mapped_name().map(ToString::to_string);
-
         input
     });
 
     let fields = extra_fields.chain(input_fields);
-    let input_object = InputObjectType::new(input_type_name.to_string(), fields);
+    let input_object = InputObjectType::new(input_type_name.to_string(), fields).with_oneof(true);
 
     visitor_ctx
         .registry
