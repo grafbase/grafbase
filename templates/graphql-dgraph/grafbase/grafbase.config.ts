@@ -12,7 +12,7 @@ const dgraph = connector.GraphQL({
 g.datasource(dgraph)
 
 // Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(dgraph, { namespace: 'dgraph' })
+// g.datasource(dgraph, { namespace: 'Dgraph' })
 
 export default config({
   schema: g,
