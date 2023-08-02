@@ -35,7 +35,7 @@ pub struct Serializer<'a, 'b> {
     /// Internal tracking of all fragment spreads used within the execution document.
     /// These are linked to the known `fragment_definitions` to embed the required fragment
     /// definitions in the document.
-    fragment_spreads: HashSet<&'b Name>,
+    fragment_spreads: HashSet<Name>,
 
     /// Internal tracking of indentation to pretty-print query.
     indent: usize,
@@ -43,7 +43,7 @@ pub struct Serializer<'a, 'b> {
     /// A list of serialized variable references.
     ///
     /// This allows the caller to pass along the relevant variable values to the upsteam server.
-    variable_references: HashSet<&'a Name>,
+    variable_references: HashSet<Name>,
 
     /// Variable definitions from the original query
     ///
@@ -78,7 +78,7 @@ impl<'a, 'b> Serializer<'a, 'b> {
     /// This list will be empty, until [`Serializer::query()`] or [`Serializer::mutation()`] is
     /// called.
     pub fn variable_references(&self) -> impl Iterator<Item = &Name> {
-        self.variable_references.iter().copied()
+        self.variable_references.iter()
     }
 }
 
@@ -88,19 +88,23 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// # Errors
     ///
     /// Returns an error if writing to the buffer fails.
-    pub fn query(&mut self, target: Target<'c>) -> Result<(), Error> {
+    pub fn query(
+        &mut self,
+        target: Target,
+        current_type: Option<SelectionSetTarget<'a>>,
+    ) -> Result<(), Error> {
         match target {
-            Target::SelectionSet(selections, current_type) => {
+            Target::SelectionSet(selections) => {
                 self.serialize_selections(selections, current_type)?;
             }
             Target::Field(field, metafield) => {
                 self.open_object()?;
-                self.serialize_field(field, metafield)?;
+                self.serialize_field(&field, Some(&metafield))?;
                 self.close_object()?;
             }
         }
 
-        self.serialize_fragment_definitions()?;
+        self.serialize_fragment_definitions(current_type.is_some())?;
 
         self.prepend_declaration("query")
     }
@@ -110,55 +114,69 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// # Errors
     ///
     /// Returns an error if writing to the buffer fails.
-    pub fn mutation(&mut self, target: Target<'c>) -> Result<(), Error> {
+    pub fn mutation(
+        &mut self,
+        target: Target,
+        current_type: Option<SelectionSetTarget<'a>>,
+    ) -> Result<(), Error> {
         match target {
-            Target::SelectionSet(selections, current_type) => {
+            Target::SelectionSet(selections) => {
                 self.serialize_selections(selections, current_type)?;
             }
             Target::Field(field, schema_field) => {
                 self.open_object()?;
-                self.serialize_field(field, schema_field)?;
+                self.serialize_field(&field, Some(&schema_field))?;
                 self.close_object()?;
             }
         }
 
-        self.serialize_fragment_definitions()?;
+        self.serialize_fragment_definitions(current_type.is_some())?;
 
         self.prepend_declaration("mutation")
     }
 
     fn serialize_selection(
         &mut self,
-        selection: &'c Selection,
-        current_type: SelectionSetTarget<'_>,
+        selection: Selection,
+        current_type: Option<SelectionSetTarget<'_>>,
     ) -> Result<(), Error> {
         use Selection::{Field, FragmentSpread, InlineFragment};
 
         match selection {
             Field(Positioned { node: field, .. }) => {
-                let schema_field = current_type.field(field.name.as_str()).ok_or_else(|| {
-                    Error::UnknownField(field.name.to_string(), current_type.name().to_string())
-                })?;
+                let schema_field = current_type
+                    .map(|current_type| {
+                        current_type.field(field.name.as_str()).ok_or_else(|| {
+                            Error::UnknownField(
+                                field.name.to_string(),
+                                current_type.name().to_string(),
+                            )
+                        })
+                    })
+                    .transpose()?;
 
-                self.serialize_field(field, schema_field)
+                self.serialize_field(&field, schema_field)
             }
-            FragmentSpread(Positioned { node, .. }) => self.serialize_fragment_spread(node),
+            FragmentSpread(Positioned { node, .. }) => self.serialize_fragment_spread(&node),
             InlineFragment(Positioned { node, .. }) => {
-                self.serialize_inline_fragment(node, current_type)
+                self.serialize_inline_fragment(&node, current_type)
             }
         }
     }
 
-    fn serialize_field(&mut self, field: &'a Field, schema_field: &MetaField) -> Result<(), Error> {
-        // let schema_field = current_type.field(field.name.as_str()).ok_or_else(|| {
-        //     Error::UnknownField(field.name.to_string(), current_type.name().to_string())
-        // })?;
-
-        if schema_field.resolver.is_custom() {
-            // Skip fields that have resolvers, as they won't exist in the downstream
-            // server
-            return Ok(());
+    fn serialize_field(
+        &mut self,
+        field: &Field,
+        schema_field: Option<&MetaField>,
+    ) -> Result<(), Error> {
+        if let Some(schema_field) = schema_field {
+            if schema_field.resolver.is_custom() {
+                // Skip fields that have resolvers, as they won't exist in the downstream
+                // server
+                return Ok(());
+            }
         }
+
         self.indent()?;
 
         // Alias
@@ -177,16 +195,21 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
         // Directives
         {
-            let directives = field.directives.iter().map(|v| &v.node);
+            let directives = field.directives.iter().map(|v| v.node.clone());
             self.serialize_directives(directives)?;
         }
 
         // Selection Sets
         if !field.selection_set.items.is_empty() {
-            let selections = field.selection_set.deref().items.iter().map(|v| &v.node);
-            let field_type = self
-                .registry
-                .lookup_expecting::<SelectionSetTarget>(&schema_field.ty)?;
+            let selections = field
+                .selection_set
+                .deref()
+                .items
+                .iter()
+                .map(|v| v.node.clone());
+            let field_type = schema_field
+                .map(|v| self.registry.lookup_expecting::<SelectionSetTarget>(&v.ty))
+                .transpose()?;
 
             self.serialize_selections(selections, field_type)?;
         }
@@ -199,7 +222,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// <https://graphql.org/learn/queries/#arguments>
     fn serialize_arguments(
         &mut self,
-        arguments: &'a [(Positioned<Name>, Positioned<Value>)],
+        arguments: &[(Positioned<Name>, Positioned<Value>)],
     ) -> Result<(), Error> {
         if arguments.is_empty() {
             return Ok(());
@@ -207,12 +230,15 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
         self.write_str("(")?;
 
-        let mut arguments = arguments.iter().map(|(k, v)| (&k.node, &v.node)).peekable();
+        let mut arguments = arguments
+            .iter()
+            .map(|(k, v)| (k.node.clone(), v.node.clone()))
+            .peekable();
 
         while let Some((name, value)) = arguments.next() {
             // If the argument references a variable, we track it so that the caller knows which
             // variable values are needed to execute the document.
-            if let Value::Variable(name) = value {
+            if let Value::Variable(name) = value.clone() {
                 self.variable_references.insert(name);
             }
 
@@ -233,8 +259,8 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// <https://spec.graphql.org/June2018/#sec-Selection-Sets>
     fn serialize_selections(
         &mut self,
-        selections: impl Iterator<Item = &'c Selection>,
-        current_type: SelectionSetTarget<'_>,
+        selections: impl Iterator<Item = Selection>,
+        current_type: Option<SelectionSetTarget<'_>>,
     ) -> Result<(), Error> {
         let mut selections = selections.peekable();
 
@@ -253,7 +279,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
     fn serialize_directives(
         &mut self,
-        directives: impl Iterator<Item = &'c Directive>,
+        directives: impl Iterator<Item = Directive>,
     ) -> Result<(), Error> {
         for directive in directives {
             self.write_str(" @")?;
@@ -267,17 +293,17 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// Fragment Spread
     ///
     /// <https://spec.graphql.org/June2018/#FragmentSpread>
-    fn serialize_fragment_spread(&mut self, fragment: &'c FragmentSpread) -> Result<(), Error> {
-        let fragment_name = &fragment.fragment_name;
+    fn serialize_fragment_spread(&mut self, fragment: &FragmentSpread) -> Result<(), Error> {
+        let fragment_name = fragment.fragment_name.clone();
 
         self.indent()?;
         self.write_str("... ")?;
         self.write_str(fragment_name.as_str())?;
 
         self.fragment_spreads
-            .insert(fragment_name.as_ref().into_inner());
+            .insert(fragment_name.clone().into_inner());
 
-        let directives = fragment.directives.iter().map(|v| &v.node);
+        let directives = fragment.directives.iter().map(|v| v.node.clone());
         self.serialize_directives(directives)?;
         self.write_str("\n")
     }
@@ -287,12 +313,17 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// <https://spec.graphql.org/June2018/#sec-Inline-Fragments>
     fn serialize_inline_fragment(
         &mut self,
-        fragment: &'c InlineFragment,
-        current_type: SelectionSetTarget<'_>,
+        fragment: &InlineFragment,
+        current_type: Option<SelectionSetTarget<'_>>,
     ) -> Result<(), Error> {
-        let type_condition = fragment.type_condition.as_ref().map(|v| &v.node);
-        let directives = fragment.directives.iter().map(|v| &v.node);
-        let selections = fragment.selection_set.deref().items.iter().map(|v| &v.node);
+        let type_condition = fragment.type_condition.as_ref().map(|v| v.node.clone());
+        let directives = fragment.directives.iter().map(|v| v.node.clone());
+        let selections = fragment
+            .selection_set
+            .deref()
+            .items
+            .iter()
+            .map(|v| v.node.clone());
 
         self.indent()?;
         self.write_str("...")?;
@@ -300,7 +331,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
         self.serialize_fragment_inner(type_condition, directives, selections, current_type)
     }
 
-    fn serialize_fragment_definitions(&mut self) -> Result<(), Error> {
+    fn serialize_fragment_definitions(&mut self, check_current_type: bool) -> Result<(), Error> {
         if self.fragment_spreads.is_empty() {
             return Ok(());
         }
@@ -309,7 +340,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
             // If a spread references an unknown definition, the query will fail, but the failure
             // will be reported by the GraphQL resolver, not this serializer.
             if let Some(definition) = self.fragment_definitions.get(&name) {
-                self.serialize_fragment_definition(name, definition)?;
+                self.serialize_fragment_definition(name, definition, check_current_type)?;
             }
         }
 
@@ -318,42 +349,50 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
     fn serialize_fragment_definition(
         &mut self,
-        name: &Name,
+        name: Name,
         definition: &'c FragmentDefinition,
+        check_current_type: bool,
     ) -> Result<(), Error> {
         self.write_str("fragment ")?;
         self.write_str(name)?;
 
-        let type_condition = &definition.type_condition.node;
-        let directives = definition.directives.iter().map(|v| &v.node);
+        let type_condition = definition.type_condition.node.clone();
+        let directives = definition.directives.iter().map(|v| v.node.clone());
         let selections = definition
             .selection_set
             .deref()
             .items
             .iter()
-            .map(|v| &v.node);
+            .map(|v| v.node.clone());
 
-        let current_type = self.registry.lookup(&type_names::TypeCondition::from(
-            type_condition.on.node.as_str(),
-        ))?;
+        let current_type = check_current_type
+            .then(|| {
+                self.registry.lookup(&type_names::TypeCondition::from(
+                    type_condition.on.node.as_str(),
+                ))
+            })
+            .transpose()?;
 
         self.serialize_fragment_inner(Some(type_condition), directives, selections, current_type)
     }
 
     fn serialize_fragment_inner(
         &mut self,
-        type_condition: Option<&'c TypeCondition>,
-        directives: impl Iterator<Item = &'c Directive>,
-        selections: impl Iterator<Item = &'c Selection>,
-        current_type: SelectionSetTarget<'_>,
+        type_condition: Option<TypeCondition>,
+        directives: impl Iterator<Item = Directive>,
+        selections: impl Iterator<Item = Selection>,
+        current_type: Option<SelectionSetTarget<'_>>,
     ) -> Result<(), Error> {
         let mut target_type = current_type;
         if let Some(condition) = type_condition {
             self.write_str(" on ")?;
 
-            target_type = self
-                .registry
-                .lookup(&type_names::TypeCondition::from(condition.on.as_str()))?;
+            if current_type.is_some() {
+                target_type = Some(
+                    self.registry
+                        .lookup(&type_names::TypeCondition::from(condition.on.as_str()))?,
+                );
+            }
 
             self.write_str(self.remove_prefix_from_type(condition.on.as_str()))?;
         }
@@ -379,7 +418,10 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
         if !self.variable_references.is_empty() {
             write!(declaration, "(")?;
-            for variable_name in &self.variable_references {
+
+            let mut iter = self.variable_references().peekable();
+
+            while let Some(variable_name) = iter.next() {
                 let Some(variable_definition) = self.variable_definitions.get(variable_name) else {
                     return Err(Error::UndeclaredVariable(variable_name.to_string()))
                 };
@@ -410,7 +452,9 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
                         write!(declaration, ")")?;
                     }
                 }
-                write!(declaration, ", ")?;
+                if iter.peek().is_some() {
+                    write!(declaration, ", ")?;
+                }
             }
             write!(declaration, ")")?;
         }
@@ -471,7 +515,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone, PartialEq)]
 pub enum Error {
     #[error(transparent)]
     Fmt(#[from] fmt::Error),
@@ -640,7 +684,10 @@ mod tests {
             let query_ty = registry.lookup_by_str("Query").unwrap().try_into().unwrap();
 
             serializer
-                .query(Target::SelectionSet(Box::new(selections.iter()), query_ty))
+                .query(
+                    Target::SelectionSet(Box::new(selections.into_iter())),
+                    Some(query_ty),
+                )
                 .unwrap();
         } else if input.trim_start().starts_with("mutation") {
             let mutation_ty = registry
@@ -650,10 +697,10 @@ mod tests {
                 .unwrap();
 
             serializer
-                .mutation(Target::SelectionSet(
-                    Box::new(selections.iter()),
-                    mutation_ty,
-                ))
+                .mutation(
+                    Target::SelectionSet(Box::new(selections.into_iter())),
+                    Some(mutation_ty),
+                )
                 .unwrap();
         } else {
             panic!("invalid input data");

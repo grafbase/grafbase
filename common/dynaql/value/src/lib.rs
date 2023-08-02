@@ -147,6 +147,28 @@ pub enum ConstValue {
     Object(IndexMap<Name, ConstValue>),
 }
 
+impl Hash for ConstValue {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+
+        match self {
+            ConstValue::Object(v) => {
+                for (k, v) in v {
+                    k.hash(state);
+                    v.hash(state);
+                }
+            }
+            ConstValue::Null => {}
+            ConstValue::Number(v) => v.hash(state),
+            ConstValue::String(v) => v.hash(state),
+            ConstValue::Boolean(v) => v.hash(state),
+            ConstValue::Binary(v) => v.hash(state),
+            ConstValue::Enum(v) => v.hash(state),
+            ConstValue::List(v) => v.hash(state),
+        }
+    }
+}
+
 impl ConstValue {
     /// Check if this is neither a null or a list of null
     pub fn is_null(&self) -> bool {

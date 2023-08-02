@@ -2,7 +2,7 @@
 source: common/dynaql/src/registry/resolvers/graphql/serializer.rs
 expression: serialize(input)
 ---
-query($foo: Bool = true, ) {
+query($foo: Bool = true) {
 	... @include(if: $foo) {
 		__typename
 		bar

@@ -8,7 +8,6 @@ use std::time::Duration;
 use tracing::{info_span, Instrument};
 
 use crate::paginated::{DynamoDbExtPaginated, PaginatedCursor, PaginationOrdering, QueryResult};
-use crate::runtime::Runtime;
 use crate::{
     DynamoDBContext, DynamoDBRequestedIndex, OperationAuthorization, OperationAuthorizationError, RequestedOperation,
 };
@@ -184,7 +183,7 @@ pub fn get_loader_paginated_query_type(
 ) -> DataLoader<QueryTypePaginatedLoader, LruCache> {
     DataLoader::with_cache(
         QueryTypePaginatedLoader { ctx, index },
-        |f| Runtime::locate().spawn(f),
+        async_runtime::spawn,
         LruCache::new(256),
     )
     .max_batch_size(10)

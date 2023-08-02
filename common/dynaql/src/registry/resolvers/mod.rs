@@ -9,7 +9,11 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use self::{custom::CustomResolver, graphql::Target, transformer::Transformer};
+use self::{
+    custom::CustomResolver,
+    graphql::{QueryBatcher, Target},
+    transformer::Transformer,
+};
 use crate::{Context, Error, RequestHeaders};
 use derivative::Derivative;
 use dynamo_mutation::DynamoMutationResolver;
@@ -313,39 +317,37 @@ impl Resolver {
                     })
                     .collect();
 
-                let target = match resolver.namespace {
-                    Some(_) => {
-                        let current_object = resolver_ctx
-                            .ty
-                            .ok_or_else(|| Error::new("Internal error"))?
-                            .try_into()
-                            .map_err(|_| Error::new("Internal error"))?;
+                let current_object = resolver_ctx
+                    .ty
+                    .ok_or_else(|| Error::new("Internal error"))?
+                    .try_into()
+                    .map_err(|_| Error::new("Internal error"))?;
 
-                        Target::SelectionSet(
-                            Box::new(
-                                ctx.item
-                                    .node
-                                    .selection_set
-                                    .node
-                                    .items
-                                    .as_slice()
-                                    .iter()
-                                    .map(|v| &v.node),
-                            ),
-                            current_object,
-                        )
-                    }
+                let target = match resolver.namespace {
+                    Some(_) => Target::SelectionSet(Box::new(
+                        ctx.item
+                            .node
+                            .selection_set
+                            .node
+                            .items
+                            .clone()
+                            .into_iter()
+                            .map(|v| v.node),
+                    )),
                     None => Target::Field(
-                        &ctx.item,
+                        ctx.item.clone().into_inner(),
                         resolver_ctx
                             .field
-                            .ok_or_else(|| Error::new("internal error"))?,
+                            .ok_or_else(|| Error::new("internal error"))?
+                            .clone(),
                     ),
                 };
 
                 let operation = ctx.query_env.operation.node.ty;
                 let error_handler = |error| ctx.add_error(error);
                 let variables = ctx.query_env.variables.clone();
+
+                let batcher = &ctx.data::<QueryBatcher>()?;
 
                 resolver
                     .resolve(
@@ -354,10 +356,12 @@ impl Resolver {
                         &headers,
                         fragment_definitions,
                         target,
+                        Some(current_object),
                         error_handler,
                         variables,
                         variable_definitions,
                         registry,
+                        Some(batcher),
                     )
                     .await
                     .map_err(Into::into)

@@ -4,13 +4,13 @@
 //! But some of these are quite tricky to implement there so we apply them directly
 //! to the graph prior to building the typed layer.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use petgraph::{graph::NodeIndex, visit::EdgeRef, Direction};
 
 use crate::Error;
 
-use super::{all_of_member::AllOfMember, Edge, Node, OpenApiGraph};
+use super::{all_of_member::AllOfMember, Edge, Node, OpenApiGraph, WrappingType};
 
 pub fn run(graph: &mut OpenApiGraph) -> Result<(), Error> {
     merge_all_of_schemas(graph)?;
@@ -57,10 +57,20 @@ fn impossible_unions_to_json(graph: &mut OpenApiGraph) {
                     Edge::HasType { wrapping } => {
                         graph.graph.add_edge(source_node, json_node, Edge::HasType { wrapping });
                     }
-                    Edge::HasField { name, wrapping } => {
-                        graph
-                            .graph
-                            .add_edge(source_node, json_node, Edge::HasField { name, wrapping });
+                    Edge::HasField {
+                        name,
+                        wrapping,
+                        required,
+                    } => {
+                        graph.graph.add_edge(
+                            source_node,
+                            json_node,
+                            Edge::HasField {
+                                name,
+                                wrapping,
+                                required,
+                            },
+                        );
                     }
                     Edge::HasResponseType {
                         status_code,
@@ -145,22 +155,49 @@ fn merge_all_of_schemas(graph: &mut OpenApiGraph) -> Result<(), Error> {
     for all_of_index in all_ofs {
         let members = resolve_all_of_members(graph, all_of_index);
 
-        // We create an object to represent this allOf, then copy all the nested
-        // fields onto that object.
-        let object_index = graph.graph.add_node(Node::Object);
+        let mut fields = BTreeMap::<String, AllOfField>::new();
+
+        // Iterate through all the members grabbing fields merging the details of any duplicates.
         for member in members {
-            let mut new_edges = Vec::new();
             for edge in graph.graph.edges(member.index()) {
-                if let Edge::HasField { name, wrapping } = edge.weight() {
-                    new_edges.push((name.clone(), wrapping.clone(), edge.target()));
+                if let Edge::HasField {
+                    name,
+                    wrapping,
+                    required,
+                } = edge.weight()
+                {
+                    let field = AllOfField {
+                        name: name.clone(),
+                        required: *required,
+                        wrapping: wrapping.clone(),
+                        target_index: edge.target(),
+                    };
+
+                    fields
+                        .entry(name.clone())
+                        .and_modify(|existing_field| existing_field.merge(&field, graph))
+                        .or_insert(field);
                 }
             }
+        }
 
-            for (name, wrapping, target_index) in new_edges {
-                graph
-                    .graph
-                    .add_edge(object_index, target_index, Edge::HasField { name, wrapping });
-            }
+        let object_index = graph.graph.add_node(Node::Object);
+        for AllOfField {
+            name,
+            wrapping,
+            required,
+            target_index,
+        } in fields.into_values()
+        {
+            graph.graph.add_edge(
+                object_index,
+                target_index,
+                Edge::HasField {
+                    name,
+                    required,
+                    wrapping,
+                },
+            );
         }
 
         // Now we need to rewrite any edges to the allOf to point at our new object instead
@@ -188,4 +225,102 @@ fn resolve_all_of_members(graph: &OpenApiGraph, all_of_index: NodeIndex) -> Vec<
         .filter_map(|edge| matches!(edge.weight(), Edge::AllOfMember).then_some(edge.target()))
         .filter_map(|target_index| AllOfMember::from_index(target_index, graph))
         .collect()
+}
+
+#[derive(Debug, PartialEq)]
+struct AllOfField {
+    name: String,
+    required: bool,
+    wrapping: WrappingType,
+    target_index: NodeIndex,
+}
+
+impl AllOfField {
+    fn merge(&mut self, other: &AllOfField, graph: &OpenApiGraph) {
+        assert_eq!(other.name, self.name);
+        match (&graph.graph[self.target_index], &graph.graph[other.target_index]) {
+            (Node::PlaceholderType, _) => {
+                self.target_index = other.target_index;
+                self.wrapping = other.wrapping.clone();
+                self.required |= other.required;
+            }
+            (_, Node::PlaceholderType) => {
+                self.required |= other.required;
+            }
+            _ => {}
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use petgraph::Graph;
+
+    use super::*;
+
+    #[test]
+    fn test_all_of_merge_lhs() {
+        let mut graph = Graph::new();
+        let boolean_type = graph.add_node(Node::Scalar(crate::graph::ScalarKind::Boolean));
+        let placeholder_type = graph.add_node(Node::PlaceholderType);
+        let graph = OpenApiGraph::from_petgraph(graph);
+
+        let mut required_placeholder = AllOfField {
+            name: "field".into(),
+            wrapping: WrappingType::Named,
+            required: true,
+            target_index: placeholder_type,
+        };
+        let nullable_list_of_required_bools = AllOfField {
+            name: "field".into(),
+            wrapping: WrappingType::Named.wrap_required().wrap_list(),
+            required: false,
+            target_index: boolean_type,
+        };
+
+        required_placeholder.merge(&nullable_list_of_required_bools, &graph);
+
+        assert_eq!(
+            required_placeholder,
+            AllOfField {
+                required: true,
+                ..nullable_list_of_required_bools
+            }
+        );
+    }
+
+    #[test]
+    fn test_all_of_merge_rhs() {
+        let mut graph = Graph::new();
+        let boolean_type = graph.add_node(Node::Scalar(crate::graph::ScalarKind::Boolean));
+        let placeholder_type = graph.add_node(Node::PlaceholderType);
+        let graph = OpenApiGraph::from_petgraph(graph);
+
+        let required_placeholder = AllOfField {
+            name: "field".into(),
+            wrapping: WrappingType::Named,
+            required: true,
+            target_index: placeholder_type,
+        };
+        let mut nullable_list_of_required_bools = AllOfField {
+            name: "field".into(),
+            wrapping: WrappingType::Named.wrap_required().wrap_list(),
+            required: false,
+            target_index: boolean_type,
+        };
+
+        nullable_list_of_required_bools.merge(&required_placeholder, &graph);
+
+        assert_eq!(
+            nullable_list_of_required_bools,
+            AllOfField {
+                name: "field".into(),
+                wrapping: WrappingType::Named.wrap_required().wrap_list(),
+                required: true,
+                target_index: boolean_type,
+            }
+        );
+    }
+
+    // TODO: Do I also want a more thorough test of everything?  Not sure...
 }

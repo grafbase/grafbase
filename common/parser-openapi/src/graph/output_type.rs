@@ -34,6 +34,15 @@ impl OpenApiGraph {
     /// Gets an iterator of all the OutputTypes that we'll need in the eventual schema
     pub fn output_types(&self) -> Vec<OutputType> {
         let filtered_graph = EdgeFiltered::from_fn(&self.graph, |edge| {
+            if let Edge::HasResponseType { content_type, .. } = edge.weight() {
+                if content_type != "application/json" {
+                    // Don't follow edges that lead to non-JSON responses.
+                    // This is important as some APIs support > 1 content_type and
+                    // have different shapes for each format.
+                    return false;
+                }
+            }
+
             // Don't follow edges that lead to input types
             !matches!(
                 edge.weight(),
@@ -67,9 +76,13 @@ impl OutputType {
             .graph
             .edges(self.index())
             .filter_map(|edge| match edge.weight() {
-                super::Edge::HasField { name, wrapping } => Some(OutputField {
+                super::Edge::HasField {
+                    name,
+                    wrapping,
+                    required,
+                } => Some(OutputField {
                     openapi_name: name.clone(),
-                    ty: OutputFieldType::from_index(edge.target(), wrapping),
+                    ty: OutputFieldType::from_index(edge.target(), &wrapping.clone().set_required(*required), graph)?,
                 }),
                 _ => None,
             })
@@ -147,11 +160,16 @@ impl OutputField {
 }
 
 impl OutputFieldType {
-    pub(super) fn from_index(index: NodeIndex, wrapping: &WrappingType) -> Self {
-        OutputFieldType {
+    pub(super) fn from_index(index: NodeIndex, wrapping: &WrappingType, graph: &OpenApiGraph) -> Option<Self> {
+        // Make sure index is actually a valid OutputType
+        if !index_is_output_type(index, graph) {
+            return None;
+        }
+
+        Some(OutputFieldType {
             wrapping: wrapping.clone(),
             target_index: index,
-        }
+        })
     }
 
     pub fn type_name(&self, graph: &OpenApiGraph) -> Option<String> {
@@ -190,4 +208,10 @@ impl OutputFieldType {
             })
             .collect()
     }
+}
+
+fn index_is_output_type(index: NodeIndex, graph: &OpenApiGraph) -> bool {
+    OutputType::from_index(index, graph).is_some()
+        || Enum::from_index(index, graph).is_some()
+        || Scalar::from_index(index, graph).is_some()
 }

@@ -265,15 +265,19 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 ctx.errors.push(Error::NotSchema);
             }
             SchemaKind::Any(any) => {
-                // For now we're assuming this is just an object that openapiv3 doesn't understand
-                extract_object(
-                    ctx,
-                    parent,
-                    &schema.schema_data,
-                    &any.properties,
-                    any.additional_properties.as_ref(),
-                    &any.required,
-                );
+                if any.properties.is_empty() && any.additional_properties.is_none() {
+                    ctx.add_type_node(parent, Node::PlaceholderType, false);
+                } else {
+                    // For now we're assuming this is just an object that openapiv3 doesn't understand
+                    extract_object(
+                        ctx,
+                        parent,
+                        &schema.schema_data,
+                        &any.properties,
+                        any.additional_properties.as_ref(),
+                        &any.required,
+                    );
+                }
             }
         },
     }

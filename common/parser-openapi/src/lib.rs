@@ -301,6 +301,23 @@ mod tests {
     }
 
     #[test]
+    fn test_mongo_atlas() {
+        tracing_subscriber::fmt().with_env_filter("trace").pretty().init();
+
+        // Mongo Atlas is a 3.1 spec
+        insta::assert_snapshot!(build_registry(
+            "test_data/mongo-atlas.json",
+            Format::Json,
+            ApiMetadata {
+                url: None,
+                ..metadata(Some("mongo"))
+            }
+        )
+        .unwrap()
+        .export_sdl(false));
+    }
+
+    #[test]
     fn test_impossible_unions() {
         insta::assert_snapshot!(build_registry(
             "test_data/impossible-unions.json",
@@ -312,12 +329,29 @@ mod tests {
     }
 
     #[test]
-    fn test_all_of_schema() {
-        insta::assert_snapshot!(
-            build_registry("test_data/all-ofs.json", Format::Json, metadata(Some("petstore")))
-                .unwrap()
-                .export_sdl(false)
-        );
+    fn test_all_of_schema_simple() {
+        // an allOf schema that are simple merges of distinct objects
+        insta::assert_snapshot!(build_registry(
+            "test_data/all-ofs-simple.json",
+            Format::Json,
+            metadata(Some("petstore"))
+        )
+        .unwrap()
+        .export_sdl(false));
+    }
+
+    #[test]
+    fn test_all_of_schema_complex() {
+        // Some allOf schemas have properties defined in multiple branches
+        // of the allOf, with required sometiems being in one branch but not
+        // another.  This is a test of that....
+        insta::assert_snapshot!(build_registry(
+            "test_data/all-ofs-complex.json",
+            Format::Json,
+            metadata(Some("petstore"))
+        )
+        .unwrap()
+        .export_sdl(false));
     }
 
     #[test]

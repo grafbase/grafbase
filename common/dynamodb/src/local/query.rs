@@ -1,7 +1,6 @@
 use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
 use crate::paginated::QueryResult;
-use crate::runtime::Runtime;
 use crate::{
     DynamoDBContext, DynamoDBRequestedIndex, LocalContext, OperationAuthorization, OperationAuthorizationError,
     RequestedOperation,
@@ -170,7 +169,7 @@ pub fn get_loader_query(
             ctx,
             index,
         },
-        |f| Runtime::locate().spawn(f),
+        async_runtime::spawn,
         LruCache::new(256),
     )
     .max_batch_size(10)

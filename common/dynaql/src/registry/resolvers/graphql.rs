@@ -34,24 +34,51 @@ use std::{
     sync::Arc,
 };
 
-use dynaql_parser::types::{
-    Field, FragmentDefinition, OperationType, Selection, VariableDefinition,
+use dataloader::{DataLoader, Loader, NoCache};
+use dynaql_parser::{
+    parse_query,
+    types::{
+        ExecutableDocument, Field, FragmentDefinition, OperationType, Selection, SelectionSet,
+        VariableDefinition,
+    },
 };
 use dynaql_value::{ConstValue, Name, Variables};
 use futures_util::Future;
-use http::header::USER_AGENT;
+use http::{header::USER_AGENT, StatusCode};
 use inflector::Inflector;
 use send_wrapper::SendWrapper;
 use url::Url;
 
 use crate::{
-    registry::{type_kinds::SelectionSetTarget, MetaField, Registry},
+    registry::{
+        resolvers::graphql::response::UpstreamResponse, type_kinds::SelectionSetTarget, MetaField,
+        Registry,
+    },
     ServerError,
 };
 
-use self::{response::UpstreamResponse, serializer::Serializer};
+use self::serializer::Serializer;
 
 use super::ResolvedValue;
+
+pub struct QueryBatcher {
+    loader: DataLoader<QueryLoader, NoCache>,
+}
+
+impl QueryBatcher {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            loader: DataLoader::new(QueryLoader, async_runtime::spawn),
+        }
+    }
+}
+
+impl Default for QueryBatcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct Resolver {
@@ -78,18 +105,224 @@ pub struct Resolver {
     pub url: Url,
 }
 
-#[derive(Debug, serde::Serialize)]
+impl Resolver {
+    #[cfg(test)]
+    pub fn stub(namespace: impl AsRef<str>, url: impl AsRef<str>) -> Self {
+        let namespace = match namespace.as_ref() {
+            "" => None,
+            v => Some(v.to_owned()),
+        };
+
+        Self {
+            id: 0,
+            namespace,
+            url: Url::parse(url.as_ref()).expect("valid url"),
+        }
+    }
+}
+
+struct QueryLoader;
+
+#[async_trait::async_trait]
+impl Loader<QueryData> for QueryLoader {
+    type Value = (UpstreamResponse, StatusCode);
+    type Error = Error;
+
+    async fn load(
+        &self,
+        queries: &[QueryData],
+    ) -> Result<HashMap<QueryData, Self::Value>, Self::Error> {
+        load(queries).await
+    }
+}
+
+type LoadResult = Result<HashMap<QueryData, (UpstreamResponse, StatusCode)>, Error>;
+
+fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send>> {
+    #[derive(Eq, PartialEq, Ord, PartialOrd, Hash)]
+    struct ResolverDetails {
+        id: u16,
+        url: String,
+        headers: Vec<(String, String)>,
+    }
+
+    let mut resolver_queries: BTreeMap<_, Vec<Query>> = BTreeMap::default();
+
+    for data in queries.iter().cloned() {
+        let id = ResolverDetails {
+            id: data.resolver_id,
+            url: data.url,
+            headers: data.headers,
+        };
+
+        resolver_queries
+            .entry(id)
+            .or_default()
+            .push(data.query.clone());
+    }
+
+    let mut results: HashMap<QueryData, (UpstreamResponse, StatusCode)> = HashMap::default();
+
+    Box::pin(SendWrapper::new(async move {
+        for (resolver, queries) in resolver_queries {
+            let mut request_builder = reqwest::Client::new()
+                .post(resolver.url.clone())
+                .header(USER_AGENT, "Grafbase"); /* Some APIs (such a GitHub's) require a User-Agent
+                                                 header */
+
+            for (name, value) in resolver.headers.clone() {
+                request_builder = request_builder.header(name, value);
+            }
+
+            let query = if queries.len() == 1 {
+                queries[0].clone()
+            } else {
+                group_queries(queries.clone())
+            };
+
+            let response = request_builder
+                .json(&query)
+                .send()
+                .await
+                .map_err(|e| Error::RequestError(e.to_string()))?;
+
+            let http_status = response.status();
+
+            let upstream_response = UpstreamResponse::from_response_text(
+                http_status,
+                response
+                    .text()
+                    .await
+                    .map_err(|e| Error::RequestError(e.to_string())),
+            )?;
+
+            for query in queries {
+                let key = QueryData {
+                    query,
+                    headers: resolver.headers.clone(),
+                    resolver_id: resolver.id,
+                    url: resolver.url.clone(),
+                };
+
+                results.insert(key, (upstream_response.clone(), http_status));
+            }
+        }
+
+        Ok(results)
+    }))
+}
+
+fn group_queries(queries: Vec<Query>) -> Query {
+    let mut variables = BTreeMap::new();
+
+    let mut all_fragments = HashMap::new();
+    let mut all_variable_definitions = HashMap::new();
+    let mut all_selections = SelectionSet::default();
+    let mut all_directives = HashMap::new();
+
+    for Query {
+        query: q,
+        variables: v,
+    } in queries
+    {
+        let ExecutableDocument {
+            operations,
+            fragments,
+        } = parse_query(&q).expect("valid serialized query");
+
+        let operation = operations
+            .iter()
+            .next()
+            .expect("serialized to a single operation")
+            .1
+            .clone()
+            .into_inner();
+
+        // Only queries will be grouped.
+        debug_assert_eq!(operation.ty, OperationType::Query);
+
+        for def in operation.variable_definitions {
+            all_variable_definitions.insert(def.name.clone().into_inner(), def);
+        }
+
+        for dir in operation.directives {
+            all_directives.insert(dir.name.clone().into_inner(), dir);
+        }
+
+        all_fragments.extend(fragments);
+        all_selections
+            .items
+            .extend(operation.selection_set.items.clone());
+
+        variables.extend(v);
+    }
+
+    let mut query = String::new();
+    let registry = Registry::default();
+
+    let fragment_definitions = all_fragments
+        .iter()
+        .map(|(k, v)| (k, v.as_ref().node))
+        .collect();
+
+    let all_variable_definitions: Vec<_> = all_variable_definitions.into_values().collect();
+    let variable_definitions = all_variable_definitions
+        .iter()
+        .map(|variable_definition| {
+            (
+                &variable_definition.node.name.node,
+                &variable_definition.node,
+            )
+        })
+        .collect();
+
+    let mut serializer = Serializer::new(
+        None,
+        fragment_definitions,
+        variable_definitions,
+        &mut query,
+        &registry,
+    );
+
+    let target = Target::SelectionSet(Box::new(
+        all_selections.items.into_iter().map(|v| v.node.clone()),
+    ));
+
+    serializer
+        .query(target, None)
+        .expect("valid grouping of queries");
+
+    Query { query, variables }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
+struct QueryData {
+    /// The actual query to be joined with other queries and sent to the remote endpoint.
+    query: Query,
+
+    /// A list of headers to add to the remote request.
+    headers: Vec<(String, String)>,
+
+    /// The URL of the remote endpoint.
+    url: String,
+
+    /// The ID of the resolver this query belongs to.
+    ///
+    /// This data is needed to ensure queries are grouped by resolver. We cannot rely on the URL
+    /// alone, as two resolvers might have the same URL, but other properties (such as headers)
+    /// might differ.
+    resolver_id: u16,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
 struct Query {
     query: String,
     variables: BTreeMap<Name, ConstValue>,
 }
 
-pub enum Target<'a> {
-    SelectionSet(
-        Box<dyn Iterator<Item = &'a Selection> + Send + 'a>,
-        SelectionSetTarget<'a>,
-    ),
-    Field(&'a Field, &'a MetaField),
+pub enum Target {
+    SelectionSet(Box<dyn Iterator<Item = Selection> + Send + Sync>),
+    Field(Field, MetaField),
 }
 
 impl Resolver {
@@ -103,28 +336,21 @@ impl Resolver {
     pub(super) fn resolve<'a>(
         &'a self,
         operation: OperationType,
-        headers: &[(&str, &str)],
+        headers: &'a [(&'a str, &'a str)],
         fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
-        target: Target<'a>,
+        target: Target,
+        current_type: Option<SelectionSetTarget<'a>>,
         mut error_handler: impl FnMut(ServerError) + 'a,
         variables: Variables,
         variable_definitions: HashMap<&'a Name, &'a VariableDefinition>,
         registry: &'a Registry,
+        batcher: Option<&'a QueryBatcher>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
-        let mut request_builder = reqwest::Client::new()
-            .post(self.url.clone())
-            .header(USER_AGENT, "Grafbase"); /* Some APIs (such a GitHub's) require a User-Agent
-                                             header */
-
-        for (name, value) in headers {
-            request_builder = request_builder.header(*name, *value);
-        }
-
         let mut query = String::new();
         let prefix = self.namespace.clone().map(|n| n.to_pascal_case());
 
         let wrapping_field = match &target {
-            Target::SelectionSet(_, _) => None,
+            Target::SelectionSet(_) => None,
             Target::Field(field, _) => Some(field.name.node.to_string()),
         };
 
@@ -136,9 +362,10 @@ impl Resolver {
                 &mut query,
                 registry,
             );
+
             match operation {
-                OperationType::Query => serializer.query(target)?,
-                OperationType::Mutation => serializer.mutation(target)?,
+                OperationType::Query => serializer.query(target, current_type)?,
+                OperationType::Mutation => serializer.mutation(target, current_type)?,
                 OperationType::Subscription => {
                     return Err(Error::UnsupportedOperation("subscription"))
                 }
@@ -153,15 +380,32 @@ impl Resolver {
                 })
                 .collect();
 
-            let response = request_builder
-                .json(&Query { query, variables })
-                .send()
-                .await?;
+            let query_data = QueryData {
+                query: Query { query, variables },
+                headers: headers
+                    .iter()
+                    .copied()
+                    .map(|(a, b)| (a.to_owned(), b.to_owned()))
+                    .collect(),
+                resolver_id: self.id,
+                url: self.url.to_string(),
+            };
 
-            let http_status = response.status();
+            let value = match (batcher, operation) {
+                (_, OperationType::Subscription) => {
+                    return Err(Error::UnsupportedOperation("subscription"))
+                }
+                (Some(batcher), OperationType::Query) => {
+                    batcher.loader.load_one(query_data).await?
+                }
+                _ => load(&[query_data]).await?.into_values().next(),
+            };
 
-            let UpstreamResponse { mut data, errors } =
-                UpstreamResponse::from_response_text(http_status, response.text().await)?;
+            let Some(value) = value else {
+                return Err(Error::MalformedUpstreamResponse)
+            };
+
+            let (UpstreamResponse { mut data, errors }, http_status) = value;
 
             if !http_status.is_success() {
                 // If we haven't had a fatal error we should still report the http error
@@ -194,7 +438,7 @@ impl Resolver {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone, PartialEq)]
 pub enum Error {
     #[error("the provided operation type is not supported by this resolver: {0}")]
     UnsupportedOperation(&'static str),
@@ -202,11 +446,14 @@ pub enum Error {
     #[error("could not serialize downstream graphql operation: {0}")]
     SerializerError(#[from] serializer::Error),
 
+    #[error("could not deserialize upstream response: {0}")]
+    DeserializerError(String),
+
     #[error("request to upstream server failed: {0}")]
-    RequestError(#[from] reqwest::Error),
+    RequestError(String),
 
     #[error("couldnt decode JSON from upstream server: {0}")]
-    JsonDecodeError(#[from] serde_json::Error),
+    JsonDecodeError(String),
 
     #[error("received invalid response from upstream server")]
     MalformedUpstreamResponse,
@@ -236,18 +483,44 @@ fn prefix_result_typename(value: &mut serde_json::Value, prefix: &str) {
 
 #[cfg(test)]
 mod tests {
+    use dynaql_parser::parse_query;
+    use futures_util::join;
     use indoc::indoc;
     use serde_json::{json, Value};
-    use wiremock::MockServer;
+    use wiremock::{
+        matchers::{body_json, header, method, path},
+        Mock, MockServer, ResponseTemplate,
+    };
 
-    use crate::registry::{MetaField, ObjectType, UnionType};
+    use crate::registry::builder::RegistryBuilder;
 
     use super::*;
 
     #[tokio::test]
     async fn resolve() {
         let server = MockServer::start().await;
-        let registry = fake_registry();
+        let registry = RegistryBuilder::default()
+            .build_object("GithubRepository")
+            .insert_field("id", "ID!")
+            .insert_field("changedFiles", "[String!]!")
+            .insert_field("issueOrPullRequest", "GithubIssueOrPr!")
+            .insert_field("pullRequest", "GithubPullRequest")
+            .finalize_object()
+            .build_object("GithubIssue")
+            .insert_field("id", "ID!")
+            .finalize_object()
+            .build_object("GithubPullRequest")
+            .insert_field("id", "ID!")
+            .insert_field("changedFiles", "[String!]!")
+            .finalize_object()
+            .insert_union("GithubIssueOrPr", ["GithubIssue", "GithubPullRequest"])
+            .build_object("GithubQueries")
+            .insert_field("repository", "GithubRepository")
+            .finalize_object()
+            .build_object("Query")
+            .insert_field("github", "GithubQueries")
+            .finalize_object()
+            .finalize();
 
         let query = indoc! {r#"
             query {
@@ -279,40 +552,258 @@ mod tests {
             }
         });
 
-        let mut errors = vec![];
-        let result = run_resolve(&server, query, response, &mut errors, &registry)
-            .await
-            .unwrap();
-
-        insta::assert_json_snapshot!(result);
-    }
-
-    async fn run_resolve(
-        server: &MockServer,
-        query: &str,
-        response: Value,
-        errors: &mut Vec<ServerError>,
-        registry: &Registry,
-    ) -> Result<Value, Error> {
-        use dynaql_parser::parse_query;
-        use wiremock::matchers::{header, method, path};
-        use wiremock::{Mock, ResponseTemplate};
-
         Mock::given(method("POST"))
             .and(path("/"))
             .and(header("User-Agent", "Grafbase"))
             .and(header("Authorization", "Bearer FOOBAR"))
             .respond_with(ResponseTemplate::new(200).set_body_json(response.clone()))
             .expect(1)
-            .mount(server)
+            .mount(&server)
             .await;
 
-        let resolver = Resolver {
-            id: 0,
-            namespace: Some("myApi".to_owned()),
-            url: Url::parse(&server.uri()).unwrap(),
-        };
+        let result = resolve_registry(
+            Resolver::stub("myApi", server.uri()),
+            registry.clone(),
+            None,
+            query,
+        )
+        .await;
 
+        assert_eq!(result.as_ref().err(), None);
+
+        insta::assert_json_snapshot!(result.unwrap());
+    }
+
+    struct FnMatcher<T: Fn(&wiremock::Request) -> bool + Send + Sync>(T);
+
+    impl<T: Fn(&wiremock::Request) -> bool + Send + Sync> wiremock::Match for FnMatcher<T> {
+        fn matches(&self, request: &wiremock::Request) -> bool {
+            self.0(request)
+        }
+    }
+
+    fn request_fn<T: Fn(&wiremock::Request) -> bool + Send + Sync>(func: T) -> FnMatcher<T> {
+        FnMatcher(func)
+    }
+
+    #[tokio::test]
+    async fn batching_queries() {
+        let server = MockServer::start().await;
+        let batcher = QueryBatcher::new();
+
+        // 1. Stub our `Registry` type.
+        let registry = RegistryBuilder::default()
+            .insert_object("FooObject")
+            .insert_object("BarObject")
+            .build_object("Query")
+            .insert_field("foo", "FooObject")
+            .insert_field("bar", "BarObject")
+            .finalize_object()
+            .finalize();
+
+        // 2. We have two query fields, but expect a single API call due to batching.
+        Mock::given(method("POST"))
+            .and(request_fn(|req| {
+                let body = req.body_json::<Value>().unwrap().to_string();
+                body.contains("foo\\n\\tbar") || body.contains("bar\\n\\tfoo")
+            }))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        // 3. Perform two different queries in parallel, using the same `QueryBatcher`.
+        let foo = resolve_registry(
+            Resolver::stub("", server.uri()),
+            registry.clone(),
+            Some(&batcher),
+            "query { foo }",
+        );
+
+        let bar = resolve_registry(
+            Resolver::stub("", server.uri()),
+            registry,
+            Some(&batcher),
+            "query { bar }",
+        );
+
+        let _results = join!(foo, bar);
+
+        // 4. Validate mocking expectations.
+        server.verify().await;
+    }
+
+    #[tokio::test]
+    async fn batching_named_queries() {
+        let server = MockServer::start().await;
+        let batcher = QueryBatcher::new();
+
+        // 1. Stub our `Registry` type.
+        let registry = RegistryBuilder::default()
+            .insert_object("FooObject")
+            .insert_object("BarObject")
+            .build_object("Query")
+            .insert_field("foo", "FooObject")
+            .insert_field("bar", "BarObject")
+            .finalize_object()
+            .finalize();
+
+        // 2. We have two query fields, but expect a single API call due to batching.
+        Mock::given(method("POST"))
+            .and(request_fn(|req| {
+                let body = req.body_json::<Value>().unwrap().to_string();
+                body.contains("foo\\n\\tbar") || body.contains("bar\\n\\tfoo")
+            }))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        // 3. Perform two different queries in parallel, using the same `QueryBatcher`.
+        let foo = resolve_registry(
+            Resolver::stub("", server.uri()),
+            registry.clone(),
+            Some(&batcher),
+            "query Hello { foo }",
+        );
+
+        let bar = resolve_registry(
+            Resolver::stub("", server.uri()),
+            registry,
+            Some(&batcher),
+            "query World { bar }",
+        );
+
+        let _results = join!(foo, bar);
+
+        // 4. Validate mocking expectations.
+        server.verify().await;
+    }
+
+    #[tokio::test]
+    async fn mutations_are_never_batched() {
+        let server = MockServer::start().await;
+        let batcher = QueryBatcher::new();
+
+        // 1. Stub our `Registry` type.
+        let registry = RegistryBuilder::default()
+            .insert_object("FooObject")
+            .insert_object("BarObject")
+            .build_object("Mutation")
+            .insert_field("foo", "FooObject")
+            .insert_field("bar", "BarObject")
+            .finalize_object()
+            .finalize();
+
+        // 2. Mutations are processed sequentially, resulting in two invidual requests.
+        Mock::given(method("POST"))
+            .and(body_json(
+                json!({"query":"mutation {\n\tfoo\n}\n","variables":{}}),
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(body_json(
+                json!({"query":"mutation {\n\tbar\n}\n","variables":{}}),
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        // 3. Perform two different queries in parallel, using the same `QueryBatcher`.
+        let foo = resolve_registry(
+            Resolver::stub("", server.uri()),
+            registry.clone(),
+            Some(&batcher),
+            "mutation { foo }",
+        );
+
+        let bar = resolve_registry(
+            Resolver::stub("", server.uri()),
+            registry,
+            Some(&batcher),
+            "mutation { bar }",
+        );
+
+        let (a, b) = join!(foo, bar);
+        assert_eq!(a.err(), None);
+        assert_eq!(b.err(), None);
+
+        // 4. Validate mocking expectations.
+        server.verify().await;
+    }
+
+    #[tokio::test]
+    async fn batching_queries_with_variables() {
+        let server = MockServer::start().await;
+        let batcher = QueryBatcher::new();
+
+        // 1. Stub our `Registry` type.
+        let registry = RegistryBuilder::default()
+            .insert_object("FooObject")
+            .insert_object("BarObject")
+            .build_object("Query")
+            .build_field("foo", "FooObject")
+            .insert_argument("id", "ID!")
+            .finalize_field()
+            .build_field("bar", "BarObject")
+            .insert_argument("id", "ID!")
+            .finalize_field()
+            .finalize_object()
+            .finalize();
+
+        // 2. We have two query fields, but expect a single API call due to batching.
+        Mock::given(method("POST"))
+            .and(request_fn(|req| {
+                let body = req.body_json::<Value>().unwrap().to_string();
+
+                let vars = body.contains("query($foo: ID, $bar: ID)")
+                    || body.contains("query($bar: ID, $foo: ID)");
+
+                let fields = body.contains("foo(id: $foo)\\n\\tbar(id: $bar)")
+                    || body.contains("bar(id: $bar)\\n\\tfoo(id: $foo)");
+
+                vars && fields
+            }))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        // 3. Perform two different queries in parallel, using the same `QueryBatcher`.
+        let foo = resolve_registry(
+            Resolver::stub("", server.uri()),
+            registry.clone(),
+            Some(&batcher),
+            "query Foo($foo: ID) { foo(id: $foo) }",
+        );
+
+        let bar = resolve_registry(
+            Resolver::stub("", server.uri()),
+            registry,
+            Some(&batcher),
+            "query Foo($bar: ID) { bar(id: $bar) }",
+        );
+
+        let (a, b) = join!(foo, bar);
+        assert_eq!(a.err(), None);
+        assert_eq!(b.err(), None);
+
+        // 4. Validate mocking expectations.
+        server.verify().await;
+    }
+
+    async fn resolve_registry(
+        resolver: Resolver,
+        registry: Registry,
+        batcher: Option<&QueryBatcher>,
+        query: impl AsRef<str>,
+    ) -> Result<Value, Error> {
+        let mut errors = vec![];
         let headers = vec![("Authorization", "Bearer FOOBAR")];
         let document = parse_query(query).unwrap();
 
@@ -326,98 +817,69 @@ mod tests {
             .operations
             .iter()
             .next()
-            .unwrap()
+            .expect("at least one operation")
             .1
             .clone()
             .into_inner();
 
-        let current_type = registry.lookup_by_str("Query").unwrap().try_into().unwrap();
-        let target = Target::SelectionSet(
-            Box::new(
-                operation
-                    .selection_set
-                    .node
-                    .items
-                    .as_slice()
-                    .iter()
-                    .map(|v| &v.node),
-            ),
-            current_type,
-        );
+        let variable_definitions = operation
+            .variable_definitions
+            .iter()
+            .map(|variable_definition| {
+                (
+                    &variable_definition.node.name.node,
+                    &variable_definition.node,
+                )
+            })
+            .collect();
+
+        let operation_type = operation.ty;
+
+        let current_type = match operation.ty {
+            OperationType::Query => registry.lookup_by_str("Query").unwrap().try_into().unwrap(),
+            OperationType::Mutation => registry
+                .lookup_by_str("Mutation")
+                .unwrap()
+                .try_into()
+                .unwrap(),
+            OperationType::Subscription => unimplemented!(),
+        };
+
+        let target = Target::SelectionSet(Box::new(
+            operation
+                .selection_set
+                .node
+                .items
+                .clone()
+                .into_iter()
+                .map(|v| v.node),
+        ));
 
         let error_handler = |error| errors.push(error);
 
         let value = resolver
             .resolve(
-                OperationType::Query,
+                operation_type,
                 &headers,
                 fragment_definitions,
                 target,
+                Some(current_type),
                 error_handler,
                 Variables::default(),
-                HashMap::new(),
-                registry,
+                variable_definitions,
+                &registry,
+                batcher,
             )
             .await?
             .data_resolved;
 
-        let data = Arc::try_unwrap(value).unwrap();
+        let data = Arc::into_inner(value).unwrap();
         let response = if errors.is_empty() {
             json!({ "data": data })
         } else {
-            json!({ "data": data, "errors": errors })
+            json!({ "data": data, "errors": errors.clone() })
         };
 
         Ok(response)
-    }
-
-    fn fake_registry() -> Registry {
-        let mut registry = Registry::new();
-        registry.insert_type(ObjectType::new(
-            "GithubRepository",
-            [
-                MetaField::new("id", "ID!"),
-                // Not certain this is the correct type for changedFiles, but who cares
-                MetaField::new("changedFiles", "[String!]!"),
-                // Technically this field has an argument, but for now the tests don't need that detail
-                MetaField::new("issueOrPullRequest", "GithubIssueOrPr!"),
-                // Technically this field has an argument, but for now the tests don't need that detail
-                MetaField::new("pullRequest", "GithubPullRequest"),
-            ],
-        ));
-
-        registry.insert_type(ObjectType::new(
-            "GithubIssue",
-            [MetaField::new("id", "ID!")],
-        ));
-
-        registry.insert_type(ObjectType::new(
-            "GithubPullRequest",
-            [
-                MetaField::new("id", "ID!"),
-                MetaField::new("changedFiles", "[String!]!"),
-            ],
-        ));
-
-        registry.insert_type(UnionType::new(
-            "GithubIssueOrPr",
-            ["GithubIssue", "GithubPullRequest"],
-        ));
-
-        registry.insert_type(ObjectType::new(
-            "GitHubQueries",
-            [MetaField::new("repository", "GithubRepository")],
-        ));
-
-        let query_fields = registry
-            .types
-            .get_mut("Query")
-            .unwrap()
-            .fields_mut()
-            .unwrap();
-
-        query_fields.insert("github".into(), MetaField::new("github", "GitHubQueries"));
-
-        registry
     }
 }
