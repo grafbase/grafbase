@@ -1,14 +1,18 @@
+use std::{borrow::Cow, collections::HashSet};
+
 use futures_util::TryFutureExt;
 use json_dotpath::DotPaths;
-use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
-use jwt_compact::{alg::Rsa, jwk::JsonWebKey, prelude::*, TimeOptions};
+use jwt_compact::{
+    alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey},
+    jwk::JsonWebKey,
+    prelude::*,
+    TimeOptions,
+};
 use log::warn;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, OneOrMany};
-use std::borrow::Cow;
-use std::collections::HashSet;
 use url::Url;
 use worker::kv::KvError;
 

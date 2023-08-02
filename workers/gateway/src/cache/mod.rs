@@ -4,6 +4,8 @@ mod gcache;
 mod global;
 mod key;
 
+use std::{sync::Arc, time::Duration};
+
 use async_trait::async_trait;
 use dynaql::parser::types::OperationType;
 pub use edge::EdgeCache;
@@ -14,10 +16,7 @@ pub use global::noop::NoopGlobalCache;
 #[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
 pub use global::remote::CloudflareGlobal;
 pub use key::CacheKey;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-use std::sync::Arc;
-use std::time::Duration;
+use serde::{de::DeserializeOwned, Serialize};
 
 pub type CacheResult<T> = Result<T, CacheError>;
 

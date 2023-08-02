@@ -1,13 +1,11 @@
-use rand::Rng;
-use std::marker::PhantomData;
-use std::sync::Arc;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::UNIX_EPOCH;
+use std::{marker::PhantomData, sync::Arc};
 
+use rand::Rng;
 use worker::{Cache, Date, Headers, Response};
 
-use crate::cache::error::CacheError;
-use crate::cache::{CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult, Cacheable};
+use crate::cache::{error::CacheError, CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult, Cacheable};
 
 const STALE_AT_HEADER: &str = "stale_at";
 const CACHE_TAG_HEADER: &str = "Cache-Tag";

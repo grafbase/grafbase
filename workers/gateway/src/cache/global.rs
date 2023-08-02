@@ -1,11 +1,14 @@
 #[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
 pub mod remote {
-    use crate::cache::{CacheError, CacheResult, GlobalCacheProvider};
-    use crate::platform::config;
     use async_trait::async_trait;
     use js_sys::Uint8Array;
     use serde::Serialize;
     use worker::{Fetch, Headers, Method, RequestInit, Response};
+
+    use crate::{
+        cache::{CacheError, CacheResult, GlobalCacheProvider},
+        platform::config,
+    };
 
     const CLOUDFLARE_BASE_API_URL: &str = "https://api.cloudflare.com/client/v4";
 
@@ -112,8 +115,9 @@ pub mod remote {
 
 #[cfg(any(feature = "local", feature = "sqlite"))]
 pub mod noop {
-    use crate::cache::{CacheResult, GlobalCacheProvider};
     use async_trait::async_trait;
+
+    use crate::cache::{CacheResult, GlobalCacheProvider};
 
     pub struct NoopGlobalCache;
 

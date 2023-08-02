@@ -1,8 +1,11 @@
-use super::*;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use serde_json::json;
-use wiremock::matchers::{method, path};
-use wiremock::{Mock, MockServer, ResponseTemplate};
+use wiremock::{
+    matchers::{method, path},
+    Mock, MockServer, ResponseTemplate,
+};
+
+use super::*;
 
 const JWKS_PATH: &str = ".well-known/jwks.json";
 

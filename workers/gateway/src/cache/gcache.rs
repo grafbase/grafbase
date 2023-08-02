@@ -1,16 +1,16 @@
+use std::{future::Future, marker::PhantomData, sync::Arc};
+
 use futures_util::{FutureExt, TryFutureExt};
 use send_wrapper::SendWrapper;
-use std::future::Future;
-use std::marker::PhantomData;
-use std::sync::Arc;
-
 use tracing_futures::Instrument;
 
-use crate::cache::error::CacheError;
-use crate::cache::{
-    CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult, Cacheable, GlobalCacheProvider,
+use crate::{
+    cache::{
+        error::CacheError, CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult, Cacheable,
+        GlobalCacheProvider,
+    },
+    platform::context::RequestContext,
 };
-use crate::platform::context::RequestContext;
 
 pub enum CacheResponse<Type> {
     Hit(Type),
@@ -274,21 +274,28 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
 
 #[cfg(test)]
 mod tests {
-    use crate::cache::gcache::CacheResponse;
-    use crate::cache::{
-        Cache, CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult, Cacheable, GlobalCacheProvider,
+    use std::{
+        cell::RefCell,
+        collections::HashSet,
+        hash::Hash,
+        sync::{
+            atomic::{AtomicBool, AtomicUsize, Ordering},
+            Arc, RwLock,
+        },
     };
-    use crate::platform::config::Config;
-    use crate::platform::context::RequestContext;
+
     use dynaql::parser::types::OperationType;
     use futures_util::future::BoxFuture;
     use gateway_protocol::CustomerDeploymentConfig;
-    use std::cell::RefCell;
-    use std::collections::HashSet;
-    use std::hash::Hash;
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::sync::{Arc, RwLock};
     use worker_utils::CloudflareRequestContext;
+
+    use crate::{
+        cache::{
+            gcache::CacheResponse, Cache, CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult,
+            Cacheable, GlobalCacheProvider,
+        },
+        platform::{config::Config, context::RequestContext},
+    };
 
     struct DefaultTestGlobalCache;
 

@@ -1,10 +1,13 @@
-use crate::platform::context::RequestContext;
-use crate::platform::http::{GqlRequestBuilder, WorkerRequestExt};
 use async_graphql::{EmptySubscription, Request as GqlRequest, Schema};
 use send_wrapper::SendWrapper;
 use serde_json::Value;
 use tracing_futures::Instrument;
 use worker::{Method, Request, Response, Result, RouteContext};
+
+use crate::platform::{
+    context::RequestContext,
+    http::{GqlRequestBuilder, WorkerRequestExt},
+};
 
 mod error;
 mod graphql;

@@ -1,6 +1,3 @@
-use crate::admin::error::AdminError;
-use crate::admin::graphql::cache::mutation::input::CachePurgeTypesInput;
-use crate::cache::GlobalCacheProvider;
 use async_graphql::Context;
 use dynaql::registry::CacheTag;
 use send_wrapper::SendWrapper;
@@ -9,7 +6,11 @@ use send_wrapper::SendWrapper;
 use crate::cache::CloudflareGlobal;
 #[cfg(any(feature = "local", feature = "sqlite"))]
 use crate::cache::NoopGlobalCache;
-use crate::platform::context::RequestContext;
+use crate::{
+    admin::{error::AdminError, graphql::cache::mutation::input::CachePurgeTypesInput},
+    cache::GlobalCacheProvider,
+    platform::context::RequestContext,
+};
 
 mod input {
     #[derive(Debug, async_graphql::InputObject)]

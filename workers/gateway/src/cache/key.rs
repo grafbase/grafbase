@@ -1,7 +1,10 @@
+use std::{
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+};
+
 use dynaql_value::ConstValue;
 use grafbase::auth::ExecutionAuth;
-use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
 
 #[derive(Debug)]
 pub struct CacheKey<'a, H: Hasher + Default> {
@@ -88,13 +91,13 @@ impl<HB: Hasher + Default> Hash for CacheKey<'_, HB> {
 
 #[cfg(test)]
 mod tests {
-    use crate::cache::key::CacheKey;
+    use std::collections::{hash_map::DefaultHasher, HashSet};
+
     use dynaql::indexmap::IndexMap;
     use dynaql_value::{ConstValue, Name, Variables};
-    use grafbase::auth::ExecutionAuth;
-    use grafbase::auth::Operations;
-    use std::collections::hash_map::DefaultHasher;
-    use std::collections::HashSet;
+    use grafbase::auth::{ExecutionAuth, Operations};
+
+    use crate::cache::key::CacheKey;
 
     #[test]
     fn should_have_equal_cache_key_hashes_when_request_variables_are_equal_with_different_ordering() {
