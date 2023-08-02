@@ -83,11 +83,11 @@ type SupabaseDatabaseUpgradeStatusResponse {
 	databaseUpgradeStatus: SupabaseDatabaseUpgradeStatusResponseDatabaseUpgradeStatus!
 }
 type SupabaseDatabaseUpgradeStatusResponseDatabaseUpgradeStatus {
-	initiatedAt: String!
 	targetVersion: Float!
-	error: String
-	progress: String
 	status: Float!
+	progress: String
+	initiatedAt: String!
+	error: String
 }
 type SupabaseDeleteProviderResponse {
 	updatedAt: String

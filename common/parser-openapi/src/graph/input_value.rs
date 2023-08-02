@@ -4,7 +4,7 @@ use inflector::Inflector;
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use serde_json::Value;
 
-use super::{Edge, Enum, InputObject, Node, OpenApiGraph, WrappingType};
+use super::{Edge, Enum, InputObject, Node, OpenApiGraph, ScalarKind, WrappingType};
 
 #[derive(Clone, Debug)]
 pub struct InputValue {
@@ -22,7 +22,9 @@ pub enum InputValueKind {
 impl InputValue {
     pub(super) fn from_index(index: NodeIndex, wrapping: WrappingType, graph: &OpenApiGraph) -> Option<Self> {
         match &graph.graph[index] {
-            Node::Object | Node::Scalar(_) | Node::Enum { .. } | Node::Union => Some(InputValue { index, wrapping }),
+            Node::Object | Node::Scalar(_) | Node::Enum { .. } | Node::Union | Node::PlaceholderType => {
+                Some(InputValue { index, wrapping })
+            }
             Node::Schema(_) => {
                 let type_edge = graph
                     .graph
@@ -60,7 +62,8 @@ impl InputValue {
             | Node::Default(_)
             | Node::PossibleValue(_)
             | Node::UnionWrappedScalar(_)
-            | Node::AllOf => None,
+            | Node::AllOf
+            | Node::PlaceholderType => None,
         }
     }
 
@@ -69,6 +72,10 @@ impl InputValue {
             Node::Scalar(s) => Some(s.type_name()),
             Node::Enum { .. } => Enum::from_index(self.index, graph)?.name(graph),
             Node::Object | Node::Union => InputObject::from_index(self.index, graph)?.name(graph),
+            Node::PlaceholderType => {
+                // Any placeholders that make it this far should just be mapped to JSON.
+                Some(ScalarKind::Json.type_name())
+            }
             Node::Schema(_)
             | Node::Operation(_)
             | Node::Default(_)

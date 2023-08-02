@@ -79,11 +79,8 @@ impl ParentNode {
                 field_name, required, ..
             } => Edge::HasField {
                 name: field_name.clone(),
-                // wrapping will have had the nullability of a field applied at this
-                // point.  But OpenAPI schemas often don't bother specifying the
-                // nullability of object fields and just use required, so we're better
-                // off ignoring `nullable` and just relying on `required` here.
-                wrapping: wrapping.set_required(*required),
+                required: *required,
+                wrapping,
             },
             ParentNode::List { nullable, parent } => {
                 // Ok, so call parent.to_edge_weight and then modifiy the wrapping in it.
