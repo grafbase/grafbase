@@ -1,0 +1,52 @@
+---
+source: common/sdl-parser/src/rules/relations/mod.rs
+assertion_line: 64
+expression: ctx.relations
+---
+{
+    "postsToday": MetaRelation {
+        name: "postsToday",
+        kind: OneToMany,
+        relation: (
+            Some(
+                ModelName(
+                    "Author",
+                ),
+            ),
+            ModelName(
+                "Post",
+            ),
+        ),
+        birectional: false,
+    },
+    "postsYesterday": MetaRelation {
+        name: "postsYesterday",
+        kind: OneToMany,
+        relation: (
+            Some(
+                ModelName(
+                    "Author",
+                ),
+            ),
+            ModelName(
+                "Post",
+            ),
+        ),
+        birectional: false,
+    },
+    "published": MetaRelation {
+        name: "published",
+        kind: ManyToMany,
+        relation: (
+            Some(
+                ModelName(
+                    "Author",
+                ),
+            ),
+            ModelName(
+                "Post",
+            ),
+        ),
+        birectional: true,
+    },
+}

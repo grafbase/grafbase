@@ -1,0 +1,22 @@
+---
+source: common/sdl-parser/src/rules/relations/relations_engine.rs
+assertion_line: 325
+expression: "&ctx.relations"
+---
+{
+    "AuthorToPost": MetaRelation {
+        name: "AuthorToPost",
+        kind: OneToMany,
+        relation: (
+            Some(
+                ModelName(
+                    "Author",
+                ),
+            ),
+            ModelName(
+                "Post",
+            ),
+        ),
+        birectional: true,
+    },
+}
