@@ -30,7 +30,7 @@ openapiv3 = { git = "https://github.com/grafbase/openapiv3.git", branch = "opena
 
 dynaql = { path = "../dynaql", features = ["tracing_worker"] }
 dynaql-value = { path = "../dynaql/value" }
-parser = { path = "../parser" }
+sdl-parser = { path = "../sdl-parser" }
 
 [dev-dependencies]
 assert_matches = "1.5"

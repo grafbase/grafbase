@@ -68,7 +68,7 @@ impl OpenApiGraph {
     #[cfg(test)]
     pub fn from_petgraph(graph: Graph<Node, Edge>) -> Self {
         use dynaql::registry::ConnectorHeaders;
-        use parser::OpenApiQueryNamingStrategy;
+        use sdl_parser::OpenApiQueryNamingStrategy;
 
         OpenApiGraph {
             graph,
