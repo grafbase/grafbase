@@ -5,22 +5,18 @@ use quote::quote;
 use std::str::FromStr;
 use syn::ext::IdentExt;
 use syn::{
-    punctuated::Punctuated, Block, Error, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Token, Type,
-    TypeReference,
+    punctuated::Punctuated, Block, Error, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Token, Type, TypeReference,
 };
 
 use crate::args::{self, ComplexityType, RenameRuleExt, RenameTarget};
 use crate::output_type::OutputType;
 use crate::utils::{
-    extract_input_args, gen_deprecation, generate_default, generate_guards, get_cfg_attrs,
-    get_crate_name, get_rustdoc, get_type_path_and_name, parse_complexity_expr,
-    parse_graphql_attrs, remove_graphql_attrs, visible_fn, GeneratorResult,
+    extract_input_args, gen_deprecation, generate_default, generate_guards, get_cfg_attrs, get_crate_name, get_rustdoc,
+    get_type_path_and_name, parse_complexity_expr, parse_graphql_attrs, remove_graphql_attrs, visible_fn,
+    GeneratorResult,
 };
 
-pub fn generate(
-    object_args: &args::ComplexObject,
-    item_impl: &mut ItemImpl,
-) -> GeneratorResult<TokenStream> {
+pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(object_args.internal);
     let (self_ty, _) = get_type_path_and_name(item_impl.self_ty.as_ref())?;
     let generics = &item_impl.generics;
@@ -33,23 +29,19 @@ pub fn generate(
     let mut derived_impls = vec![];
     for item in &mut item_impl.items {
         if let ImplItem::Fn(method) = item {
-            let method_args: args::ComplexObjectField =
-                parse_graphql_attrs(&method.attrs)?.unwrap_or_default();
+            let method_args: args::ComplexObjectField = parse_graphql_attrs(&method.attrs)?.unwrap_or_default();
 
             for derived in method_args.derived {
                 if derived.name.is_some() && derived.into.is_some() {
                     let base_function_name = &method.sig.ident;
                     let name = derived.name.unwrap();
                     let with = derived.with;
-                    let into = Type::Verbatim(
-                        proc_macro2::TokenStream::from_str(&derived.into.unwrap()).unwrap(),
-                    );
+                    let into = Type::Verbatim(proc_macro2::TokenStream::from_str(&derived.into.unwrap()).unwrap());
 
                     let mut new_impl = method.clone();
                     new_impl.sig.ident = name;
-                    new_impl.sig.output =
-                        syn::parse2::<ReturnType>(quote! { -> #crate_name::Result<#into> })
-                            .expect("invalid result type");
+                    new_impl.sig.output = syn::parse2::<ReturnType>(quote! { -> #crate_name::Result<#into> })
+                        .expect("invalid result type");
 
                     let should_create_context = new_impl
                         .sig
@@ -60,8 +52,7 @@ pub fn generate(
                             if let FnArg::Typed(pat) = x {
                                 if let Type::Reference(TypeReference { elem, .. }) = &*pat.ty {
                                     if let Type::Path(path) = elem.as_ref() {
-                                        return path.path.segments.last().unwrap().ident
-                                            != "Context";
+                                        return path.path.segments.last().unwrap().ident != "Context";
                                     }
                                 }
                             };
@@ -70,8 +61,7 @@ pub fn generate(
                         .unwrap_or(true);
 
                     if should_create_context {
-                        let arg_ctx = syn::parse2::<FnArg>(quote! { ctx: &Context<'_> })
-                            .expect("invalid arg type");
+                        let arg_ctx = syn::parse2::<FnArg>(quote! { ctx: &Context<'_> }).expect("invalid arg type");
                         new_impl.sig.inputs.insert(1, arg_ctx);
                     }
 
@@ -82,9 +72,7 @@ pub fn generate(
                         .filter_map(|x| match x {
                             FnArg::Typed(pat) => match &*pat.pat {
                                 Pat::Ident(ident) => Some(Ok(ident.ident.clone())),
-                                _ => {
-                                    Some(Err(Error::new_spanned(pat, "Must be a simple argument")))
-                                }
+                                _ => Some(Err(Error::new_spanned(pat, "Must be a simple argument"))),
                             },
                             FnArg::Receiver(_) => None,
                         })
@@ -114,8 +102,7 @@ pub fn generate(
 
     for item in &mut item_impl.items {
         if let ImplItem::Fn(method) = item {
-            let method_args: args::ComplexObjectField =
-                parse_graphql_attrs(&method.attrs)?.unwrap_or_default();
+            let method_args: args::ComplexObjectField = parse_graphql_attrs(&method.attrs)?.unwrap_or_default();
             if method_args.skip {
                 remove_graphql_attrs(&mut method.attrs);
                 continue;
@@ -129,11 +116,9 @@ pub fn generate(
                 let ty = match &method.sig.output {
                     ReturnType::Type(_, ty) => OutputType::parse(ty)?,
                     ReturnType::Default => {
-                        return Err(Error::new_spanned(
-                            &method.sig.output,
-                            "Flatten resolver must have a return type",
+                        return Err(
+                            Error::new_spanned(&method.sig.output, "Flatten resolver must have a return type").into(),
                         )
-                        .into())
                     }
                 };
                 let ty = ty.value_type();
@@ -195,11 +180,7 @@ pub fn generate(
             let ty = match &method.sig.output {
                 ReturnType::Type(_, ty) => OutputType::parse(ty)?,
                 ReturnType::Default => {
-                    return Err(Error::new_spanned(
-                        &method.sig.output,
-                        "Resolver must have a return type",
-                    )
-                    .into())
+                    return Err(Error::new_spanned(&method.sig.output, "Resolver must have a return type").into())
                 }
             };
 
@@ -301,9 +282,7 @@ pub fn generate(
                                     default_with,
                                     ..
                                 },
-                            )) = args
-                                .iter()
-                                .find(|(pat_ident, _, _)| pat_ident.ident == variable)
+                            )) = args.iter().find(|(pat_ident, _, _)| pat_ident.ident == variable)
                             {
                                 let default = match generate_default(default, default_with)? {
                                     Some(default) => {
@@ -312,10 +291,9 @@ pub fn generate(
                                     None => quote! { ::std::option::Option::None },
                                 };
                                 let name = name.clone().unwrap_or_else(|| {
-                                    object_args.rename_args.rename(
-                                        ident.ident.unraw().to_string(),
-                                        RenameTarget::Argument,
-                                    )
+                                    object_args
+                                        .rename_args
+                                        .rename(ident.ident.unraw().to_string(), RenameTarget::Argument)
                                 });
                                 parse_args.push(quote! {
                                         let #ident: #ty = __ctx.param_value(__variables_definition, __field, #name, #default)?;
@@ -368,9 +346,8 @@ pub fn generate(
                     }
                 });
                 method.block = syn::parse2::<Block>(new_block).expect("invalid block");
-                method.sig.output =
-                    syn::parse2::<ReturnType>(quote! { -> #crate_name::Result<#inner_ty> })
-                        .expect("invalid result type");
+                method.sig.output = syn::parse2::<ReturnType>(quote! { -> #crate_name::Result<#inner_ty> })
+                    .expect("invalid result type");
             }
 
             let resolve_obj = quote! {

@@ -2,28 +2,21 @@ use std::fmt::{Error, Result as FmtResult, Write};
 
 use dynaql_value::ConstValue;
 
-use crate::parser::types::{
-    ExecutableDocument, FragmentDefinition, OperationType, Selection, SelectionSet,
-};
+use crate::parser::types::{ExecutableDocument, FragmentDefinition, OperationType, Selection, SelectionSet};
 use crate::registry::{MetaInputValue, MetaType, Registry};
 use crate::Variables;
 
 use super::type_kinds::InputType;
 
 impl Registry {
-    pub(crate) fn stringify_exec_doc(
-        &self,
-        variables: &Variables,
-        doc: &ExecutableDocument,
-    ) -> Result<String, Error> {
+    pub(crate) fn stringify_exec_doc(&self, variables: &Variables, doc: &ExecutableDocument) -> Result<String, Error> {
         let mut output = String::new();
         for (name, fragment) in &doc.fragments {
             self.stringify_fragment_definition(
                 &mut output,
                 variables,
                 name,
-                self.types
-                    .get(fragment.node.type_condition.node.on.node.as_str()),
+                self.types.get(fragment.node.type_condition.node.on.node.as_str()),
                 &fragment.node,
             )?;
         }
@@ -34,11 +27,7 @@ impl Registry {
 
                 if !operation_definition.node.variable_definitions.is_empty() {
                     output.push('(');
-                    for (idx, variable_definition) in operation_definition
-                        .node
-                        .variable_definitions
-                        .iter()
-                        .enumerate()
+                    for (idx, variable_definition) in operation_definition.node.variable_definitions.iter().enumerate()
                     {
                         if idx > 0 {
                             output.push_str(", ");
@@ -46,8 +35,7 @@ impl Registry {
                         write!(
                             output,
                             "${}: {}",
-                            variable_definition.node.name.node,
-                            variable_definition.node.var_type.node
+                            variable_definition.node.name.node, variable_definition.node.var_type.node
                         )?;
                         if let Some(default_value) = &variable_definition.node.default_value {
                             write!(output, " = {}", default_value.node)?;
@@ -60,14 +48,8 @@ impl Registry {
             }
             let root_type = match operation_definition.node.ty {
                 OperationType::Query => self.types.get(&self.query_type),
-                OperationType::Mutation => self
-                    .mutation_type
-                    .as_ref()
-                    .and_then(|name| self.types.get(name)),
-                OperationType::Subscription => self
-                    .subscription_type
-                    .as_ref()
-                    .and_then(|name| self.types.get(name)),
+                OperationType::Mutation => self.mutation_type.as_ref().and_then(|name| self.types.get(name)),
+                OperationType::Subscription => self.subscription_type.as_ref().and_then(|name| self.types.get(name)),
             };
             self.stringify_selection_set(
                 &mut output,
@@ -92,12 +74,7 @@ impl Registry {
             "fragment {} on {}",
             name, fragment_definition.type_condition.node.on.node
         )?;
-        self.stringify_selection_set(
-            output,
-            variables,
-            &fragment_definition.selection_set.node,
-            parent_type,
-        )?;
+        self.stringify_selection_set(output, variables, &fragment_definition.selection_set.node, parent_type)?;
         output.push_str("}\n\n");
         Ok(())
     }
@@ -115,8 +92,7 @@ impl Registry {
 
         match value {
             ConstValue::Object(obj) => {
-                let parent_type =
-                    meta_input_value.and_then(|input_value| self.lookup(&input_value.ty).ok());
+                let parent_type = meta_input_value.and_then(|input_value| self.lookup(&input_value.ty).ok());
                 if let Some(InputType::InputObject(input_object)) = parent_type {
                     output.push('{');
                     for (idx, (key, value)) in obj.iter().enumerate() {
@@ -124,11 +100,7 @@ impl Registry {
                             output.push_str(", ");
                         }
                         write!(output, "{key}: ")?;
-                        self.stringify_input_value(
-                            output,
-                            input_object.input_fields.get(key.as_str()),
-                            value,
-                        )?;
+                        self.stringify_input_value(output, input_object.input_fields.get(key.as_str()), value)?;
                     }
                     output.push('}');
                 } else {
@@ -163,9 +135,7 @@ impl Registry {
                         output.push('(');
                         for (idx, (name, argument)) in field.node.arguments.iter().enumerate() {
                             let meta_input_value = parent_type
-                                .and_then(|parent_type| {
-                                    parent_type.field_by_name(field.node.name.node.as_str())
-                                })
+                                .and_then(|parent_type| parent_type.field_by_name(field.node.name.node.as_str()))
                                 .and_then(|field| field.args.get(name.node.as_str()));
                             if idx > 0 {
                                 output.push_str(", ");
@@ -185,12 +155,7 @@ impl Registry {
                         let parent_type = parent_type
                             .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()))
                             .and_then(|field| self.lookup_expecting::<&MetaType>(&field.ty).ok());
-                        self.stringify_selection_set(
-                            output,
-                            variables,
-                            &field.node.selection_set.node,
-                            parent_type,
-                        )?;
+                        self.stringify_selection_set(output, variables, &field.node.selection_set.node, parent_type)?;
                     }
                 }
                 Selection::FragmentSpread(fragment_spread) => {
@@ -238,9 +203,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            registry
-                .stringify_exec_doc(&Default::default(), &doc)
-                .unwrap(),
+            registry.stringify_exec_doc(&Default::default(), &doc).unwrap(),
             r#"query Abc { a b c(a: 1, b: 2) { d e f } }"#
         );
 

@@ -13,11 +13,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
     let ident = &object_args.ident;
     let s = match &object_args.data {
         Data::Struct(s) => s,
-        _ => {
-            return Err(
-                Error::new_spanned(ident, "InputObject can only be applied to an struct.").into(),
-            )
-        }
+        _ => return Err(Error::new_spanned(ident, "InputObject can only be applied to an struct.").into()),
     };
 
     let mut struct_fields = Vec::new();
@@ -75,16 +71,12 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
 
         federation_fields.push((ty, name.clone()));
 
-        let validators = field
-            .validator
-            .clone()
-            .unwrap_or_default()
-            .create_validators(
-                &crate_name,
-                quote!(&#ident),
-                quote!(#ty),
-                Some(quote!(.map_err(#crate_name::InputValueError::propagate))),
-            )?;
+        let validators = field.validator.clone().unwrap_or_default().create_validators(
+            &crate_name,
+            quote!(&#ident),
+            quote!(#ty),
+            Some(quote!(.map_err(#crate_name::InputValueError::propagate))),
+        )?;
 
         if field.flatten {
             flatten_fields.push((ident, ty));

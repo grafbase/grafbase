@@ -2,10 +2,7 @@ use regex::Regex;
 
 use crate::{InputValueError, LegacyInputType};
 
-pub fn regex<T: AsRef<str> + LegacyInputType>(
-    value: &T,
-    regex: &'static str,
-) -> Result<(), InputValueError<T>> {
+pub fn regex<T: AsRef<str> + LegacyInputType>(value: &T, regex: &'static str) -> Result<(), InputValueError<T>> {
     if Regex::new(regex).map(|re| re.is_match(value.as_ref())) == Ok(true) {
         Ok(())
     } else {

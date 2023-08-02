@@ -8,11 +8,7 @@ use crate::Positioned;
 pub struct OverlappingFieldsCanBeMerged;
 
 impl<'a> Visitor<'a> for OverlappingFieldsCanBeMerged {
-    fn enter_selection_set(
-        &mut self,
-        ctx: &mut VisitorContext<'a>,
-        selection_set: &'a Positioned<SelectionSet>,
-    ) {
+    fn enter_selection_set(&mut self, ctx: &mut VisitorContext<'a>, selection_set: &'a Positioned<SelectionSet>) {
         let mut find_conflicts = FindConflicts {
             outputs: Default::default(),
             visited: Default::default(),
@@ -45,13 +41,8 @@ impl<'a, 'ctx> FindConflicts<'a, 'ctx> {
                     self.find(&inline_fragment.node.selection_set);
                 }
                 Selection::FragmentSpread(fragment_spread) => {
-                    if let Some(fragment) =
-                        self.ctx.fragment(&fragment_spread.node.fragment_name.node)
-                    {
-                        if !self
-                            .visited
-                            .insert(fragment_spread.node.fragment_name.node.as_str())
-                        {
+                    if let Some(fragment) = self.ctx.fragment(&fragment_spread.node.fragment_name.node) {
+                        if !self.visited.insert(fragment_spread.node.fragment_name.node.as_str()) {
                             // To avoid recursing itself, this error is detected by the `NoFragmentCycles` validator.
                             continue;
                         }

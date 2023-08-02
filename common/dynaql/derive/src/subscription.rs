@@ -2,22 +2,18 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::ext::IdentExt;
 use syn::{
-    Block, Error, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type, TypeImplTrait, TypeParamBound,
-    TypeReference,
+    Block, Error, FnArg, ImplItem, ItemImpl, Pat, ReturnType, Type, TypeImplTrait, TypeParamBound, TypeReference,
 };
 
 use crate::args::{self, ComplexityType, RenameRuleExt, RenameTarget, SubscriptionField};
 use crate::output_type::OutputType;
 use crate::utils::{
     gen_deprecation, generate_default, generate_guards, get_cfg_attrs, get_crate_name, get_rustdoc,
-    get_type_path_and_name, parse_complexity_expr, parse_graphql_attrs, remove_graphql_attrs,
-    visible_fn, GeneratorResult,
+    get_type_path_and_name, parse_complexity_expr, parse_graphql_attrs, remove_graphql_attrs, visible_fn,
+    GeneratorResult,
 };
 
-pub fn generate(
-    subscription_args: &args::Subscription,
-    item_impl: &mut ItemImpl,
-) -> GeneratorResult<TokenStream> {
+pub fn generate(subscription_args: &args::Subscription, item_impl: &mut ItemImpl) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(subscription_args.internal);
     let (self_ty, self_name) = get_type_path_and_name(item_impl.self_ty.as_ref())?;
     let generics = &item_impl.generics;
@@ -61,21 +57,15 @@ pub fn generate(
             let cfg_attrs = get_cfg_attrs(&method.attrs);
 
             if method.sig.asyncness.is_none() {
-                return Err(Error::new_spanned(
-                    &method,
-                    "The subscription stream function must be asynchronous",
-                )
-                .into());
+                return Err(
+                    Error::new_spanned(&method, "The subscription stream function must be asynchronous").into(),
+                );
             }
 
             let ty = match &method.sig.output {
                 ReturnType::Type(_, ty) => OutputType::parse(ty)?,
                 ReturnType::Default => {
-                    return Err(Error::new_spanned(
-                        &method.sig.output,
-                        "Resolver must have a return type",
-                    )
-                    .into())
+                    return Err(Error::new_spanned(&method.sig.output, "Resolver must have a return type").into())
                 }
             };
 
@@ -85,19 +75,13 @@ pub fn generate(
             for (idx, arg) in method.sig.inputs.iter_mut().enumerate() {
                 if let FnArg::Receiver(receiver) = arg {
                     if idx != 0 {
-                        return Err(Error::new_spanned(
-                            receiver,
-                            "The self receiver must be the first parameter.",
-                        )
-                        .into());
+                        return Err(
+                            Error::new_spanned(receiver, "The self receiver must be the first parameter.").into(),
+                        );
                     }
                 } else if let FnArg::Typed(pat) = arg {
                     if idx == 0 {
-                        return Err(Error::new_spanned(
-                            pat,
-                            "The self receiver must be the first parameter.",
-                        )
-                        .into());
+                        return Err(Error::new_spanned(pat, "The self receiver must be the first parameter.").into());
                     }
 
                     match (&*pat.pat, &*pat.ty) {
@@ -105,15 +89,13 @@ pub fn generate(
                             args.push((
                                 arg_ident.clone(),
                                 arg_ty.clone(),
-                                parse_graphql_attrs::<args::SubscriptionFieldArgument>(&pat.attrs)?
-                                    .unwrap_or_default(),
+                                parse_graphql_attrs::<args::SubscriptionFieldArgument>(&pat.attrs)?.unwrap_or_default(),
                             ));
                             remove_graphql_attrs(&mut pat.attrs);
                         }
                         (arg, Type::Reference(TypeReference { elem, .. })) => {
                             if let Type::Path(path) = elem.as_ref() {
-                                if idx != 1 || path.path.segments.last().unwrap().ident != "Context"
-                                {
+                                if idx != 1 || path.path.segments.last().unwrap().ident != "Context" {
                                     return Err(Error::new_spanned(
                                         arg,
                                         "Only types that implement `InputType` can be used as input arguments.",
@@ -231,9 +213,8 @@ pub fn generate(
                     }
                 });
                 method.block = syn::parse2::<Block>(new_block).expect("invalid block");
-                method.sig.output =
-                    syn::parse2::<ReturnType>(quote! { -> #crate_name::Result<#inner_ty> })
-                        .expect("invalid result type");
+                method.sig.output = syn::parse2::<ReturnType>(quote! { -> #crate_name::Result<#inner_ty> })
+                    .expect("invalid result type");
             }
 
             let visible = visible_fn(&field.visible);
@@ -255,9 +236,7 @@ pub fn generate(
                                     default_with,
                                     ..
                                 },
-                            )) = args
-                                .iter()
-                                .find(|(pat_ident, _, _)| pat_ident.ident == variable)
+                            )) = args.iter().find(|(pat_ident, _, _)| pat_ident.ident == variable)
                             {
                                 let default = match generate_default(default, default_with)? {
                                     Some(default) => {
@@ -266,10 +245,9 @@ pub fn generate(
                                     None => quote! { ::std::option::Option::None },
                                 };
                                 let name = name.clone().unwrap_or_else(|| {
-                                    subscription_args.rename_args.rename(
-                                        ident.ident.unraw().to_string(),
-                                        RenameTarget::Argument,
-                                    )
+                                    subscription_args
+                                        .rename_args
+                                        .rename(ident.ident.unraw().to_string(), RenameTarget::Argument)
                                 });
                                 parse_args.push(quote! {
                                     let #ident: #ty = __ctx.param_value(__variables_definition, __field, #name, #default)?;
@@ -451,11 +429,7 @@ pub fn generate(
     }
 
     if create_stream.is_empty() {
-        return Err(Error::new_spanned(
-            self_ty,
-            "A GraphQL Object type must define one or more fields.",
-        )
-        .into());
+        return Err(Error::new_spanned(self_ty, "A GraphQL Object type must define one or more fields.").into());
     }
 
     let visible = visible_fn(&subscription_args.visible);

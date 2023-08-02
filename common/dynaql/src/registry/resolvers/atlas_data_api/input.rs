@@ -10,8 +10,7 @@ use std::sync::OnceLock;
 pub(super) fn by(ctx: &Context<'_>) -> ServerResult<Value> {
     static BY_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition =
-        BY_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("by".to_string()));
+    let resolve_definition = BY_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("by".to_string()));
 
     let map: JsonMap = resolve_definition.resolve(ctx, Option::<Value>::None)?;
     let input_type = ctx.find_argument_type("by")?;
@@ -23,8 +22,7 @@ pub(super) fn by(ctx: &Context<'_>) -> ServerResult<Value> {
 pub(super) fn before(ctx: &Context<'_>) -> Option<JsonMap> {
     static FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition =
-        FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("before".to_string()));
+    let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("before".to_string()));
 
     let before = resolve_definition
         .resolve::<Cursor>(ctx, Option::<Value>::None)
@@ -51,8 +49,7 @@ pub(super) fn before(ctx: &Context<'_>) -> Option<JsonMap> {
 pub(super) fn after(ctx: &Context<'_>) -> Option<JsonMap> {
     static FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition =
-        FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("after".to_string()));
+    let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("after".to_string()));
 
     let after = resolve_definition
         .resolve::<Cursor>(ctx, Option::<Value>::None)
@@ -79,8 +76,7 @@ pub(super) fn after(ctx: &Context<'_>) -> Option<JsonMap> {
 pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<Value> {
     static FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition =
-        FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("filter".to_string()));
+    let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("filter".to_string()));
 
     let map: JsonMap = resolve_definition.resolve(ctx, Option::<Value>::None)?;
     let input_type = ctx.find_argument_type("filter")?;
@@ -116,8 +112,7 @@ pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<Value> {
 pub(super) fn input(ctx: &Context<'_>) -> ServerResult<Value> {
     static INPUT_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition =
-        INPUT_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("input".to_string()));
+    let resolve_definition = INPUT_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("input".to_string()));
 
     let map: JsonMap = resolve_definition.resolve(ctx, Option::<Value>::None)?;
     let input_type = ctx.find_argument_type("input")?;
@@ -129,8 +124,7 @@ pub(super) fn input(ctx: &Context<'_>) -> ServerResult<Value> {
 pub(super) fn order_by(ctx: &Context<'_>) -> ServerResult<Option<Value>> {
     static ORDER_BY: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition =
-        ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("orderBy".to_string()));
+    let resolve_definition = ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("orderBy".to_string()));
 
     match resolve_definition.resolve::<JsonMap>(ctx, Option::<Value>::None) {
         Ok(map) if !map.is_empty() => {
@@ -147,8 +141,7 @@ pub(super) fn order_by(ctx: &Context<'_>) -> ServerResult<Option<Value>> {
 pub(super) fn limit(ctx: &Context<'_>) -> Value {
     static ORDER_BY: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition =
-        ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("first".to_string()));
+    let resolve_definition = ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("first".to_string()));
 
     match resolve_definition.resolve::<Value>(ctx, Option::<Value>::None) {
         Ok(value) if !value.is_null() => value,
@@ -159,8 +152,7 @@ pub(super) fn limit(ctx: &Context<'_>) -> Value {
 pub(super) fn skip(ctx: &Context<'_>) -> Option<Value> {
     static ORDER_BY: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition =
-        ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("skip".to_string()));
+    let resolve_definition = ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("skip".to_string()));
 
     match resolve_definition.resolve::<Value>(ctx, Option::<Value>::None) {
         Ok(value) if !value.is_null() => Some(value),

@@ -216,10 +216,7 @@ macro_rules! scalar_internal {
     };
 }
 
-pub async fn resolve_scalar_native<'a>(
-    ctx: &ContextSelectionSet<'a>,
-    value: Value,
-) -> ServerResult<ResponseNodeId> {
+pub async fn resolve_scalar_native<'a>(ctx: &ContextSelectionSet<'a>, value: Value) -> ServerResult<ResponseNodeId> {
     let mut response_graph = ctx.response_graph.write().await;
     Ok(response_graph.insert_node(ResponsePrimitive::new(value.into())))
 }

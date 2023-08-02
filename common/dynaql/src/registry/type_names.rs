@@ -166,10 +166,7 @@ impl NamedType<'_> {
     }
 
     pub fn is_primitive_type(&self) -> bool {
-        matches!(
-            self.0.borrow(),
-            "String" | "Float" | "Boolean" | "ID" | "Int"
-        )
+        matches!(self.0.borrow(), "String" | "Float" | "Boolean" | "ID" | "Int")
     }
 }
 

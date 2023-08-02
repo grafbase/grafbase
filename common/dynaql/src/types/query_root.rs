@@ -8,8 +8,8 @@ use crate::model::{__Schema, __Type};
 use crate::parser::types::Field;
 use crate::resolver_utils::ContainerType;
 use crate::{
-    registry, Any, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned,
-    ServerError, ServerResult, SimpleObject, Value,
+    registry, Any, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
+    SimpleObject, Value,
 };
 
 /// Federation service
@@ -60,13 +60,12 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
         if ctx.schema_env.registry.enable_federation || ctx.schema_env.registry.has_entities() {
             if ctx.item.node.name.node == "_entities" {
                 let (_, representations) = ctx.param_value::<Vec<Any>>("representations", None)?;
-                let values = futures_util::future::try_join_all(representations.iter().map(
-                    |item| async move {
-                        self.inner.find_entity(ctx, &item.0).await?.ok_or_else(|| {
-                            ServerError::new("Entity not found.", Some(ctx.item.pos))
-                        })
-                    },
-                ))
+                let values = futures_util::future::try_join_all(representations.iter().map(|item| async move {
+                    self.inner
+                        .find_entity(ctx, &item.0)
+                        .await?
+                        .ok_or_else(|| ServerError::new("Entity not found.", Some(ctx.item.pos)))
+                }))
                 .await?;
 
                 return Ok(Some(field_into_node(Value::List(values), ctx).await));
@@ -118,17 +117,13 @@ impl<T: ObjectType> LegacyOutputType for QueryRoot<T> {
 
         if !registry.disable_introspection {
             let schema_type = __Schema::create_type_info(registry);
-            if let Some(registry::MetaType::Object(object)) =
-                registry.types.get_mut(T::type_name().as_ref())
-            {
+            if let Some(registry::MetaType::Object(object)) = registry.types.get_mut(T::type_name().as_ref()) {
                 object.fields.insert(
                     "__schema".to_string(),
                     registry::MetaField {
                         name: "__schema".to_string(),
                         mapped_name: None,
-                        description: Some(
-                            "Access the current type schema of this server.".to_string(),
-                        ),
+                        description: Some("Access the current type schema of this server.".to_string()),
                         ty: schema_type,
                         ..Default::default()
                     },
@@ -139,15 +134,10 @@ impl<T: ObjectType> LegacyOutputType for QueryRoot<T> {
                     registry::MetaField {
                         name: "__type".to_string(),
                         mapped_name: None,
-                        description: Some(
-                            "Request the type information of a single type.".to_string(),
-                        ),
+                        description: Some("Request the type information of a single type.".to_string()),
                         args: {
                             let mut args = IndexMap::new();
-                            args.insert(
-                                "name".to_string(),
-                                registry::MetaInputValue::new("name", "String!"),
-                            );
+                            args.insert("name".to_string(), registry::MetaInputValue::new("name", "String!"));
                             args
                         },
                         ty: "__Type".into(),

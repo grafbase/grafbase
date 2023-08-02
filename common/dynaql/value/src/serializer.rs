@@ -157,11 +157,7 @@ impl ser::Serializer for Serializer {
     }
 
     #[inline]
-    fn serialize_newtype_struct<T>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<Self::Ok, Self::Error>
+    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + ser::Serialize,
     {
@@ -213,10 +209,7 @@ impl ser::Serializer for Serializer {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        Ok(SerializeTupleVariant(
-            Name::new(variant),
-            Vec::with_capacity(len),
-        ))
+        Ok(SerializeTupleVariant(Name::new(variant), Vec::with_capacity(len)))
     }
 
     #[inline]
@@ -228,11 +221,7 @@ impl ser::Serializer for Serializer {
     }
 
     #[inline]
-    fn serialize_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStruct, Self::Error> {
+    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct, Self::Error> {
         Ok(SerializeStruct(IndexMap::new()))
     }
 
@@ -548,11 +537,7 @@ impl serde::Serializer for MapKeySerializer {
     }
 
     #[inline]
-    fn serialize_newtype_struct<T>(
-        self,
-        _name: &'static str,
-        _value: &T,
-    ) -> Result<Self::Ok, Self::Error>
+    fn serialize_newtype_struct<T>(self, _name: &'static str, _value: &T) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
@@ -609,11 +594,7 @@ impl serde::Serializer for MapKeySerializer {
     }
 
     #[inline]
-    fn serialize_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStruct, Self::Error> {
+    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct, Self::Error> {
         Err(key_must_be_a_string())
     }
 

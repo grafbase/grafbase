@@ -22,13 +22,7 @@ pub fn generate(object_args: &args::MergedSubscription) -> GeneratorResult<Token
 
     let s = match &object_args.data {
         Data::Struct(e) => e,
-        _ => {
-            return Err(Error::new_spanned(
-                ident,
-                "MergedSubscription can only be applied to an struct.",
-            )
-            .into())
-        }
+        _ => return Err(Error::new_spanned(ident, "MergedSubscription can only be applied to an struct.").into()),
     };
 
     let types: Vec<_> = s.fields.iter().map(|field| &field.ty).collect();

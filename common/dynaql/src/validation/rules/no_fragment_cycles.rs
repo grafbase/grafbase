@@ -25,11 +25,7 @@ impl<'a> CycleDetector<'a> {
             let index = self.path_indices.get(name).copied();
 
             if let Some(index) = index {
-                let err_pos = if index < path.len() {
-                    path[index].1
-                } else {
-                    *pos
-                };
+                let err_pos = if index < path.len() { path[index].1 } else { *pos };
 
                 self.errors.push(RuleError::new(
                     vec![err_pos],
@@ -100,10 +96,7 @@ impl<'a> Visitor<'a> for NoFragmentCycles<'a> {
             self.spreads
                 .entry(current_fragment)
                 .or_insert_with(Vec::new)
-                .push((
-                    &fragment_spread.node.fragment_name.node,
-                    fragment_spread.pos,
-                ));
+                .push((&fragment_spread.node.fragment_name.node, fragment_spread.pos));
         }
     }
 }

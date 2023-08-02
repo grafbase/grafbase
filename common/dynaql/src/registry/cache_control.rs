@@ -60,8 +60,7 @@ impl CacheControl {
             } else if other.stale_while_revalidate == 0 {
                 self.stale_while_revalidate
             } else {
-                self.stale_while_revalidate
-                    .min(other.stale_while_revalidate)
+                self.stale_while_revalidate.min(other.stale_while_revalidate)
             },
             invalidation_policy: if self.invalidation_policy.is_none() {
                 other.invalidation_policy
@@ -82,9 +81,7 @@ pub struct CacheInvalidation {
     pub policy: CacheInvalidationPolicy,
 }
 
-#[derive(
-    Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Serialize, serde::Deserialize)]
 /// Represents cache purge behaviour for mutations
 /// The order of variants is significant, from highest to lowest specificity
 pub enum CacheInvalidationPolicy {

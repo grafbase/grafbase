@@ -91,8 +91,7 @@ mod tests {
 
     #[test]
     fn test_field_has_value() {
-        let discriminator =
-            UnionDiscriminator::FieldHasValue("myField".into(), vec![json!("one"), json!(true)]);
+        let discriminator = UnionDiscriminator::FieldHasValue("myField".into(), vec![json!("one"), json!(true)]);
 
         assert!(discriminator.matches(&json!({ "myField": "one"})));
         assert!(discriminator.matches(&json!({ "myField": true })));

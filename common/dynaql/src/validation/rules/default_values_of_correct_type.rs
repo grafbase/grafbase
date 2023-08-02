@@ -16,20 +16,20 @@ impl<'a> Visitor<'a> for DefaultValuesOfCorrectType {
     ) {
         if let BaseType::Named(vtype_name) = &variable_definition.node.var_type.node.base {
             if !ctx.registry.types.contains_key(vtype_name.as_str()) {
-                ctx.report_error(
-                    vec![variable_definition.pos],
-                    format!(r#"Unknown type "{vtype_name}""#),
-                );
+                ctx.report_error(vec![variable_definition.pos], format!(r#"Unknown type "{vtype_name}""#));
                 return;
             }
         }
 
         if let Some(value) = &variable_definition.node.default_value {
             if !variable_definition.node.var_type.node.nullable {
-                ctx.report_error(vec![variable_definition.pos],format!(
-                    "Argument \"{}\" has type \"{}\" and is not nullable, so it can't have a default value",
-                    variable_definition.node.name, variable_definition.node.var_type,
-                ));
+                ctx.report_error(
+                    vec![variable_definition.pos],
+                    format!(
+                        "Argument \"{}\" has type \"{}\" and is not nullable, so it can't have a default value",
+                        variable_definition.node.name, variable_definition.node.var_type,
+                    ),
+                );
             } else if let Some(reason) = is_valid_input_value(
                 ctx.registry,
                 &variable_definition.node.var_type.to_string(),

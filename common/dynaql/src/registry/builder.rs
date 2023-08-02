@@ -28,8 +28,7 @@ pub struct RegistryBuilder {
 impl RegistryBuilder {
     /// Insert a single [`ObjectType`] into the [`RegistryBuilder`], without any fields.
     pub fn insert_object(mut self, name: impl AsRef<str>) -> Self {
-        self.registry
-            .insert_type(ObjectType::new(name.as_ref(), []));
+        self.registry.insert_type(ObjectType::new(name.as_ref(), []));
         self
     }
 
@@ -49,8 +48,7 @@ impl RegistryBuilder {
         name: impl AsRef<str>,
         members: impl IntoIterator<Item = T>,
     ) -> Self {
-        self.registry
-            .insert_type(UnionType::new(name.as_ref(), members));
+        self.registry.insert_type(UnionType::new(name.as_ref(), members));
         self
     }
 
@@ -100,11 +98,7 @@ impl ObjectBuilder {
 
     /// Finalize the [`ObjectBuilder`] to add a [`MetaField`] to the current [`ObjectBuilder`].
     pub fn finalize_object(self) -> RegistryBuilder {
-        let Self {
-            mut root,
-            name,
-            object,
-        } = self;
+        let Self { mut root, name, object } = self;
 
         root.registry.types.insert(name, object.into());
         root
@@ -130,11 +124,7 @@ impl FieldBuilder {
 
     /// Finalize the [`FieldBuilder`] to add a [`MetaField`] to the root [`ObjectBuilder`].
     pub fn finalize_field(self) -> ObjectBuilder {
-        let Self {
-            mut root,
-            name,
-            field,
-        } = self;
+        let Self { mut root, name, field } = self;
 
         root.object.fields.insert(name.clone(), field);
         root

@@ -33,9 +33,7 @@ impl DynamicParse for IntScalar {
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
         match value {
             serde_json::Value::Number(v) => Ok(ConstValue::Number(v)),
-            _ => Err(Error::new(
-                "Data violation: Cannot coerce the initial value to a Int",
-            )),
+            _ => Err(Error::new("Data violation: Cannot coerce the initial value to a Int")),
         }
     }
 

@@ -6,8 +6,8 @@ use indexmap::IndexMap;
 use crate::{ConstValue, Name};
 
 use serde::de::{
-    self, Deserialize, DeserializeOwned, DeserializeSeed, EnumAccess, Error as DeError,
-    IntoDeserializer, MapAccess, SeqAccess, Unexpected, VariantAccess, Visitor,
+    self, Deserialize, DeserializeOwned, DeserializeSeed, EnumAccess, Error as DeError, IntoDeserializer, MapAccess,
+    SeqAccess, Unexpected, VariantAccess, Visitor,
 };
 use serde::forward_to_deserialize_any;
 
@@ -72,17 +72,11 @@ where
     if remaining == 0 {
         Ok(seq)
     } else {
-        Err(DeserializerError::invalid_length(
-            len,
-            &"fewer elements in array",
-        ))
+        Err(DeserializerError::invalid_length(len, &"fewer elements in array"))
     }
 }
 
-fn visit_object<'de, V>(
-    object: IndexMap<Name, ConstValue>,
-    visitor: V,
-) -> Result<V::Value, DeserializerError>
+fn visit_object<'de, V>(object: IndexMap<Name, ConstValue>, visitor: V) -> Result<V::Value, DeserializerError>
 where
     V: Visitor<'de>,
 {
@@ -93,10 +87,7 @@ where
     if remaining == 0 {
         Ok(map)
     } else {
-        Err(DeserializerError::invalid_length(
-            len,
-            &"fewer elements in map",
-        ))
+        Err(DeserializerError::invalid_length(len, &"fewer elements in map"))
     }
 }
 
@@ -184,10 +175,7 @@ impl<'de> de::Deserializer<'de> for ConstValue {
             ConstValue::String(variant) => (Name::new(variant), None),
             ConstValue::Enum(variant) => (variant, None),
             other => {
-                return Err(DeserializerError::invalid_type(
-                    other.unexpected(),
-                    &"string or map",
-                ));
+                return Err(DeserializerError::invalid_type(other.unexpected(), &"string or map"));
             }
         };
 
@@ -262,13 +250,8 @@ impl<'de> VariantAccess<'de> for VariantDeserializer {
         V: Visitor<'de>,
     {
         match self.value {
-            Some(ConstValue::List(v)) => {
-                serde::Deserializer::deserialize_any(SeqDeserializer::new(v), visitor)
-            }
-            Some(other) => Err(serde::de::Error::invalid_type(
-                other.unexpected(),
-                &"tuple variant",
-            )),
+            Some(ConstValue::List(v)) => serde::Deserializer::deserialize_any(SeqDeserializer::new(v), visitor),
+            Some(other) => Err(serde::de::Error::invalid_type(other.unexpected(), &"tuple variant")),
             None => Err(DeserializerError::invalid_type(
                 Unexpected::UnitVariant,
                 &"tuple variant",
@@ -276,22 +259,13 @@ impl<'de> VariantAccess<'de> for VariantDeserializer {
         }
     }
 
-    fn struct_variant<V>(
-        self,
-        _fields: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value, DeserializerError>
+    fn struct_variant<V>(self, _fields: &'static [&'static str], visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
         match self.value {
-            Some(ConstValue::Object(v)) => {
-                serde::Deserializer::deserialize_any(MapDeserializer::new(v), visitor)
-            }
-            Some(other) => Err(DeserializerError::invalid_type(
-                other.unexpected(),
-                &"struct variant",
-            )),
+            Some(ConstValue::Object(v)) => serde::Deserializer::deserialize_any(MapDeserializer::new(v), visitor),
+            Some(other) => Err(DeserializerError::invalid_type(other.unexpected(), &"struct variant")),
             None => Err(DeserializerError::invalid_type(
                 Unexpected::UnitVariant,
                 &"struct variant",
@@ -306,9 +280,7 @@ struct SeqDeserializer {
 
 impl SeqDeserializer {
     fn new(vec: Vec<ConstValue>) -> Self {
-        SeqDeserializer {
-            iter: vec.into_iter(),
-        }
+        SeqDeserializer { iter: vec.into_iter() }
     }
 }
 
@@ -329,10 +301,7 @@ impl<'de> serde::Deserializer<'de> for SeqDeserializer {
             if remaining == 0 {
                 Ok(ret)
             } else {
-                Err(DeserializerError::invalid_length(
-                    len,
-                    &"fewer elements in array",
-                ))
+                Err(DeserializerError::invalid_length(len, &"fewer elements in array"))
             }
         }
     }
@@ -461,9 +430,7 @@ impl<'de> serde::Deserializer<'de> for MapKeyDeserializer {
     where
         V: Visitor<'de>,
     {
-        self.key
-            .into_deserializer()
-            .deserialize_enum(name, variants, visitor)
+        self.key.into_deserializer().deserialize_enum(name, variants, visitor)
     }
 
     forward_to_deserialize_any! {

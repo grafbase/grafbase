@@ -94,9 +94,7 @@ impl Transformer {
     }
 
     pub fn select(key: &str) -> Self {
-        Self::Select {
-            key: key.to_string(),
-        }
+        Self::Select { key: key.to_string() }
     }
 
     pub(super) async fn resolve(
@@ -137,8 +135,8 @@ impl Transformer {
                     .current_enum_values()
                     .ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
 
-                let resolved_value = last_resolver_value
-                    .ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
+                let resolved_value =
+                    last_resolver_value.ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
 
                 Ok(ResolvedValue::new(Arc::new(resolve_enum_value(
                     &resolved_value.data_resolved,
@@ -149,9 +147,7 @@ impl Transformer {
                 let pagination = last_resolver_value
                     .and_then(|x| x.pagination.as_ref())
                     .map(ResolvedPaginationInfo::output);
-                Ok(ResolvedValue::new(Arc::new(serde_json::to_value(
-                    pagination,
-                )?)))
+                Ok(ResolvedValue::new(Arc::new(serde_json::to_value(pagination)?)))
             }
             // TODO: look into loading single edges in the same query. This may be tricky as we can no longer differentiate
             // between the queried item and it's edges as a nested pagination will not have pk == sk
@@ -162,7 +158,10 @@ impl Transformer {
                     Some(serde_json::Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
                         if arr.len() > 1 {
-                            ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
+                            ctx.add_error(
+                                Error::new("An issue occured while resolving this field. Reason: Incoherent schema.")
+                                    .into_server_error(ctx.item.pos),
+                            );
                         }
 
                         arr.first()
@@ -171,17 +170,11 @@ impl Transformer {
                     }
                     // happens in nested relations
                     Some(val) => val.clone(),
-                    _ => {
-                        return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
-                            .with_early_return())
-                    }
+                    _ => return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()),
                 };
 
                 let sk_attr = serde_json::from_value::<AttributeValue>(
-                    old_val
-                        .get(dynamodb::constant::SK)
-                        .cloned()
-                        .unwrap_or_default(),
+                    old_val.get(dynamodb::constant::SK).cloned().unwrap_or_default(),
                 )?;
                 let Some(sk) = sk_attr.s else {
                     ctx.add_error(Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
@@ -206,7 +199,10 @@ impl Transformer {
                     Some(serde_json::Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
                         if arr.len() > 1 {
-                            ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
+                            ctx.add_error(
+                                Error::new("An issue occured while resolving this field. Reason: Incoherent schema.")
+                                    .into_server_error(ctx.item.pos),
+                            );
                         }
 
                         arr.first()
@@ -215,17 +211,11 @@ impl Transformer {
                     }
                     // happens in nested relations
                     Some(val) => val.clone(),
-                    _ => {
-                        return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
-                            .with_early_return())
-                    }
+                    _ => return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()),
                 };
 
                 let sk_attr = serde_json::from_value::<AttributeValue>(
-                    old_val
-                        .get(dynamodb::constant::SK)
-                        .cloned()
-                        .unwrap_or_default(),
+                    old_val.get(dynamodb::constant::SK).cloned().unwrap_or_default(),
                 )?;
                 let Some(sk) = sk_attr.s else {
                     ctx.add_error(Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
@@ -241,9 +231,7 @@ impl Transformer {
                     after: VariableResolveDefinition::InputTypeName("after".to_string()),
                     before: VariableResolveDefinition::InputTypeName("before".to_string()),
                     last: VariableResolveDefinition::InputTypeName("last".to_string()),
-                    order_by: Some(VariableResolveDefinition::InputTypeName(
-                        "orderBy".to_string(),
-                    )),
+                    order_by: Some(VariableResolveDefinition::InputTypeName("orderBy".to_string())),
                     filter: None,
                     nested: Box::new(Some((relation_name.clone(), sk.clone()))),
                 }
@@ -257,14 +245,12 @@ impl Transformer {
                     .current_discriminators()
                     .ok_or_else(|| Error::new("Internal error resolving remote union"))?;
 
-                let resolved_value = last_resolver_value
-                    .ok_or_else(|| Error::new("Internal error resolving remote union"))?;
+                let resolved_value =
+                    last_resolver_value.ok_or_else(|| Error::new("Internal error resolving remote union"))?;
 
                 let typename = discriminators
                     .iter()
-                    .find(|(_, discriminator)| {
-                        discriminator.matches(resolved_value.data_resolved.as_ref())
-                    })
+                    .find(|(_, discriminator)| discriminator.matches(resolved_value.data_resolved.as_ref()))
                     .map(|(name, _)| name)
                     .ok_or_else(|| Error::new("Could not determine __typename on remote union"))?;
 
@@ -277,10 +263,10 @@ impl Transformer {
                     new_value = serde_json::json!({ "data": new_value });
                 }
 
-                new_value.as_object_mut().unwrap().insert(
-                    "__typename".into(),
-                    serde_json::Value::String(typename.clone()),
-                );
+                new_value
+                    .as_object_mut()
+                    .unwrap()
+                    .insert("__typename".into(), serde_json::Value::String(typename.clone()));
 
                 Ok(ResolvedValue::new(Arc::new(new_value)))
             }

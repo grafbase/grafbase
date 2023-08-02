@@ -6,9 +6,7 @@ impl LegacyScalarType for i8 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n < Self::MIN as i64 || n > Self::MAX as i64 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
@@ -37,9 +35,7 @@ impl LegacyScalarType for i16 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n < Self::MIN as i64 || n > Self::MAX as i64 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
@@ -68,9 +64,7 @@ impl LegacyScalarType for i32 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n < Self::MIN as i64 || n > Self::MAX as i64 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
@@ -99,9 +93,7 @@ impl LegacyScalarType for i64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 Ok(n as Self)
             }
             _ => Err(InputValueError::expected_type(value)),
@@ -123,9 +115,7 @@ impl LegacyScalarType for u8 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n > Self::MAX as u64 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
@@ -154,9 +144,7 @@ impl LegacyScalarType for u16 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n > Self::MAX as u64 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
@@ -185,9 +173,7 @@ impl LegacyScalarType for u32 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n > Self::MAX as u64 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
@@ -216,9 +202,7 @@ impl LegacyScalarType for u64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 Ok(n as Self)
             }
             _ => Err(InputValueError::expected_type(value)),
@@ -240,9 +224,7 @@ impl LegacyScalarType for usize {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n > Self::MAX as u64 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
@@ -271,9 +253,7 @@ impl LegacyScalarType for isize {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n < Self::MIN as i64 || n > Self::MAX as i64 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",

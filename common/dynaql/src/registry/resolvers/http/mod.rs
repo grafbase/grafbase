@@ -78,15 +78,12 @@ impl HttpResolver {
             .http_headers
             .get(&self.api_name)
             .zip(request_headers)
-            .map(|(connector_headers, request_headers)| {
-                connector_headers.build_header_vec(request_headers)
-            })
+            .map(|(connector_headers, request_headers)| connector_headers.build_header_vec(request_headers))
             .unwrap_or_default();
 
         Box::pin(SendWrapper::new(async move {
             let url = self.build_url(ctx, last_resolver_value)?;
-            let mut request_builder =
-                reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
+            let mut request_builder = reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
 
             for (name, value) in headers {
                 request_builder = request_builder.header(name, value);
@@ -102,20 +99,15 @@ impl HttpResolver {
                         request_builder = request_builder.json(&variable);
                     }
                     RequestBodyContentType::FormEncoded(encoding_styles) => {
-                        request_builder = request_builder.header(
-                            reqwest::header::CONTENT_TYPE,
-                            "application/x-www-form-urlencoded",
-                        );
-                        request_builder = request_builder
-                            .body(String::new().apply_body_parameters(encoding_styles, variable)?);
+                        request_builder =
+                            request_builder.header(reqwest::header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+                        request_builder =
+                            request_builder.body(String::new().apply_body_parameters(encoding_styles, variable)?);
                     }
                 }
             }
 
-            let response = request_builder
-                .send()
-                .await
-                .map_err(|e| Error::new(e.to_string()))?;
+            let response = request_builder.send().await.map_err(|e| Error::new(e.to_string()))?;
 
             if !self.expected_status.contains(response.status()) {
                 return Err(Error::new(format!(
@@ -140,17 +132,11 @@ impl HttpResolver {
         }))
     }
 
-    fn build_url(
-        &self,
-        ctx: &Context<'_>,
-        last_resolver_value: Option<&serde_json::Value>,
-    ) -> Result<String, Error> {
+    fn build_url(&self, ctx: &Context<'_>, last_resolver_value: Option<&serde_json::Value>) -> Result<String, Error> {
         let mut url = self.url.clone();
 
         for param in &self.path_parameters {
-            let variable = param
-                .variable_resolve_definition
-                .resolve(ctx, last_resolver_value)?;
+            let variable = param.variable_resolve_definition.resolve(ctx, last_resolver_value)?;
 
             url = url.apply_path_parameter(&param, variable)?;
         }
@@ -158,11 +144,7 @@ impl HttpResolver {
         let query_variables = self
             .query_parameters
             .iter()
-            .map(|param| {
-                param
-                    .variable_resolve_definition
-                    .resolve(ctx, last_resolver_value)
-            })
+            .map(|param| param.variable_resolve_definition.resolve(ctx, last_resolver_value))
             .collect::<Result<Vec<_>, _>>()?;
 
         url.apply_query_parameters(&self.query_parameters, &query_variables)

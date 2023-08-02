@@ -36,13 +36,13 @@ impl<'a> VariableInAllowedPosition<'a> {
             for (var_name, usage_pos, expected_type) in usages {
                 if let Some(def) = var_defs.iter().find(|def| def.node.name.node == *var_name) {
                     let declared_variable_type = def.node.var_type.node.to_string();
-                    let effective_variable_type =
-                        if def.node.var_type.node.nullable && def.node.default_value.is_some() {
-                            // A nullable type with a default value functions as a non-nullable
-                            format!("{}!", def.node.var_type.node)
-                        } else {
-                            declared_variable_type.clone()
-                        };
+                    let effective_variable_type = if def.node.var_type.node.nullable && def.node.default_value.is_some()
+                    {
+                        // A nullable type with a default value functions as a non-nullable
+                        format!("{}!", def.node.var_type.node)
+                    } else {
+                        declared_variable_type.clone()
+                    };
 
                     if !expected_type.is_subtype(&MetaTypeName::create(&effective_variable_type)) {
                         ctx.report_error(

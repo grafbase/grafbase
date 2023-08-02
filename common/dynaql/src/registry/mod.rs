@@ -29,14 +29,12 @@ use std::sync::atomic::AtomicU16;
 use crate::auth::AuthConfig;
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
-use crate::parser::types::{
-    BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition,
-};
+use crate::parser::types::{BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition};
 use crate::resolver_utils::{resolve_container, resolve_list};
 use crate::validation::dynamic_validators::DynValidator;
 use crate::{
-    model, Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerError,
-    ServerResult, SubscriptionType, Value, VisitorContext,
+    model, Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerError, ServerResult,
+    SubscriptionType, Value, VisitorContext,
 };
 use grafbase::auth::Operations;
 
@@ -49,16 +47,12 @@ pub use self::{
     cache_control::CacheInvalidation,
     cache_control::CacheInvalidationPolicy,
     connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
-    type_names::{
-        InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference,
-    },
+    type_names::{InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
     union_discriminator::UnionDiscriminator,
 };
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
-    type_name
-        .strip_prefix('[')
-        .map(|rest| &rest[..rest.len() - 1])
+    type_name.strip_prefix('[').map(|rest| &rest[..rest.len() - 1])
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -116,13 +110,10 @@ impl<'a> MetaTypeName<'a> {
     #[inline]
     pub fn is_subtype(&self, sub: &MetaTypeName<'_>) -> bool {
         match (self, sub) {
-            (
-                MetaTypeName::NonNull(super_type) | MetaTypeName::Named(super_type),
-                MetaTypeName::NonNull(sub_type),
-            ) => MetaTypeName::create(super_type).is_subtype(&MetaTypeName::create(sub_type)),
-            (MetaTypeName::Named(super_type), MetaTypeName::Named(sub_type)) => {
-                super_type == sub_type
+            (MetaTypeName::NonNull(super_type) | MetaTypeName::Named(super_type), MetaTypeName::NonNull(sub_type)) => {
+                MetaTypeName::create(super_type).is_subtype(&MetaTypeName::create(sub_type))
             }
+            (MetaTypeName::Named(super_type), MetaTypeName::Named(sub_type)) => super_type == sub_type,
             (MetaTypeName::List(super_type), MetaTypeName::List(sub_type)) => {
                 MetaTypeName::create(super_type).is_subtype(&MetaTypeName::create(sub_type))
             }
@@ -188,12 +179,8 @@ impl MetaInputValue {
 
 impl Eq for MetaInputValue {}
 
-type ComputeComplexityFn = fn(
-    &VisitorContext<'_>,
-    &[Positioned<VariableDefinition>],
-    &Field,
-    usize,
-) -> ServerResult<usize>;
+type ComputeComplexityFn =
+    fn(&VisitorContext<'_>, &[Positioned<VariableDefinition>], &Field, usize) -> ServerResult<usize>;
 
 #[derive(Clone)]
 pub enum ComplexityType {
@@ -227,25 +214,13 @@ impl Deprecation {
     }
 }
 
-#[derive(
-    Clone,
-    Debug,
-    derivative::Derivative,
-    serde::Deserialize,
-    serde::Serialize,
-    Hash,
-    PartialEq,
-    Eq,
-    Default,
-)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq, Default)]
 pub enum ConstraintType {
     #[default]
     Unique,
 }
 
-#[derive(
-    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq,
-)]
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::skip_serializing_defaults(Option, Vec, ConstraintType)]
 pub struct Constraint {
@@ -473,12 +448,12 @@ impl MetaField {
 
                 let result = match resolved_value {
                     Ok(result) => {
-                        if self.ty.is_non_null()
-                            && *result.data_resolved.as_ref() == serde_json::Value::Null
-                        {
+                        if self.ty.is_non_null() && *result.data_resolved.as_ref() == serde_json::Value::Null {
                             #[cfg(feature = "tracing_worker")]
                             logworker::warn!(
-                                ctx.data_unchecked::<std::sync::Arc<dynamodb::DynamoDBBatchersData>>().ctx.trace_id,
+                                ctx.data_unchecked::<std::sync::Arc<dynamodb::DynamoDBBatchersData>>()
+                                    .ctx
+                                    .trace_id,
                                 "{}",
                                 serde_json::to_string_pretty(&serde_json::json!({
                                     "message": "Something went wrong here",
@@ -488,10 +463,7 @@ impl MetaField {
                                 .unwrap(),
                             );
                             Err(ServerError::new(
-                                format!(
-                                    "An error happened while fetching {:?}",
-                                    ctx.item.node.name
-                                ),
+                                format!("An error happened while fetching {:?}", ctx.item.node.name),
                                 Some(ctx.item.pos),
                             ))
                         } else {
@@ -511,9 +483,7 @@ impl MetaField {
                     .resolver_node
                     .as_ref()
                     .and_then(|resolver_node| resolver_node.ty)
-                    .ok_or_else(|| {
-                        ServerError::new("Internal Error: expected a field", Some(ctx.item.pos))
-                    })?;
+                    .ok_or_else(|| ServerError::new("Internal Error: expected a field", Some(ctx.item.pos)))?;
 
                 let parent_meta_type = ctx_obj
                     .resolver_node
@@ -527,44 +497,31 @@ impl MetaField {
                 let result = match meta_type {
                     MetaType::Scalar(scalar) => match scalar.parser {
                         ScalarParser::PassThrough => {
-                            let scalar_value: ConstValue =
-                                result.try_into().map_err(|err: serde_json::Error| {
-                                    ServerError::new(err.to_string(), Some(ctx.item.pos))
-                                })?;
+                            let scalar_value: ConstValue = result.try_into().map_err(|err: serde_json::Error| {
+                                ServerError::new(err.to_string(), Some(ctx.item.pos))
+                            })?;
 
-                            self.check_cache_tag(
-                                ctx,
-                                &parent_meta_type,
-                                &self.name,
-                                Some(&scalar_value),
-                            )
-                            .await;
+                            self.check_cache_tag(ctx, &parent_meta_type, &self.name, Some(&scalar_value))
+                                .await;
 
                             scalar_value
                         }
                         ScalarParser::BestEffort => match result {
                             serde_json::Value::Null => Value::Null,
                             _ => {
-                                let scalar_value = PossibleScalar::to_value(
-                                    &self.ty.named_type().as_str(),
-                                    result,
-                                )
-                                .map_err(|err| err.into_server_error(ctx.item.pos))?;
+                                let scalar_value = PossibleScalar::to_value(&self.ty.named_type().as_str(), result)
+                                    .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-                                self.check_cache_tag(
-                                    ctx,
-                                    &parent_meta_type,
-                                    &self.name,
-                                    Some(&scalar_value),
-                                )
-                                .await;
+                                self.check_cache_tag(ctx, &parent_meta_type, &self.name, Some(&scalar_value))
+                                    .await;
 
                                 scalar_value
                             }
                         },
                     },
-                    MetaType::Enum { .. } => Value::from_json(result)
-                        .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))?,
+                    MetaType::Enum { .. } => {
+                        Value::from_json(result).map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))?
+                    }
                     _ => {
                         return Err(ServerError::new(
                             "Internal error: expected an enum or scalar type for a primitive",
@@ -641,8 +598,7 @@ impl MetaField {
 
                 match resolve_container(&ctx_obj, container_type, node_id).await {
                     result @ Ok(_) => {
-                        self.check_cache_tag(ctx, &type_name, &self.name, None)
-                            .await;
+                        self.check_cache_tag(ctx, &type_name, &self.name, None).await;
                         result
                     }
                     Err(err) => {
@@ -681,23 +637,15 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ));
                         } else {
-                            return Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .insert_node(CompactValue::Null));
+                            return Ok(ctx.response_graph.write().await.insert_node(CompactValue::Null));
                         }
                     }
                     serde_json::Value::Array(arr) => {
-                        self.check_cache_tag(ctx, container_type.name(), &self.name, None)
-                            .await;
+                        self.check_cache_tag(ctx, container_type.name(), &self.name, None).await;
                         arr.clone()
                     }
                     _ => {
-                        return Err(ServerError::new(
-                            "An internal error happened",
-                            Some(ctx.item.pos),
-                        ));
+                        return Err(ServerError::new("An internal error happened", Some(ctx.item.pos)));
                     }
                 };
 
@@ -708,11 +656,7 @@ impl MetaField {
                             Err(err)
                         } else {
                             ctx.add_error(err);
-                            Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .insert_node(CompactValue::Null))
+                            Ok(ctx.response_graph.write().await.insert_node(CompactValue::Null))
                         }
                     }
                 }
@@ -728,8 +672,7 @@ impl MetaField {
         resolved_field_value: Option<&ConstValue>,
     ) {
         use crate::names::{
-            DELETE_PAYLOAD_RETURN_TY_SUFFIX, OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS,
-            OUTPUT_FIELD_ID,
+            DELETE_PAYLOAD_RETURN_TY_SUFFIX, OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS, OUTPUT_FIELD_ID,
         };
         let cache_invalidation = ctx
             .query_env
@@ -743,19 +686,12 @@ impl MetaField {
             // This is very specific to deletions, not all queries return the @cache type ...
             // Reads, Creates and Updates do return the @cache type but Deletes do not.
             // Deletions return a `xDeletionPayload` with only a `deletedId`
-            if cache_invalidation
-                .ty
-                .ends_with(DELETE_PAYLOAD_RETURN_TY_SUFFIX)
-            {
-                cache_type = cache_invalidation
-                    .ty
-                    .replace(DELETE_PAYLOAD_RETURN_TY_SUFFIX, "");
+            if cache_invalidation.ty.ends_with(DELETE_PAYLOAD_RETURN_TY_SUFFIX) {
+                cache_type = cache_invalidation.ty.replace(DELETE_PAYLOAD_RETURN_TY_SUFFIX, "");
             }
 
             let cache_tags = match &cache_invalidation.policy {
-                CacheInvalidationPolicy::Entity {
-                    field: target_field,
-                } => {
+                CacheInvalidationPolicy::Entity { field: target_field } => {
                     if target_field == resolved_field_name
                     // Deletions return a `xDeletionPayload` with only a `deletedId`
                     // If an invalidation policy is of type `entity.id`, on deletes `id` is the `deletedId`
@@ -785,13 +721,9 @@ impl MetaField {
                             field_name: target_field.to_string(),
                             value: resolved_field_value,
                         }]
-                    } else if target_field == OUTPUT_FIELD_ID
-                        && OUTPUT_FIELD_DELETED_IDS == resolved_field_name
-                    {
-                        let ids = Vec::<String>::deserialize(
-                            resolved_field_value.unwrap_or(&ConstValue::Null).clone(),
-                        )
-                        .unwrap_or_default();
+                    } else if target_field == OUTPUT_FIELD_ID && OUTPUT_FIELD_DELETED_IDS == resolved_field_name {
+                        let ids = Vec::<String>::deserialize(resolved_field_value.unwrap_or(&ConstValue::Null).clone())
+                            .unwrap_or_default();
 
                         ids.into_iter()
                             .map(|value| CacheTag::Field {
@@ -804,12 +736,8 @@ impl MetaField {
                         return;
                     }
                 }
-                CacheInvalidationPolicy::List => vec![CacheTag::List {
-                    type_name: cache_type,
-                }],
-                CacheInvalidationPolicy::Type => vec![CacheTag::Type {
-                    type_name: cache_type,
-                }],
+                CacheInvalidationPolicy::List => vec![CacheTag::List { type_name: cache_type }],
+                CacheInvalidationPolicy::Type => vec![CacheTag::Type { type_name: cache_type }],
             };
 
             ctx.response_graph.write().await.add_cache_tags(cache_tags);
@@ -845,10 +773,7 @@ impl MetaEnumValue {
     }
 
     pub fn with_description(self, description: Option<String>) -> Self {
-        MetaEnumValue {
-            description,
-            ..self
-        }
+        MetaEnumValue { description, ..self }
     }
 }
 
@@ -976,10 +901,7 @@ impl ObjectType {
         ObjectType {
             rust_typename: name.clone(),
             name,
-            fields: fields
-                .into_iter()
-                .map(|field| (field.name.clone(), field))
-                .collect(),
+            fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
             description: None,
             cache_control: Default::default(),
             extends: false,
@@ -999,10 +921,7 @@ impl ObjectType {
     }
 
     pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
-        ObjectType {
-            cache_control,
-            ..self
-        }
+        ObjectType { cache_control, ..self }
     }
 
     #[inline]
@@ -1073,10 +992,7 @@ pub struct UnionType {
 }
 
 impl UnionType {
-    pub fn new<T: Into<String>>(
-        name: impl Into<String>,
-        possible_types: impl IntoIterator<Item = T>,
-    ) -> UnionType {
+    pub fn new<T: Into<String>>(name: impl Into<String>, possible_types: impl IntoIterator<Item = T>) -> UnionType {
         let name = name.into();
         UnionType {
             rust_typename: name.clone(),
@@ -1114,20 +1030,14 @@ impl EnumType {
         EnumType {
             rust_typename: name.clone(),
             name,
-            enum_values: values
-                .into_iter()
-                .map(|value| (value.name.clone(), value))
-                .collect(),
+            enum_values: values.into_iter().map(|value| (value.name.clone(), value)).collect(),
             description: None,
             visible: None,
         }
     }
 
     pub fn with_description(self, description: Option<String>) -> Self {
-        EnumType {
-            description,
-            ..self
-        }
+        EnumType { description, ..self }
     }
 }
 
@@ -1158,20 +1068,14 @@ impl InputObjectType {
             rust_typename: name.clone(),
             name,
             description: None,
-            input_fields: input_fields
-                .into_iter()
-                .map(|v| (v.name.clone(), v))
-                .collect(),
+            input_fields: input_fields.into_iter().map(|v| (v.name.clone(), v)).collect(),
             visible: None,
             oneof: false,
         }
     }
 
     pub fn with_description(self, description: Option<String>) -> Self {
-        InputObjectType {
-            description,
-            ..self
-        }
+        InputObjectType { description, ..self }
     }
 
     pub fn with_oneof(self, oneof: bool) -> Self {
@@ -1327,11 +1231,7 @@ impl PartialEq for MetaType {
                     specified_by_url: o_specified_by_url,
                     ..
                 }),
-            ) => {
-                name.eq(o_name)
-                    && description.eq(o_descrition)
-                    && specified_by_url.eq(o_specified_by_url)
-            }
+            ) => name.eq(o_name) && description.eq(o_descrition) && specified_by_url.eq(o_specified_by_url),
             (
                 Self::Object(ObjectType {
                     name,
@@ -1552,10 +1452,7 @@ impl MetaType {
 
     #[inline]
     pub fn is_composite(&self) -> bool {
-        matches!(
-            self,
-            MetaType::Object(_) | MetaType::Interface(_) | MetaType::Union(_)
-        )
+        matches!(self, MetaType::Object(_) | MetaType::Interface(_) | MetaType::Union(_))
     }
 
     #[inline]
@@ -1570,10 +1467,7 @@ impl MetaType {
 
     #[inline]
     pub fn is_input(&self) -> bool {
-        matches!(
-            self,
-            MetaType::Enum(_) | MetaType::Scalar(_) | MetaType::InputObject(_)
-        )
+        matches!(self, MetaType::Enum(_) | MetaType::Scalar(_) | MetaType::InputObject(_))
     }
 
     #[inline]
@@ -1736,10 +1630,7 @@ impl Registry {
     /// Looks up a particular type in the registry, with the expectation that it is of a particular kind.
     ///
     /// Will error if the type doesn't exist or is of an unexpected kind.
-    pub fn lookup_expecting<'a, Expected>(
-        &'a self,
-        name: &impl TypeReference,
-    ) -> Result<Expected, Error>
+    pub fn lookup_expecting<'a, Expected>(&'a self, name: &impl TypeReference) -> Result<Expected, Error>
     where
         Expected: TryFrom<&'a MetaType> + 'a,
         <Expected as TryFrom<&'a MetaType>>::Error: Into<Error>,
@@ -1788,10 +1679,9 @@ impl Registry {
             query_type: "Query".to_string(),
             ..Registry::default()
         };
-        registry.types.insert(
-            "Query".to_string(),
-            ObjectType::new("Query".to_string(), []).into(),
-        );
+        registry
+            .types
+            .insert("Query".to_string(), ObjectType::new("Query".to_string(), []).into());
         registry
     }
 
@@ -1836,15 +1726,11 @@ impl Registry {
 
     pub fn mutation_root(&self) -> &MetaType {
         // TODO: Fix this.
-        self.types
-            .get(self.mutation_type.as_deref().unwrap())
-            .unwrap()
+        self.types.get(self.mutation_type.as_deref().unwrap()).unwrap()
     }
 
     pub fn mutation_root_mut(&mut self) -> &mut MetaType {
-        self.types
-            .get_mut(self.mutation_type.as_deref().unwrap())
-            .unwrap()
+        self.types.get_mut(self.mutation_type.as_deref().unwrap()).unwrap()
     }
 
     pub fn find_ty_with_id<'a>(&self, node_id: &NodeID<'a>) -> Option<&MetaType> {
@@ -1933,10 +1819,7 @@ impl Registry {
         T::qualified_type_name()
     }
 
-    pub fn create_output_type<
-        T: LegacyOutputType + ?Sized,
-        F: FnOnce(&mut Registry) -> MetaType,
-    >(
+    pub fn create_output_type<T: LegacyOutputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
     ) -> MetaFieldType {
@@ -1944,10 +1827,7 @@ impl Registry {
         T::qualified_type_name()
     }
 
-    pub fn create_subscription_type<
-        T: SubscriptionType + ?Sized,
-        F: FnOnce(&mut Registry) -> MetaType,
-    >(
+    pub fn create_subscription_type<T: SubscriptionType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
     ) -> String {
@@ -1972,19 +1852,12 @@ impl Registry {
         self.mongodb_configurations.insert(name.to_string(), config);
     }
 
-    pub fn create_type<F: FnOnce(&mut Registry) -> MetaType>(
-        &mut self,
-        f: F,
-        name: &str,
-        rust_typename: &str,
-    ) {
+    pub fn create_type<F: FnOnce(&mut Registry) -> MetaType>(&mut self, f: F, name: &str, rust_typename: &str) {
         match self.types.get(name) {
             Some(ty) => {
                 if let Some(prev_typename) = ty.rust_typename() {
                     if prev_typename.ne("__fake_type__") && prev_typename.ne(rust_typename) {
-                        panic!(
-                            "`{prev_typename}` and `{rust_typename}` have the same GraphQL name `{name}`",
-                        );
+                        panic!("`{prev_typename}` and `{rust_typename}` have the same GraphQL name `{name}`",);
                     }
                 }
             }
@@ -2029,8 +1902,7 @@ impl Registry {
     }
 
     pub fn add_directive(&mut self, directive: MetaDirective) {
-        self.directives
-            .insert(directive.name.to_string(), directive);
+        self.directives.insert(directive.name.to_string(), directive);
     }
 
     pub fn add_implements(&mut self, ty: &str, interface: &str) {
@@ -2072,12 +1944,8 @@ impl Registry {
 
     pub(crate) fn has_entities(&self) -> bool {
         self.types.values().any(|ty| match ty {
-            MetaType::Object(ObjectType {
-                keys: Some(keys), ..
-            })
-            | MetaType::Interface(InterfaceType {
-                keys: Some(keys), ..
-            }) => !keys.is_empty(),
+            MetaType::Object(ObjectType { keys: Some(keys), .. })
+            | MetaType::Interface(InterfaceType { keys: Some(keys), .. }) => !keys.is_empty(),
             _ => false,
         })
     }
@@ -2093,14 +1961,10 @@ impl Registry {
             .values()
             .filter_map(|ty| match ty {
                 MetaType::Object(ObjectType {
-                    name,
-                    keys: Some(keys),
-                    ..
+                    name, keys: Some(keys), ..
                 }) if !keys.is_empty() => Some(name.clone()),
                 MetaType::Interface(InterfaceType {
-                    name,
-                    keys: Some(keys),
-                    ..
+                    name, keys: Some(keys), ..
                 }) if !keys.is_empty() => Some(name.clone()),
                 _ => None,
             })
@@ -2199,15 +2063,11 @@ impl Registry {
                             .flatten(),
                     );
                 }
-                MetaType::Enum(EnumType {
-                    name, enum_values, ..
-                }) => {
+                MetaType::Enum(EnumType { name, enum_values, .. }) => {
                     names.insert(name.clone());
                     names.extend(enum_values.values().map(|value| value.name.to_string()));
                 }
-                MetaType::InputObject(InputObjectType {
-                    name, input_fields, ..
-                }) => {
+                MetaType::InputObject(InputObjectType { name, input_fields, .. }) => {
                     names.insert(name.clone());
                     names.extend(input_fields.values().map(|field| field.name.to_string()));
                 }
@@ -2309,12 +2169,8 @@ impl Registry {
         }
 
         for ty in self.types.values().filter(|ty| match ty {
-            MetaType::Object(ObjectType {
-                keys: Some(keys), ..
-            })
-            | MetaType::Interface(InterfaceType {
-                keys: Some(keys), ..
-            }) => !keys.is_empty(),
+            MetaType::Object(ObjectType { keys: Some(keys), .. })
+            | MetaType::Interface(InterfaceType { keys: Some(keys), .. }) => !keys.is_empty(),
             _ => false,
         }) {
             traverse_type(&self.types, &mut used_types, ty.name());
@@ -2361,12 +2217,7 @@ impl Registry {
                 return;
             }
 
-            traverse_type(
-                ctx,
-                types,
-                visible_types,
-                input_value.ty.named_type().as_str(),
-            );
+            traverse_type(ctx, types, visible_types, input_value.ty.named_type().as_str());
         }
 
         fn traverse_type<'a>(
@@ -2431,12 +2282,8 @@ impl Registry {
         }
 
         for ty in self.types.values().filter(|ty| match ty {
-            MetaType::Object(ObjectType {
-                keys: Some(keys), ..
-            })
-            | MetaType::Interface(InterfaceType {
-                keys: Some(keys), ..
-            }) => !keys.is_empty(),
+            MetaType::Object(ObjectType { keys: Some(keys), .. })
+            | MetaType::Interface(InterfaceType { keys: Some(keys), .. }) => !keys.is_empty(),
             _ => false,
         }) {
             traverse_type(ctx, &self.types, &mut visible_types, ty.name());

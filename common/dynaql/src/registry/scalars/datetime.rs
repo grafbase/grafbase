@@ -52,9 +52,7 @@ impl DynamicParse for DateTimeScalar {
             serde_json::Value::String(v) => {
                 let dt = v.parse::<DateTime<Utc>>();
                 dt.map(|dt| ConstValue::String(dt.to_rfc3339_opts(SecondsFormat::Millis, true)))
-                    .map_err(|_| {
-                        Error::new("Data violation: Cannot coerce the initial value to a DateTime")
-                    })
+                    .map_err(|_| Error::new("Data violation: Cannot coerce the initial value to a DateTime"))
             }
             _ => Err(Error::new(
                 "Data violation: Cannot coerce the initial value to a DateTime",
@@ -71,10 +69,7 @@ impl DynamicParse for DateTimeScalar {
 
                 Ok(serde_json::Value::String(date.to_rfc3339()))
             }
-            _ => Err(InputValueError::ty_custom(
-                "DateTime",
-                "Cannot parse into a String",
-            )),
+            _ => Err(InputValueError::ty_custom("DateTime", "Cannot parse into a String")),
         }
     }
 }

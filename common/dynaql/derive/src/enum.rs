@@ -107,11 +107,9 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
     };
 
     if schema_enum_items.is_empty() {
-        return Err(Error::new_spanned(
-            ident,
-            "A GraphQL Enum type must define one or more unique enum values.",
-        )
-        .into());
+        return Err(
+            Error::new_spanned(ident, "A GraphQL Enum type must define one or more unique enum values.").into(),
+        );
     }
 
     let visible = visible_fn(&enum_args.visible);

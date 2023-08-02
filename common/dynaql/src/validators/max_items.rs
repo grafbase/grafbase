@@ -2,10 +2,7 @@ use std::ops::Deref;
 
 use crate::{InputValueError, LegacyInputType};
 
-pub fn max_items<T: Deref<Target = [E]> + LegacyInputType, E>(
-    value: &T,
-    len: usize,
-) -> Result<(), InputValueError<T>> {
+pub fn max_items<T: Deref<Target = [E]> + LegacyInputType, E>(value: &T, len: usize) -> Result<(), InputValueError<T>> {
     if value.deref().len() <= len {
         Ok(())
     } else {

@@ -38,8 +38,7 @@ use dataloader::{DataLoader, Loader, NoCache};
 use dynaql_parser::{
     parse_query,
     types::{
-        ExecutableDocument, Field, FragmentDefinition, OperationType, Selection, SelectionSet,
-        VariableDefinition,
+        ExecutableDocument, Field, FragmentDefinition, OperationType, Selection, SelectionSet, VariableDefinition,
     },
 };
 use dynaql_value::{ConstValue, Name, Variables};
@@ -50,10 +49,7 @@ use send_wrapper::SendWrapper;
 use url::Url;
 
 use crate::{
-    registry::{
-        resolvers::graphql::response::UpstreamResponse, type_kinds::SelectionSetTarget, MetaField,
-        Registry,
-    },
+    registry::{resolvers::graphql::response::UpstreamResponse, type_kinds::SelectionSetTarget, MetaField, Registry},
     ServerError,
 };
 
@@ -128,10 +124,7 @@ impl Loader<QueryData> for QueryLoader {
     type Value = (UpstreamResponse, StatusCode);
     type Error = Error;
 
-    async fn load(
-        &self,
-        queries: &[QueryData],
-    ) -> Result<HashMap<QueryData, Self::Value>, Self::Error> {
+    async fn load(&self, queries: &[QueryData]) -> Result<HashMap<QueryData, Self::Value>, Self::Error> {
         load(queries).await
     }
 }
@@ -155,10 +148,7 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
             headers: data.headers,
         };
 
-        resolver_queries
-            .entry(id)
-            .or_default()
-            .push(data.query.clone());
+        resolver_queries.entry(id).or_default().push(data.query.clone());
     }
 
     let mut results: HashMap<QueryData, (UpstreamResponse, StatusCode)> = HashMap::default();
@@ -190,10 +180,7 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
 
             let upstream_response = UpstreamResponse::from_response_text(
                 http_status,
-                response
-                    .text()
-                    .await
-                    .map_err(|e| Error::RequestError(e.to_string())),
+                response.text().await.map_err(|e| Error::RequestError(e.to_string())),
             )?;
 
             for query in queries {
@@ -220,15 +207,8 @@ fn group_queries(queries: Vec<Query>) -> Query {
     let mut all_selections = SelectionSet::default();
     let mut all_directives = HashMap::new();
 
-    for Query {
-        query: q,
-        variables: v,
-    } in queries
-    {
-        let ExecutableDocument {
-            operations,
-            fragments,
-        } = parse_query(&q).expect("valid serialized query");
+    for Query { query: q, variables: v } in queries {
+        let ExecutableDocument { operations, fragments } = parse_query(&q).expect("valid serialized query");
 
         let operation = operations
             .iter()
@@ -250,9 +230,7 @@ fn group_queries(queries: Vec<Query>) -> Query {
         }
 
         all_fragments.extend(fragments);
-        all_selections
-            .items
-            .extend(operation.selection_set.items.clone());
+        all_selections.items.extend(operation.selection_set.items.clone());
 
         variables.extend(v);
     }
@@ -260,37 +238,19 @@ fn group_queries(queries: Vec<Query>) -> Query {
     let mut query = String::new();
     let registry = Registry::default();
 
-    let fragment_definitions = all_fragments
-        .iter()
-        .map(|(k, v)| (k, v.as_ref().node))
-        .collect();
+    let fragment_definitions = all_fragments.iter().map(|(k, v)| (k, v.as_ref().node)).collect();
 
     let all_variable_definitions: Vec<_> = all_variable_definitions.into_values().collect();
     let variable_definitions = all_variable_definitions
         .iter()
-        .map(|variable_definition| {
-            (
-                &variable_definition.node.name.node,
-                &variable_definition.node,
-            )
-        })
+        .map(|variable_definition| (&variable_definition.node.name.node, &variable_definition.node))
         .collect();
 
-    let mut serializer = Serializer::new(
-        None,
-        fragment_definitions,
-        variable_definitions,
-        &mut query,
-        &registry,
-    );
+    let mut serializer = Serializer::new(None, fragment_definitions, variable_definitions, &mut query, &registry);
 
-    let target = Target::SelectionSet(Box::new(
-        all_selections.items.into_iter().map(|v| v.node.clone()),
-    ));
+    let target = Target::SelectionSet(Box::new(all_selections.items.into_iter().map(|v| v.node.clone())));
 
-    serializer
-        .query(target, None)
-        .expect("valid grouping of queries");
+    serializer.query(target, None).expect("valid grouping of queries");
 
     Query { query, variables }
 }
@@ -366,18 +326,12 @@ impl Resolver {
             match operation {
                 OperationType::Query => serializer.query(target, current_type)?,
                 OperationType::Mutation => serializer.mutation(target, current_type)?,
-                OperationType::Subscription => {
-                    return Err(Error::UnsupportedOperation("subscription"))
-                }
+                OperationType::Subscription => return Err(Error::UnsupportedOperation("subscription")),
             };
 
             let variables = variables
                 .into_iter()
-                .filter(|(name, _)| {
-                    serializer
-                        .variable_references()
-                        .any(|reference| reference == name)
-                })
+                .filter(|(name, _)| serializer.variable_references().any(|reference| reference == name))
                 .collect();
 
             let query_data = QueryData {
@@ -392,12 +346,8 @@ impl Resolver {
             };
 
             let value = match (batcher, operation) {
-                (_, OperationType::Subscription) => {
-                    return Err(Error::UnsupportedOperation("subscription"))
-                }
-                (Some(batcher), OperationType::Query) => {
-                    batcher.loader.load_one(query_data).await?
-                }
+                (_, OperationType::Subscription) => return Err(Error::UnsupportedOperation("subscription")),
+                (Some(batcher), OperationType::Query) => batcher.loader.load_one(query_data).await?,
                 _ => load(&[query_data]).await?.into_values().next(),
             };
 
@@ -561,13 +511,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let result = resolve_registry(
-            Resolver::stub("myApi", server.uri()),
-            registry.clone(),
-            None,
-            query,
-        )
-        .await;
+        let result = resolve_registry(Resolver::stub("myApi", server.uri()), registry.clone(), None, query).await;
 
         assert_eq!(result.as_ref().err(), None);
 
@@ -697,18 +641,14 @@ mod tests {
 
         // 2. Mutations are processed sequentially, resulting in two invidual requests.
         Mock::given(method("POST"))
-            .and(body_json(
-                json!({"query":"mutation {\n\tfoo\n}\n","variables":{}}),
-            ))
+            .and(body_json(json!({"query":"mutation {\n\tfoo\n}\n","variables":{}})))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
             .expect(1)
             .mount(&server)
             .await;
 
         Mock::given(method("POST"))
-            .and(body_json(
-                json!({"query":"mutation {\n\tbar\n}\n","variables":{}}),
-            ))
+            .and(body_json(json!({"query":"mutation {\n\tbar\n}\n","variables":{}})))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
             .expect(1)
             .mount(&server)
@@ -761,8 +701,7 @@ mod tests {
             .and(request_fn(|req| {
                 let body = req.body_json::<Value>().unwrap().to_string();
 
-                let vars = body.contains("query($foo: ID, $bar: ID)")
-                    || body.contains("query($bar: ID, $foo: ID)");
+                let vars = body.contains("query($foo: ID, $bar: ID)") || body.contains("query($bar: ID, $foo: ID)");
 
                 let fields = body.contains("foo(id: $foo)\\n\\tbar(id: $bar)")
                     || body.contains("bar(id: $bar)\\n\\tfoo(id: $foo)");
@@ -807,11 +746,7 @@ mod tests {
         let headers = vec![("Authorization", "Bearer FOOBAR")];
         let document = parse_query(query).unwrap();
 
-        let fragment_definitions = document
-            .fragments
-            .iter()
-            .map(|(k, v)| (k, v.as_ref().node))
-            .collect();
+        let fragment_definitions = document.fragments.iter().map(|(k, v)| (k, v.as_ref().node)).collect();
 
         let operation = document
             .operations
@@ -825,34 +760,19 @@ mod tests {
         let variable_definitions = operation
             .variable_definitions
             .iter()
-            .map(|variable_definition| {
-                (
-                    &variable_definition.node.name.node,
-                    &variable_definition.node,
-                )
-            })
+            .map(|variable_definition| (&variable_definition.node.name.node, &variable_definition.node))
             .collect();
 
         let operation_type = operation.ty;
 
         let current_type = match operation.ty {
             OperationType::Query => registry.lookup_by_str("Query").unwrap().try_into().unwrap(),
-            OperationType::Mutation => registry
-                .lookup_by_str("Mutation")
-                .unwrap()
-                .try_into()
-                .unwrap(),
+            OperationType::Mutation => registry.lookup_by_str("Mutation").unwrap().try_into().unwrap(),
             OperationType::Subscription => unimplemented!(),
         };
 
         let target = Target::SelectionSet(Box::new(
-            operation
-                .selection_set
-                .node
-                .items
-                .clone()
-                .into_iter()
-                .map(|v| v.node),
+            operation.selection_set.node.items.clone().into_iter().map(|v| v.node),
         ));
 
         let error_handler = |error| errors.push(error);

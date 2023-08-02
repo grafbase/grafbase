@@ -10,8 +10,7 @@ use syn::{Error, Type};
 use crate::args::{self, InterfaceField, InterfaceFieldArgument, RenameRuleExt, RenameTarget};
 use crate::output_type::OutputType;
 use crate::utils::{
-    gen_deprecation, generate_default, get_crate_name, get_rustdoc, visible_fn, GeneratorResult,
-    RemoveLifetime,
+    gen_deprecation, generate_default, get_crate_name, get_rustdoc, visible_fn, GeneratorResult, RemoveLifetime,
 };
 
 pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream> {
@@ -20,11 +19,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
     let (impl_generics, ty_generics, where_clause) = interface_args.generics.split_for_impl();
     let s = match &interface_args.data {
         Data::Enum(s) => s,
-        _ => {
-            return Err(
-                Error::new_spanned(ident, "Interface can only be applied to an enum.").into(),
-            )
-        }
+        _ => return Err(Error::new_spanned(ident, "Interface can only be applied to an enum.").into()),
     };
     let extends = interface_args.extends;
     let mut enum_names = Vec::new();
@@ -49,32 +44,18 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         let ty = match variant.fields.style {
             Style::Tuple if variant.fields.fields.len() == 1 => &variant.fields.fields[0],
             Style::Tuple => {
-                return Err(Error::new_spanned(
-                    enum_name,
-                    "Only single value variants are supported",
-                )
-                .into())
+                return Err(Error::new_spanned(enum_name, "Only single value variants are supported").into())
             }
-            Style::Unit => {
-                return Err(
-                    Error::new_spanned(enum_name, "Empty variants are not supported").into(),
-                )
-            }
+            Style::Unit => return Err(Error::new_spanned(enum_name, "Empty variants are not supported").into()),
             Style::Struct => {
-                return Err(Error::new_spanned(
-                    enum_name,
-                    "Variants with named fields are not supported",
-                )
-                .into())
+                return Err(Error::new_spanned(enum_name, "Variants with named fields are not supported").into())
             }
         };
 
         if let Type::Path(p) = ty {
             // This validates that the field type wasn't already used
             if !enum_items.insert(p) {
-                return Err(
-                    Error::new_spanned(ty, "This type already used in another variant").into(),
-                );
+                return Err(Error::new_spanned(ty, "This type already used in another variant").into());
             }
 
             let mut assert_ty = p.clone();
@@ -118,11 +99,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
     let mut resolvers = Vec::new();
 
     if interface_args.fields.is_empty() {
-        return Err(Error::new_spanned(
-            ident,
-            "A GraphQL Interface type must define one or more fields.",
-        )
-        .into());
+        return Err(Error::new_spanned(ident, "A GraphQL Interface type must define one or more fields.").into());
     }
 
     for InterfaceField {
@@ -144,9 +121,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         } else {
             let method_name = Ident::new(name, Span::call_site());
             (
-                interface_args
-                    .rename_fields
-                    .rename(name, RenameTarget::Field),
+                interface_args.rename_fields.rename(name, RenameTarget::Field),
                 method_name,
             )
         };
@@ -186,9 +161,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         } in args
         {
             let ident = Ident::new(name, Span::call_site());
-            let name = interface_args
-                .rename_args
-                .rename(name, RenameTarget::Argument);
+            let name = interface_args.rename_args.rename(name, RenameTarget::Argument);
             let ty = match syn::parse_str::<syn::Type>(&ty.value()) {
                 Ok(ty) => ty,
                 Err(_) => return Err(Error::new_spanned(ty, "Expect type").into()),

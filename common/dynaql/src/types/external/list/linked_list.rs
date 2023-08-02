@@ -6,8 +6,8 @@ use graph_entities::ResponseNodeId;
 use crate::parser::types::Field;
 use crate::resolver_utils::resolve_list_native;
 use crate::{
-    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType,
-    LegacyOutputType, Positioned, ServerResult, Value,
+    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Positioned,
+    ServerResult, Value,
 };
 
 impl<T: LegacyInputType> LegacyInputType for LinkedList<T> {
@@ -35,9 +35,7 @@ impl<T: LegacyInputType> LegacyInputType for LinkedList<T> {
                 .map_err(InputValueError::propagate),
             value => Ok({
                 let mut result = Self::default();
-                result.push_front(
-                    LegacyInputType::parse(Some(value)).map_err(InputValueError::propagate)?,
-                );
+                result.push_front(LegacyInputType::parse(Some(value)).map_err(InputValueError::propagate)?);
                 result
             }),
         }
@@ -67,11 +65,7 @@ impl<T: LegacyOutputType> LegacyOutputType for LinkedList<T> {
         Self::qualified_type_name()
     }
 
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         resolve_list_native(ctx, field, self, Some(self.len())).await
     }
 }

@@ -25,8 +25,7 @@ impl DynamicParse for JSONScalar {
     }
 
     fn parse(value: ConstValue) -> InputValueResult<serde_json::Value> {
-        serde_json::Value::deserialize(value)
-            .map_err(|error| InputValueError::ty_custom("JSON", error.to_string()))
+        serde_json::Value::deserialize(value).map_err(|error| InputValueError::ty_custom("JSON", error.to_string()))
     }
 }
 

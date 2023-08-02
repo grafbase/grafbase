@@ -57,10 +57,7 @@ impl Dog {
         unimplemented!()
     }
 
-    async fn is_housetrained(
-        &self,
-        #[graphql(default = true)] at_other_homes: bool,
-    ) -> Option<bool> {
+    async fn is_housetrained(&self, #[graphql(default = true)] at_other_homes: bool) -> Option<bool> {
         unimplemented!()
     }
 
@@ -254,10 +251,7 @@ impl ComplicatedArgs {
         unimplemented!()
     }
 
-    async fn string_list_arg_field(
-        &self,
-        string_list_arg: Option<Vec<Option<String>>>,
-    ) -> Option<String> {
+    async fn string_list_arg_field(&self, string_list_arg: Option<Vec<Option<String>>>) -> Option<String> {
         unimplemented!()
     }
 
@@ -269,11 +263,7 @@ impl ComplicatedArgs {
         unimplemented!()
     }
 
-    async fn multiple_opts(
-        &self,
-        #[graphql(default)] opt1: i32,
-        #[graphql(default)] opt2: i32,
-    ) -> Option<String> {
+    async fn multiple_opts(&self, #[graphql(default)] opt1: i32, #[graphql(default)] opt2: i32) -> Option<String> {
         unimplemented!()
     }
 
@@ -355,18 +345,10 @@ impl Subscription {
     }
 }
 
-static TEST_HARNESS: Lazy<Schema> = Lazy::new(|| {
-    Schema::new(Schema::create_registry_static::<
-        Query,
-        Mutation,
-        Subscription,
-    >())
-});
+static TEST_HARNESS: Lazy<Schema> =
+    Lazy::new(|| Schema::new(Schema::create_registry_static::<Query, Mutation, Subscription>()));
 
-pub(crate) fn validate<'a, V, F>(
-    doc: &'a ExecutableDocument,
-    factory: F,
-) -> Result<(), Vec<RuleError>>
+pub(crate) fn validate<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> Result<(), Vec<RuleError>>
 where
     V: Visitor<'a> + 'a,
     F: Fn() -> V,

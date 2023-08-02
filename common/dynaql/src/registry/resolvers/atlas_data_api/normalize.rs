@@ -71,11 +71,7 @@ pub(super) fn values(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>)
 
 /// Given the input, converts the keys to the mapped variants in MongoDB,
 /// and values to the extended JSON format.
-pub(super) fn keys_and_values(
-    ctx: &Context<'_>,
-    map: JsonMap,
-    input_type: InputType<'_>,
-) -> JsonMap {
+pub(super) fn keys_and_values(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
     let map = values(ctx, map, input_type);
     keys(ctx, map, input_type)
 }

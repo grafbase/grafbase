@@ -94,10 +94,7 @@ impl VariableResolveDefinition {
     ) -> Result<String, ServerError> {
         match self.param(ctx, last_resolver_value)? {
             Some(Value::String(inner)) => Ok(inner),
-            _ => {
-                Err(Error::new("Internal Error: failed to infer key")
-                    .into_server_error(ctx.item.pos))
-            }
+            _ => Err(Error::new("Internal Error: failed to infer key").into_server_error(ctx.item.pos)),
         }
     }
 
@@ -108,10 +105,7 @@ impl VariableResolveDefinition {
     ) -> Result<IndexMap<Name, Value>, ServerError> {
         match self.param(ctx, last_resolver_value)? {
             Some(Value::Object(inner)) => Ok(inner),
-            _ => {
-                Err(Error::new("Internal Error: failed to infer key")
-                    .into_server_error(ctx.item.pos))
-            }
+            _ => Err(Error::new("Internal Error: failed to infer key").into_server_error(ctx.item.pos)),
         }
     }
 
@@ -123,10 +117,7 @@ impl VariableResolveDefinition {
         match self.param(ctx, last_resolver_value)? {
             Some(Value::Object(inner)) => Ok(Some(inner)),
             None => Ok(None),
-            _ => {
-                Err(Error::new("Internal Error: failed to infer key")
-                    .into_server_error(ctx.item.pos))
-            }
+            _ => Err(Error::new("Internal Error: failed to infer key").into_server_error(ctx.item.pos)),
         }
     }
 
@@ -139,10 +130,7 @@ impl VariableResolveDefinition {
             Some(Value::String(inner)) => Ok(Some(inner)),
             Some(Value::Null) => Ok(None),
             None => Ok(None),
-            _ => {
-                Err(Error::new("Internal Error: failed to infer key")
-                    .into_server_error(ctx.item.pos))
-            }
+            _ => Err(Error::new("Internal Error: failed to infer key").into_server_error(ctx.item.pos)),
         }
     }
 
@@ -177,9 +165,7 @@ impl VariableResolveDefinition {
         match self.expect_opt_string(ctx, last_resolver_value)? {
             Some(s) => match Cursor::try_from(s).map(|x| String::from_utf8(x.into_bytes())) {
                 Ok(Ok(cursor)) => Ok(Some(cursor)),
-                Err(_) | Ok(Err(_)) => {
-                    Err(Error::new("Invalid Cursor").into_server_error(ctx.item.pos))
-                }
+                Err(_) | Ok(Err(_)) => Err(Error::new("Invalid Cursor").into_server_error(ctx.item.pos)),
             },
             None => Ok(None),
         }

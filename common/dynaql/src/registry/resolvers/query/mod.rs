@@ -83,9 +83,7 @@ impl QueryResolver {
                                     value => Some(search_parser::parse_filter(schema, value)?),
                                 },
                             },
-                            pagination: search_parser::parse_pagination(
-                                first, before, last, after,
-                            )?,
+                            pagination: search_parser::parse_pagination(first, before, last, after)?,
                             entity_type: entity_type.clone(),
                         },
                     )

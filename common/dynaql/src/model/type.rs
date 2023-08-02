@@ -31,11 +31,7 @@ impl<'a> __Type<'a> {
     }
 
     #[inline]
-    pub fn new(
-        registry: &'a registry::Registry,
-        visible_types: &'a HashSet<&'a str>,
-        type_name: &str,
-    ) -> __Type<'a> {
+    pub fn new(registry: &'a registry::Registry, visible_types: &'a HashSet<&'a str>, type_name: &str) -> __Type<'a> {
         match registry::MetaTypeName::create(type_name) {
             registry::MetaTypeName::NonNull(ty) => __Type {
                 registry,
@@ -98,9 +94,9 @@ impl<'a> __Type<'a> {
                 | registry::MetaType::Interface(registry::InterfaceType { description, .. })
                 | registry::MetaType::Union(registry::UnionType { description, .. })
                 | registry::MetaType::Enum(registry::EnumType { description, .. })
-                | registry::MetaType::InputObject(registry::InputObjectType {
-                    description, ..
-                }) => description.as_deref(),
+                | registry::MetaType::InputObject(registry::InputObjectType { description, .. }) => {
+                    description.as_deref()
+                }
             },
             TypeDetail::NonNull(_) => None,
             TypeDetail::List(_) => None,
@@ -118,8 +114,7 @@ impl<'a> __Type<'a> {
                     .values()
                     .filter(|field| is_visible(ctx, &field.visible))
                     .filter(|field| {
-                        (include_deprecated || !field.deprecation.is_deprecated())
-                            && !field.name.starts_with("__")
+                        (include_deprecated || !field.deprecation.is_deprecated()) && !field.name.starts_with("__")
                     })
                     .map(|field| __Field {
                         registry: self.registry,
@@ -134,8 +129,7 @@ impl<'a> __Type<'a> {
     }
 
     async fn interfaces(&self) -> Option<Vec<__Type<'a>>> {
-        if let TypeDetail::Named(registry::MetaType::Object(ObjectType { name, .. })) = &self.detail
-        {
+        if let TypeDetail::Named(registry::MetaType::Object(ObjectType { name, .. })) = &self.detail {
             Some(
                 self.registry
                     .implements
@@ -224,10 +218,8 @@ impl<'a> __Type<'a> {
 
     #[graphql(name = "specifiedByURL")]
     async fn specified_by_url(&self) -> Option<&'a str> {
-        if let TypeDetail::Named(registry::MetaType::Scalar(registry::ScalarType {
-            specified_by_url,
-            ..
-        })) = &self.detail
+        if let TypeDetail::Named(registry::MetaType::Scalar(registry::ScalarType { specified_by_url, .. })) =
+            &self.detail
         {
             specified_by_url.as_deref()
         } else {

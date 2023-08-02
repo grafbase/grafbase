@@ -23,10 +23,7 @@ impl DynamicParse for BytesScalar {
                 Ok(_) => Ok(Value::String(bytes_string)),
                 Err(_) => Err(InputValueError::ty_custom("Bytes", "Invalid Bytes value")),
             },
-            _ => Err(InputValueError::ty_custom(
-                "Bytes",
-                "Cannot parse into Bytes",
-            )),
+            _ => Err(InputValueError::ty_custom("Bytes", "Cannot parse into Bytes")),
         }
     }
 
@@ -42,9 +39,7 @@ impl DynamicParse for BytesScalar {
             Value::String(bytes) => STANDARD_NO_PAD
                 .decode(&bytes)
                 .map(|_| ConstValue::String(bytes))
-                .map_err(|_| {
-                    crate::Error::new("Data violation:  Cannot coerse the initial value into Bytes")
-                }),
+                .map_err(|_| crate::Error::new("Data violation:  Cannot coerse the initial value into Bytes")),
             _ => Err(crate::Error::new(
                 "Data violation: Cannot coerce the initial value into a Bytes",
             )),

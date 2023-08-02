@@ -7,10 +7,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 
 fn test_value<T: Serialize + DeserializeOwned + Clone + PartialEq + Debug>(value: T) {
-    assert_eq!(
-        from_value::<T>(to_value(value.clone()).unwrap()).unwrap(),
-        value
-    );
+    assert_eq!(from_value::<T>(to_value(value.clone()).unwrap()).unwrap(), value);
 }
 
 #[allow(clippy::use_self)]

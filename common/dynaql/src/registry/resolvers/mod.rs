@@ -120,14 +120,8 @@ impl ResolvedPaginationInfo {
         Self {
             start_cursor: start_cursor.map(Into::into),
             end_cursor: end_cursor.map(Into::into),
-            has_next_page: matches!(
-                (&direction, more_data),
-                (&ResolvedPaginationDirection::Forward, true)
-            ),
-            has_previous_page: matches!(
-                (&direction, more_data),
-                (&ResolvedPaginationDirection::Backward, true)
-            ),
+            has_next_page: matches!((&direction, more_data), (&ResolvedPaginationDirection::Forward, true)),
+            has_previous_page: matches!((&direction, more_data), (&ResolvedPaginationDirection::Backward, true)),
         }
     }
 
@@ -252,21 +246,11 @@ impl Resolver {
             Resolver::Parent => last_resolver_value
                 .cloned()
                 .ok_or_else(|| Error::new("No data to propagate!")),
-            Resolver::DynamoResolver(dynamodb) => {
-                dynamodb
-                    .resolve(ctx, resolver_ctx, last_resolver_value)
-                    .await
-            }
+            Resolver::DynamoResolver(dynamodb) => dynamodb.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::DynamoMutationResolver(dynamodb) => {
-                dynamodb
-                    .resolve(ctx, resolver_ctx, last_resolver_value)
-                    .await
+                dynamodb.resolve(ctx, resolver_ctx, last_resolver_value).await
             }
-            Resolver::Transformer(ctx_data) => {
-                ctx_data
-                    .resolve(ctx, resolver_ctx, last_resolver_value)
-                    .await
-            }
+            Resolver::Transformer(ctx_data) => ctx_data.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::CustomResolver(resolver) => resolver.resolve(ctx, last_resolver_value).await,
             Resolver::Query(query) => query.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::Composition(resolvers) => {
@@ -279,11 +263,7 @@ impl Resolver {
                 }
                 Ok(current)
             }
-            Resolver::Http(resolver) => {
-                resolver
-                    .resolve(ctx, resolver_ctx, last_resolver_value)
-                    .await
-            }
+            Resolver::Http(resolver) => resolver.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::Graphql(resolver) => {
                 let registry = ctx.registry();
                 let request_headers = ctx.data::<RequestHeaders>().ok();
@@ -291,9 +271,7 @@ impl Resolver {
                     .http_headers
                     .get(&format!("GraphQLConnector{}", resolver.id))
                     .zip(request_headers)
-                    .map(|(connector_headers, request_headers)| {
-                        connector_headers.build_header_vec(request_headers)
-                    })
+                    .map(|(connector_headers, request_headers)| connector_headers.build_header_vec(request_headers))
                     .unwrap_or_default();
 
                 let fragment_definitions = ctx
@@ -309,12 +287,7 @@ impl Resolver {
                     .node
                     .variable_definitions
                     .iter()
-                    .map(|variable_definition| {
-                        (
-                            &variable_definition.node.name.node,
-                            &variable_definition.node,
-                        )
-                    })
+                    .map(|variable_definition| (&variable_definition.node.name.node, &variable_definition.node))
                     .collect();
 
                 let current_object = resolver_ctx
@@ -336,10 +309,7 @@ impl Resolver {
                     )),
                     None => Target::Field(
                         ctx.item.clone().into_inner(),
-                        resolver_ctx
-                            .field
-                            .ok_or_else(|| Error::new("internal error"))?
-                            .clone(),
+                        resolver_ctx.field.ok_or_else(|| Error::new("internal error"))?.clone(),
                     ),
                 };
 
@@ -366,10 +336,7 @@ impl Resolver {
                     .await
                     .map_err(Into::into)
             }
-            Resolver::MongoResolver(resolver) => resolver
-                .resolve(ctx, resolver_ctx)
-                .await
-                .map_err(Into::into),
+            Resolver::MongoResolver(resolver) => resolver.resolve(ctx, resolver_ctx).await.map_err(Into::into),
         }
     }
 
@@ -424,11 +391,7 @@ impl Constraint {
     ///
     /// If the constraint has one field we expect the value to just be a string.
     /// If the constraint has multiple it should be an Object of fieldName: value
-    pub fn extract_id_from_by_input_field(
-        &self,
-        ty: &str,
-        value: &ConstValue,
-    ) -> Option<ConstraintID<'static>> {
+    pub fn extract_id_from_by_input_field(&self, ty: &str, value: &ConstValue) -> Option<ConstraintID<'static>> {
         let fields = self.fields();
         if fields.len() == 1 {
             return Some(ConstraintID::new(

@@ -15,10 +15,7 @@ pub fn serialize<S>(value: &Option<ConstValue>, serializer: S) -> Result<S::Ok, 
 where
     S: Serializer,
 {
-    value
-        .as_ref()
-        .map(BorrowedConstValueWrapper)
-        .serialize(serializer)
+    value.as_ref().map(BorrowedConstValueWrapper).serialize(serializer)
 }
 
 pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<ConstValue>, D::Error>
@@ -45,9 +42,7 @@ impl serde::Serialize for BorrowedConstValueWrapper<'_> {
                 map.end()
             }
 
-            ConstValue::List(items) => {
-                serializer.collect_seq(items.iter().map(BorrowedConstValueWrapper))
-            }
+            ConstValue::List(items) => serializer.collect_seq(items.iter().map(BorrowedConstValueWrapper)),
             ConstValue::Object(object) => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 map.serialize_entry(
@@ -164,15 +159,11 @@ impl<'de> serde::de::Deserialize<'de> for OwnedConstValueWrapper {
                     ("__enum", OwnedConstValueWrapper(ConstValue::String(string))) => {
                         Ok(OwnedConstValueWrapper(ConstValue::Enum(Name::new(string))))
                     }
-                    ("__object", value @ OwnedConstValueWrapper(ConstValue::Object(_))) => {
-                        Ok(value)
-                    }
+                    ("__object", value @ OwnedConstValueWrapper(ConstValue::Object(_))) => Ok(value),
                     (key, value) => {
                         let mut object = IndexMap::new();
                         object.insert(Name::new(key), value.0);
-                        while let Some((key, value)) =
-                            map.next_entry::<Name, OwnedConstValueWrapper>()?
-                        {
+                        while let Some((key, value)) = map.next_entry::<Name, OwnedConstValueWrapper>()? {
                             object.insert(key, value.0);
                         }
 
@@ -195,10 +186,8 @@ mod tests {
     use super::*;
 
     fn run_test(input: ConstValue) {
-        let output: OwnedConstValueWrapper = serde_json::from_value(
-            serde_json::to_value(BorrowedConstValueWrapper(&input)).unwrap(),
-        )
-        .unwrap();
+        let output: OwnedConstValueWrapper =
+            serde_json::from_value(serde_json::to_value(BorrowedConstValueWrapper(&input)).unwrap()).unwrap();
         assert_eq!(output.0, input);
     }
 
@@ -266,9 +255,7 @@ mod tests {
             default_value: Some(ConstValue::Enum(Name::new("A_VALUE"))),
             ..MetaInputValue::new("someEnum", "AnEnum")
         };
-        let output =
-            serde_json::from_value::<MetaInputValue>(serde_json::to_value(&input).unwrap())
-                .unwrap();
+        let output = serde_json::from_value::<MetaInputValue>(serde_json::to_value(&input).unwrap()).unwrap();
 
         assert_eq!(input.default_value, output.default_value);
     }

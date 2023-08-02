@@ -6,8 +6,8 @@ use std::{
 
 use dynaql_parser::{
     types::{
-        Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, Selection,
-        TypeCondition, VariableDefinition,
+        Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, Selection, TypeCondition,
+        VariableDefinition,
     },
     Positioned,
 };
@@ -88,11 +88,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// # Errors
     ///
     /// Returns an error if writing to the buffer fails.
-    pub fn query(
-        &mut self,
-        target: Target,
-        current_type: Option<SelectionSetTarget<'a>>,
-    ) -> Result<(), Error> {
+    pub fn query(&mut self, target: Target, current_type: Option<SelectionSetTarget<'a>>) -> Result<(), Error> {
         match target {
             Target::SelectionSet(selections) => {
                 self.serialize_selections(selections, current_type)?;
@@ -114,11 +110,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// # Errors
     ///
     /// Returns an error if writing to the buffer fails.
-    pub fn mutation(
-        &mut self,
-        target: Target,
-        current_type: Option<SelectionSetTarget<'a>>,
-    ) -> Result<(), Error> {
+    pub fn mutation(&mut self, target: Target, current_type: Option<SelectionSetTarget<'a>>) -> Result<(), Error> {
         match target {
             Target::SelectionSet(selections) => {
                 self.serialize_selections(selections, current_type)?;
@@ -146,29 +138,20 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
             Field(Positioned { node: field, .. }) => {
                 let schema_field = current_type
                     .map(|current_type| {
-                        current_type.field(field.name.as_str()).ok_or_else(|| {
-                            Error::UnknownField(
-                                field.name.to_string(),
-                                current_type.name().to_string(),
-                            )
-                        })
+                        current_type
+                            .field(field.name.as_str())
+                            .ok_or_else(|| Error::UnknownField(field.name.to_string(), current_type.name().to_string()))
                     })
                     .transpose()?;
 
                 self.serialize_field(&field, schema_field)
             }
             FragmentSpread(Positioned { node, .. }) => self.serialize_fragment_spread(&node),
-            InlineFragment(Positioned { node, .. }) => {
-                self.serialize_inline_fragment(&node, current_type)
-            }
+            InlineFragment(Positioned { node, .. }) => self.serialize_inline_fragment(&node, current_type),
         }
     }
 
-    fn serialize_field(
-        &mut self,
-        field: &Field,
-        schema_field: Option<&MetaField>,
-    ) -> Result<(), Error> {
+    fn serialize_field(&mut self, field: &Field, schema_field: Option<&MetaField>) -> Result<(), Error> {
         if let Some(schema_field) = schema_field {
             if schema_field.resolver.is_custom() {
                 // Skip fields that have resolvers, as they won't exist in the downstream
@@ -201,12 +184,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
         // Selection Sets
         if !field.selection_set.items.is_empty() {
-            let selections = field
-                .selection_set
-                .deref()
-                .items
-                .iter()
-                .map(|v| v.node.clone());
+            let selections = field.selection_set.deref().items.iter().map(|v| v.node.clone());
             let field_type = schema_field
                 .map(|v| self.registry.lookup_expecting::<SelectionSetTarget>(&v.ty))
                 .transpose()?;
@@ -220,10 +198,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     /// Arguments
     ///
     /// <https://graphql.org/learn/queries/#arguments>
-    fn serialize_arguments(
-        &mut self,
-        arguments: &[(Positioned<Name>, Positioned<Value>)],
-    ) -> Result<(), Error> {
+    fn serialize_arguments(&mut self, arguments: &[(Positioned<Name>, Positioned<Value>)]) -> Result<(), Error> {
         if arguments.is_empty() {
             return Ok(());
         }
@@ -277,10 +252,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
         self.close_object()
     }
 
-    fn serialize_directives(
-        &mut self,
-        directives: impl Iterator<Item = Directive>,
-    ) -> Result<(), Error> {
+    fn serialize_directives(&mut self, directives: impl Iterator<Item = Directive>) -> Result<(), Error> {
         for directive in directives {
             self.write_str(" @")?;
             self.write_str(directive.name.as_str())?;
@@ -300,8 +272,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
         self.write_str("... ")?;
         self.write_str(fragment_name.as_str())?;
 
-        self.fragment_spreads
-            .insert(fragment_name.clone().into_inner());
+        self.fragment_spreads.insert(fragment_name.clone().into_inner());
 
         let directives = fragment.directives.iter().map(|v| v.node.clone());
         self.serialize_directives(directives)?;
@@ -318,12 +289,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     ) -> Result<(), Error> {
         let type_condition = fragment.type_condition.as_ref().map(|v| v.node.clone());
         let directives = fragment.directives.iter().map(|v| v.node.clone());
-        let selections = fragment
-            .selection_set
-            .deref()
-            .items
-            .iter()
-            .map(|v| v.node.clone());
+        let selections = fragment.selection_set.deref().items.iter().map(|v| v.node.clone());
 
         self.indent()?;
         self.write_str("...")?;
@@ -358,18 +324,12 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
         let type_condition = definition.type_condition.node.clone();
         let directives = definition.directives.iter().map(|v| v.node.clone());
-        let selections = definition
-            .selection_set
-            .deref()
-            .items
-            .iter()
-            .map(|v| v.node.clone());
+        let selections = definition.selection_set.deref().items.iter().map(|v| v.node.clone());
 
         let current_type = check_current_type
             .then(|| {
-                self.registry.lookup(&type_names::TypeCondition::from(
-                    type_condition.on.node.as_str(),
-                ))
+                self.registry
+                    .lookup(&type_names::TypeCondition::from(type_condition.on.node.as_str()))
             })
             .transpose()?;
 
@@ -510,8 +470,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     fn remove_prefix_from_type<'x>(&self, ty: &'x str) -> &'x str {
         // We remove the `prefix` from condition types, as these are local to Grafbase, and
         // should not be sent to the upstream server.
-        ty.strip_prefix(self.prefix.unwrap_or_default())
-            .unwrap_or(ty)
+        ty.strip_prefix(self.prefix.unwrap_or_default()).unwrap_or(ty)
     }
 }
 
@@ -667,34 +626,23 @@ mod tests {
         let name = Name::new("foo");
         let variable_definition = VariableDefinition {
             name: Positioned::new(Name::new("foo"), Pos::default()),
-            var_type: Positioned::new(
-                dynaql_parser::types::Type::new("Bool").unwrap(),
-                Pos::default(),
-            ),
+            var_type: Positioned::new(dynaql_parser::types::Type::new("Bool").unwrap(), Pos::default()),
             directives: vec![],
             default_value: Some(Positioned::new(ConstValue::Boolean(true), Pos::default())),
         };
         let variables = HashMap::from([(&name, &variable_definition)]);
         let registry = fake_registry();
 
-        let mut serializer =
-            Serializer::new(Some("Github"), fragments, variables, &mut buf, &registry);
+        let mut serializer = Serializer::new(Some("Github"), fragments, variables, &mut buf, &registry);
 
         if input.trim_start().starts_with("query") {
             let query_ty = registry.lookup_by_str("Query").unwrap().try_into().unwrap();
 
             serializer
-                .query(
-                    Target::SelectionSet(Box::new(selections.into_iter())),
-                    Some(query_ty),
-                )
+                .query(Target::SelectionSet(Box::new(selections.into_iter())), Some(query_ty))
                 .unwrap();
         } else if input.trim_start().starts_with("mutation") {
-            let mutation_ty = registry
-                .lookup_by_str("Mutation")
-                .unwrap()
-                .try_into()
-                .unwrap();
+            let mutation_ty = registry.lookup_by_str("Mutation").unwrap().try_into().unwrap();
 
             serializer
                 .mutation(
@@ -711,14 +659,7 @@ mod tests {
 
     fn input_to_selections(input: &str) -> (Vec<Selection>, HashMap<Name, FragmentDefinition>) {
         let document = dynaql_parser::parse_query(input).unwrap();
-        let operation = document
-            .operations
-            .iter()
-            .next()
-            .unwrap()
-            .1
-            .clone()
-            .into_inner();
+        let operation = document.operations.iter().next().unwrap().1.clone().into_inner();
 
         let selections = operation
             .selection_set
@@ -741,10 +682,7 @@ mod tests {
         let mut registry = Registry::new();
         registry.insert_type(ObjectType::new(
             "Foo",
-            [
-                MetaField::new("bar", "String"),
-                MetaField::new("baz", "String"),
-            ],
+            [MetaField::new("bar", "String"), MetaField::new("baz", "String")],
         ));
         registry.insert_type(ObjectType::new("Qux", [MetaField::new("quux", "String")]));
 
@@ -761,10 +699,7 @@ mod tests {
             ],
         ));
 
-        registry.insert_type(ObjectType::new(
-            "GithubIssue",
-            [MetaField::new("id", "ID!")],
-        ));
+        registry.insert_type(ObjectType::new("GithubIssue", [MetaField::new("id", "ID!")]));
 
         registry.insert_type(ObjectType::new(
             "GithubPullRequest",
@@ -774,22 +709,11 @@ mod tests {
             ],
         ));
 
-        registry.insert_type(UnionType::new(
-            "GithubIssueOrPr",
-            ["GithubIssue", "GithubPullRequest"],
-        ));
+        registry.insert_type(UnionType::new("GithubIssueOrPr", ["GithubIssue", "GithubPullRequest"]));
 
-        let query_fields = registry
-            .types
-            .get_mut("Query")
-            .unwrap()
-            .fields_mut()
-            .unwrap();
+        let query_fields = registry.types.get_mut("Query").unwrap().fields_mut().unwrap();
 
-        query_fields.insert(
-            "repository".into(),
-            MetaField::new("repository", "GithubRepository"),
-        );
+        query_fields.insert("repository".into(), MetaField::new("repository", "GithubRepository"));
         query_fields.insert("foo".into(), MetaField::new("foo", "Foo"));
         query_fields.insert("bar".into(), MetaField::new("bar", "String"));
         query_fields.insert("qux".into(), MetaField::new("qux", "Qux"));

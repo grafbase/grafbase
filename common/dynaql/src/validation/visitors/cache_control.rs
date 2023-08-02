@@ -14,11 +14,7 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
         VisitMode::Inline
     }
 
-    fn enter_selection_set(
-        &mut self,
-        ctx: &mut VisitorContext<'_>,
-        _selection_set: &Positioned<SelectionSet>,
-    ) {
+    fn enter_selection_set(&mut self, ctx: &mut VisitorContext<'_>, _selection_set: &Positioned<SelectionSet>) {
         if let Some(MetaType::Object(object)) = ctx.current_type() {
             self.cache_control.merge(object.cache_control.clone());
 
@@ -37,8 +33,7 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
             .parent_type()
             .and_then(|parent| parent.field_by_name(&field.node.name.node))
         {
-            self.cache_control
-                .merge(registry_field.cache_control.clone());
+            self.cache_control.merge(registry_field.cache_control.clone());
 
             if let Some(policy) = &registry_field.cache_control.invalidation_policy {
                 self.invalidation_policies.insert(CacheInvalidation {

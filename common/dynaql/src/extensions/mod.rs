@@ -15,8 +15,8 @@ use graph_entities::ResponseNodeId;
 
 use crate::parser::types::ExecutableDocument;
 use crate::{
-    Data, DataContext, Error, QueryPathNode, Request, Response, Result, SchemaEnv, ServerError,
-    ServerResult, ValidationResult, Variables,
+    Data, DataContext, Error, QueryPathNode, Request, Response, Result, SchemaEnv, ServerError, ServerResult,
+    ValidationResult, Variables,
 };
 
 /// Context for extension
@@ -64,12 +64,8 @@ impl<'a> ExtensionContext<'a> {
     ///
     /// Returns a `Error` if the specified type data does not exist.
     pub fn data<D: Any + Send + Sync>(&self) -> Result<&'a D> {
-        self.data_opt::<D>().ok_or_else(|| {
-            Error::new(format!(
-                "Data `{}` does not exist.",
-                std::any::type_name::<D>()
-            ))
-        })
+        self.data_opt::<D>()
+            .ok_or_else(|| Error::new(format!("Data `{}` does not exist.", std::any::type_name::<D>())))
     }
 
     /// Gets the global data defined in the `Context` or `Schema`.
@@ -124,14 +120,12 @@ type RequestFut<'a> = &'a mut (dyn Future<Output = Response> + Send + Unpin);
 
 type ParseFut<'a> = &'a mut (dyn Future<Output = ServerResult<ExecutableDocument>> + Send + Unpin);
 
-type ValidationFut<'a> =
-    &'a mut (dyn Future<Output = Result<ValidationResult, Vec<ServerError>>> + Send + Unpin);
+type ValidationFut<'a> = &'a mut (dyn Future<Output = Result<ValidationResult, Vec<ServerError>>> + Send + Unpin);
 
 type ExecuteFut<'a> = &'a mut (dyn Future<Output = Response> + Send + Unpin);
 
 /// A future type used to resolve the field
-pub type ResolveFut<'a> =
-    &'a mut (dyn Future<Output = ServerResult<Option<ResponseNodeId>>> + Send + Unpin);
+pub type ResolveFut<'a> = &'a mut (dyn Future<Output = ServerResult<Option<ResponseNodeId>>> + Send + Unpin);
 
 /// The remainder of a extension chain for request.
 pub struct NextRequest<'a> {
@@ -165,11 +159,7 @@ pub struct NextSubscribe<'a> {
 
 impl<'a> NextSubscribe<'a> {
     /// Call the [Extension::subscribe] function of next extension.
-    pub fn run<'s>(
-        self,
-        ctx: &ExtensionContext<'_>,
-        stream: BoxStream<'s, Response>,
-    ) -> BoxStream<'s, Response> {
+    pub fn run<'s>(self, ctx: &ExtensionContext<'_>, stream: BoxStream<'s, Response>) -> BoxStream<'s, Response> {
         if let Some((first, next)) = self.chain.split_first() {
             first.subscribe(ctx, stream, NextSubscribe { chain: next })
         } else {
@@ -236,10 +226,7 @@ pub struct NextValidation<'a> {
 
 impl<'a> NextValidation<'a> {
     /// Call the [Extension::validation] function of next extension.
-    pub async fn run(
-        self,
-        ctx: &ExtensionContext<'_>,
-    ) -> Result<ValidationResult, Vec<ServerError>> {
+    pub async fn run(self, ctx: &ExtensionContext<'_>) -> Result<ValidationResult, Vec<ServerError>> {
         if let Some((first, next)) = self.chain.split_first() {
             first
                 .validation(
@@ -296,11 +283,7 @@ pub struct NextResolve<'a> {
 
 impl<'a> NextResolve<'a> {
     /// Call the [Extension::resolve] function of next extension.
-    pub async fn run(
-        self,
-        ctx: &ExtensionContext<'_>,
-        info: ResolveInfo<'_>,
-    ) -> ServerResult<Option<ResponseNodeId>> {
+    pub async fn run(self, ctx: &ExtensionContext<'_>, info: ResolveInfo<'_>) -> ServerResult<Option<ResponseNodeId>> {
         if let Some((first, next)) = self.chain.split_first() {
             first
                 .resolve(
@@ -474,10 +457,7 @@ impl Extensions {
         next.run(&self.create_context(), query, variables).await
     }
 
-    pub async fn validation(
-        &self,
-        validation_fut: ValidationFut<'_>,
-    ) -> Result<ValidationResult, Vec<ServerError>> {
+    pub async fn validation(&self, validation_fut: ValidationFut<'_>) -> Result<ValidationResult, Vec<ServerError>> {
         let next = NextValidation {
             chain: &self.extensions,
             validation_fut,
@@ -495,8 +475,7 @@ impl Extensions {
             chain: &self.extensions,
             execute_fut,
         };
-        next.run(&self.create_context(), operation_name, operation)
-            .await
+        next.run(&self.create_context(), operation_name, operation).await
     }
 
     pub async fn resolve(

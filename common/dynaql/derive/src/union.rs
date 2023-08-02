@@ -38,32 +38,18 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
         let ty = match variant.fields.style {
             Style::Tuple if variant.fields.fields.len() == 1 => &variant.fields.fields[0],
             Style::Tuple => {
-                return Err(Error::new_spanned(
-                    enum_name,
-                    "Only single value variants are supported",
-                )
-                .into())
+                return Err(Error::new_spanned(enum_name, "Only single value variants are supported").into())
             }
-            Style::Unit => {
-                return Err(
-                    Error::new_spanned(enum_name, "Empty variants are not supported").into(),
-                )
-            }
+            Style::Unit => return Err(Error::new_spanned(enum_name, "Empty variants are not supported").into()),
             Style::Struct => {
-                return Err(Error::new_spanned(
-                    enum_name,
-                    "Variants with named fields are not supported",
-                )
-                .into())
+                return Err(Error::new_spanned(enum_name, "Variants with named fields are not supported").into())
             }
         };
 
         if let Type::Path(p) = &ty {
             // This validates that the field type wasn't already used
             if !enum_items.insert(p) {
-                return Err(
-                    Error::new_spanned(ty, "This type already used in another variant").into(),
-                );
+                return Err(Error::new_spanned(ty, "This type already used in another variant").into());
             }
 
             enum_names.push(enum_name);

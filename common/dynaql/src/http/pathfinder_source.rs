@@ -10,10 +10,7 @@
 pub fn pathfinder_source(config: PathfinderConfig) -> String {
     include_str!("pathfinder.html")
         .replace("{{GRAPHQL_URL}}", config.endpoint)
-        .replace(
-            "{{ASSET_URL}}",
-            "https://assets.grafbase.com/cli/pathfinder",
-        )
+        .replace("{{ASSET_URL}}", "https://assets.grafbase.com/cli/pathfinder")
 }
 
 /// Config for Pathfinder

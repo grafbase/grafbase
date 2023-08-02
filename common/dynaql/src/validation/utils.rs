@@ -27,12 +27,8 @@ fn referenced_variables_to_vec<'a>(value: &'a Value, vars: &mut Vec<&'a str>) {
         Value::Variable(name) => {
             vars.push(name);
         }
-        Value::List(values) => values
-            .iter()
-            .for_each(|value| referenced_variables_to_vec(value, vars)),
-        Value::Object(obj) => obj
-            .values()
-            .for_each(|value| referenced_variables_to_vec(value, vars)),
+        Value::List(values) => values.iter().for_each(|value| referenced_variables_to_vec(value, vars)),
+        Value::Object(obj) => obj.values().for_each(|value| referenced_variables_to_vec(value, vars)),
         _ => {}
     }
 }
@@ -45,10 +41,7 @@ pub fn is_valid_input_value(
 ) -> Option<String> {
     match registry::MetaTypeName::create(type_name) {
         registry::MetaTypeName::NonNull(type_name) => match value {
-            ConstValue::Null => Some(valid_error(
-                &path_node,
-                format!("expected type \"{type_name}\""),
-            )),
+            ConstValue::Null => Some(valid_error(&path_node, format!("expected type \"{type_name}\""))),
             _ => is_valid_input_value(registry, type_name, value, path_node),
         },
         registry::MetaTypeName::List(type_name) => match value {
@@ -82,10 +75,7 @@ pub fn is_valid_input_value(
                         if PossibleScalar::is_valid(&type_name, &value) {
                             None
                         } else {
-                            Some(valid_error(
-                                &path_node,
-                                format!("expected type \"{type_name}\""),
-                            ))
+                            Some(valid_error(&path_node, format!("expected type \"{type_name}\"")))
                         }
                     }
                 },
@@ -98,9 +88,7 @@ pub fn is_valid_input_value(
                         if !enum_values.contains_key(name.as_str()) {
                             Some(valid_error(
                                 &path_node,
-                                format!(
-                                    "enumeration type \"{enum_name}\" does not contain the value \"{name}\""
-                                ),
+                                format!("enumeration type \"{enum_name}\" does not contain the value \"{name}\""),
                             ))
                         } else {
                             None
@@ -110,18 +98,13 @@ pub fn is_valid_input_value(
                         if !enum_values.contains_key(name.as_str()) {
                             Some(valid_error(
                                 &path_node,
-                                format!(
-                                    "enumeration type \"{enum_name}\" does not contain the value \"{name}\""
-                                ),
+                                format!("enumeration type \"{enum_name}\" does not contain the value \"{name}\""),
                             ))
                         } else {
                             None
                         }
                     }
-                    _ => Some(valid_error(
-                        &path_node,
-                        format!("expected type \"{type_name}\""),
-                    )),
+                    _ => Some(valid_error(&path_node, format!("expected type \"{type_name}\""))),
                 },
                 registry::MetaType::InputObject(registry::InputObjectType {
                     input_fields,
@@ -146,8 +129,7 @@ pub fn is_valid_input_value(
                             }
                         }
 
-                        let mut input_names: HashSet<&str> =
-                            values.keys().map(AsRef::as_ref).collect::<HashSet<_>>();
+                        let mut input_names: HashSet<&str> = values.keys().map(AsRef::as_ref).collect::<HashSet<_>>();
 
                         for field in input_fields.values() {
                             input_names.remove::<str>(&field.name);

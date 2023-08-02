@@ -11,9 +11,7 @@ pub struct DateScalar;
 
 impl DateScalar {
     pub fn parse_value(value: serde_json::Value) -> Result<NaiveDate, Error> {
-        Ok(NaiveDate::from_str(&serde_json::from_value::<String>(
-            value,
-        )?)?)
+        Ok(NaiveDate::from_str(&serde_json::from_value::<String>(value)?)?)
     }
 }
 
@@ -50,14 +48,10 @@ impl DynamicParse for DateScalar {
                 if NaiveDate::parse_from_str(&v, DATE_FORMAT).is_ok() {
                     Ok(ConstValue::String(v))
                 } else {
-                    Err(Error::new(
-                        "Data violation: Cannot coerce the initial value to a Date",
-                    ))
+                    Err(Error::new("Data violation: Cannot coerce the initial value to a Date"))
                 }
             }
-            _ => Err(Error::new(
-                "Data violation: Cannot coerce the initial value to a Date",
-            )),
+            _ => Err(Error::new("Data violation: Cannot coerce the initial value to a Date")),
         }
     }
 
@@ -67,16 +61,10 @@ impl DynamicParse for DateScalar {
                 if NaiveDate::parse_from_str(&val, DATE_FORMAT).is_ok() {
                     Ok(serde_json::Value::String(val))
                 } else {
-                    Err(InputValueError::ty_custom(
-                        "Date",
-                        "Cannot parse into a Date",
-                    ))
+                    Err(InputValueError::ty_custom("Date", "Cannot parse into a Date"))
                 }
             }
-            _ => Err(InputValueError::ty_custom(
-                "Date",
-                "Cannot parse into a Date",
-            )),
+            _ => Err(InputValueError::ty_custom("Date", "Cannot parse into a Date")),
         }
     }
 }

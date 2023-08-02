@@ -6,14 +6,11 @@ use syn::{Error, FnArg, ItemFn, Pat};
 use crate::args;
 use crate::args::{Argument, RenameRuleExt, RenameTarget};
 use crate::utils::{
-    generate_default, get_crate_name, get_rustdoc, parse_graphql_attrs, remove_graphql_attrs,
-    visible_fn, GeneratorResult,
+    generate_default, get_crate_name, get_rustdoc, parse_graphql_attrs, remove_graphql_attrs, visible_fn,
+    GeneratorResult,
 };
 
-pub fn generate(
-    directive_args: &args::Directive,
-    item_fn: &mut ItemFn,
-) -> GeneratorResult<TokenStream> {
+pub fn generate(directive_args: &args::Directive, item_fn: &mut ItemFn) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(directive_args.internal);
     let ident = &item_fn.sig.ident;
     let vis = &item_fn.vis;
@@ -125,11 +122,7 @@ pub fn generate(
         .collect::<Vec<_>>();
 
     if locations.is_empty() {
-        return Err(Error::new(
-            ident.span(),
-            "At least one location is required for the directive.",
-        )
-        .into());
+        return Err(Error::new(ident.span(), "At least one location is required for the directive.").into());
     }
 
     let expanded = quote! {

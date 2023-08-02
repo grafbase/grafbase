@@ -51,12 +51,7 @@ impl<'a> Visitor<'a> for NoUndefinedVariables<'a> {
         for (op_name, (def_pos, def_vars)) in &self.defined_variables {
             let mut undef = Vec::new();
             let mut visited = HashSet::new();
-            self.find_undef_vars(
-                &Scope::Operation(*op_name),
-                def_vars,
-                &mut undef,
-                &mut visited,
-            );
+            self.find_undef_vars(&Scope::Operation(*op_name), def_vars, &mut undef, &mut visited);
 
             for (var, pos) in undef {
                 if let Some(op_name) = op_name {
@@ -114,11 +109,7 @@ impl<'a> Visitor<'a> for NoUndefinedVariables<'a> {
             self.used_variables
                 .entry(*scope)
                 .or_insert_with(HashMap::new)
-                .extend(
-                    referenced_variables(&value.node)
-                        .into_iter()
-                        .map(|n| (n, name.pos)),
-                );
+                .extend(referenced_variables(&value.node).into_iter().map(|n| (n, name.pos)));
         }
     }
 

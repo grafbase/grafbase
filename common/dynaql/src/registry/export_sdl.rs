@@ -38,15 +38,9 @@ impl Registry {
         sdl
     }
 
-    fn export_fields<'a, I: Iterator<Item = &'a MetaField>>(
-        sdl: &mut String,
-        it: I,
-        federation: bool,
-    ) {
+    fn export_fields<'a, I: Iterator<Item = &'a MetaField>>(sdl: &mut String, it: I, federation: bool) {
         for field in it {
-            if field.name.starts_with("__")
-                || (federation && matches!(&*field.name, "_service" | "_entities"))
-            {
+            if field.name.starts_with("__") || (federation && matches!(&*field.name, "_service" | "_entities")) {
                 continue;
             }
 
@@ -89,9 +83,7 @@ impl Registry {
 
     fn export_type(&self, ty: &MetaType, sdl: &mut String, federation: bool) {
         match ty {
-            MetaType::Scalar(ScalarType {
-                name, description, ..
-            }) => {
+            MetaType::Scalar(ScalarType { name, description, .. }) => {
                 const SYSTEM_SCALARS: &[&str] = &["Int", "Float", "String", "Boolean", "ID"];
                 const FEDERATION_SCALARS: &[&str] = &["Any"];
                 let mut export_scalar = !SYSTEM_SCALARS.contains(&name.as_str());
@@ -247,11 +239,7 @@ impl Registry {
                 write!(
                     sdl,
                     "implements {} ",
-                    implements
-                        .iter()
-                        .map(AsRef::as_ref)
-                        .collect::<Vec<&str>>()
-                        .join(" & ")
+                    implements.iter().map(AsRef::as_ref).collect::<Vec<&str>>().join(" & ")
                 )
                 .ok();
             }

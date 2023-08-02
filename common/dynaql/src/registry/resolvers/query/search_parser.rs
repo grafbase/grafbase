@@ -5,13 +5,11 @@ use grafbase_runtime::search::{self, Cursor, ScalarCondition};
 
 use crate::{
     names::{
-        INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_EQ,
-        INPUT_FIELD_FILTER_GT, INPUT_FIELD_FILTER_GTE, INPUT_FIELD_FILTER_IN,
-        INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LIST_INCLUDES,
-        INPUT_FIELD_FILTER_LIST_INCLUDES_NONE, INPUT_FIELD_FILTER_LIST_IS_EMPTY,
-        INPUT_FIELD_FILTER_LT, INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ,
-        INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN,
-        INPUT_FIELD_FILTER_REGEX,
+        INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_EQ, INPUT_FIELD_FILTER_GT,
+        INPUT_FIELD_FILTER_GTE, INPUT_FIELD_FILTER_IN, INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LIST_INCLUDES,
+        INPUT_FIELD_FILTER_LIST_INCLUDES_NONE, INPUT_FIELD_FILTER_LIST_IS_EMPTY, INPUT_FIELD_FILTER_LT,
+        INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT,
+        INPUT_FIELD_FILTER_NOT_IN, INPUT_FIELD_FILTER_REGEX,
     },
     registry::scalars::{DateScalar, DateTimeScalar, IPAddressScalar, TimestampScalar},
     Error,
@@ -35,9 +33,7 @@ pub fn parse_pagination(
 ) -> Result<search::Pagination, InvalidPagination> {
     match (first, after, last, before) {
         (Some(_), _, Some(_), _) => Err(InvalidPagination::UnsupportedCombination("first", "last")),
-        (Some(_), _, _, Some(_)) => {
-            Err(InvalidPagination::UnsupportedCombination("first", "before"))
-        }
+        (Some(_), _, _, Some(_)) => Err(InvalidPagination::UnsupportedCombination("first", "before")),
         (_, Some(_), Some(_), _) => Err(InvalidPagination::UnsupportedCombination("last", "after")),
         (Some(first), after, None, None) => Ok(search::Pagination::Forward {
             first: first as u64,
@@ -68,17 +64,12 @@ pub fn parse_filter(schema: &search::Schema, object: Value) -> Result<search::Fi
                             .map_err(|err| Error::new(format!("Field '{name}': {err:?}")))
                     } else {
                         match name.as_str() {
-                            INPUT_FIELD_FILTER_ALL => {
-                                parse_filter_array(schema, value).map(search::Filter::All)
+                            INPUT_FIELD_FILTER_ALL => parse_filter_array(schema, value).map(search::Filter::All),
+                            INPUT_FIELD_FILTER_ANY => parse_filter_array(schema, value).map(search::Filter::Any),
+                            INPUT_FIELD_FILTER_NONE => parse_filter_array(schema, value).map(search::Filter::None),
+                            INPUT_FIELD_FILTER_NOT => {
+                                parse_filter(schema, value).map(|f| search::Filter::Not(Box::new(f)))
                             }
-                            INPUT_FIELD_FILTER_ANY => {
-                                parse_filter_array(schema, value).map(search::Filter::Any)
-                            }
-                            INPUT_FIELD_FILTER_NONE => {
-                                parse_filter_array(schema, value).map(search::Filter::None)
-                            }
-                            INPUT_FIELD_FILTER_NOT => parse_filter(schema, value)
-                                .map(|f| search::Filter::Not(Box::new(f))),
                             _ => Err(Error::new("Unknown field".to_string())),
                         }
                     })
@@ -155,18 +146,13 @@ fn parse_scalar_filter(
     field_name: &str,
     conditions: serde_json::Map<String, Value>,
 ) -> Result<search::Filter, Error> {
-    parse_scalar_condition(field, Value::Object(conditions)).map(|condition| {
-        search::Filter::ScalarFilter {
-            field: field_name.to_string(),
-            condition,
-        }
+    parse_scalar_condition(field, Value::Object(conditions)).map(|condition| search::Filter::ScalarFilter {
+        field: field_name.to_string(),
+        condition,
     })
 }
 
-fn parse_scalar_condition(
-    field: &search::FieldEntry,
-    conditions: Value,
-) -> Result<ScalarCondition, Error> {
+fn parse_scalar_condition(field: &search::FieldEntry, conditions: Value) -> Result<ScalarCondition, Error> {
     use search::ScalarCondition::*;
     match conditions {
         Value::Object(conditions) => Ok(All(conditions
@@ -196,10 +182,7 @@ fn parse_scalar_condition(
     }
 }
 
-fn parse_scalar_condition_array(
-    field: &search::FieldEntry,
-    conditions: Value,
-) -> Result<Vec<ScalarCondition>, Error> {
+fn parse_scalar_condition_array(field: &search::FieldEntry, conditions: Value) -> Result<Vec<ScalarCondition>, Error> {
     match conditions {
         Value::Array(nested) => nested
             .into_iter()
@@ -227,10 +210,7 @@ fn parse_scalar(field: &search::FieldEntry, value: Value) -> Result<search::Scal
     })
 }
 
-fn parse_scalar_array(
-    field: &search::FieldEntry,
-    value: Value,
-) -> Result<Vec<search::ScalarValue>, Error> {
+fn parse_scalar_array(field: &search::FieldEntry, value: Value) -> Result<Vec<search::ScalarValue>, Error> {
     Ok(match value {
         Value::Array(values) => values
             .into_iter()

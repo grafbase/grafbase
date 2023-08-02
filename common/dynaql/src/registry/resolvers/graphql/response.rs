@@ -17,8 +17,8 @@ impl UpstreamResponse {
         http_status: StatusCode,
         response_text_result: Result<String, impl Into<Error>>,
     ) -> Result<Self, Error> {
-        let response_text = response_text_result
-            .map_err(|error| handle_error_after_response(http_status, error, None))?;
+        let response_text =
+            response_text_result.map_err(|error| handle_error_after_response(http_status, error, None))?;
 
         serde_json::from_str::<UpstreamResponse>(&response_text).map_err(|error| {
             handle_error_after_response(
@@ -133,11 +133,7 @@ mod tests {
         data: json!({}),
         errors: vec![]
     })]
-    fn test_happy_paths(
-        #[case] status_code: u16,
-        #[case] text: &str,
-        #[case] expected_response: UpstreamResponse,
-    ) {
+    fn test_happy_paths(#[case] status_code: u16, #[case] text: &str, #[case] expected_response: UpstreamResponse) {
         assert_eq!(
             UpstreamResponse::from_response_text(
                 StatusCode::from_u16(status_code).unwrap(),

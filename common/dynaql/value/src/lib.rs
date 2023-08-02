@@ -115,9 +115,7 @@ impl<'a> PartialEq<Name> for &'a str {
 
 impl<'de> Deserialize<'de> for Name {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(Self(
-            String::deserialize(deserializer)?.into_boxed_str().into(),
-        ))
+        Ok(Self(String::deserialize(deserializer)?.into_boxed_str().into()))
     }
 }
 
@@ -337,22 +335,14 @@ impl ConstValue {
             Self::Number(num) => {
                 // We force it to be a f64 in the internal representation to generate the
                 // appropriate ArrowSchema
-                Value::Number(
-                    Number::from_f64(num.as_f64().expect("can't fail")).expect("can't fail"),
-                )
+                Value::Number(Number::from_f64(num.as_f64().expect("can't fail")).expect("can't fail"))
             }
             Self::String(s) => Value::String(s),
             Self::Boolean(b) => Value::Boolean(b),
             Self::Binary(bytes) => Value::Binary(bytes),
             Self::Enum(v) => Value::Enum(v),
-            Self::List(items) => {
-                Value::List(items.into_iter().map(ConstValue::into_value).collect())
-            }
-            Self::Object(map) => Value::Object(
-                map.into_iter()
-                    .map(|(key, value)| (key, value.into_value()))
-                    .collect(),
-            ),
+            Self::List(items) => Value::List(items.into_iter().map(ConstValue::into_value).collect()),
+            Self::Object(map) => Value::Object(map.into_iter().map(|(key, value)| (key, value.into_value())).collect()),
         }
     }
 
@@ -459,17 +449,11 @@ impl Hash for Value {
 
 impl Value {
     /// Attempt to convert the value into a const value by using a function to get a variable.
-    pub fn into_const_with<E>(
-        self,
-        mut f: impl FnMut(Name) -> Result<ConstValue, E>,
-    ) -> Result<ConstValue, E> {
+    pub fn into_const_with<E>(self, mut f: impl FnMut(Name) -> Result<ConstValue, E>) -> Result<ConstValue, E> {
         self.into_const_with_mut(&mut f)
     }
 
-    fn into_const_with_mut<E>(
-        self,
-        f: &mut impl FnMut(Name) -> Result<ConstValue, E>,
-    ) -> Result<ConstValue, E> {
+    fn into_const_with_mut<E>(self, f: &mut impl FnMut(Name) -> Result<ConstValue, E>) -> Result<ConstValue, E> {
         Ok(match self {
             Self::Variable(name) => f(name)?,
             Self::Null => ConstValue::Null,

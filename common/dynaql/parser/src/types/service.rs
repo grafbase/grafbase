@@ -65,9 +65,7 @@ pub struct TypeDefinition {
 impl TypeDefinition {
     /// The description of the type, if present. This is never present on an extension type.
     pub fn description(&self) -> Option<&str> {
-        self.description
-            .as_ref()
-            .map(|description| description.node.as_str())
+        self.description.as_ref().map(|description| description.node.as_str())
     }
 }
 
@@ -138,9 +136,7 @@ impl FieldDefinition {
 
     /// The description of the field.
     pub fn description(&self) -> Option<&str> {
-        self.description
-            .as_ref()
-            .map(|description| description.node.as_str())
+        self.description.as_ref().map(|description| description.node.as_str())
     }
 }
 

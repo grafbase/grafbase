@@ -14,8 +14,8 @@ use serde::Serialize;
 use crate::graph::selection_set_into_node;
 use crate::registry::{self, MetaType, Registry, ScalarType};
 use crate::{
-    ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType,
-    Name, ServerResult, Value,
+    ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Name, ServerResult,
+    Value,
 };
 
 impl<K, V> LegacyInputType for BTreeMap<K, V>
@@ -50,9 +50,8 @@ where
                 .into_iter()
                 .map(|(name, value)| {
                     Ok((
-                        K::from_str(&name).map_err(|err| {
-                            InputValueError::<Self>::custom(format!("object key: {err}"))
-                        })?,
+                        K::from_str(&name)
+                            .map_err(|err| InputValueError::<Self>::custom(format!("object key: {err}")))?,
                         from_value(value).map_err(|err| format!("object value: {err}"))?,
                     ))
                 })
@@ -65,10 +64,7 @@ where
     fn to_value(&self) -> Value {
         let mut map = IndexMap::new();
         for (name, value) in self {
-            map.insert(
-                Name::new(name.to_string()),
-                to_value(value).unwrap_or_default(),
-            );
+            map.insert(Name::new(name.to_string()), to_value(value).unwrap_or_default());
         }
         Value::Object(map)
     }
@@ -101,17 +97,10 @@ where
         })
     }
 
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         let mut map = IndexMap::new();
         for (name, value) in self {
-            map.insert(
-                Name::new(name.to_string()),
-                to_value(value).unwrap_or_default(),
-            );
+            map.insert(Name::new(name.to_string()), to_value(value).unwrap_or_default());
         }
         let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
         let ty = ctx_field

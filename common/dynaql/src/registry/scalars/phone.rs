@@ -37,10 +37,7 @@ impl DynamicParse for PhoneNumberScalar {
                 if parse(&phone).unwrap_or_default() {
                     Ok(serde_json::Value::String(phone))
                 } else {
-                    Err(InputValueError::ty_custom(
-                        "PhoneNumber",
-                        "Invalid phone number",
-                    ))
+                    Err(InputValueError::ty_custom("PhoneNumber", "Invalid phone number"))
                 }
             }
             _ => Err(InputValueError::ty_custom(

@@ -23,10 +23,7 @@ pub use service::parse_schema;
 #[grammar = "graphql.pest"]
 struct GraphQLParser;
 
-fn parse_operation_type(
-    pair: Pair<'_, Rule>,
-    pc: &mut PositionCalculator<'_>,
-) -> Result<Positioned<OperationType>> {
+fn parse_operation_type(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<OperationType>> {
     debug_assert_eq!(pair.as_rule(), Rule::operation_type);
 
     let pos = pc.step(&pair);
@@ -42,10 +39,7 @@ fn parse_operation_type(
     ))
 }
 
-fn parse_default_value(
-    pair: Pair<'_, Rule>,
-    pc: &mut PositionCalculator<'_>,
-) -> Result<Positioned<ConstValue>> {
+fn parse_default_value(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<ConstValue>> {
     debug_assert_eq!(pair.as_rule(), Rule::default_value);
 
     parse_const_value(exactly_one(pair.into_inner()), pc)
@@ -54,16 +48,10 @@ fn parse_default_value(
 fn parse_type(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<Type>> {
     debug_assert_eq!(pair.as_rule(), Rule::type_);
 
-    Ok(Positioned::new(
-        Type::new(pair.as_str()).unwrap(),
-        pc.step(&pair),
-    ))
+    Ok(Positioned::new(Type::new(pair.as_str()).unwrap(), pc.step(&pair)))
 }
 
-fn parse_const_value(
-    pair: Pair<'_, Rule>,
-    pc: &mut PositionCalculator<'_>,
-) -> Result<Positioned<ConstValue>> {
+fn parse_const_value(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<ConstValue>> {
     debug_assert_eq!(pair.as_rule(), Rule::const_value);
 
     let pos = pc.step(&pair);
@@ -192,45 +180,26 @@ fn parse_opt_const_directives<'a>(
     pairs: &mut Pairs<'a, Rule>,
     pc: &mut PositionCalculator,
 ) -> Result<Vec<Positioned<ConstDirective>>> {
-    Ok(parse_if_rule(pairs, Rule::const_directives, |pair| {
-        parse_const_directives(pair, pc)
-    })?
-    .unwrap_or_default())
+    Ok(parse_if_rule(pairs, Rule::const_directives, |pair| parse_const_directives(pair, pc))?.unwrap_or_default())
 }
 fn parse_opt_directives<'a>(
     pairs: &mut Pairs<'a, Rule>,
     pc: &mut PositionCalculator,
 ) -> Result<Vec<Positioned<Directive>>> {
-    Ok(
-        parse_if_rule(pairs, Rule::directives, |pair| parse_directives(pair, pc))?
-            .unwrap_or_default(),
-    )
+    Ok(parse_if_rule(pairs, Rule::directives, |pair| parse_directives(pair, pc))?.unwrap_or_default())
 }
-fn parse_const_directives(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Vec<Positioned<ConstDirective>>> {
+fn parse_const_directives(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Vec<Positioned<ConstDirective>>> {
     debug_assert_eq!(pair.as_rule(), Rule::const_directives);
 
-    pair.into_inner()
-        .map(|pair| parse_const_directive(pair, pc))
-        .collect()
+    pair.into_inner().map(|pair| parse_const_directive(pair, pc)).collect()
 }
-fn parse_directives(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Vec<Positioned<Directive>>> {
+fn parse_directives(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Vec<Positioned<Directive>>> {
     debug_assert_eq!(pair.as_rule(), Rule::directives);
 
-    pair.into_inner()
-        .map(|pair| parse_directive(pair, pc))
-        .collect()
+    pair.into_inner().map(|pair| parse_directive(pair, pc)).collect()
 }
 
-fn parse_const_directive(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<ConstDirective>> {
+fn parse_const_directive(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<ConstDirective>> {
     debug_assert_eq!(pair.as_rule(), Rule::const_directive);
 
     let pos = pc.step(&pair);
@@ -258,9 +227,7 @@ fn parse_directive(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Posi
     let mut pairs = pair.into_inner();
 
     let name = parse_name(pairs.next().unwrap(), pc)?;
-    let arguments = parse_if_rule(&mut pairs, Rule::arguments, |pair| {
-        parse_arguments(pair, pc)
-    })?;
+    let arguments = parse_if_rule(&mut pairs, Rule::arguments, |pair| parse_arguments(pair, pc))?;
 
     debug_assert_eq!(pairs.next(), None);
 

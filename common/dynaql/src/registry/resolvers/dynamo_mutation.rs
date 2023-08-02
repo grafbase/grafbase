@@ -182,12 +182,8 @@ type SharedSelectionType<'a> = Shared<
 
 type SelectionType<'a> = Pin<
     Box<
-        dyn Future<
-                Output = Result<
-                    HashMap<(String, String), HashMap<String, AttributeValue>>,
-                    BatchGetItemLoaderError,
-                >,
-            > + Send
+        dyn Future<Output = Result<HashMap<(String, String), HashMap<String, AttributeValue>>, BatchGetItemLoaderError>>
+            + Send
             + 'a,
     >,
 >;
@@ -295,10 +291,7 @@ fn node_create<'a>(
         .filter(|(key, _)| !relations_to_be_created.contains_key(key.as_str()))
         .fold(HashMap::new(), |mut acc, (key, val)| {
             let key = key.to_string();
-            acc.insert(
-                key,
-                value_to_attribute(val.into_json().expect("can't fail")),
-            );
+            acc.insert(key, value_to_attribute(val.into_json().expect("can't fail")));
             acc
         });
 
@@ -341,9 +334,7 @@ fn node_create<'a>(
             (Vec::new(), Vec::new()),
             |(mut selections, mut transactions), (relation_name, list_recur)| {
                 for curr in list_recur {
-                    selections.extend(vec![curr
-                        .selection
-                        .map_ok(|val| (relation_name.clone(), val))]);
+                    selections.extend(vec![curr.selection.map_ok(|val| (relation_name.clone(), val))]);
                     transactions.extend(curr.transaction.into_iter());
                 }
                 (selections, transactions)
@@ -353,34 +344,28 @@ fn node_create<'a>(
     // Once we have the edges, either in the process of being created or created
     // we do have their id, so now, we need to:
     //   - Create the targeted Node
-    let create_future: Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send>> =
-        Box::pin(async move {
-            let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
-            let transaction_loader = &batchers.transaction_new;
+    let create_future: Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send>> = Box::pin(async move {
+        let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
+        let transaction_loader = &batchers.transaction_new;
 
-            let node = PossibleChanges::new_node(
-                node_ty.name.to_string(),
-                current_execution_id.to_string(),
-                item,
-                node_ty
-                    .constraints
-                    .iter()
-                    .cloned()
-                    .map(From::from)
-                    .collect(),
-                ctx.query_env.current_datetime.clone(),
-            );
+        let node = PossibleChanges::new_node(
+            node_ty.name.to_string(),
+            current_execution_id.to_string(),
+            item,
+            node_ty.constraints.iter().cloned().map(From::from).collect(),
+            ctx.query_env.current_datetime.clone(),
+        );
 
-            transaction_loader
-                .load_many(vec![node])
-                .await
-                .map_err(Error::new_with_source)?;
+        transaction_loader
+            .load_many(vec![node])
+            .await
+            .map_err(Error::new_with_source)?;
 
-            Ok(ResolvedValue::new(Arc::new(serde_json::json!({
-                "id": serde_json::Value::String(id.to_string()),
-                "is_nested_relation": is_nested_relation
-            }))))
-        });
+        Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+            "id": serde_json::Value::String(id.to_string()),
+            "is_nested_relation": is_nested_relation
+        }))))
+    });
 
     transactions.extend(vec![create_future]);
 
@@ -408,10 +393,7 @@ async fn relation_remove<'a>(
 
     let mut transactions = Vec::with_capacity(values.len() * 2 + 1);
 
-    for ((pk, _), _) in values
-        .into_iter()
-        .filter(|((pk, sk), _)| *pk != to || *sk != to)
-    {
+    for ((pk, _), _) in values.into_iter().filter(|((pk, sk), _)| *pk != to || *sk != to) {
         let from = ObfuscatedID::new(&pk).map_err(Error::new_with_source)?;
         let to = ObfuscatedID::new(&to).map_err(Error::new_with_source)?;
 
@@ -482,12 +464,7 @@ fn node_update<'a>(
     let numerical_operations = basic
         .iter()
         .filter(|field| numerical_field_names.contains(&field.0.to_string()))
-        .map(|update| {
-            (
-                update.0.to_string(),
-                update.1.clone().into_json().expect("must parse"),
-            )
-        })
+        .map(|update| (update.0.to_string(), update.1.clone().into_json().expect("must parse")))
         .collect::<Vec<_>>();
 
     let (_, basic_without_increments): (InputIterRef<'_>, InputIterRef<'_>) = basic
@@ -598,60 +575,56 @@ fn node_update<'a>(
     let id_cloned = id.clone();
     let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
     let query_loader_reversed = &batchers.query_reversed;
-    let select_entities_to_update = query_loader_reversed
-        .load_one(QueryKey::new(id, Vec::new()))
-        .shared();
+    let select_entities_to_update = query_loader_reversed.load_one(QueryKey::new(id, Vec::new())).shared();
 
     let slection_cloned = selection_entity_updated.clone();
     // We create the update future which will be triggered after every selection future
     // to update the main node and also the replicate.
     // This future will also create/delete relation if needed and create node if needed.
-    let update_future: Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send>> =
-        Box::pin(async move {
-            let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
-            let transaction_batcher = &batchers.transaction_new;
-            let selection = slection_cloned
-                .clone()
-                .await
-                .map_err(Error::new_with_source)?
-                .into_iter()
-                .next()
-                .map(|(_, x)| x)
-                .ok_or(TransactionError::UnknownError)
-                .map_err(Error::new_with_source)?;
+    let update_future: Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send>> = Box::pin(async move {
+        let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
+        let transaction_batcher = &batchers.transaction_new;
+        let selection = slection_cloned
+            .clone()
+            .await
+            .map_err(Error::new_with_source)?
+            .into_iter()
+            .next()
+            .map(|(_, x)| x)
+            .ok_or(TransactionError::UnknownError)
+            .map_err(Error::new_with_source)?;
 
-            let from = ObfuscatedID::new(&id_cloned).map_err(Error::new_with_source)?;
-            let update = PossibleChanges::update_node(
-                from.ty().to_string(),
-                from.id().to_string(),
-                selection,
-                increments,
-                by_id,
-                ctx.query_env.current_datetime.clone(),
-            );
+        let from = ObfuscatedID::new(&id_cloned).map_err(Error::new_with_source)?;
+        let update = PossibleChanges::update_node(
+            from.ty().to_string(),
+            from.id().to_string(),
+            selection,
+            increments,
+            by_id,
+            ctx.query_env.current_datetime.clone(),
+        );
 
-            transaction_batcher
-                .load_one(update)
-                .await
-                .map_err(Error::new_with_source)?;
+        transaction_batcher
+            .load_one(update)
+            .await
+            .map_err(Error::new_with_source)?;
 
-            // Each of the data loaders use a different cache with a different key format. So it's
-            // at best quite hard to remove accurately the node we're updating. Furthermore the
-            // dataloader cache is only used within a request as we do not keep state between
-            // worker execution, so we're not deleting that much neither.
-            // TODO: Caching probably needs some rework to simplify the whole process.
-            batchers.clear();
+        // Each of the data loaders use a different cache with a different key format. So it's
+        // at best quite hard to remove accurately the node we're updating. Furthermore the
+        // dataloader cache is only used within a request as we do not keep state between
+        // worker execution, so we're not deleting that much neither.
+        // TODO: Caching probably needs some rework to simplify the whole process.
+        batchers.clear();
 
-            Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)))
-        });
+        Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)))
+    });
 
     transactions.extend(vec![update_future]);
 
     // We craft a selection future which will run the selection to get entities to
     // update so when the transaction run we prevent any possible race condition.
     let selected: SelectionType = Box::pin(async move {
-        let (selection_entity, _) =
-            futures_util::join!(selection_entity_updated, select_entities_to_update);
+        let (selection_entity, _) = futures_util::join!(selection_entity_updated, select_entities_to_update);
 
         selection_entity
     });
@@ -825,12 +798,7 @@ fn internal_node_unlinking<'a>(
         let mut transactions = Vec::with_capacity(field_value.len() + 1);
 
         for (pk, _) in field_value {
-            let a: TransactionType<'a> = Box::pin(relation_remove(
-                ctx,
-                parent_value.clone(),
-                pk,
-                relation_name,
-            ));
+            let a: TransactionType<'a> = Box::pin(relation_remove(ctx, parent_value.clone(), pk, relation_name));
             transactions.push(a);
         }
 
@@ -891,11 +859,7 @@ fn relation_handle<'a>(
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
 ) -> Vec<RecursiveCreation<'a>> {
-    let parent_ty_name = parent_ty
-        .field_by_name(relation_field)
-        .unwrap()
-        .ty
-        .named_type();
+    let parent_ty_name = parent_ty.field_by_name(relation_field).unwrap().ty.named_type();
 
     let child_ty_name = parent_ty_name
         .as_str()
@@ -1050,13 +1014,7 @@ impl DynamoMutationResolver {
                 }))))
             }
             DynamoMutationResolver::UpdateNodes { input, ty } => {
-                update::batch(
-                    ctx,
-                    resolver_ctx,
-                    input.resolve(ctx, last_resolver_value)?,
-                    ty,
-                )
-                .await
+                update::batch(ctx, resolver_ctx, input.resolve(ctx, last_resolver_value)?, ty).await
             }
             DynamoMutationResolver::UpdateNode { by, input, ty } => {
                 let loader = &batchers.loader;
@@ -1080,14 +1038,12 @@ impl DynamoMutationResolver {
                 let by_id = key == "id";
 
                 if by_id {
-                    let value: String =
-                        dynaql_value::from_value(value.clone()).expect("cannot fail");
+                    let value: String = dynaql_value::from_value(value.clone()).expect("cannot fail");
 
                     ObfuscatedID::expect(&value.to_string(), ty.as_str())
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-                    let input = input
-                        .expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+                    let input = input.expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
                     let update = node_update(
                         ctx,
@@ -1101,8 +1057,7 @@ impl DynamoMutationResolver {
 
                     let _ = update.selection.await?;
 
-                    let mut stream = futures_util::stream::iter(update.transaction.into_iter())
-                        .buffer_unordered(100);
+                    let mut stream = futures_util::stream::iter(update.transaction.into_iter()).buffer_unordered(100);
 
                     while let Some(result) = stream.next().await {
                         result?;
@@ -1116,9 +1071,7 @@ impl DynamoMutationResolver {
                         .constraints
                         .iter()
                         .find(|constraint| constraint.name() == key)
-                        .and_then(|constraint| {
-                            constraint.extract_id_from_by_input_field(ty.as_str(), value)
-                        })
+                        .and_then(|constraint| constraint.extract_id_from_by_input_field(ty.as_str(), value))
                         .expect("constraint fields to be in the input");
 
                     let pk = constraint_id.to_string();
@@ -1139,8 +1092,7 @@ impl DynamoMutationResolver {
                     ObfuscatedID::expect(&id.to_string(), ty.as_str())
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-                    let input = input
-                        .expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+                    let input = input.expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
                     let update = node_update(
                         ctx,
@@ -1154,8 +1106,7 @@ impl DynamoMutationResolver {
 
                     let _ = update.selection.await?;
 
-                    let mut stream = futures_util::stream::iter(update.transaction.into_iter())
-                        .buffer_unordered(100);
+                    let mut stream = futures_util::stream::iter(update.transaction.into_iter()).buffer_unordered(100);
 
                     while let Some(result) = stream.next().await {
                         result?;
@@ -1192,8 +1143,7 @@ impl DynamoMutationResolver {
                 let by_id = key == "id";
 
                 if by_id {
-                    let id_to_be_deleted: String =
-                        dynaql_value::from_value(value.clone()).expect("cannot fail");
+                    let id_to_be_deleted: String = dynaql_value::from_value(value.clone()).expect("cannot fail");
 
                     let opaque_id = ObfuscatedID::expect(&id_to_be_deleted, ty.as_str())
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
@@ -1213,9 +1163,7 @@ impl DynamoMutationResolver {
                         .constraints
                         .iter()
                         .find(|constraint| constraint.name() == key)
-                        .and_then(|constraint| {
-                            constraint.extract_id_from_by_input_field(ty.as_str(), value)
-                        })
+                        .and_then(|constraint| constraint.extract_id_from_by_input_field(ty.as_str(), value))
                         .expect("constraint fields to be in the input");
 
                     let pk = constraint_id.to_string();

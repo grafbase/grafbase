@@ -90,18 +90,17 @@ pub use subscription::SubscriptionType;
 
 pub use auth::*;
 pub use base::{
-    ComplexObject, Description, LegacyInputObjectType, LegacyInputType, LegacyInterfaceType,
-    LegacyOutputType, LegacyUnionType, ObjectType,
+    ComplexObject, Description, LegacyInputObjectType, LegacyInputType, LegacyInterfaceType, LegacyOutputType,
+    LegacyUnionType, ObjectType,
 };
 pub use custom_directive::{CustomDirective, CustomDirectiveFactory};
 pub use dynaql_parser as parser;
 pub use dynaql_value::{
-    from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number,
-    SerializerError, Variables,
+    from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number, SerializerError, Variables,
 };
 pub use error::{
-    Error, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult,
-    ParseRequestError, PathSegment, Result, ResultExt, ServerError, ServerResult,
+    Error, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult, ParseRequestError, PathSegment,
+    Result, ResultExt, ServerError, ServerResult,
 };
 pub use extensions::ResolveFut;
 pub use graph_entities::ResponseNodeId;

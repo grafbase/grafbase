@@ -118,22 +118,12 @@ fn filter<'a>(
                     fields.push(&field.node)
                 }
             }
-            Selection::InlineFragment(fragment) => filter(
-                fields,
-                fragments,
-                &fragment.node.selection_set.node,
-                name,
-                _context,
-            ),
+            Selection::InlineFragment(fragment) => {
+                filter(fields, fragments, &fragment.node.selection_set.node, name, _context)
+            }
             Selection::FragmentSpread(spread) => {
                 if let Some(fragment) = fragments.get(&spread.node.fragment_name.node) {
-                    filter(
-                        fields,
-                        fragments,
-                        &fragment.node.selection_set.node,
-                        name,
-                        _context,
-                    )
+                    filter(fields, fragments, &fragment.node.selection_set.node, name, _context)
                 }
             }
         }
