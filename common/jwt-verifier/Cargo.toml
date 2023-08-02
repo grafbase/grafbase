@@ -7,10 +7,7 @@ edition = "2021"
 [dependencies]
 futures-util = { workspace = true }
 json_dotpath = "1"
-jwt-compact = { workspace = true, features = [
-    "clock",
-    "rsa",
-] }
+jwt-compact = { workspace = true, features = ["clock", "rsa"] }
 secrecy = "0.8"
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -19,13 +16,16 @@ thiserror = "1"
 url = { workspace = true, features = ["serde"] }
 worker = { workspace = true }
 
-log = { path = "../log" }
+log = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
 
 [dev-dependencies]
 chrono = "0.4"
