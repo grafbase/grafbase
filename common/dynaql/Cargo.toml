@@ -2,7 +2,7 @@
 name = "dynaql"
 version = "3.0.31"
 edition = "2021"
-description = "A GraphQL engine written in Rust"
+description = "A dynamic GraphQL engine written in Rust"
 repository = "https://github.com/grafbase/api"
 readme = "README.md"
 
