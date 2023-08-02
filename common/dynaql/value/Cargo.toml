@@ -1,15 +1,9 @@
 [package]
 name = "dynaql-value"
 version = "3.0.31"
-authors = ["sunli <scott_s829@163.com>", "Koxiaet"]
 edition = "2021"
-description = "GraphQL value for async-graphql"
-license = "MIT/Apache-2.0"
-documentation = "https://docs.rs/async-graphql/"
-homepage = "https://github.com/async-graphql/async-graphql"
-repository = "https://github.com/async-graphql/async-graphql"
-keywords = ["futures", "async", "graphql"]
-categories = ["network-programming", "asynchronous"]
+description = "GraphQL value for dynaql"
+repository = "https://github.com/grafbase/api"
 
 [features]
 default = []

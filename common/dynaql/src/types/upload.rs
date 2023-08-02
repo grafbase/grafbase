@@ -53,7 +53,6 @@ impl UploadValue {
 ///
 ///
 /// # Example
-/// *[Full Example](<https://github.com/async-graphql/examples/blob/master/models/files/src/lib.rs>)*
 ///
 /// ```
 /// use dynaql::*;

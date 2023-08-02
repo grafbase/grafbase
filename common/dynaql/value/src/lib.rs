@@ -1,4 +1,4 @@
-//! Value for GraphQL. Used in the [`async-graphql`](https://crates.io/crates/async-graphql) crate.
+//! Value for GraphQL. Used in the [`dynaql`] crate.
 
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
