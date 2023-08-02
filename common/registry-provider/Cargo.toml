@@ -11,5 +11,5 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1"
-gateway-protocol = { path = "../gateway-protocol/" }
+gateway-protocol = { workspace = true }
 thiserror = "1"

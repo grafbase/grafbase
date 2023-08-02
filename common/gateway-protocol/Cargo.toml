@@ -11,7 +11,7 @@ serde_with = { workspace = true }
 ulid = { workspace = true }
 worker = { workspace = true }
 
-dynaql = { path = "../dynaql" }
+dynaql = { workspace = true }
 grafbase = { path = "../grafbase", features = ["json"] }
 
 [dev-dependencies]

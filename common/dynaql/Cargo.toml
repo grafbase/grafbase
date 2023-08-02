@@ -15,7 +15,7 @@ dynaql-derive = { path = "derive", version = "3" }
 dynaql-value = { path = "value", version = "3" }
 dynaql-parser = { path = "parser", version = "3" }
 
-dataloader = { path = "../dataloader" }
+dataloader = { workspace = true }
 async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
@@ -56,13 +56,13 @@ thiserror = { workspace = true }
 ulid = { workspace = true, features = ["wasm"] }
 url = { workspace = true, features = ["serde"] }
 unindent = "0.2"
-grafbase-runtime = { path = "../grafbase-runtime" }
+grafbase-runtime = { workspace = true }
 grafbase = { path = "../grafbase", features = ["json"] }
 flexbuffers = { workspace = true }
 
 # API dependencies
-dynamodb = { path = "../dynamodb" }
-graph-entities = { path = "../graph-entities" }
+dynamodb = { workspace = true }
+graph-entities = { workspace = true }
 logworker = { path = "../log", package = "log", features = [
   "with-worker",
 ], optional = true }
@@ -70,7 +70,7 @@ logworker = { path = "../log", package = "log", features = [
 # Feature optional dependencies
 rust_decimal = { version = "1" }
 tracing = { workspace = true, optional = true }
-async-runtime = { path = "../async-runtime" }
+async-runtime = { workspace = true }
 
 # Non-feature optional dependencies
 base64.workspace = true
