@@ -41,10 +41,7 @@ impl DynamicParse for EmailScalar {
             ConstValue::String(val) => parse_email(&val)
                 .map_err(|err| InputValueError::ty_custom("Email", err))
                 .map(|_| serde_json::Value::String(val)),
-            _ => Err(InputValueError::ty_custom(
-                "Email",
-                "Cannot parse into an Email",
-            )),
+            _ => Err(InputValueError::ty_custom("Email", "Cannot parse into an Email")),
         }
     }
 }

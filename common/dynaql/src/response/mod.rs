@@ -72,19 +72,13 @@ impl Response {
     /// Set the http headers of the response.
     #[must_use]
     pub fn http_headers(self, http_headers: HeaderMap) -> Self {
-        Self {
-            http_headers,
-            ..self
-        }
+        Self { http_headers, ..self }
     }
 
     /// Set the cache control of the response.
     #[must_use]
     pub fn cache_control(self, cache_control: CacheControl) -> Self {
-        Self {
-            cache_control,
-            ..self
-        }
+        Self { cache_control, ..self }
     }
 
     /// Returns `true` if the response is ok.
@@ -127,12 +121,10 @@ impl BatchResponse {
     pub fn cache_control(&self) -> CacheControl {
         match self {
             BatchResponse::Single(resp) => resp.cache_control.clone(),
-            BatchResponse::Batch(resp) => {
-                resp.iter().fold(CacheControl::default(), |mut acc, item| {
-                    acc.merge(item.cache_control.clone());
-                    acc
-                })
-            }
+            BatchResponse::Batch(resp) => resp.iter().fold(CacheControl::default(), |mut acc, item| {
+                acc.merge(item.cache_control.clone());
+                acc
+            }),
         }
     }
 
@@ -164,20 +156,15 @@ impl BatchResponse {
             if let Some(name) = name {
                 current_name = Some(name);
             }
-            current_name
-                .clone()
-                .map(|current_name| (current_name, value))
+            current_name.clone().map(|current_name| (current_name, value))
         })
     }
 
     pub fn into_json_value(self) -> serde_json::Result<serde_json::Value> {
         match self {
-            Self::Batch(multiple) => serde_json::to_value(
-                multiple
-                    .iter()
-                    .map(Response::to_graphql_response)
-                    .collect::<Vec<_>>(),
-            ),
+            Self::Batch(multiple) => {
+                serde_json::to_value(multiple.iter().map(Response::to_graphql_response).collect::<Vec<_>>())
+            }
             Self::Single(single) => serde_json::to_value(single.to_graphql_response()),
         }
     }
@@ -229,10 +216,7 @@ mod tests {
         let resp = Response::new(resp, Default::default());
 
         let resp = BatchResponse::Single(resp);
-        assert_eq!(
-            resp.into_json_value().unwrap().to_string(),
-            r#"{"data":true}"#
-        );
+        assert_eq!(resp.into_json_value().unwrap().to_string(), r#"{"data":true}"#);
     }
 
     #[test]

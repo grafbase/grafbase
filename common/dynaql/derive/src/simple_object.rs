@@ -9,9 +9,7 @@ use syn::visit::Visit;
 use syn::{Error, Ident, Lifetime, Path, Type};
 
 use crate::args::{self, RenameRuleExt, RenameTarget, SimpleObjectField};
-use crate::utils::{
-    gen_deprecation, generate_guards, get_crate_name, get_rustdoc, visible_fn, GeneratorResult,
-};
+use crate::utils::{gen_deprecation, generate_guards, get_crate_name, get_rustdoc, visible_fn, GeneratorResult};
 
 #[derive(Debug)]
 struct DerivedFieldMetadata {
@@ -42,11 +40,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
 
     let s = match &object_args.data {
         Data::Struct(e) => e,
-        _ => {
-            return Err(
-                Error::new_spanned(ident, "SimpleObject can only be applied to an struct.").into(),
-            )
-        }
+        _ => return Err(Error::new_spanned(ident, "SimpleObject can only be applied to an struct.").into()),
     };
     let mut getters = Vec::new();
     let mut resolvers = Vec::new();
@@ -56,10 +50,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
 
     // Before processing the fields, we generate the derivated fields
     for field in &s.fields {
-        processed_fields.push(SimpleObjectFieldGenerator {
-            field,
-            derived: None,
-        });
+        processed_fields.push(SimpleObjectFieldGenerator { field, derived: None });
 
         for derived in &field.derived {
             if derived.name.is_some() && derived.into.is_some() {
@@ -69,11 +60,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 ) {
                     Ok(e) => e,
                     _ => {
-                        return Err(Error::new_spanned(
-                            &name,
-                            "derived into must be a valid type.",
-                        )
-                        .into());
+                        return Err(Error::new_spanned(&name, "derived into must be a valid type.").into());
                     }
                 };
 
@@ -254,11 +241,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
     }
 
     if !object_args.fake && resolvers.is_empty() {
-        return Err(Error::new_spanned(
-            ident,
-            "A GraphQL Object type must define one or more fields.",
-        )
-        .into());
+        return Err(Error::new_spanned(ident, "A GraphQL Object type must define one or more fields.").into());
     }
 
     let cache_control = {

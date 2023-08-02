@@ -12,15 +12,8 @@ use crate::{
 
 use super::IdCursor;
 
-pub(super) async fn by_ids(
-    ctx: &Context<'_>,
-    ids: &[String],
-    ty: &ModelName,
-) -> Result<ResolvedValue, Error> {
-    let keys = ids
-        .iter()
-        .map(|id| (id.clone(), id.clone()))
-        .collect::<Vec<_>>();
+pub(super) async fn by_ids(ctx: &Context<'_>, ids: &[String], ty: &ModelName) -> Result<ResolvedValue, Error> {
+    let keys = ids.iter().map(|id| (id.clone(), id.clone())).collect::<Vec<_>>();
     let mut db_result = ctx
         .data::<Arc<DynamoDBBatchersData>>()?
         .loader
@@ -37,9 +30,7 @@ pub(super) async fn by_ids(
         })
         .collect::<Vec<_>>();
 
-    Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(
-        result,
-    ))))
+    Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(result))))
 }
 
 pub(super) async fn paginated_by_ids(
@@ -55,36 +46,21 @@ pub(super) async fn paginated_by_ids(
         ids.reverse();
     }
     let candidates: Vec<String> = match &cursor {
-        PaginatedCursor::Forward {
-            exclusive_last_key, ..
-        } => {
+        PaginatedCursor::Forward { exclusive_last_key, .. } => {
             if let Some(after) = exclusive_last_key.as_ref() {
                 ids.into_iter()
-                    .filter(|id| {
-                        if ordering.is_asc() {
-                            after < id
-                        } else {
-                            id < after
-                        }
-                    })
+                    .filter(|id| if ordering.is_asc() { after < id } else { id < after })
                     .collect()
             } else {
                 ids
             }
         }
         PaginatedCursor::Backward {
-            exclusive_first_key,
-            ..
+            exclusive_first_key, ..
         } => {
             let mut candidates = if let Some(before) = exclusive_first_key.as_ref() {
                 ids.into_iter()
-                    .filter(|id| {
-                        if ordering.is_asc() {
-                            id < before
-                        } else {
-                            before < id
-                        }
-                    })
+                    .filter(|id| if ordering.is_asc() { id < before } else { before < id })
                     .collect()
             } else {
                 ids
@@ -138,12 +114,8 @@ pub(super) async fn paginated_by_ids(
     Ok({
         let pagination = ResolvedPaginationInfo::of(
             ResolvedPaginationDirection::from_paginated_cursor(&cursor),
-            items
-                .first()
-                .map(|((id, _), _)| IdCursor { id: id.to_string() }),
-            items
-                .last()
-                .map(|((id, _), _)| IdCursor { id: id.to_string() }),
+            items.first().map(|((id, _), _)| IdCursor { id: id.to_string() }),
+            items.last().map(|((id, _), _)| IdCursor { id: id.to_string() }),
             has_more,
         );
         let type_name = ty.to_string();

@@ -39,10 +39,7 @@ impl DynamicParse for StringScalar {
     fn parse(value: ConstValue) -> InputValueResult<serde_json::Value> {
         match value {
             ConstValue::String(val) => Ok(serde_json::Value::String(val)),
-            _ => Err(InputValueError::ty_custom(
-                "String",
-                "Cannot parse into a String",
-            )),
+            _ => Err(InputValueError::ty_custom("String", "Cannot parse into a String")),
         }
     }
 }

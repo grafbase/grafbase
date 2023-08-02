@@ -30,7 +30,8 @@ impl InputObject {
             | Node::Enum { .. }
             | Node::Default(_)
             | Node::PossibleValue(_)
-            | Node::UnionWrappedScalar(_) => None,
+            | Node::UnionWrappedScalar(_)
+            | Node::PlaceholderType => None,
         }
     }
 
@@ -50,8 +51,12 @@ impl InputObject {
             .graph
             .edges(self.index)
             .filter_map(|edge| match edge.weight() {
-                super::Edge::HasField { name, wrapping } => Some(InputField {
-                    value_type: InputValue::from_index(edge.target(), wrapping.clone(), graph)?,
+                super::Edge::HasField {
+                    name,
+                    wrapping,
+                    required,
+                } => Some(InputField {
+                    value_type: InputValue::from_index(edge.target(), wrapping.clone().set_required(*required), graph)?,
                     name: FieldName(Cow::Borrowed(name)),
                 }),
                 super::Edge::HasUnionMember => {

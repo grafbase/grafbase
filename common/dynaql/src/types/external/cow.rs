@@ -19,11 +19,7 @@ where
         <T as LegacyOutputType>::create_type_info(registry)
     }
 
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         self.as_ref().resolve(ctx, field).await
     }
 }

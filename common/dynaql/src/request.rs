@@ -167,9 +167,7 @@ impl BatchRequest {
     /// Returns an iterator over the requests.
     pub fn iter(&self) -> impl Iterator<Item = &Request> {
         match self {
-            BatchRequest::Single(request) => {
-                Box::new(std::iter::once(request)) as Box<dyn Iterator<Item = &Request>>
-            }
+            BatchRequest::Single(request) => Box::new(std::iter::once(request)) as Box<dyn Iterator<Item = &Request>>,
             BatchRequest::Batch(requests) => Box::new(requests.iter()),
         }
     }

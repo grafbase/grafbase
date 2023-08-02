@@ -53,7 +53,6 @@ impl UploadValue {
 ///
 ///
 /// # Example
-/// *[Full Example](<https://github.com/async-graphql/examples/blob/master/models/files/src/lib.rs>)*
 ///
 /// ```
 /// use dynaql::*;
@@ -105,9 +104,7 @@ impl LegacyInputType for Upload {
                 description: None,
                 is_valid: Some(|value| matches!(value, Value::String(_))),
                 visible: None,
-                specified_by_url: Some(
-                    "https://github.com/jaydenseric/graphql-multipart-request-spec".to_string(),
-                ),
+                specified_by_url: Some("https://github.com/jaydenseric/graphql-multipart-request-spec".to_string()),
                 parser: registry::ScalarParser::BestEffort,
             })
         })

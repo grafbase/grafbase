@@ -38,10 +38,7 @@ struct ByConstraint {
 
 impl ByConstraint {
     fn key(&self) -> (String, String) {
-        (
-            self.constraint_id.to_string(),
-            self.constraint_id.to_string(),
-        )
+        (self.constraint_id.to_string(), self.constraint_id.to_string())
     }
 }
 
@@ -61,36 +58,30 @@ pub(super) async fn batch(
     let (by_ids, by_constraints) = partition_by_identifier(ctx, &meta_type, input)?;
 
     let increment = Arc::new(AtomicUsize::new(0));
-    let (ids, selections, transactions): (Vec<_>, Vec<_>, Vec<_>) =
-        generate_updates(ctx, by_ids, by_constraints)
-            .await?
-            .into_iter()
-            .map(
-                |Update {
-                     id,
-                     constraint_id,
-                     input,
-                 }| {
-                    super::node_update(
-                        ctx,
-                        meta_type,
-                        *resolver_ctx.execution_id,
-                        increment.clone(),
-                        input,
-                        id.clone(),
-                        constraint_id,
-                    )
-                    .map(
-                        |super::RecursiveCreation {
-                             selection,
-                             transaction,
-                         }| { (id, selection, transaction) },
-                    )
-                },
-            )
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .multiunzip();
+    let (ids, selections, transactions): (Vec<_>, Vec<_>, Vec<_>) = generate_updates(ctx, by_ids, by_constraints)
+        .await?
+        .into_iter()
+        .map(
+            |Update {
+                 id,
+                 constraint_id,
+                 input,
+             }| {
+                super::node_update(
+                    ctx,
+                    meta_type,
+                    *resolver_ctx.execution_id,
+                    increment.clone(),
+                    input,
+                    id.clone(),
+                    constraint_id,
+                )
+                .map(|super::RecursiveCreation { selection, transaction }| (id, selection, transaction))
+            },
+        )
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .multiunzip();
 
     // Not entirely sure what selections does, but that's how DynamoMutationResolver::UpdateNode works
     futures_util::future::try_join_all(selections).await?;
@@ -129,17 +120,11 @@ fn partition_by_identifier(
                     .and_then(|constraint| {
                         constraint.extract_id_from_by_input_field(
                             &meta_type.name,
-                            &by.value
-                                .clone()
-                                .try_into()
-                                .expect("was a ConstValue before"),
+                            &by.value.clone().try_into().expect("was a ConstValue before"),
                         )
                     })
                     .expect("constraint fields to be in the input");
-                Ok(UpdateInput::ByConstraint(ByConstraint {
-                    constraint_id,
-                    input,
-                }))
+                Ok(UpdateInput::ByConstraint(ByConstraint { constraint_id, input }))
             }
         })
         .collect::<Result<Vec<_>, ServerError>>()

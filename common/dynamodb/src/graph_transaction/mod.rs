@@ -1,6 +1,5 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::paginated::QueryValue;
-use crate::runtime::Runtime;
 use crate::utils::ConvertExtension;
 use crate::{constant, CurrentDateTime, OperationAuthorizationError, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
@@ -1654,7 +1653,7 @@ pub fn get_loader_transaction_new(
             #[cfg(feature = "sqlite")]
             local_ctx,
         },
-        |f| Runtime::locate().spawn(f),
+        async_runtime::spawn,
         LruCache::new(128),
     )
     .max_batch_size(1024)

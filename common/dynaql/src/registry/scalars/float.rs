@@ -31,25 +31,21 @@ impl DynamicParse for FloatScalar {
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
         match value {
             serde_json::Value::Number(v) => {
-                let v = v.as_f64().and_then(Number::from_f64).ok_or_else(|| {
-                    Error::new("Data violation: Cannot coerce the initial value to a Float")
-                })?;
+                let v = v
+                    .as_f64()
+                    .and_then(Number::from_f64)
+                    .ok_or_else(|| Error::new("Data violation: Cannot coerce the initial value to a Float"))?;
 
                 Ok(ConstValue::Number(v))
             }
-            _ => Err(Error::new(
-                "Data violation: Cannot coerce the initial value to a Float",
-            )),
+            _ => Err(Error::new("Data violation: Cannot coerce the initial value to a Float")),
         }
     }
 
     fn parse(value: ConstValue) -> InputValueResult<serde_json::Value> {
         match value {
             ConstValue::Number(val) => Ok(serde_json::Value::Number(val)),
-            _ => Err(InputValueError::ty_custom(
-                "Float",
-                "Cannot parse into a Float",
-            )),
+            _ => Err(InputValueError::ty_custom("Float", "Cannot parse into a Float")),
         }
     }
 }

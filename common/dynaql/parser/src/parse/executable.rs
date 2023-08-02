@@ -10,10 +10,7 @@ pub fn parse_query<T: AsRef<str>>(input: T) -> Result<ExecutableDocument> {
     let mut pc = PositionCalculator::new(input.as_ref());
 
     let items = parse_definition_items(
-        exactly_one(GraphQLParser::parse(
-            Rule::executable_document,
-            input.as_ref(),
-        )?),
+        exactly_one(GraphQLParser::parse(Rule::executable_document, input.as_ref())?),
         &mut pc,
     )?;
 
@@ -24,8 +21,7 @@ pub fn parse_query<T: AsRef<str>>(input: T) -> Result<ExecutableDocument> {
         match item {
             DefinitionItem::Operation(item) => {
                 if let Some(name) = item.node.name {
-                    let operations = operations
-                        .get_or_insert_with(|| DocumentOperations::Multiple(HashMap::new()));
+                    let operations = operations.get_or_insert_with(|| DocumentOperations::Multiple(HashMap::new()));
                     let operations = match operations {
                         DocumentOperations::Single(anonymous) => {
                             return Err(Error::MultipleOperations {
@@ -56,9 +52,7 @@ pub fn parse_query<T: AsRef<str>>(input: T) -> Result<ExecutableDocument> {
                                 anonymous: item.pos,
                                 operation: match operations {
                                     DocumentOperations::Single(single) => single.pos,
-                                    DocumentOperations::Multiple(map) => {
-                                        map.values().next().unwrap().pos
-                                    }
+                                    DocumentOperations::Multiple(map) => map.values().next().unwrap().pos,
                                 },
                             });
                         }
@@ -93,10 +87,7 @@ pub fn parse_query<T: AsRef<str>>(input: T) -> Result<ExecutableDocument> {
     })
 }
 
-fn parse_definition_items(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Vec<DefinitionItem>> {
+fn parse_definition_items(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Vec<DefinitionItem>> {
     debug_assert_eq!(pair.as_rule(), Rule::executable_document);
 
     Ok(pair
@@ -116,12 +107,8 @@ fn parse_definition_item(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Resul
 
     let pair = exactly_one(pair.into_inner());
     Ok(match pair.as_rule() {
-        Rule::operation_definition => {
-            DefinitionItem::Operation(parse_operation_definition_item(pair, pc)?)
-        }
-        Rule::fragment_definition => {
-            DefinitionItem::Fragment(parse_fragment_definition_item(pair, pc)?)
-        }
+        Rule::operation_definition => DefinitionItem::Operation(parse_operation_definition_item(pair, pc)?),
+        Rule::fragment_definition => DefinitionItem::Fragment(parse_fragment_definition_item(pair, pc)?),
         _ => unreachable!(),
     })
 }
@@ -157,10 +144,7 @@ fn parse_operation_definition_item(
     ))
 }
 
-fn parse_named_operation_definition(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<OperationDefinitionItem> {
+fn parse_named_operation_definition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<OperationDefinitionItem> {
     debug_assert_eq!(pair.as_rule(), Rule::named_operation_definition);
 
     let mut pairs = pair.into_inner();
@@ -197,10 +181,7 @@ fn parse_variable_definitions(
         .collect()
 }
 
-fn parse_variable_definition(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<VariableDefinition>> {
+fn parse_variable_definition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<VariableDefinition>> {
     debug_assert_eq!(pair.as_rule(), Rule::variable_definition);
 
     let pos = pc.step(&pair);
@@ -210,9 +191,7 @@ fn parse_variable_definition(
     let var_type = parse_type(pairs.next().unwrap(), pc)?;
 
     let directives = parse_opt_directives(&mut pairs, pc)?;
-    let default_value = parse_if_rule(&mut pairs, Rule::default_value, |pair| {
-        parse_default_value(pair, pc)
-    })?;
+    let default_value = parse_if_rule(&mut pairs, Rule::default_value, |pair| parse_default_value(pair, pc))?;
 
     debug_assert_eq!(pairs.next(), None);
 
@@ -227,10 +206,7 @@ fn parse_variable_definition(
     ))
 }
 
-fn parse_selection_set(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<SelectionSet>> {
+fn parse_selection_set(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<SelectionSet>> {
     debug_assert_eq!(pair.as_rule(), Rule::selection_set);
 
     let pos = pc.step(&pair);
@@ -271,13 +247,9 @@ fn parse_field(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Position
 
     let alias = parse_if_rule(&mut pairs, Rule::alias, |pair| parse_alias(pair, pc))?;
     let name = parse_name(pairs.next().unwrap(), pc)?;
-    let arguments = parse_if_rule(&mut pairs, Rule::arguments, |pair| {
-        parse_arguments(pair, pc)
-    })?;
+    let arguments = parse_if_rule(&mut pairs, Rule::arguments, |pair| parse_arguments(pair, pc))?;
     let directives = parse_opt_directives(&mut pairs, pc)?;
-    let selection_set = parse_if_rule(&mut pairs, Rule::selection_set, |pair| {
-        parse_selection_set(pair, pc)
-    })?;
+    let selection_set = parse_if_rule(&mut pairs, Rule::selection_set, |pair| parse_selection_set(pair, pc))?;
 
     debug_assert_eq!(pairs.next(), None);
 
@@ -298,10 +270,7 @@ fn parse_alias(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Position
     parse_name(exactly_one(pair.into_inner()), pc)
 }
 
-fn parse_fragment_spread(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<FragmentSpread>> {
+fn parse_fragment_spread(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<FragmentSpread>> {
     debug_assert_eq!(pair.as_rule(), Rule::fragment_spread);
 
     let pos = pc.step(&pair);
@@ -321,18 +290,13 @@ fn parse_fragment_spread(
     ))
 }
 
-fn parse_inline_fragment(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<InlineFragment>> {
+fn parse_inline_fragment(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<InlineFragment>> {
     debug_assert_eq!(pair.as_rule(), Rule::inline_fragment);
 
     let pos = pc.step(&pair);
     let mut pairs = pair.into_inner();
 
-    let type_condition = parse_if_rule(&mut pairs, Rule::type_condition, |pair| {
-        parse_type_condition(pair, pc)
-    })?;
+    let type_condition = parse_if_rule(&mut pairs, Rule::type_condition, |pair| parse_type_condition(pair, pc))?;
     let directives = parse_opt_directives(&mut pairs, pc)?;
     let selection_set = parse_selection_set(pairs.next().unwrap(), pc)?;
 
@@ -382,10 +346,7 @@ fn parse_fragment_definition_item(
     ))
 }
 
-fn parse_type_condition(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<TypeCondition>> {
+fn parse_type_condition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<TypeCondition>> {
     debug_assert_eq!(pair.as_rule(), Rule::type_condition);
 
     let pos = pc.step(&pair);
@@ -408,11 +369,7 @@ mod tests {
             let entry = entry.unwrap();
             eprintln!("Parsing file {}", entry.path().display());
 
-            GraphQLParser::parse(
-                Rule::executable_document,
-                &fs::read_to_string(entry.path()).unwrap(),
-            )
-            .unwrap();
+            GraphQLParser::parse(Rule::executable_document, &fs::read_to_string(entry.path()).unwrap()).unwrap();
         }
     }
 

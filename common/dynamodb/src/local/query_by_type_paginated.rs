@@ -9,7 +9,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::paginated::ParentEdge;
-use crate::runtime::Runtime;
 use crate::{
     DynamoDBContext, DynamoDBRequestedIndex, LocalContext, OperationAuthorization, OperationAuthorizationError,
     PaginatedCursor, PaginationOrdering, RequestedOperation,
@@ -391,7 +390,7 @@ pub fn get_loader_paginated_query_type(
             ctx,
             index,
         },
-        |f| Runtime::locate().spawn(f),
+        async_runtime::spawn,
         LruCache::new(256),
     )
     .max_batch_size(10)

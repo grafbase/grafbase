@@ -11,11 +11,7 @@ pub trait CustomDirectiveFactory: Send + Sync + 'static {
 
     fn register(&self, registry: &mut Registry);
 
-    fn create(
-        &self,
-        ctx: &ContextDirective<'_>,
-        directive: &Directive,
-    ) -> ServerResult<Box<dyn CustomDirective>>;
+    fn create(&self, ctx: &ContextDirective<'_>, directive: &Directive) -> ServerResult<Box<dyn CustomDirective>>;
 }
 
 /// Represents a custom directive.
@@ -23,11 +19,7 @@ pub trait CustomDirectiveFactory: Send + Sync + 'static {
 #[allow(unused_variables)]
 pub trait CustomDirective: Sync + Send + 'static {
     /// Called at resolve field.
-    async fn resolve_field(
-        &self,
-        ctx: &Context<'_>,
-        resolve: ResolveFut<'_>,
-    ) -> ServerResult<Option<ResponseNodeId>> {
+    async fn resolve_field(&self, ctx: &Context<'_>, resolve: ResolveFut<'_>) -> ServerResult<Option<ResponseNodeId>> {
         resolve.await
     }
 }

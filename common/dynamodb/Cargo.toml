@@ -19,7 +19,8 @@ dynomite = "0.10"
 futures = "0.3"
 futures-util = { workspace = true, features = ["std", "async-await"] }
 grafbase = { path = "../grafbase", features = ["json"] }
-dataloader = { path = "../dataloader", features = ["tracing"] }
+dataloader = { path = "../dataloader" }
+async-runtime = { path = "../async-runtime" }
 graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = { workspace = true }
@@ -34,11 +35,6 @@ wasm-timer = { version = "0.2" }
 
 tracing = { workspace = true, optional = true }
 
-# feature = wasm
-wasm-bindgen-futures = { version = "0.4", optional = true }
-
-# feature = tokio
-tokio = { version = "1", optional = true }
 # feature="sqlite"
 cfg-if = "1"
 indoc = { version = "2", optional = true }
@@ -59,9 +55,7 @@ reqwest = { version = "0.11", default-features = false, optional = true, feature
 ] }
 
 [features]
-default = ["wasm_runtime"]
+default = []
 local = []
 sqlite = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper"]
-tokio_runtime = ["tokio"]
-wasm_runtime = ["wasm-bindgen-futures"]
 tracing = ["dep:tracing"]

@@ -1,9 +1,7 @@
 use graph_entities::{CompactValue, ResponseNodeId};
 use internment::ArcIntern;
 
-use crate::{
-    context::ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, Name, Value,
-};
+use crate::{context::ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, Name, Value};
 
 /// A variant of an enum.
 pub struct EnumItem<T> {
@@ -33,11 +31,7 @@ pub fn parse_enum<T: LegacyEnumType + LegacyInputType>(value: Value) -> InputVal
         .iter()
         .find(|item| item.name == value)
         .map(|item| item.value)
-        .ok_or_else(|| {
-            InputValueError::custom(format_args!(
-                r#"Enumeration type does not contain value "{value}"."#,
-            ))
-        })
+        .ok_or_else(|| InputValueError::custom(format_args!(r#"Enumeration type does not contain value "{value}"."#,)))
 }
 
 /// Convert the enum value into a GraphQL value.
@@ -48,10 +42,7 @@ pub fn enum_value<T: LegacyEnumType>(value: T) -> Value {
     Value::Enum(Name::new(item.name))
 }
 
-pub async fn enum_value_node<'a, T: LegacyEnumType>(
-    ctx: &ContextSelectionSet<'a>,
-    value: T,
-) -> ResponseNodeId {
+pub async fn enum_value_node<'a, T: LegacyEnumType>(ctx: &ContextSelectionSet<'a>, value: T) -> ResponseNodeId {
     let item = T::items().iter().find(|item| item.value == value).unwrap();
 
     let mut response_graph = ctx.response_graph.write().await;

@@ -6,9 +6,7 @@ use futures_util::stream::{Stream, StreamExt};
 
 use crate::parser::types::{Selection, TypeCondition};
 use crate::registry::Registry;
-use crate::{
-    registry, Context, ContextSelectionSet, PathSegment, Response, ServerError, ServerResult,
-};
+use crate::{registry, Context, ContextSelectionSet, PathSegment, Response, ServerError, ServerResult};
 
 /// A GraphQL subscription object
 pub trait SubscriptionType: Send + Sync {

@@ -71,13 +71,11 @@ impl AtlasDataApiResolver {
 
             match self.operation_type {
                 OperationType::FindOne => {
-                    let selection_set: SelectionSetTarget<'_> =
-                        resolver_ctx.ty.unwrap().try_into().unwrap();
+                    let selection_set: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
 
                     let available_fields = selection_set.field_map().unwrap();
                     let selection = ctx.look_ahead().selection_fields();
-                    let projection =
-                        projection::project(ctx, selection.into_iter(), available_fields)?;
+                    let projection = projection::project(ctx, selection.into_iter(), available_fields)?;
 
                     body.insert(String::from("projection"), projection);
                     body.insert(String::from("filter"), input::by(ctx)?);
@@ -126,9 +124,7 @@ impl AtlasDataApiResolver {
         };
 
         match self.operation_type {
-            OperationType::FindMany => object
-                .remove("documents")
-                .unwrap_or(serde_json::Value::Null),
+            OperationType::FindMany => object.remove("documents").unwrap_or(serde_json::Value::Null),
             OperationType::FindOne => object.remove("document").unwrap_or(serde_json::Value::Null),
             _ => object.into(),
         }
@@ -184,23 +180,13 @@ impl AtlasDataApiResolver {
             .field("edges")
             .and_then(|field| ctx.registry().lookup(&field.ty).ok());
 
-        let selection_field = selection_type
-            .as_ref()
-            .and_then(|output| output.field("node"));
+        let selection_field = selection_type.as_ref().and_then(|output| output.field("node"));
 
-        let selection_type =
-            selection_field.and_then(|field| ctx.registry().lookup(&field.ty).ok());
+        let selection_type = selection_field.and_then(|field| ctx.registry().lookup(&field.ty).ok());
 
-        let selection_field_types = selection_type
-            .as_ref()
-            .and_then(OutputType::field_map)
-            .unwrap();
+        let selection_field_types = selection_type.as_ref().and_then(OutputType::field_map).unwrap();
 
-        let selection = ctx
-            .look_ahead()
-            .field("edges")
-            .field("node")
-            .selection_fields();
+        let selection = ctx.look_ahead().field("edges").field("node").selection_fields();
 
         let projection = projection::project(ctx, selection.into_iter(), selection_field_types)?;
 
@@ -245,15 +231,15 @@ impl AtlasDataApiResolver {
 fn map_err(error: reqwest::Error) -> Error {
     match error.status() {
         Some(StatusCode::BAD_REQUEST) => Error::new(format!("the request was malformed: {error}")),
-        Some(StatusCode::NOT_FOUND) => {
-            Error::new("the request was sent to an endpoint that does not exist, please check the connector configuration")
-        }
+        Some(StatusCode::NOT_FOUND) => Error::new(
+            "the request was sent to an endpoint that does not exist, please check the connector configuration",
+        ),
         Some(StatusCode::UNAUTHORIZED) => {
             Error::new("the request did not include an authorized and enabled Atlas Data API Key")
         }
-        Some(StatusCode::INTERNAL_SERVER_ERROR) => Error::new(
-            "the Atlas Data API encountered an internal error and could not complete the request",
-        ),
+        Some(StatusCode::INTERNAL_SERVER_ERROR) => {
+            Error::new("the Atlas Data API encountered an internal error and could not complete the request")
+        }
         _ => Error::new(error.to_string()),
     }
 }

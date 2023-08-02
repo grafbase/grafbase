@@ -1,6 +1,5 @@
 use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
 use crate::paginated::QueryResult;
-use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::{Attribute, DynamoDbExt};
@@ -187,11 +186,7 @@ pub fn get_loader_query_type(
     ctx: Arc<DynamoDBContext>,
     index: DynamoDBRequestedIndex,
 ) -> DataLoader<QueryTypeLoader, LruCache> {
-    DataLoader::with_cache(
-        QueryTypeLoader { ctx, index },
-        |f| Runtime::locate().spawn(f),
-        LruCache::new(256),
-    )
-    .max_batch_size(10)
-    .delay(Duration::from_millis(2))
+    DataLoader::with_cache(QueryTypeLoader { ctx, index }, async_runtime::spawn, LruCache::new(256))
+        .max_batch_size(10)
+        .delay(Duration::from_millis(2))
 }

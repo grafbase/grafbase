@@ -12,12 +12,7 @@ where
     if value.as_() <= n {
         Ok(())
     } else {
-        Err(format!(
-            "the value is {}, must be less than or equal to {}",
-            value.as_(),
-            n
-        )
-        .into())
+        Err(format!("the value is {}, must be less than or equal to {}", value.as_(), n).into())
     }
 }
 

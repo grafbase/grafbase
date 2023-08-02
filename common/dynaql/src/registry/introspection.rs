@@ -6,8 +6,8 @@
 use std::ops::Not;
 
 use super::{
-    Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType,
-    Registry, __DirectiveLocation,
+    Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry,
+    __DirectiveLocation,
 };
 
 impl From<cynic_introspection::Schema> for Registry {
@@ -62,11 +62,7 @@ impl From<cynic_introspection::Directive> for MetaDirective {
             name: directive.name,
             description: directive.description,
             locations: directive.locations.into_iter().map(Into::into).collect(),
-            args: directive
-                .args
-                .into_iter()
-                .map(|v| (v.name.clone(), v.into()))
-                .collect(),
+            args: directive.args.into_iter().map(|v| (v.name.clone(), v.into())).collect(),
             is_repeatable: false,
             visible: None,
         }
@@ -78,11 +74,7 @@ impl From<cynic_introspection::Field> for MetaField {
         Self {
             name: field.name,
             description: field.description,
-            args: field
-                .args
-                .into_iter()
-                .map(|v| (v.name.clone(), v.into()))
-                .collect(),
+            args: field.args.into_iter().map(|v| (v.name.clone(), v.into())).collect(),
             ty: field.ty.to_string().into(),
             deprecation: field.deprecated.into(),
             ..Default::default()

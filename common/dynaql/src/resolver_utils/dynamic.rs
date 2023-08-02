@@ -43,10 +43,7 @@ struct PathNode<'a> {
 
 impl<'a> PathNode<'a> {
     fn new(name: &'a str) -> PathNode<'a> {
-        PathNode {
-            name,
-            previous: None,
-        }
+        PathNode { name, previous: None }
     }
 
     fn with(&'a self, name: &'a str) -> PathNode<'a> {
@@ -117,14 +114,7 @@ fn resolve_present_input(
             if matches!(value, ConstValue::Null) {
                 return Err(rctx.input_error("Unexpected null value"));
             }
-            resolve_present_input(
-                ResolveContext {
-                    ty: type_name,
-                    ..rctx
-                },
-                value,
-                mode,
-            )
+            resolve_present_input(ResolveContext { ty: type_name, ..rctx }, value, mode)
         }
         MetaTypeName::List(type_name) => {
             if matches!(value, ConstValue::Null) {
@@ -186,36 +176,28 @@ fn resolve_present_input(
                                 let field_name = meta_input_value
                                     .rename
                                     .as_ref()
-                                    .filter(|_| {
-                                        matches!(mode, InputResolveMode::ApplyConnectorTransforms)
-                                    })
+                                    .filter(|_| matches!(mode, InputResolveMode::ApplyConnectorTransforms))
                                     .unwrap_or(name);
                                 map.insert(Name::new(field_name), field_value);
                             }
                         }
                         if input_object.oneof && map.len() != 1 {
-                            return Err(rctx.input_error(&format!(
-                                "Expected exactly one fields (@oneof), got {}",
-                                map.len()
-                            )));
+                            return Err(
+                                rctx.input_error(&format!("Expected exactly one fields (@oneof), got {}", map.len()))
+                            );
                         }
                         Ok(ConstValue::Object(map))
                     } else {
                         Err(rctx.input_error("Expected an Object"))
                     }
                 }
-                MetaType::Enum(enum_type) => {
-                    resolve_input_enum(rctx, value, &enum_type.enum_values, mode)
-                }
+                MetaType::Enum(enum_type) => resolve_input_enum(rctx, value, &enum_type.enum_values, mode),
                 // TODO: this conversion ConstValue -> serde_json -> ConstValue is sad...
                 // we need an intermediate representation between the database & dynaql
                 MetaType::Scalar { .. } => Ok(ConstValue::from_json(
-                    PossibleScalar::parse(type_name, value)
-                        .map_err(|err| Error::new(err.message()))?,
+                    PossibleScalar::parse(type_name, value).map_err(|err| Error::new(err.message()))?,
                 )?),
-                _ => Err(rctx.input_error(&format!(
-                    "Internal Error: Unsupported input type {type_name}"
-                ))),
+                _ => Err(rctx.input_error(&format!("Internal Error: Unsupported input type {type_name}"))),
             }
         }
     }

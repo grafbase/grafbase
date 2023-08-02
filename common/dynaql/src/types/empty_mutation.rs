@@ -5,8 +5,7 @@ use graph_entities::ResponseNodeId;
 use crate::parser::types::Field;
 use crate::resolver_utils::ContainerType;
 use crate::{
-    registry, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned, ServerError,
-    ServerResult,
+    registry, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
 };
 
 /// Empty mutation
@@ -74,10 +73,7 @@ impl LegacyOutputType for EmptyMutation {
         _ctx: &ContextSelectionSet<'_>,
         _field: &Positioned<Field>,
     ) -> ServerResult<ResponseNodeId> {
-        Err(ServerError::new(
-            "Schema is not configured for mutations.",
-            None,
-        ))
+        Err(ServerError::new("Schema is not configured for mutations.", None))
     }
 }
 

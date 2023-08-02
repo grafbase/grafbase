@@ -24,10 +24,7 @@ impl DynamicParse for BigIntScalar {
                 Ok(num) => Ok(serde_json::Value::Number(serde_json::Number::from(num))),
                 Err(_) => Err(InputValueError::ty_custom("BigInt", "Invalid BigInt value")),
             },
-            _ => Err(InputValueError::ty_custom(
-                "BigInt",
-                "Cannot parse into a BigInt",
-            )),
+            _ => Err(InputValueError::ty_custom("BigInt", "Cannot parse into a BigInt")),
         }
     }
 

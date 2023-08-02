@@ -230,9 +230,7 @@ impl FromMeta for ComplexityType {
                 .base10_parse::<i128>()
                 .unwrap()
                 .try_into()
-                .map_err(|_| {
-                    darling::Error::custom("The complexity must be greater than or equal to 0.")
-                })
+                .map_err(|_| darling::Error::custom("The complexity must be greater than or equal to 0."))
                 .map(ComplexityType::Const),
             Lit::Str(s) => Ok(ComplexityType::Fn(s.value())),
             _ => Err(darling::Error::unexpected_lit_type(value)),

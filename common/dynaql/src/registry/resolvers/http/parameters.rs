@@ -12,17 +12,9 @@ use crate::Error;
 use super::{PathParameter, QueryParameter, QueryParameterEncodingStyle};
 
 pub trait ParamApply {
-    fn apply_path_parameter(
-        self,
-        param: &PathParameter,
-        variable: serde_json::Value,
-    ) -> Result<String, Error>;
+    fn apply_path_parameter(self, param: &PathParameter, variable: serde_json::Value) -> Result<String, Error>;
 
-    fn apply_query_parameters(
-        self,
-        params: &[QueryParameter],
-        values: &[serde_json::Value],
-    ) -> Result<String, Error>;
+    fn apply_query_parameters(self, params: &[QueryParameter], values: &[serde_json::Value]) -> Result<String, Error>;
 
     fn apply_body_parameters(
         self,
@@ -32,24 +24,13 @@ pub trait ParamApply {
 }
 
 impl ParamApply for String {
-    fn apply_path_parameter(
-        self,
-        param: &PathParameter,
-        variable: serde_json::Value,
-    ) -> Result<String, Error> {
+    fn apply_path_parameter(self, param: &PathParameter, variable: serde_json::Value) -> Result<String, Error> {
         let name = &param.name;
 
-        Ok(self.replace(
-            &format!("{{{name}}}"),
-            json_scalar_to_path_string(&variable)?.borrow(),
-        ))
+        Ok(self.replace(&format!("{{{name}}}"), json_scalar_to_path_string(&variable)?.borrow()))
     }
 
-    fn apply_query_parameters(
-        self,
-        params: &[QueryParameter],
-        values: &[serde_json::Value],
-    ) -> Result<String, Error> {
+    fn apply_query_parameters(self, params: &[QueryParameter], values: &[serde_json::Value]) -> Result<String, Error> {
         let mut url = Url::parse(&self).unwrap();
         let mut serializer = url.query_pairs_mut();
 
@@ -126,12 +107,7 @@ where
                 ),
                 Value::Object(obj) => Cow::Owned(
                     obj.iter()
-                        .map(|(key, value)| {
-                            Ok(vec![
-                                Cow::Borrowed(key.as_str()),
-                                json_scalar_to_query_string(value)?,
-                            ])
-                        })
+                        .map(|(key, value)| Ok(vec![Cow::Borrowed(key.as_str()), json_scalar_to_query_string(value)?]))
                         .collect::<Result<Vec<_>, Error>>()?
                         .into_iter()
                         .flatten()
@@ -186,12 +162,8 @@ fn json_scalar_to_query_string(value: &serde_json::Value) -> Result<Cow<'_, str>
         Value::Number(number) => Ok(Cow::Owned(number.to_string())),
         Value::String(string) => Ok(Cow::Borrowed(string)),
         Value::Null => Err(Error::new("HTTP query parameters cannot have nested nulls")),
-        Value::Array(_) => Err(Error::new(
-            "HTTP query parameters cannot have nested arrays",
-        )),
-        Value::Object(_) => Err(Error::new(
-            "HTTP query parameters cannot have nested objects",
-        )),
+        Value::Array(_) => Err(Error::new("HTTP query parameters cannot have nested arrays")),
+        Value::Object(_) => Err(Error::new("HTTP query parameters cannot have nested objects")),
     }
 }
 
@@ -208,10 +180,7 @@ struct DeepObjectStackEntry<'a> {
 impl<'a> DeepObjectIter<'a> {
     pub fn new(parameter_name: &'a str, value: &'a serde_json::Value) -> Self {
         DeepObjectIter {
-            stack: vec![DeepObjectStackEntry {
-                keys: vec![],
-                value,
-            }],
+            stack: vec![DeepObjectStackEntry { keys: vec![], value }],
             parameter_name,
         }
     }
@@ -235,15 +204,14 @@ impl<'a> Iterator for DeepObjectIter<'a> {
                     return Some((key_str, json_scalar_to_query_string(value).unwrap()));
                 }
                 serde_json::Value::Array(vals) => {
-                    self.stack
-                        .extend(vals.iter().enumerate().map(|(i, nested_value)| {
-                            let mut new_keys = keys.clone();
-                            new_keys.push(Cow::Owned(i.to_string()));
-                            DeepObjectStackEntry {
-                                keys: new_keys,
-                                value: nested_value,
-                            }
-                        }));
+                    self.stack.extend(vals.iter().enumerate().map(|(i, nested_value)| {
+                        let mut new_keys = keys.clone();
+                        new_keys.push(Cow::Owned(i.to_string()));
+                        DeepObjectStackEntry {
+                            keys: new_keys,
+                            value: nested_value,
+                        }
+                    }));
                 }
                 serde_json::Value::Object(obj) => {
                     self.stack.extend(obj.iter().map(|(key, nested_value)| {

@@ -5,8 +5,8 @@ use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase::UdfKind;
 use grafbase_runtime::udf::{
-    CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse,
-    CustomResolversEngine, UdfRequest, UdfRequestContext, UdfRequestContextRequest,
+    CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
+    UdfRequestContext, UdfRequestContextRequest,
 };
 use grafbase_runtime::GraphqlRequestExecutionContext;
 
@@ -93,33 +93,27 @@ impl CustomResolver {
         ));
 
         #[cfg(feature = "tracing_worker")]
-        let future = future.instrument(info_span!(
-            "custom_resolver",
-            resolver_name = self.resolver_name
-        ));
+        let future = future.instrument(info_span!("custom_resolver", resolver_name = self.resolver_name));
 
         match Box::pin(future).await? {
             CustomResolverResponse::Success(value) => Ok(ResolvedValue::new(Arc::new(value))),
-            CustomResolverResponse::GraphQLError {
-                message,
-                extensions,
-            } => {
+            CustomResolverResponse::GraphQLError { message, extensions } => {
                 let mut error = Error::new(message);
                 error.extensions = extensions.map(|extensions| {
                     ErrorExtensionValues(
                         extensions
                             .into_iter()
-                            .filter_map(|(key, value)| {
-                                Some((key, crate::Value::from_json(value).ok()?))
-                            })
+                            .filter_map(|(key, value)| Some((key, crate::Value::from_json(value).ok()?)))
                             .collect(),
                     )
                 });
                 Err(error)
             }
+            #[allow(unused_variables)]
             CustomResolverResponse::Error(err) => {
                 #[cfg(feature = "tracing_worker")]
                 logworker::error!(ctx.trace_id(), "UDF error: {err}");
+
                 Err(CustomResolverError::InvocationError.into())
             }
         }
@@ -147,9 +141,7 @@ fn dynamodb_to_json(model_data: serde_json::Value) -> serde_json::Value {
                     }
                 })
                 .map(|(field, x)| {
-                    let attribute = serde_json::from_value::<AttributeValue>(x)
-                        .ok()
-                        .unwrap_or_default();
+                    let attribute = serde_json::from_value::<AttributeValue>(x).ok().unwrap_or_default();
 
                     (field, attribute_to_value(attribute))
                 })

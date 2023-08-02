@@ -247,18 +247,12 @@ pub struct InlineFragment {
 impl InlineFragment {
     /// The fragment's selection.
     pub fn selection(&self) -> impl ExactSizeIterator<Item = &Selection> + '_ {
-        self.selection_set
-            .node
-            .items
-            .iter()
-            .map(|selection| &selection.node)
+        self.selection_set.node.items.iter().map(|selection| &selection.node)
     }
 
     /// The type condition.
     pub fn type_condition(&self) -> Option<&TypeCondition> {
-        self.type_condition
-            .as_ref()
-            .map(|condition| &condition.node)
+        self.type_condition.as_ref().map(|condition| &condition.node)
     }
 }
 
@@ -278,11 +272,7 @@ pub struct FragmentDefinition {
 impl FragmentDefinition {
     /// The fragment's selection.
     pub fn selection(&self) -> impl ExactSizeIterator<Item = &Selection> + '_ {
-        self.selection_set
-            .node
-            .items
-            .iter()
-            .map(|selection| &selection.node)
+        self.selection_set.node.items.iter().map(|selection| &selection.node)
     }
 
     /// The type condition.

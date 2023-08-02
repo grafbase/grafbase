@@ -9,10 +9,7 @@ use crate::{Name, Positioned};
 
 enum ArgsType<'a> {
     Directive(&'a str),
-    Field {
-        field_name: &'a str,
-        type_name: &'a str,
-    },
+    Field { field_name: &'a str, type_name: &'a str },
 }
 
 #[derive(Default)]
@@ -35,11 +32,7 @@ impl<'a> KnownArgumentNames<'a> {
 }
 
 impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
-    fn enter_directive(
-        &mut self,
-        ctx: &mut VisitorContext<'a>,
-        directive: &'a Positioned<Directive>,
-    ) {
+    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
         self.current_args = ctx
             .registry
             .directives
@@ -47,11 +40,7 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
             .map(|d| (&d.args, ArgsType::Directive(&directive.node.name.node)));
     }
 
-    fn exit_directive(
-        &mut self,
-        _ctx: &mut VisitorContext<'a>,
-        _directive: &'a Positioned<Directive>,
-    ) {
+    fn exit_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<Directive>) {
         self.current_args = None;
     }
 
@@ -64,10 +53,7 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
         if let Some((args, arg_type)) = &self.current_args {
             if !args.contains_key(name.node.as_str()) {
                 match arg_type {
-                    ArgsType::Field {
-                        field_name,
-                        type_name,
-                    } => {
+                    ArgsType::Field { field_name, type_name } => {
                         ctx.report_error(
                             vec![name.pos],
                             format!(

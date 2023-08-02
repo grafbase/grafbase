@@ -1,28 +1,21 @@
 [package]
 name = "dynaql"
 version = "3.0.31"
-authors = ["sunli <scott_s829@163.com>", "Koxiaet"]
 edition = "2021"
-description = "A GraphQL server library implemented in Rust"
-license = "MIT/Apache-2.0"
-documentation = "https://docs.rs/async-graphql/"
-homepage = "https://github.com/async-graphql/async-graphql"
-repository = "https://github.com/async-graphql/async-graphql"
-keywords = ["futures", "async", "graphql"]
-categories = ["network-programming", "asynchronous"]
+description = "A dynamic GraphQL engine written in Rust"
+repository = "https://github.com/grafbase/api"
 readme = "README.md"
 
 [features]
 default = []
-tokio_runtime = ["dynamodb/tokio_runtime"]
 tracing_worker = ["logworker", "dynamodb/tracing", "tracing"]
-wasm_runtime = ["dynamodb/wasm_runtime"]
 
 [dependencies]
 dynaql-derive = { path = "derive", version = "3" }
 dynaql-value = { path = "value", version = "3" }
 dynaql-parser = { path = "parser", version = "3" }
 
+dataloader = { path = "../dataloader" }
 async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
@@ -77,6 +70,7 @@ logworker = { path = "../log", package = "log", features = [
 # Feature optional dependencies
 rust_decimal = { version = "1" }
 tracing = { workspace = true, optional = true }
+async-runtime = { path = "../async-runtime" }
 
 # Non-feature optional dependencies
 base64.workspace = true

@@ -291,10 +291,7 @@ mod tests {
 
     #[test]
     fn test_maybe_undefined_serde() {
-        assert_eq!(
-            to_value(&MaybeUndefined::Value(100i32)).unwrap(),
-            value!(100)
-        );
+        assert_eq!(to_value(&MaybeUndefined::Value(100i32)).unwrap(), value!(100));
 
         assert_eq!(
             from_value::<MaybeUndefined<i32>>(value!(100)).unwrap(),
@@ -360,15 +357,9 @@ mod tests {
     fn test_maybe_undefined_to_nested_option() {
         assert_eq!(Option::<Option<i32>>::from(MaybeUndefined::Undefined), None);
 
-        assert_eq!(
-            Option::<Option<i32>>::from(MaybeUndefined::Null),
-            Some(None)
-        );
+        assert_eq!(Option::<Option<i32>>::from(MaybeUndefined::Null), Some(None));
 
-        assert_eq!(
-            Option::<Option<i32>>::from(MaybeUndefined::Value(42)),
-            Some(Some(42))
-        );
+        assert_eq!(Option::<Option<i32>>::from(MaybeUndefined::Value(42)), Some(Some(42)));
     }
 
     #[test]
@@ -451,16 +442,10 @@ mod tests {
         assert_eq!(value.map(|v| Some(v.is_some())), MaybeUndefined::Undefined);
 
         value = MaybeUndefined::Null;
-        assert_eq!(
-            value.map(|v| Some(v.is_some())),
-            MaybeUndefined::Value(false)
-        );
+        assert_eq!(value.map(|v| Some(v.is_some())), MaybeUndefined::Value(false));
 
         value = MaybeUndefined::Value(5);
-        assert_eq!(
-            value.map(|v| Some(v.is_some())),
-            MaybeUndefined::Value(true)
-        );
+        assert_eq!(value.map(|v| Some(v.is_some())), MaybeUndefined::Value(true));
     }
 
     #[test]

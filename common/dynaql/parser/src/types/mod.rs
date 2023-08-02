@@ -66,9 +66,7 @@ impl Type {
     /// Create a type from the type string.
     #[must_use]
     pub fn new(ty: &str) -> Option<Self> {
-        let (nullable, ty) = ty
-            .strip_suffix('!')
-            .map_or((true, ty), |rest| (false, rest));
+        let (nullable, ty) = ty.strip_suffix('!').map_or((true, ty), |rest| (false, rest));
 
         Some(Self {
             base: if let Some(ty) = ty.strip_prefix('[') {
@@ -82,18 +80,12 @@ impl Type {
 
     /// Create a required Type
     pub fn required(base: BaseType) -> Self {
-        Type {
-            base,
-            nullable: false,
-        }
+        Type { base, nullable: false }
     }
 
     /// Create a nullable Type
     pub fn nullable(base: BaseType) -> Self {
-        Type {
-            base,
-            nullable: true,
-        }
+        Type { base, nullable: true }
     }
 
     /// Create a new Type with its base overridden by the new base type.
@@ -243,9 +235,7 @@ impl Directive {
             arguments: self
                 .arguments
                 .into_iter()
-                .map(|(name, value)| {
-                    Some((name, Positioned::new(value.node.into_const()?, value.pos)))
-                })
+                .map(|(name, value)| Some((name, Positioned::new(value.node.into_const()?, value.pos))))
                 .collect::<Option<_>>()?,
         })
     }

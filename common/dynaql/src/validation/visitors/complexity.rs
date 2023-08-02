@@ -52,9 +52,10 @@ impl<'ctx, 'a> Visitor<'ctx> for ComplexityCalculate<'ctx, 'a> {
         let children_complex = self.complexity_stack.pop().unwrap();
 
         if let Some(MetaType::Object(object)) = ctx.parent_type() {
-            if let Some(meta_field) = object.fields.get(MetaTypeName::concrete_typename(
-                field.node.name.node.as_str(),
-            )) {
+            if let Some(meta_field) = object
+                .fields
+                .get(MetaTypeName::concrete_typename(field.node.name.node.as_str()))
+            {
                 if let Some(compute_complexity) = &meta_field.compute_complexity {
                     match compute_complexity {
                         ComplexityType::Const(n) => {
@@ -62,12 +63,7 @@ impl<'ctx, 'a> Visitor<'ctx> for ComplexityCalculate<'ctx, 'a> {
                         }
                         ComplexityType::Fn(f) => {
                             if meta_field.ty.is_list() {
-                                match f(
-                                    ctx,
-                                    self.variable_definition.unwrap(),
-                                    &field.node,
-                                    children_complex,
-                                ) {
+                                match f(ctx, self.variable_definition.unwrap(), &field.node, children_complex) {
                                     Ok(n) => {
                                         *self.complexity_stack.last_mut().unwrap() += n;
                                     }
@@ -152,10 +148,7 @@ mod tests {
 
         #[graphql(complexity = "count * child_complexity")]
         #[allow(unused_variables)]
-        async fn objs(
-            &self,
-            #[graphql(default_with = "5")] count: usize,
-        ) -> BoxStream<'static, Vec<MyObj>> {
+        async fn objs(&self, #[graphql(default_with = "5")] count: usize) -> BoxStream<'static, Vec<MyObj>> {
             todo!()
         }
 

@@ -1,9 +1,7 @@
 use crate::registry::MetaType;
 use crate::{relations_edges, Context, ContextSelectionSet};
 use dynaql_value::ConstValue;
-use graph_entities::{
-    ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive,
-};
+use graph_entities::{ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive};
 
 #[async_recursion::async_recursion]
 pub async fn selection_set_into_node<'a>(
@@ -18,10 +16,7 @@ pub async fn selection_set_into_node<'a>(
                 let id = selection_set_into_node(value, ctx, root).await;
                 container.push(id);
             }
-            ctx.response_graph
-                .write()
-                .await
-                .insert_node(Box::new(container))
+            ctx.response_graph.write().await.insert_node(Box::new(container))
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();
@@ -63,10 +58,7 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
                 let id = field_into_node(value, ctx).await;
                 container.push(id);
             }
-            ctx.response_graph
-                .write()
-                .await
-                .insert_node(Box::new(container))
+            ctx.response_graph.write().await.insert_node(Box::new(container))
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();

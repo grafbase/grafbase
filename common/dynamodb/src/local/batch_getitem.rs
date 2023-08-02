@@ -1,7 +1,6 @@
 use super::bridge_api;
 use super::types::{Operation, Record, Sql, SqlValue};
 use crate::constant::OWNED_BY;
-use crate::runtime::Runtime;
 use crate::{DynamoDBContext, LocalContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation};
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
@@ -90,7 +89,7 @@ pub fn get_loader_batch_transaction(
 ) -> DataLoader<BatchGetItemLoader, LruCache> {
     DataLoader::with_cache(
         BatchGetItemLoader { local_ctx, ctx },
-        |f| Runtime::locate().spawn(f),
+        async_runtime::spawn,
         LruCache::new(128),
     )
     .max_batch_size(100)

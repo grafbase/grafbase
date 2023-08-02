@@ -5,10 +5,7 @@ use crate::{InputValueError, InputValueResult, LegacyScalarType, Number, Scalar,
 impl LegacyScalarType for f32 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
-            Value::Number(n) => Ok(n
-                .as_f64()
-                .ok_or_else(|| InputValueError::from("Invalid number"))?
-                as Self),
+            Value::Number(n) => Ok(n.as_f64().ok_or_else(|| InputValueError::from("Invalid number"))? as Self),
             _ => Err(InputValueError::expected_type(value)),
         }
     }
@@ -30,10 +27,7 @@ impl LegacyScalarType for f32 {
 impl LegacyScalarType for f64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
-            Value::Number(n) => Ok(n
-                .as_f64()
-                .ok_or_else(|| InputValueError::from("Invalid number"))?
-                as Self),
+            Value::Number(n) => Ok(n.as_f64().ok_or_else(|| InputValueError::from("Invalid number"))? as Self),
             _ => Err(InputValueError::expected_type(value)),
         }
     }

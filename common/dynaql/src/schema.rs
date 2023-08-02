@@ -23,8 +23,8 @@ use crate::subscription::collect_subscription_streams;
 use crate::types::QueryRoot;
 use crate::validation::{check_rules, ValidationMode};
 use crate::{
-    BatchRequest, BatchResponse, CacheControl, ContextBase, LegacyInputType, LegacyOutputType,
-    ObjectType, QueryEnv, Request, Response, ServerError, SubscriptionType, Variables, ID,
+    BatchRequest, BatchResponse, CacheControl, ContextBase, LegacyInputType, LegacyOutputType, ObjectType, QueryEnv,
+    Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
 
 /// Schema builder
@@ -136,20 +136,14 @@ impl SchemaBuilder {
 
     /// Override the name of the specified input type.
     #[must_use]
-    pub fn override_input_type_description<T: LegacyInputType>(
-        mut self,
-        desc: &'static str,
-    ) -> Self {
+    pub fn override_input_type_description<T: LegacyInputType>(mut self, desc: &'static str) -> Self {
         self.registry.set_description(&T::type_name(), desc);
         self
     }
 
     /// Override the name of the specified output type.
     #[must_use]
-    pub fn override_output_type_description<T: LegacyOutputType>(
-        mut self,
-        desc: &'static str,
-    ) -> Self {
+    pub fn override_output_type_description<T: LegacyOutputType>(mut self, desc: &'static str) -> Self {
         self.registry.set_description(&T::type_name(), desc);
         self
     }
@@ -166,10 +160,7 @@ impl SchemaBuilder {
 
         instance.register(&mut self.registry);
 
-        if name == "skip"
-            || name == "include"
-            || self.custom_directives.insert(name, instance).is_some()
-        {
+        if name == "skip" || name == "include" || self.custom_directives.insert(name, instance).is_some() {
             panic!("Directive `{name}` already exists");
         }
 
@@ -332,18 +323,20 @@ impl Schema {
     fn add_builtins_to_registry(registry: &mut Registry) {
         registry.add_directive(MetaDirective {
             name: "include".to_string(),
-            description: Some("Directs the executor to include this field or fragment only when the `if` argument is true.".to_string()),
+            description: Some(
+                "Directs the executor to include this field or fragment only when the `if` argument is true."
+                    .to_string(),
+            ),
             locations: vec![
                 __DirectiveLocation::FIELD,
                 __DirectiveLocation::FRAGMENT_SPREAD,
-                __DirectiveLocation::INLINE_FRAGMENT
+                __DirectiveLocation::INLINE_FRAGMENT,
             ],
             args: {
                 let mut args = IndexMap::new();
                 args.insert(
                     "if".to_string(),
-                    MetaInputValue::new("if".to_string(), "Boolean!")
-                        .with_description("Included when true.")
+                    MetaInputValue::new("if".to_string(), "Boolean!").with_description("Included when true."),
                 );
                 args
             },
@@ -353,18 +346,20 @@ impl Schema {
 
         registry.add_directive(MetaDirective {
             name: "skip".to_string(),
-            description: Some("Directs the executor to skip this field or fragment when the `if` argument is true.".to_string()),
+            description: Some(
+                "Directs the executor to skip this field or fragment when the `if` argument is true.".to_string(),
+            ),
             locations: vec![
                 __DirectiveLocation::FIELD,
                 __DirectiveLocation::FRAGMENT_SPREAD,
-                __DirectiveLocation::INLINE_FRAGMENT
+                __DirectiveLocation::INLINE_FRAGMENT,
             ],
             args: {
                 let mut args = IndexMap::new();
                 args.insert(
                     "if".to_string(),
-                    MetaInputValue::new( "if", "Boolean!")
-                        .with_description("Skipped when true."));
+                    MetaInputValue::new("if", "Boolean!").with_description("Skipped when true."),
+                );
                 args
             },
             is_repeatable: false,
@@ -382,9 +377,7 @@ impl Schema {
 
         registry.add_directive(MetaDirective {
             name: "live".to_string(),
-            description: Some(
-                "Directs the executor to return values as a Streaming response.".to_string(),
-            ),
+            description: Some("Directs the executor to return values as a Streaming response.".to_string()),
             locations: vec![__DirectiveLocation::QUERY],
             args: { IndexMap::new() },
             is_repeatable: false,
@@ -491,12 +484,7 @@ impl Schema {
                     .remove(operation_name.as_str())
                     .map(|operation| (Some(operation_name.clone()), operation)),
             }
-            .ok_or_else(|| {
-                ServerError::new(
-                    format!(r#"Unknown operation named "{operation_name}""#),
-                    None,
-                )
-            })
+            .ok_or_else(|| ServerError::new(format!(r#"Unknown operation named "{operation_name}""#), None))
         } else {
             match document.operations {
                 DocumentOperations::Single(operation) => Ok((None, operation)),
@@ -504,10 +492,7 @@ impl Schema {
                     let (operation_name, operation) = map.into_iter().next().unwrap();
                     Ok((Some(operation_name.to_string()), operation))
                 }
-                DocumentOperations::Multiple(_) => Err(ServerError::new(
-                    "Operation name required in request.",
-                    None,
-                )),
+                DocumentOperations::Multiple(_) => Err(ServerError::new("Operation name required in request.", None)),
             }
         };
 
@@ -561,9 +546,7 @@ impl Schema {
 
         let res = match &env.operation.node.ty {
             OperationType::Query => resolve_container(&ctx, query, None).await,
-            OperationType::Mutation => {
-                resolve_container_serial(&ctx, ctx.registry().mutation_root(), None).await
-            }
+            OperationType::Mutation => resolve_container_serial(&ctx, ctx.registry().mutation_root(), None).await,
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
                 None,
@@ -580,12 +563,9 @@ impl Schema {
             }
             Err(err) => Response::from_errors(vec![err], env.operation.node.ty),
         }
-        .http_headers(std::mem::take(
-            &mut *env.response_http_headers.lock().unwrap(),
-        ));
+        .http_headers(std::mem::take(&mut *env.response_http_headers.lock().unwrap()));
 
-        resp.errors
-            .extend(std::mem::take(&mut *env.errors.lock().unwrap()));
+        resp.errors.extend(std::mem::take(&mut *env.errors.lock().unwrap()));
         resp
     }
 
@@ -596,16 +576,9 @@ impl Schema {
         let request_fut = {
             let extensions = extensions.clone();
             async move {
-                match self
-                    .prepare_request(extensions, request, Default::default())
-                    .await
-                {
+                match self.prepare_request(extensions, request, Default::default()).await {
                     Ok((env, cache_control)) => {
-                        let fut = async {
-                            self.execute_once(env.clone())
-                                .await
-                                .cache_control(cache_control)
-                        };
+                        let fut = async { self.execute_once(env.clone()).await.cache_control(cache_control) };
                         futures_util::pin_mut!(fut);
                         env.extensions
                             .execute(env.operation_name.as_deref(), &env.operation, &mut fut)
@@ -684,10 +657,7 @@ impl Schema {
     }
 
     /// Execute a GraphQL subscription.
-    pub fn execute_stream(
-        &self,
-        _request: impl Into<Request>,
-    ) -> impl Stream<Item = Response> + Send + Unpin {
+    pub fn execute_stream(&self, _request: impl Into<Request>) -> impl Stream<Item = Response> + Send + Unpin {
         futures_util::stream::empty()
         // self.execute_stream_with_session_data(request.into(), Default::default())
     }
@@ -723,9 +693,10 @@ fn remove_skipped_selection(selection_set: &mut SelectionSet, variables: &Variab
         .retain(|selection| !is_skipped(selection.node.directives(), variables));
 
     for selection in &mut selection_set.items {
-        selection.node.directives_mut().retain(|directive| {
-            directive.node.name.node != "skip" && directive.node.name.node != "include"
-        });
+        selection
+            .node
+            .directives_mut()
+            .retain(|directive| directive.node.name.node != "skip" && directive.node.name.node != "include");
     }
 
     for selection in &mut selection_set.items {

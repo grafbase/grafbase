@@ -23,11 +23,7 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
 
     let fields = match &newtype_args.data {
         Data::Struct(e) => e,
-        _ => {
-            return Err(
-                Error::new_spanned(ident, "NewType can only be applied to an struct.").into(),
-            )
-        }
+        _ => return Err(Error::new_spanned(ident, "NewType can only be applied to an struct.").into()),
     };
 
     if fields.style == Style::Tuple && fields.fields.len() != 1 {

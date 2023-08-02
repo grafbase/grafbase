@@ -23,18 +23,12 @@ impl DynamicParse for DecimalScalar {
         match value {
             ConstValue::String(decimal_string) => {
                 if Decimal::from_str(&decimal_string).is_err() {
-                    return Err(InputValueError::ty_custom(
-                        "Decimal",
-                        "Invalid Decimal value",
-                    ));
+                    return Err(InputValueError::ty_custom("Decimal", "Invalid Decimal value"));
                 }
 
                 Ok(serde_json::Value::String(decimal_string))
             }
-            _ => Err(InputValueError::ty_custom(
-                "Decimal",
-                "Cannot parse into a Decimal",
-            )),
+            _ => Err(InputValueError::ty_custom("Decimal", "Cannot parse into a Decimal")),
         }
     }
 

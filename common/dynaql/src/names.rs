@@ -29,9 +29,5 @@ pub const DELETE_PAYLOAD_RETURN_TY_SUFFIX: &str = "DeletePayload";
 pub fn deletion_return_type_name(type_name: &str) -> String {
     use case::CaseExt;
 
-    format!(
-        "{}{}",
-        type_name.to_camel(),
-        DELETE_PAYLOAD_RETURN_TY_SUFFIX
-    )
+    format!("{}{}", type_name.to_camel(), DELETE_PAYLOAD_RETURN_TY_SUFFIX)
 }

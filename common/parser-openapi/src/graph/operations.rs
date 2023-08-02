@@ -222,7 +222,7 @@ impl Operation {
                     wrapping,
                     ..
                 } if is_ok(status_code) && is_json(content_type) => {
-                    Some(OutputFieldType::from_index(edge.target(), wrapping))
+                    OutputFieldType::from_index(edge.target(), wrapping, graph)
                 }
                 _ => None,
             })

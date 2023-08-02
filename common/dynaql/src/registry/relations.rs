@@ -13,9 +13,7 @@ pub enum MetaRelationKind {
 // TODO: Add a link to the documentation related to this.
 #[derive(Debug, thiserror::Error)]
 pub enum RelationCombinationError {
-    #[error(
-        "You have an issue while modelizeing your relations. Try using the `@relation` directive."
-    )]
+    #[error("You have an issue while modelizeing your relations. Try using the `@relation` directive.")]
     UndefinedError,
     #[error("You have multiple relations starting from `{from}`, the relation engine can't define them without a little help. Try using the `@relation` directive.")]
     MultipleRelationsError { from: String },
@@ -182,16 +180,9 @@ impl MetaRelation {
         a.join("To")
     }
 
-    pub fn new(
-        name: Option<String>,
-        from_field: &Type,
-        to_field: &Type,
-        from_model: String,
-        to_model: String,
-    ) -> Self {
+    pub fn new(name: Option<String>, from_field: &Type, to_field: &Type, from_model: String, to_model: String) -> Self {
         Self {
-            name: name
-                .unwrap_or_else(|| MetaRelation::generate_relation_name(&from_model, &to_model)),
+            name: name.unwrap_or_else(|| MetaRelation::generate_relation_name(&from_model, &to_model)),
             relation: (Some(from_model.into()), to_model.into()),
             birectional: false,
             kind: MetaRelationKind::new(from_field, to_field),
@@ -232,15 +223,9 @@ impl MetaRelation {
         // TODO: Need to redefine this
         self.kind = match (&self.kind, relation.kind) {
             (MetaRelationKind::OneToOne, MetaRelationKind::OneToOne) => MetaRelationKind::OneToOne,
-            (MetaRelationKind::OneToOne, MetaRelationKind::OneToMany) => {
-                MetaRelationKind::ManyToOne
-            }
-            (MetaRelationKind::OneToMany, MetaRelationKind::OneToOne) => {
-                MetaRelationKind::OneToMany
-            }
-            (MetaRelationKind::OneToMany, MetaRelationKind::OneToMany) => {
-                MetaRelationKind::ManyToMany
-            }
+            (MetaRelationKind::OneToOne, MetaRelationKind::OneToMany) => MetaRelationKind::ManyToOne,
+            (MetaRelationKind::OneToMany, MetaRelationKind::OneToOne) => MetaRelationKind::OneToMany,
+            (MetaRelationKind::OneToMany, MetaRelationKind::OneToMany) => MetaRelationKind::ManyToMany,
             _ => {
                 return Err(RelationCombinationError::UndefinedError);
             }

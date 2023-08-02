@@ -24,9 +24,7 @@ use serde::ser::{SerializeSeq, Serializer};
 use serde::Serialize;
 
 use crate::extensions::Extensions;
-use crate::parser::types::{
-    Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
-};
+use crate::parser::types::{Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet};
 use crate::registry::relations::MetaRelation;
 use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::ResolvedValue;
@@ -36,8 +34,8 @@ use crate::registry::{MongoDBConfiguration, Registry};
 use crate::resolver_utils::{resolve_input, InputResolveMode};
 use crate::schema::SchemaEnv;
 use crate::{
-    CacheInvalidation, Error, LegacyInputType, Lookahead, Name, PathSegment, Pos, Positioned,
-    Result, ServerError, ServerResult, UploadValue, Value,
+    CacheInvalidation, Error, LegacyInputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
+    ServerResult, UploadValue, Value,
 };
 
 /// Data related functions of the context.
@@ -102,10 +100,7 @@ pub type ContextField<'a> = ContextBase<'a, &'a Positioned<Field>>;
 
 /// When inside a Connection, we get the subfields asked by alias which are a relation
 /// (response_key, relation)
-pub fn relations_edges<'a>(
-    ctx: &ContextSelectionSet<'a>,
-    root: &'a MetaType,
-) -> HashMap<String, &'a MetaRelation> {
+pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) -> HashMap<String, &'a MetaRelation> {
     let mut result = HashMap::new();
     for selection in &ctx.item.node.items {
         match &selection.node {
@@ -114,10 +109,7 @@ pub fn relations_edges<'a>(
                 // We do take the name and not the alias
                 let field_name = ctx_field.item.node.name.node.as_str();
                 let field_response_key = ctx_field.item.node.response_key().node.as_str();
-                if let Some(relation) = root
-                    .field_by_name(field_name)
-                    .and_then(|x| x.relation.as_ref())
-                {
+                if let Some(relation) = root.field_by_name(field_name).and_then(|x| x.relation.as_ref()) {
                     result.insert(field_response_key.to_string(), relation);
                 }
             }
@@ -133,18 +125,13 @@ pub fn relations_edges<'a>(
                                 return HashMap::new();
                             }
                         };
-                        (
-                            Some(&fragment.node.type_condition),
-                            &fragment.node.selection_set,
-                        )
+                        (Some(&fragment.node.type_condition), &fragment.node.selection_set)
                     }
-                    Selection::InlineFragment(fragment) => (
-                        fragment.node.type_condition.as_ref(),
-                        &fragment.node.selection_set,
-                    ),
+                    Selection::InlineFragment(fragment) => {
+                        (fragment.node.type_condition.as_ref(), &fragment.node.selection_set)
+                    }
                 };
-                let type_condition =
-                    type_condition.map(|condition| condition.node.on.node.as_str());
+                let type_condition = type_condition.map(|condition| condition.node.on.node.as_str());
 
                 let introspection_type_name = ctx.registry().introspection_type_name(root);
 
@@ -283,17 +270,11 @@ impl<'a> QueryPathNode<'a> {
         });
     }
 
-    pub(crate) fn try_for_each<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(
-        &self,
-        mut f: F,
-    ) -> Result<(), E> {
+    pub(crate) fn try_for_each<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(&self, mut f: F) -> Result<(), E> {
         self.try_for_each_ref(&mut f)
     }
 
-    fn try_for_each_ref<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(
-        &self,
-        f: &mut F,
-    ) -> Result<(), E> {
+    fn try_for_each_ref<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(&self, f: &mut F) -> Result<(), E> {
         if let Some(parent) = &self.parent {
             parent.try_for_each_ref(f)?;
         }
@@ -437,10 +418,7 @@ impl<'a, T> ContextBase<'a, T> {
 
     /// Find a fragment definition by name.
     pub fn get_fragment(&self, name: &str) -> Option<&FragmentDefinition> {
-        self.query_env
-            .fragments
-            .get(name)
-            .map(|fragment| &fragment.node)
+        self.query_env.fragments.get(name).map(|fragment| &fragment.node)
     }
 
     /// Find a type definition by name.
@@ -562,12 +540,8 @@ impl<'a, T> ContextBase<'a, T> {
     ///
     /// Returns a `Error` if the specified type data does not exist.
     pub fn data<D: Any + Send + Sync>(&self) -> Result<&'a D> {
-        self.data_opt::<D>().ok_or_else(|| {
-            Error::new(format!(
-                "Data `{}` does not exist.",
-                std::any::type_name::<D>()
-            ))
-        })
+        self.data_opt::<D>()
+            .ok_or_else(|| Error::new(format!("Data `{}` does not exist.", std::any::type_name::<D>())))
     }
 
     /// Gets the global data defined in the `Context` or `Schema`.
@@ -618,11 +592,7 @@ impl<'a, T> ContextBase<'a, T> {
     /// }
     /// ```
     pub fn http_header_contains(&self, key: impl AsHeaderName) -> bool {
-        self.query_env
-            .response_http_headers
-            .lock()
-            .unwrap()
-            .contains_key(key)
+        self.query_env.response_http_headers.lock().unwrap().contains_key(key)
     }
 
     /// Sets a HTTP header to response.
@@ -672,11 +642,7 @@ impl<'a, T> ContextBase<'a, T> {
         value: impl TryInto<HeaderValue>,
     ) -> Option<HeaderValue> {
         if let Ok(value) = value.try_into() {
-            self.query_env
-                .response_http_headers
-                .lock()
-                .unwrap()
-                .insert(name, value)
+            self.query_env.response_http_headers.lock().unwrap().insert(name, value)
         } else {
             None
         }
@@ -714,17 +680,9 @@ impl<'a, T> ContextBase<'a, T> {
     ///     }
     /// }
     /// ```
-    pub fn append_http_header(
-        &self,
-        name: impl IntoHeaderName,
-        value: impl TryInto<HeaderValue>,
-    ) -> bool {
+    pub fn append_http_header(&self, name: impl IntoHeaderName, value: impl TryInto<HeaderValue>) -> bool {
         if let Ok(value) = value.try_into() {
-            self.query_env
-                .response_http_headers
-                .lock()
-                .unwrap()
-                .append(name, value)
+            self.query_env.response_http_headers.lock().unwrap().append(name, value)
         } else {
             false
         }
@@ -749,9 +707,7 @@ impl<'a, T> ContextBase<'a, T> {
 
     pub fn resolve_input_value(&self, value: Positioned<InputValue>) -> ServerResult<Value> {
         let pos = value.pos;
-        value
-            .node
-            .into_const_with(|name| self.var_value(&name, pos))
+        value.node.into_const_with(|name| self.var_value(&name, pos))
     }
 
     #[doc(hidden)]
@@ -838,11 +794,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     }
 
     #[doc(hidden)]
-    pub fn param_value<T: LegacyInputType>(
-        &self,
-        name: &str,
-        default: Option<fn() -> T>,
-    ) -> ServerResult<(Pos, T)> {
+    pub fn param_value<T: LegacyInputType>(&self, name: &str, default: Option<fn() -> T>) -> ServerResult<(Pos, T)> {
         self.get_param_value(&self.item.node.arguments, name, default)
     }
 
@@ -851,12 +803,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             .resolver_node
             .as_ref()
             .and_then(|r| r.field)
-            .ok_or_else(|| {
-                ServerError::new(
-                    "Context does not have any field associated.",
-                    Some(self.item.pos),
-                )
-            })?;
+            .ok_or_else(|| ServerError::new("Context does not have any field associated.", Some(self.item.pos)))?;
 
         meta.args
             .get(name)
@@ -874,21 +821,12 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             })
     }
 
-    pub fn param_value_dynamic(
-        &self,
-        name: &str,
-        mode: InputResolveMode,
-    ) -> ServerResult<Option<Value>> {
+    pub fn param_value_dynamic(&self, name: &str, mode: InputResolveMode) -> ServerResult<Option<Value>> {
         let meta = self
             .resolver_node
             .as_ref()
             .and_then(|r| r.field)
-            .ok_or_else(|| {
-                ServerError::new(
-                    "Context does not have any field associated.",
-                    Some(self.item.pos),
-                )
-            })?;
+            .ok_or_else(|| ServerError::new("Context does not have any field associated.", Some(self.item.pos)))?;
         if let Some(meta_input_value) = meta.args.get(name) {
             let maybe_value = self
                 .item
@@ -1013,11 +951,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
 impl<'a> ContextBase<'a, &'a Positioned<Directive>> {
     #[doc(hidden)]
-    pub fn param_value<T: LegacyInputType>(
-        &self,
-        name: &str,
-        default: Option<fn() -> T>,
-    ) -> ServerResult<(Pos, T)> {
+    pub fn param_value<T: LegacyInputType>(&self, name: &str, default: Option<fn() -> T>) -> ServerResult<(Pos, T)> {
         self.get_param_value(&self.item.node.arguments, name, default)
     }
 }
@@ -1086,10 +1020,7 @@ impl<'a> Debug for SelectionField<'a> {
 
         f.debug_struct(self.name())
             .field("name", &self.name())
-            .field(
-                "selection_set",
-                &DebugSelectionSet(self.selection_set().collect()),
-            )
+            .field("selection_set", &DebugSelectionSet(self.selection_set().collect()))
             .finish()
     }
 }
@@ -1118,16 +1049,12 @@ impl<'a> Iterator for SelectionFieldsIter<'a> {
                         });
                     }
                     Selection::FragmentSpread(fragment_spread) => {
-                        if let Some(fragment) =
-                            self.fragments.get(&fragment_spread.node.fragment_name.node)
-                        {
-                            self.iter
-                                .push(fragment.node.selection_set.node.items.iter());
+                        if let Some(fragment) = self.fragments.get(&fragment_spread.node.fragment_name.node) {
+                            self.iter.push(fragment.node.selection_set.node.items.iter());
                         }
                     }
                     Selection::InlineFragment(inline_fragment) => {
-                        self.iter
-                            .push(inline_fragment.node.selection_set.node.items.iter());
+                        self.iter.push(inline_fragment.node.selection_set.node.items.iter());
                     }
                 },
                 None => {

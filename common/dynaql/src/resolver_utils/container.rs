@@ -1,8 +1,6 @@
 use dynaql_parser::{Pos, Positioned};
 use futures_util::FutureExt;
-use graph_entities::{
-    CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
-};
+use graph_entities::{CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -11,8 +9,8 @@ use crate::extensions::ResolveInfo;
 use crate::parser::types::Selection;
 use crate::registry::{MetaType, Registry};
 use crate::{
-    relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name,
-    ServerError, ServerResult, Value,
+    relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name, ServerError,
+    ServerResult, Value,
 };
 
 /// Represents a GraphQL container object.
@@ -278,23 +276,16 @@ enum GraphFutureOutput {
     MultipleFields(Vec<((Option<Name>, Name), ResponseNodeId)>),
 }
 
-type BoxFieldGraphFuture<'a> =
-    Pin<Box<dyn Future<Output = ServerResult<GraphFutureOutput>> + 'a + Send>>;
+type BoxFieldGraphFuture<'a> = Pin<Box<dyn Future<Output = ServerResult<GraphFutureOutput>> + 'a + Send>>;
 
 /// A set of fields on an container that are being selected.
 pub struct FieldsGraph<'a>(Vec<BoxFieldGraphFuture<'a>>);
 
-async fn response_id_unwrap_or_null(
-    ctx: &Context<'_>,
-    opt_id: Option<ResponseNodeId>,
-) -> ResponseNodeId {
+async fn response_id_unwrap_or_null(ctx: &Context<'_>, opt_id: Option<ResponseNodeId>) -> ResponseNodeId {
     if let Some(id) = opt_id {
         id
     } else {
-        ctx.response_graph
-            .write()
-            .await
-            .insert_node(CompactValue::Null)
+        ctx.response_graph.write().await.insert_node(CompactValue::Null)
     }
 }
 
@@ -321,9 +312,7 @@ impl<'a> FieldsGraph<'a> {
                             let ctx = ctx.clone();
                             async move {
                                 let registry = ctx.registry();
-                                let node = CompactValue::String(
-                                    resolve_typename(&ctx, field, root, registry).await,
-                                );
+                                let node = CompactValue::String(resolve_typename(&ctx, field, root, registry).await);
                                 Ok(GraphFutureOutput::Field(
                                     (alias, field_name),
                                     ctx_field.response_graph.write().await.insert_node(node),
@@ -370,10 +359,12 @@ impl<'a> FieldsGraph<'a> {
                                         field = field.node.name.node.as_str()
                                     );
                                 }
-                                let meta_field =
-                                    ctx_field.schema_env.registry.types.get(type_name).and_then(
-                                        |ty| ty.field_by_name(field.node.name.node.as_str()),
-                                    );
+                                let meta_field = ctx_field
+                                    .schema_env
+                                    .registry
+                                    .types
+                                    .get(type_name)
+                                    .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
 
                                 let resolve_info = ResolveInfo {
                                     path_node: ctx_field.path_node.as_ref().unwrap(),
@@ -382,21 +373,14 @@ impl<'a> FieldsGraph<'a> {
                                         Some(ty) => &ty,
                                         None => {
                                             return Err(ServerError::new(
-                                                format!(
-                                                    r#"Cannot query field "{field_name}" on type "{type_name}"."#
-                                                ),
+                                                format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),
                                                 Some(ctx_field.item.pos),
                                             ));
                                         }
                                     },
                                     name: field.node.name.node.as_str(),
-                                    alias: field
-                                        .node
-                                        .alias
-                                        .as_ref()
-                                        .map(|alias| alias.node.as_str()),
-                                    required_operation: meta_field
-                                        .and_then(|f| f.required_operation),
+                                    alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
+                                    required_operation: meta_field.and_then(|f| f.required_operation),
                                     auth: meta_field.and_then(|f| f.auth.as_ref()),
                                     input_values: args_values,
                                 };
@@ -409,9 +393,7 @@ impl<'a> FieldsGraph<'a> {
                                         (alias, field_name),
                                         response_id_unwrap_or_null(
                                             &ctx_field,
-                                            extensions
-                                                .resolve(resolve_info, &mut resolve_fut)
-                                                .await?,
+                                            extensions.resolve(resolve_info, &mut resolve_fut).await?,
                                         )
                                         .await,
                                     ))
@@ -419,10 +401,8 @@ impl<'a> FieldsGraph<'a> {
                                     let mut resolve_fut = resolve_fut.boxed();
 
                                     for directive in &field.node.directives {
-                                        if let Some(directive_factory) = ctx
-                                            .schema_env
-                                            .custom_directives
-                                            .get(directive.node.name.node.as_str())
+                                        if let Some(directive_factory) =
+                                            ctx.schema_env.custom_directives.get(directive.node.name.node.as_str())
                                         {
                                             let ctx_directive = ContextBase {
                                                 path_node: ctx_field.path_node,
@@ -434,14 +414,12 @@ impl<'a> FieldsGraph<'a> {
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
                                                 response_graph: ctx_field.response_graph.clone(),
                                             };
-                                            let directive_instance = directive_factory
-                                                .create(&ctx_directive, &directive.node)?;
+                                            let directive_instance =
+                                                directive_factory.create(&ctx_directive, &directive.node)?;
                                             resolve_fut = Box::pin({
                                                 let ctx_field = ctx_field.clone();
                                                 async move {
-                                                    directive_instance
-                                                        .resolve_field(&ctx_field, &mut resolve_fut)
-                                                        .await
+                                                    directive_instance.resolve_field(&ctx_field, &mut resolve_fut).await
                                                 }
                                             });
                                         }
@@ -451,9 +429,7 @@ impl<'a> FieldsGraph<'a> {
                                         (alias, field_name),
                                         response_id_unwrap_or_null(
                                             &ctx_field,
-                                            extensions
-                                                .resolve(resolve_info, &mut resolve_fut)
-                                                .await?,
+                                            extensions.resolve(resolve_info, &mut resolve_fut).await?,
                                         )
                                         .await,
                                     ))
@@ -468,16 +444,12 @@ impl<'a> FieldsGraph<'a> {
                     let (type_condition, selection_set, position) = match selection {
                         Selection::Field(_) => unreachable!(),
                         Selection::FragmentSpread(spread) => {
-                            let fragment =
-                                ctx.query_env.fragments.get(&spread.node.fragment_name.node);
+                            let fragment = ctx.query_env.fragments.get(&spread.node.fragment_name.node);
                             let fragment = match fragment {
                                 Some(fragment) => fragment,
                                 None => {
                                     return Err(ServerError::new(
-                                        format!(
-                                            r#"Unknown fragment "{}"."#,
-                                            spread.node.fragment_name.node
-                                        ),
+                                        format!(r#"Unknown fragment "{}"."#, spread.node.fragment_name.node),
                                         Some(spread.pos),
                                     ));
                                 }
@@ -494,16 +466,12 @@ impl<'a> FieldsGraph<'a> {
                             fragment.pos,
                         ),
                     };
-                    let type_condition =
-                        type_condition.map(|condition| condition.node.on.node.as_str());
+                    let type_condition = type_condition.map(|condition| condition.node.on.node.as_str());
 
                     match root {
                         MetaType::Union { .. } => {
                             let type_condition = type_condition.ok_or_else(|| {
-                                ServerError::new(
-                                    "Spreads on union types require a type condition",
-                                    Some(position),
-                                )
+                                ServerError::new("Spreads on union types require a type condition", Some(position))
                             })?;
 
                             self.0.push(Box::pin({
@@ -565,12 +533,7 @@ impl<'a> FieldsGraph<'a> {
     ) -> Result<(), ServerError> {
         let introspection_type_name = registry.introspection_type_name(root);
         let applies_concrete_object = type_condition.map_or(false, |condition| {
-            typename_matches_condition(
-                introspection_type_name,
-                condition,
-                root,
-                &ctx.schema_env.registry,
-            )
+            typename_matches_condition(introspection_type_name, condition, root, &ctx.schema_env.registry)
         });
 
         if applies_concrete_object {
@@ -599,10 +562,7 @@ async fn resolve_spread_with_type_condition<'a>(
             name: Positioned::new(Name::new("__typename"), Pos::default()),
             arguments: vec![],
             directives: vec![],
-            selection_set: Positioned::new(
-                dynaql_parser::types::SelectionSet::default(),
-                Pos::default(),
-            ),
+            selection_set: Positioned::new(dynaql_parser::types::SelectionSet::default(), Pos::default()),
         },
         Pos::default(),
     );
@@ -612,24 +572,16 @@ async fn resolve_spread_with_type_condition<'a>(
         return Ok(GraphFutureOutput::MultipleFields(vec![]));
     }
 
-    let subtype = registry.types.get(&typename).ok_or_else(|| {
-        ServerError::new(
-            format!(r#"Found an unknown typename: "{typename}"."#,),
-            None,
-        )
-    })?;
+    let subtype = registry
+        .types
+        .get(&typename)
+        .ok_or_else(|| ServerError::new(format!(r#"Found an unknown typename: "{typename}"."#,), None))?;
 
     let mut subfields = FieldsGraph(Vec::new());
-    subfields.add_set(
-        &ctx.with_selection_set(selection_set),
-        subtype,
-        current_node_id,
-    )?;
+    subfields.add_set(&ctx.with_selection_set(selection_set), subtype, current_node_id)?;
 
     Ok(GraphFutureOutput::MultipleFields(
-        futures_util::future::try_join_all(subfields.0)
-            .await?
-            .flatten(),
+        futures_util::future::try_join_all(subfields.0).await?.flatten(),
     ))
 }
 
@@ -693,8 +645,7 @@ async fn resolve_remote_typename<'a>(
     )
 }
 
-type BoxFieldFuture<'a> =
-    Pin<Box<dyn Future<Output = ServerResult<(Name, ResponseNodeId)>> + 'a + Send>>;
+type BoxFieldFuture<'a> = Pin<Box<dyn Future<Output = ServerResult<(Name, ResponseNodeId)>> + 'a + Send>>;
 /// A set of fields on an container that are being selected.
 pub struct Fields<'a>(Vec<BoxFieldFuture<'a>>);
 
@@ -717,10 +668,7 @@ impl<'a> Fields<'a> {
 
                         self.0.push(Box::pin(async move {
                             let node = CompactValue::String(typename);
-                            Ok((
-                                field_name,
-                                ctx_field.response_graph.write().await.insert_node(node),
-                            ))
+                            Ok((field_name, ctx_field.response_graph.write().await.insert_node(node)))
                         }));
                         continue;
                     }
@@ -743,11 +691,7 @@ impl<'a> Fields<'a> {
                             if extensions.is_empty() && field.node.directives.is_empty() {
                                 Ok((
                                     field_name,
-                                    response_id_unwrap_or_null(
-                                        &ctx_field,
-                                        root.resolve_field(&ctx_field).await?,
-                                    )
-                                    .await,
+                                    response_id_unwrap_or_null(&ctx_field, root.resolve_field(&ctx_field).await?).await,
                                 ))
                             } else {
                                 let type_name = T::type_name();
@@ -765,21 +709,14 @@ impl<'a> Fields<'a> {
                                         Some(ty) => &ty,
                                         None => {
                                             return Err(ServerError::new(
-                                                format!(
-                                                    r#"Cannot query field "{field_name}" on type "{type_name}"."#
-                                                ),
+                                                format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),
                                                 Some(ctx_field.item.pos),
                                             ));
                                         }
                                     },
                                     name: field.node.name.node.as_str(),
-                                    alias: field
-                                        .node
-                                        .alias
-                                        .as_ref()
-                                        .map(|alias| alias.node.as_str()),
-                                    required_operation: meta_field
-                                        .and_then(|f| f.required_operation),
+                                    alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
+                                    required_operation: meta_field.and_then(|f| f.required_operation),
                                     auth: meta_field.and_then(|f| f.auth.as_ref()),
                                     input_values: args_values,
                                 };
@@ -795,9 +732,7 @@ impl<'a> Fields<'a> {
                                         field_name,
                                         response_id_unwrap_or_null(
                                             &ctx_field,
-                                            extensions
-                                                .resolve(resolve_info, &mut resolve_fut)
-                                                .await?,
+                                            extensions.resolve(resolve_info, &mut resolve_fut).await?,
                                         )
                                         .await,
                                     ))
@@ -805,10 +740,8 @@ impl<'a> Fields<'a> {
                                     let mut resolve_fut = resolve_fut.boxed();
 
                                     for directive in &field.node.directives {
-                                        if let Some(directive_factory) = ctx
-                                            .schema_env
-                                            .custom_directives
-                                            .get(directive.node.name.node.as_str())
+                                        if let Some(directive_factory) =
+                                            ctx.schema_env.custom_directives.get(directive.node.name.node.as_str())
                                         {
                                             let ctx_directive = ContextBase {
                                                 path_node: ctx_field.path_node,
@@ -820,14 +753,12 @@ impl<'a> Fields<'a> {
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
                                                 response_graph: ctx_field.response_graph.clone(),
                                             };
-                                            let directive_instance = directive_factory
-                                                .create(&ctx_directive, &directive.node)?;
+                                            let directive_instance =
+                                                directive_factory.create(&ctx_directive, &directive.node)?;
                                             resolve_fut = Box::pin({
                                                 let ctx_field = ctx_field.clone();
                                                 async move {
-                                                    directive_instance
-                                                        .resolve_field(&ctx_field, &mut resolve_fut)
-                                                        .await
+                                                    directive_instance.resolve_field(&ctx_field, &mut resolve_fut).await
                                                 }
                                             });
                                         }
@@ -837,9 +768,7 @@ impl<'a> Fields<'a> {
                                         field_name,
                                         response_id_unwrap_or_null(
                                             &ctx_field,
-                                            extensions
-                                                .resolve(resolve_info, &mut resolve_fut)
-                                                .await?,
+                                            extensions.resolve(resolve_info, &mut resolve_fut).await?,
                                         )
                                         .await,
                                     ))
@@ -854,32 +783,23 @@ impl<'a> Fields<'a> {
                     let (type_condition, selection_set) = match selection {
                         Selection::Field(_) => unreachable!(),
                         Selection::FragmentSpread(spread) => {
-                            let fragment =
-                                ctx.query_env.fragments.get(&spread.node.fragment_name.node);
+                            let fragment = ctx.query_env.fragments.get(&spread.node.fragment_name.node);
                             let fragment = match fragment {
                                 Some(fragment) => fragment,
                                 None => {
                                     return Err(ServerError::new(
-                                        format!(
-                                            r#"Unknown fragment "{}"."#,
-                                            spread.node.fragment_name.node
-                                        ),
+                                        format!(r#"Unknown fragment "{}"."#, spread.node.fragment_name.node),
                                         Some(spread.pos),
                                     ));
                                 }
                             };
-                            (
-                                Some(&fragment.node.type_condition),
-                                &fragment.node.selection_set,
-                            )
+                            (Some(&fragment.node.type_condition), &fragment.node.selection_set)
                         }
-                        Selection::InlineFragment(fragment) => (
-                            fragment.node.type_condition.as_ref(),
-                            &fragment.node.selection_set,
-                        ),
+                        Selection::InlineFragment(fragment) => {
+                            (fragment.node.type_condition.as_ref(), &fragment.node.selection_set)
+                        }
                     };
-                    let type_condition =
-                        type_condition.map(|condition| condition.node.on.node.as_str());
+                    let type_condition = type_condition.map(|condition| condition.node.on.node.as_str());
 
                     let introspection_type_name = root.introspection_type_name();
 
@@ -893,10 +813,7 @@ impl<'a> Fields<'a> {
                                 .map_or(false, |interfaces| interfaces.contains(condition))
                     });
                     if applies_concrete_object {
-                        root.collect_all_fields_native(
-                            &ctx.with_selection_set(selection_set),
-                            self,
-                        )?;
+                        root.collect_all_fields_native(&ctx.with_selection_set(selection_set), self)?;
                     } else if type_condition.map_or(true, |condition| T::type_name() == condition) {
                         // The fragment applies to an interface type.
                         self.add_set_native(&ctx.with_selection_set(selection_set), root)?;

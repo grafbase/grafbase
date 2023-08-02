@@ -1,6 +1,4 @@
-use std::num::{
-    NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8,
-};
+use std::num::{NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8};
 
 use crate::{InputValueError, InputValueResult, LegacyScalarType, Number, Scalar, Value};
 
@@ -10,9 +8,7 @@ impl LegacyScalarType for NonZeroI8 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n < i8::MIN as i64 || n > i8::MAX as i64 || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
@@ -41,9 +37,7 @@ impl LegacyScalarType for NonZeroI16 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n < i16::MIN as i64 || n > i16::MAX as i64 || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
@@ -72,9 +66,7 @@ impl LegacyScalarType for NonZeroI32 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n < i32::MIN as i64 || n > i32::MAX as i64 || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
@@ -103,9 +95,7 @@ impl LegacyScalarType for NonZeroI64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_i64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 Ok(NonZeroI64::new(n).unwrap())
             }
             _ => Err(InputValueError::expected_type(value)),
@@ -127,9 +117,7 @@ impl LegacyScalarType for NonZeroU8 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n > u8::MAX as u64 || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
@@ -158,9 +146,7 @@ impl LegacyScalarType for NonZeroU16 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n > u16::MAX as u64 || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
@@ -189,9 +175,7 @@ impl LegacyScalarType for NonZeroU32 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 if n > u32::MAX as u64 || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
@@ -220,9 +204,7 @@ impl LegacyScalarType for NonZeroU64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
             Value::Number(n) => {
-                let n = n
-                    .as_u64()
-                    .ok_or_else(|| InputValueError::from("Invalid number"))?;
+                let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
                 Ok(NonZeroU64::new(n).unwrap())
             }
             _ => Err(InputValueError::expected_type(value)),

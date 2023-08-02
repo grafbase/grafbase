@@ -5,7 +5,7 @@ use crate::ServerError;
 
 use super::Error;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]
 pub struct UpstreamResponse {
     pub data: serde_json::Value,
@@ -17,11 +17,16 @@ impl UpstreamResponse {
         http_status: StatusCode,
         response_text_result: Result<String, impl Into<Error>>,
     ) -> Result<Self, Error> {
-        let response_text = response_text_result
-            .map_err(|error| handle_error_after_response(http_status, error, None))?;
+        let response_text =
+            response_text_result.map_err(|error| handle_error_after_response(http_status, error, None))?;
 
-        serde_json::from_str::<UpstreamResponse>(&response_text)
-            .map_err(|error| handle_error_after_response(http_status, error, Some(response_text)))
+        serde_json::from_str::<UpstreamResponse>(&response_text).map_err(|error| {
+            handle_error_after_response(
+                http_status,
+                Error::JsonDecodeError(error.to_string()),
+                Some(&response_text),
+            )
+        })
     }
 }
 
@@ -62,7 +67,7 @@ impl<'de> serde::Deserialize<'de> for UpstreamResponse {
 fn handle_error_after_response(
     status: StatusCode,
     error: impl Into<Error>,
-    #[allow(unused)] response_body: Option<String>,
+    #[allow(unused)] response_body: Option<&str>,
 ) -> Error {
     let error = error.into();
     #[cfg(feature = "tracing_worker")]
@@ -128,11 +133,7 @@ mod tests {
         data: json!({}),
         errors: vec![]
     })]
-    fn test_happy_paths(
-        #[case] status_code: u16,
-        #[case] text: &str,
-        #[case] expected_response: UpstreamResponse,
-    ) {
+    fn test_happy_paths(#[case] status_code: u16, #[case] text: &str, #[case] expected_response: UpstreamResponse) {
         assert_eq!(
             UpstreamResponse::from_response_text(
                 StatusCode::from_u16(status_code).unwrap(),

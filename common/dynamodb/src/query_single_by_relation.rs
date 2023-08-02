@@ -1,6 +1,5 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::paginated::QueryResult;
-use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::{Attribute, DynamoDbExt};
@@ -152,7 +151,7 @@ pub fn get_loader_single_relation_query(
 ) -> DataLoader<QuerySingleRelationLoader, LruCache> {
     DataLoader::with_cache(
         QuerySingleRelationLoader { ctx, index },
-        |f| Runtime::locate().spawn(f),
+        async_runtime::spawn,
         LruCache::new(256),
     )
     .max_batch_size(10)

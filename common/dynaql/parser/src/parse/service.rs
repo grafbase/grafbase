@@ -8,18 +8,12 @@ use super::*;
 pub fn parse_schema<T: AsRef<str>>(input: T) -> Result<ServiceDocument> {
     let mut pc = PositionCalculator::new(input.as_ref());
     Ok(parse_service_document(
-        exactly_one(GraphQLParser::parse(
-            Rule::service_document,
-            input.as_ref(),
-        )?),
+        exactly_one(GraphQLParser::parse(Rule::service_document, input.as_ref())?),
         &mut pc,
     )?)
 }
 
-fn parse_service_document(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<ServiceDocument> {
+fn parse_service_document(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<ServiceDocument> {
     debug_assert_eq!(pair.as_rule(), Rule::service_document);
 
     Ok(ServiceDocument {
@@ -31,27 +25,19 @@ fn parse_service_document(
     })
 }
 
-fn parse_type_system_definition(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<TypeSystemDefinition> {
+fn parse_type_system_definition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<TypeSystemDefinition> {
     debug_assert_eq!(pair.as_rule(), Rule::type_system_definition);
 
     let pair = exactly_one(pair.into_inner());
     Ok(match pair.as_rule() {
         Rule::schema_definition => TypeSystemDefinition::Schema(parse_schema_definition(pair, pc)?),
         Rule::type_definition => TypeSystemDefinition::Type(parse_type_definition(pair, pc)?),
-        Rule::directive_definition => {
-            TypeSystemDefinition::Directive(parse_directive_definition(pair, pc)?)
-        }
+        Rule::directive_definition => TypeSystemDefinition::Directive(parse_directive_definition(pair, pc)?),
         _ => unreachable!(),
     })
 }
 
-fn parse_schema_definition(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<SchemaDefinition>> {
+fn parse_schema_definition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<SchemaDefinition>> {
     debug_assert_eq!(pair.as_rule(), Rule::schema_definition);
 
     let pos = pc.step(&pair);
@@ -104,10 +90,7 @@ fn parse_schema_definition(
     ))
 }
 
-fn parse_type_definition(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<TypeDefinition>> {
+fn parse_type_definition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<TypeDefinition>> {
     debug_assert_eq!(pair.as_rule(), Rule::type_definition);
 
     let pos = pc.step(&pair);
@@ -192,8 +175,7 @@ fn parse_type_definition(
                         let pos = pc.step(&pair);
                         let mut pairs = pair.into_inner();
 
-                        let description =
-                            parse_if_rule(&mut pairs, Rule::string, |pair| parse_string(pair, pc))?;
+                        let description = parse_if_rule(&mut pairs, Rule::string, |pair| parse_string(pair, pc))?;
                         let value = parse_enum_value(pairs.next().unwrap(), pc)?;
                         let directives = parse_opt_const_directives(&mut pairs, pc)?;
 
@@ -224,10 +206,7 @@ fn parse_type_definition(
             })?
             .unwrap_or_default();
 
-            (
-                directives,
-                TypeKind::InputObject(InputObjectType { fields }),
-            )
+            (directives, TypeKind::InputObject(InputObjectType { fields }))
         }
         _ => unreachable!(),
     };
@@ -246,21 +225,13 @@ fn parse_type_definition(
     ))
 }
 
-fn parse_fields_definition(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Vec<Positioned<FieldDefinition>>> {
+fn parse_fields_definition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Vec<Positioned<FieldDefinition>>> {
     debug_assert_eq!(pair.as_rule(), Rule::fields_definition);
 
-    pair.into_inner()
-        .map(|pair| parse_field_definition(pair, pc))
-        .collect()
+    pair.into_inner().map(|pair| parse_field_definition(pair, pc)).collect()
 }
 
-fn parse_field_definition(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
-) -> Result<Positioned<FieldDefinition>> {
+fn parse_field_definition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<FieldDefinition>> {
     debug_assert_eq!(pair.as_rule(), Rule::field_definition);
 
     let pos = pc.step(&pair);
@@ -379,9 +350,7 @@ fn parse_input_value_definition(
     let description = parse_if_rule(&mut pairs, Rule::string, |pair| parse_string(pair, pc))?;
     let name = parse_name(pairs.next().unwrap(), pc)?;
     let ty = parse_type(pairs.next().unwrap(), pc)?;
-    let default_value = parse_if_rule(&mut pairs, Rule::default_value, |pair| {
-        parse_default_value(pair, pc)
-    })?;
+    let default_value = parse_if_rule(&mut pairs, Rule::default_value, |pair| parse_default_value(pair, pc))?;
     let directives = parse_opt_const_directives(&mut pairs, pc)?;
 
     Ok(Positioned::new(
@@ -405,11 +374,7 @@ mod tests {
     fn test_parser() {
         for entry in fs::read_dir("tests/services").unwrap() {
             let entry = entry.unwrap();
-            GraphQLParser::parse(
-                Rule::service_document,
-                &fs::read_to_string(entry.path()).unwrap(),
-            )
-            .unwrap();
+            GraphQLParser::parse(Rule::service_document, &fs::read_to_string(entry.path()).unwrap()).unwrap();
         }
     }
 

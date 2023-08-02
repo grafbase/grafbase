@@ -30,7 +30,7 @@ pub enum AuthProvider {
 pub struct OidcProvider {
     pub issuer: String,            // For verifying the "iss" claim.
     pub issuer_base_url: url::Url, // For deriving the OIDC discovery URL.
-    pub groups_claim: String, // Name of the claim containing the groups the subject belongs to.
+    pub groups_claim: String,      // Name of the claim containing the groups the subject belongs to.
     pub client_id: Option<String>, // Used for verifying that the supplied value is in the "aud" claim.
 }
 
@@ -95,19 +95,14 @@ impl Default for AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn private_public_and_group_based_ops(
-        &self,
-        groups_from_token: &HashSet<String>,
-    ) -> Operations {
+    pub fn private_public_and_group_based_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
         // Add ops for each group contained in ID token
         // Minimum ops are that of any signed-in user union public ops.
         let minimum_ops = self.allowed_public_ops.union(self.allowed_private_ops);
         let groups = self.allowed_group_ops.clone().into_keys().collect();
         groups_from_token
             .intersection(&groups)
-            .fold(minimum_ops, |ops, group| {
-                ops.union(self.allowed_group_ops[group])
-            })
+            .fold(minimum_ops, |ops, group| ops.union(self.allowed_group_ops[group]))
     }
 
     pub fn owner_based_ops(&self) -> Operations {

@@ -1,7 +1,6 @@
 use crate::model::__DirectiveLocation;
 use crate::parser::types::{
-    Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition,
-    OperationType,
+    Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition, OperationType,
 };
 use crate::validation::visitor::{Visitor, VisitorContext};
 use crate::{Name, Positioned};
@@ -18,12 +17,11 @@ impl<'a> Visitor<'a> for KnownDirectives {
         _name: Option<&'a Name>,
         operation_definition: &'a Positioned<OperationDefinition>,
     ) {
-        self.location_stack
-            .push(match &operation_definition.node.ty {
-                OperationType::Query => __DirectiveLocation::QUERY,
-                OperationType::Mutation => __DirectiveLocation::MUTATION,
-                OperationType::Subscription => __DirectiveLocation::SUBSCRIPTION,
-            });
+        self.location_stack.push(match &operation_definition.node.ty {
+            OperationType::Query => __DirectiveLocation::QUERY,
+            OperationType::Mutation => __DirectiveLocation::MUTATION,
+            OperationType::Subscription => __DirectiveLocation::SUBSCRIPTION,
+        });
     }
 
     fn exit_operation_definition(
@@ -41,8 +39,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
         _name: &'a Name,
         _fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
-        self.location_stack
-            .push(__DirectiveLocation::FRAGMENT_DEFINITION);
+        self.location_stack.push(__DirectiveLocation::FRAGMENT_DEFINITION);
     }
 
     fn exit_fragment_definition(
@@ -54,16 +51,8 @@ impl<'a> Visitor<'a> for KnownDirectives {
         self.location_stack.pop();
     }
 
-    fn enter_directive(
-        &mut self,
-        ctx: &mut VisitorContext<'a>,
-        directive: &'a Positioned<Directive>,
-    ) {
-        if let Some(schema_directive) = ctx
-            .registry
-            .directives
-            .get(directive.node.name.node.as_str())
-        {
+    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
+        if let Some(schema_directive) = ctx.registry.directives.get(directive.node.name.node.as_str()) {
             if let Some(current_location) = self.location_stack.last() {
                 if !schema_directive.locations.contains(current_location) {
                     ctx.report_error(
@@ -96,8 +85,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
         _ctx: &mut VisitorContext<'a>,
         _fragment_spread: &'a Positioned<FragmentSpread>,
     ) {
-        self.location_stack
-            .push(__DirectiveLocation::FRAGMENT_SPREAD);
+        self.location_stack.push(__DirectiveLocation::FRAGMENT_SPREAD);
     }
 
     fn exit_fragment_spread(
@@ -113,8 +101,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
         _ctx: &mut VisitorContext<'a>,
         _inline_fragment: &'a Positioned<InlineFragment>,
     ) {
-        self.location_stack
-            .push(__DirectiveLocation::INLINE_FRAGMENT);
+        self.location_stack.push(__DirectiveLocation::INLINE_FRAGMENT);
     }
 
     fn exit_inline_fragment(

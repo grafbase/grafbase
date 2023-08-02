@@ -111,10 +111,7 @@ pub trait DynamicParse {
 pub trait DynamicScalar: Sized {
     /// Parse a scalar value.
     /// Input Coercion
-    fn parse<S: AsRef<str>>(
-        expected_ty: S,
-        value: ConstValue,
-    ) -> InputValueResult<serde_json::Value>;
+    fn parse<S: AsRef<str>>(expected_ty: S, value: ConstValue) -> InputValueResult<serde_json::Value>;
 
     /// Checks for a valid scalar value.
     ///
@@ -122,10 +119,7 @@ pub trait DynamicScalar: Sized {
     fn is_valid<S: AsRef<str>>(expected_ty: S, _value: &ConstValue) -> bool;
 
     /// Result coercion
-    fn to_value<S: AsRef<str>>(
-        expected_ty: S,
-        value: serde_json::Value,
-    ) -> Result<ConstValue, Error>;
+    fn to_value<S: AsRef<str>>(expected_ty: S, value: serde_json::Value) -> Result<ConstValue, Error>;
 
     fn test_scalar_name<S: AsRef<str>>(expected_ty: S) -> bool;
     fn test_scalar_name_recursive<S: AsRef<str>>(expected_ty: S) -> bool;
@@ -149,10 +143,7 @@ impl DynamicScalar for PossibleScalarNil {
         false
     }
 
-    fn parse<S: AsRef<str>>(
-        expected_ty: S,
-        _value: ConstValue,
-    ) -> InputValueResult<serde_json::Value> {
+    fn parse<S: AsRef<str>>(expected_ty: S, _value: ConstValue) -> InputValueResult<serde_json::Value> {
         Err(InputValueError::ty_custom(
             expected_ty.as_ref(),
             "Internal error while parsing this scalar.",
@@ -163,10 +154,7 @@ impl DynamicScalar for PossibleScalarNil {
         false
     }
 
-    fn to_value<S: AsRef<str>>(
-        expected_ty: S,
-        _value: serde_json::Value,
-    ) -> Result<ConstValue, Error> {
+    fn to_value<S: AsRef<str>>(expected_ty: S, _value: serde_json::Value) -> Result<ConstValue, Error> {
         Err(Error::new(format!(
             "Internal error: unknown type '{}'",
             expected_ty.as_ref()
@@ -193,14 +181,10 @@ where
     }
 
     fn test_scalar_name_recursive<S: AsRef<str>>(expected_ty: S) -> bool {
-        A::name().unwrap_or_default() == expected_ty.as_ref()
-            || B::test_scalar_name_recursive(&expected_ty)
+        A::name().unwrap_or_default() == expected_ty.as_ref() || B::test_scalar_name_recursive(&expected_ty)
     }
 
-    fn parse<S: AsRef<str>>(
-        expected_ty: S,
-        value: ConstValue,
-    ) -> InputValueResult<serde_json::Value> {
+    fn parse<S: AsRef<str>>(expected_ty: S, value: ConstValue) -> InputValueResult<serde_json::Value> {
         if Self::test_scalar_name(&expected_ty) {
             A::parse(value)
         } else {
@@ -216,10 +200,7 @@ where
         }
     }
 
-    fn to_value<S: AsRef<str>>(
-        expected_ty: S,
-        value: serde_json::Value,
-    ) -> Result<ConstValue, Error> {
+    fn to_value<S: AsRef<str>>(expected_ty: S, value: serde_json::Value) -> Result<ConstValue, Error> {
         if Self::test_scalar_name(&expected_ty) {
             A::to_value(value)
         } else {

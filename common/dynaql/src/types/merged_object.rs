@@ -9,8 +9,8 @@ use crate::parser::types::Field;
 use crate::registry::{MetaType, ObjectType, Registry};
 use crate::SimpleObject;
 use crate::{
-    CacheControl, ContainerType, Context, ContextSelectionSet, LegacyOutputType, Positioned,
-    Response, ServerResult, SubscriptionType, Value,
+    CacheControl, ContainerType, Context, ContextSelectionSet, LegacyOutputType, Positioned, Response, ServerResult,
+    SubscriptionType, Value,
 };
 
 #[doc(hidden)]

@@ -36,3 +36,4 @@ parser = { path = "../parser" }
 assert_matches = "1.5"
 insta = { version = "1", features = ["json"] }
 rstest = "0.18"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

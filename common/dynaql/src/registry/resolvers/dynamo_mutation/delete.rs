@@ -24,10 +24,7 @@ pub(super) async fn resolve_delete_nodes(
     input: &VariableResolveDefinition,
     ty: &ModelName,
 ) -> Result<ResolvedValue, Error> {
-    let Parsed {
-        changes,
-        deleted_ids,
-    } = generate_changes(ctx, input.resolve(ctx, last_resolver_value)?, ty).await?;
+    let Parsed { changes, deleted_ids } = generate_changes(ctx, input.resolve(ctx, last_resolver_value)?, ty).await?;
 
     let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
     batchers.transaction_new.load_many(changes).await?;
@@ -43,11 +40,7 @@ struct Parsed {
     deleted_ids: HashSet<String>,
 }
 
-async fn generate_changes(
-    ctx: &Context<'_>,
-    input: Vec<PostDeleteManyInput>,
-    ty: &ModelName,
-) -> Result<Parsed, Error> {
+async fn generate_changes(ctx: &Context<'_>, input: Vec<PostDeleteManyInput>, ty: &ModelName) -> Result<Parsed, Error> {
     let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
     let meta_type = ctx.registry().lookup(ty)?;
 
@@ -79,10 +72,7 @@ async fn generate_changes(
                     logworker::trace!("", "constraint obj: {:#?}", constraint);
                     constraint.extract_id_from_by_input_field(
                         &meta_type.name,
-                        &by.value
-                            .clone()
-                            .try_into()
-                            .expect("was a ConstValue before"),
+                        &by.value.clone().try_into().expect("was a ConstValue before"),
                     )
                 })
                 .expect("constraint fields to be in the input");
@@ -106,8 +96,5 @@ async fn generate_changes(
             }
         }
     }
-    Ok(Parsed {
-        changes,
-        deleted_ids,
-    })
+    Ok(Parsed { changes, deleted_ids })
 }

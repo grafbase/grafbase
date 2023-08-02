@@ -7,8 +7,8 @@ use graph_entities::ResponseNodeId;
 use crate::parser::types::Field;
 use crate::registry::{self, InputValueType, Registry};
 use crate::{
-    ContainerType, Context, ContextSelectionSet, Error, InputValueError, InputValueResult,
-    Positioned, Result, ServerResult, Value,
+    ContainerType, Context, ContextSelectionSet, Error, InputValueError, InputValueResult, Positioned, Result,
+    ServerResult, Value,
 };
 
 #[doc(hidden)]
@@ -81,11 +81,7 @@ pub trait LegacyOutputType: Send + Sync {
     fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType;
 
     /// Resolve an output value to `dynaql::Value`.
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId>;
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId>;
 }
 
 #[async_trait::async_trait]
@@ -99,19 +95,13 @@ impl<T: LegacyOutputType + ?Sized> LegacyOutputType for &T {
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         T::resolve(*self, ctx, field).await
     }
 }
 
 #[async_trait::async_trait]
-impl<T: LegacyOutputType + Sync, E: Into<Error> + Send + Sync + Clone> LegacyOutputType
-    for Result<T, E>
-{
+impl<T: LegacyOutputType + Sync, E: Into<Error> + Send + Sync + Clone> LegacyOutputType for Result<T, E> {
     fn type_name() -> Cow<'static, str> {
         T::type_name()
     }
@@ -120,16 +110,10 @@ impl<T: LegacyOutputType + Sync, E: Into<Error> + Send + Sync + Clone> LegacyOut
         T::create_type_info(registry)
     }
 
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         match self {
             Ok(value) => value.resolve(ctx, field).await,
-            Err(err) => {
-                return Err(ctx.set_error_path(err.clone().into().into_server_error(field.pos)))
-            }
+            Err(err) => return Err(ctx.set_error_path(err.clone().into().into_server_error(field.pos))),
         }
     }
 }
@@ -178,11 +162,7 @@ impl<T: LegacyOutputType + ?Sized> LegacyOutputType for Box<T> {
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         T::resolve(&**self, ctx, field).await
     }
 }
@@ -200,9 +180,7 @@ impl<T: LegacyInputType> LegacyInputType for Box<T> {
     }
 
     fn parse(value: Option<ConstValue>) -> InputValueResult<Self> {
-        T::parse(value)
-            .map(Box::new)
-            .map_err(InputValueError::propagate)
+        T::parse(value).map(Box::new).map_err(InputValueError::propagate)
     }
 
     fn to_value(&self) -> ConstValue {
@@ -225,11 +203,7 @@ impl<T: LegacyOutputType + ?Sized> LegacyOutputType for Arc<T> {
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         T::resolve(&**self, ctx, field).await
     }
 }
@@ -246,9 +220,7 @@ impl<T: LegacyInputType> LegacyInputType for Arc<T> {
     }
 
     fn parse(value: Option<ConstValue>) -> InputValueResult<Self> {
-        T::parse(value)
-            .map(Arc::new)
-            .map_err(InputValueError::propagate)
+        T::parse(value).map(Arc::new).map_err(InputValueError::propagate)
     }
 
     fn to_value(&self) -> ConstValue {

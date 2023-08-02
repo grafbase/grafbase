@@ -30,10 +30,7 @@ pub(super) async fn batch(
     let (selections, transactions): (Vec<_>, Vec<_>) = input
         .into_iter()
         .map(|CreateInput { input }| {
-            let super::RecursiveCreation {
-                selection,
-                transaction,
-            } = super::node_create(
+            let super::RecursiveCreation { selection, transaction } = super::node_create(
                 ctx,
                 meta_type,
                 *resolver_ctx.execution_id,
@@ -59,8 +56,7 @@ pub(super) async fn batch(
             {
                 return None;
             }
-            data.get("id")
-                .and_then(|value| value.as_str().map(ToString::to_string))
+            data.get("id").and_then(|value| value.as_str().map(ToString::to_string))
         })
         .collect::<Vec<_>>();
     Ok(ResolvedValue::new(Arc::new(serde_json::json!({

@@ -8,8 +8,8 @@ use quote::quote;
 use syn::visit::Visit;
 use syn::visit_mut::VisitMut;
 use syn::{
-    visit_mut, Attribute, Error, Expr, ExprPath, FnArg, Ident, ImplItemFn, Lifetime, Lit, LitStr,
-    Meta, Pat, PatIdent, Type, TypeGroup, TypeParamBound, TypeReference,
+    visit_mut, Attribute, Error, Expr, ExprPath, FnArg, Ident, ImplItemFn, Lifetime, Lit, LitStr, Meta, Pat, PatIdent,
+    Type, TypeGroup, TypeParamBound, TypeReference,
 };
 use thiserror::Error;
 
@@ -52,8 +52,7 @@ pub fn generate_guards(
     code: &SpannedValue<String>,
     map_err: TokenStream,
 ) -> GeneratorResult<TokenStream> {
-    let expr: Expr =
-        syn::parse_str(code).map_err(|err| Error::new(code.span(), err.to_string()))?;
+    let expr: Expr = syn::parse_str(code).map_err(|err| Error::new(code.span(), err.to_string()))?;
     let code = quote! {{
         use #crate_name::GuardExt;
         #expr
@@ -91,7 +90,7 @@ pub fn get_rustdoc(attrs: &[Attribute]) -> Option<String> {
 
 fn generate_default_value(lit: &Lit) -> GeneratorResult<TokenStream> {
     match lit {
-        Lit::Str(value) =>{
+        Lit::Str(value) => {
             let value = value.value();
             Ok(quote!({ ::std::borrow::ToOwned::to_owned(#value) }))
         }
@@ -110,15 +109,14 @@ fn generate_default_value(lit: &Lit) -> GeneratorResult<TokenStream> {
         _ => Err(Error::new_spanned(
             lit,
             "The default value type only be string, integer, float and boolean, other types should use default_with",
-        ).into()),
+        )
+        .into()),
     }
 }
 
 fn generate_default_with(lit: &LitStr) -> GeneratorResult<TokenStream> {
     let str = lit.value();
-    let tokens: TokenStream = str
-        .parse()
-        .map_err(|err| GeneratorError::Syn(syn::Error::from(err)))?;
+    let tokens: TokenStream = str.parse().map_err(|err| GeneratorError::Syn(syn::Error::from(err)))?;
     Ok(quote! { (#tokens) })
 }
 
@@ -127,9 +125,7 @@ pub fn generate_default(
     default_with: &Option<LitStr>,
 ) -> GeneratorResult<Option<TokenStream>> {
     match (default, default_with) {
-        (Some(args::DefaultValue::Default), _) => {
-            Ok(Some(quote! { ::std::default::Default::default() }))
-        }
+        (Some(args::DefaultValue::Default), _) => Ok(Some(quote! { ::std::default::Default::default() })),
         (Some(args::DefaultValue::Value(lit)), _) => Ok(Some(generate_default_value(lit)?)),
         (None, Some(lit)) => Ok(Some(generate_default_with(lit)?)),
         (None, None) => Ok(None),
@@ -154,25 +150,14 @@ pub fn parse_graphql_attrs<T: FromMeta>(attrs: &[Attribute]) -> GeneratorResult<
 }
 
 pub fn remove_graphql_attrs(attrs: &mut Vec<Attribute>) {
-    if let Some((idx, _)) = attrs
-        .iter()
-        .enumerate()
-        .find(|(_, a)| a.path().is_ident("graphql"))
-    {
+    if let Some((idx, _)) = attrs.iter().enumerate().find(|(_, a)| a.path().is_ident("graphql")) {
         attrs.remove(idx);
     }
 }
 
 pub fn get_type_path_and_name(ty: &Type) -> GeneratorResult<(&Type, String)> {
     match ty {
-        Type::Path(path) => Ok((
-            ty,
-            path.path
-                .segments
-                .last()
-                .map(|s| s.ident.to_string())
-                .unwrap(),
-        )),
+        Type::Path(path) => Ok((ty, path.path.segments.last().map(|s| s.ident.to_string()).unwrap())),
         Type::Group(TypeGroup { elem, .. }) => get_type_path_and_name(elem),
         Type::TraitObject(trait_object) => Ok((
             ty,
@@ -180,9 +165,7 @@ pub fn get_type_path_and_name(ty: &Type) -> GeneratorResult<(&Type, String)> {
                 .bounds
                 .iter()
                 .find_map(|bound| match bound {
-                    TypeParamBound::Trait(t) => {
-                        Some(t.path.segments.last().map(|s| s.ident.to_string()).unwrap())
-                    }
+                    TypeParamBound::Trait(t) => Some(t.path.segments.last().map(|s| s.ident.to_string()).unwrap()),
                     _ => None,
                 })
                 .unwrap(),
@@ -228,9 +211,7 @@ pub fn gen_deprecation(deprecation: &Deprecation, crate_name: &TokenStream) -> T
         Deprecation::NoDeprecated => {
             quote! { #crate_name::registry::Deprecation::NoDeprecated }
         }
-        Deprecation::Deprecated {
-            reason: Some(reason),
-        } => {
+        Deprecation::Deprecated { reason: Some(reason) } => {
             quote! { #crate_name::registry::Deprecation::Deprecated { reason: ::std::option::Option::Some(#reason) } }
         }
         Deprecation::Deprecated { reason: None } => {
@@ -247,29 +228,17 @@ pub fn extract_input_args(
     let mut create_ctx = true;
 
     if method.sig.inputs.is_empty() {
-        return Err(Error::new_spanned(
-            &method.sig,
-            "The self receiver must be the first parameter.",
-        )
-        .into());
+        return Err(Error::new_spanned(&method.sig, "The self receiver must be the first parameter.").into());
     }
 
     for (idx, arg) in method.sig.inputs.iter_mut().enumerate() {
         if let FnArg::Receiver(receiver) = arg {
             if idx != 0 {
-                return Err(Error::new_spanned(
-                    receiver,
-                    "The self receiver must be the first parameter.",
-                )
-                .into());
+                return Err(Error::new_spanned(receiver, "The self receiver must be the first parameter.").into());
             }
         } else if let FnArg::Typed(pat) = arg {
             if idx == 0 {
-                return Err(Error::new_spanned(
-                    pat,
-                    "The self receiver must be the first parameter.",
-                )
-                .into());
+                return Err(Error::new_spanned(pat, "The self receiver must be the first parameter.").into());
             }
 
             match (&*pat.pat, &*pat.ty) {
@@ -279,8 +248,7 @@ pub fn extract_input_args(
                             args.push((
                                 arg_ident.clone(),
                                 pat.ty.as_ref().clone(),
-                                parse_graphql_attrs::<args::Argument>(&pat.attrs)?
-                                    .unwrap_or_default(),
+                                parse_graphql_attrs::<args::Argument>(&pat.attrs)?.unwrap_or_default(),
                             ));
                         } else {
                             create_ctx = false;

@@ -13,9 +13,7 @@ impl<'a> OutputType<'a> {
             if p.path.segments.last().unwrap().ident == "Result"
                 || p.path.segments.last().unwrap().ident == "FieldResult"
             {
-                if let PathArguments::AngleBracketed(args) =
-                    &p.path.segments.last().unwrap().arguments
-                {
+                if let PathArguments::AngleBracketed(args) = &p.path.segments.last().unwrap().arguments {
                     if args.args.is_empty() {
                         return Err(Error::new_spanned(input, "Invalid type"));
                     }

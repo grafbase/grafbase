@@ -1,9 +1,6 @@
 use crate::{InputValueError, LegacyInputType};
 
-pub fn max_length<T: AsRef<str> + LegacyInputType>(
-    value: &T,
-    len: usize,
-) -> Result<(), InputValueError<T>> {
+pub fn max_length<T: AsRef<str> + LegacyInputType>(value: &T, len: usize) -> Result<(), InputValueError<T>> {
     if value.as_ref().len() <= len {
         Ok(())
     } else {

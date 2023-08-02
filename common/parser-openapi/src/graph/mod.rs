@@ -23,7 +23,7 @@ mod transforms;
 mod all_of_member;
 pub mod construction;
 
-use crate::{parsing::ParseOutput, Error};
+use crate::{parsing::ParseOutput, ApiMetadata, Error};
 
 pub use self::{
     enums::Enum,
@@ -41,11 +41,11 @@ pub use self::{
 pub struct OpenApiGraph {
     graph: Graph<Node, Edge>,
     operation_indices: Vec<NodeIndex>,
-    pub metadata: crate::ApiMetadata,
+    pub metadata: ApiMetadata,
 }
 
 impl OpenApiGraph {
-    pub fn new(parsed: ParseOutput, metadata: crate::ApiMetadata) -> Result<Self, Error> {
+    pub fn new(parsed: ParseOutput, metadata: ApiMetadata) -> Result<Self, Error> {
         let mut this = OpenApiGraph {
             graph: parsed.graph,
             operation_indices: vec![],
@@ -64,6 +64,24 @@ impl OpenApiGraph {
             .collect();
 
         Ok(this)
+    }
+
+    #[cfg(test)]
+    pub fn from_petgraph(graph: Graph<Node, Edge>) -> Self {
+        use dynaql::registry::ConnectorHeaders;
+        use parser::OpenApiQueryNamingStrategy;
+
+        OpenApiGraph {
+            graph,
+            operation_indices: vec![],
+            metadata: ApiMetadata {
+                id: 1,
+                namespace: None,
+                url: None,
+                headers: ConnectorHeaders::default(),
+                query_naming: OpenApiQueryNamingStrategy::default(),
+            },
+        }
     }
 
     // Used to get a Debug impl for a the given node index.
@@ -127,6 +145,13 @@ pub enum Node {
     ///
     /// These should be optimised away by the `merge_all_of_schemas` transform.
     AllOf,
+
+    /// If a schema is using allOf it's possible for there to be fields
+    /// that don't have a defined type in one of the schemas, because one of the
+    /// other schemas provides that information.  This represents one of those
+    /// fields.  `merge_all_of_schemas` should deal with resolving placeholders
+    /// to actual types...
+    PlaceholderType,
 }
 
 #[derive(Clone, Debug)]
@@ -135,6 +160,11 @@ pub enum Edge {
     /// Links an object with the types of it's fields.
     HasField {
         name: String,
+        /// Required is whether the field is required to be present in the object.
+        /// This is a seprate concept from nullability in OpenAPI.  We'll need to
+        /// merge this with wrapping type when doing our output.
+        required: bool,
+        /// Whether this field is non-null/a list etc.
         wrapping: WrappingType,
     },
 
@@ -246,6 +276,7 @@ impl std::fmt::Debug for Node {
             Self::Default(value) => f.debug_tuple("Default").field(value).finish(),
             Self::PossibleValue(value) => f.debug_tuple("PossibleValue").field(value).finish(),
             Self::AllOf => f.debug_tuple("AllOf").finish(),
+            Self::PlaceholderType => f.debug_tuple("PlaceholderType").finish(),
         }
     }
 }
@@ -413,6 +444,10 @@ impl OpenApiGraph {
                 Some(name_components.join("_").to_pascal_case())
             }
             Node::Scalar(kind) => Some(kind.type_name()),
+            Node::PlaceholderType => {
+                // Any placeholders that make it this far should just be mapped to JSON.
+                Some(ScalarKind::Json.type_name())
+            }
             Node::UnionWrappedScalar(kind) => Some(self.metadata.namespaced(&kind.type_name()).to_pascal_case()),
             Node::Union => {
                 // First we check if this union has an immediate schema parent.

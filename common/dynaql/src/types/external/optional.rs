@@ -4,8 +4,8 @@ use graph_entities::{CompactValue, ResponseNodeId};
 
 use crate::parser::types::Field;
 use crate::{
-    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType,
-    LegacyOutputType, Positioned, ServerResult, Value,
+    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Positioned,
+    ServerResult, Value,
 };
 
 impl<T: LegacyInputType> LegacyInputType for Option<T> {
@@ -27,9 +27,7 @@ impl<T: LegacyInputType> LegacyInputType for Option<T> {
     fn parse(value: Option<Value>) -> InputValueResult<Self> {
         match value.unwrap_or_default() {
             Value::Null => Ok(None),
-            value => Ok(Some(
-                T::parse(Some(value)).map_err(InputValueError::propagate)?,
-            )),
+            value => Ok(Some(T::parse(Some(value)).map_err(InputValueError::propagate)?)),
         }
     }
 
@@ -63,11 +61,7 @@ impl<T: LegacyOutputType + Sync> LegacyOutputType for Option<T> {
         T::type_name().as_ref().into()
     }
 
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         if let Some(inner) = self {
             match LegacyOutputType::resolve(inner, ctx, field).await {
                 Ok(value) => Ok(value),

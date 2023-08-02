@@ -12,11 +12,7 @@ pub struct UniqueArgumentNames<'a> {
 }
 
 impl<'a> Visitor<'a> for UniqueArgumentNames<'a> {
-    fn enter_directive(
-        &mut self,
-        _ctx: &mut VisitorContext<'a>,
-        _directive: &'a Positioned<Directive>,
-    ) {
+    fn enter_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<Directive>) {
         self.names.clear();
     }
 

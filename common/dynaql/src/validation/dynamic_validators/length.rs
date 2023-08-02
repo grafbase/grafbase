@@ -33,21 +33,14 @@ fn check_bounds<T: PartialOrd>(item: T, lower: Option<T>, upper: Option<T>) -> L
     ) {
         (Some(Ordering::Less), _) => LengthTestResult::TooShort,
         (_, Some(Ordering::Greater)) => LengthTestResult::TooLong,
-        (
-            None | Some(Ordering::Greater | Ordering::Equal),
-            None | Some(Ordering::Less | Ordering::Equal),
-        ) => LengthTestResult::InBounds,
+        (None | Some(Ordering::Greater | Ordering::Equal), None | Some(Ordering::Less | Ordering::Equal)) => {
+            LengthTestResult::InBounds
+        }
     }
 }
 
 impl DynValidate<&Value> for LengthValidator {
-    fn validate<'a>(
-        &self,
-        ctx: &mut VisitorContext<'a>,
-        meta: &MetaInputValue,
-        pos: Pos,
-        value: &Value,
-    ) {
+    fn validate<'a>(&self, ctx: &mut VisitorContext<'a>, meta: &MetaInputValue, pos: Pos, value: &Value) {
         use LengthTestResult::*;
 
         let var_value = match value {
@@ -68,16 +61,14 @@ impl DynValidate<&Value> for LengthValidator {
                 vec![pos],
                 format!(
                     "Invalid value for argument \"{name}\", length {count} is too long, must be no larger than {}",
-                    self.max
-                        .expect("max must have been some for this case to be hit")
+                    self.max.expect("max must have been some for this case to be hit")
                 ),
             ),
             TooShort => ctx.report_error(
                 vec![pos],
                 format!(
                     "Invalid value for argument \"{name}\", length {count} is too short, must be at least {}",
-                    self.min
-                        .expect("min must have been some for this case to be hit")
+                    self.min.expect("min must have been some for this case to be hit")
                 ),
             ),
         }
@@ -114,33 +105,18 @@ fn test_length_validator() {
 
     let mut ctx = VisitorContext::new(&registry, &doc, None);
     let custom_validator = DynValidator::length(Some(0), None);
-    custom_validator.validate(
-        &mut ctx,
-        &meta,
-        Pos::from((0, 0)),
-        &Value::String("test".to_string()),
-    );
+    custom_validator.validate(&mut ctx, &meta, Pos::from((0, 0)), &Value::String("test".to_string()));
     assert!(ctx.errors.is_empty());
 
     let mut ctx = VisitorContext::new(&registry, &doc, None);
     let custom_validator = DynValidator::length(Some(0), Some(1));
-    custom_validator.validate(
-        &mut ctx,
-        &meta,
-        Pos::from((0, 0)),
-        &Value::String("test".to_string()),
-    );
+    custom_validator.validate(&mut ctx, &meta, Pos::from((0, 0)), &Value::String("test".to_string()));
     assert_eq!(ctx.errors.len(), 1);
     assert_snapshot!(ctx.errors[0].message);
 
     let mut ctx = VisitorContext::new(&registry, &doc, None);
     let custom_validator = DynValidator::length(Some(10), Some(15));
-    custom_validator.validate(
-        &mut ctx,
-        &meta,
-        Pos::from((0, 0)),
-        &Value::String("test".to_string()),
-    );
+    custom_validator.validate(&mut ctx, &meta, Pos::from((0, 0)), &Value::String("test".to_string()));
     assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
     assert_snapshot!(ctx.errors[0].message);
 

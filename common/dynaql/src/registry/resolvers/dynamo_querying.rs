@@ -8,8 +8,8 @@ use crate::registry::{MetaType, ModelName, SchemaID};
 use crate::{Context, Error, Value};
 use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::{
-    DynamoDBBatchersData, PaginatedCursor, PaginationOrdering, ParentEdge, QueryKey,
-    QuerySingleRelationKey, QueryTypePaginatedKey,
+    DynamoDBBatchersData, PaginatedCursor, PaginationOrdering, ParentEdge, QueryKey, QuerySingleRelationKey,
+    QueryTypePaginatedKey,
 };
 use grafbase_runtime::search::Cursor;
 use graph_entities::NodeID;
@@ -233,8 +233,7 @@ impl DynamoResolver {
                 filter,
                 nested,
             } => {
-                let ty = r#type
-                    .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+                let ty = r#type.expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
                 // TODO: optimize single edges for the top level
                 // TODO: put selected relations
@@ -251,8 +250,7 @@ impl DynamoResolver {
                     // we won't be able to load any `ToMany` relations with the original item
                     // since they need to be paginated
                     .filter(|relation| {
-                        relation.1.kind == MetaRelationKind::ManyToOne
-                            || relation.1.kind == MetaRelationKind::OneToOne
+                        relation.1.kind == MetaRelationKind::ManyToOne || relation.1.kind == MetaRelationKind::OneToOne
                     })
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
@@ -270,19 +268,14 @@ impl DynamoResolver {
                 let last = last.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
                 let filter: Option<CollectionFilter> = filter
                     .as_ref()
-                    .map(|filter| {
-                        filter.resolve::<Option<CollectionFilter>>(ctx, last_resolver_value)
-                    })
+                    .map(|filter| filter.resolve::<Option<CollectionFilter>>(ctx, last_resolver_value))
                     .transpose()?
                     .flatten();
                 let order_by: Option<OneOf<OrderByDirection>> = match order_by {
                     Some(order_by) => order_by.resolve(ctx, last_resolver_value)?,
                     None => None,
                 };
-                let ordering = match order_by
-                    .map(|oneof| oneof.value)
-                    .unwrap_or(OrderByDirection::ASC)
-                {
+                let ordering = match order_by.map(|oneof| oneof.value).unwrap_or(OrderByDirection::ASC) {
                     OrderByDirection::ASC => PaginationOrdering::ASC,
                     OrderByDirection::DESC => PaginationOrdering::DESC,
                 };
@@ -303,16 +296,9 @@ impl DynamoResolver {
 
                 let len = edges.len();
                 let result = query_loader_fat_paginated
-                    .load_one(QueryTypePaginatedKey::new(
-                        ty.clone(),
-                        edges,
-                        cursor.clone(),
-                        ordering,
-                    ))
+                    .load_one(QueryTypePaginatedKey::new(ty.clone(), edges, cursor.clone(), ordering))
                     .await?
-                    .ok_or_else(|| {
-                        Error::new("Internal Error: Failed to fetch the associated nodes.")
-                    })?;
+                    .ok_or_else(|| Error::new("Internal Error: Failed to fetch the associated nodes."))?;
 
                 let pagination = ResolvedPaginationInfo::of(
                     ResolvedPaginationDirection::from_paginated_cursor(&cursor),
@@ -333,30 +319,23 @@ impl DynamoResolver {
                     .values
                     .iter()
                     .map(|(_, query_value)| {
-                        let mut value_result: Map<String, serde_json::Value> =
-                            query_value.edges.iter().fold(
-                                Map::with_capacity(len),
-                                |mut acc, (edge_key, dyna_value)| {
-                                    let value = serde_json::to_value(dyna_value);
+                        let mut value_result: Map<String, serde_json::Value> = query_value.edges.iter().fold(
+                            Map::with_capacity(len),
+                            |mut acc, (edge_key, dyna_value)| {
+                                let value = serde_json::to_value(dyna_value);
 
-                                    match value {
-                                        Ok(value) => {
-                                            acc.insert(edge_key.to_string(), value);
-                                        }
-                                        Err(err) => {
-                                            acc.insert(
-                                                edge_key.to_string(),
-                                                serde_json::Value::Null,
-                                            );
-                                            ctx.add_error(
-                                                Error::new_with_source(err)
-                                                    .into_server_error(ctx.item.pos),
-                                            );
-                                        }
+                                match value {
+                                    Ok(value) => {
+                                        acc.insert(edge_key.to_string(), value);
                                     }
-                                    acc
-                                },
-                            );
+                                    Err(err) => {
+                                        acc.insert(edge_key.to_string(), serde_json::Value::Null);
+                                        ctx.add_error(Error::new_with_source(err).into_server_error(ctx.item.pos));
+                                    }
+                                }
+                                acc
+                            },
+                        );
 
                         match serde_json::to_value(&query_value.node) {
                             Ok(value) => {
@@ -364,9 +343,7 @@ impl DynamoResolver {
                             }
                             Err(err) => {
                                 value_result.insert(ty.clone(), serde_json::Value::Null);
-                                ctx.add_error(
-                                    Error::new_with_source(err).into_server_error(ctx.item.pos),
-                                );
+                                ctx.add_error(Error::new_with_source(err).into_server_error(ctx.item.pos));
                             }
                         };
 
@@ -374,18 +351,13 @@ impl DynamoResolver {
                     })
                     .collect();
 
-                Ok(
-                    ResolvedValue::new(Arc::new(serde_json::Value::Array(result)))
-                        .with_pagination(pagination),
-                )
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(result))).with_pagination(pagination))
             }
             DynamoResolver::QueryIds { ids, type_name } => {
                 let ids: Vec<String> = ids.resolve(ctx, last_resolver_value)?;
                 get::by_ids(ctx, &ids, &type_name).await
             }
-            DynamoResolver::_SearchQueryIds { ids, type_name } => {
-                get::by_ids(ctx, &ids, &type_name).await
-            }
+            DynamoResolver::_SearchQueryIds { ids, type_name } => get::by_ids(ctx, &ids, &type_name).await,
             DynamoResolver::QueryPKSK { pk, sk, .. } => {
                 let pk = match pk
                     .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
@@ -407,11 +379,7 @@ impl DynamoResolver {
                     }
                 };
 
-                let selected: HashSet<&str> = ctx
-                    .field()
-                    .selection_set()
-                    .map(|field| field.name())
-                    .collect();
+                let selected: HashSet<&str> = ctx.field().selection_set().map(|field| field.name()).collect();
 
                 // TODO: optimize single edges for the top level
                 let relations_selected: IndexMap<&str, &MetaRelation> = ctx_ty
@@ -424,8 +392,7 @@ impl DynamoResolver {
                 if relations_len == 0 {
                     match loader_item.load_one((pk.clone(), sk)).await? {
                         Some(dyna) => {
-                            let value = serde_json::to_value(dyna)
-                                .map_err(|err| Error::new(err.to_string()))?;
+                            let value = serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))?;
                             return Ok(ResolvedValue::new(Arc::new(serde_json::json!({
                                 current_ty: value,
                             }))));
@@ -433,8 +400,7 @@ impl DynamoResolver {
                         // If we do not have any value inside our fetch, it's not an
                         // error, it's only we didn't found the value.
                         None => {
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
-                                .with_early_return());
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
                         }
                     }
                 }
@@ -451,8 +417,7 @@ impl DynamoResolver {
                     // we won't be able to load any `ToMany` relations with the original item
                     // since they need to be paginated
                     .filter(|relation| {
-                        relation.1.kind == MetaRelationKind::ManyToOne
-                            || relation.1.kind == MetaRelationKind::OneToOne
+                        relation.1.kind == MetaRelationKind::ManyToOne || relation.1.kind == MetaRelationKind::OneToOne
                     })
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
@@ -467,18 +432,14 @@ impl DynamoResolver {
                     .load_one(QueryKey::new(pk.clone(), edges.clone()))
                     .await?
                     .map(|x| x.values)
-                    .ok_or_else(|| {
-                        Error::new("Internal Error: Failed to fetch the associated nodes.")
-                    })?;
+                    .ok_or_else(|| Error::new("Internal Error: Failed to fetch the associated nodes."))?;
 
                 let len = query_result.len();
 
                 // If we do not have any value inside our fetch, it's not an
                 // error, it's only we didn't found the value.
                 if len == 0 {
-                    return Ok(
-                        ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
-                    );
+                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -497,9 +458,7 @@ impl DynamoResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(
-                    result,
-                ))))
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(result))))
             }
             DynamoResolver::QuerySingleRelation {
                 parent_pk,
@@ -512,18 +471,14 @@ impl DynamoResolver {
                     ))
                     .await?
                     .map(|x| x.values)
-                    .ok_or_else(|| {
-                        Error::new("Internal Error: Failed to fetch the associated nodes.")
-                    })?;
+                    .ok_or_else(|| Error::new("Internal Error: Failed to fetch the associated nodes."))?;
 
                 let len = query_result.len();
 
                 // If we do not have any value inside our fetch, it's not an
                 // error, it's only we didn't found the value.
                 if len == 0 {
-                    return Ok(
-                        ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
-                    );
+                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -542,9 +497,7 @@ impl DynamoResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(
-                    result,
-                ))))
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(result))))
             }
             DynamoResolver::QueryBy { by, .. } => {
                 let by = match by
@@ -564,13 +517,11 @@ impl DynamoResolver {
                 let by_id = key == "id";
 
                 let (pk, sk) = if by_id {
-                    let value = match NodeID::from_owned(
-                        dynaql_value::from_value(value.clone()).expect("cannot fail"),
-                    ) {
+                    let value = match NodeID::from_owned(dynaql_value::from_value(value.clone()).expect("cannot fail"))
+                    {
                         Ok(val) => val,
                         Err(_) => {
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
-                                .with_early_return());
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
                         }
                     };
 
@@ -583,9 +534,7 @@ impl DynamoResolver {
                         .constraints
                         .iter()
                         .find(|constraint| constraint.name() == key)
-                        .and_then(|constraint| {
-                            constraint.extract_id_from_by_input_field(&ctx_ty.name, value)
-                        })
+                        .and_then(|constraint| constraint.extract_id_from_by_input_field(&ctx_ty.name, value))
                         .expect("constraint fields to be in the input");
 
                     let pk = constraint_id.to_string();
@@ -602,14 +551,10 @@ impl DynamoResolver {
                             if !by_id {
                                 // Populate the original SK to get the correct ID
                                 // TODO: consider a declarative way to do this
-                                dyna.insert(
-                                    SK.to_string(),
-                                    dyna.get(INVERTED_INDEX_PK).expect("must exist").clone(),
-                                );
+                                dyna.insert(SK.to_string(), dyna.get(INVERTED_INDEX_PK).expect("must exist").clone());
                             }
 
-                            let value = serde_json::to_value(dyna)
-                                .map_err(|err| Error::new(err.to_string()))?;
+                            let value = serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))?;
 
                             return Ok(ResolvedValue::new(Arc::new(serde_json::json!({
                                 current_ty: value,
@@ -617,8 +562,7 @@ impl DynamoResolver {
                         }
                         // Return early if no value was found
                         None => {
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
-                                .with_early_return());
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
                         }
                     }
                 }
@@ -639,8 +583,7 @@ impl DynamoResolver {
                     // we won't be able to load any `ToMany` relations with the original item
                     // since they need to be paginated
                     .filter(|relation| {
-                        relation.1.kind == MetaRelationKind::ManyToOne
-                            || relation.1.kind == MetaRelationKind::OneToOne
+                        relation.1.kind == MetaRelationKind::ManyToOne || relation.1.kind == MetaRelationKind::OneToOne
                     })
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
@@ -655,17 +598,13 @@ impl DynamoResolver {
                     .load_one(QueryKey::new(pk.clone(), edges))
                     .await?
                     .map(|x| x.values)
-                    .ok_or_else(|| {
-                        Error::new("Internal Error: Failed to fetch the associated nodes.")
-                    })?;
+                    .ok_or_else(|| Error::new("Internal Error: Failed to fetch the associated nodes."))?;
 
                 let len = query_result.len();
 
                 // Return early if no value was found
                 if len == 0 {
-                    return Ok(
-                        ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
-                    );
+                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -684,9 +623,7 @@ impl DynamoResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(
-                    result,
-                ))))
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(result))))
             }
         }
     }

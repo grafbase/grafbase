@@ -1,5 +1,4 @@
-//! A parser for GraphQL. Used in the [`async-graphql`](https://crates.io/crates/async-graphql)
-//! crate.
+//! A parser for GraphQL. Used in the [`dynaql`] crate.
 //!
 //! It uses the [pest](https://crates.io/crates/pest) crate to parse the input and then transforms
 //! it into Rust types.
@@ -93,23 +92,14 @@ impl Error {
     pub const fn positions(&self) -> ErrorPositions {
         match self {
             Self::Syntax {
-                start,
-                end: Some(end),
-                ..
+                start, end: Some(end), ..
             } => ErrorPositions::new_2(*start, *end),
             Self::Syntax { start, .. } => ErrorPositions::new_1(*start),
             Self::MultipleRoots { schema, pos, .. } => ErrorPositions::new_2(*pos, *schema),
             Self::MissingQueryRoot { pos } => ErrorPositions::new_1(*pos),
-            Self::MultipleOperations {
-                anonymous,
-                operation,
-            } => ErrorPositions::new_2(*anonymous, *operation),
-            Self::OperationDuplicated { first, second, .. } => {
-                ErrorPositions::new_2(*second, *first)
-            }
-            Self::FragmentDuplicated { first, second, .. } => {
-                ErrorPositions::new_2(*second, *first)
-            }
+            Self::MultipleOperations { anonymous, operation } => ErrorPositions::new_2(*anonymous, *operation),
+            Self::OperationDuplicated { first, second, .. } => ErrorPositions::new_2(*second, *first),
+            Self::FragmentDuplicated { first, second, .. } => ErrorPositions::new_2(*second, *first),
             Self::MissingOperation => ErrorPositions::new_0(),
         }
     }

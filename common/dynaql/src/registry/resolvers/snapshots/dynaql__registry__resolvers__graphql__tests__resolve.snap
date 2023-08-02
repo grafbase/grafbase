@@ -1,6 +1,6 @@
 ---
 source: common/dynaql/src/registry/resolvers/graphql.rs
-expression: want
+expression: result.unwrap()
 ---
 {
   "data": {

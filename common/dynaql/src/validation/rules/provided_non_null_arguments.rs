@@ -6,30 +6,20 @@ use crate::Positioned;
 pub struct ProvidedNonNullArguments;
 
 impl<'a> Visitor<'a> for ProvidedNonNullArguments {
-    fn enter_directive(
-        &mut self,
-        ctx: &mut VisitorContext<'a>,
-        directive: &'a Positioned<Directive>,
-    ) {
-        if let Some(schema_directive) = ctx
-            .registry
-            .directives
-            .get(directive.node.name.node.as_str())
-        {
+    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
+        if let Some(schema_directive) = ctx.registry.directives.get(directive.node.name.node.as_str()) {
             for arg in schema_directive.args.values() {
                 if arg.ty.is_non_null()
                     && arg.default_value.is_none()
-                    && !directive
-                        .node
-                        .arguments
-                        .iter()
-                        .any(|(name, _)| name.node == arg.name)
+                    && !directive.node.arguments.iter().any(|(name, _)| name.node == arg.name)
                 {
-                    ctx.report_error(vec![directive.pos],
-                            format!(
-                                "Directive \"@{}\" argument \"{}\" of type \"{}\" is required but not provided",
-                                directive.node.name, arg.name, arg.ty
-                            ));
+                    ctx.report_error(
+                        vec![directive.pos],
+                        format!(
+                            "Directive \"@{}\" argument \"{}\" of type \"{}\" is required but not provided",
+                            directive.node.name, arg.name, arg.ty
+                        ),
+                    );
                 }
             }
         }
@@ -41,17 +31,17 @@ impl<'a> Visitor<'a> for ProvidedNonNullArguments {
                 for arg in schema_field.args.values() {
                     if arg.ty.is_non_null()
                         && arg.default_value.is_none()
-                        && !field
-                            .node
-                            .arguments
-                            .iter()
-                            .any(|(name, _)| name.node == arg.name)
+                        && !field.node.arguments.iter().any(|(name, _)| name.node == arg.name)
                     {
-                        ctx.report_error(vec![field.pos],
-                             format!(
-                                 r#"Field "{}" argument "{}" of type "{}" is required but not provided"#,
-                                 field.node.name, arg.name, parent_type.name()
-                             ));
+                        ctx.report_error(
+                            vec![field.pos],
+                            format!(
+                                r#"Field "{}" argument "{}" of type "{}" is required but not provided"#,
+                                field.node.name,
+                                arg.name,
+                                parent_type.name()
+                            ),
+                        );
                     }
                 }
             }

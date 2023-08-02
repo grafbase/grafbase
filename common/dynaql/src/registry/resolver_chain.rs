@@ -92,13 +92,9 @@ pub struct ResolverChainNode<'a> {
 impl<'a> ResolverChainNode<'a> {
     fn get_variable_by_name_internal(&self, name: &str) -> Option<&'a MetaInputValue> {
         self.variables.as_ref().and_then(|variables| {
-            variables.iter().find_map(|(_, value)| {
-                if name == value.name {
-                    Some(*value)
-                } else {
-                    None
-                }
-            })
+            variables
+                .iter()
+                .find_map(|(_, value)| if name == value.name { Some(*value) } else { None })
         })
     }
 
@@ -109,9 +105,7 @@ impl<'a> ResolverChainNode<'a> {
             .find_map(|x| x.get_variable_by_name_internal(name))
     }
 
-    fn get_arguments_internal(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = (Positioned<Name>, Positioned<Value>)> + 'a> {
+    fn get_arguments_internal(&'a self) -> Box<dyn Iterator<Item = (Positioned<Name>, Positioned<Value>)> + 'a> {
         match (self.field, self.executable_field) {
             (Some(field), Some(executable_field)) => {
                 let arguments = field.args.iter().map(|(field_argument_name, _)| {
@@ -139,9 +133,7 @@ impl<'a> ResolverChainNode<'a> {
     }
 
     /// Get all arguments
-    pub fn get_arguments(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = (Positioned<Name>, Positioned<Value>)> + 'a> {
+    pub fn get_arguments(&'a self) -> Box<dyn Iterator<Item = (Positioned<Name>, Positioned<Value>)> + 'a> {
         Box::new(
             std::iter::once(self)
                 .chain(self.parents())
@@ -188,9 +180,7 @@ impl<'a> ResolverChainNode<'a> {
                     .with_selection_set(self.selections)
                     .with_field(self.field);
 
-                final_result = resolver
-                    .resolve(ctx, &current_ctx, Some(&final_result))
-                    .await?;
+                final_result = resolver.resolve(ctx, &current_ctx, Some(&final_result)).await?;
 
                 if *final_result.data_resolved == serde_json::Value::Null {
                     final_result = final_result.with_early_return();
@@ -270,10 +260,7 @@ impl<'a> ResolverChainNode<'a> {
     pub fn to_response_path(&self) -> ResponsePath<'_> {
         ResponsePath {
             key: self.field_name(),
-            prev: self
-                .parent
-                .as_ref()
-                .map(|parent| Box::new(parent.to_response_path())),
+            prev: self.parent.as_ref().map(|parent| Box::new(parent.to_response_path())),
             typename: self.ty.map(crate::registry::MetaType::name),
         }
     }
@@ -290,17 +277,11 @@ impl<'a> ResolverChainNode<'a> {
         });
     }
 
-    pub(crate) fn try_for_each<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(
-        &self,
-        mut f: F,
-    ) -> Result<(), E> {
+    pub(crate) fn try_for_each<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(&self, mut f: F) -> Result<(), E> {
         self.try_for_each_ref(&mut f)
     }
 
-    fn try_for_each_ref<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(
-        &self,
-        f: &mut F,
-    ) -> Result<(), E> {
+    fn try_for_each_ref<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(&self, f: &mut F) -> Result<(), E> {
         if let Some(parent) = &self.parent {
             parent.try_for_each_ref(f)?;
         }

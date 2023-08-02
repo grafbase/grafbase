@@ -39,10 +39,7 @@ impl DynamicParse for BooleanScalar {
     fn parse(value: ConstValue) -> InputValueResult<serde_json::Value> {
         match value {
             ConstValue::Boolean(v) => Ok(serde_json::Value::Bool(v)),
-            _ => Err(InputValueError::ty_custom(
-                "Boolean",
-                "Cannot parse into a Boolean",
-            )),
+            _ => Err(InputValueError::ty_custom("Boolean", "Cannot parse into a Boolean")),
         }
     }
 }

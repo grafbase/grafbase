@@ -32,10 +32,7 @@ impl<'a> __Schema<'a> {
             .values()
             .filter_map(|ty| {
                 if self.visible_types.contains(ty.name()) {
-                    Some((
-                        ty.name(),
-                        __Type::new_simple(self.registry, self.visible_types, ty),
-                    ))
+                    Some((ty.name(), __Type::new_simple(self.registry, self.visible_types, ty)))
                 } else {
                     None
                 }

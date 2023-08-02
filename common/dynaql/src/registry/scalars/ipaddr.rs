@@ -50,9 +50,7 @@ impl DynamicParse for IPAddressScalar {
                 .or_else(|_| {
                     ip.parse::<IpAddr>()
                         .map(|x| ConstValue::String(x.to_string()))
-                        .map_err(|_| {
-                            Error::new("Cannot coerce the initial value into an IP address or an IP range.")
-                        })
+                        .map_err(|_| Error::new("Cannot coerce the initial value into an IP address or an IP range."))
                 }),
             _ => Err(Error::new(
                 "Data violation: Cannot coerce the initial value into an IPAddress",
@@ -75,10 +73,7 @@ impl DynamicParse for IPAddressScalar {
                             )
                         })
                 }),
-            _ => Err(InputValueError::ty_custom(
-                "IPAddress",
-                "Cannot parse into a IPAddress",
-            )),
+            _ => Err(InputValueError::ty_custom("IPAddress", "Cannot parse into a IPAddress")),
         }
     }
 }

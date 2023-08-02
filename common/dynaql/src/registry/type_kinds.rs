@@ -14,8 +14,7 @@ use once_cell::sync::Lazy;
 use crate::Error;
 
 use super::{
-    EnumType, InputObjectType, InterfaceType, MetaField, MetaInputValue, MetaType, ObjectType,
-    ScalarType, UnionType,
+    EnumType, InputObjectType, InterfaceType, MetaField, MetaInputValue, MetaType, ObjectType, ScalarType, UnionType,
 };
 
 /// The kinds of types we work with in GraphQL
@@ -94,11 +93,10 @@ impl OutputType<'_> {
 
     pub fn fields(&self) -> Box<dyn Iterator<Item = &MetaField> + '_> {
         match self {
-            OutputType::Scalar(_) | OutputType::Union(_) | OutputType::Enum(_) => {
-                Box::new(iter::empty())
+            OutputType::Scalar(_) | OutputType::Union(_) | OutputType::Enum(_) => Box::new(iter::empty()),
+            OutputType::Object(ObjectType { fields, .. }) | OutputType::Interface(InterfaceType { fields, .. }) => {
+                Box::new(fields.values())
             }
-            OutputType::Object(ObjectType { fields, .. })
-            | OutputType::Interface(InterfaceType { fields, .. }) => Box::new(fields.values()),
         }
     }
 }

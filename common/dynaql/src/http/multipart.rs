@@ -50,9 +50,7 @@ pub(super) async fn receive_batch_multipart(
         boundary,
         Constraints::new().size_limit({
             let mut limit = SizeLimit::new();
-            if let (Some(max_file_size), Some(max_num_files)) =
-                (opts.max_file_size, opts.max_num_files)
-            {
+            if let (Some(max_file_size), Some(max_num_files)) = (opts.max_file_size, opts.max_num_files) {
                 limit = limit.whole_stream((max_file_size * max_num_files) as u64);
             }
             if let Some(max_file_size) = opts.max_file_size {
@@ -77,9 +75,7 @@ pub(super) async fn receive_batch_multipart(
         match field.name() {
             Some("operations") => {
                 let body = field.bytes().await?;
-                request = Some(
-                    super::receive_batch_body_no_multipart(&content_type, body.as_ref()).await?,
-                )
+                request = Some(super::receive_batch_body_no_multipart(&content_type, body.as_ref()).await?)
             }
             Some("map") => {
                 let map_bytes = field.bytes().await?;
@@ -154,10 +150,7 @@ pin_project! {
 
 impl<T> ReaderStream<T> {
     pub(crate) fn new(reader: T) -> Self {
-        Self {
-            buf: [0; 2048],
-            reader,
-        }
+        Self { buf: [0; 2048], reader }
     }
 }
 
@@ -167,11 +160,9 @@ impl<T: AsyncRead> Stream for ReaderStream<T> {
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
         let this = self.project();
 
-        Poll::Ready(
-            match futures_util::ready!(this.reader.poll_read(cx, this.buf)?) {
-                0 => None,
-                size => Some(Ok(this.buf[..size].to_vec())),
-            },
-        )
+        Poll::Ready(match futures_util::ready!(this.reader.poll_read(cx, this.buf)?) {
+            0 => None,
+            size => Some(Ok(this.buf[..size].to_vec())),
+        })
     }
 }

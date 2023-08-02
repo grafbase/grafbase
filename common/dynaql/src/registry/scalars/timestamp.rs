@@ -43,9 +43,7 @@ impl DynamicParse for TimestampScalar {
                 if ms.is_u64() {
                     Ok(ConstValue::Number(ms))
                 } else {
-                    Err(Error::new(
-                        "Cannot coerce the initial value into a valid Timestamp",
-                    ))
+                    Err(Error::new("Cannot coerce the initial value into a valid Timestamp"))
                 }
             }
             _ => Err(Error::new(
@@ -66,10 +64,7 @@ impl DynamicParse for TimestampScalar {
                     ))
                 }
             }
-            _ => Err(InputValueError::ty_custom(
-                "Timestamp",
-                "Cannot parse into a Timestamp",
-            )),
+            _ => Err(InputValueError::ty_custom("Timestamp", "Cannot parse into a Timestamp")),
         }
     }
 }

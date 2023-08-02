@@ -23,11 +23,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
 
     let s = match &object_args.data {
         Data::Struct(e) => e,
-        _ => {
-            return Err(
-                Error::new_spanned(ident, "MergedObject can only be applied to an struct.").into(),
-            )
-        }
+        _ => return Err(Error::new_spanned(ident, "MergedObject can only be applied to an struct.").into()),
     };
 
     let mut types = Vec::new();

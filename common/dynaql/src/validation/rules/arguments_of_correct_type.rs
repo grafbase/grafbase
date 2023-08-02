@@ -15,11 +15,7 @@ pub struct ArgumentsOfCorrectType<'a> {
 }
 
 impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
-    fn enter_directive(
-        &mut self,
-        ctx: &mut VisitorContext<'a>,
-        directive: &'a Positioned<Directive>,
-    ) {
+    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
         self.current_args = ctx
             .registry
             .directives
@@ -27,11 +23,7 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
             .map(|d| &d.args);
     }
 
-    fn exit_directive(
-        &mut self,
-        _ctx: &mut VisitorContext<'a>,
-        _directive: &'a Positioned<Directive>,
-    ) {
+    fn exit_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<Directive>) {
         self.current_args = None;
     }
 
@@ -41,10 +33,7 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
         name: &'a Positioned<Name>,
         value: &'a Positioned<Value>,
     ) {
-        if let Some(arg) = self
-            .current_args
-            .and_then(|args| args.get(name.node.as_str()))
-        {
+        if let Some(arg) = self.current_args.and_then(|args| args.get(name.node.as_str())) {
             let value = value
                 .node
                 .clone()
@@ -67,10 +56,7 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
                     },
                 )
             }) {
-                ctx.report_error(
-                    vec![name.pos],
-                    format!("Invalid value for argument {reason}"),
-                );
+                ctx.report_error(vec![name.pos], format!("Invalid value for argument {reason}"));
             }
         }
     }

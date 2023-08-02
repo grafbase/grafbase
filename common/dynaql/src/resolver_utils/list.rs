@@ -3,9 +3,7 @@ use crate::parser::types::Field;
 use crate::registry::scalars::{DynamicScalar, PossibleScalar};
 use crate::registry::MetaType;
 use crate::resolver_utils::resolve_container;
-use crate::{
-    ContextSelectionSet, Error, LegacyOutputType, Positioned, ServerError, ServerResult, Value,
-};
+use crate::{ContextSelectionSet, Error, LegacyOutputType, Positioned, ServerError, ServerResult, Value};
 use dynaql_value::Name;
 use graph_entities::{ResponseList, ResponseNodeId, ResponsePrimitive};
 
@@ -61,10 +59,7 @@ pub async fn resolve_list<'a>(
                         match ty {
                             MetaType::Scalar(_) | MetaType::Enum(_) => {
                                 let mut result = Value::try_from(item).map_err(|err| {
-                                    ctx_idx.set_error_path(ServerError::new(
-                                        format!("{err:?}"),
-                                        Some(field.pos),
-                                    ))
+                                    ctx_idx.set_error_path(ServerError::new(format!("{err:?}"), Some(field.pos)))
                                 })?;
                                 // Yes it's ugly...
                                 if let MetaType::Scalar(_) = ty {
@@ -105,10 +100,7 @@ pub async fn resolve_list<'a>(
                 match ty {
                     MetaType::Scalar { .. } | MetaType::Enum { .. } => {
                         let result = Value::try_from(item).map_err(|err| {
-                            ctx_idx.set_error_path(ServerError::new(
-                                format!("{err:?}"),
-                                Some(field.pos),
-                            ))
+                            ctx_idx.set_error_path(ServerError::new(format!("{err:?}"), Some(field.pos)))
                         })?;
 
                         Ok(ctx_idx

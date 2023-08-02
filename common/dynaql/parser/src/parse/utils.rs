@@ -26,10 +26,7 @@ pub(super) fn exactly_one<T>(iter: impl IntoIterator<Item = T>) -> T {
 
 pub(super) fn block_string_value(raw: &str) -> String {
     // Split the string by either \r\n, \r or \n
-    let lines: Vec<_> = raw
-        .split("\r\n")
-        .flat_map(|s| s.split(['\r', '\n'].as_ref()))
-        .collect();
+    let lines: Vec<_> = raw.split("\r\n").flat_map(|s| s.split(['\r', '\n'].as_ref())).collect();
 
     // Find the common indent
     let common_indent = lines
@@ -42,16 +39,8 @@ pub(super) fn block_string_value(raw: &str) -> String {
 
     let line_has_content = |line: &str| line.as_bytes().iter().any(|&c| c != b'\t' && c != b' ');
 
-    let first_contentful_line = lines
-        .iter()
-        .copied()
-        .position(line_has_content)
-        .unwrap_or(lines.len());
-    let ending_lines_start = lines
-        .iter()
-        .copied()
-        .rposition(line_has_content)
-        .map_or(0, |i| i + 1);
+    let first_contentful_line = lines.iter().copied().position(line_has_content).unwrap_or(lines.len());
+    let ending_lines_start = lines.iter().copied().rposition(line_has_content).map_or(0, |i| i + 1);
 
     lines
         .iter()
@@ -88,10 +77,7 @@ fn test_block_string_value() {
         block_string_value("line 1\r\n   line 2\n     line 3\r    line 4"),
         "line 1\nline 2\n  line 3\n line 4"
     );
-    assert_eq!(
-        block_string_value("\r\r  some text\r\n \n \n "),
-        "some text"
-    );
+    assert_eq!(block_string_value("\r\r  some text\r\n \n \n "), "some text");
     assert_eq!(
         block_string_value(
             r#"

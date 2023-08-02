@@ -11,19 +11,12 @@ impl ConnectorHeaders {
 }
 
 impl ConnectorHeaders {
-    pub fn build_header_vec<'a>(
-        &'a self,
-        request_headers: &'a RequestHeaders,
-    ) -> Vec<(&'a str, &'a str)> {
+    pub fn build_header_vec<'a>(&'a self, request_headers: &'a RequestHeaders) -> Vec<(&'a str, &'a str)> {
         self.0
             .iter()
             .filter_map(|(name, value)| match value {
-                ConnectorHeaderValue::Static(static_value) => {
-                    Some((name.as_str(), static_value.as_str()))
-                }
-                ConnectorHeaderValue::Forward(header_name) => {
-                    Some((name.as_str(), request_headers.find(header_name)?))
-                }
+                ConnectorHeaderValue::Static(static_value) => Some((name.as_str(), static_value.as_str())),
+                ConnectorHeaderValue::Forward(header_name) => Some((name.as_str(), request_headers.find(header_name)?)),
             })
             .collect()
     }

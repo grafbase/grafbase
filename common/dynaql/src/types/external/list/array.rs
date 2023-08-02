@@ -5,8 +5,8 @@ use graph_entities::ResponseNodeId;
 use crate::parser::types::Field;
 use crate::resolver_utils::resolve_list_native;
 use crate::{
-    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType,
-    LegacyOutputType, Positioned, ServerResult, Value,
+    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Positioned,
+    ServerResult, Value,
 };
 
 impl<T: LegacyInputType, const N: usize> LegacyInputType for [T; N] {
@@ -71,11 +71,7 @@ impl<T: LegacyOutputType, const N: usize> LegacyOutputType for [T; N] {
         Self::qualified_type_name()
     }
 
-    async fn resolve(
-        &self,
-        ctx: &ContextSelectionSet<'_>,
-        field: &Positioned<Field>,
-    ) -> ServerResult<ResponseNodeId> {
+    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
         resolve_list_native(ctx, field, self.iter(), Some(self.len())).await
     }
 }

@@ -3,14 +3,9 @@ use quote::quote;
 use syn::ItemImpl;
 
 use crate::args::{self, RenameTarget};
-use crate::utils::{
-    get_crate_name, get_rustdoc, get_type_path_and_name, visible_fn, GeneratorResult,
-};
+use crate::utils::{get_crate_name, get_rustdoc, get_type_path_and_name, visible_fn, GeneratorResult};
 
-pub fn generate(
-    scalar_args: &args::Scalar,
-    item_impl: &mut ItemImpl,
-) -> GeneratorResult<TokenStream> {
+pub fn generate(scalar_args: &args::Scalar, item_impl: &mut ItemImpl) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(scalar_args.internal);
     let self_name = get_type_path_and_name(item_impl.self_ty.as_ref())?.1;
     let gql_typename = scalar_args

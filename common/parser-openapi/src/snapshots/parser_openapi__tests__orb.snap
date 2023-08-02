@@ -34,6 +34,7 @@ type OrbCreditLedgerEntry {
 	startingBalance: Float!
 	priceId: String
 	newBlockExpiryDate: String
+	metadata: JSON!
 	ledgerSequenceNumber: Float!
 	id: String!
 	eventId: String
@@ -125,6 +126,7 @@ type OrbCustomer {
 	paymentProviderId: String!
 	paymentProvider: OrbCustomerPaymentProvider!
 	name: String!
+	metadata: JSON!
 	id: String!
 	externalCustomerId: String
 	emailDelivery: Boolean
@@ -219,18 +221,22 @@ input OrbDiscountInput {
 }
 type OrbEvent {
 	timestamp: String!
+	properties: JSON!
 	id: String!
 	externalCustomerId: String
 	eventName: String!
 	customerId: String!
 }
 type OrbGetCoupons {
+	paginationMetadata: JSON
 	nodes: [OrbCoupon!]
 }
 type OrbGetCreditNote {
+	paginationMetadata: JSON
 	nodes: [OrbCreditNote!]
 }
 type OrbGetCustomerCosts {
+	paginationMetadata: JSON!
 	data: [OrbGetCustomerCostsData!]!
 }
 type OrbGetCustomerCostsData {
@@ -262,6 +268,7 @@ type OrbGetCustomers {
 	nodes: [OrbCustomer!]!
 }
 type OrbGetCustomersCustomerIdBalanceTransactions {
+	paginationMetadata: JSON
 	nodes: [OrbCustomerBalanceTransaction!]
 }
 type OrbGetCustomersCustomerIdCredits {
@@ -333,21 +340,26 @@ type OrbGetCustomersPaginationMetadata {
 	hasMore: Boolean!
 }
 type OrbGetEventsBackfills {
+	paginationMetadata: JSON
 	nodes: [OrbBackfill!]
 }
 type OrbGetInvoices {
+	paginationMetadata: JSON
 	nodes: [OrbInvoice!]
 }
 type OrbGetPing {
 	response: String!
 }
 type OrbGetPlans {
+	paginationMetadata: JSON
 	nodes: [OrbPlan!]
 }
 type OrbGetSubscriptions {
+	paginationMetadata: JSON
 	nodes: [OrbSubscription!]
 }
 type OrbGetSubscriptionsSubscriptionIdSchedule {
+	paginationMetadata: JSON
 	data: [OrbGetSubscriptionsSubscriptionIdScheduleData!]
 }
 type OrbGetSubscriptionsSubscriptionIdScheduleData {
@@ -360,6 +372,7 @@ type OrbGetSubscriptionsSubscriptionIdSchedulePlanData {
 	id: String
 }
 type OrbGetSubscriptionsSubscriptionIdUsage {
+	paginationMetadata: JSON!
 	data: [OrbGetSubscriptionsSubscriptionIdUsageData!]!
 }
 type OrbGetSubscriptionsSubscriptionIdUsageData {
@@ -530,6 +543,7 @@ type OrbPatchCustomersCustomerIdUsage {
 }
 input OrbPatchCustomersCustomerIdUsageEventsInput {
 	timestamp: String!
+	properties: JSON!
 	eventName: String!
 }
 input OrbPatchCustomersCustomerIdUsageInput {
@@ -615,6 +629,7 @@ enum OrbPostCustomersCustomerIdCreditsLedgerEntryEntryType {
 input OrbPostCustomersCustomerIdCreditsLedgerEntryInput {
 	targetExpiryDate: String
 	perUnitCostBasis: String
+	metadata: JSON
 	invoiceSettings: OrbPostCustomersCustomerIdCreditsLedgerEntryInvoiceSettingsInput
 	expiryDate: String
 	entryType: OrbPostCustomersCustomerIdCreditsLedgerEntryEntryType!
@@ -635,6 +650,7 @@ enum OrbPostCustomersExternalCustomerIdCreditsLedgerEntryEntryType {
 input OrbPostCustomersExternalCustomerIdCreditsLedgerEntryInput {
 	targetExpiryDate: String
 	perUnitCostBasis: String
+	metadata: JSON
 	invoiceSettings: OrbPostCustomersExternalCustomerIdCreditsLedgerEntryInvoiceSettingsInput
 	expiryDate: String
 	entryType: OrbPostCustomersExternalCustomerIdCreditsLedgerEntryEntryType!
@@ -654,6 +670,7 @@ input OrbPostCustomersInput {
 	paymentProviderId: String
 	paymentProvider: OrbPostCustomersPaymentProvider = null
 	name: String!
+	metadata: JSON
 	externalCustomerId: String
 	email: String!
 	currency: String
@@ -683,6 +700,7 @@ input OrbPostEventsBackfillsInput {
 	closeTime: String
 }
 type OrbPostEventsSearch {
+	paginationMetadata: JSON
 	nodes: [OrbEvent!]
 }
 input OrbPostEventsSearchInput {
@@ -727,10 +745,12 @@ enum OrbPostSubscriptionsExternalMarketplace {
 }
 input OrbPostSubscriptionsInput {
 	startDate: String
+	priceOverrides: [JSON!]
 	planId: String
 	phaseOverrides: [OrbPostSubscriptionsPhaseOverridesInput!]
 	netTerms: Int
 	minimumAmount: String
+	metadata: JSON
 	maximumAmount: String
 	externalPlanId: String
 	externalMarketplaceReportingId: String
@@ -763,6 +783,7 @@ enum OrbPostSubscriptionsSubscriptionIdSchedulePlanChangeChangeOption {
 	REQUESTED_DATE
 }
 input OrbPostSubscriptionsSubscriptionIdSchedulePlanChangeInput {
+	priceOverrides: [JSON!]
 	planId: String
 	minimumAmount: String
 	maximumAmount: String
@@ -889,6 +910,7 @@ input OrbPutCustomersCustomerIdInput {
 	paymentProviderId: String
 	paymentProvider: OrbPutCustomersCustomerIdPaymentProvider
 	name: String
+	metadata: JSON
 	emailDelivery: Boolean
 	email: String
 	billingAddress: OrbPutCustomersCustomerIdBillingAddressInput
@@ -953,7 +975,7 @@ type OrbQuery {
 	customerCosts(externalCustomerId: String!, groupBy: String, viewMode: OrbGetCustomerCostsViewMode = CUMULATIVE, timeframeEnd: String, timeframeStart: String): OrbGetCustomerCosts
 	customersCustomerIdCreditsLedger(customerId: String!, entryStatus: OrbGetCustomersCustomerIdCreditsLedgerEntryStatus, minimumAmount: Float, entryType: OrbGetCustomersCustomerIdCreditsLedgerEntryType): OrbGetCustomersCustomerIdCreditsLedger
 	customersExternalCustomerIdCreditsLedger(externalCustomerId: String!, entryStatus: OrbGetCustomersExternalCustomerIdCreditsLedgerEntryStatus, minimumAmount: Float, entryType: OrbGetCustomersExternalCustomerIdCreditsLedgerEntryType): OrbGetCustomersExternalCustomerIdCreditsLedger
-	invoices(externalCustomerId: String, customerId: String, subscriptionId: String): OrbGetInvoices
+	invoices(status: JSON, externalCustomerId: String, customerId: String, subscriptionId: String): OrbGetInvoices
 	invoice(invoiceId: String!): OrbInvoice
 	upcomingInvoice(subscriptionId: String!): OrbUpcomingInvoice
 	subscriptions(couponId: String!): OrbGetSubscriptions
@@ -975,6 +997,7 @@ type OrbSubscription {
 	redeemedCoupon: OrbSubscriptionRedeemedCoupon
 	plan: OrbPlan!
 	netTerms: Int
+	metadata: JSON!
 	id: String!
 	fixedFeeQuantitySchedule: [OrbSubscriptionFixedFeeQuantitySchedule!]!
 	endDate: String!

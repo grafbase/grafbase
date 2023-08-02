@@ -73,6 +73,7 @@ fn extract_components(ctx: &mut Context, components: &openapiv3_1::Components) {
 
     // Now we want to extract the spec for each of these schemas into our graph
     for (name, schema) in &components.schemas {
+        tracing::trace!("Extracting schema {name}");
         extract_types(
             ctx,
             &schema.json_schema,
@@ -94,6 +95,8 @@ fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, com
         };
 
         for (method, operation) in path_item.iter() {
+            tracing::trace!("Parsing operation: {:?}", operation.operation_id);
+
             let Ok(method) = method.parse() else {
                 ctx.errors.push(Error::UnknownHttpMethod(method.to_string()));
                 continue;
@@ -116,10 +119,13 @@ fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, com
                 })));
 
             for parameter in operation.path_parameters {
+                tracing::trace!("Parsing path parameter {}", parameter.name);
+
                 let parent = ParentNode::PathParameter {
                     name: parameter.name,
                     operation_index,
                 };
+
                 match parameter.schema {
                     Some(schema) => extract_types(ctx, &schema.json_schema, parent),
                     None => {
@@ -130,6 +136,7 @@ fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, com
             }
 
             for parameter in operation.query_parameters {
+                tracing::trace!("Parsing query parameter {}", parameter.name);
                 let parent = ParentNode::QueryParameter {
                     name: parameter.name,
                     operation_index,
@@ -150,6 +157,11 @@ fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, com
                     ctx.errors.push(Error::OperationMissingResponseSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {method:?} {path}"))));
                     continue;
                 };
+                tracing::trace!(
+                    "Parsing response for {:?} {}",
+                    response.status_code,
+                    response.content_type
+                );
 
                 extract_types(
                     ctx,
@@ -167,6 +179,8 @@ fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, com
                     ctx.errors.push(Error::OperationMissingRequestSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {method:?} {path}"))));
                     continue;
                 };
+
+                tracing::trace!("Parsing request for {:?}", request.content_type);
                 extract_types(
                     ctx,
                     &schema.json_schema,
@@ -193,6 +207,7 @@ fn extract_types(ctx: &mut Context, schema: &Schema, parent: ParentNode) {
     };
 
     if let Some(reference) = &schema.reference {
+        tracing::trace!("Inserting schema reference {reference}");
         let reference = Ref::absolute(reference);
         let Some(schema) = ctx.schema_index.get(&reference) else {
             ctx.errors.push(reference.to_unresolved_error());
@@ -213,8 +228,10 @@ fn extract_types(ctx: &mut Context, schema: &Schema, parent: ParentNode) {
             let nullable = types.contains(&InstanceType::Null);
             let other_types = types.iter().filter(|ty| **ty != InstanceType::Null).collect::<Vec<_>>();
             if other_types.len() == 1 {
+                tracing::trace!("Found a nullable instance type");
                 extract_instance_type(ctx, parent, **other_types.last().unwrap(), schema, true);
             } else {
+                tracing::trace!("Found a complex union, converting to JSON");
                 ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), nullable);
             }
             return;
@@ -227,9 +244,11 @@ fn extract_types(ctx: &mut Context, schema: &Schema, parent: ParentNode) {
                 if schemas.len() == 1 {
                     // The Stripe API has anyOfs containing a single item.
                     // For ease of use we simplify this to just point direct at the underlying type.
+                    tracing::trace!("Simplifying one_or/any_of");
                     extract_types(ctx, schemas.first().unwrap(), parent);
                     return;
                 }
+                tracing::trace!("Extracting union from oneOf/anyOf");
 
                 let union_index = ctx
                     .add_type_node(parent, Node::Union, false)
@@ -247,22 +266,34 @@ fn extract_types(ctx: &mut Context, schema: &Schema, parent: ParentNode) {
             let node_index = ctx.graph.add_node(Node::AllOf);
             ctx.add_type_edge(parent, node_index, false);
 
+            tracing::trace!("Extracting allOf");
             for schema in all_of {
                 extract_types(ctx, schema, ParentNode::AllOf(node_index));
             }
+            return;
         }
+        tracing::info!("Encountered an unhandled subschema");
         return;
     }
 
     // If we've got this far we might have to infer type from what other properties are present
     let default = schema.metadata.as_ref().and_then(|metadata| metadata.default.as_ref());
     if schema.object.is_some() {
-        extract_object(ctx, parent, dbg!(schema.object.as_deref()), default, false);
+        tracing::trace!("Extracting unlabelled object");
+        extract_object(ctx, parent, schema.object.as_deref(), default, false);
         return;
     }
     if schema.array.is_some() {
+        tracing::trace!("Extracting unlabelled array");
         extract_array_type(ctx, parent, schema, false);
+        return;
     }
+
+    // We can't determine what type this is, so insert a placeholder for now
+    // incase this is one branch of an allOf schema.  If it's not the placeholder will just be ignored
+    // in our output.
+    tracing::trace!("Defaulting to PlaceholderType");
+    ctx.add_type_node(parent, Node::PlaceholderType, false);
 }
 
 fn extract_instance_type(
@@ -276,6 +307,7 @@ fn extract_instance_type(
     match instance_type {
         InstanceType::Null => {}
         InstanceType::Boolean => {
+            tracing::trace!("Extracting boolean");
             ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), nullable)
                 .add_default(default);
         }
@@ -314,6 +346,7 @@ fn extract_array_type(ctx: &mut Context, parent: ParentNode, schema: &SchemaObje
     let Some(SingleOrVec::Single(items)) = schema.array.as_ref().and_then(|array| array.items.as_ref()) else {
         // Arrays with no item spec _or_ with multiple are hard to deal with properly, so
         // make this a JSON
+        tracing::trace!("Extracting array as JSON");
         ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), nullable);
         return;
     };
@@ -335,18 +368,20 @@ fn extract_object(
     default: Option<&Value>,
     nullable: bool,
 ) {
-    let Some(object) = object else {
-        // If we have no object we can't really extract anything...
-        return;
-    };
+    let default_object = ObjectValidation::default();
+    let object = object.unwrap_or(&default_object);
+
+    tracing::trace!("Extracting object");
 
     if object.properties.is_empty() {
         // If the object is empty _and_ there's no additionalProperties we don't bother
         // emiting an object for it.  Not sure if this is a good idea - could be some APIs
         // that _require_ an empty object.  But lets see what happens
         if object.additional_properties != Some(Box::new(Schema::Bool(false))) {
+            tracing::trace!("Extracting object as JSON");
             ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), nullable);
         }
+        tracing::trace!("Skipping object explicitly empty object");
         return;
     }
 
@@ -358,6 +393,7 @@ fn extract_object(
         // There's an edge case where field names are made up entirely of symbols and numbers,
         // making it tricky to generate a good GQL name for those fields.
         // For now, I'm just making those objects JSON.
+        tracing::trace!("Extracting object as JSON because of unsupported names");
         ctx.add_type_node(parent, Node::Scalar(ScalarKind::Json), nullable);
         return;
     }
@@ -368,6 +404,7 @@ fn extract_object(
         .node_index();
 
     for (field_name, field_schema) in &object.properties {
+        tracing::trace!("Extracting field {field_name}");
         let required = object.required.contains(field_name);
         extract_types(
             ctx,

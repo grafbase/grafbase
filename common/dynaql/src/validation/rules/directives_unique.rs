@@ -1,6 +1,5 @@
 use crate::parser::types::{
-    Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition,
-    VariableDefinition,
+    Directive, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition, VariableDefinition,
 };
 use crate::validation::visitor::Visitor;
 use crate::VisitorContext;
@@ -41,19 +40,11 @@ impl<'a> Visitor<'a> for DirectivesUnique {
         check_duplicate_directive(ctx, &field.node.directives);
     }
 
-    fn enter_fragment_spread(
-        &mut self,
-        ctx: &mut VisitorContext<'a>,
-        fragment_spread: &'a Positioned<FragmentSpread>,
-    ) {
+    fn enter_fragment_spread(&mut self, ctx: &mut VisitorContext<'a>, fragment_spread: &'a Positioned<FragmentSpread>) {
         check_duplicate_directive(ctx, &fragment_spread.node.directives);
     }
 
-    fn enter_inline_fragment(
-        &mut self,
-        ctx: &mut VisitorContext<'a>,
-        inline_fragment: &'a Positioned<InlineFragment>,
-    ) {
+    fn enter_inline_fragment(&mut self, ctx: &mut VisitorContext<'a>, inline_fragment: &'a Positioned<InlineFragment>) {
         check_duplicate_directive(ctx, &inline_fragment.node.directives);
     }
 }
@@ -66,10 +57,7 @@ fn check_duplicate_directive(ctx: &mut VisitorContext<'_>, directives: &[Positio
         if let Some(meta_directive) = ctx.registry.directives.get(name.as_str()) {
             if !meta_directive.is_repeatable {
                 if exists.contains(name) {
-                    ctx.report_error(
-                        vec![directive.pos],
-                        format!("Duplicate directive \"{name}\""),
-                    );
+                    ctx.report_error(vec![directive.pos], format!("Duplicate directive \"{name}\""));
                     continue;
                 }
                 exists.insert(name);
