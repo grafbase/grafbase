@@ -13,7 +13,8 @@ import path from 'path'
 
 dotenv.config({
   // must exist, defined by "~/.grafbase/parser/parse-config.ts"
-  path: path.join(process.env.GRAFBASE_PROJECT_GRAFBASE_DIR!, '.env')
+  path: path.join(process.env.GRAFBASE_PROJECT_GRAFBASE_DIR!, '.env'),
+  override: true
 })
 
 export type AtLeastOne<T> = [T, ...T[]]
