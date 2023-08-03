@@ -23,8 +23,6 @@ mod transforms;
 mod all_of_member;
 pub mod construction;
 
-use crate::{parsing::ParseOutput, ApiMetadata, Error};
-
 pub use self::{
     enums::Enum,
     input_object::{InputField, InputObject},
@@ -34,6 +32,7 @@ pub use self::{
     parameters::{PathParameter, QueryParameter, RequestBody},
     scalar::Scalar,
 };
+use crate::{parsing::ParseOutput, ApiMetadata, Error};
 
 /// A graph representation of an OpenApi schema.
 ///
@@ -424,7 +423,9 @@ impl OpenApiGraph {
                 let mut name_components = Vec::new();
                 let mut path_iter = path.into_iter().peekable();
                 while let Some(src_node) = path_iter.next() {
-                    let Some(&dest_node) = path_iter.peek() else { break; };
+                    let Some(&dest_node) = path_iter.peek() else {
+                        break;
+                    };
 
                     name_components.extend(self.graph.edges_connecting(src_node, dest_node).find_map(|edge| {
                         match edge.weight() {

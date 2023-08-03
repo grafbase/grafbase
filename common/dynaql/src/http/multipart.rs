@@ -1,10 +1,11 @@
-use std::collections::HashMap;
-use std::io::{self, Seek, Write};
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::{
+    collections::HashMap,
+    io::{self, Seek, Write},
+    pin::Pin,
+    task::{Context, Poll},
+};
 
-use futures_util::io::AsyncRead;
-use futures_util::stream::Stream;
+use futures_util::{io::AsyncRead, stream::Stream};
 use multer::{Constraints, Multipart, SizeLimit};
 use pin_project_lite::pin_project;
 

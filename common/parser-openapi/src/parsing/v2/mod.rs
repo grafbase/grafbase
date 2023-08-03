@@ -11,16 +11,13 @@ use openapi::v2::{Operation, PathItem};
 use regex::Regex;
 use url::Url;
 
+use self::components::Components;
+use super::grouping;
 use crate::{
-    graph::construction::ParentNode,
-    graph::{FieldName, HttpMethod, Node, ScalarKind},
+    graph::{construction::ParentNode, FieldName, HttpMethod, Node, ScalarKind},
     parsing::{Context, Ref},
     Error,
 };
-
-use self::components::Components;
-
-use super::grouping;
 
 pub fn parse(spec: openapi::v2::Spec) -> Context {
     let mut ctx = Context {
@@ -92,7 +89,12 @@ fn extract_operations(ctx: &mut Context, components: &Components, paths: &BTreeM
                     }
                     "body" => {
                         let Some(schema) = &parameter.schema else {
-                            ctx.errors.push(Error::OperationMissingRequestSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {http_method:?} {path}"))));
+                            ctx.errors.push(Error::OperationMissingRequestSchema(
+                                operation
+                                    .operation_id
+                                    .clone()
+                                    .unwrap_or_else(|| format!("HTTP {http_method:?} {path}")),
+                            ));
                             continue;
                         };
 

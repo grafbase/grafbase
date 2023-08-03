@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::parser::types::{Field, FragmentDefinition, Selection, SelectionSet};
-use crate::Context;
-use crate::{Name, Positioned, SelectionField};
+use crate::{
+    parser::types::{Field, FragmentDefinition, Selection, SelectionSet},
+    Context, Name, Positioned, SelectionField,
+};
 
 /// A selection performed by a query.
 pub struct Lookahead<'a> {

@@ -1,10 +1,12 @@
+use std::str::FromStr;
+
+use dynaql_value::ConstValue;
+use rust_decimal::Decimal;
+
 use crate::{
     registry::scalars::{DynamicParse, SDLDefinitionScalar},
     InputValueError,
 };
-use dynaql_value::ConstValue;
-use rust_decimal::Decimal;
-use std::str::FromStr;
 
 pub struct DecimalScalar;
 

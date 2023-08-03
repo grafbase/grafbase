@@ -181,9 +181,8 @@ impl<'de> serde::de::Deserialize<'de> for OwnedConstValueWrapper {
 mod tests {
     use serde_json::json;
 
-    use crate::registry::MetaInputValue;
-
     use super::*;
+    use crate::registry::MetaInputValue;
 
     fn run_test(input: ConstValue) {
         let output: OwnedConstValueWrapper =

@@ -1,14 +1,18 @@
-use super::bridge_api;
-use super::types::{Operation, Record, Sql, SqlValue};
-use crate::constant::OWNED_BY;
-use crate::{DynamoDBContext, LocalContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use maplit::hashmap;
 use quick_error::quick_error;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
+
+use super::{
+    bridge_api,
+    types::{Operation, Record, Sql, SqlValue},
+};
+use crate::{
+    constant::OWNED_BY, DynamoDBContext, LocalContext, OperationAuthorization, OperationAuthorizationError,
+    RequestedOperation,
+};
 
 quick_error! {
     #[derive(Debug, Clone)]

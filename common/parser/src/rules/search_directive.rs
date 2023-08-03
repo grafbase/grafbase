@@ -1,4 +1,5 @@
-use crate::registry::add_query_search;
+use dynaql::Positioned;
+use dynaql_parser::types::{TypeDefinition, TypeKind};
 
 use super::{
     auth_directive::AuthDirective,
@@ -6,8 +7,7 @@ use super::{
     model_directive::MODEL_DIRECTIVE,
     visitor::{Visitor, VisitorContext},
 };
-use dynaql::Positioned;
-use dynaql_parser::types::{TypeDefinition, TypeKind};
+use crate::registry::add_query_search;
 
 pub const SEARCH_DIRECTIVE: &str = "search";
 

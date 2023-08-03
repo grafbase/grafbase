@@ -9,14 +9,17 @@
 mod executable;
 mod service;
 
-use crate::pos::Positioned;
-use dynaql_value::{ConstValue, Name, Value};
-use serde::{Deserialize, Serialize};
-use std::collections::{hash_map, HashMap};
-use std::fmt::{self, Display, Formatter, Write};
+use std::{
+    collections::{hash_map, HashMap},
+    fmt::{self, Display, Formatter, Write},
+};
 
+use dynaql_value::{ConstValue, Name, Value};
 pub use executable::*;
+use serde::{Deserialize, Serialize};
 pub use service::*;
+
+use crate::pos::Positioned;
 
 /// The name of a directive that can be considered as a model.
 pub const MODEL_DIRECTIVE: &str = "model";

@@ -17,12 +17,11 @@ use dynaql::{
 };
 use inflector::Inflector;
 
+use self::namespacing::RegistryExt;
 use crate::graph::{
     Enum, InputField, InputObject, InputValue, OpenApiGraph, Operation, OutputField, OutputFieldType, OutputType,
     PathParameter, QueryParameter, RequestBody, WrappingType,
 };
-
-use self::namespacing::RegistryExt;
 
 pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
     registry.types.extend(types_to_metatypes(graph.output_types(), graph));

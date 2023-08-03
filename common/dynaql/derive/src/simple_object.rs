@@ -1,15 +1,16 @@
 #![allow(clippy::option_if_let_else)]
 #![allow(clippy::useless_let_if_seq)]
+use std::str::FromStr;
+
 use darling::ast::Data;
 use proc_macro::TokenStream;
 use quote::quote;
-use std::str::FromStr;
-use syn::ext::IdentExt;
-use syn::visit::Visit;
-use syn::{Error, Ident, Lifetime, Path, Type};
+use syn::{ext::IdentExt, visit::Visit, Error, Ident, Lifetime, Path, Type};
 
-use crate::args::{self, RenameRuleExt, RenameTarget, SimpleObjectField};
-use crate::utils::{gen_deprecation, generate_guards, get_crate_name, get_rustdoc, visible_fn, GeneratorResult};
+use crate::{
+    args::{self, RenameRuleExt, RenameTarget, SimpleObjectField},
+    utils::{gen_deprecation, generate_guards, get_crate_name, get_rustdoc, visible_fn, GeneratorResult},
+};
 
 #[derive(Debug)]
 struct DerivedFieldMetadata {

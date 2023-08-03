@@ -7,9 +7,10 @@
 //! Due to the implementation right now (especially on constraint), we shouldn't
 //! allow it
 
-use super::visitor::{Visitor, VisitorContext};
 use case::CaseExt;
 use if_chain::if_chain;
+
+use super::visitor::{Visitor, VisitorContext};
 
 pub struct CheckFieldCamelCase;
 
@@ -37,10 +38,11 @@ impl<'a> Visitor<'a> for CheckFieldCamelCase {
 
 #[cfg(test)]
 mod tests {
-    use super::CheckFieldCamelCase;
-    use crate::rules::visitor::{visit, VisitorContext};
     use dynaql_parser::parse_schema;
     use serde_json as _;
+
+    use super::CheckFieldCamelCase;
+    use crate::rules::visitor::{visit, VisitorContext};
 
     #[test]
     fn should_error_when_not_camel_lowercase() {

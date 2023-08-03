@@ -1,15 +1,16 @@
+use std::{collections::HashMap, sync::Arc, time::Duration};
+
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use quick_error::quick_error;
 use rusoto_dynamodb::{BatchGetItemInput, DynamoDb, KeysAndAttributes};
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
-use crate::constant::{OWNED_BY, PK, SK};
-use crate::{DynamoDBContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation};
+use crate::{
+    constant::{OWNED_BY, PK, SK},
+    DynamoDBContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation,
+};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {

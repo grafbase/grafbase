@@ -1,9 +1,9 @@
+use std::str::FromStr;
+
 use dynaql_value::ConstValue;
 
-use crate::InputValueError;
-
 use super::{DynamicParse, SDLDefinitionScalar};
-use std::str::FromStr;
+use crate::InputValueError;
 
 pub struct BigIntScalar;
 

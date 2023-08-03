@@ -1,7 +1,9 @@
-use crate::ServerError;
-use dynaql_parser::Pos;
 use std::fmt::{Debug, Display};
+
+use dynaql_parser::Pos;
 use thiserror::Error;
+
+use crate::ServerError;
 
 /// The purpose of this structure is to prepare for ID Obfuscation withing Dynaql
 pub struct ObfuscatedID<'a> {

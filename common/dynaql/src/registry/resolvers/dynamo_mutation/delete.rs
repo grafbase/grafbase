@@ -1,14 +1,13 @@
-use std::collections::HashSet;
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use dynamodb::{constant::INVERTED_INDEX_PK, DynamoDBBatchersData, PossibleChanges};
 use graph_entities::NodeID;
 
-use crate::registry::ModelName;
 use crate::{
     registry::{
         resolvers::ResolvedValue,
         variables::{id::ObfuscatedID, oneof::OneOf, VariableResolveDefinition},
+        ModelName,
     },
     Context, Error,
 };

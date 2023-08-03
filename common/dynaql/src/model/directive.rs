@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
-use crate::model::__InputValue;
-use crate::{registry, Enum, Object};
+use crate::{model::__InputValue, registry, Enum, Object};
 
 /// A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.
 #[derive(Debug, Enum, Copy, Clone, Eq, PartialEq, serde::Deserialize, serde::Serialize)]

@@ -96,18 +96,14 @@ mod tests {
         );
 
         let result = serde_json::from_str::<OneOf<String>>(r#"{"key": "value", "key2": "value"}"#);
-        let Err(err) = result else {
-            panic!("Expected an error.")
-        };
+        let Err(err) = result else { panic!("Expected an error.") };
         assert!(
             err.to_string().contains("at most one field"),
             "Unexpected message: {err}"
         );
 
         let result = serde_json::from_str::<OneOf<String>>(r#"{}"#);
-        let Err(err) = result else {
-            panic!("Expected an error.")
-        };
+        let Err(err) = result else { panic!("Expected an error.") };
         assert!(
             err.to_string().contains("at least one field"),
             "Unexpected message: {err}"

@@ -1,17 +1,21 @@
 #![allow(deprecated)]
 
+use std::{hash::Hash, sync::Arc};
+
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use indexmap::IndexMap;
 
-use super::dynamo_querying::{DynamoResolver, IdCursor};
-use super::{ResolvedPaginationInfo, ResolvedValue, Resolver};
-use crate::registry::resolvers::ResolverContext;
-use crate::registry::variables::VariableResolveDefinition;
-use crate::registry::{MetaEnumValue, MetaType, UnionDiscriminator};
-use crate::{Context, Error};
-use std::hash::Hash;
-use std::sync::Arc;
+use super::{
+    dynamo_querying::{DynamoResolver, IdCursor},
+    ResolvedPaginationInfo, ResolvedValue, Resolver,
+};
+use crate::{
+    registry::{
+        resolvers::ResolverContext, variables::VariableResolveDefinition, MetaEnumValue, MetaType, UnionDiscriminator,
+    },
+    Context, Error,
+};
 
 #[non_exhaustive]
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
@@ -177,7 +181,10 @@ impl Transformer {
                     old_val.get(dynamodb::constant::SK).cloned().unwrap_or_default(),
                 )?;
                 let Some(sk) = sk_attr.s else {
-                    ctx.add_error(Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
+                    ctx.add_error(
+                        Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.")
+                            .into_server_error(ctx.item.pos),
+                    );
                     return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
                 };
 
@@ -218,7 +225,10 @@ impl Transformer {
                     old_val.get(dynamodb::constant::SK).cloned().unwrap_or_default(),
                 )?;
                 let Some(sk) = sk_attr.s else {
-                    ctx.add_error(Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
+                    ctx.add_error(
+                        Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.")
+                            .into_server_error(ctx.item.pos),
+                    );
                     return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
                 };
 

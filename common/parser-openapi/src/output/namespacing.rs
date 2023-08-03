@@ -9,9 +9,8 @@ use dynaql::{
 };
 use inflector::Inflector;
 
-use crate::ApiMetadata;
-
 use super::{meta_field, object};
+use crate::ApiMetadata;
 
 pub trait RegistryExt {
     fn query_fields_mut(&mut self, api_metadata: &ApiMetadata) -> &mut IndexMap<String, MetaField>;

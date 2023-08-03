@@ -8,9 +8,8 @@ use std::collections::{BTreeMap, HashMap};
 
 use petgraph::{graph::NodeIndex, visit::EdgeRef, Direction};
 
-use crate::Error;
-
 use super::{all_of_member::AllOfMember, Edge, Node, OpenApiGraph, WrappingType};
+use crate::Error;
 
 pub fn run(graph: &mut OpenApiGraph) -> Result<(), Error> {
     merge_all_of_schemas(graph)?;

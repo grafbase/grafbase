@@ -28,8 +28,7 @@ mod validators;
 
 use darling::{FromDeriveInput, FromMeta};
 use proc_macro::TokenStream;
-use syn::parse_macro_input;
-use syn::{DeriveInput, ItemFn, ItemImpl};
+use syn::{parse_macro_input, DeriveInput, ItemFn, ItemImpl};
 
 struct AttributeArgs(Vec<darling::ast::NestedMeta>);
 

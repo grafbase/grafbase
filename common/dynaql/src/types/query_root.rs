@@ -3,12 +3,13 @@ use std::borrow::Cow;
 use graph_entities::ResponseNodeId;
 use indexmap::map::IndexMap;
 
-use crate::graph::field_into_node;
-use crate::model::{__Schema, __Type};
-use crate::parser::types::Field;
-use crate::resolver_utils::ContainerType;
 use crate::{
-    registry, Any, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
+    graph::field_into_node,
+    model::{__Schema, __Type},
+    parser::types::Field,
+    registry,
+    resolver_utils::ContainerType,
+    Any, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
     SimpleObject, Value,
 };
 

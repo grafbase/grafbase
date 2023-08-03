@@ -78,8 +78,9 @@ impl std::hash::Hash for UnionDiscriminator {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
 
     #[test]
     fn test_field_present() {

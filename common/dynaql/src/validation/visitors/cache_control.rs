@@ -1,8 +1,11 @@
-use crate::parser::types::{Field, SelectionSet};
-use crate::registry::MetaType;
-use crate::validation::visitor::{VisitMode, Visitor, VisitorContext};
-use crate::{CacheControl, CacheInvalidation, Positioned};
 use std::collections::HashSet;
+
+use crate::{
+    parser::types::{Field, SelectionSet},
+    registry::MetaType,
+    validation::visitor::{VisitMode, Visitor, VisitorContext},
+    CacheControl, CacheInvalidation, Positioned,
+};
 
 pub struct CacheControlCalculate<'a> {
     pub cache_control: &'a mut CacheControl,

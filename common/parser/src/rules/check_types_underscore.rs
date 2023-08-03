@@ -7,8 +7,9 @@
 //!
 //! We keep those types as internal types.
 
-use super::visitor::{Visitor, VisitorContext};
 use if_chain::if_chain;
+
+use super::visitor::{Visitor, VisitorContext};
 
 pub struct CheckBeginsWithDoubleUnderscore;
 
@@ -36,10 +37,13 @@ impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
-    use crate::rules::visitor::{visit, VisitorContext};
     use dynaql_parser::parse_schema;
     use serde_json as _;
+
+    use crate::rules::{
+        check_types_underscore::CheckBeginsWithDoubleUnderscore,
+        visitor::{visit, VisitorContext},
+    };
 
     #[test]
     fn should_error_on_underscore() {

@@ -1,12 +1,11 @@
 use chrono::{DateTime, NaiveDate};
 use serde_json::{json, Value};
 
+use super::JsonMap;
 use crate::{
     registry::{type_kinds::InputType, MetaInputValue, TypeReference},
     Context,
 };
-
-use super::JsonMap;
 
 /// Given the input keys, converts them to the names on MongoDB.
 ///

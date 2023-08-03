@@ -2,10 +2,9 @@ use std::borrow::Cow;
 
 use graph_entities::ResponseNodeId;
 
-use crate::parser::types::Field;
-use crate::resolver_utils::ContainerType;
 use crate::{
-    registry, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
+    parser::types::Field, registry, resolver_utils::ContainerType, Context, ContextSelectionSet, LegacyOutputType,
+    ObjectType, Positioned, ServerError, ServerResult,
 };
 
 /// Empty mutation

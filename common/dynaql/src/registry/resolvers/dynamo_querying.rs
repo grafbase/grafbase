@@ -1,27 +1,28 @@
-use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, Resolver};
+use std::{borrow::Borrow, collections::HashSet, hash::Hash, string::FromUtf8Error, sync::Arc};
 
-use crate::registry::enums::OrderByDirection;
-use crate::registry::relations::{MetaRelation, MetaRelationKind};
-use crate::registry::variables::oneof::OneOf;
-use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
-use crate::registry::{MetaType, ModelName, SchemaID};
-use crate::{Context, Error, Value};
-use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::{
+    constant::{INVERTED_INDEX_PK, SK},
     DynamoDBBatchersData, PaginatedCursor, PaginationOrdering, ParentEdge, QueryKey, QuerySingleRelationKey,
     QueryTypePaginatedKey,
 };
-use grafbase_runtime::search::Cursor;
+use grafbase_runtime::search::GraphqlCursor;
 use graph_entities::NodeID;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
-use std::borrow::Borrow;
-use std::collections::HashSet;
-use std::hash::Hash;
-use std::string::FromUtf8Error;
-use std::sync::Arc;
+
+use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, Resolver};
+use crate::{
+    registry::{
+        enums::OrderByDirection,
+        relations::{MetaRelation, MetaRelationKind},
+        resolvers::ResolverContext,
+        variables::{oneof::OneOf, VariableResolveDefinition},
+        MetaType, ModelName, SchemaID,
+    },
+    Context, Error, Value,
+};
 
 mod get;
 
@@ -171,22 +172,23 @@ impl From<DynamoResolver> for Resolver {
 }
 
 // Cursor "implementation" for DynamoDB collections
+// Re-using GraphqlCursor from search as it does exactly what we need.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(try_from = "Cursor", into = "Cursor")]
+#[serde(try_from = "GraphqlCursor", into = "GraphqlCursor")]
 pub struct IdCursor {
     pub id: String,
 }
 
-impl From<IdCursor> for Cursor {
+impl From<IdCursor> for GraphqlCursor {
     fn from(value: IdCursor) -> Self {
-        Cursor::from(value.id.as_bytes())
+        GraphqlCursor::from(value.id.as_bytes())
     }
 }
 
-impl TryFrom<Cursor> for IdCursor {
+impl TryFrom<GraphqlCursor> for IdCursor {
     type Error = FromUtf8Error;
 
-    fn try_from(value: Cursor) -> Result<Self, Self::Error> {
+    fn try_from(value: GraphqlCursor) -> Result<Self, Self::Error> {
         String::from_utf8(value.into_bytes()).map(|id| IdCursor { id })
     }
 }

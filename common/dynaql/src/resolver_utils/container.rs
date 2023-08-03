@@ -1,14 +1,13 @@
+use std::{future::Future, pin::Pin, sync::Arc};
+
 use dynaql_parser::{Pos, Positioned};
 use futures_util::FutureExt;
 use graph_entities::{CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
 
-use crate::extensions::ResolveInfo;
-use crate::parser::types::Selection;
-use crate::registry::{MetaType, Registry};
 use crate::{
+    extensions::ResolveInfo,
+    parser::types::Selection,
+    registry::{MetaType, Registry},
     relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name, ServerError,
     ServerResult, Value,
 };

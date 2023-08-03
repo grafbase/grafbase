@@ -5,12 +5,11 @@ use petgraph::{
     visit::{EdgeRef, IntoEdges, Reversed},
 };
 
-use crate::{is_ok, QueryNamingStrategy};
-
 use super::{
     output_type::OutputFieldType, Arity, Edge, HttpMethod, Node, OperationDetails, PathParameter, QueryParameter,
     RequestBody, RequestBodyContentType,
 };
+use crate::{is_ok, QueryNamingStrategy};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Operation {

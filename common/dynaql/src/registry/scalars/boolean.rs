@@ -1,6 +1,7 @@
+use dynaql_value::ConstValue;
+
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
-use dynaql_value::ConstValue;
 
 pub struct BooleanScalar;
 

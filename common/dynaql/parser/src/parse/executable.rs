@@ -1,5 +1,6 @@
-use super::*;
 use dynaql_value::Name;
+
+use super::*;
 
 /// Parse a GraphQL query document.
 ///
@@ -360,8 +361,9 @@ fn parse_type_condition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::fs;
+
+    use super::*;
 
     #[test]
     fn test_parser() {

@@ -1,9 +1,10 @@
+use dynaql::Positioned;
+use dynaql_parser::types::{FieldDefinition, TypeDefinition};
+
 use super::{
     model_directive::ModelDirective,
     visitor::{Visitor, VisitorContext},
 };
-use dynaql::Positioned;
-use dynaql_parser::types::{FieldDefinition, TypeDefinition};
 
 pub const VALUE_ARGUMENT: &str = "value";
 
@@ -70,11 +71,12 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::rules::visitor::visit;
     use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
+
+    use super::*;
+    use crate::rules::visitor::visit;
 
     #[test]
     fn test_default_with_enum_variant() {

@@ -1,7 +1,8 @@
-use super::{DynamicParse, SDLDefinitionScalar};
-use crate::{Error, InputValueError, InputValueResult};
 use dynaql_value::ConstValue;
 use serde::Deserialize;
+
+use super::{DynamicParse, SDLDefinitionScalar};
+use crate::{Error, InputValueError, InputValueResult};
 
 pub struct JSONScalar;
 
@@ -31,10 +32,11 @@ impl DynamicParse for JSONScalar {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SDLDefinitionScalar;
-    use crate::registry::scalars::{DynamicParse, JSONScalar};
     use dynaql_value::ConstValue;
     use insta::assert_snapshot;
+
+    use super::super::SDLDefinitionScalar;
+    use crate::registry::scalars::{DynamicParse, JSONScalar};
 
     #[test]
     fn check_json_valid() {

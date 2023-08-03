@@ -1,14 +1,13 @@
 use dynaql::registry::ConnectorHeaders;
 use url::Url;
 
-use crate::directive_de::parse_directive;
-
 use super::{
     connector_headers::{Header, IntrospectionHeader},
     connector_transforms::Transforms,
     directive::Directive,
     visitor::Visitor,
 };
+use crate::directive_de::parse_directive;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -139,9 +138,8 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
 mod tests {
     use rstest::rstest;
 
-    use crate::{connector_parsers::MockConnectorParsers, rules::visitor::RuleError};
-
     use super::OpenApiQueryNamingStrategy;
+    use crate::{connector_parsers::MockConnectorParsers, rules::visitor::RuleError};
 
     #[test]
     fn test_parsing_openapi_directive() {

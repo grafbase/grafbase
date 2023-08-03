@@ -1,10 +1,10 @@
-use super::ID_SEPARATOR;
+use std::{borrow::Cow, fmt::Display, str::FromStr};
+
 use dynomite::{Attribute, AttributeError};
 use serde::Serialize;
-use std::borrow::Cow;
-use std::fmt::Display;
-use std::str::FromStr;
 use ulid::Ulid;
+
+use super::ID_SEPARATOR;
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord, Hash, Serialize)]
 pub struct NodeID<'a> {

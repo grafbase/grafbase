@@ -1,8 +1,6 @@
 use dynaql_value::Value;
 
-use crate::registry::MetaInputValue;
-use crate::validation::visitor::VisitorContext;
-use crate::Pos;
+use crate::{registry::MetaInputValue, validation::visitor::VisitorContext, Pos};
 
 mod length;
 

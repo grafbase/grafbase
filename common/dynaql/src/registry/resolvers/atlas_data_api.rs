@@ -3,8 +3,16 @@ mod normalize;
 mod operation;
 mod projection;
 
-use grafbase_runtime::search::Cursor;
+use std::{pin::Pin, sync::Arc};
+
+use futures_util::Future;
+use grafbase_runtime::search::GraphqlCursor;
+use http::{
+    header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
+    StatusCode,
+};
 pub use operation::OperationType;
+use send_wrapper::SendWrapper;
 
 use super::{ResolvedPaginationInfo, ResolvedValue, ResolverContext};
 use crate::{
@@ -14,13 +22,6 @@ use crate::{
     },
     Context, Error,
 };
-use futures_util::Future;
-use http::{
-    header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
-    StatusCode,
-};
-use send_wrapper::SendWrapper;
-use std::{pin::Pin, sync::Arc};
 
 mod headers {
     pub const API_KEY_HEADER_NAME: &str = "apiKey";
@@ -155,8 +156,8 @@ impl AtlasDataApiResolver {
                 first.zip(last)
             });
 
-        let start_cursor = ids.map(|(first, _)| first.as_bytes()).map(Cursor::from);
-        let end_cursor = ids.map(|(_, last)| last.as_bytes()).map(Cursor::from);
+        let start_cursor = ids.map(|(first, _)| first.as_bytes()).map(GraphqlCursor::from);
+        let end_cursor = ids.map(|(_, last)| last.as_bytes()).map(GraphqlCursor::from);
 
         Some(ResolvedPaginationInfo {
             start_cursor,

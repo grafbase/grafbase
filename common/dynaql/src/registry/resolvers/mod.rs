@@ -9,26 +9,26 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use self::{
-    custom::CustomResolver,
-    graphql::{QueryBatcher, Target},
-    transformer::Transformer,
-};
-use crate::{Context, Error, RequestHeaders};
+use std::{borrow::Borrow, sync::Arc};
+
 use derivative::Derivative;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
 use dynaql_value::{ConstValue, Name};
-use grafbase_runtime::cursor::Cursor;
+use grafbase_runtime::search::GraphqlCursor;
 use graph_entities::ConstraintID;
 use query::QueryResolver;
-
-use std::{borrow::Borrow, sync::Arc};
 use ulid::Ulid;
 
+use self::{
+    custom::CustomResolver,
+    graphql::{QueryBatcher, Target},
+    transformer::Transformer,
+};
 use super::{Constraint, MetaField, MetaType};
+use crate::{Context, Error, RequestHeaders};
 
 pub mod atlas_data_api;
 pub mod custom;
@@ -104,14 +104,14 @@ impl ResolvedPaginationDirection {
 
 #[derive(Debug, Hash, Clone)]
 pub struct ResolvedPaginationInfo {
-    pub start_cursor: Option<Cursor>,
-    pub end_cursor: Option<Cursor>,
+    pub start_cursor: Option<GraphqlCursor>,
+    pub end_cursor: Option<GraphqlCursor>,
     pub has_next_page: bool,
     pub has_previous_page: bool,
 }
 
 impl ResolvedPaginationInfo {
-    pub fn of<C: Into<Cursor>>(
+    pub fn of<C: Into<GraphqlCursor>>(
         direction: ResolvedPaginationDirection,
         start_cursor: Option<C>,
         end_cursor: Option<C>,

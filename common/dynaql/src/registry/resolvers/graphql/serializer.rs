@@ -383,7 +383,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
             while let Some(variable_name) = iter.next() {
                 let Some(variable_definition) = self.variable_definitions.get(variable_name) else {
-                    return Err(Error::UndeclaredVariable(variable_name.to_string()))
+                    return Err(Error::UndeclaredVariable(variable_name.to_string()));
                 };
 
                 let VariableDefinition {
@@ -509,9 +509,8 @@ mod tests {
     use dynaql_value::ConstValue;
     use rstest::rstest;
 
-    use crate::registry::{MetaField, ObjectType, UnionType};
-
     use super::*;
+    use crate::registry::{MetaField, ObjectType, UnionType};
 
     macro_rules! set_snapshot_suffix {
         ($($expr:expr),*) => {

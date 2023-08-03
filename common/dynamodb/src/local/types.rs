@@ -1,4 +1,8 @@
-use super::{consts::BRIDGE_PROTOCOL, utils::joined_repeating};
+use std::{
+    collections::{HashMap, VecDeque},
+    net::Ipv4Addr,
+};
+
 use chrono::{DateTime, SecondsFormat, Utc};
 use dynomite::AttributeValue;
 use itertools::Itertools;
@@ -7,10 +11,8 @@ use regex::Regex;
 use rusoto_dynamodb::Put;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string as json_string;
-use std::{
-    collections::{HashMap, VecDeque},
-    net::Ipv4Addr,
-};
+
+use super::{consts::BRIDGE_PROTOCOL, utils::joined_repeating};
 
 pub fn serialize_dt_to_rfc3339<S>(dt: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
 where

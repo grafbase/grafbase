@@ -1,8 +1,10 @@
-use super::{DynamicParse, SDLDefinitionScalar};
-use crate::{Error, InputValueError, InputValueResult};
+use std::net::IpAddr;
+
 use dynaql_value::ConstValue;
 use ipnet::IpNet;
-use std::net::IpAddr;
+
+use super::{DynamicParse, SDLDefinitionScalar};
+use crate::{Error, InputValueError, InputValueResult};
 
 pub struct IPAddressScalar;
 
@@ -80,10 +82,11 @@ impl DynamicParse for IPAddressScalar {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SDLDefinitionScalar;
-    use crate::registry::scalars::{DynamicParse, IPAddressScalar};
     use dynaql_value::ConstValue;
     use insta::assert_snapshot;
+
+    use super::super::SDLDefinitionScalar;
+    use crate::registry::scalars::{DynamicParse, IPAddressScalar};
 
     #[test]
     fn check_valid_ip_address_ipv4() {

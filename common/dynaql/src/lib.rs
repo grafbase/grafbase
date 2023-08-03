@@ -75,24 +75,14 @@ pub mod registry;
 pub use async_stream;
 #[doc(hidden)]
 pub use async_trait;
-#[doc(hidden)]
-pub use context::ContextSelectionSet;
-#[doc(hidden)]
-pub use futures_util;
-#[doc(hidden)]
-pub use graph_entities;
-#[doc(hidden)]
-pub use indexmap;
-#[doc(hidden)]
-pub use static_assertions;
-#[doc(hidden)]
-pub use subscription::SubscriptionType;
-
 pub use auth::*;
 pub use base::{
     ComplexObject, Description, LegacyInputObjectType, LegacyInputType, LegacyInterfaceType, LegacyOutputType,
     LegacyUnionType, ObjectType,
 };
+#[doc(hidden)]
+pub use context::ContextSelectionSet;
+pub use context::*;
 pub use custom_directive::{CustomDirective, CustomDirectiveFactory};
 pub use dynaql_parser as parser;
 pub use dynaql_value::{
@@ -103,24 +93,31 @@ pub use error::{
     Result, ResultExt, ServerError, ServerResult,
 };
 pub use extensions::ResolveFut;
+#[doc(hidden)]
+pub use futures_util;
+#[doc(hidden)]
+pub use graph_entities;
 pub use graph_entities::ResponseNodeId;
 pub use guard::{Guard, GuardExt};
 pub use headers::RequestHeaders;
+#[doc(hidden)]
+pub use indexmap;
 pub use look_ahead::Lookahead;
+#[doc(no_inline)]
+pub use parser::{Pos, Positioned};
 pub use registry::{CacheControl, CacheInvalidation};
 pub use request::{BatchRequest, Request};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
-pub use response::GraphQlResponse;
-pub use response::{BatchResponse, Response};
+pub use response::{BatchResponse, GraphQlResponse, Response};
 pub use schema::{Schema, SchemaBuilder, SchemaEnv};
+#[doc(hidden)]
+pub use static_assertions;
+#[doc(hidden)]
+pub use subscription::SubscriptionType;
+pub use types::*;
 pub use validation::{ValidationMode, ValidationResult, VisitorContext};
 pub use validators::CustomValidator;
-
-pub use context::*;
-#[doc(no_inline)]
-pub use parser::{Pos, Positioned};
-pub use types::*;
 
 /// An alias of [dynaql::Error](struct.Error.html). Present for backward compatibility
 /// reasons.
@@ -130,17 +127,7 @@ pub type FieldError = Error;
 /// reasons.
 pub type FieldResult<T> = Result<T>;
 
-pub use dynaql_derive::ComplexObject;
-pub use dynaql_derive::Description;
-pub use dynaql_derive::Directive;
-pub use dynaql_derive::Enum;
-pub use dynaql_derive::InputObject;
-pub use dynaql_derive::Interface;
-pub use dynaql_derive::MergedObject;
-pub use dynaql_derive::MergedSubscription;
-pub use dynaql_derive::NewType;
-pub use dynaql_derive::Object;
-pub use dynaql_derive::Scalar;
-pub use dynaql_derive::SimpleObject;
-pub use dynaql_derive::Subscription;
-pub use dynaql_derive::Union;
+pub use dynaql_derive::{
+    ComplexObject, Description, Directive, Enum, InputObject, Interface, MergedObject, MergedSubscription, NewType,
+    Object, Scalar, SimpleObject, Subscription, Union,
+};

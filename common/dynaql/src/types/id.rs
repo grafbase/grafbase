@@ -1,6 +1,9 @@
+use std::{
+    num::ParseIntError,
+    ops::{Deref, DerefMut},
+};
+
 use serde::{Deserialize, Serialize};
-use std::num::ParseIntError;
-use std::ops::{Deref, DerefMut};
 
 use crate::{InputValueError, InputValueResult, LegacyScalarType, Scalar, Value};
 

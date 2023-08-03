@@ -8,13 +8,14 @@ async-trait = "0.1"
 grafbase-runtime = { path = ".." }
 gateway-protocol = { path = "../../gateway-protocol" }
 registry-provider = { path = "../../registry-provider" }
-search-query = { path = "../../search/query" }
 send_wrapper = "0.6"
 serde = { workspace = true }
 serde_json = { workspace = true }
 log = { path = "../../log", features = ["with-worker"] }
 worker = { workspace = true }
 worker-utils = { path = "../../worker-utils" }
+search-protocol = { path = "../../search/protocol" }
+graph-entities = { path = "../../../common/graph-entities" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json"] }

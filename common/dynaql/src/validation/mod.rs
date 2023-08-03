@@ -9,13 +9,14 @@ pub mod utils;
 mod visitor;
 mod visitors;
 
-use crate::parser::types::ExecutableDocument;
-use crate::registry::Registry;
-use crate::{CacheControl, CacheInvalidation, ServerError, Variables};
 use std::collections::HashSet;
 
 pub use visitor::VisitorContext;
 use visitor::{visit, VisitorNil};
+
+use crate::{
+    parser::types::ExecutableDocument, registry::Registry, CacheControl, CacheInvalidation, ServerError, Variables,
+};
 
 /// Validation results.
 #[derive(Debug, Clone)]

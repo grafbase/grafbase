@@ -2,11 +2,9 @@ use std::borrow::Cow;
 
 use graph_entities::{CompactValue, ResponseNodeId};
 
-use crate::parser::types::Field;
-use crate::registry::Registry;
 use crate::{
-    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType,
-    LegacyScalarType, Positioned, Scalar, ServerResult, Value,
+    parser::types::Field, registry, registry::Registry, ContextSelectionSet, InputValueError, InputValueResult,
+    LegacyInputType, LegacyOutputType, LegacyScalarType, Positioned, Scalar, ServerResult, Value,
 };
 
 /// The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.

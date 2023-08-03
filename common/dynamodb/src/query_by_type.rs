@@ -1,6 +1,5 @@
-use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
-use crate::paginated::QueryResult;
-use crate::{DynamoDBContext, DynamoDBRequestedIndex};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
@@ -9,11 +8,14 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use quick_error::quick_error;
 use rusoto_dynamodb::QueryInput;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
+
+use crate::{
+    constant::{PK, RELATION_NAMES, SK, TYPE},
+    paginated::QueryResult,
+    DynamoDBContext, DynamoDBRequestedIndex,
+};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {

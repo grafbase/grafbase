@@ -1,12 +1,14 @@
-use std::borrow::Cow;
-use std::pin::Pin;
+use std::{borrow::Cow, pin::Pin};
 
 use dynaql_parser::types::OperationType;
 use futures_util::stream::{Stream, StreamExt};
 
-use crate::parser::types::{Selection, TypeCondition};
-use crate::registry::Registry;
-use crate::{registry, Context, ContextSelectionSet, PathSegment, Response, ServerError, ServerResult};
+use crate::{
+    parser::types::{Selection, TypeCondition},
+    registry,
+    registry::Registry,
+    Context, ContextSelectionSet, PathSegment, Response, ServerError, ServerResult,
+};
 
 /// A GraphQL subscription object
 pub trait SubscriptionType: Send + Sync {

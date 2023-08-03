@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::ops::Deref;
+use std::{borrow::Cow, ops::Deref};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -280,8 +279,9 @@ impl<T> From<Option<Option<T>>> for MaybeUndefined<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
     use serde::{Deserialize, Serialize};
+
+    use crate::*;
 
     #[test]
     fn test_maybe_undefined_type() {

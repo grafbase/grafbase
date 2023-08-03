@@ -1,9 +1,10 @@
-use crate::bridge::Bridge;
 use grafbase_runtime::{
     self,
     udf::{CustomResolverError, CustomResolverResponse, UdfInvoker, UdfRequest},
 };
 use serde::Serialize;
+
+use crate::bridge::Bridge;
 
 pub struct UdfInvokerImpl {
     bridge: Bridge,

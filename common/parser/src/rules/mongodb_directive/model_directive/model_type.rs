@@ -1,13 +1,14 @@
 mod resolver_data;
 
-use super::CreateTypeContext;
-use crate::rules::{auth_directive::AuthDirective, resolver_directive::ResolverDirective, visitor::VisitorContext};
 use dynaql::{
     indexmap::IndexMap,
     names::OUTPUT_FIELD_ID,
     registry::{self, resolvers::transformer::Transformer, MetaField, MetaType},
 };
 use resolver_data::ResolverData;
+
+use super::CreateTypeContext;
+use crate::rules::{auth_directive::AuthDirective, resolver_directive::ResolverDirective, visitor::VisitorContext};
 
 pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) {
     let type_name = create_ctx.model_name().to_string();

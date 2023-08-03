@@ -6,9 +6,8 @@ use openapiv3::v3_1::{
     self as openapiv3_1, Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode,
 };
 
-use crate::{graph::HttpMethod, parsing::Ref, Error};
-
 use super::components::Components;
+use crate::{graph::HttpMethod, parsing::Ref, Error};
 
 #[non_exhaustive]
 #[derive(Clone)]

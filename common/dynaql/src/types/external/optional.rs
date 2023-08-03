@@ -2,10 +2,9 @@ use std::borrow::Cow;
 
 use graph_entities::{CompactValue, ResponseNodeId};
 
-use crate::parser::types::Field;
 use crate::{
-    registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Positioned,
-    ServerResult, Value,
+    parser::types::Field, registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType,
+    LegacyOutputType, Positioned, ServerResult, Value,
 };
 
 impl<T: LegacyInputType> LegacyInputType for Option<T> {

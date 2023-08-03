@@ -4,9 +4,8 @@ use petgraph::{
 };
 use serde_json::Value;
 
-use crate::{graph::Arity, output::OutputFieldKind};
-
 use super::{Edge, Enum, Node, OpenApiGraph, Scalar, ScalarKind, WrappingType};
+use crate::{graph::Arity, output::OutputFieldKind};
 
 /// A node that represents a composite output type in GraphQL
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

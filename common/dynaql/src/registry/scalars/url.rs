@@ -1,8 +1,10 @@
+use std::str::FromStr;
+
+use dynaql_value::ConstValue;
+use url::Url;
+
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
-use dynaql_value::ConstValue;
-use std::str::FromStr;
-use url::Url;
 
 pub struct URLScalar;
 
@@ -49,10 +51,11 @@ impl DynamicParse for URLScalar {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SDLDefinitionScalar;
-    use crate::registry::scalars::{DynamicParse, URLScalar};
     use dynaql_value::ConstValue;
     use insta::assert_snapshot;
+
+    use super::super::SDLDefinitionScalar;
+    use crate::registry::scalars::{DynamicParse, URLScalar};
 
     #[test]
     fn check_url_valid() {

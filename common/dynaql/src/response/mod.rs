@@ -2,11 +2,11 @@ use std::collections::BTreeMap;
 
 use dynaql_parser::types::OperationType;
 use graph_entities::QueryResponse;
-use http::header::{HeaderMap, HeaderName};
-use http::HeaderValue;
-use serde::ser::SerializeMap;
-use serde::Deserialize;
-use serde::Serialize;
+use http::{
+    header::{HeaderMap, HeaderName},
+    HeaderValue,
+};
+use serde::{ser::SerializeMap, Deserialize, Serialize};
 
 use crate::{CacheControl, Result, ServerError, Value};
 

@@ -1,8 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::parser::types::{Field, Selection, SelectionSet};
-use crate::validation::visitor::{Visitor, VisitorContext};
-use crate::Positioned;
+use crate::{
+    parser::types::{Field, Selection, SelectionSet},
+    validation::visitor::{Visitor, VisitorContext},
+    Positioned,
+};
 
 #[derive(Default)]
 pub struct OverlappingFieldsCanBeMerged;

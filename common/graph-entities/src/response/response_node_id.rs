@@ -1,8 +1,8 @@
-use crate::NodeID;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
 
 use super::EntityId;
+use crate::NodeID;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, Hash, Serialize, Deserialize)]
 /// The identifier of a node within a [`QueryResponse`].

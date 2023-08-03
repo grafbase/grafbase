@@ -16,39 +16,41 @@ pub mod union_discriminator;
 pub mod utils;
 pub mod variables;
 
-use dynaql_value::ConstValue;
-use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
-use indexmap::map::IndexMap;
-use indexmap::set::IndexSet;
-use serde::Deserialize;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::fmt::{Display, Formatter};
-use std::hash::Hash;
-use std::sync::atomic::AtomicU16;
-
-use crate::auth::AuthConfig;
-pub use crate::model::__DirectiveLocation;
-use crate::model::{__Schema, __Type};
-use crate::parser::types::{BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition};
-use crate::resolver_utils::{resolve_container, resolve_list};
-use crate::validation::dynamic_validators::DynValidator;
-use crate::{
-    model, Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerError, ServerResult,
-    SubscriptionType, Value, VisitorContext,
+use std::{
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+    fmt::{Display, Formatter},
+    hash::Hash,
+    sync::atomic::AtomicU16,
 };
-use grafbase::auth::Operations;
 
-use self::relations::MetaRelation;
-use self::resolvers::Resolver;
-use self::scalars::{DynamicScalar, PossibleScalar};
-use self::type_kinds::TypeKind;
+use dynaql_value::ConstValue;
+use grafbase::auth::Operations;
+use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
+use indexmap::{map::IndexMap, set::IndexSet};
+use serde::Deserialize;
+
 pub use self::{
-    cache_control::CacheControl,
-    cache_control::CacheInvalidation,
-    cache_control::CacheInvalidationPolicy,
+    cache_control::{CacheControl, CacheInvalidation, CacheInvalidationPolicy},
     connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
     type_names::{InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
     union_discriminator::UnionDiscriminator,
+};
+use self::{
+    relations::MetaRelation,
+    resolvers::Resolver,
+    scalars::{DynamicScalar, PossibleScalar},
+    type_kinds::TypeKind,
+};
+pub use crate::model::__DirectiveLocation;
+use crate::{
+    auth::AuthConfig,
+    model,
+    model::{__Schema, __Type},
+    parser::types::{BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition},
+    resolver_utils::{resolve_container, resolve_list},
+    validation::dynamic_validators::DynValidator,
+    Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerError, ServerResult, SubscriptionType,
+    Value, VisitorContext,
 };
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
@@ -704,7 +706,9 @@ impl MetaField {
                                     .ctx
                                     .trace_id,
                                 "missing field valued for resolved {}#{} and cache type {}",
-                                resolved_field_type, resolved_field_name, cache_invalidation.ty,
+                                resolved_field_type,
+                                resolved_field_name,
+                                cache_invalidation.ty,
                             );
 
                             return;
@@ -1648,8 +1652,9 @@ impl Registry {
 }
 
 pub mod vectorize {
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use std::iter::FromIterator;
+
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     pub fn serialize<'a, T, K, V, S>(target: T, ser: S) -> Result<S::Ok, S::Error>
     where

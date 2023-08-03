@@ -1,12 +1,14 @@
-use pest::iterators::Pair;
-use pest::RuleType;
+use std::{
+    borrow::{Borrow, BorrowMut},
+    cmp::Ordering,
+    fmt,
+    hash::{Hash, Hasher},
+    ops::Deref,
+    str::Chars,
+};
+
+use pest::{iterators::Pair, RuleType};
 use serde::{Deserialize, Serialize};
-use std::borrow::{Borrow, BorrowMut};
-use std::cmp::Ordering;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
-use std::str::Chars;
 
 /// Original position of an element in source code.
 ///

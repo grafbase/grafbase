@@ -1,7 +1,8 @@
-use super::{DynamicParse, SDLDefinitionScalar};
-use crate::{Error, InputValueError, InputValueResult};
 use dynaql_value::ConstValue;
 use serde_json::Number;
+
+use super::{DynamicParse, SDLDefinitionScalar};
+use crate::{Error, InputValueError, InputValueResult};
 
 pub struct FloatScalar;
 

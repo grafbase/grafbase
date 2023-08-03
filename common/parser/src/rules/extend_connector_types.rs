@@ -35,7 +35,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                 let Some(resolver_name) = ResolverDirective::resolver_name(&field.node) else {
                     ctx.report_error(
                         vec![field.pos],
-                        format!("Field '{name}' of extended '{type_name}' must hold a `@resolver` directive.")
+                        format!("Field '{name}' of extended '{type_name}' must hold a `@resolver` directive."),
                     );
                     return None;
                 };
@@ -66,10 +66,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
         let mut registry = ctx.registry.borrow_mut();
         let Some(MetaType::Object(registry::ObjectType { fields, .. })) = registry.types.get_mut(type_name) else {
             drop(registry);
-            ctx.report_error(
-                vec![type_definition.pos],
-                format!("Type '{type_name}' does not exist")
-            );
+            ctx.report_error(vec![type_definition.pos], format!("Type '{type_name}' does not exist"));
             return;
         };
 
@@ -79,9 +76,10 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use dynaql::registry::{self, MetaField, Registry};
     use serde_json as _;
-    use std::collections::HashMap;
 
     use crate::{ConnectorParsers, GraphqlDirective, OpenApiDirective};
 

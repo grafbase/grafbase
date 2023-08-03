@@ -1,31 +1,33 @@
 use case::CaseExt;
-
-use dynaql::registry::relations::MetaRelationKind;
-use dynaql::registry::{self, InputObjectType, NamedType, Registry};
-use dynaql::registry::{
-    resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
-    variables::VariableResolveDefinition, MetaField, MetaInputValue,
+use dynaql::{
+    registry::{
+        self,
+        relations::MetaRelationKind,
+        resolvers::{dynamo_mutation::DynamoMutationResolver, dynamo_querying::DynamoResolver},
+        variables::VariableResolveDefinition,
+        InputObjectType, MetaField, MetaInputValue, NamedType, Registry,
+    },
+    AuthConfig,
 };
-
-use dynaql::AuthConfig;
 use dynaql_parser::types::{BaseType, ObjectType, Type, TypeDefinition, TypeKind};
 use grafbase::auth::Operations;
 
-use crate::registry::names::{
-    MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT, INPUT_FIELD_RELATION_CREATE, INPUT_FIELD_RELATION_LINK,
-    INPUT_FIELD_RELATION_UNLINK,
-};
-use crate::registry::ParentRelation;
-use crate::rules::default_directive::DefaultDirective;
-
-use crate::rules::model_directive::ModelDirective;
-use crate::rules::relations::RelationEngine;
-use crate::rules::resolver_directive::ResolverDirective;
-use crate::rules::visitor::VisitorContext;
-use crate::type_names::TypeNameExt;
-use crate::utils::{to_input_type, to_lower_camelcase};
-
 use super::names::{INPUT_FIELD_NUM_OP_DECREMENT, INPUT_FIELD_NUM_OP_INCREMENT, INPUT_FIELD_NUM_OP_SET};
+use crate::{
+    registry::{
+        names::{
+            MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT, INPUT_FIELD_RELATION_CREATE, INPUT_FIELD_RELATION_LINK,
+            INPUT_FIELD_RELATION_UNLINK,
+        },
+        ParentRelation,
+    },
+    rules::{
+        default_directive::DefaultDirective, model_directive::ModelDirective, relations::RelationEngine,
+        resolver_directive::ResolverDirective, visitor::VisitorContext,
+    },
+    type_names::TypeNameExt,
+    utils::{to_input_type, to_lower_camelcase},
+};
 
 /// Creates the create mutation and all relevant input/output types for the model. Given this
 /// schema:

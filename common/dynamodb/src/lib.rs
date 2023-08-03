@@ -42,17 +42,17 @@ cfg_if::cfg_if! {
     }
 }
 
+use std::{sync::Arc, time::Duration};
+
 use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
-
-use grafbase::auth::{ExecutionAuth, Operations};
-use grafbase::UdfKind;
+use grafbase::{
+    auth::{ExecutionAuth, Operations},
+    UdfKind,
+};
 use quick_error::quick_error;
-use rusoto_core::credential::StaticProvider;
-use rusoto_core::{HttpClient, RusotoError};
+use rusoto_core::{credential::StaticProvider, HttpClient, RusotoError};
 use rusoto_dynamodb::{DynamoDbClient, GetItemError, PutItemError, QueryError, TransactWriteItemsError};
-use std::sync::Arc;
-use std::time::Duration;
 use transaction::{get_loader_transaction, TransactionLoader};
 
 pub mod constant;
@@ -63,8 +63,7 @@ pub mod export {
 }
 
 mod utils;
-pub use utils::current_datetime::CurrentDateTime;
-pub use utils::{attribute_to_value, value_to_attribute};
+pub use utils::{attribute_to_value, current_datetime::CurrentDateTime, value_to_attribute};
 
 pub mod graph_transaction;
 mod paginated;
@@ -73,7 +72,6 @@ mod transaction;
 
 pub use graph_transaction::{get_loader_transaction_new, NewTransactionLoader, PossibleChanges};
 pub use paginated::{PaginatedCursor, PaginationOrdering, ParentEdge, QueryValue};
-
 pub use transaction::{TransactionError, TxItem};
 
 /// The DynamoDBContext that is needed to query the Database

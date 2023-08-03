@@ -1,12 +1,11 @@
-use std::borrow::Cow;
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use dynaql_value::ConstValue;
 use graph_entities::ResponseNodeId;
 
-use crate::parser::types::Field;
-use crate::registry::{self, InputValueType, Registry};
 use crate::{
+    parser::types::Field,
+    registry::{self, InputValueType, Registry},
     ContainerType, Context, ContextSelectionSet, Error, InputValueError, InputValueResult, Positioned, Result,
     ServerResult, Value,
 };

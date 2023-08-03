@@ -1,10 +1,19 @@
-use crate::rules::cache_directive::validation::{validate_directive, ValidationLevel};
-use crate::rules::cache_directive::CacheDirectiveError;
-use crate::rules::visitor::{Visitor, VisitorContext};
-use crate::utils::is_type_primitive;
 use dynaql::registry::CacheInvalidationPolicy;
-use dynaql_parser::types::{FieldDefinition, TypeDefinition, TypeKind};
-use dynaql_parser::Positioned;
+use dynaql_parser::{
+    types::{FieldDefinition, TypeDefinition, TypeKind},
+    Positioned,
+};
+
+use crate::{
+    rules::{
+        cache_directive::{
+            validation::{validate_directive, ValidationLevel},
+            CacheDirectiveError,
+        },
+        visitor::{Visitor, VisitorContext},
+    },
+    utils::is_type_primitive,
+};
 
 pub struct CacheVisitor;
 
@@ -96,9 +105,12 @@ impl<'a> Visitor<'a> for CacheVisitor {
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::cache_directive::visitor::CacheVisitor;
-    use crate::rules::visitor::{visit, VisitorContext};
     use dynaql_parser::parse_schema;
+
+    use crate::rules::{
+        cache_directive::visitor::CacheVisitor,
+        visitor::{visit, VisitorContext},
+    };
 
     #[rstest::rstest]
     /// Type

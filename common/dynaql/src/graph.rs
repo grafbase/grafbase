@@ -1,7 +1,7 @@
-use crate::registry::MetaType;
-use crate::{relations_edges, Context, ContextSelectionSet};
 use dynaql_value::ConstValue;
 use graph_entities::{ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive};
+
+use crate::{registry::MetaType, relations_edges, Context, ContextSelectionSet};
 
 #[async_recursion::async_recursion]
 pub async fn selection_set_into_node<'a>(

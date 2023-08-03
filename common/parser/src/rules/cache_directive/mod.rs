@@ -1,17 +1,20 @@
-use crate::directive_de::parse_directive;
-use crate::rules::cache_directive::global::{CacheRule, CacheRuleTargetType, GlobalCacheRules, GlobalCacheTarget};
-use crate::rules::directive::Directive;
-use crate::rules::visitor::{RuleError, VisitorContext};
-use dynaql::registry::CacheInvalidationPolicy;
-use dynaql::CacheControl;
-use dynaql_parser::types::ConstDirective;
-use dynaql_parser::{Pos, Positioned};
-use serde::de::value::MapAccessDeserializer;
-use serde::de::{Error, MapAccess, Unexpected};
-use serde::{Deserialize, Deserializer};
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::fmt::Formatter;
+use std::{borrow::Cow, collections::HashMap, fmt::Formatter};
+
+use dynaql::{registry::CacheInvalidationPolicy, CacheControl};
+use dynaql_parser::{types::ConstDirective, Pos, Positioned};
+use serde::{
+    de::{value::MapAccessDeserializer, Error, MapAccess, Unexpected},
+    Deserialize, Deserializer,
+};
+
+use crate::{
+    directive_de::parse_directive,
+    rules::{
+        cache_directive::global::{CacheRule, CacheRuleTargetType, GlobalCacheRules, GlobalCacheTarget},
+        directive::Directive,
+        visitor::{RuleError, VisitorContext},
+    },
+};
 
 const CACHE_DIRECTIVE_NAME: &str = "cache";
 

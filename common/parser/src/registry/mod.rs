@@ -2,21 +2,23 @@
 //!
 //! -> Split each of the creation and add tests with SDL
 //!
-use case::CaseExt;
-
-use dynaql::registry::enums::DynaqlEnum;
-use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{self, MetaInputValue, NamedType};
-use dynaql::registry::{MetaEnumValue, Registry};
-use dynaql::validation::dynamic_validators::DynValidator;
-use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
-
 use std::fmt::Display;
 
-use crate::registry::names::MetaNames;
-use crate::rules::length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMENT};
-use crate::rules::visitor::VisitorContext;
-use crate::utils::to_input_type;
+use case::CaseExt;
+use dynaql::{
+    registry::{self, enums::DynaqlEnum, relations::MetaRelation, MetaEnumValue, MetaInputValue, NamedType, Registry},
+    validation::dynamic_validators::DynValidator,
+};
+use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
+
+use crate::{
+    registry::names::MetaNames,
+    rules::{
+        length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMENT},
+        visitor::VisitorContext,
+    },
+    utils::to_input_type,
+};
 
 mod create_update;
 mod delete;

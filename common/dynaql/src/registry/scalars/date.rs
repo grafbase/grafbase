@@ -1,9 +1,10 @@
 use std::str::FromStr;
 
-use super::{DynamicParse, SDLDefinitionScalar};
-use crate::{Error, InputValueError, InputValueResult};
 use chrono::NaiveDate;
 use dynaql_value::ConstValue;
+
+use super::{DynamicParse, SDLDefinitionScalar};
+use crate::{Error, InputValueError, InputValueResult};
 
 const DATE_FORMAT: &str = "%Y-%m-%d";
 
@@ -71,9 +72,9 @@ impl DynamicParse for DateScalar {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SDLDefinitionScalar;
-    use super::DateScalar;
     use insta::assert_snapshot;
+
+    use super::{super::SDLDefinitionScalar, DateScalar};
 
     #[test]
     fn ensure_directives_sdl() {

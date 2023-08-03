@@ -1,9 +1,8 @@
-use case::CaseExt;
+use std::{borrow::Cow, collections::HashMap};
 
+use case::CaseExt;
 use dynaql::{Name, Positioned};
 use dynaql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, TypeKind};
-use std::borrow::Cow;
-use std::collections::HashMap;
 
 // TODO: maybe get rid of this
 fn is_str_type_primitive(name: &str) -> bool {

@@ -1,10 +1,12 @@
+use std::{borrow::Cow, fmt::Display};
+
 use dynomite::{Attribute, AttributeError};
-use std::borrow::Cow;
-use std::fmt::Display;
 
 mod constraint;
-pub use constraint::db::{ConstraintID, ConstraintIDError};
-pub use constraint::{normalize_constraint_value, ConstraintDefinition, ConstraintType};
+pub use constraint::{
+    db::{ConstraintID, ConstraintIDError},
+    normalize_constraint_value, ConstraintDefinition, ConstraintType,
+};
 
 mod node;
 pub use node::{NodeID, NodeIDError};

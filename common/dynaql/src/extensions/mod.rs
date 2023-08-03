@@ -1,22 +1,20 @@
 //! Extensions for schema
 
-use std::any::{Any, TypeId};
-use std::future::Future;
-use std::sync::Arc;
+use std::{
+    any::{Any, TypeId},
+    future::Future,
+    sync::Arc,
+};
 
-use crate::registry::MetaFieldType;
-use crate::Value;
-use dynaql_parser::types::OperationDefinition;
-use dynaql_parser::Positioned;
+use dynaql_parser::{types::OperationDefinition, Positioned};
 use dynaql_value::Name;
 use futures_util::stream::BoxStream;
 use grafbase::auth::Operations;
 use graph_entities::ResponseNodeId;
 
-use crate::parser::types::ExecutableDocument;
 use crate::{
-    Data, DataContext, Error, QueryPathNode, Request, Response, Result, SchemaEnv, ServerError, ServerResult,
-    ValidationResult, Variables,
+    parser::types::ExecutableDocument, registry::MetaFieldType, Data, DataContext, Error, QueryPathNode, Request,
+    Response, Result, SchemaEnv, ServerError, ServerResult, ValidationResult, Value, Variables,
 };
 
 /// Context for extension

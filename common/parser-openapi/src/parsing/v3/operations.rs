@@ -4,9 +4,8 @@ use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodi
 use indexmap::IndexMap;
 use openapiv3::{Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
 
-use crate::{graph::HttpMethod, parsing::Ref, Error};
-
 use super::components::Components;
+use crate::{graph::HttpMethod, parsing::Ref, Error};
 
 #[non_exhaustive]
 #[derive(Clone)]

@@ -18,39 +18,41 @@
 
 pub mod types;
 
-use case::CaseExt;
-use dynaql::names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT};
-use dynaql::registry::resolvers::custom::CustomResolver;
-use if_chain::if_chain;
+use std::{borrow::Cow, collections::HashMap};
 
-use dynaql::indexmap::IndexMap;
-use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
-use dynaql::registry::scalars::{DateTimeScalar, IDScalar, SDLDefinitionScalar};
-use dynaql::registry::MetaInputValue;
-use dynaql::registry::{self, MetaField};
-use dynaql::registry::{is_array_basic_type, MetaType};
-use dynaql::registry::{
-    resolvers::transformer::Transformer, resolvers::Resolver, variables::VariableResolveDefinition,
+use case::CaseExt;
+use dynaql::{
+    indexmap::IndexMap,
+    names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT},
+    registry::{
+        self, is_array_basic_type,
+        resolvers::{custom::CustomResolver, dynamo_querying::DynamoResolver, transformer::Transformer, Resolver},
+        scalars::{DateTimeScalar, IDScalar, SDLDefinitionScalar},
+        variables::VariableResolveDefinition,
+        MetaField, MetaInputValue, MetaType,
+    },
+    AuthConfig, Positioned,
 };
-use dynaql::{AuthConfig, Positioned};
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
 use grafbase::auth::Operations;
-use std::borrow::Cow;
-use std::collections::HashMap;
+use if_chain::if_chain;
 
-use crate::registry::generate_pagination_args;
-use crate::registry::names::MetaNames;
-use crate::registry::{add_mutation_create, add_mutation_delete, add_mutation_update, add_query_paginated_collection};
-use crate::rules::cache_directive::CacheDirective;
-use crate::utils::to_base_type_str;
-use crate::utils::to_lower_camelcase;
-
-use super::auth_directive::AuthDirective;
-use super::directive::Directive;
-use super::relations::RelationEngine;
-use super::resolver_directive::ResolverDirective;
-use super::unique_directive::UniqueDirective;
-use super::visitor::{Visitor, VisitorContext};
+use super::{
+    auth_directive::AuthDirective,
+    directive::Directive,
+    relations::RelationEngine,
+    resolver_directive::ResolverDirective,
+    unique_directive::UniqueDirective,
+    visitor::{Visitor, VisitorContext},
+};
+use crate::{
+    registry::{
+        add_mutation_create, add_mutation_delete, add_mutation_update, add_query_paginated_collection,
+        generate_pagination_args, names::MetaNames,
+    },
+    rules::cache_directive::CacheDirective,
+    utils::{to_base_type_str, to_lower_camelcase},
+};
 
 pub struct ModelDirective;
 
@@ -472,6 +474,12 @@ fn has_any_invalid_metadata_fields(ctx: &mut VisitorContext<'_>, object_name: &s
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use dynaql::AuthConfig;
+    use dynaql_parser::parse_schema;
+    use grafbase::auth::Operations;
+    use pretty_assertions::assert_eq;
     use serde_json as _;
 
     use super::ModelDirective;
@@ -479,11 +487,6 @@ mod tests {
         auth_directive::tests::allowed_public_ops,
         visitor::{visit, VisitorContext},
     };
-    use dynaql::AuthConfig;
-    use dynaql_parser::parse_schema;
-    use grafbase::auth::Operations;
-    use pretty_assertions::assert_eq;
-    use std::collections::HashMap;
 
     #[test]
     fn should_not_error_when_id() {

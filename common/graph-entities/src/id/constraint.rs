@@ -13,9 +13,12 @@ pub struct ConstraintDefinition {
 }
 
 pub mod db {
+    use std::{
+        borrow::{Borrow, Cow},
+        fmt::Display,
+    };
+
     use super::hash_constraint_values;
-    use std::borrow::{Borrow, Cow};
-    use std::fmt::Display;
 
     #[derive(Debug, PartialEq, Eq, Clone, Hash)]
     pub struct ConstraintID<'a> {

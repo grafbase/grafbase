@@ -1,17 +1,19 @@
-use crate::constant::{PK, RELATION_NAMES, SK};
-use crate::paginated::QueryResult;
-use crate::{DynamoDBContext, DynamoDBRequestedIndex};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use graph_entities::{NodeID, ID};
 use indexmap::IndexMap;
 use rusoto_dynamodb::QueryInput;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
+
+use crate::{
+    constant::{PK, RELATION_NAMES, SK},
+    paginated::QueryResult,
+    DynamoDBContext, DynamoDBRequestedIndex,
+};
 #[cfg(not(feature = "wasm"))]
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum QuerySingleRelationLoaderError {

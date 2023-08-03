@@ -2,8 +2,10 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::ItemImpl;
 
-use crate::args::{self, RenameTarget};
-use crate::utils::{get_crate_name, get_rustdoc, get_type_path_and_name, visible_fn, GeneratorResult};
+use crate::{
+    args::{self, RenameTarget},
+    utils::{get_crate_name, get_rustdoc, get_type_path_and_name, visible_fn, GeneratorResult},
+};
 
 pub fn generate(scalar_args: &args::Scalar, item_impl: &mut ItemImpl) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(scalar_args.internal);

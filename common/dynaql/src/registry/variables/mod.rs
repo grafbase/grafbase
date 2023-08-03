@@ -7,16 +7,16 @@
 //! resolve this variable.
 use std::borrow::Borrow;
 
-use crate::resolver_utils::InputResolveMode;
-use crate::{context::resolver_data_get_opt_ref, Context, Value};
-use crate::{Error, ServerError, ServerResult};
 use dynaql_value::{ConstValue, Name};
-use grafbase_runtime::cursor::Cursor;
+use grafbase_runtime::search::GraphqlCursor;
 use indexmap::IndexMap;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 
 use self::oneof::OneOf;
+use crate::{
+    context::resolver_data_get_opt_ref, resolver_utils::InputResolveMode, Context, Error, ServerError, ServerResult,
+    Value,
+};
 
 pub mod id;
 pub mod oneof;
@@ -163,7 +163,7 @@ impl VariableResolveDefinition {
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<String>, ServerError> {
         match self.expect_opt_string(ctx, last_resolver_value)? {
-            Some(s) => match Cursor::try_from(s).map(|x| String::from_utf8(x.into_bytes())) {
+            Some(s) => match GraphqlCursor::try_from(s).map(|x| String::from_utf8(x.into_bytes())) {
                 Ok(Ok(cursor)) => Ok(Some(cursor)),
                 Err(_) | Ok(Err(_)) => Err(Error::new("Invalid Cursor").into_server_error(ctx.item.pos)),
             },

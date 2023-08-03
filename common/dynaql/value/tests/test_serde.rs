@@ -1,10 +1,9 @@
 #![allow(unused_crate_dependencies)]
+use std::{collections::BTreeMap, fmt::Debug};
+
 use bytes::Bytes;
 use dynaql_value::*;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::fmt::Debug;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 fn test_value<T: Serialize + DeserializeOwned + Clone + PartialEq + Debug>(value: T) {
     assert_eq!(from_value::<T>(to_value(value.clone()).unwrap()).unwrap(), value);

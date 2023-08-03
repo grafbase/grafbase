@@ -12,23 +12,22 @@ mod serializer;
 mod value_serde;
 mod variables;
 
-use std::borrow::{Borrow, Cow};
-use std::fmt::{self, Display, Formatter, Write};
-use std::hash::Hash;
-
-use std::ops::Deref;
-use std::sync::Arc;
+use std::{
+    borrow::{Borrow, Cow},
+    fmt::{self, Display, Formatter, Write},
+    hash::Hash,
+    ops::Deref,
+    sync::Arc,
+};
 
 use bytes::Bytes;
-use indexmap::IndexMap;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 pub use deserializer::{from_value, DeserializerError};
 #[doc(hidden)]
 pub use indexmap;
+use indexmap::IndexMap;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub use serde_json::Number;
 pub use serializer::{to_value, SerializerError};
-
 pub use variables::Variables;
 
 /// A GraphQL name.

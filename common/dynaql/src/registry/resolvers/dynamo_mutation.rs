@@ -1,28 +1,33 @@
-use super::{ResolvedValue, Resolver, ResolverContext};
-use crate::registry::utils::value_to_attribute;
-use crate::registry::variables::id::ObfuscatedID;
-use crate::registry::variables::VariableResolveDefinition;
-use crate::registry::{ConstraintType, MetaFieldType, ModelName, ObjectType, TypeReference};
-use crate::{Context, Error, ServerError, Value};
+use std::{
+    borrow::Borrow,
+    collections::{HashMap, HashSet},
+    future::Future,
+    hash::Hash,
+    ops::Add,
+    pin::Pin,
+    sync::{atomic::AtomicUsize, Arc},
+};
 
-use dynamodb::constant::INVERTED_INDEX_PK;
-use dynamodb::graph_transaction::PossibleChanges;
-use dynamodb::{BatchGetItemLoaderError, DynamoDBBatchersData, QueryKey, TransactionError};
+use dynamodb::{
+    constant::INVERTED_INDEX_PK, graph_transaction::PossibleChanges, BatchGetItemLoaderError, DynamoDBBatchersData,
+    QueryKey, TransactionError,
+};
 use dynaql_value::Name;
 use dynomite::{Attribute, AttributeValue};
-use futures_util::future::Shared;
-use futures_util::{FutureExt, StreamExt, TryFutureExt};
+use futures_util::{future::Shared, FutureExt, StreamExt, TryFutureExt};
 use graph_entities::{ConstraintID, NodeID};
 use indexmap::IndexMap;
-use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
-use std::future::Future;
-use std::hash::Hash;
-use std::ops::Add;
-use std::pin::Pin;
-use std::sync::atomic::AtomicUsize;
-use std::sync::Arc;
 use ulid::Ulid;
+
+use super::{ResolvedValue, Resolver, ResolverContext};
+use crate::{
+    registry::{
+        utils::value_to_attribute,
+        variables::{id::ObfuscatedID, VariableResolveDefinition},
+        ConstraintType, MetaFieldType, ModelName, ObjectType, TypeReference,
+    },
+    Context, Error, ServerError, Value,
+};
 
 mod create;
 mod delete;

@@ -1,9 +1,8 @@
 use http::StatusCode;
 use serde_json::Value;
 
-use crate::ServerError;
-
 use super::Error;
+use crate::ServerError;
 
 #[derive(PartialEq, Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]

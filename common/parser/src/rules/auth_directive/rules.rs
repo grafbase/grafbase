@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 
-use serde::{Deserialize, Serialize};
-
 use dynaql::ServerError;
 use dynaql_value::ConstValue;
+use serde::{Deserialize, Serialize};
 
 use super::operations::Operations;
 

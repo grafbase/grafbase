@@ -1,19 +1,22 @@
 //! Extention interfaces for rusoto `DynamoDb`
 
-use crate::constant::{OWNED_BY, PK, RELATION_NAMES, SK, TYPE};
-use crate::{DynamoDBRequestedIndex, QueryTypePaginatedKey};
+use std::collections::HashMap;
+
 use dynomite::Attribute;
 use futures::TryFutureExt;
 use graph_entities::{ConstraintID, ID};
-use indexmap::map::Entry;
-use indexmap::IndexMap;
+use indexmap::{map::Entry, IndexMap};
 use itertools::Itertools;
 use quick_error::quick_error;
 use rusoto_core::RusotoError;
 use rusoto_dynamodb::{AttributeValue, DynamoDb, QueryError, QueryInput};
-use std::collections::HashMap;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
+
+use crate::{
+    constant::{OWNED_BY, PK, RELATION_NAMES, SK, TYPE},
+    DynamoDBRequestedIndex, QueryTypePaginatedKey,
+};
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct ParentEdge {

@@ -1,16 +1,19 @@
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+};
 
 use dynaql_value::Value;
 
-use crate::parser::types::{
-    Directive, ExecutableDocument, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition,
-    OperationType, Selection, SelectionSet, TypeCondition, VariableDefinition,
-};
-use crate::registry::{self, MetaInputValue, MetaType, MetaTypeName};
-use crate::{LegacyInputType, Name, Pos, Positioned, ServerError, ServerResult, Variables};
-
 use super::dynamic_validators::DynValidate;
+use crate::{
+    parser::types::{
+        Directive, ExecutableDocument, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition,
+        OperationType, Selection, SelectionSet, TypeCondition, VariableDefinition,
+    },
+    registry::{self, MetaInputValue, MetaType, MetaTypeName},
+    LegacyInputType, Name, Pos, Positioned, ServerError, ServerResult, Variables,
+};
 
 #[doc(hidden)]
 pub struct VisitorContext<'a> {

@@ -1,6 +1,6 @@
+use std::{collections::HashMap, str::FromStr};
+
 use dynomite::AttributeValue;
-use std::collections::HashMap;
-use std::str::FromStr;
 
 pub mod current_datetime;
 

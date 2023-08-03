@@ -109,7 +109,7 @@ pub async fn parse_schema(
     }
 
     let Some(data) = result.data else {
-        return Err(vec![Error::MissingData])
+        return Err(vec![Error::MissingData]);
     };
 
     let schema = data.into_schema().map_err(|err| vec![err.into()])?;
@@ -238,9 +238,7 @@ impl Parser {
 
     fn add_field_resolvers(registry: &mut Registry) {
         for v in registry.types.values_mut() {
-            let Some(i) = v.fields_mut() else {
-                continue
-            };
+            let Some(i) = v.fields_mut() else { continue };
 
             for f in i.values_mut() {
                 if f.resolver.is_parent() {
@@ -276,9 +274,7 @@ impl Parser {
             .entry(registry.query_type.clone())
             .or_insert_with(|| ObjectType::new(registry.query_type.clone(), []).into());
 
-        let Some(fields) = root.fields_mut() else {
-            return
-        };
+        let Some(fields) = root.fields_mut() else { return };
 
         fields.insert(
             prefix.to_camel_case(),
@@ -305,9 +301,7 @@ impl Parser {
             .entry(registry.query_type.clone())
             .or_insert_with(|| ObjectType::new(registry.query_type.clone(), []).into());
 
-        let Some(fields) = root.fields_mut() else {
-            return
-        };
+        let Some(fields) = root.fields_mut() else { return };
 
         // There should always be fields for us to iterate, as we're mutating the `Query` object
         // fields from the upstream API. No fields, means no API access exposed by the upstream
@@ -332,9 +326,7 @@ impl Parser {
             .entry(mutation_type.clone())
             .or_insert_with(|| ObjectType::new(mutation_type.clone(), []).into());
 
-        let Some(fields) = root.fields_mut() else {
-            return
-        };
+        let Some(fields) = root.fields_mut() else { return };
 
         fields.insert(
             prefix.to_camel_case(),
@@ -365,9 +357,7 @@ impl Parser {
             .entry(mutation_type.clone())
             .or_insert_with(|| ObjectType::new(mutation_type.clone(), []).into());
 
-        let Some(fields) = root.fields_mut() else {
-            return
-        };
+        let Some(fields) = root.fields_mut() else { return };
 
         // There should always be fields for us to iterate, as we're mutating the `Mutation` object
         // fields from the upstream API. No fields, means no API access exposed by the upstream

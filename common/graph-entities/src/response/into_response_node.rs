@@ -1,6 +1,5 @@
-use crate::{CompactValue, ResponseContainer, ResponseList, ResponsePrimitive};
-
 use super::{EntityId, QueryResponseNode};
+use crate::{CompactValue, ResponseContainer, ResponseList, ResponsePrimitive};
 
 /// Converts things into a QueryResponseNode
 ///

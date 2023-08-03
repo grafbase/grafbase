@@ -11,11 +11,10 @@ use std::iter;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 
-use crate::Error;
-
 use super::{
     EnumType, InputObjectType, InterfaceType, MetaField, MetaInputValue, MetaType, ObjectType, ScalarType, UnionType,
 };
+use crate::Error;
 
 /// The kinds of types we work with in GraphQL
 ///

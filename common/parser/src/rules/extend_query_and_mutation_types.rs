@@ -1,11 +1,12 @@
-use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
-use crate::rules::cache_directive::CacheDirective;
-use crate::rules::resolver_directive::ResolverDirective;
-use dynaql::registry::resolvers::custom::CustomResolver;
-use dynaql::registry::resolvers::Resolver;
-use dynaql::registry::{MetaField, MetaInputValue};
+use dynaql::registry::{
+    resolvers::{custom::CustomResolver, Resolver},
+    MetaField, MetaInputValue,
+};
 use dynaql_parser::types::{ObjectType, TypeKind};
 use grafbase::auth::Operations;
+
+use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
+use crate::rules::{cache_directive::CacheDirective, resolver_directive::ResolverDirective};
 
 pub struct ExtendQueryAndMutationTypes;
 
@@ -43,7 +44,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                 let Some(resolver_name) = ResolverDirective::resolver_name(&field.node) else {
                     ctx.report_error(
                         vec![field.pos],
-                        format!("Field '{name}' of '{type_name}' must have a resolver defined.")
+                        format!("Field '{name}' of '{type_name}' must have a resolver defined."),
                     );
                     continue;
                 };
@@ -89,11 +90,12 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::rules::visitor::visit;
     use dynaql::CacheControl;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
+
+    use super::*;
+    use crate::rules::visitor::visit;
 
     #[rstest::rstest]
     #[case(r#"

@@ -1,6 +1,7 @@
+use dynaql_value::ConstValue;
+
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
-use dynaql_value::ConstValue;
 
 pub struct PhoneNumberScalar;
 
@@ -50,12 +51,16 @@ impl DynamicParse for PhoneNumberScalar {
 
 /// parse a given string according to the E164 format
 fn parse(target: &str) -> Result<bool, Box<dyn std::error::Error + '_>> {
-    use nom::bytes::complete::take_while_m_n;
-    use nom::character::complete::{char, satisfy};
-    use nom::character::is_digit;
-    use nom::combinator::all_consuming;
-    use nom::error::ErrorKind;
-    use nom::sequence::tuple;
+    use nom::{
+        bytes::complete::take_while_m_n,
+        character::{
+            complete::{char, satisfy},
+            is_digit,
+        },
+        combinator::all_consuming,
+        error::ErrorKind,
+        sequence::tuple,
+    };
 
     pub fn is_char_digit(chr: char) -> bool {
         chr.is_ascii() && is_digit(chr as u8)
@@ -73,10 +78,11 @@ fn parse(target: &str) -> Result<bool, Box<dyn std::error::Error + '_>> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::SDLDefinitionScalar;
-    use crate::registry::scalars::{DynamicParse, PhoneNumberScalar};
     use dynaql_value::ConstValue;
     use insta::assert_snapshot;
+
+    use super::super::SDLDefinitionScalar;
+    use crate::registry::scalars::{DynamicParse, PhoneNumberScalar};
 
     #[test]
     fn should_succeed() {

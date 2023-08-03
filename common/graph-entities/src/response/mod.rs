@@ -24,23 +24,25 @@
 //! to be careful to keep both the in memory size and serialization size down.  As a result most
 //! of the types in this file have some serde attrs that make them more compact when serialized
 
-use crate::CompactValue;
 use core::fmt::{self, Display, Formatter};
+use std::collections::{HashMap, HashSet, VecDeque};
+
 use derivative::Derivative;
 use dynaql_value::Name;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet, VecDeque};
+
+use crate::CompactValue;
 
 mod entity_id;
 mod into_response_node;
 mod response_node_id;
 mod se;
 
-use self::response_node_id::ToEntityId;
-
-pub use self::{entity_id::EntityId, into_response_node::IntoResponseNode, response_node_id::ResponseNodeId};
 pub use se::GraphQlResponseSerializer;
+
+use self::response_node_id::ToEntityId;
+pub use self::{entity_id::EntityId, into_response_node::IntoResponseNode, response_node_id::ResponseNodeId};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct QueryResponse {
@@ -60,8 +62,9 @@ pub struct QueryResponse {
 }
 
 pub mod vectorize {
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use std::iter::FromIterator;
+
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     pub fn serialize<'a, T, K, V, S>(target: T, ser: S) -> Result<S::Ok, S::Error>
     where
@@ -647,9 +650,8 @@ mod tests {
     use internment::ArcIntern;
     use serde_json::Number;
 
-    use crate::NodeID;
-
     use super::*;
+    use crate::NodeID;
 
     #[test]
     fn check_size_of_query_response_node() {

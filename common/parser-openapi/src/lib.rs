@@ -194,7 +194,6 @@ fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-
     use dynaql::registry::{MetaType, UnionType};
 
     use super::*;

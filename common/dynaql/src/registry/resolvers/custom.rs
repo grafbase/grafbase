@@ -1,22 +1,21 @@
-use super::ResolvedValue;
+use std::{hash::Hash, sync::Arc};
 
-use crate::{Context, Error, ErrorExtensionValues};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase::UdfKind;
-use grafbase_runtime::udf::{
-    CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
-    UdfRequestContext, UdfRequestContextRequest,
+use grafbase_runtime::{
+    udf::{
+        CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
+        UdfRequestContext, UdfRequestContextRequest,
+    },
+    GraphqlRequestExecutionContext,
 };
-use grafbase_runtime::GraphqlRequestExecutionContext;
-
 use send_wrapper::SendWrapper;
-
-use std::hash::Hash;
-use std::sync::Arc;
-
 #[cfg(feature = "tracing_worker")]
 use tracing::{info_span, Instrument};
+
+use super::ResolvedValue;
+use crate::{Context, Error, ErrorExtensionValues};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct CustomResolver {

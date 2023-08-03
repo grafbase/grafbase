@@ -2,11 +2,12 @@ use std::fmt::{Error, Result as FmtResult, Write};
 
 use dynaql_value::ConstValue;
 
-use crate::parser::types::{ExecutableDocument, FragmentDefinition, OperationType, Selection, SelectionSet};
-use crate::registry::{MetaInputValue, MetaType, Registry};
-use crate::Variables;
-
 use super::type_kinds::InputType;
+use crate::{
+    parser::types::{ExecutableDocument, FragmentDefinition, OperationType, Selection, SelectionSet},
+    registry::{MetaInputValue, MetaType, Registry},
+    Variables,
+};
 
 impl Registry {
     pub(crate) fn stringify_exec_doc(&self, variables: &Variables, doc: &ExecutableDocument) -> Result<String, Error> {
@@ -186,8 +187,7 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::parse_query;
-    use crate::*;
+    use crate::{parser::parse_query, *};
 
     #[test]
     fn test_stringify() {

@@ -2,11 +2,9 @@ use std::collections::HashMap;
 
 use aws_region_nearby::AwsRegion;
 use dynaql::AuthConfig;
-use grafbase::auth::ExecutionAuth;
-use grafbase::UdfKind;
+use grafbase::{auth::ExecutionAuth, UdfKind};
 use serde_with::serde_as;
-use worker::js_sys::Uint8Array;
-use worker::{Headers, Method, RequestInit};
+use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct VersionedRegistry<'a> {
@@ -258,8 +256,9 @@ mod tests {
 
     #[test]
     fn serialize_customer_deployment_config() {
-        use grafbase::UdfKind;
         use std::collections::HashMap;
+
+        use grafbase::UdfKind;
         let customer_gateway_config = CustomerDeploymentConfig {
             udf_bindings: HashMap::from([((UdfKind::Authorizer, "name".to_string()), "value".to_string())]),
             ..Default::default()

@@ -1,6 +1,4 @@
-use std::borrow::Cow;
-use std::fs::File;
-use std::io::Read;
+use std::{borrow::Cow, fs::File, io::Read};
 
 use crate::{registry, Context, InputValueError, InputValueResult, LegacyInputType, Value};
 
