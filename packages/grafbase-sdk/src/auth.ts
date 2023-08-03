@@ -24,6 +24,7 @@ export type AuthOperation =
   | 'create'
   | 'update'
   | 'delete'
+  | 'introspection'
 
 /**
  * A list of supported authentication strategies.
@@ -88,10 +89,15 @@ export class AuthRule {
     return this.operation('delete')
   }
 
+  /** Allow the `introspection` operation for the given strategy. */
+  public introspection(): AuthRule {
+    return this.operation('introspection')
+  }
+
   public toString(): string {
     const allow = `allow: ${this.strategy}`
 
-    var ops = this.operations.map((op) => `${op}`).join(', ')
+    let ops = this.operations.map((op) => `${op}`).join(', ')
     ops = ops ? `, operations: [${ops}]` : ''
 
     return `{ ${allow}${ops} }`
@@ -161,7 +167,7 @@ export class AuthRules {
   }
 
   public toString(): string {
-    var rules = this.rules.map((rule) => `      ${rule}`).join('\n')
+    let rules = this.rules.map((rule) => `      ${rule}`).join('\n')
 
     if (rules) {
       rules = `[\n${rules}\n    ]`
@@ -192,7 +198,7 @@ export class Authentication {
   }
 
   public toString(): string {
-    var providers = this.providers
+    let providers = this.providers
       ? this.providers.map(String).join('\n      ')
       : ''
 
@@ -200,7 +206,7 @@ export class Authentication {
       providers = `\n    providers: [\n      ${providers}\n    ]`
     }
 
-    var rules = this.rules.toString()
+    let rules = this.rules.toString()
 
     if (rules) {
       rules = `\n    rules: ${rules}`
