@@ -17,7 +17,7 @@ use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
 use dynaql_value::{ConstValue, Name};
-use grafbase_runtime::cursor::Cursor;
+use grafbase_runtime::search::GraphqlCursor;
 use graph_entities::ConstraintID;
 use query::QueryResolver;
 use ulid::Ulid;
@@ -104,14 +104,14 @@ impl ResolvedPaginationDirection {
 
 #[derive(Debug, Hash, Clone)]
 pub struct ResolvedPaginationInfo {
-    pub start_cursor: Option<Cursor>,
-    pub end_cursor: Option<Cursor>,
+    pub start_cursor: Option<GraphqlCursor>,
+    pub end_cursor: Option<GraphqlCursor>,
     pub has_next_page: bool,
     pub has_previous_page: bool,
 }
 
 impl ResolvedPaginationInfo {
-    pub fn of<C: Into<Cursor>>(
+    pub fn of<C: Into<GraphqlCursor>>(
         direction: ResolvedPaginationDirection,
         start_cursor: Option<C>,
         end_cursor: Option<C>,

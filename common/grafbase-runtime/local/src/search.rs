@@ -1,8 +1,9 @@
 use grafbase_runtime::{
-    search::{Request, Response, SearchEngine, SearchEngineInner, SearchError},
+    search::{QueryError, Request, Response, SearchEngine, SearchEngineInner},
     GraphqlRequestExecutionContext,
 };
-use search_query::{QueryExecutionRequest, QueryExecutionResponse};
+use graph_entities::NodeID;
+use search_protocol::query::{Query, QueryRequest, QueryResponse, QueryResponseDiscriminants, QueryResponseParameters};
 
 use crate::bridge::Bridge;
 
@@ -21,20 +22,29 @@ impl LocalSearchEngine {
 
 #[async_trait::async_trait]
 impl SearchEngineInner for LocalSearchEngine {
-    async fn search(&self, ctx: &GraphqlRequestExecutionContext, request: Request) -> Result<Response, SearchError> {
+    async fn query(&self, ctx: &GraphqlRequestExecutionContext, request: Request) -> Response {
+        let Request {
+            query,
+            pagination,
+            index,
+        } = request;
+        let request = QueryRequest {
+            query: Query::try_from(query)?,
+            pagination,
+            index: index.clone(),
+            database: String::new(),
+            ray_id: ctx.ray_id.clone(),
+            response_parameters: QueryResponseParameters {
+                version: QueryResponseDiscriminants::V1,
+            },
+        };
         self.bridge
-            .request::<QueryExecutionRequest, QueryExecutionResponse>(
-                "search",
-                QueryExecutionRequest::try_build(request, "", &ctx.ray_id).map_err(|err| {
-                    log::error!(ctx.ray_id, "Failed to build QueryExecutionRequest: {err}");
-                    SearchError::ServerError
-                })?,
-            )
+            .request::<QueryRequest, QueryResponse>("search", request)
             .await
             .map_err(|error| {
                 log::error!(ctx.ray_id, "Search Request failed with: {}", error);
-                SearchError::ServerError
-            })
-            .and_then(|r| r)
+                QueryError::ServerError
+            })?
+            .normalized(|ulid| NodeID::new(&index, &ulid.to_string()).to_string())
     }
 }

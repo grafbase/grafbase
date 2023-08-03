@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use grafbase_runtime::search::Cursor;
+use grafbase_runtime::search::GraphqlCursor;
 use serde_json::{json, Value};
 
 use super::JsonMap;
@@ -27,7 +27,7 @@ pub(super) fn before(ctx: &Context<'_>) -> Option<JsonMap> {
     let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("before".to_string()));
 
     let before = resolve_definition
-        .resolve::<Cursor>(ctx, Option::<Value>::None)
+        .resolve::<GraphqlCursor>(ctx, Option::<Value>::None)
         .ok()
         .and_then(|cursor| String::from_utf8(cursor.into_bytes()).ok());
 
@@ -54,7 +54,7 @@ pub(super) fn after(ctx: &Context<'_>) -> Option<JsonMap> {
     let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("after".to_string()));
 
     let after = resolve_definition
-        .resolve::<Cursor>(ctx, Option::<Value>::None)
+        .resolve::<GraphqlCursor>(ctx, Option::<Value>::None)
         .ok()
         .and_then(|cursor| String::from_utf8(cursor.into_bytes()).ok());
 

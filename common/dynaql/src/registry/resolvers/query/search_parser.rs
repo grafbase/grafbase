@@ -1,4 +1,4 @@
-use grafbase_runtime::search::{self, Cursor, ScalarCondition};
+use grafbase_runtime::search::{self, GraphqlCursor, ScalarCondition};
 use serde_json::Value;
 use thiserror::Error;
 
@@ -26,9 +26,9 @@ pub enum InvalidPagination {
 
 pub fn parse_pagination(
     first: Option<usize>,
-    before: Option<Cursor>,
+    before: Option<GraphqlCursor>,
     last: Option<usize>,
-    after: Option<Cursor>,
+    after: Option<GraphqlCursor>,
 ) -> Result<search::Pagination, InvalidPagination> {
     match (first, after, last, before) {
         (Some(_), _, Some(_), _) => Err(InvalidPagination::UnsupportedCombination("first", "last")),
@@ -121,15 +121,15 @@ fn parse_list_filter(
             .into_iter()
             .map(|(name, value)| {
                 Ok(match name.as_str() {
-                    INPUT_FIELD_FILTER_LIST_INCLUDES => search::Filter::ListFilter {
+                    INPUT_FIELD_FILTER_LIST_INCLUDES => search::Filter::List {
                         field: field_name.to_string(),
                         condition: HasAny(parse_scalar_condition(field, value)?),
                     },
-                    INPUT_FIELD_FILTER_LIST_INCLUDES_NONE => search::Filter::ListFilter {
+                    INPUT_FIELD_FILTER_LIST_INCLUDES_NONE => search::Filter::List {
                         field: field_name.to_string(),
                         condition: HasNone(parse_scalar_condition(field, value)?),
                     },
-                    INPUT_FIELD_FILTER_LIST_IS_EMPTY => search::Filter::ListFilter {
+                    INPUT_FIELD_FILTER_LIST_IS_EMPTY => search::Filter::List {
                         field: field_name.to_string(),
                         condition: IsEmpty(serde_json::from_value(value)?),
                     },
@@ -145,7 +145,7 @@ fn parse_scalar_filter(
     field_name: &str,
     conditions: serde_json::Map<String, Value>,
 ) -> Result<search::Filter, Error> {
-    parse_scalar_condition(field, Value::Object(conditions)).map(|condition| search::Filter::ScalarFilter {
+    parse_scalar_condition(field, Value::Object(conditions)).map(|condition| search::Filter::Scalar {
         field: field_name.to_string(),
         condition,
     })
