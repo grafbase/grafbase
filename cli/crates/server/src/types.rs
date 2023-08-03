@@ -3,23 +3,30 @@ use std::path::PathBuf;
 
 pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
 
-#[serde_with::serde_as]
+#[derive(Clone, Debug)]
+pub enum RequestCompletedOutcome {
+    Success { r#type: common::types::OperationType },
+    BadRequest,
+}
+
 #[derive(serde::Deserialize, Clone, Debug)]
+pub enum NestedRequestScopedMessage {
+    UdfMessage {
+        udf_kind: UdfKind,
+        udf_name: String,
+        level: LogLevel,
+        message: String,
+    },
+}
+
+#[derive(Clone, Debug)]
 pub enum LogEventType {
-    OperationStarted {
+    RequestCompleted {
         name: Option<String>,
-    },
-    OperationCompleted {
-        name: Option<String>,
-        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
         duration: std::time::Duration,
-        r#type: common::types::OperationType,
+        request_completed_type: RequestCompletedOutcome,
     },
-    BadRequest {
-        name: Option<String>,
-        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
-        duration: std::time::Duration,
-    },
+    NestedEvent(NestedRequestScopedMessage),
 }
 
 #[derive(Clone, Debug)]
@@ -35,13 +42,7 @@ pub enum ServerMessage {
         udf_name: String,
         duration: std::time::Duration,
     },
-    UdfMessage {
-        udf_kind: UdfKind,
-        udf_name: String,
-        level: LogLevel,
-        message: String,
-    },
-    OperationLogMessage {
+    RequestScopedMessage {
         request_id: String,
         event_type: LogEventType,
     },

@@ -2,18 +2,32 @@ use std::sync::Arc;
 
 use axum::{extract::State, Json};
 
-use crate::types::ServerMessage;
-
 use super::{errors::ApiError, server::HandlerState, types::LogEvent};
 
 pub async fn log_event_endpoint(
     State(handler_state): State<Arc<HandlerState>>,
     Json(request): Json<LogEvent>,
 ) -> Result<(), ApiError> {
+    use super::types::LogEventType as InputLogEventType;
+    use crate::types::LogEventType as OutputLogEventType;
+    use crate::types::{RequestCompletedOutcome, ServerMessage};
+
     let LogEvent { request_id, r#type } = request;
-    let message = ServerMessage::OperationLogMessage {
+    let message = ServerMessage::RequestScopedMessage {
         request_id,
-        event_type: r#type,
+        event_type: match r#type {
+            InputLogEventType::OperationStarted { name: _ } => return Ok(()), // Ignore for now.
+            InputLogEventType::OperationCompleted { name, duration, r#type } => OutputLogEventType::RequestCompleted {
+                name,
+                duration,
+                request_completed_type: RequestCompletedOutcome::Success { r#type },
+            },
+            InputLogEventType::BadRequest { name, duration } => OutputLogEventType::RequestCompleted {
+                name,
+                duration,
+                request_completed_type: RequestCompletedOutcome::BadRequest,
+            },
+        },
     };
     handler_state.bridge_sender.send(message).await.unwrap();
 

@@ -2,7 +2,7 @@ use crate::cli_input::LogLevelFilters;
 use crate::output::report;
 use crate::CliError;
 use backend::server_api::start_server;
-use backend::types::ServerMessage;
+use backend::types::{LogEventType, ServerMessage};
 use common::utils::get_thread_panic_message;
 use std::sync::Once;
 use std::thread;
@@ -24,6 +24,8 @@ pub fn dev(
     log_level_filters: LogLevelFilters,
     tracing: bool,
 ) -> Result<(), CliError> {
+    const EXPIRY_TIME: tokio::time::Duration = tokio::time::Duration::from_secs(60);
+
     trace!("attempting to start server");
 
     let (server_handle, receiver) =
@@ -31,6 +33,11 @@ pub fn dev(
 
     let reporter_handle = thread::spawn(move || {
         let mut resolvers_reported = false;
+
+        // We group messages by operation (request ID). Because messages come in as a stream of events,
+        // we need to group them on the fly and "flush" as a tree only when the final operation completion
+        // event is observed.
+        let mut message_group_buffer = std::collections::HashMap::new();
 
         while let Ok(message) = receiver.recv() {
             match message {
@@ -49,19 +56,31 @@ pub fn dev(
                     resolvers_reported = true;
                     report::complete_udf_build(udf_kind, &udf_name, duration);
                 }
-                ServerMessage::UdfMessage {
-                    udf_kind,
-                    udf_name,
-                    message,
-                    level,
-                } => {
-                    report::udf_message(udf_kind, &udf_name, &message, level, log_level_filters.functions);
-                }
-                ServerMessage::OperationLogMessage { event_type, .. } => {
-                    report::operation_log(event_type, log_level_filters.graphql_operations);
-                }
+                ServerMessage::RequestScopedMessage { event_type, request_id } => match event_type {
+                    LogEventType::RequestCompleted {
+                        name,
+                        duration,
+                        request_completed_type,
+                    } => {
+                        let nested_events = message_group_buffer
+                            .remove(&request_id)
+                            .map(|(_, events)| events)
+                            .unwrap_or_default();
+                        report::operation_log(name, duration, request_completed_type, nested_events, log_level_filters);
+                    }
+                    LogEventType::NestedEvent(nested_event) => {
+                        message_group_buffer
+                            .entry(request_id)
+                            .or_insert_with(|| (tokio::time::Instant::now(), vec![]))
+                            .1
+                            .push(nested_event);
+                    }
+                },
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }
+
+            // Flush nested events that are really old – if a user interrupt a request, we will not see an operation completion event.
+            message_group_buffer.retain(|_, (created, _)| created.elapsed() < EXPIRY_TIME);
         }
     });
 
