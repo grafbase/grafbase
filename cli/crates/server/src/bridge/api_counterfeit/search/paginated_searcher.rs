@@ -5,7 +5,7 @@ use integer_encoding::{VarIntReader, VarIntWriter};
 use tantivy::{self, collector::Count, collector::TopDocs, schema::Field, Document};
 use tantivy::{DocAddress, Searcher};
 
-use super::{BadRequestError, Cursor, Hit, Info, PaginatedHits, SearchError, SearchResult};
+use super::{BadRequestError, Cursor, Hit, Info, PaginatedHits, QueryError, SearchResult};
 
 type DocId = Vec<u8>;
 
@@ -23,7 +23,7 @@ struct Match {
 }
 
 impl TryFrom<Cursor> for SearchCursor {
-    type Error = SearchError;
+    type Error = QueryError;
 
     fn try_from(value: Cursor) -> Result<Self, Self::Error> {
         let bytes = value.into_bytes();

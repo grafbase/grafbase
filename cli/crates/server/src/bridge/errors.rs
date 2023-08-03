@@ -30,8 +30,8 @@ pub enum UserError {
     ConstraintViolation(Constraint),
 }
 
-impl From<search::SearchError> for ApiError {
-    fn from(error: search::SearchError) -> Self {
+impl From<search::QueryError> for ApiError {
+    fn from(error: search::QueryError) -> Self {
         error!("Search Error: {error:?}");
         Self::ServerError
     }
