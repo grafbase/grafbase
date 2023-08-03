@@ -48,10 +48,10 @@ const NAMESPACED_QUERY: &str = "
 
 #[tokio::test(flavor = "multi_thread")]
 async fn graphql_test_with_namespace() {
-    server::run(54300).await;
+    let port = server::run().await;
 
     let mut env = Environment::init_async().await;
-    let client = start_grafbase(&mut env, schema(54300, true)).await;
+    let client = start_grafbase(&mut env, schema(port, true)).await;
 
     insta::assert_yaml_snapshot!(
         "namespaced-pull-request-with-user",
@@ -117,10 +117,10 @@ const UNNAMESPACED_QUERY: &str = "
 
 #[tokio::test(flavor = "multi_thread")]
 async fn graphql_test_without_namespace() {
-    server::run(54301).await;
+    let port = server::run().await;
 
     let mut env = Environment::init_async().await;
-    let client = start_grafbase(&mut env, schema(54301, false)).await;
+    let client = start_grafbase(&mut env, schema(port, false)).await;
 
     insta::assert_yaml_snapshot!(
         "unnamespaced-pull-request-with-user",
