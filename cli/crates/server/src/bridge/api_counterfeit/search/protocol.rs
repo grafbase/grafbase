@@ -1,16 +1,21 @@
 use serde::{Deserialize, Serialize};
+use ulid::Ulid;
 
-use super::{cursor::Cursor, query::Query, SearchError};
+use super::{cursor::Cursor, query::Query, QueryError};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct QueryExecutionRequest {
+pub struct QueryRequest {
     pub query: Query,
     pub pagination: Pagination,
-    pub entity_type: String,
+    #[serde(rename = "entity_type")]
+    pub index: String,
     pub database: String,
 }
 
-pub type QueryExecutionResponse = Result<PaginatedHits<String>, SearchError>;
+#[derive(Debug, Serialize, Deserialize)]
+pub enum QueryResponse {
+    V1(Result<PaginatedHits<Ulid>, QueryError>),
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Pagination {

@@ -26,10 +26,6 @@ pub enum LogEventType {
 pub enum ServerMessage {
     Ready(u16),
     Reload(PathBuf),
-    InstallUdfDependencies,
-    CompleteInstallingUdfDependencies {
-        duration: std::time::Duration,
-    },
     StartUdfBuild {
         udf_kind: UdfKind,
         udf_name: String,

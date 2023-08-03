@@ -1878,6 +1878,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "slugify",
+ "strum",
  "sysinfo",
  "tempfile",
  "thiserror",
@@ -1886,6 +1887,7 @@ dependencies = [
  "url",
  "uuid",
  "webbrowser",
+ "which",
  "wiremock",
 ]
 
@@ -1972,6 +1974,7 @@ dependencies = [
  "tokio-stream",
  "tower-http",
  "tracing",
+ "ulid",
  "unicode-normalization",
  "uuid",
  "version-compare",

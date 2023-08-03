@@ -1,13 +1,13 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const contentful = connector.GraphQL({
+const strapi = connector.GraphQL({
   url: g.env('STRAPI_API_URL'),
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
   }
 })
 
-g.datasource(contentful, { namespace: 'Strapi' })
+g.datasource(strapi, { namespace: 'Strapi' })
 
 export default config({
   schema: g,
