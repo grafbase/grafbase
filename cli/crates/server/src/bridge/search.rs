@@ -8,6 +8,7 @@ use sqlx::SqlitePool;
 
 use tantivy::schema::Field;
 use tantivy::Document;
+use ulid::Ulid;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -16,8 +17,8 @@ use std::sync::Arc;
 
 use super::api_counterfeit::registry::{Registry, VersionedRegistry};
 use super::api_counterfeit::search::{
-    self, PaginatedHits, Pagination, Query, QueryExecutionRequest, QueryExecutionResponse, SearchError,
-    TantivyQueryBuilder, TopDocsPaginatedSearcher,
+    self, PaginatedHits, Pagination, Query, QueryError, QueryRequest, QueryResponse, TantivyQueryBuilder,
+    TopDocsPaginatedSearcher,
 };
 use super::errors::ApiError;
 use super::server::HandlerState;
@@ -37,7 +38,7 @@ impl<'a> Index<'a> {
     // needless_pass_by_value: Complains about pagination argument which has no other purpose anyway
     // cast_possible_truncation: Complains about u64 -> usize, which shouldn't matter for anything sensible.
     #[allow(clippy::needless_pass_by_value, clippy::cast_possible_truncation)]
-    pub fn search(&self, query: Query, pagination: Pagination) -> Result<PaginatedHits<String>, SearchError> {
+    pub fn search(&self, query: Query, pagination: Pagination) -> Result<PaginatedHits<Ulid>, QueryError> {
         trace!("Executing query: {query:?}");
         let query = TantivyQueryBuilder::new(&self.inner, self.schema).build(query)?;
         let searcher = TopDocsPaginatedSearcher {
@@ -56,20 +57,25 @@ impl<'a> Index<'a> {
                 searcher.search_backward_before(last as usize, &before.try_into()?)?
             }
         };
-        Ok(hits.map_id(|id| String::from_utf8(id).unwrap()))
+        Ok(hits.map_id(|id| {
+            let mut id = String::from_utf8(id).unwrap();
+            // removing the prefix 'post#<ulid>' from the id
+            let _ = id.drain(..(id.len() - 26));
+            Ulid::from_string(&id).unwrap()
+        }))
     }
 
     pub async fn build(
         pool: &SqlitePool,
         entity_type: &str,
         config: &'a search::Config,
-    ) -> Result<Index<'a>, SearchError> {
+    ) -> Result<Index<'a>, QueryError> {
         let schema = &config
             .indices
             .get(entity_type)
             .ok_or_else(|| {
                 error!("Unknown index: {entity_type}");
-                SearchError::ServerError
+                QueryError::ServerError
             })?
             .schema;
 
@@ -100,7 +106,7 @@ impl<'a> Index<'a> {
             for field in &fields {
                 add_field(&mut doc, field, &record).map_err(|err| {
                     error!("{:?} for record '{}' on field '{}'", err, &record.id, &field.name);
-                    SearchError::ServerError
+                    QueryError::ServerError
                 })?;
             }
             writer.add_document(doc)?;
@@ -307,8 +313,8 @@ impl DynamoItemExt {
 
 pub async fn search_endpoint(
     State(handler_state): State<Arc<HandlerState>>,
-    Json(request): Json<QueryExecutionRequest>,
-) -> Result<Json<QueryExecutionResponse>, ApiError> {
+    Json(request): Json<QueryRequest>,
+) -> Result<Json<QueryResponse>, ApiError> {
     let project = Project::get();
 
     let registry: Registry = {
@@ -325,10 +331,10 @@ pub async fn search_endpoint(
         versioned.registry
     };
 
-    let response = Index::build(&handler_state.pool, &request.entity_type, &registry.search_config)
+    let result = Index::build(&handler_state.pool, &request.index, &registry.search_config)
         .await
         .and_then(|index| index.search(request.query, request.pagination));
-    Ok(Json(response))
+    Ok(Json(QueryResponse::V1(result)))
 }
 
 #[cfg(test)]
