@@ -106,10 +106,9 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
     for selection in &ctx.item.node.items {
         match &selection.node {
             Selection::Field(field) => {
-                let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                 // We do take the name and not the alias
-                let field_name = ctx_field.item.node.name.node.as_str();
-                let field_response_key = ctx_field.item.node.response_key().node.as_str();
+                let field_name = field.node.name.node.as_str();
+                let field_response_key = field.node.response_key().node.as_str();
                 if let Some(relation) = root.field_by_name(field_name).and_then(|x| x.relation.as_ref()) {
                     result.insert(field_response_key.to_string(), relation);
                 }
@@ -309,7 +308,7 @@ impl<'a> Iterator for Parents<'a> {
 
 impl<'a> std::iter::FusedIterator for Parents<'a> {}
 
-type ResolverCacheType = Arc<AsynRwLock<UnboundCache<u64, Result<ResolvedValue, Error>>>>;
+type ResolverCacheType = Arc<AsynRwLock<UnboundCache<Ulid, Result<ResolvedValue, Error>>>>;
 
 /// Query context.
 ///

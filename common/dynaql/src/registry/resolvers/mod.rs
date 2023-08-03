@@ -11,7 +11,6 @@
 
 use std::{borrow::Borrow, sync::Arc};
 
-use derivative::Derivative;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
@@ -140,8 +139,7 @@ impl ResolvedPaginationInfo {
 /// example Pagination Details.
 ///
 /// Cheap to Clone
-#[derive(Debug, Derivative, Clone)]
-#[derivative(Hash)]
+#[derive(Debug, Clone)]
 pub struct ResolvedValue {
     /// Data Resolved by the current Resolver.
     ///
@@ -153,7 +151,6 @@ pub struct ResolvedValue {
     /// "..." } }` JSON object.
     ///
     /// Other resolvers might transform/augment the data before passing it along.
-    #[derivative(Hash = "ignore")]
     pub data_resolved: Arc<serde_json::Value>,
     /// Optional pagination data for Paginated Resolvers
     pub pagination: Option<ResolvedPaginationInfo>,

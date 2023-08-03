@@ -33,9 +33,7 @@
 //! A memoization is applied on the resolve function.
 
 use std::{
-    collections::hash_map::DefaultHasher,
     fmt::{self, Debug, Display, Formatter},
-    hash::{Hash, Hasher},
     sync::Arc,
 };
 
@@ -56,8 +54,7 @@ use crate::{Context, Error, QueryPathSegment, Result};
 
 /// A path to the current query with resolvers, transformers and associated type.
 /// Reverse linked list used to help us construct the whole resolving flow.
-#[derive(derivative::Derivative, Debug, Clone, PartialEq, Eq)]
-#[derivative(Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolverChainNode<'a> {
     /// The parent node to this, if there is one.
     pub parent: Option<&'a ResolverChainNode<'a>>,
@@ -145,12 +142,9 @@ impl<'a> ResolverChainNode<'a> {
 impl<'a> ResolverChainNode<'a> {
     #[async_recursion::async_recursion]
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResolvedValue, Error> {
-        let mut hash_value = DefaultHasher::new();
-        self.hash(&mut hash_value);
-        let hash_value = hash_value.finish();
         {
             let mut guard = ctx.resolvers_cache.write().await;
-            if let Some(value) = guard.cache_get(&hash_value) {
+            if let Some(value) = guard.cache_get(&self.execution_id) {
                 let cached_value = value.clone();
                 return cached_value;
             }
@@ -190,7 +184,7 @@ impl<'a> ResolverChainNode<'a> {
 
         {
             let mut guard = ctx.resolvers_cache.write().await;
-            guard.cache_set(hash_value, Ok(final_result.clone()));
+            guard.cache_set(self.execution_id, Ok(final_result.clone()));
         }
 
         Ok(final_result)
