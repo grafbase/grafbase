@@ -5,7 +5,7 @@ const shopify = connector.GraphQL({
     'SHOPIFY_STORE_NAME'
   )}.myshopify.com/api/2023-04/graphql.json`,
   headers: (headers) => {
-    headers.static(
+    headers.set(
       'X-Shopify-Storefront-Access-Token',
       g.env('SHOPIFY_STOREFRONT_ACCESS_TOKEN')
     )

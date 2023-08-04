@@ -4,7 +4,7 @@ const github = connector.OpenAPI({
   schema:
     'https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/ghes-3.0/ghes-3.0.json',
   headers: (headers) => {
-    headers.static('Authorization', `Bearer ${g.env('GITHUB_ACCESS_TOKEN')}`)
+    headers.set('Authorization', `Bearer ${g.env('GITHUB_ACCESS_TOKEN')}`)
   }
 })
 
