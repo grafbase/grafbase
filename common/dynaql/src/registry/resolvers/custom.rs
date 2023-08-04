@@ -64,10 +64,12 @@ impl CustomResolver {
             .into_iter()
             .map(|(name, value)| value.into_json().map(|value| (name.to_string(), value)))
             .collect::<serde_json::Result<_>>()?;
+        let ray_id = &ctx.data::<GraphqlRequestExecutionContext>()?.ray_id;
         let future = SendWrapper::new(custom_resolvers_engine.invoke(
-            &ctx.data::<GraphqlRequestExecutionContext>()?.ray_id,
+            ray_id,
             UdfRequest {
-                name: self.resolver_name.clone(),
+                name: &self.resolver_name,
+                request_id: ray_id,
                 payload: CustomResolverRequestPayload {
                     arguments,
                     parent: Some(parent.data_resolved().clone()),

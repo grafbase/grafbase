@@ -26,7 +26,7 @@ impl<Payload: Serialize> UdfInvoker<Payload> for UdfInvokerImpl {
     async fn invoke(
         &self,
         ray_id: &str,
-        request: UdfRequest<Payload>,
+        request: UdfRequest<'_, Payload>,
     ) -> Result<CustomResolverResponse, CustomResolverError>
     where
         Payload: 'async_trait,
