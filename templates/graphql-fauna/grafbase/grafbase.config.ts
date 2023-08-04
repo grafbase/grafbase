@@ -1,17 +1,16 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const tinybird = connector.OpenAPI({
-  schema: g.env('TINYBIRD_API_SCHEMA'),
+const fauna = connector.GraphQL({
+  url: 'https://graphql.fauna.com/graphql',
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
-  },
-  transforms: { queryNaming: 'OPERATION_ID' }
+  }
 })
 
-g.datasource(tinybird)
+g.datasource(fauna)
 
 // Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(tinybird, { namespace: 'Tinybird' })
+// g.datasource(fauna, { namespace: 'Fauna' })
 
 export default config({
   schema: g,

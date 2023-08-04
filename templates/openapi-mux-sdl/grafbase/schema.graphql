@@ -1,7 +1,8 @@
 extend schema
   @openapi(
-    namespace: "Mux"
+    # Use namespaces if you connect multiple APIs to avoid conflicts
+    # namespace: "Mux"
     schema: "https://docs.mux.com/api-spec.json"
-    headers: [{ name: "Authorization", value: "Basic {{ env.MUX_BASE64 }}" }]
+    headers: [{ name: "Authorization", forward: "Authorization" }]
     transforms: { queryNaming: OPERATION_ID }
   )

@@ -1,11 +1,12 @@
 extend schema
   @graphql(
-    name: "Shopify"
+    # Use namespaces if you connect multiple APIs to avoid conflicts
+    # namespace: "Shopify"
     url: "https://{{ env.SHOPIFY_STORE_NAME }}.myshopify.com/api/2023-04/graphql.json"
     headers: [
       {
         name: "X-Shopify-Storefront-Access-Token"
-        value: "{{ env.SHOPIFY_STOREFRONT_ACCESS_TOKEN }}"
+        forward: "X-Shopify-Storefront-Access-Token"
       }
     ]
   )
