@@ -1,10 +1,9 @@
 extend schema
   @openapi(
-    namespace: "OpenAI"
+    # Use namespaces if you connect multiple APIs to avoid conflicts
+    # namespace: "OpenAI"
     url: "https://api.openai.com/v1/"
     schema: "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml"
-    headers: [
-      { name: "Authorization", value: "Bearer {{ env.OPENAI_API_KEY }}" }
-    ]
+    headers: [{ name: "Authorization", forward: "Authorization" }]
     transforms: { queryNaming: OPERATION_ID }
   )
