@@ -35,7 +35,7 @@ pub fn dev(
         let mut resolvers_reported = false;
 
         // We group messages by operation (request ID). Because messages come in as a stream of events,
-        // we need to group them on the fly and "flush" as a tree only when the final operation completion
+        // we need to group them on the fly and “flush” as a tree only when the final operation completion
         // event is observed.
         let mut message_group_buffer = std::collections::HashMap::new();
 
@@ -79,7 +79,7 @@ pub fn dev(
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }
 
-            // Flush nested events that are really old – if a user interrupt a request, we will not see an operation completion event.
+            // Flush nested events that are really old – if a user interrupts a request, we will not see an operation completion event.
             message_group_buffer.retain(|_, (created, _)| created.elapsed() < EXPIRY_TIME);
         }
     });
