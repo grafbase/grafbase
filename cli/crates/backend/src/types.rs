@@ -1,1 +1,1 @@
-pub use server::types::{LogEventType, ServerMessage};
+pub use server::types::{LogEventType, NestedRequestScopedMessage, RequestCompletedOutcome, ServerMessage};
