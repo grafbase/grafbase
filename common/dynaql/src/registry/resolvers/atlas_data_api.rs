@@ -3,7 +3,7 @@ mod normalize;
 mod operation;
 mod projection;
 
-use std::{pin::Pin, sync::Arc};
+use std::pin::Pin;
 
 use futures_util::Future;
 use grafbase_runtime::search::GraphqlCursor;
@@ -107,10 +107,10 @@ impl AtlasDataApiResolver {
             let pagination = self.pagination(&value);
             let value = self.convert_value(value);
 
-            let mut resolved_value = ResolvedValue::new(Arc::new(value));
+            let mut resolved_value = ResolvedValue::new(value);
             resolved_value.pagination = pagination;
 
-            if resolved_value.data_resolved.is_null() {
+            if resolved_value.data_resolved().is_null() {
                 resolved_value.early_return_null = true;
             }
 

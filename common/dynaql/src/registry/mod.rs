@@ -450,7 +450,7 @@ impl MetaField {
 
                 let result = match resolved_value {
                     Ok(result) => {
-                        if self.ty.is_non_null() && *result.data_resolved.as_ref() == serde_json::Value::Null {
+                        if self.ty.is_non_null() && *result.data_resolved() == serde_json::Value::Null {
                             #[cfg(feature = "tracing_worker")]
                             logworker::warn!(
                                 ctx.data_unchecked::<std::sync::Arc<dynamodb::DynamoDBBatchersData>>()
@@ -469,7 +469,7 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ))
                         } else {
-                            Ok(result.data_resolved.as_ref().clone())
+                            Ok(result.take())
                         }
                     }
                     Err(err) => {
@@ -626,9 +626,9 @@ impl MetaField {
                 let resolved_value = resolvers
                     .resolve(&ctx)
                     .await
-                    .map_err(|err| err.into_server_error(ctx.item.pos));
+                    .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-                let len = match &resolved_value?.data_resolved.as_ref() {
+                let items = match resolved_value.data_resolved() {
                     serde_json::Value::Null => {
                         if self.ty.is_non_null() {
                             return Err(ServerError::new(
@@ -642,16 +642,16 @@ impl MetaField {
                             return Ok(ctx.response_graph.write().await.insert_node(CompactValue::Null));
                         }
                     }
-                    serde_json::Value::Array(arr) => {
+                    serde_json::Value::Array(_) => {
                         self.check_cache_tag(ctx, container_type.name(), &self.name, None).await;
-                        arr.clone()
+                        resolved_value.item_iter().expect("we checked its an array").collect()
                     }
                     _ => {
                         return Err(ServerError::new("An internal error happened", Some(ctx.item.pos)));
                     }
                 };
 
-                match resolve_list(&ctx_obj, ctx.item, container_type, len).await {
+                match resolve_list(&ctx_obj, ctx.item, container_type, items).await {
                     result @ Ok(_) => result,
                     Err(err) => {
                         if self.ty.is_non_null() {

@@ -636,7 +636,7 @@ async fn resolve_remote_typename<'a>(
 
     Some(
         resolved_value
-            .data_resolved
+            .data_resolved()
             .as_object()?
             .get("__typename")?
             .as_str()?

@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::hash::Hash;
 
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
@@ -34,30 +34,25 @@ impl CustomResolver {
         //
         // We know the format of the parent value, we then apply some little magic to adapt it to
         // the proper format expected.
-        let parent_data = last_resolver_value
-            .map(|x| x.data_resolved.clone())
-            .unwrap_or(Arc::new(serde_json::json!({})));
+        let parent = last_resolver_value.cloned().unwrap_or_default();
 
         // This next bit of the hack is _tricky_.
         // - If our parent was a model we should have a struct like: { type: Value }.
         //   Where `type` is the name of the Model.
         // - If our parent was a connector type we just want to pass it in unchanged.
         //
-        // We use the presence of the `type` key to try and differentiate these two
-        let model_data = parent_data.as_object().and_then(|parent_object| {
-            // parent_object might also contain relations so we need to find the
-            // correct key to take.  We're currently resolving a field so we look
-            // two levels up the resolver chain to find the current type we're within.
-            ctx.resolver_node
-                .as_ref()
-                .and_then(|node| Some(node.parent?.ty?.name()))
-                .and_then(|current_type_name| parent_object.get(current_type_name))
-        });
-
-        let parent = match model_data {
-            Some(model_data) => dynamodb_to_json(model_data.clone()),
-            None => (*parent_data).clone(),
-        };
+        // We use the presence of the type key to try and differentiate these two
+        let parent = ctx
+            .resolver_node
+            .as_ref()
+            .and_then(|node| {
+                // We find the current type name by looking up the resolver chain
+                Some(node.parent?.ty?.name())
+            })
+            .and_then(|current_type_name| parent.get_field(current_type_name))
+            .map(|model_data| dynamodb_to_json(model_data.take()))
+            .map(ResolvedValue::new)
+            .unwrap_or(parent);
 
         // -- End of hack
 
@@ -75,7 +70,7 @@ impl CustomResolver {
                 name: self.resolver_name.clone(),
                 payload: CustomResolverRequestPayload {
                     arguments,
-                    parent: Some(parent),
+                    parent: Some(parent.data_resolved().clone()),
                     context: UdfRequestContext {
                         request: UdfRequestContextRequest {
                             headers: serde_json::to_value(&graphql.headers).expect("must be valid"),
@@ -95,7 +90,7 @@ impl CustomResolver {
         let future = future.instrument(info_span!("custom_resolver", resolver_name = self.resolver_name));
 
         match Box::pin(future).await? {
-            CustomResolverResponse::Success(value) => Ok(ResolvedValue::new(Arc::new(value))),
+            CustomResolverResponse::Success(value) => Ok(ResolvedValue::new(value)),
             CustomResolverResponse::GraphQLError { message, extensions } => {
                 let mut error = Error::new(message);
                 error.extensions = extensions.map(|extensions| {

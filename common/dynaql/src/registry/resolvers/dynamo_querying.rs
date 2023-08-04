@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashSet, hash::Hash, string::FromUtf8Error, sync::Arc};
+use std::{collections::HashSet, hash::Hash, string::FromUtf8Error, sync::Arc};
 
 use dynamodb::{
     constant::{INVERTED_INDEX_PK, SK},
@@ -235,7 +235,7 @@ impl DynamoResolver {
                 filter,
                 nested,
             } => {
-                let ty = r#type.expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+                let ty = r#type.expect_string(ctx, last_resolver_value.map(ResolvedValue::data_resolved))?;
 
                 // TODO: optimize single edges for the top level
                 // TODO: put selected relations
@@ -263,7 +263,7 @@ impl DynamoResolver {
                     .unique()
                     .collect();
 
-                let last_val = last_resolver_value.map(|x| x.data_resolved.borrow());
+                let last_val = last_resolver_value.map(ResolvedValue::data_resolved);
                 let first = first.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
                 let after: Option<IdCursor> = after.resolve(ctx, last_resolver_value)?;
                 let before: Option<IdCursor> = before.resolve(ctx, last_resolver_value)?;
@@ -353,7 +353,7 @@ impl DynamoResolver {
                     })
                     .collect();
 
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(result))).with_pagination(pagination))
+                Ok(ResolvedValue::new(serde_json::Value::Array(result)).with_pagination(pagination))
             }
             DynamoResolver::QueryIds { ids, type_name } => {
                 let ids: Vec<String> = ids.resolve(ctx, last_resolver_value)?;
@@ -362,7 +362,7 @@ impl DynamoResolver {
             DynamoResolver::_SearchQueryIds { ids, type_name } => get::by_ids(ctx, &ids, &type_name).await,
             DynamoResolver::QueryPKSK { pk, sk, .. } => {
                 let pk = match pk
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
+                    .param(ctx, last_resolver_value.map(ResolvedValue::data_resolved))?
                     .expect("can't fail")
                 {
                     Value::String(inner) => inner,
@@ -372,7 +372,7 @@ impl DynamoResolver {
                 };
 
                 let sk = match sk
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
+                    .param(ctx, last_resolver_value.map(ResolvedValue::data_resolved))?
                     .expect("can't fail")
                 {
                     Value::String(inner) => inner,
@@ -395,14 +395,14 @@ impl DynamoResolver {
                     match loader_item.load_one((pk.clone(), sk)).await? {
                         Some(dyna) => {
                             let value = serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))?;
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                            return Ok(ResolvedValue::new(serde_json::json!({
                                 current_ty: value,
-                            }))));
+                            })));
                         }
                         // If we do not have any value inside our fetch, it's not an
                         // error, it's only we didn't found the value.
                         None => {
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
+                            return Ok(ResolvedValue::new(serde_json::Value::Null).with_early_return());
                         }
                     }
                 }
@@ -441,7 +441,7 @@ impl DynamoResolver {
                 // If we do not have any value inside our fetch, it's not an
                 // error, it's only we didn't found the value.
                 if len == 0 {
-                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
+                    return Ok(ResolvedValue::null().with_early_return());
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -460,7 +460,7 @@ impl DynamoResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(result))))
+                Ok(ResolvedValue::new(serde_json::Value::Object(result)))
             }
             DynamoResolver::QuerySingleRelation {
                 parent_pk,
@@ -480,7 +480,7 @@ impl DynamoResolver {
                 // If we do not have any value inside our fetch, it's not an
                 // error, it's only we didn't found the value.
                 if len == 0 {
-                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
+                    return Ok(ResolvedValue::null().with_early_return());
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -499,11 +499,11 @@ impl DynamoResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(result))))
+                Ok(ResolvedValue::new(serde_json::Value::Object(result)))
             }
             DynamoResolver::QueryBy { by, .. } => {
                 let by = match by
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
+                    .param(ctx, last_resolver_value.map(ResolvedValue::data_resolved))?
                     .expect("can't fail")
                 {
                     Value::Object(inner) => inner,
@@ -523,7 +523,7 @@ impl DynamoResolver {
                     {
                         Ok(val) => val,
                         Err(_) => {
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
+                            return Ok(ResolvedValue::null().with_early_return());
                         }
                     };
 
@@ -558,13 +558,13 @@ impl DynamoResolver {
 
                             let value = serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))?;
 
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                            return Ok(ResolvedValue::new(serde_json::json!({
                                 current_ty: value,
-                            }))));
+                            })));
                         }
                         // Return early if no value was found
                         None => {
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
+                            return Ok(ResolvedValue::null().with_early_return());
                         }
                     }
                 }
@@ -606,7 +606,7 @@ impl DynamoResolver {
 
                 // Return early if no value was found
                 if len == 0 {
-                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return());
+                    return Ok(ResolvedValue::null().with_early_return());
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -625,7 +625,7 @@ impl DynamoResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(result))))
+                Ok(ResolvedValue::new(serde_json::Value::Object(result)))
             }
         }
     }

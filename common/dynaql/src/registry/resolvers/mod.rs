@@ -9,8 +9,6 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use std::{borrow::Borrow, sync::Arc};
-
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
@@ -21,6 +19,7 @@ use graph_entities::ConstraintID;
 use query::QueryResolver;
 use ulid::Ulid;
 
+pub use self::resolved_value::ResolvedValue;
 use self::{
     custom::CustomResolver,
     graphql::{QueryBatcher, Target},
@@ -36,6 +35,7 @@ pub mod dynamo_querying;
 pub mod graphql;
 pub mod http;
 pub mod query;
+mod resolved_value;
 pub mod transformer;
 
 /// Resolver Context
@@ -131,103 +131,6 @@ impl ResolvedPaginationInfo {
             "start_cursor": self.start_cursor,
             "end_cursor": self.end_cursor,
         })
-    }
-}
-
-/// ResolvedValue are values passed arround between resolvers, it contains the actual Resolver data
-/// but will also contain other informations wich may be use later by custom resolvers, like for
-/// example Pagination Details.
-///
-/// Cheap to Clone
-#[derive(Debug, Clone)]
-pub struct ResolvedValue {
-    /// Data Resolved by the current Resolver.
-    ///
-    /// The data is sent as-is to the next resolver in the chain. The format of the data is
-    /// dependent on the resolver that produced the data.
-    ///
-    /// For example, the GraphQL resolver returns data in the actual shape of the query. That is, a
-    /// resolver that resolves a `user { name }` query, is expected to return a `{ "user": { "name"
-    /// "..." } }` JSON object.
-    ///
-    /// Other resolvers might transform/augment the data before passing it along.
-    pub data_resolved: Arc<serde_json::Value>,
-    /// Optional pagination data for Paginated Resolvers
-    pub pagination: Option<ResolvedPaginationInfo>,
-    /// Resolvers can set this value when resolving so the engine will know it's
-    /// not usefull to continue iterating over the ResolverChain.
-    pub early_return_null: bool,
-}
-
-impl Borrow<serde_json::Value> for &ResolvedValue {
-    fn borrow(&self) -> &serde_json::Value {
-        self.data_resolved.borrow()
-    }
-}
-
-impl ResolvedValue {
-    pub fn new(value: Arc<serde_json::Value>) -> Self {
-        Self {
-            data_resolved: value,
-            pagination: None,
-            early_return_null: false,
-        }
-    }
-
-    pub fn null() -> Self {
-        Self::new(Arc::new(serde_json::Value::Null))
-    }
-
-    pub fn with_pagination(mut self, pagination: ResolvedPaginationInfo) -> Self {
-        self.pagination = Some(pagination);
-        self
-    }
-
-    pub fn with_early_return(mut self) -> Self {
-        self.early_return_null = true;
-        self
-    }
-
-    /// We can check from the schema definition if it's a node, if it is, we need to
-    /// have a way to get it
-    /// temp: Little hack here, we know that `ResolvedValue` are bound to have a format
-    /// of:
-    /// ```ignore
-    /// {
-    ///   "Node": {
-    ///     "__sk": {
-    ///       "S": "node_id"
-    ///     }
-    ///   }
-    /// }
-    /// ```
-    /// We use that fact without checking it here.
-    ///
-    /// This have to be removed when we rework registry & dynaql to have a proper query
-    /// planning.
-    pub fn node_id<S: AsRef<str>>(&self, entity: S) -> Option<String> {
-        self.data_resolved.get(entity.as_ref()).and_then(|x| {
-            x.get("__sk")
-                .and_then(|x| {
-                    if let serde_json::Value::Object(value) = x {
-                        Some(value)
-                    } else {
-                        None
-                    }
-                })
-                .and_then(|x| x.get("S"))
-                .and_then(|value| {
-                    if let serde_json::Value::String(value) = value {
-                        Some(value.clone())
-                    } else {
-                        None
-                    }
-                })
-        })
-    }
-
-    pub fn is_early_returned(&self) -> bool {
-        self.early_return_null
     }
 }
 

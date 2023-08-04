@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::BTreeMap, pin::Pin, sync::Arc};
+use std::{collections::BTreeMap, pin::Pin};
 
 use futures_util::Future;
 use reqwest::Url;
@@ -67,7 +67,7 @@ impl HttpResolver {
         _resolver_ctx: &ResolverContext<'a>,
         last_resolver_value: Option<&'a ResolvedValue>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
-        let last_resolver_value = last_resolver_value.map(|val| val.data_resolved.borrow());
+        let last_resolver_value = last_resolver_value.map(ResolvedValue::data_resolved);
 
         let request_headers = ctx.data::<RequestHeaders>().ok();
 
@@ -120,7 +120,7 @@ impl HttpResolver {
                 .map_err(|e| Error::new(e.to_string()))?;
 
             let is_null = data.is_null();
-            let mut resolved_value = ResolvedValue::new(Arc::new(data));
+            let mut resolved_value = ResolvedValue::new(data);
 
             if is_null {
                 resolved_value.early_return_null = true;

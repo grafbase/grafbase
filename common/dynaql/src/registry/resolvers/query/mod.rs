@@ -1,5 +1,3 @@
-use std::{borrow::Borrow, sync::Arc};
-
 use grafbase_runtime::search::{self, GraphqlCursor};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -62,7 +60,7 @@ impl QueryResolver {
                     .expect("Search query shouldn't be available without a schema.")
                     .schema;
                 let search_engine = ctx.data::<search::SearchEngine>()?;
-                let last_val = last_resolver_value.map(|resolved| resolved.data_resolved.borrow());
+                let last_val = last_resolver_value.map(ResolvedValue::data_resolved);
 
                 let first = first.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
                 let last = last.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
@@ -97,16 +95,15 @@ impl QueryResolver {
                 // TODO: We shouldn't call directly a resolver like that IMHO. But currently,
                 // it's the only simple way to pass our custom cursor & score.
                 let edges: Vec<serde_json::Value> = {
-                    let data_resolved = DynamoResolver::_SearchQueryIds {
+                    let resolved_value = DynamoResolver::_SearchQueryIds {
                         ids: response.hits.iter().map(|hit| hit.id.clone()).collect(),
                         type_name: type_name.clone(),
                     }
                     .resolve(ctx, resolver_ctx, None)
-                    .await?
-                    .data_resolved;
+                    .await?;
                     // We should be the only one having this data, but just in case do a copy
                     // to avoid a panic.
-                    match Arc::try_unwrap(data_resolved).unwrap_or_else(|arc| (*arc).clone()) {
+                    match resolved_value.take() {
                         Value::Array(items) => items
                             .into_iter()
                             .zip(response.hits)
@@ -129,10 +126,10 @@ impl QueryResolver {
                     }?
                 };
 
-                Ok(ResolvedValue::new(Arc::new(json!({
+                Ok(ResolvedValue::new(json!({
                     SEARCH_RESOLVER_EDGES: edges,
                     SEARCH_RESOLVER_TOTAL_HITS: response.info.total_hits
-                })))
+                }))
                 .with_pagination(resolved_pagination))
             }
         }

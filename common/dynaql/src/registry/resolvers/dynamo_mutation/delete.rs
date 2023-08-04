@@ -29,9 +29,9 @@ pub(super) async fn resolve_delete_nodes(
     batchers.transaction_new.load_many(changes).await?;
 
     // FIXME: Should only return the ids/... of items that were actually deleted.
-    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+    Ok(ResolvedValue::new(serde_json::json!({
         "ids": deleted_ids
-    }))))
+    })))
 }
 
 struct Parsed {

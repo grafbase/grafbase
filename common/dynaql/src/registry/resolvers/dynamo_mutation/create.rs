@@ -48,7 +48,7 @@ pub(super) async fn batch(
     let ids = result
         .into_iter()
         .filter_map(|resolved| {
-            let data = &resolved.data_resolved;
+            let data = &resolved.data_resolved();
             if data
                 .get("is_nested_relation")
                 .and_then(serde_json::Value::as_bool)
@@ -59,7 +59,7 @@ pub(super) async fn batch(
             data.get("id").and_then(|value| value.as_str().map(ToString::to_string))
         })
         .collect::<Vec<_>>();
-    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+    Ok(ResolvedValue::new(serde_json::json!({
         "ids": ids
-    }))))
+    })))
 }

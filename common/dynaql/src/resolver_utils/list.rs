@@ -5,6 +5,7 @@ use crate::{
     extensions::ResolveInfo,
     parser::types::Field,
     registry::{
+        resolvers::ResolvedValue,
         scalars::{DynamicScalar, PossibleScalar},
         MetaType,
     },
@@ -17,7 +18,7 @@ pub async fn resolve_list<'a>(
     ctx: &ContextSelectionSet<'a>,
     field: &Positioned<Field>,
     ty: &'a MetaType,
-    values: Vec<serde_json::Value>,
+    values: Vec<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
     let extensions = &ctx.query_env.extensions;
     if !extensions.is_empty() {
@@ -63,7 +64,7 @@ pub async fn resolve_list<'a>(
                     let resolve_fut = async {
                         match ty {
                             MetaType::Scalar(_) | MetaType::Enum(_) => {
-                                let mut result = Value::try_from(item).map_err(|err| {
+                                let mut result = Value::try_from(item.take()).map_err(|err| {
                                     ctx_idx.set_error_path(ServerError::new(format!("{err:?}"), Some(field.pos)))
                                 })?;
                                 // Yes it's ugly...
@@ -104,7 +105,7 @@ pub async fn resolve_list<'a>(
             futures.push(async move {
                 match ty {
                     MetaType::Scalar { .. } | MetaType::Enum { .. } => {
-                        let result = Value::try_from(item).map_err(|err| {
+                        let result = Value::try_from(item.take()).map_err(|err| {
                             ctx_idx.set_error_path(ServerError::new(format!("{err:?}"), Some(field.pos)))
                         })?;
 

@@ -87,9 +87,9 @@ pub(super) async fn batch(
     futures_util::future::try_join_all(selections).await?;
     futures_util::future::try_join_all(transactions.into_iter().flatten()).await?;
 
-    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+    Ok(ResolvedValue::new(serde_json::json!({
         "ids": ids
-    }))))
+    })))
 }
 
 fn partition_by_identifier(

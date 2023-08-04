@@ -32,10 +32,7 @@
 //!
 //! A memoization is applied on the resolve function.
 
-use std::{
-    fmt::{self, Debug, Display, Formatter},
-    sync::Arc,
-};
+use std::fmt::{self, Debug, Display, Formatter};
 
 use cached::Cached;
 use dynaql_parser::{
@@ -149,7 +146,7 @@ impl<'a> ResolverChainNode<'a> {
                 return cached_value;
             }
         }
-        let mut final_result = ResolvedValue::new(Arc::new(serde_json::Value::Null));
+        let mut final_result = ResolvedValue::null();
 
         if let Some(parent) = self.parent {
             final_result = parent.resolve(ctx).await?;
@@ -157,14 +154,7 @@ impl<'a> ResolverChainNode<'a> {
 
         if let QueryPathSegment::Index(idx) = self.segment {
             // If we are in a segment, it means we do not have a current resolver (YET).
-            final_result = ResolvedValue::new(Arc::new(
-                final_result
-                    .data_resolved
-                    .as_ref()
-                    .get(idx)
-                    .map(Clone::clone)
-                    .unwrap_or(serde_json::Value::Null),
-            ));
+            final_result = final_result.get_index(idx).unwrap_or_default();
         } else if let Some(resolver) = self.resolver {
             // Avoiding the early return when we're just propagating downwards data. Container
             // fields used as namespaces have no value (so Null) but their fields have resolvers.
@@ -176,7 +166,7 @@ impl<'a> ResolverChainNode<'a> {
 
                 final_result = resolver.resolve(ctx, &current_ctx, Some(&final_result)).await?;
 
-                if *final_result.data_resolved == serde_json::Value::Null {
+                if final_result.data_resolved().is_null() {
                     final_result = final_result.with_early_return();
                 }
             }
