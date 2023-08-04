@@ -110,7 +110,11 @@ pub fn goodbye() {
 }
 
 pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
-    println!("{} compiling {udf_kind} {udf_name}...", watercolor!("wait", @Cyan));
+    println!(
+        "{} compiling {udf_kind} {udf_name}...",
+        watercolor!("wait", @Cyan),
+        udf_name = format!("{udf_name}").bold()
+    );
 }
 
 pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time::Duration) {
@@ -121,7 +125,8 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
     };
     println!(
         "{} compiled {udf_kind} {udf_name} successfully in {formatted_duration}",
-        watercolor!("event", @BrightMagenta)
+        watercolor!("event", @BrightMagenta),
+        udf_name = format!("{udf_name}").bold()
     );
 }
 
