@@ -354,7 +354,7 @@ const stripe = connector.OpenAPI({
     'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
   headers: (headers) => {
     // used in client and introspection requests
-    headers.static('Authorization', `Bearer ${g.env('STRIPE_API_KEY')}`)
+    headers.set('Authorization', `Bearer ${g.env('STRIPE_API_KEY')}`)
     // used only in introspection requests
     headers.introspection('foo', 'bar')
   }
@@ -376,8 +376,8 @@ The GraphQL connector can be created with the `GraphQL` method:
 const contentful = connector.GraphQL({
   url: g.env('CONTENTFUL_API_URL'),
   headers: (headers) => {
-    headers.static('Authorization', `Bearer ${g.env('CONTENTFUL_API_KEY')}`)
-    headers.static('Method', 'POST')
+    headers.set('Authorization', `Bearer ${g.env('CONTENTFUL_API_KEY')}`)
+    headers.set('Method', 'POST')
   }
 })
 
@@ -628,7 +628,7 @@ Node's `process.env` return nullable strings, which are a bit annoying to use in
 const github = connector.GraphQL({
   url: 'https://api.github.com/graphql',
   headers: (headers) => {
-    headers.static('Authorization', `Bearer ${g.env('GITHUB_TOKEN')}`)
+    headers.set('Authorization', `Bearer ${g.env('GITHUB_TOKEN')}`)
   }
 })
 ```
