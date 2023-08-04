@@ -8,7 +8,6 @@ async-trait = "0.1"
 grafbase-runtime = { workspace = true }
 gateway-protocol = { workspace = true }
 registry-provider = { workspace = true }
-search-query = { path = "../../search/query" }
 send_wrapper = "0.6"
 serde = { workspace = true }
 serde_json = { workspace = true }
