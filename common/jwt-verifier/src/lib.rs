@@ -1,4 +1,7 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::{
+    borrow::Cow,
+    collections::{BTreeMap, BTreeSet},
+};
 
 use futures_util::TryFutureExt;
 use json_dotpath::DotPaths;
@@ -55,21 +58,20 @@ struct JsonWebKeySet<'a> {
 }
 
 #[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
-
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct CustomClaims {
     // Optional as per https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1 .
     // Mandatory in case of OIDC discovery: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
-    #[serde(rename = "iss")]
+    #[serde(rename = "iss", skip_serializing_if = "Option::is_none")]
     issuer: Option<String>,
 
-    #[serde(rename = "sub")]
+    #[serde(rename = "sub", skip_serializing_if = "Option::is_none")]
     subject: Option<String>,
 
     // Can be either a single string or an array of strings according to
     // https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3
-    #[serde(rename = "aud", default)]
-    #[serde_as(deserialize_as = "OneOrMany<_>")]
+    #[serde(rename = "aud", default, skip_serializing_if = "Vec::is_empty")]
+    #[serde_as(deserialize_as = "OneOrMany<_>", serialize_as = "OneOrMany<_>")]
     audience: Vec<String>,
 
     #[serde(flatten)]
@@ -89,7 +91,8 @@ pub struct Client<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct VerifiedToken {
     pub identity: Option<String>,
-    pub groups: HashSet<String>,
+    pub groups: BTreeSet<String>,
+    pub token_claims: BTreeMap<String, Value>,
 }
 
 impl<'a> Client<'a> {
@@ -420,8 +423,8 @@ impl<'a> Client<'a> {
         let groups = self
             .groups_claim
             .map(|claim| match claims.custom.extra.dot_get::<Value>(claim) {
-                Ok(None | Some(Value::Null)) => Ok(HashSet::default()),
-                Ok(Some(Value::Array(vec))) if vec == vec![Value::Null] => Ok(HashSet::default()),
+                Ok(None | Some(Value::Null)) => Ok(BTreeSet::default()),
+                Ok(Some(Value::Array(vec))) if vec == vec![Value::Null] => Ok(BTreeSet::default()),
                 Ok(Some(Value::Array(vec))) => vec
                     .into_iter()
                     .map(|val| match val {
@@ -441,6 +444,10 @@ impl<'a> Client<'a> {
         Ok(VerifiedToken {
             identity: claims.custom.subject.clone(),
             groups,
+            token_claims: serde_json::from_value(
+                serde_json::to_value(&claims.custom).expect("custom claims should be serializable"),
+            )
+            .expect("should be deserializable to map"),
         })
     }
 

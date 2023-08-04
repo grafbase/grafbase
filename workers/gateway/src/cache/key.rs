@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeSet,
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
@@ -6,18 +7,24 @@ use std::{
 use dynaql_value::ConstValue;
 use grafbase::auth::ExecutionAuth;
 
+#[derive(Debug, Hash)]
+pub enum CacheAccess<'a> {
+    Scoped(BTreeSet<String>),
+    Default(&'a ExecutionAuth),
+}
+
 #[derive(Debug)]
 pub struct CacheKey<'a, H: Hasher + Default> {
-    auth: &'a ExecutionAuth,
+    access: CacheAccess<'a>,
     gql_request: &'a dynaql::Request,
-    subdomain: &'a String,
+    subdomain: &'a str,
     _hasher_builder: PhantomData<H>,
 }
 
 impl<'a, H: Hasher + Default> CacheKey<'a, H> {
-    pub fn new(auth: &'a ExecutionAuth, gql_request: &'a dynaql::Request, subdomain: &'a String) -> Self {
+    pub fn new(access: CacheAccess<'a>, gql_request: &'a dynaql::Request, subdomain: &'a str) -> Self {
         CacheKey {
-            auth,
+            access,
             gql_request,
             subdomain,
             _hasher_builder: PhantomData,
@@ -84,25 +91,30 @@ impl<HB: Hasher + Default> Hash for CacheKey<'_, HB> {
             state.write_u64(hash_const_value::<HB>(value));
         }
 
-        // hash authentication details
-        state.write_u64(self.auth.hash::<HB>());
+        // hash access
+        self.access.hash(state);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{hash_map::DefaultHasher, HashSet};
+    use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 
     use dynaql::indexmap::IndexMap;
     use dynaql_value::{ConstValue, Name, Variables};
     use grafbase::auth::{ExecutionAuth, Operations};
 
-    use crate::cache::key::CacheKey;
+    use crate::cache::{key::CacheKey, CacheAccess};
 
     #[test]
     fn should_have_equal_cache_key_hashes_when_request_variables_are_equal_with_different_ordering() {
         // prepare
-        let auth = ExecutionAuth::new_from_token(Operations::all(), HashSet::from(["test".to_string()]), None);
+        let auth = ExecutionAuth::new_from_token(
+            Operations::all(),
+            BTreeSet::from(["test".to_string()]),
+            None,
+            BTreeMap::new(),
+        );
         let test_subdomain = "test-subdomain".to_string();
         let variable_1 = ConstValue::List(vec![
             ConstValue::Enum(Name::new("hello")),
@@ -119,8 +131,8 @@ mod tests {
         let gql_request_2 = dynaql::Request::new("{ query { test { id } } }")
             .variables(Variables::from_value(ConstValue::List(vec![variable_2, variable_1])));
 
-        let cache_key = CacheKey::<DefaultHasher>::new(&auth, &gql_request, &test_subdomain);
-        let cache_key_2 = CacheKey::<DefaultHasher>::new(&auth, &gql_request_2, &test_subdomain);
+        let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
+        let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
 
         assert_eq!(cache_key.to_hash_string(), cache_key_2.to_hash_string());
     }
@@ -128,7 +140,12 @@ mod tests {
     #[test]
     fn should_have_equal_cache_key_hashes_when_request_variables_have_equal_lists() {
         // prepare
-        let auth = ExecutionAuth::new_from_token(Operations::all(), HashSet::from(["test".to_string()]), None);
+        let auth = ExecutionAuth::new_from_token(
+            Operations::all(),
+            BTreeSet::from(["test".to_string()]),
+            None,
+            BTreeMap::new(),
+        );
         let test_subdomain = "test-subdomain".to_string();
         let variable_list = ConstValue::List(vec![
             ConstValue::Object(IndexMap::from([(Name::new("hash_fun"), ConstValue::Null)])),
@@ -144,8 +161,8 @@ mod tests {
             ConstValue::Object(IndexMap::from([(Name::new("test"), variable_list)])),
         ));
 
-        let cache_key = CacheKey::<DefaultHasher>::new(&auth, &gql_request, &test_subdomain);
-        let cache_key_2 = CacheKey::<DefaultHasher>::new(&auth, &gql_request_2, &test_subdomain);
+        let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
+        let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
 
         assert_eq!(cache_key.to_hash_string(), cache_key_2.to_hash_string());
     }
@@ -153,7 +170,12 @@ mod tests {
     #[test]
     fn should_not_have_equal_cache_key_hashes_when_request_variables_have_equal_lists_with_different_ordering() {
         // prepare
-        let auth = ExecutionAuth::new_from_token(Operations::all(), HashSet::from(["test".to_string()]), None);
+        let auth = ExecutionAuth::new_from_token(
+            Operations::all(),
+            BTreeSet::from(["test".to_string()]),
+            None,
+            BTreeMap::new(),
+        );
         let test_subdomain = "test-subdomain".to_string();
 
         let gql_request = dynaql::Request::new("{ query { test { id } } }").variables(Variables::from_value(
@@ -178,15 +200,20 @@ mod tests {
             )])),
         ));
 
-        let cache_key = CacheKey::<DefaultHasher>::new(&auth, &gql_request, &test_subdomain);
-        let cache_key_2 = CacheKey::<DefaultHasher>::new(&auth, &gql_request_2, &test_subdomain);
+        let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
+        let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
 
         assert_ne!(cache_key.to_hash_string(), cache_key_2.to_hash_string());
     }
 
     #[test]
     fn should_have_equal_cache_key_hashes_when_request_variables_have_equal_maps_with_different_ordering() {
-        let auth = ExecutionAuth::new_from_token(Operations::all(), HashSet::from(["test".to_string()]), None);
+        let auth = ExecutionAuth::new_from_token(
+            Operations::all(),
+            BTreeSet::from(["test".to_string()]),
+            None,
+            BTreeMap::new(),
+        );
         let test_subdomain = "test-subdomain".to_string();
 
         let gql_request = dynaql::Request::new("{ query { test { id } } }").variables(Variables::from_value(
@@ -215,8 +242,8 @@ mod tests {
             ])),
         ));
 
-        let cache_key = CacheKey::<DefaultHasher>::new(&auth, &gql_request, &test_subdomain);
-        let cache_key_2 = CacheKey::<DefaultHasher>::new(&auth, &gql_request_2, &test_subdomain);
+        let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
+        let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
 
         assert_eq!(cache_key.to_hash_string(), cache_key_2.to_hash_string());
     }
@@ -224,7 +251,12 @@ mod tests {
     #[test]
     fn should_not_have_equal_cache_keys_hashes_due_to_query() {
         // prepare
-        let auth = ExecutionAuth::new_from_token(Operations::all(), HashSet::from(["test".to_string()]), None);
+        let auth = ExecutionAuth::new_from_token(
+            Operations::all(),
+            BTreeSet::from(["test".to_string()]),
+            None,
+            BTreeMap::new(),
+        );
         let test_subdomain = "test-subdomain".to_string();
         let gql_variables = Variables::from_value(ConstValue::Object(IndexMap::from([(
             Name::new("test"),
@@ -235,8 +267,8 @@ mod tests {
 
         let gql_request_2 = dynaql::Request::new("{ query { test { id, name } } }").variables(gql_variables);
 
-        let cache_key = CacheKey::<DefaultHasher>::new(&auth, &gql_request, &test_subdomain);
-        let cache_key_2 = CacheKey::<DefaultHasher>::new(&auth, &gql_request_2, &test_subdomain);
+        let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
+        let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
 
         assert_ne!(cache_key.to_hash_string(), cache_key_2.to_hash_string());
     }
@@ -245,21 +277,23 @@ mod tests {
     fn should_have_equal_cache_key_hashes_when_auth_groups_are_equal_with_different_ordering() {
         let auth = ExecutionAuth::new_from_token(
             Operations::all(),
-            HashSet::from(["test".to_string(), "test_2".to_string()]),
+            BTreeSet::from(["test".to_string(), "test_2".to_string()]),
             Some(("test".to_string(), Operations::all())),
+            BTreeMap::new(),
         );
         let auth_2 = ExecutionAuth::new_from_token(
             Operations::all(),
-            HashSet::from(["test_2".to_string(), "test".to_string()]),
+            BTreeSet::from(["test_2".to_string(), "test".to_string()]),
             Some(("test".to_string(), Operations::all())),
+            BTreeMap::new(),
         );
         let test_subdomain = "test-subdomain".to_string();
 
         let gql_request = dynaql::Request::new("{ query { test { id } } }")
             .variables(Variables::from_value(ConstValue::Enum(Name::new("hello"))));
 
-        let cache_key = CacheKey::<DefaultHasher>::new(&auth, &gql_request, &test_subdomain);
-        let cache_key_2 = CacheKey::<DefaultHasher>::new(&auth_2, &gql_request, &test_subdomain);
+        let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
+        let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth_2), &gql_request, &test_subdomain);
 
         assert_eq!(cache_key.to_hash_string(), cache_key_2.to_hash_string());
     }
@@ -268,8 +302,9 @@ mod tests {
     fn should_not_have_equal_cache_keys_hashes_due_to_domain() {
         let auth = ExecutionAuth::new_from_token(
             Operations::all(),
-            HashSet::from(["test".to_string()]),
+            BTreeSet::from(["test".to_string()]),
             Some(("test".to_string(), Operations::all())),
+            BTreeMap::new(),
         );
         let test_subdomain_1 = "test-subdomain".to_string();
         let test_subdomain_2 = "test-subdomain-2".to_string();
@@ -282,8 +317,9 @@ mod tests {
 
         let gql_request_2 = dynaql::Request::new("{ query { test { id, name } } }").variables(gql_variables);
 
-        let cache_key = CacheKey::<DefaultHasher>::new(&auth, &gql_request, &test_subdomain_1);
-        let cache_key_2 = CacheKey::<DefaultHasher>::new(&auth, &gql_request_2, &test_subdomain_2);
+        let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain_1);
+        let cache_key_2 =
+            CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain_2);
 
         assert_ne!(cache_key.to_hash_string(), cache_key_2.to_hash_string());
     }
@@ -291,7 +327,12 @@ mod tests {
     #[test]
     fn should_not_have_equal_cache_keys_hashes_when_using_null_and_0() {
         let gql_query = "{ query { test { id } } }";
-        let auth = ExecutionAuth::new_from_token(Operations::all(), HashSet::from(["test".to_string()]), None);
+        let auth = ExecutionAuth::new_from_token(
+            Operations::all(),
+            BTreeSet::from(["test".to_string()]),
+            None,
+            BTreeMap::new(),
+        );
         let test_subdomain = "test-subdomain".to_string();
 
         let gql_variables = Variables::from_value(ConstValue::Object(IndexMap::from([(
@@ -307,8 +348,8 @@ mod tests {
         let gql_request = dynaql::Request::new(gql_query.to_string()).variables(gql_variables);
         let gql_request_2 = dynaql::Request::new(gql_query.to_string()).variables(gql_variables_2);
 
-        let cache_key = CacheKey::<DefaultHasher>::new(&auth, &gql_request, &test_subdomain);
-        let cache_key_2 = CacheKey::<DefaultHasher>::new(&auth, &gql_request_2, &test_subdomain);
+        let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
+        let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
 
         assert_ne!(cache_key.to_hash_string(), cache_key_2.to_hash_string());
     }

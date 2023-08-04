@@ -213,7 +213,16 @@ verify_test!(
     "https://clerk.b74v0.5y6hj.lcl.dev",
     VerifiedToken {
         identity: Some(TOKEN_SUB.to_string()),
-        groups: HashSet::new(),
+        groups: BTreeSet::new(),
+        token_claims: serde_json::from_str(
+            r#"{
+            "azp": "https://grafbase.dev",
+            "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+            "sid": "sess_2BCiGPhgXZgAV00KfPrD3KSAHCO",
+            "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+        }"#
+        )
+        .unwrap(),
     }
 );
 
@@ -226,7 +235,16 @@ verify_test!(
     "https://clerk.b74v0.5y6hj.lcl.dev/",
     VerifiedToken {
         identity: Some(TOKEN_SUB.to_string()),
-        groups: HashSet::new(),
+        groups: BTreeSet::new(),
+        token_claims: serde_json::from_str(
+            r#"{
+            "azp": "https://grafbase.dev",
+            "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+            "sid": "sess_2BCiGPhgXZgAV00KfPrD3KSAHCO",
+            "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+        }"#
+        )
+        .unwrap(),
     }
 );
 
@@ -291,6 +309,15 @@ verify_test!(
         VerifiedToken {
             identity: Some(TOKEN_SUB.to_string()),
             groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+            token_claims: serde_json::from_str(r#"{
+                "groups": [
+                    "admin",
+                    "moderator"
+                ],
+                "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+                "jti": "ec0ffff724347261740b",
+                "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+            }"#).unwrap()
         }
     );
 
@@ -321,7 +348,13 @@ verify_test!(
     "https://clerk.b74v0.5y6hj.lcl.dev",
     VerifiedToken {
         identity: Some(TOKEN_SUB.to_string()),
-        groups: HashSet::new(),
+        groups: BTreeSet::new(),
+        token_claims: serde_json::from_str(r#"{
+            "groups": null,
+            "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+            "jti": "1c976f3586fe343c146b",
+            "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+        }"#).unwrap()
     }
 );
 
@@ -356,6 +389,16 @@ verify_test!(
         VerifiedToken {
             identity: Some("SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients".to_string()),
             groups: vec!["admin".to_string()].into_iter().collect(),
+            token_claims: serde_json::from_str(r#"{
+                "https://grafbase.com/jwt/claims/groups": [
+                    "admin"
+                ],
+                "iss": "https://gb-oidc.eu.auth0.com/",
+                "sub": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients",
+                "aud": "https://grafbase.com",
+                "azp": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P",
+                "gty": "client-credentials"
+            }"#).unwrap()
         }
     );
 
@@ -393,6 +436,18 @@ verify_test!(
         VerifiedToken {
             identity: Some("user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string()),
             groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
+            token_claims: serde_json::from_str(r#"{
+                "https://grafbase.com/jwt/claims": {
+                    "x-grafbase-allowed-roles": [
+                        "editor",
+                        "user",
+                        "mod"
+                    ]
+                },
+                "iss": "https://clerk.grafbase-vercel.dev",
+                "jti": "918f9036d1b5aa2a159a",
+                "sub": "user_2E4sRjokn2r14RLwhEvjVsHgCmG"
+            }"#).unwrap()
         }
     );
 
@@ -443,6 +498,22 @@ async fn token_signed_with_secret() {
         VerifiedToken {
             identity: Some("user_2E7nWay3fFXh0MRgzBJZUx59UzP".to_string()),
             groups: vec!["admin", "backend"].into_iter().map(String::from).collect(),
+            token_claims: serde_json::from_str(
+                r#"{
+                "aud": [
+                    "app1",
+                    "app2"
+                ],
+                "groups": [
+                    "admin",
+                    "backend"
+                ],
+                "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+                "jti": "0696be42be3fc3b2212d",
+                "sub": "user_2E7nWay3fFXh0MRgzBJZUx59UzP"
+            }"#
+            )
+            .unwrap()
         }
     );
 
@@ -507,7 +578,17 @@ fn token_with_groups_containing_null_should_be_interpreted_as_empty_groups() {
         client.verify_hs_token(token, issuer, &secret).unwrap(),
         VerifiedToken {
             identity: Some(TOKEN_SUB.to_string()),
-            groups: HashSet::default(),
+            groups: BTreeSet::default(),
+            token_claims: serde_json::from_str(
+                r#"{
+                "iss": "https://idp.example.com",
+                "groups": [
+                    null
+                ],
+                "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+            }"#
+            )
+            .unwrap()
         }
     );
 }
@@ -624,7 +705,15 @@ fn token_with_groups_set_to_null_should_be_interpreted_as_empty_groups() {
         client.verify_hs_token(token, issuer, &secret).unwrap(),
         VerifiedToken {
             identity: Some(TOKEN_SUB.to_string()),
-            groups: HashSet::default(),
+            groups: BTreeSet::default(),
+            token_claims: serde_json::from_str(
+                r#"{
+                "iss": "https://idp.example.com",
+                "groups": null,
+                "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+            }"#
+            )
+            .unwrap()
         }
     );
 }
@@ -671,7 +760,13 @@ async fn jwks_from_hanko_should_verify() {
         actual,
         VerifiedToken {
             identity: Some("0cbc7311-2286-4a97-a6fd-460e4ec06fa4".to_string()),
-            groups: HashSet::default(),
+            groups: BTreeSet::default(),
+            token_claims: serde_json::from_str(
+                r#"{
+                "sub": "0cbc7311-2286-4a97-a6fd-460e4ec06fa4"
+            }"#
+            )
+            .unwrap()
         }
     );
 }
@@ -727,7 +822,20 @@ async fn jwt_from_azure_ad_should_verify() {
         actual,
         VerifiedToken {
             identity: Some("o80Gly744fp1k6mTjuCrqyLaZ_yoed3SSqleqBKjTR0".to_string()),
-            groups: HashSet::default(),
+            groups: BTreeSet::default(),
+            token_claims: serde_json::from_str(r#"{
+                "aud": "61142eb9-9373-437f-a505-a983dbbffc96",
+                "iss": "https://login.microsoftonline.com/40a214bf-da79-471d-8daa-1a6db9ce8e22/v2.0",
+                "aio": "AVQAq/8TAAAAVJ5ENTXzJWQ967edz4E21oESCS83p0ipuRHXdk/J3lrOXVbd5DjNd+dejephxP5uIkxyo7yRs1yg49W76ChTbH4JLbFMVVX+l6Q7WGUAgzg=",
+                "name": "Nathan Lindsay",
+                "oid": "525d2cc9-5105-4e2a-b697-ac95c29cefaf",
+                "preferred_username": "nathan@taurean.ltd",
+                "rh": "0.ATEAvxSiQHnaHUeNqhptuc6OIrkuFGFzk39DpQWpg9u__JYxANk.",
+                "sub": "o80Gly744fp1k6mTjuCrqyLaZ_yoed3SSqleqBKjTR0",
+                "tid": "40a214bf-da79-471d-8daa-1a6db9ce8e22",
+                "uti": "Wp1L6u1_M0iaL4tTgxItAA",
+                "ver": "2.0"
+            }"#).unwrap()
         }
     );
 }

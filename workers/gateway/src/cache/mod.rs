@@ -11,15 +11,16 @@ use dynaql::parser::types::OperationType;
 pub use edge::EdgeCache;
 pub use error::CacheError;
 pub use gcache::{Cache, CacheResponse};
-#[cfg(any(feature = "local", feature = "sqlite"))]
+#[cfg(any(feature = "local", feature = "sqlite", test))]
 pub use global::noop::NoopGlobalCache;
 #[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
 pub use global::remote::CloudflareGlobal;
-pub use key::CacheKey;
+pub use key::{CacheAccess, CacheKey};
 use serde::{de::DeserializeOwned, Serialize};
 
 pub type CacheResult<T> = Result<T, CacheError>;
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum CacheReadStatus {
     Hit,
     Bypass,

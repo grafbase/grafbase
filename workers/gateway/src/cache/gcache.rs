@@ -19,11 +19,12 @@ pub enum CacheResponse<Type> {
     Stale { response: Type, updating: bool },
 }
 
-pub struct Cache<CV, Provider> {
+pub struct Cache<CV, CP> {
     cache_name: String,
     global_cache: Arc<Box<dyn GlobalCacheProvider>>,
+
     _cache_value: PhantomData<CV>,
-    _cache_provider: PhantomData<Provider>,
+    _cache_provider: PhantomData<CP>,
 }
 
 impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
@@ -41,10 +42,7 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
         request_context: &RequestContext,
         cache_key: &str,
         source_future: impl Future<Output = worker::Result<CV>> + 'static,
-    ) -> CacheResult<CacheResponse<Arc<CV>>>
-    where
-        CV: Default,
-    {
+    ) -> CacheResult<CacheResponse<Arc<CV>>> {
         // skip if the incoming request doesn't want cached values, forces origin revalidation
         let cached_value: CacheProviderResponse<CV> =
             if request_context.cloudflare_request_context.cache_control.no_cache {

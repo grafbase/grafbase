@@ -113,7 +113,7 @@ pub mod remote {
     }
 }
 
-#[cfg(any(feature = "local", feature = "sqlite"))]
+#[cfg(any(feature = "local", feature = "sqlite", test))]
 pub mod noop {
     use async_trait::async_trait;
 
