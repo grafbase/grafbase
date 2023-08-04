@@ -5,16 +5,18 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1"
-grafbase-runtime = { workspace = true }
-gateway-protocol = { workspace = true }
-registry-provider = { workspace = true }
+
 send_wrapper = "0.6"
 serde = { workspace = true }
 serde_json = { workspace = true }
-log = { path = "../../log", features = ["with-worker"] }
 worker = { workspace = true }
-search-protocol = { path = "../../search/protocol" }
+
+grafbase-runtime = { workspace = true }
 graph-entities = { path = "../../../common/graph-entities" }
+gateway-protocol = { workspace = true }
+log = { path = "../../log", features = ["with-worker"] }
+registry-provider = { workspace = true }
+search-protocol = { path = "../../search/protocol" }
 worker-utils = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

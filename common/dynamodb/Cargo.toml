@@ -14,14 +14,9 @@ chrono = { version = "0.4", default-features = false, features = [
   "std",
 ] }
 derivative = "2.2"
-dynamodb-utils = { path = "../dynamodb-utils" }
 dynomite = "0.10"
 futures = "0.3"
 futures-util = { workspace = true, features = ["std", "async-await"] }
-grafbase = { path = "../grafbase", features = ["json"] }
-dataloader = { workspace = true }
-async-runtime = { workspace = true }
-graph-entities = { workspace = true }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = { workspace = true }
 log = { path = "../log", features = ["with-worker"] }
@@ -32,6 +27,12 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 wasm-timer = { version = "0.2" }
+
+dynamodb-utils = { path = "../dynamodb-utils" }
+grafbase = { path = "../grafbase", features = ["json"] }
+dataloader = { workspace = true }
+async-runtime = { workspace = true }
+graph-entities = { workspace = true }
 
 tracing = { workspace = true, optional = true }
 

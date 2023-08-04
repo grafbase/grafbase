@@ -11,11 +11,6 @@ default = []
 tracing_worker = ["logworker", "dynamodb/tracing", "tracing"]
 
 [dependencies]
-dynaql-derive = { path = "derive", version = "3" }
-dynaql-value = { path = "value", version = "3" }
-dynaql-parser = { path = "parser", version = "3" }
-
-dataloader = { workspace = true }
 async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
@@ -30,6 +25,7 @@ cynic-introspection = "3"
 derivative = "2"
 dynomite = "0.10"
 fast_chemail = "0.9"
+flexbuffers = { workspace = true }
 fnv = "1"
 futures-util = { workspace = true, features = ["io", "sink"] }
 http = "0.2"
@@ -56,12 +52,15 @@ thiserror = { workspace = true }
 ulid = { workspace = true, features = ["wasm"] }
 url = { workspace = true, features = ["serde"] }
 unindent = "0.2"
-grafbase-runtime = { workspace = true }
-grafbase = { path = "../grafbase", features = ["json"] }
-flexbuffers = { workspace = true }
 
 # API dependencies
+dataloader = { workspace = true }
 dynamodb = { workspace = true }
+dynaql-derive = { path = "derive", version = "3" }
+dynaql-value = { path = "value", version = "3" }
+dynaql-parser = { path = "parser", version = "3" }
+grafbase-runtime = { workspace = true }
+grafbase = { path = "../grafbase", features = ["json"] }
 graph-entities = { workspace = true }
 logworker = { path = "../log", package = "log", features = [
   "with-worker",
