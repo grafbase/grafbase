@@ -4,7 +4,7 @@ const stripe = connector.OpenAPI({
   schema:
     'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
   headers: (headers) => {
-    headers.static('Authorization', `Bearer ${g.env('STRIPE_API_KEY')}`)
+    headers.set('Authorization', `Bearer ${g.env('STRIPE_API_KEY')}`)
   },
   transforms: { queryNaming: 'OPERATION_ID' }
 })

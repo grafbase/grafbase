@@ -3,7 +3,7 @@ import { g, connector, config } from '@grafbase/sdk'
 const github = connector.GraphQL({
   url: 'https://api.github.com/graphql',
   headers: (headers) => {
-    headers.static('Authorization', `Bearer ${g.env('GITHUB_ACCESS_TOKEN')}`)
+    headers.set('Authorization', `Bearer ${g.env('GITHUB_ACCESS_TOKEN')}`)
   }
 })
 
