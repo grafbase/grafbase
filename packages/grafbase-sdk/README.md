@@ -1,6 +1,23 @@
-# The Grafbase SDK
+<p align="center">
+  <a href="https://grafbase.com">
+    <img src="https://grafbase.com/images/other/grafbase-logo-circle.png" height="96">
+    <h3 align="center">Grafbase SDK</h3>
+  </a>
+</p>
 
-A TypeScript library to generate a Grafbase configuration. It replaces the `schema.graphql` file with `grafbase.config.ts`, which should be placed into the project's `grafbase` directory.
+<p align="center">
+  Grafbase as configuration
+</p>
+
+<p align="center">
+  <a href="/templates"><strong>Templates</strong></a> ·
+  <a href="https://grafbase.com/docs"><strong>Docs</strong></a> ·
+  <a href="https://grafbase.com/cli"><strong>CLI</strong></a> ·
+  <a href="https://grafbase.com/community"><strong>Community</strong></a> ·
+  <a href="https://grafbase.com/changelog"><strong>Changelog</strong></a>
+</p>
+
+<br/>
 
 ## Get Started
 
@@ -357,6 +374,8 @@ const stripe = connector.OpenAPI({
     headers.set('Authorization', `Bearer ${g.env('STRIPE_API_KEY')}`)
     // used only in introspection requests
     headers.introspection('foo', 'bar')
+    // forward headers from requests to datasource
+    headers.set('x-api-key', { forward: 'x-api-key' })
   }
 })
 ```
@@ -378,6 +397,7 @@ const contentful = connector.GraphQL({
   headers: (headers) => {
     headers.set('Authorization', `Bearer ${g.env('CONTENTFUL_API_KEY')}`)
     headers.set('Method', 'POST')
+    headers.set('x-api-key', { forward: 'x-api-key' })
   }
 })
 
@@ -632,3 +652,5 @@ const github = connector.GraphQL({
   }
 })
 ```
+
+When working locally with Grafbase CLI you must set the environment variables inside `grafbase/.env`.
