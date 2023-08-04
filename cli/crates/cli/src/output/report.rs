@@ -113,7 +113,7 @@ pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
     println!(
         "{} compiling {udf_kind} {udf_name}...",
         watercolor!("wait", @Cyan),
-        udf_name = format!("{udf_name}").bold()
+        udf_name = udf_name.to_string().bold()
     );
 }
 
@@ -126,7 +126,7 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
     println!(
         "{} compiled {udf_kind} {udf_name} successfully in {formatted_duration}",
         watercolor!("event", @BrightMagenta),
-        udf_name = format!("{udf_name}").bold()
+        udf_name = udf_name.to_string().bold()
     );
 }
 
@@ -162,9 +162,9 @@ pub fn operation_log(
 
     let formatted_duration = format_duration(duration);
     let formatted_name = name
-        .map(|name| format!(" {}", format!("{name}").bold()))
+        .map(|name| format!(" {}", name.to_string().bold()))
         .unwrap_or_default();
-    let formatted_type = r#type.map_or_else(|| "operation".to_owned(), |r#type| r#type.to_string());
+    let formatted_type = r#type.map_or_else(|| "operation".to_owned(), |value| value.to_string());
     println!(
         "{formatted_type}{formatted_name} {formatted_duration}",
         formatted_type = formatted_type.color(colour)
@@ -194,7 +194,7 @@ pub fn operation_log(
                     "{indent}{} {} {}",
                     watercolor!("{udf_kind}", @Blue),
                     udf_name.bold(),
-                    format!("{message}").color(message_colour)
+                    message.to_string().color(message_colour)
                 );
             }
         }

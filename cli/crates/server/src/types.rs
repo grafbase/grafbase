@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum RequestCompletedOutcome {
     Success { r#type: common::types::OperationType },
     BadRequest,
