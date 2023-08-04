@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use aws_region_nearby::AwsRegion;
-use dynaql::AuthConfig;
+use dynaql::{
+    registry::{CacheConfig, CacheControlError},
+    AuthConfig, CacheControl,
+};
 use grafbase::{auth::ExecutionAuth, UdfKind};
 use serde_with::serde_as;
 use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
@@ -53,6 +56,13 @@ pub struct ExecutionRequest {
     pub closest_aws_region: rusoto_core::Region,
     /// Request headers
     pub execution_headers: HashMap<String, String>,
+}
+
+impl ExecutionRequest {
+    /// Parses and validates the request
+    pub fn parse(&self) -> Result<CacheControl, CacheControlError> {
+        self.config.cache_config.get_cache_control(&self.request)
+    }
 }
 
 /// Execution health request with the necessary data to perform a health check for a given deployment
@@ -160,9 +170,9 @@ pub struct CustomerDeploymentConfig {
     #[serde(default)]
     pub account_plan: Option<grafbase::Plan>,
     #[serde(default)]
-    pub caching_enabled: bool,
-    #[serde(default)]
     pub auth_config: AuthConfig,
+    #[serde(default)]
+    pub cache_config: CacheConfig,
 }
 
 impl CustomerDeploymentConfig {

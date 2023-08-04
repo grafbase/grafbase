@@ -300,18 +300,7 @@ impl Schema {
     }
 
     pub fn create_registry() -> Registry {
-        let mut registry = Registry {
-            types: Default::default(),
-            directives: Default::default(),
-            implements: Default::default(),
-            query_type: "Query".to_string(),
-            mutation_type: None,
-            subscription_type: None,
-            disable_introspection: false,
-            enable_federation: false,
-            federation_subscription: false,
-            ..Default::default()
-        };
+        let mut registry = Default::default();
 
         Schema::add_builtins_to_registry(&mut registry);
 

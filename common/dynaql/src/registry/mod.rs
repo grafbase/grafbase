@@ -23,14 +23,18 @@ use std::{
     sync::atomic::AtomicU16,
 };
 
+use dynaql_parser::types::OperationType::Query;
 use dynaql_value::ConstValue;
 use grafbase::auth::Operations;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::{map::IndexMap, set::IndexSet};
+use inflector::Inflector;
 use serde::Deserialize;
 
 pub use self::{
-    cache_control::{CacheControl, CacheInvalidation, CacheInvalidationPolicy},
+    cache_control::{
+        CacheAccessScope, CacheConfig, CacheControl, CacheControlError, CacheInvalidation, CacheInvalidationPolicy,
+    },
     connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
     type_names::{InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
     union_discriminator::UnionDiscriminator,
@@ -316,6 +320,10 @@ impl MetaField {
             ty: ty.into(),
             ..Default::default()
         }
+    }
+
+    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+        Self { cache_control, ..self }
     }
 
     pub fn target_field_name(&self) -> &str {
@@ -969,6 +977,19 @@ pub struct InterfaceType {
 }
 
 impl InterfaceType {
+    pub fn new(name: impl Into<String>, fields: impl IntoIterator<Item = MetaField>) -> Self {
+        InterfaceType {
+            name: name.into(),
+            description: None,
+            fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
+            possible_types: Default::default(),
+            extends: false,
+            keys: None,
+            visible: None,
+            rust_typename: String::new(),
+        }
+    }
+
     pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
         self.fields.get(name)
     }
@@ -1594,7 +1615,7 @@ impl ConnectorIdGenerator {
 
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside dynaql
 // for a LogicalQuery
-#[derive(Clone, Default, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     pub types: BTreeMap<String, MetaType>,
     pub directives: HashMap<String, MetaDirective>,
@@ -1614,6 +1635,27 @@ pub struct Registry {
     pub search_config: grafbase_runtime::search::Config,
     #[serde(default)]
     pub enable_caching: bool,
+}
+
+impl Default for Registry {
+    fn default() -> Self {
+        Self {
+            types: Default::default(),
+            directives: Default::default(),
+            implements: Default::default(),
+            query_type: Query.to_string().to_pascal_case(),
+            mutation_type: None,
+            subscription_type: None,
+            disable_introspection: false,
+            enable_federation: false,
+            federation_subscription: false,
+            auth: Default::default(),
+            mongodb_configurations: Default::default(),
+            http_headers: Default::default(),
+            search_config: Default::default(),
+            enable_caching: false,
+        }
+    }
 }
 
 impl Registry {
@@ -1680,13 +1722,14 @@ pub mod vectorize {
 
 impl Registry {
     pub fn new() -> Registry {
+        let type_query = Query.to_string().to_pascal_case();
         let mut registry = Registry {
-            query_type: "Query".to_string(),
+            query_type: type_query.clone(),
             ..Registry::default()
         };
         registry
             .types
-            .insert("Query".to_string(), ObjectType::new("Query".to_string(), []).into());
+            .insert(type_query.clone(), ObjectType::new(type_query, []).into());
         registry
     }
 

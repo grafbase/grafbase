@@ -1,9 +1,16 @@
-use std::{borrow::Cow, collections::HashMap, fmt::Formatter};
+use std::{
+    borrow::Cow,
+    collections::{BTreeSet, HashMap},
+    fmt::Formatter,
+};
 
-use dynaql::{registry::CacheInvalidationPolicy, CacheControl};
+use dynaql::{
+    registry::{CacheAccessScope, CacheInvalidationPolicy},
+    CacheControl,
+};
 use dynaql_parser::{types::ConstDirective, Pos, Positioned};
 use serde::{
-    de::{value::MapAccessDeserializer, Error, MapAccess, Unexpected},
+    de::{value::MapAccessDeserializer, Error, MapAccess, Unexpected, Visitor},
     Deserialize, Deserializer,
 };
 
@@ -62,13 +69,15 @@ pub struct CacheDirective {
         deserialize_with = "de_mutation_invalidation"
     )]
     pub mutation_invalidation_policy: Option<CacheInvalidationPolicy>,
+    #[serde(default, rename = "scopes")]
+    pub access_scopes: Option<BTreeSet<CacheAccessScopeWrapper>>,
 
     #[serde(skip)]
     pos: Pos,
 }
 
-struct Visitor;
-impl<'de> serde::de::Visitor<'de> for Visitor {
+struct MutationInvalidationVisitor;
+impl<'de> Visitor<'de> for MutationInvalidationVisitor {
     type Value = Option<CacheInvalidationPolicy>;
 
     fn expecting(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
@@ -116,7 +125,53 @@ fn de_mutation_invalidation<'de, D>(deserializer: D) -> Result<Option<CacheInval
 where
     D: Deserializer<'de>,
 {
-    deserializer.deserialize_any(Visitor)
+    deserializer.deserialize_any(MutationInvalidationVisitor)
+}
+
+#[derive(Debug, Clone, Eq, Hash, PartialEq, Ord, PartialOrd)]
+pub struct CacheAccessScopeWrapper(CacheAccessScope);
+impl<'de> Deserialize<'de> for CacheAccessScopeWrapper {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(CacheAccessScopeVisitor)
+    }
+}
+
+struct CacheAccessScopeVisitor;
+impl<'de> Visitor<'de> for CacheAccessScopeVisitor {
+    type Value = CacheAccessScopeWrapper;
+
+    fn expecting(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a valid access scope")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        match v {
+            "apikey" => Ok(CacheAccessScopeWrapper(CacheAccessScope::ApiKey)),
+            "public" => Ok(CacheAccessScopeWrapper(CacheAccessScope::Public)),
+            unknown => Err(Error::invalid_value(Unexpected::Str(unknown), &"one of apikey, public")),
+        }
+    }
+
+    fn visit_map<D>(self, mut map: D) -> Result<Self::Value, D::Error>
+    where
+        D: MapAccess<'de>,
+    {
+        if let Some((key, value)) = map.next_entry::<String, String>()? {
+            match key.as_str() {
+                "header" => Ok(CacheAccessScopeWrapper(CacheAccessScope::Header { header: value })),
+                "claim" => Ok(CacheAccessScopeWrapper(CacheAccessScope::Jwt { claim: value })),
+                x => Err(Error::unknown_field(x, &["header", "claim"])),
+            }
+        } else {
+            Err(Error::invalid_value(Unexpected::Map, &self))
+        }
+    }
 }
 
 impl CacheDirective {
@@ -136,7 +191,8 @@ impl CacheDirective {
             |key: GlobalCacheTarget<'static>,
              max_age: usize,
              stale_while_revalidate: usize,
-             mutation_invalidation_policy: Option<CacheInvalidationPolicy>| {
+             mutation_invalidation_policy: Option<CacheInvalidationPolicy>,
+             access_scopes: Option<BTreeSet<CacheAccessScope>>| {
                 if visited_rules.contains_key(&key) {
                     ctx.report_error(
                         vec![self.pos],
@@ -153,6 +209,7 @@ impl CacheDirective {
                         max_age,
                         stale_while_revalidate,
                         invalidation_policy: mutation_invalidation_policy,
+                        access_scopes,
                     },
                 );
             };
@@ -165,6 +222,8 @@ impl CacheDirective {
                         rule.max_age,
                         rule.stale_while_revalidate,
                         rule.mutation_invalidation_policy,
+                        rule.access_scopes
+                            .map(|scopes| scopes.into_iter().map(|scope| scope.0).collect()),
                     );
                 }
                 CacheRuleTargetType::List(ty_list) => {
@@ -174,6 +233,9 @@ impl CacheDirective {
                             rule.max_age,
                             rule.stale_while_revalidate,
                             rule.mutation_invalidation_policy.clone(),
+                            rule.access_scopes
+                                .clone()
+                                .map(|scopes| scopes.into_iter().map(|scope| scope.0).collect()),
                         );
                     }
                 }
@@ -199,6 +261,9 @@ impl CacheDirective {
                                 rule.max_age,
                                 rule.stale_while_revalidate,
                                 rule.mutation_invalidation_policy.clone(),
+                                rule.access_scopes
+                                    .clone()
+                                    .map(|scopes| scopes.into_iter().map(|scope| scope.0).collect()),
                             );
                         });
                 }
@@ -216,6 +281,9 @@ impl From<CacheDirective> for CacheControl {
             max_age: value.max_age,
             stale_while_revalidate: value.stale_while_revalidate,
             invalidation_policy: value.mutation_invalidation_policy,
+            access_scopes: value
+                .access_scopes
+                .map(|scopes| scopes.into_iter().map(|scope| scope.0).collect()),
         }
     }
 }

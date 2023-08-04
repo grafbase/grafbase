@@ -17,7 +17,6 @@ pub struct CacheControl {
     private: bool,
     pub max_age: usize,
     pub stale_while_revalidate: usize,
-    pub invalidation_policy: Option<String>,
 }
 
 impl CacheControl {

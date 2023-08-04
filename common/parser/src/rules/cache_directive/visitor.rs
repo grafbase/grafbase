@@ -226,4 +226,39 @@ mod tests {
         let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();
         assert_eq!(actual_messages.as_slice(), expected_messages);
     }
+
+    #[rstest::rstest]
+    #[case::successfull_api_key_access_scope(r#"
+        type Test @cache(maxAge: 60, scopes: [apikey]) {
+            balance: Int!
+        }
+    "#, & [])]
+    #[case::successfull_jwt_access_scope(r#"
+        type Test @cache(maxAge: 60, scopes: [{ claim: "claim_name" }]) {
+            balance: Int!
+        }
+    "#, & [])]
+    #[case::successfull_header_access_scope(r#"
+        type Test @cache(maxAge: 60, scopes: [{ header: "header_name" }]) {
+            balance: Int!
+        }
+    "#, & [])]
+    #[case::successfull_public_access_scope(r#"
+        type Test @cache(maxAge: 60, scopes: [public]) {
+            balance: Int!
+        }
+    "#, & [])]
+    #[case::successfull_multiple_access_scopes(r#"
+        type Test @cache(maxAge: 60, scopes: [apikey, { claim: "sub" }, { header: "header_name" }]) {
+            balance: Int!
+        }
+    "#, & [])]
+    fn test_access_scopes(#[case] schema: &str, #[case] expected_messages: &[&str]) {
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut CacheVisitor, &mut ctx, &schema);
+
+        let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();
+        assert_eq!(actual_messages.as_slice(), expected_messages);
+    }
 }

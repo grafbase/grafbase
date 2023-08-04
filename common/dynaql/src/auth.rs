@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 
 use grafbase::auth::Operations;
 use secrecy::SecretString;
@@ -96,7 +96,7 @@ impl Default for AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn private_public_and_group_based_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
+    pub fn private_public_and_group_based_ops(&self, groups_from_token: &BTreeSet<String>) -> Operations {
         // Add ops for each group contained in ID token
         // Minimum ops are that of any signed-in user union public ops.
         let minimum_ops = self.allowed_public_ops.union(self.allowed_private_ops);
