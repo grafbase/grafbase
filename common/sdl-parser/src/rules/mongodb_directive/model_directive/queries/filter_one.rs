@@ -24,9 +24,10 @@ pub(super) fn create(
     let type_name = create_ctx.model_name();
     let query_name = to_lower_camelcase(type_name);
     let query_description = format!("Query a single {type_name} by a field");
-
     let filter_description = format!("The field and value by which to query the {type_name}");
-    let filter_input = MetaInputValue::new(INPUT_ARG_BY, filter_oneof_type).with_description(filter_description);
+
+    let filter_input =
+        MetaInputValue::new(INPUT_ARG_BY, format!("{filter_oneof_type}!")).with_description(filter_description);
 
     let mut args = IndexMap::new();
     args.insert(INPUT_ARG_BY.to_string(), filter_input);
