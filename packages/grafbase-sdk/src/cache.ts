@@ -28,6 +28,19 @@ export type MutationInvalidation =
   | { field: string }
 
 /**
+ * Defines the access scope for the cache.
+ * - 'apikey' will use the request's api_key details as part of the cache key.
+ * - `public` will allow any authenticated request access to the cache key.
+ * - `{ claim: string }` will use the `claim` value from the request's jwt as part of the cache key.
+ * - `{ header: string }` will use the `header` value from the request as part of the cache key.
+ */
+export type AccessScope =
+  | 'apikey'
+  | 'public'
+  | { claim: string }
+  | { header: string }
+
+/**
  * Defines a single global cache rule.
  */
 export interface CacheRuleParam {
@@ -35,6 +48,7 @@ export interface CacheRuleParam {
   maxAge: number
   staleWhileRevalidate?: number
   mutationInvalidation?: MutationInvalidation
+  scopes?: AccessScope[]
 }
 
 /**
@@ -66,7 +80,14 @@ export class GlobalCache {
           )}`
         : ''
 
-      return `    {${types}${maxAge}${staleWhileRevalidate}${mutationInvalidation}\n    }`
+      const scopes = rule.scopes ? `,\n      scopes: [${
+          rule.scopes
+            .map(scope => renderAccessScope(scope))
+            .join(', ')
+        }]`
+        : ''
+
+      return `    {${types}${maxAge}${staleWhileRevalidate}${mutationInvalidation}${scopes}\n    }`
     })
 
     return `extend schema\n  @cache(rules: [\n${rules}\n  ])\n\n`
@@ -81,6 +102,16 @@ export function renderMutationInvalidation(val: MutationInvalidation): string {
   }
 }
 
+export function renderAccessScope(scope: AccessScope): string {
+  if (typeof scope === 'object') {
+    const key = Object.keys(scope)[0];
+    const value = Object.values(scope)[0];
+    return `{ ${key}: "${value}" }`
+  } else {
+    return scope
+  }
+}
+
 function renderTypes(types: CachedTypes): string {
   if (typeof types === 'string') {
     return `"${types}"`
@@ -90,9 +121,9 @@ function renderTypes(types: CachedTypes): string {
         if (typeof type === 'string') {
           return `"${type}"`
         } else {
-          var fields = type.fields
+          let fields = type.fields
             ? type.fields.map((field) => `"${field}"`).join(',')
-            : ''
+            : '';
           fields = fields ? `,\n        fields: [${fields}]\n` : '\n'
 
           return `{\n        name: "${type.name}"${fields}      }`

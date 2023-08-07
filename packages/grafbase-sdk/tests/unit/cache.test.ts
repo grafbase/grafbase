@@ -248,4 +248,45 @@ describe('Cache generator', () => {
       }"
     `)
   })
+  it('renders global cache rule with access scopes', async () => {
+    g.type('A', {
+      b: g.int().optional()
+    })
+
+    const cfg = config({
+      schema: g,
+      cache: {
+        rules: [
+          {
+            types: [
+              { name: 'User' },
+              { name: 'Address', fields: ['street', 'city'] }
+            ],
+            maxAge: 60,
+            scopes: ["apikey", {claim: "my_claim"}]
+          }
+        ]
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @cache(rules: [
+          {
+            types: [{
+              name: "User"
+            }, {
+              name: "Address",
+              fields: ["street","city"]
+            }],
+            maxAge: 60,
+            scopes: [apikey, { claim: "my_claim" }]
+          }
+        ])
+
+      type A {
+        b: Int
+      }"
+    `)
+  })
 })
