@@ -164,7 +164,32 @@ impl Server {
         let client = env.create_async_client().with_api_key();
 
         client.poll_endpoint(30, 300).await;
-        client.gql(request).await
+
+        let response = client.gql(request).await;
+        self.debug_received_requests().await;
+
+        response
+    }
+
+    /// Prints all received requests for debugging.
+    pub async fn debug_received_requests(&self) {
+        let requests = self.server.received_requests().await.unwrap();
+
+        println!("# Captured requests");
+
+        for request in requests {
+            let body: Value = request.body_json().unwrap();
+            println!("## URL");
+            println!("{}", request.url);
+
+            println!("## Headers");
+            for header in request.headers {
+                println!("- {}: {:?}", header.0, header.1);
+            }
+
+            println!("## Body");
+            println!("{}", serde_json::to_string_pretty(&body).unwrap());
+        }
     }
 
     /// Changes the response from the default.
