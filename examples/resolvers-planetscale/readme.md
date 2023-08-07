@@ -1,6 +1,6 @@
 # Grafbase ⨯ PlanetScale
 
-This examples hows how to create a GraphQL API using Grafbase Resolvers that can read and write data to a MySQL database hosted by PlanetScale &mdash; [Read the guide](https://grafbase.com/guides/build-and-deploy-a-graphql-api-to-the-edge-with-mysql-and-planetscale)
+This examples shows how to create a GraphQL API using Grafbase Resolvers that can read and write data to a MySQL database hosted by PlanetScale &mdash; [Read the guide](https://grafbase.com/guides/build-and-deploy-a-graphql-api-to-the-edge-with-mysql-and-planetscale)
 
 ## Getting Started
 

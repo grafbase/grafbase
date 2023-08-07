@@ -9,8 +9,13 @@ import { RequireAtLeastOne } from 'type-fest'
 import dotenv from 'dotenv'
 import { Authorizer, AuthorizerParams } from './auth/authorizer'
 import { MongoDBParams, PartialMongoDBAPI } from './connector/mongodb'
+import path from 'path'
 
-dotenv.config()
+dotenv.config({
+  // must exist, defined by "~/.grafbase/parser/parse-config.ts"
+  path: path.join(process.env.GRAFBASE_PROJECT_GRAFBASE_DIR!, '.env'),
+  override: true
+})
 
 export type AtLeastOne<T> = [T, ...T[]]
 
