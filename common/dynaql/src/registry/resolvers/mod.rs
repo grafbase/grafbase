@@ -209,7 +209,7 @@ impl Resolver {
                     )),
                     None => Target::Field(
                         ctx.item.clone().into_inner(),
-                        resolver_ctx.field.ok_or_else(|| Error::new("internal error"))?.clone(),
+                        resolver_ctx.field.ok_or_else(|| Error::new("Internal error"))?.clone(),
                     ),
                 };
 
