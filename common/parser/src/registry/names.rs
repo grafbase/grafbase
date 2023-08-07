@@ -10,7 +10,6 @@ use crate::{registry::ParentRelation, utils::to_lower_camelcase};
 
 pub const PAGINATION_INPUT_ARG_FIRST: &str = "first";
 pub const PAGINATION_INPUT_ARG_LAST: &str = "last";
-pub const PAGINATION_INPUT_ARG_SKIP: &str = "skip";
 pub const PAGINATION_INPUT_ARG_BEFORE: &str = "before";
 pub const PAGINATION_INPUT_ARG_AFTER: &str = "after";
 pub const PAGINATION_INPUT_ARG_ORDER_BY: &str = "orderBy";

@@ -1,11 +1,9 @@
-use chrono::{DateTime, NaiveDate};
-use serde_json::{json, Value};
-
-use super::JsonMap;
+use super::{value::MongoValue, JsonMap};
 use crate::{
     registry::{type_kinds::InputType, MetaInputValue, TypeReference},
     Context,
 };
+use serde_json::Value;
 
 /// Given the input keys, converts them to the names on MongoDB.
 ///
@@ -33,34 +31,7 @@ pub(super) fn values(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>)
         let meta_field = input_type.field(&key).unwrap();
         let value = normalize(values, ctx, value, &meta_field);
         let type_name = meta_field.ty.named_type();
-
-        let value = match type_name.as_str() {
-            "ID" => normalize_value(value, |value| json!({ "$oid": value })),
-            "Date" => normalize_value(
-                value,
-                |value| json!({ "$date": { "$numberLong": date_to_timestamp(value) } }),
-            ),
-            "DateTime" => normalize_value(
-                value,
-                |value| json!({ "$date": { "$numberLong": datetime_to_timestamp(value) } }),
-            ),
-            "Timestamp" => normalize_value(
-                value,
-                |value| json!({ "$timestamp": { "t": datetime_to_timestamp(value), "i": 1 } }),
-            ),
-            "Decimal" => normalize_value(value, |value| json!({ "$numberDecimal": value })),
-            "Bytes" => normalize_value(
-                value,
-                |value| json!({ "$binary": { "base64": value, "subType": "05" } }),
-            ),
-            "BigInt" => normalize_value(value, |value| json!({ "$numberLong": value.to_string() })),
-            "MongoOrderByDirection" => match value.as_str() {
-                Some("ASC") => Value::from(1),
-                Some("DESC") => Value::from(-1),
-                _ => value,
-            },
-            _ => value,
-        };
+        let value = MongoValue::from_json(type_name.as_str(), value).into();
 
         result.insert(key, value);
     }
@@ -113,11 +84,16 @@ pub(super) fn flatten_keys(input: JsonMap) -> JsonMap {
                     None => {
                         output.insert(key, value);
                     }
-                    Some(ref acc) => {
-                        let mut inner = JsonMap::new();
-                        inner.insert(key, value);
-                        output.insert(acc.to_string(), inner.into());
-                    }
+                    Some(ref acc) => match output.get_mut(acc).and_then(serde_json::Value::as_object_mut) {
+                        Some(object) => {
+                            object.insert(key, value);
+                        }
+                        None => {
+                            let mut inner = JsonMap::new();
+                            inner.insert(key, value);
+                            output.insert(acc.to_string(), inner.into());
+                        }
+                    },
                 },
                 value => {
                     let key = match acc {
@@ -168,35 +144,4 @@ where
         }
         (value, _) => value,
     }
-}
-
-fn normalize_value(input: Value, f: impl Fn(Value) -> Value) -> Value {
-    match input {
-        Value::Array(values) => {
-            let mapped = values.into_iter().map(f).collect();
-            Value::Array(mapped)
-        }
-        value => f(value),
-    }
-}
-
-fn date_to_timestamp(input: Value) -> Value {
-    input
-        .as_str()
-        .and_then(|value| NaiveDate::parse_from_str(value, "%Y-%m-%d").ok())
-        .map(|date| {
-            date.signed_duration_since(NaiveDate::from_ymd_opt(1970, 1, 1).unwrap())
-                .num_milliseconds()
-                .to_string()
-        })
-        .map(Value::String)
-        .unwrap_or(input)
-}
-
-fn datetime_to_timestamp(input: Value) -> Value {
-    input
-        .as_str()
-        .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
-        .map(|date| Value::String(date.timestamp_millis().to_string()))
-        .unwrap_or(input)
 }
