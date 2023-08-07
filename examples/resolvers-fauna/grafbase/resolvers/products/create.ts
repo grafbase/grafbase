@@ -5,12 +5,12 @@ const client = new Client()
 export default async function ProductsCreate(_, { input }) {
   try {
     const documentQuery = fql`
-    products.create(${input}) {
-      id,
-      name,
-      price
-    }
-  `
+      products.create(${input}) {
+        id,
+        name,
+        price
+      }
+    `
 
     const { data } = await client.query(documentQuery)
 

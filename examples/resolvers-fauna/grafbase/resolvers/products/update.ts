@@ -12,12 +12,12 @@ export default async function ProductsUpdate(_, { by, input }) {
 
   try {
     const documentQuery = fql`
-    products.byId(${id}).update(${input}) {
-      id,
-      name,
-      price
-    }
-  `
+      products.byId(${id}).update(${input}) {
+        id,
+        name,
+        price
+      }
+    `
 
     const { data } = await client.query(documentQuery)
 
