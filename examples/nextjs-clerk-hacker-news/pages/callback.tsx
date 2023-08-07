@@ -4,7 +4,7 @@ import LogoAnimated from "components/logo-animated";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 
-// This screen has another callback to callback-login because me must insert or update the user in order
+// This screen has another callback to callback-login because we must insert or update the user in order
 // for the viewer to work
 const CallbackPage = () => {
   return (

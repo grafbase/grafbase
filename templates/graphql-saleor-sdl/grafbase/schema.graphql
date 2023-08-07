@@ -1,6 +1,7 @@
 extend schema
   @graphql(
-    name: "Saleor"
+    # Use namespaces if you connect multiple APIs to avoid conflicts
+    # namespace: "Saleor"
     url: "{{ env.ENVIRONMENT_DOMAIN }}"
-    headers: [{ name: "Authorization", value: "Bearer {{ env.ACCESS_TOKEN }}" }]
+    headers: [{ name: "Authorization", forward: "Authorization" }]
   )

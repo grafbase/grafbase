@@ -7,17 +7,24 @@ const strapi = connector.GraphQL({
   }
 })
 
-g.datasource(strapi, { namespace: 'Strapi' })
+g.datasource(strapi)
+
+// Use namespaces if you connect multiple APIs to avoid conflicts
+// g.datasource(strapi, { namespace: 'Strapi' })
 
 export default config({
   schema: g,
   cache: {
     rules: [
       {
-        types: ['StrapiQuery'],
-        maxAge: 60,
-        staleWhileRevalidate: 60
+        types: ['Query'],
+        maxAge: 60
       }
     ]
+  },
+  auth: {
+    rules: (rules) => {
+      rules.public()
+    }
   }
 })

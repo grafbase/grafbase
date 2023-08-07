@@ -116,7 +116,15 @@ pub async fn create(
 
             deploy::deploy().await?;
 
-            Ok(project_create_success.project.production_branch.domains)
+            let domains = project_create_success
+                .project
+                .production_branch
+                .domains
+                .iter()
+                .map(|domain| format!("{domain}/graphql"))
+                .collect();
+
+            Ok(domains)
         }
         ProjectCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
         ProjectCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),
