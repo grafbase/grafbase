@@ -1,6 +1,6 @@
 # Grafbase ⨯ Fauna
 
-This examples shows how to create a GraphQL API using Grafbase that can read and write data to a MySQL database hosted by Fauna &mdash; [Read the guide](https://grafbase.com/guides/build-and-deploy-a-graphql-api-to-the-edge-with-fauna)
+This examples shows how to create a GraphQL API using Grafbase that can read and write data to a Fauna database &mdash; [Read the guide](https://grafbase.com/guides/build-and-deploy-a-graphql-api-to-the-edge-with-fauna)
 
 ## Getting Started
 
