@@ -5,7 +5,6 @@ pub mod enums;
 mod export_sdl;
 pub mod introspection;
 pub mod relations;
-pub mod resolver_chain;
 pub mod resolvers;
 pub mod scalars;
 mod serde_preserve_enum;
@@ -23,34 +22,31 @@ use std::{
     sync::atomic::AtomicU16,
 };
 
+use dynaql_parser::types::OperationType::Query;
 use dynaql_value::ConstValue;
 use grafbase::auth::Operations;
-use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
+use graph_entities::NodeID;
 use indexmap::{map::IndexMap, set::IndexSet};
+use inflector::Inflector;
 use serde::Deserialize;
 
 pub use self::{
-    cache_control::{CacheControl, CacheInvalidation, CacheInvalidationPolicy},
+    cache_control::{
+        CacheAccessScope, CacheConfig, CacheControl, CacheControlError, CacheInvalidation, CacheInvalidationPolicy,
+    },
     connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
     type_names::{InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
     union_discriminator::UnionDiscriminator,
 };
-use self::{
-    relations::MetaRelation,
-    resolvers::Resolver,
-    scalars::{DynamicScalar, PossibleScalar},
-    type_kinds::TypeKind,
-};
+use self::{relations::MetaRelation, resolvers::Resolver, type_kinds::TypeKind};
 pub use crate::model::__DirectiveLocation;
 use crate::{
     auth::AuthConfig,
     model,
-    model::{__Schema, __Type},
     parser::types::{BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition},
-    resolver_utils::{resolve_container, resolve_list},
     validation::dynamic_validators::DynValidator,
-    Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerError, ServerResult, SubscriptionType,
-    Value, VisitorContext,
+    Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerResult, SubscriptionType, Value,
+    VisitorContext,
 };
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
@@ -318,6 +314,10 @@ impl MetaField {
         }
     }
 
+    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+        Self { cache_control, ..self }
+    }
+
     pub fn target_field_name(&self) -> &str {
         self.mapped_name.as_deref().unwrap_or(&self.name)
     }
@@ -377,13 +377,6 @@ pub fn is_array_basic_type(meta: &str) -> bool {
     false
 }
 
-#[derive(Debug)]
-enum CurrentResolverType {
-    PRIMITIVE,
-    ARRAY,
-    CONTAINER,
-}
-
 pub enum CacheTag {
     Type {
         type_name: String,
@@ -418,255 +411,8 @@ impl Display for CacheTag {
     }
 }
 
-impl CurrentResolverType {
-    fn new(current_field: &MetaField, ctx: &Context<'_>) -> Self {
-        if current_field.ty.is_list() {
-            return CurrentResolverType::ARRAY;
-        }
-
-        match &ctx.item.node.selection_set.node.items.is_empty() {
-            true => CurrentResolverType::PRIMITIVE,
-            false => CurrentResolverType::CONTAINER,
-        }
-    }
-}
-
 impl MetaField {
-    /// The whole logic to link resolver and transformers for each fields.
-    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
-        let registry = ctx.registry();
-
-        let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-        let current_resolver_type = CurrentResolverType::new(&self, ctx);
-
-        match current_resolver_type {
-            // When you are resolving a Primitive
-            CurrentResolverType::PRIMITIVE => {
-                let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
-                let resolved_value = resolvers
-                    .resolve(&ctx)
-                    .await
-                    .map_err(|err| err.into_server_error(ctx.item.pos));
-
-                let result = match resolved_value {
-                    Ok(result) => {
-                        if self.ty.is_non_null() && *result.data_resolved.as_ref() == serde_json::Value::Null {
-                            #[cfg(feature = "tracing_worker")]
-                            logworker::warn!(
-                                ctx.data_unchecked::<std::sync::Arc<dynamodb::DynamoDBBatchersData>>()
-                                    .ctx
-                                    .trace_id,
-                                "{}",
-                                serde_json::to_string_pretty(&serde_json::json!({
-                                    "message": "Something went wrong here",
-                                    "expected": serde_json::Value::String(self.ty.to_string()),
-                                    "path": serde_json::Value::String(resolvers.clone().to_string()),
-                                }))
-                                .unwrap(),
-                            );
-                            Err(ServerError::new(
-                                format!("An error happened while fetching {:?}", ctx.item.node.name),
-                                Some(ctx.item.pos),
-                            ))
-                        } else {
-                            Ok(result.data_resolved.as_ref().clone())
-                        }
-                    }
-                    Err(err) => {
-                        if self.ty.is_non_null() {
-                            Err(err)
-                        } else {
-                            ctx.add_error(err);
-                            Ok(serde_json::Value::Null)
-                        }
-                    }
-                }?;
-                let meta_type = ctx_obj
-                    .resolver_node
-                    .as_ref()
-                    .and_then(|resolver_node| resolver_node.ty)
-                    .ok_or_else(|| ServerError::new("Internal Error: expected a field", Some(ctx.item.pos)))?;
-
-                let parent_meta_type = ctx_obj
-                    .resolver_node
-                    .as_ref()
-                    .and_then(|resolver_node| resolver_node.parent)
-                    .and_then(|parent_node| parent_node.ty)
-                    .and_then(MetaType::rust_typename)
-                    .cloned()
-                    .unwrap_or_default();
-
-                let result = match meta_type {
-                    MetaType::Scalar(scalar) => match scalar.parser {
-                        ScalarParser::PassThrough => {
-                            let scalar_value: ConstValue = result.try_into().map_err(|err: serde_json::Error| {
-                                ServerError::new(err.to_string(), Some(ctx.item.pos))
-                            })?;
-
-                            self.check_cache_tag(ctx, &parent_meta_type, &self.name, Some(&scalar_value))
-                                .await;
-
-                            scalar_value
-                        }
-                        ScalarParser::BestEffort => match result {
-                            serde_json::Value::Null => Value::Null,
-                            _ => {
-                                let scalar_value = PossibleScalar::to_value(&self.ty.named_type().as_str(), result)
-                                    .map_err(|err| err.into_server_error(ctx.item.pos))?;
-
-                                self.check_cache_tag(ctx, &parent_meta_type, &self.name, Some(&scalar_value))
-                                    .await;
-
-                                scalar_value
-                            }
-                        },
-                    },
-                    MetaType::Enum { .. } => {
-                        Value::from_json(result).map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))?
-                    }
-                    _ => {
-                        return Err(ServerError::new(
-                            "Internal error: expected an enum or scalar type for a primitive",
-                            Some(ctx.item.pos),
-                        ));
-                    }
-                };
-
-                Ok(ctx
-                    .response_graph
-                    .write()
-                    .await
-                    .insert_node(ResponsePrimitive::new(result.into())))
-            }
-            CurrentResolverType::CONTAINER => {
-                // If there is a resolver associated to the container we execute it before
-                // asking to resolve the other fields
-                let resolved_value = if let Some(resolvers) = &ctx_obj.resolver_node {
-                    let resolved_value = resolvers
-                        .resolve(&ctx)
-                        .await
-                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
-
-                    if resolved_value.is_early_returned() {
-                        if self.ty.is_non_null() {
-                            return Err(ServerError::new(
-                                format!(
-                                    "An error occured while fetching `{}`, a non-nullable value was expected but no value was found.",
-                                    ctx.item.node.name.node
-                                ),
-                                Some(ctx.item.pos),
-                            ));
-                        } else {
-                            return Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .insert_node(ResponsePrimitive::new(CompactValue::Null)));
-                        }
-                    }
-                    Some(resolved_value)
-                } else {
-                    None
-                };
-
-                let container_type = registry
-                    .lookup_expecting::<&MetaType>(&self.ty)
-                    .map_err(|error| error.into_server_error(ctx.item.pos))?;
-
-                // TEMP: Hack
-                // We can check from the schema definition if it's a node, if it is, we need to
-                // have a way to get it
-                // temp: Little hack here, we know that `ResolvedValue` are bound to have a format
-                // of:
-                // ```
-                // {
-                //   "Node": {
-                //     "__sk": {
-                //       "S": "node_id"
-                //     }
-                //   }
-                // }
-                // ```
-                // We use that fact without checking it here.
-                //
-                // This have to be removed when we rework registry & dynaql to have a proper query
-                // planning.
-                let node_id: Option<NodeID<'_>> = resolved_value
-                    .as_ref()
-                    .and_then(|x| x.node_id(container_type.name()))
-                    .and_then(|x| NodeID::from_owned(x).ok());
-
-                let type_name = container_type.name().to_string();
-
-                match resolve_container(&ctx_obj, container_type, node_id).await {
-                    result @ Ok(_) => {
-                        self.check_cache_tag(ctx, &type_name, &self.name, None).await;
-                        result
-                    }
-                    Err(err) => {
-                        if self.ty.is_non_null() {
-                            Err(err)
-                        } else {
-                            ctx.add_error(err);
-                            Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .insert_node(ResponsePrimitive::new(CompactValue::Null)))
-                        }
-                    }
-                }
-            }
-            CurrentResolverType::ARRAY => {
-                let container_type = registry
-                    .lookup_expecting::<&MetaType>(&self.ty)
-                    .map_err(|error| error.into_server_error(ctx.item.pos))?;
-
-                let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
-                let resolved_value = resolvers
-                    .resolve(&ctx)
-                    .await
-                    .map_err(|err| err.into_server_error(ctx.item.pos));
-
-                let len = match &resolved_value?.data_resolved.as_ref() {
-                    serde_json::Value::Null => {
-                        if self.ty.is_non_null() {
-                            return Err(ServerError::new(
-                                format!(
-                                    "An error occurred while fetching `{}`, a non-nullable value was expected but no value was found.",
-                                    ctx.item.node.name.node
-                                ),
-                                Some(ctx.item.pos),
-                            ));
-                        } else {
-                            return Ok(ctx.response_graph.write().await.insert_node(CompactValue::Null));
-                        }
-                    }
-                    serde_json::Value::Array(arr) => {
-                        self.check_cache_tag(ctx, container_type.name(), &self.name, None).await;
-                        arr.clone()
-                    }
-                    _ => {
-                        return Err(ServerError::new("An internal error happened", Some(ctx.item.pos)));
-                    }
-                };
-
-                match resolve_list(&ctx_obj, ctx.item, container_type, len).await {
-                    result @ Ok(_) => result,
-                    Err(err) => {
-                        if self.ty.is_non_null() {
-                            Err(err)
-                        } else {
-                            ctx.add_error(err);
-                            Ok(ctx.response_graph.write().await.insert_node(CompactValue::Null))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    async fn check_cache_tag(
+    pub async fn check_cache_tag(
         &self,
         ctx: &Context<'_>,
         resolved_field_type: &str,
@@ -969,6 +715,19 @@ pub struct InterfaceType {
 }
 
 impl InterfaceType {
+    pub fn new(name: impl Into<String>, fields: impl IntoIterator<Item = MetaField>) -> Self {
+        InterfaceType {
+            name: name.into(),
+            description: None,
+            fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
+            possible_types: Default::default(),
+            extends: false,
+            keys: None,
+            visible: None,
+            rust_typename: String::new(),
+        }
+    }
+
     pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
         self.fields.get(name)
     }
@@ -1594,7 +1353,7 @@ impl ConnectorIdGenerator {
 
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside dynaql
 // for a LogicalQuery
-#[derive(Clone, Default, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     pub types: BTreeMap<String, MetaType>,
     pub directives: HashMap<String, MetaDirective>,
@@ -1614,6 +1373,27 @@ pub struct Registry {
     pub search_config: grafbase_runtime::search::Config,
     #[serde(default)]
     pub enable_caching: bool,
+}
+
+impl Default for Registry {
+    fn default() -> Self {
+        Self {
+            types: Default::default(),
+            directives: Default::default(),
+            implements: Default::default(),
+            query_type: Query.to_string().to_pascal_case(),
+            mutation_type: None,
+            subscription_type: None,
+            disable_introspection: false,
+            enable_federation: false,
+            federation_subscription: false,
+            auth: Default::default(),
+            mongodb_configurations: Default::default(),
+            http_headers: Default::default(),
+            search_config: Default::default(),
+            enable_caching: false,
+        }
+    }
 }
 
 impl Registry {
@@ -1680,13 +1460,14 @@ pub mod vectorize {
 
 impl Registry {
     pub fn new() -> Registry {
+        let type_query = Query.to_string().to_pascal_case();
         let mut registry = Registry {
-            query_type: "Query".to_string(),
+            query_type: type_query.clone(),
             ..Registry::default()
         };
         registry
             .types
-            .insert("Query".to_string(), ObjectType::new("Query".to_string(), []).into());
+            .insert(type_query.clone(), ObjectType::new(type_query, []).into());
         registry
     }
 
@@ -1744,74 +1525,6 @@ impl Registry {
             .iter()
             .find(|(key, _value)| key.to_lowercase() == ty)
             .map(|(_, val)| val)
-    }
-
-    /// Function ran when resolving a field.
-    ///
-    /// When working with custom field, it'll trigger the resolve of the `MetaField`.
-    pub async fn resolve_field<'a>(
-        &self,
-        ctx: &'a Context<'a>,
-        root: &'a MetaType,
-    ) -> ServerResult<Option<ResponseNodeId>> {
-        if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
-            if ctx.item.node.name.node == "__schema" {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-                let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-
-                let resolved = LegacyOutputType::resolve(
-                    &__Schema::new(&ctx.schema_env.registry, &visible_types),
-                    &ctx_obj,
-                    ctx.item,
-                )
-                .await?;
-
-                return Ok(Some(resolved));
-            } else if ctx.item.node.name.node == "__type" {
-                let (_, type_name) = ctx.param_value::<String>("name", None)?;
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-                let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-                let resolved = LegacyOutputType::resolve(
-                    &ctx.schema_env
-                        .registry
-                        .types
-                        .get(&type_name)
-                        .filter(|_| visible_types.contains(type_name.as_str()))
-                        .map(|ty| __Type::new_simple(&ctx.schema_env.registry, &visible_types, ty)),
-                    &ctx_obj,
-                    ctx.item,
-                )
-                .await?;
-                return Ok(Some(resolved));
-            }
-        }
-
-        // TODO: Federation
-
-        let field_name = &ctx.item.node.name.node;
-
-        // let ctx = ctx.with_selection_set(&ctx.item.node.selection_set);
-        if let Some(field) = root.field_by_name(field_name.as_str()) {
-            // let pos = ctx.item.pos;
-            let resolver = async move { field.resolve(&ctx).await };
-
-            let obj = resolver.await.map_err(|err| ctx.set_error_path(err))?;
-            // let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-
-            return Ok(Some(obj));
-
-            // If it's a primitive or a scalar, let's return it, or we need to redo a pass.
-        }
-        Ok(None)
-        // let ret = resolver_utils::resolve_container(&ctx).await.map(Some);
-        // ret
-    }
-
-    /// Introspection type name
-    ///
-    /// Is the return value of field `__typename`, the interface and union should return the current type, and the others return `Type::type_name`.
-    pub fn introspection_type_name<'a>(&self, node: &'a MetaType) -> &'a str {
-        node.name()
     }
 }
 

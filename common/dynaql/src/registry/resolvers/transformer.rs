@@ -1,6 +1,6 @@
 #![allow(deprecated)]
 
-use std::{hash::Hash, sync::Arc};
+use std::hash::Hash;
 
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
@@ -110,30 +110,22 @@ impl Transformer {
         match self {
             Self::ConvertSkToCursor => {
                 let result = last_resolver_value
-                    .and_then(|r| r.data_resolved.as_str())
+                    .and_then(|r| r.data_resolved().as_str())
                     .map(|sk| serde_json::to_value(IdCursor { id: sk.to_string() }))
                     .transpose()?
                     .unwrap_or_default();
-                Ok(ResolvedValue::new(Arc::new(result)))
+                Ok(ResolvedValue::new(result))
             }
             Self::DynamoSelect { key } => {
                 let result = last_resolver_value
-                    .and_then(|r| r.data_resolved.get(key))
+                    .and_then(|r| r.data_resolved().get(key))
                     .map(|field| serde_json::from_value(field.clone()))
                     .transpose()?
                     .map(attribute_to_value)
                     .unwrap_or_default();
-                Ok(ResolvedValue::new(Arc::new(result)))
+                Ok(ResolvedValue::new(result))
             }
-            Transformer::Select { key } => {
-                Ok(ResolvedValue::new(Arc::new(
-                    // TODO: Think again with internal modelization
-                    last_resolver_value
-                        .and_then(|x| x.data_resolved.get(key))
-                        .cloned()
-                        .unwrap_or(serde_json::Value::Null),
-                )))
-            }
+            Transformer::Select { key } => Ok(last_resolver_value.and_then(|x| x.get_field(key)).unwrap_or_default()),
             Transformer::RemoteEnum => {
                 let enum_values = ctx
                     .current_enum_values()
@@ -142,23 +134,23 @@ impl Transformer {
                 let resolved_value =
                     last_resolver_value.ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
 
-                Ok(ResolvedValue::new(Arc::new(resolve_enum_value(
-                    &resolved_value.data_resolved,
+                Ok(ResolvedValue::new(resolve_enum_value(
+                    resolved_value.data_resolved(),
                     enum_values,
-                )?)))
+                )?))
             }
             Transformer::PaginationData => {
                 let pagination = last_resolver_value
                     .and_then(|x| x.pagination.as_ref())
                     .map(ResolvedPaginationInfo::output);
-                Ok(ResolvedValue::new(Arc::new(serde_json::to_value(pagination)?)))
+                Ok(ResolvedValue::new(serde_json::to_value(pagination)?))
             }
             // TODO: look into loading single edges in the same query. This may be tricky as we can no longer differentiate
             // between the queried item and it's edges as a nested pagination will not have pk == sk
             // also
             // TODO: look into optimizing nested single edges
             Transformer::SingleEdge { key, relation_name } => {
-                let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
+                let old_val = match last_resolver_value.and_then(|x| x.data_resolved().get(key)) {
                     Some(serde_json::Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
                         if arr.len() > 1 {
@@ -174,7 +166,7 @@ impl Transformer {
                     }
                     // happens in nested relations
                     Some(val) => val.clone(),
-                    _ => return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()),
+                    _ => return Ok(ResolvedValue::null().with_early_return()),
                 };
 
                 let sk_attr = serde_json::from_value::<AttributeValue>(
@@ -185,7 +177,7 @@ impl Transformer {
                         Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.")
                             .into_server_error(ctx.item.pos),
                     );
-                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
+                    return Ok(ResolvedValue::null());
                 };
 
                 let result = DynamoResolver::QuerySingleRelation {
@@ -202,7 +194,7 @@ impl Transformer {
                 relation_name,
                 expected_ty,
             } => {
-                let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
+                let old_val = match last_resolver_value.and_then(|x| x.data_resolved().get(key)) {
                     Some(serde_json::Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
                         if arr.len() > 1 {
@@ -218,7 +210,7 @@ impl Transformer {
                     }
                     // happens in nested relations
                     Some(val) => val.clone(),
-                    _ => return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()),
+                    _ => return Ok(ResolvedValue::null().with_early_return()),
                 };
 
                 let sk_attr = serde_json::from_value::<AttributeValue>(
@@ -229,7 +221,7 @@ impl Transformer {
                         Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.")
                             .into_server_error(ctx.item.pos),
                     );
-                    return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
+                    return Ok(ResolvedValue::null());
                 };
 
                 // FIXME: this should be used instead of EdgeArray, we're relying on the arguments
@@ -260,11 +252,11 @@ impl Transformer {
 
                 let typename = discriminators
                     .iter()
-                    .find(|(_, discriminator)| discriminator.matches(resolved_value.data_resolved.as_ref()))
+                    .find(|(_, discriminator)| discriminator.matches(resolved_value.data_resolved()))
                     .map(|(name, _)| name)
                     .ok_or_else(|| Error::new("Could not determine __typename on remote union"))?;
 
-                let mut new_value = (*resolved_value.data_resolved).clone();
+                let mut new_value = resolved_value.clone().take();
                 if !new_value.is_object() {
                     // The OpenAPI integration has union members that are not objects.
                     //
@@ -278,7 +270,7 @@ impl Transformer {
                     .unwrap()
                     .insert("__typename".into(), serde_json::Value::String(typename.clone()));
 
-                Ok(ResolvedValue::new(Arc::new(new_value)))
+                Ok(ResolvedValue::new(new_value))
             }
         }
     }

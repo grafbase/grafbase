@@ -1,5 +1,6 @@
 use dynaql::{
     indexmap::IndexMap,
+    names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_EDGE_CURSOR, OUTPUT_FIELD_ID},
     registry::{
         resolvers::{
             atlas_data_api::{AtlasDataApiResolver, OperationType},
@@ -18,8 +19,8 @@ use crate::{
         names::{
             MetaNames, INPUT_ARG_FILTER, PAGINATION_FIELD_EDGES, PAGINATION_FIELD_EDGE_CURSOR,
             PAGINATION_FIELD_EDGE_NODE, PAGINATION_FIELD_PAGE_INFO, PAGINATION_INPUT_ARG_AFTER,
-            PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_ORDER_BY,
-            PAGINATION_INPUT_ARG_SKIP,
+            PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST,
+            PAGINATION_INPUT_ARG_ORDER_BY,
         },
         pagination::register_page_info_type,
     },
@@ -50,8 +51,9 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
 
     let mut args = input_args(filter_type);
 
-    let extra_order_fields = std::iter::once(("id", "_id"));
+    let extra_order_fields = std::iter::once((OUTPUT_FIELD_ID, MONGODB_OUTPUT_FIELD_ID));
     let order_by_type_name = register_orderby_input(visitor_ctx, create_ctx.object, type_name, extra_order_fields);
+    let order_by_type_name = format!("[{order_by_type_name}]");
 
     args.insert(
         PAGINATION_INPUT_ARG_ORDER_BY.to_string(),
@@ -132,7 +134,7 @@ fn register_edge_type(
         MetaField {
             name: PAGINATION_FIELD_EDGE_CURSOR.to_string(),
             ty: "String!".into(),
-            resolver: Transformer::select("_id").and_then(Transformer::ConvertSkToCursor),
+            resolver: Transformer::select(OUTPUT_EDGE_CURSOR).into(),
             required_operation: Some(Operations::LIST),
             auth: model_auth.cloned(),
             ..Default::default()
@@ -157,8 +159,8 @@ fn input_args(filter_type: &str) -> IndexMap<String, MetaInputValue> {
             MetaInputValue::new(PAGINATION_INPUT_ARG_FIRST, "Int"),
         ),
         (
-            PAGINATION_INPUT_ARG_SKIP.to_string(),
-            MetaInputValue::new(PAGINATION_INPUT_ARG_SKIP, "Int"),
+            PAGINATION_INPUT_ARG_LAST.to_string(),
+            MetaInputValue::new(PAGINATION_INPUT_ARG_LAST, "Int"),
         ),
         (
             PAGINATION_INPUT_ARG_BEFORE.to_string(),

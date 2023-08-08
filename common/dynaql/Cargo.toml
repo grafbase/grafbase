@@ -21,7 +21,6 @@ async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
 bytes = { version = "1", features = ["serde"] }
-cached = { version = "0.44" }
 case = "1"
 chrono = { version = "0.4", default-features = false, features = [
   "clock",
@@ -59,6 +58,7 @@ url = { workspace = true, features = ["serde"] }
 unindent = "0.2"
 grafbase-runtime = { path = "../grafbase-runtime" }
 grafbase = { path = "../grafbase", features = ["json"] }
+flexbuffers = { workspace = true }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }

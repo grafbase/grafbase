@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 
 use dynaql::{
-    names::INPUT_FIELD_FILTER_REGEX,
+    names::{INPUT_FIELD_FILTER_REGEX, OUTPUT_EDGE_CURSOR},
     registry::{
         self,
         resolvers::{
-            query::{
-                QueryResolver, SEARCH_RESOLVER_EDGES, SEARCH_RESOLVER_EDGE_CURSOR, SEARCH_RESOLVER_EDGE_SCORE,
-                SEARCH_RESOLVER_TOTAL_HITS,
-            },
+            query::{QueryResolver, SEARCH_RESOLVER_EDGES, SEARCH_RESOLVER_EDGE_SCORE, SEARCH_RESOLVER_TOTAL_HITS},
             transformer::Transformer,
             Resolver,
         },
@@ -384,7 +381,7 @@ fn register_edge_type(
                         ty: "String!".into(),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
-                        resolver: Transformer::select(SEARCH_RESOLVER_EDGE_CURSOR).into(),
+                        resolver: Transformer::select(OUTPUT_EDGE_CURSOR).into(),
                         ..Default::default()
                     },
                     MetaField {

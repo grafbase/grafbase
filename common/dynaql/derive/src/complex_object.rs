@@ -174,6 +174,7 @@ pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> 
                         max_age: #max_age,
                         stale_while_revalidate: #stale_while_revalidate,
                         invalidation_policy: None,
+                        access_scopes: None,
                     }
                 }
             };

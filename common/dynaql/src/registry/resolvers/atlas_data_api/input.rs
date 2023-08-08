@@ -1,15 +1,16 @@
-use std::sync::OnceLock;
-
-use grafbase_runtime::search::GraphqlCursor;
-use serde_json::{json, Value};
+pub(super) mod pagination;
 
 use super::JsonMap;
 use crate::{
+    names::MONGODB_OUTPUT_FIELD_ID,
     registry::{resolvers::atlas_data_api::normalize, variables::VariableResolveDefinition},
     Context, ServerResult,
 };
+use indexmap::IndexMap;
+use serde_json::{json, Value};
+use std::sync::OnceLock;
 
-pub(super) fn by(ctx: &Context<'_>) -> ServerResult<Value> {
+pub(super) fn by(ctx: &Context<'_>) -> ServerResult<JsonMap> {
     static BY_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
     let resolve_definition = BY_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("by".to_string()));
@@ -18,64 +19,10 @@ pub(super) fn by(ctx: &Context<'_>) -> ServerResult<Value> {
     let input_type = ctx.find_argument_type("by")?;
     let map = normalize::keys_and_values(ctx, map, input_type);
 
-    Ok(Value::Object(map))
+    Ok(map)
 }
 
-pub(super) fn before(ctx: &Context<'_>) -> Option<JsonMap> {
-    static FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("before".to_string()));
-
-    let before = resolve_definition
-        .resolve::<GraphqlCursor>(ctx, Option::<Value>::None)
-        .ok()
-        .and_then(|cursor| String::from_utf8(cursor.into_bytes()).ok());
-
-    match before {
-        Some(before) => {
-            let mut map = JsonMap::new();
-
-            map.insert(
-                "_id".to_string(),
-                json!({
-                    "$lt": { "$oid": before }
-                }),
-            );
-
-            Some(map)
-        }
-        _ => None,
-    }
-}
-
-pub(super) fn after(ctx: &Context<'_>) -> Option<JsonMap> {
-    static FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("after".to_string()));
-
-    let after = resolve_definition
-        .resolve::<GraphqlCursor>(ctx, Option::<Value>::None)
-        .ok()
-        .and_then(|cursor| String::from_utf8(cursor.into_bytes()).ok());
-
-    match after {
-        Some(after) => {
-            let mut map = JsonMap::new();
-
-            map.insert(
-                "_id".to_string(),
-                json!({
-                    "$gt": { "$oid": after }
-                }),
-            );
-
-            Some(map)
-        }
-        _ => None,
-    }
-}
-
-pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<Value> {
+pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<JsonMap> {
     static FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
     let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("filter".to_string()));
@@ -84,7 +31,7 @@ pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<Value> {
     let input_type = ctx.find_argument_type("filter")?;
     let map = normalize::flatten_keys(normalize::keys_and_values(ctx, map, input_type));
 
-    let map = match before(ctx) {
+    let map = match pagination::before(ctx)? {
         Some(before) => {
             let inner = map;
 
@@ -96,7 +43,7 @@ pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<Value> {
         None => map,
     };
 
-    let map = match after(ctx) {
+    let map = match pagination::after(ctx)? {
         Some(after) => {
             let inner = map;
 
@@ -108,10 +55,10 @@ pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<Value> {
         None => map,
     };
 
-    Ok(Value::Object(map))
+    Ok(map)
 }
 
-pub(super) fn input(ctx: &Context<'_>) -> ServerResult<Value> {
+pub(super) fn input(ctx: &Context<'_>) -> ServerResult<JsonMap> {
     static INPUT_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
     let resolve_definition = INPUT_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("input".to_string()));
@@ -120,44 +67,87 @@ pub(super) fn input(ctx: &Context<'_>) -> ServerResult<Value> {
     let input_type = ctx.find_argument_type("input")?;
     let map = normalize::keys_and_values(ctx, map, input_type);
 
-    Ok(Value::Object(map))
+    Ok(map)
 }
 
-pub(super) fn order_by(ctx: &Context<'_>) -> ServerResult<Option<Value>> {
+pub(super) fn order_by(ctx: &Context<'_>) -> Option<Vec<JsonMap>> {
     static ORDER_BY: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
     let resolve_definition = ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("orderBy".to_string()));
 
-    match resolve_definition.resolve::<JsonMap>(ctx, Option::<Value>::None) {
-        Ok(map) if !map.is_empty() => {
+    resolve_definition
+        .resolve::<Vec<JsonMap>>(ctx, Option::<Value>::None)
+        .ok()
+}
+
+pub(super) fn sort(ctx: &Context<'_>, definition: Option<&[JsonMap]>) -> ServerResult<Option<IndexMap<String, Value>>> {
+    let last = last(ctx);
+
+    match definition {
+        Some(maps) if !maps.is_empty() => {
             let input_type = ctx.find_argument_type("orderBy")?;
-            let map = normalize::keys_and_values(ctx, map, input_type);
-            let map = normalize::flatten_keys(map);
 
-            Ok(Some(Value::Object(map)))
+            let mut order_by = IndexMap::new();
+
+            for map in maps {
+                let map = normalize::keys_and_values(ctx, map.clone(), input_type);
+                let map = normalize::flatten_keys(map);
+
+                order_by.extend(map);
+            }
+
+            if !order_by.contains_key(MONGODB_OUTPUT_FIELD_ID) {
+                order_by.insert(MONGODB_OUTPUT_FIELD_ID.to_string(), Value::from(1));
+            }
+
+            if last.is_some() {
+                order_by = order_by
+                    .into_iter()
+                    .map(|(key, value)| {
+                        let value = match value {
+                            Value::Number(number) if number.as_i64() == Some(-1) => Value::from(1),
+                            Value::Number(number) if number.as_i64() == Some(1) => Value::from(-1),
+                            value => value,
+                        };
+
+                        (key, value)
+                    })
+                    .collect();
+            }
+
+            Ok(Some(order_by))
         }
-        _ => Ok(None),
+        _ => {
+            if last.is_some() {
+                let mut order_by = IndexMap::new();
+                order_by.insert(MONGODB_OUTPUT_FIELD_ID.to_string(), Value::from(-1));
+
+                Ok(Some(order_by))
+            } else {
+                Ok(None)
+            }
+        }
     }
 }
 
-pub(super) fn limit(ctx: &Context<'_>) -> Value {
-    static ORDER_BY: OnceLock<VariableResolveDefinition> = OnceLock::new();
+pub(super) fn first(ctx: &Context<'_>) -> Option<usize> {
+    static FIRST: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition = ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("first".to_string()));
+    let resolve_definition = FIRST.get_or_init(|| VariableResolveDefinition::InputTypeName("first".to_string()));
 
-    match resolve_definition.resolve::<Value>(ctx, Option::<Value>::None) {
-        Ok(value) if !value.is_null() => value,
-        _ => Value::from(100),
+    match resolve_definition.resolve::<usize>(ctx, Option::<Value>::None) {
+        Ok(value) => Some(value),
+        _ => None,
     }
 }
 
-pub(super) fn skip(ctx: &Context<'_>) -> Option<Value> {
-    static ORDER_BY: OnceLock<VariableResolveDefinition> = OnceLock::new();
+pub(super) fn last(ctx: &Context<'_>) -> Option<usize> {
+    static LAST: OnceLock<VariableResolveDefinition> = OnceLock::new();
 
-    let resolve_definition = ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("skip".to_string()));
+    let resolve_definition = LAST.get_or_init(|| VariableResolveDefinition::InputTypeName("last".to_string()));
 
-    match resolve_definition.resolve::<Value>(ctx, Option::<Value>::None) {
-        Ok(value) if !value.is_null() => Some(value),
+    match resolve_definition.resolve::<usize>(ctx, Option::<Value>::None) {
+        Ok(value) => Some(value),
         _ => None,
     }
 }

@@ -10,7 +10,6 @@ use std::{
 };
 
 use async_lock::RwLock as AsynRwLock;
-use cached::UnboundCache;
 use derivative::Derivative;
 use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
 use dynaql_value::{Value as InputValue, Variables};
@@ -30,14 +29,18 @@ use crate::{
     extensions::Extensions,
     parser::types::{Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
     registry::{
-        relations::MetaRelation, resolver_chain::ResolverChainNode, resolvers::ResolvedValue, type_kinds::InputType,
-        MetaInputValue, MetaType, MongoDBConfiguration, Registry, TypeReference,
+        relations::MetaRelation, type_kinds::InputType, MetaInputValue, MetaType, MongoDBConfiguration, Registry,
+        TypeReference,
     },
     resolver_utils::{resolve_input, InputResolveMode},
     schema::SchemaEnv,
     CacheInvalidation, Error, LegacyInputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
     ServerResult, UploadValue, Value,
 };
+
+pub(crate) use self::resolver_chain::ResolverChainNode;
+
+mod resolver_chain;
 
 /// Data related functions of the context.
 pub trait DataContext<'a> {
@@ -106,10 +109,9 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
     for selection in &ctx.item.node.items {
         match &selection.node {
             Selection::Field(field) => {
-                let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                 // We do take the name and not the alias
-                let field_name = ctx_field.item.node.name.node.as_str();
-                let field_response_key = ctx_field.item.node.response_key().node.as_str();
+                let field_name = field.node.name.node.as_str();
+                let field_response_key = field.node.response_key().node.as_str();
                 if let Some(relation) = root.field_by_name(field_name).and_then(|x| x.relation.as_ref()) {
                     result.insert(field_response_key.to_string(), relation);
                 }
@@ -134,7 +136,7 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
                 };
                 let type_condition = type_condition.map(|condition| condition.node.on.node.as_str());
 
-                let introspection_type_name = ctx.registry().introspection_type_name(root);
+                let introspection_type_name = root.name();
 
                 let applies_concrete_object = type_condition.map_or(false, |condition| {
                     introspection_type_name == condition
@@ -309,8 +311,6 @@ impl<'a> Iterator for Parents<'a> {
 
 impl<'a> std::iter::FusedIterator for Parents<'a> {}
 
-type ResolverCacheType = Arc<AsynRwLock<UnboundCache<u64, Result<ResolvedValue, Error>>>>;
-
 /// Query context.
 ///
 /// **This type is not stable and should not be used directly.**
@@ -329,9 +329,6 @@ pub struct ContextBase<'a, T> {
     #[doc(hidden)]
     #[derivative(Debug = "ignore")]
     pub query_env: &'a QueryEnv,
-    #[doc(hidden)]
-    #[derivative(Debug = "ignore")]
-    pub resolvers_cache: ResolverCacheType,
     #[doc(hidden)]
     /// Every Resolvers are able to store a Value inside this cache
     pub resolvers_data: Arc<RwLock<FnvHashMap<String, Box<dyn Any + Sync + Send>>>>,
@@ -390,7 +387,6 @@ impl QueryEnv {
             item,
             schema_env,
             query_env: self,
-            resolvers_cache: Arc::new(AsynRwLock::new(UnboundCache::with_capacity(32))),
             resolvers_data: Default::default(),
             response_graph: Arc::new(AsynRwLock::new(QueryResponse::default())),
         }
@@ -487,7 +483,6 @@ impl<'a, T> ContextBase<'a, T> {
             item: field,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
         }
@@ -504,7 +499,6 @@ impl<'a, T> ContextBase<'a, T> {
             item: selection_set,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
         }
@@ -767,7 +761,6 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             item: self.item,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
         }

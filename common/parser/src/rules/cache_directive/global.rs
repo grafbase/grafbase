@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     ops::{Deref, DerefMut},
 };
 
@@ -16,6 +16,7 @@ use crate::rules::{
     cache_directive::{
         de_mutation_invalidation,
         global::GlobalCacheRulesError::{ForbiddenRegistryType, UnknownRegistryType, UnknownRegistryTypeField},
+        CacheAccessScopeWrapper,
     },
     visitor::MUTATION_TYPE,
 };
@@ -64,6 +65,8 @@ pub struct CacheRule {
         deserialize_with = "de_mutation_invalidation"
     )]
     pub mutation_invalidation_policy: Option<CacheInvalidationPolicy>,
+    #[serde(default, rename = "scopes")]
+    pub access_scopes: Option<BTreeSet<CacheAccessScopeWrapper>>,
 }
 
 #[derive(Debug, Hash, Eq, PartialEq)]
@@ -336,6 +339,45 @@ mod tests {
             }
         }])
     "#, & [])]
+    #[case::successful_api_key_access_scope(r#"
+        extend schema @cache(rules: [{
+            maxAge: 10,
+            types: ["TypeName"],
+            scopes: [apikey]
+        }])
+    "#, &[])]
+    #[case::successful_jwt_access_scope(r#"
+        extend schema @cache(rules: [{
+            maxAge: 10,
+            types: ["TypeName"],
+            scopes: [{
+                claim: "sub"
+            }]
+        }])
+    "#, &[])]
+    #[case::successful_header_access_scope(r#"
+        extend schema @cache(rules: [{
+            maxAge: 10,
+            types: ["TypeName"],
+            scopes: [{
+                header: "hey"
+            }]
+        }])
+    "#, &[])]
+    #[case::successful_public_access_scope(r#"
+        extend schema @cache(rules: [{
+            maxAge: 10,
+            types: ["TypeName"],
+            scopes: [public]
+        }])
+    "#, &[])]
+    #[case::successful_multiple_access_scopes(r#"
+        extend schema @cache(rules: [{
+            maxAge: 10,
+            types: ["TypeName"],
+            scopes: [apikey, { claim: "sub" }, { header: "header_name" }]
+        }])
+    "#, &[])]
     fn test_global_parsing(#[case] schema: &str, #[case] expected_messages: &[&str]) {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new(&schema);
@@ -403,6 +445,7 @@ mod tests {
                 invalidation_policy: Some(CacheInvalidationPolicy::Entity {
                     field: "id".to_string()
                 }),
+                access_scopes: None,
             }
         );
 
@@ -413,6 +456,7 @@ mod tests {
                 max_age: 20,
                 stale_while_revalidate: 0,
                 invalidation_policy: None,
+                access_scopes: None,
             }
         );
 
@@ -423,6 +467,7 @@ mod tests {
                 max_age: 10,
                 stale_while_revalidate: 0,
                 invalidation_policy: None,
+                access_scopes: None,
             }
         );
     }

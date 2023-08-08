@@ -31,7 +31,6 @@ pub mod serializer;
 use std::{
     collections::{BTreeMap, HashMap},
     pin::Pin,
-    sync::Arc,
 };
 
 use dataloader::{DataLoader, Loader, NoCache};
@@ -369,15 +368,15 @@ impl Resolver {
                 prefix_result_typename(&mut data, &prefix);
             }
 
-            let mut resolved_value = ResolvedValue::new(Arc::new(match wrapping_field {
+            let mut resolved_value = ResolvedValue::new(match wrapping_field {
                 Some(field) => data
                     .as_object_mut()
                     .and_then(|m| m.remove(&field))
                     .unwrap_or(serde_json::Value::Null),
                 None => data,
-            }));
+            });
 
-            if resolved_value.data_resolved.is_null() {
+            if resolved_value.data_resolved().is_null() {
                 resolved_value.early_return_null = true;
             }
 
@@ -774,7 +773,7 @@ mod tests {
 
         let error_handler = |error| errors.push(error);
 
-        let value = resolver
+        let data = resolver
             .resolve(
                 operation_type,
                 &headers,
@@ -788,9 +787,9 @@ mod tests {
                 batcher,
             )
             .await?
-            .data_resolved;
+            .data_resolved()
+            .clone();
 
-        let data = Arc::into_inner(value).unwrap();
         let response = if errors.is_empty() {
             json!({ "data": data })
         } else {

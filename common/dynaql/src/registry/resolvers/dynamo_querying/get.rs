@@ -29,7 +29,7 @@ pub(super) async fn by_ids(ctx: &Context<'_>, ids: &[String], ty: &ModelName) ->
         })
         .collect::<Vec<_>>();
 
-    Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(result))))
+    Ok(ResolvedValue::new(serde_json::Value::Array(result)))
 }
 
 pub(super) async fn paginated_by_ids(
@@ -123,6 +123,6 @@ pub(super) async fn paginated_by_ids(
             // Resolvers on the model expect the type name...
             .map(|(_, item)| serde_json::json!({ &type_name: item }))
             .collect::<Vec<_>>();
-        ResolvedValue::new(Arc::new(serde_json::Value::Array(values))).with_pagination(pagination)
+        ResolvedValue::new(serde_json::Value::Array(values)).with_pagination(pagination)
     })
 }
