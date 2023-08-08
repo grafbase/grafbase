@@ -1,8 +1,10 @@
+mod delete_many;
 mod delete_one;
 pub(super) mod find_many;
 pub(super) mod find_one;
 mod insert_one;
 
+pub(super) use delete_many::DeleteMany;
 pub(super) use delete_one::DeleteOne;
 pub(super) use find_many::FindMany;
 pub(super) use find_one::FindOne;
@@ -15,4 +17,5 @@ pub(super) enum AtlasQuery {
     FindMany(FindMany),
     InsertOne(InsertOne),
     DeleteOne(DeleteOne),
+    DeleteMany(DeleteMany),
 }
