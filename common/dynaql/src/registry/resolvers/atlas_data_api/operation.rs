@@ -6,7 +6,9 @@ pub enum OperationType {
     FindOne,
     FindMany,
     InsertOne,
+    InsertMany,
     DeleteOne,
+    DeleteMany,
 }
 
 impl AsRef<str> for OperationType {
@@ -15,7 +17,9 @@ impl AsRef<str> for OperationType {
             Self::FindOne => "findOne",
             Self::FindMany => "find",
             Self::InsertOne => "insertOne",
+            Self::InsertMany => "insertMany",
             Self::DeleteOne => "deleteOne",
+            Self::DeleteMany => "deleteMany",
         }
     }
 }

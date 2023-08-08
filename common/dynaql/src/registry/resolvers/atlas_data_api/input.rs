@@ -70,6 +70,22 @@ pub(super) fn input(ctx: &Context<'_>) -> ServerResult<JsonMap> {
     Ok(map)
 }
 
+pub(super) fn input_many(ctx: &Context<'_>) -> ServerResult<Vec<JsonMap>> {
+    static INPUT_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
+
+    let resolve_definition = INPUT_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("input".to_string()));
+
+    let maps: Vec<JsonMap> = resolve_definition.resolve(ctx, Option::<Value>::None)?;
+    let input_type = ctx.find_argument_type("input")?;
+
+    let result = maps
+        .into_iter()
+        .map(|map| normalize::keys_and_values(ctx, map, input_type))
+        .collect();
+
+    Ok(result)
+}
+
 pub(super) fn order_by(ctx: &Context<'_>) -> Option<Vec<JsonMap>> {
     static ORDER_BY: OnceLock<VariableResolveDefinition> = OnceLock::new();
 

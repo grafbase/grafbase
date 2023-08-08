@@ -51,11 +51,33 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
     input_type_name
 }
 
-pub(crate) fn register_output(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) -> String {
+pub(crate) fn register_single_output(
+    visitor_ctx: &mut VisitorContext<'_>,
+    create_ctx: &CreateTypeContext<'_>,
+) -> String {
     let output_type_name = MetaNames::create_payload_type(create_ctx.r#type);
     let mut output_field = MetaField::new("insertedId", "ID");
 
     let transformer = Transformer::select("insertedId");
+    output_field.resolver = Resolver::from(transformer);
+    output_field.required_operation = Some(Operations::CREATE);
+    output_field.auth = create_ctx.model_auth().clone();
+
+    let object_type = ObjectType::new(&output_type_name, [output_field]);
+
+    visitor_ctx
+        .registry
+        .get_mut()
+        .create_type(|_| object_type.into(), &output_type_name, &output_type_name);
+
+    output_type_name
+}
+
+pub(crate) fn register_many_output(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) -> String {
+    let output_type_name = MetaNames::create_many_payload_type(create_ctx.r#type);
+    let mut output_field = MetaField::new("insertedIds", "[ID]");
+
+    let transformer = Transformer::select("insertedIds");
     output_field.resolver = Resolver::from(transformer);
     output_field.required_operation = Some(Operations::CREATE);
     output_field.auth = create_ctx.model_auth().clone();
