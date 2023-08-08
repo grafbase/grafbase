@@ -1,10 +1,7 @@
 use dynaql::Positioned;
 use dynaql_parser::types::{TypeDefinition, TypeKind};
 
-use super::model_directive::types::{
-    filter::{register_orderby_input, register_type_input},
-    generic::{filter_type_name, register_array_type, register_singular_type},
-};
+use super::model_directive::types::{filter, generic, input};
 use crate::rules::visitor::{Visitor, VisitorContext};
 
 pub struct MongoDBTypeDirective;
@@ -23,10 +20,11 @@ impl<'a> Visitor<'a> for MongoDBTypeDirective {
             return;
         };
 
-        let input_type_name = filter_type_name(r#type.name.as_str());
-        register_type_input(ctx, object, &input_type_name, std::iter::empty());
-        register_array_type(ctx, r#type.name.as_str(), false);
-        register_singular_type(ctx, r#type.name.as_str());
-        register_orderby_input(ctx, object, r#type.node.name.as_str(), std::iter::empty());
+        let input_type_name = generic::filter_type_name(r#type.name.as_str());
+        filter::register_type_input(ctx, object, &input_type_name, std::iter::empty());
+        generic::register_array_type(ctx, r#type.name.as_str(), false);
+        generic::register_singular_type(ctx, r#type.name.as_str());
+        filter::register_orderby_input(ctx, object, r#type.node.name.as_str(), std::iter::empty());
+        input::register_type_input(ctx, object, &r#type.node);
     }
 }

@@ -1,5 +1,7 @@
 mod query;
 
+use self::query::UpdateOne;
+
 use super::OperationType;
 use crate::{
     registry::{
@@ -45,6 +47,17 @@ pub(super) async fn execute(
         OperationType::DeleteOne => DeleteOne::new(ctx)?.into(),
         OperationType::DeleteMany => DeleteMany::new(ctx)?.into(),
         OperationType::InsertMany => InsertMany::new(ctx)?.into(),
+        OperationType::UpdateOne => {
+            let update = UpdateOne::new(ctx)?;
+
+            // We might filter out some updates from the user, this might lead to an
+            // empty update, that will just wipe the whole document excluding the ID.
+            if update.is_empty() {
+                return Ok(ResolvedValue::new(update.empty_response()));
+            } else {
+                update.into()
+            }
+        }
     };
 
     let request = AtlasRequest {

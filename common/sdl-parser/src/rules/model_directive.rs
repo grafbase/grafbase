@@ -48,7 +48,8 @@ use super::{
 use crate::{
     registry::{
         add_mutation_create, add_mutation_delete, add_mutation_update, add_query_paginated_collection,
-        generate_pagination_args, names::MetaNames,
+        generate_pagination_args,
+        names::{MetaNames, INPUT_ARG_BY},
     },
     rules::cache_directive::CacheDirective,
     utils::{to_base_type_str, to_lower_camelcase},
@@ -423,7 +424,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 // TODO: Should be defined as a ResolveNode
                 // Single entity
                 resolver: Resolver::DynamoResolver(DynamoResolver::QueryBy {
-                    by: VariableResolveDefinition::InputTypeName("by".to_owned()),
+                    by: VariableResolveDefinition::input_type_name(INPUT_ARG_BY),
                     schema: Some(schema_id),
                 }),
                 required_operation: Some(Operations::GET),

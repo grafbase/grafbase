@@ -276,7 +276,7 @@ impl Operation {
                     let input_name = param.graphql_name(graph).unwrap().to_string();
                     http::PathParameter {
                         name,
-                        variable_resolve_definition: VariableResolveDefinition::ConnectorInputTypeName(input_name),
+                        variable_resolve_definition: VariableResolveDefinition::connector_input_type_name(input_name),
                     }
                 })
                 .collect(),
@@ -287,7 +287,7 @@ impl Operation {
                     let input_name = param.graphql_name(graph).unwrap().to_string();
                     http::QueryParameter {
                         name,
-                        variable_resolve_definition: VariableResolveDefinition::ConnectorInputTypeName(input_name),
+                        variable_resolve_definition: VariableResolveDefinition::connector_input_type_name(input_name),
                         encoding_style: param.encoding_style(graph).unwrap(),
                     }
                 })
@@ -295,7 +295,7 @@ impl Operation {
             request_body: self
                 .request_body(graph)
                 .map(|request_body| dynaql::registry::resolvers::http::RequestBody {
-                    variable_resolve_definition: VariableResolveDefinition::ConnectorInputTypeName(
+                    variable_resolve_definition: VariableResolveDefinition::connector_input_type_name(
                         request_body.argument_name().to_owned(),
                     ),
                     content_type: request_body.content_type(graph).clone(),

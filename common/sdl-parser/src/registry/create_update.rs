@@ -100,7 +100,7 @@ pub fn add_mutation_create<'a>(
             .collect(),
         ty: create_payload.as_nullable().into(),
         resolver: DynamoMutationResolver::CreateNode {
-            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            input: VariableResolveDefinition::input_type_name(INPUT_ARG_INPUT),
             ty: type_name.clone().into(),
         }
         .into(),
@@ -120,7 +120,7 @@ pub fn add_mutation_create<'a>(
             .collect(),
         ty: many_create_payload.as_nullable().into(),
         resolver: DynamoMutationResolver::CreateNodes {
-            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            input: VariableResolveDefinition::input_type_name(INPUT_ARG_INPUT),
             ty: type_name.into(),
         }
         .into(),
@@ -205,8 +205,8 @@ pub fn add_mutation_update<'a>(
         .collect(),
         ty: update_payload.as_nullable().into(),
         resolver: DynamoMutationResolver::UpdateNode {
-            by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
-            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            by: VariableResolveDefinition::input_type_name(INPUT_ARG_BY),
+            input: VariableResolveDefinition::input_type_name(INPUT_ARG_INPUT),
             ty: type_name.clone().into(),
         }
         .into(),
@@ -226,7 +226,7 @@ pub fn add_mutation_update<'a>(
             .collect(),
         ty: many_update_payload.as_nullable().into(),
         resolver: DynamoMutationResolver::UpdateNodes {
-            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            input: VariableResolveDefinition::input_type_name(INPUT_ARG_INPUT),
             ty: type_name.into(),
         }
         .into(),
@@ -522,8 +522,8 @@ fn register_payload<'a>(
                     ty: MetaNames::model(model_type_definition).into(),
                     // Single entity
                     resolver: DynamoResolver::QueryPKSK {
-                        pk: VariableResolveDefinition::LocalData("id".to_string()),
-                        sk: VariableResolveDefinition::LocalData("id".to_string()),
+                        pk: VariableResolveDefinition::local_data("id"),
+                        sk: VariableResolveDefinition::local_data("id"),
                         schema: None,
                     }
                     .into(),
@@ -570,7 +570,7 @@ fn register_many_payload<'a>(
                         .non_null()
                         .into(),
                     resolver: DynamoResolver::QueryIds {
-                        ids: VariableResolveDefinition::LocalData("ids".to_string()),
+                        ids: VariableResolveDefinition::local_data("ids"),
                         type_name: type_name.into(),
                     }
                     .into(),

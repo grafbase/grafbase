@@ -7,7 +7,7 @@ use dynaql_parser::types::{BaseType, ObjectType, Type};
 use super::generic;
 use crate::{
     registry::names::MetaNames,
-    rules::{mongodb_directive::model_directive::create_type_context::CreateTypeContext, visitor::VisitorContext},
+    rules::{mongodb_directive::CreateTypeContext, visitor::VisitorContext},
 };
 
 const LOGICAL_OPERATIONS: &[(&str, &str, &str)] = &[

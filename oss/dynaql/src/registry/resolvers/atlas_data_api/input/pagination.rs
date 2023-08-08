@@ -2,16 +2,12 @@ use grafbase_runtime::search::GraphqlCursor;
 use serde_json::{json, Value};
 
 use crate::{
-    registry::{
-        resolvers::atlas_data_api::{
-            cursor::{AtlasCursor, CursorField, OrderByDirection},
-            JsonMap,
-        },
-        variables::VariableResolveDefinition,
+    registry::resolvers::atlas_data_api::{
+        cursor::{AtlasCursor, CursorField, OrderByDirection},
+        JsonMap,
     },
     Context, ServerResult,
 };
-use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy)]
 enum CursorParameter {
@@ -32,23 +28,11 @@ impl ValueIncrement {
 }
 
 pub(crate) fn before_definition(ctx: &Context) -> Option<GraphqlCursor> {
-    static BEFORE: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = BEFORE.get_or_init(|| VariableResolveDefinition::InputTypeName("before".to_string()));
-
-    resolve_definition
-        .resolve::<GraphqlCursor>(ctx, Option::<Value>::None)
-        .ok()
+    ctx.input_by_name("before").ok()
 }
 
 pub(crate) fn after_definition(ctx: &Context) -> Option<GraphqlCursor> {
-    static AFTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = AFTER.get_or_init(|| VariableResolveDefinition::InputTypeName("after".to_string()));
-
-    resolve_definition
-        .resolve::<GraphqlCursor>(ctx, Option::<Value>::None)
-        .ok()
+    ctx.input_by_name("after").ok()
 }
 
 pub(super) fn before(ctx: &Context<'_>) -> ServerResult<Option<JsonMap>> {
