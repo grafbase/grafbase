@@ -106,13 +106,13 @@ describe('Type generator', () => {
   it('generates one with cache using access scopes', () => {
     const t = g
       .type('User', {
-        name: g.string().cache({ maxAge: 10, staleWhileRevalidate: 20, scopes: ["apikey", {header: "test"}] })
+        name: g.string().cache({ maxAge: 10, staleWhileRevalidate: 20, scopes: ["apikey", {header: "test"}, "public"] })
       })
       .cache({ maxAge: 10, staleWhileRevalidate: 20, scopes: [{claim: "test"}] })
 
     expect(renderGraphQL(t)).toMatchInlineSnapshot(`
       "type User @cache(maxAge: 10, staleWhileRevalidate: 20, scopes: [{ claim: "test" }]) {
-        name: String! @cache(maxAge: 10, staleWhileRevalidate: 20, scopes: [apikey, { header: "test" }])
+        name: String! @cache(maxAge: 10, staleWhileRevalidate: 20, scopes: [apikey, { header: "test" }, public])
       }"
     `)
   })
