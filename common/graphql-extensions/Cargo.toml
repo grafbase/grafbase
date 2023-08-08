@@ -7,13 +7,14 @@ edition = "2021"
 [dependencies]
 cfg-if = "1"
 async-trait = "0.1"
-dynaql = { path = "../../common/dynaql", default-features = false }
-dynaql-value = { path = "../../common/dynaql/value" }
 lazy_static = "1"
+wasm-timer = "0.2"
+
+dynaql = { path = "../../common/dynaql", default-features = false }
+dynaql-value = { workspace = true }
 log = { path = "../../common/log", features = ["with-worker"] }
 grafbase = { path = "../../common/grafbase", features = ["json"] }
-grafbase-runtime = { path = "../../common/grafbase-runtime" }
-wasm-timer = "0.2"
+grafbase-runtime = { workspace = true }
 
 [features]
 local = []

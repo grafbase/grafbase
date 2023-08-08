@@ -1,7 +1,7 @@
 use dynaql::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
 use graph::OpenApiGraph;
 use inflector::Inflector;
-use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
+use sdl_parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
 use tracing as _;
 use url::Url;
 
@@ -62,8 +62,8 @@ impl ApiMetadata {
     }
 }
 
-impl From<parser::OpenApiDirective> for ApiMetadata {
-    fn from(val: parser::OpenApiDirective) -> Self {
+impl From<sdl_parser::OpenApiDirective> for ApiMetadata {
+    fn from(val: sdl_parser::OpenApiDirective) -> Self {
         ApiMetadata {
             id: val.id.unwrap_or_default(),
             namespace: val.namespace.clone(),
