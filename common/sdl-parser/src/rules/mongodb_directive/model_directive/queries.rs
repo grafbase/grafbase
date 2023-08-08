@@ -1,3 +1,4 @@
+mod create_many;
 mod create_one;
 mod delete_many;
 mod delete_one;
@@ -18,4 +19,5 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
     create_one::create(visitor_ctx, create_ctx, &create_input_type);
     delete_one::create(visitor_ctx, create_ctx, &filter_oneof_type, &delete_output_type);
     delete_many::create(visitor_ctx, create_ctx, &filter_input_type, &delete_output_type);
+    create_many::create(visitor_ctx, create_ctx, &create_input_type);
 }

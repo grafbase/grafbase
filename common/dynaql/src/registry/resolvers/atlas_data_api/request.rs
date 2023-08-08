@@ -1,7 +1,5 @@
 mod query;
 
-use self::query::DeleteMany;
-
 use super::OperationType;
 use crate::{
     registry::{
@@ -14,7 +12,7 @@ use http::{
     header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
     StatusCode,
 };
-use query::{AtlasQuery, DeleteOne, FindMany, FindOne, InsertOne};
+use query::{AtlasQuery, DeleteMany, DeleteOne, FindMany, FindOne, InsertMany, InsertOne};
 use serde::Serialize;
 
 mod headers {
@@ -46,6 +44,7 @@ pub(super) async fn execute(
         OperationType::InsertOne => InsertOne::new(ctx)?.into(),
         OperationType::DeleteOne => DeleteOne::new(ctx)?.into(),
         OperationType::DeleteMany => DeleteMany::new(ctx)?.into(),
+        OperationType::InsertMany => InsertMany::new(ctx)?.into(),
     };
 
     let request = AtlasRequest {

@@ -23,7 +23,7 @@ pub(super) fn create(
     let mut query = MetaField::new(mutation_name, output_type_name);
     query.description = Some(format!("Delete a unique {}", create_ctx.model_name()));
 
-    let input_value = MetaInputValue::new(INPUT_ARG_BY, filter_oneof_type);
+    let input_value = MetaInputValue::new(INPUT_ARG_BY, format!("{filter_oneof_type}!"));
     query.args = std::iter::once(input_value)
         .map(|input| (input.name.clone(), input))
         .collect();
