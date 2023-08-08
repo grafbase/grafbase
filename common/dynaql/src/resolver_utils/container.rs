@@ -1,16 +1,18 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use dynaql_parser::{Pos, Positioned};
+use dynaql_parser::Positioned;
 use futures_util::FutureExt;
 use graph_entities::{CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
 
 use crate::{
     extensions::ResolveInfo,
     parser::types::Selection,
-    registry::{MetaType, Registry},
+    registry::{resolvers::ResolvedValue, MetaType, Registry},
     relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name, ServerError,
     ServerResult, Value,
 };
+
+use super::field::resolve_field;
 
 /// Represents a GraphQL container object.
 ///
@@ -61,8 +63,9 @@ fn collect_all_fields_graph_meta<'a>(
     ctx: &ContextSelectionSet<'a>,
     fields: &mut FieldsGraph<'a>,
     node_id: Option<NodeID<'a>>,
+    parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<()> {
-    fields.add_set(ctx, ty, node_id.clone())
+    fields.add_set(ctx, ty, node_id, parent_resolver_value)
 }
 
 #[async_trait::async_trait]
@@ -116,21 +119,19 @@ impl<T: ContainerType, E: Into<Error> + Send + Sync + Clone> ContainerType for R
 }
 
 /// Resolve an container by executing each of the fields concurrently.
-pub async fn resolve_container<'a>(
+pub async fn resolve_root_container<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
-    node_id: Option<NodeID<'a>>,
 ) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, true, root, node_id).await
+    resolve_container_inner(ctx, true, root, None, None).await
 }
 
 /// Resolve an container by executing each of the fields serially.
-pub async fn resolve_container_serial<'a>(
+pub async fn resolve_root_container_serial<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
-    node_id: Option<NodeID<'a>>,
 ) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, false, root, node_id).await
+    resolve_container_inner(ctx, false, root, None, None).await
 }
 
 /// Resolve an container by executing each of the fields concurrently.
@@ -141,12 +142,13 @@ pub async fn resolve_container_native<'a, T: ContainerType + ?Sized>(
     resolve_container_inner_native(ctx, root, true).await
 }
 
-/// Resolve an container by executing each of the fields serially.
-pub async fn resolve_container_serial_native<'a, T: ContainerType + ?Sized>(
+pub(super) async fn resolve_container<'a>(
     ctx: &ContextSelectionSet<'a>,
-    root: &'a T,
+    root: &MetaType,
+    node_id: Option<NodeID<'a>>,
+    parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner_native(ctx, root, false).await
+    resolve_container_inner(ctx, true, root, node_id, parent_resolver_value).await
 }
 
 async fn resolve_container_inner<'a>(
@@ -154,14 +156,16 @@ async fn resolve_container_inner<'a>(
     parallel: bool,
     root: &MetaType,
     node_id: Option<NodeID<'a>>,
+    parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
     #[cfg(feature = "tracing_worker")]
     {
         logworker::trace!("", "Where: {}", root.name());
         logworker::trace!("", "Id: {:?}", node_id);
     }
+
     let mut fields = FieldsGraph(Vec::new());
-    fields.add_set(ctx, root, node_id.clone())?;
+    fields.add_set(ctx, root, node_id.clone(), parent_resolver_value)?;
 
     let results = if parallel {
         futures_util::future::try_join_all(fields.0).await?
@@ -295,8 +299,10 @@ impl<'a> FieldsGraph<'a> {
         ctx: &ContextSelectionSet<'a>,
         root: &'a MetaType,
         current_node_id: Option<NodeID<'a>>,
+        parent_resolver_value: Option<ResolvedValue>,
     ) -> ServerResult<()> {
         for selection in &ctx.item.node.items {
+            let parent_resolver_value = parent_resolver_value.clone();
             let current_node_id = current_node_id.clone();
             match &selection.node {
                 Selection::Field(field) => {
@@ -308,10 +314,9 @@ impl<'a> FieldsGraph<'a> {
                         let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
 
                         self.0.push(Box::pin({
-                            let ctx = ctx.clone();
                             async move {
-                                let registry = ctx.registry();
-                                let node = CompactValue::String(resolve_typename(&ctx, field, root, registry).await);
+                                let node =
+                                    CompactValue::String(resolve_typename(root, parent_resolver_value.as_ref()).await);
                                 Ok(GraphFutureOutput::Field(
                                     (alias, field_name),
                                     ctx_field.response_graph.write().await.insert_node(node),
@@ -325,7 +330,6 @@ impl<'a> FieldsGraph<'a> {
                         let ctx = ctx.clone();
                         async move {
                             let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
-                            let registry = ctx_field.registry();
                             let field_name = ctx_field.item.node.name.node.clone();
                             let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
                             let extensions = &ctx.query_env.extensions;
@@ -344,7 +348,7 @@ impl<'a> FieldsGraph<'a> {
                                     (alias, field_name),
                                     response_id_unwrap_or_null(
                                         &ctx_field,
-                                        registry.resolve_field(&ctx_field, root).await?,
+                                        resolve_field(&ctx_field, root, parent_resolver_value).await?,
                                     )
                                     .await,
                                 ))
@@ -384,7 +388,7 @@ impl<'a> FieldsGraph<'a> {
                                     input_values: args_values,
                                 };
 
-                                let resolve_fut = registry.resolve_field(&ctx_field, root);
+                                let resolve_fut = resolve_field(&ctx_field, root, parent_resolver_value);
 
                                 if field.node.directives.is_empty() {
                                     futures_util::pin_mut!(resolve_fut);
@@ -409,7 +413,6 @@ impl<'a> FieldsGraph<'a> {
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,
-                                                resolvers_cache: ctx_field.resolvers_cache.clone(),
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
                                                 response_graph: ctx_field.response_graph.clone(),
                                             };
@@ -482,6 +485,7 @@ impl<'a> FieldsGraph<'a> {
                                         root,
                                         selection_set,
                                         current_node_id,
+                                        parent_resolver_value,
                                     )
                                     .await
                                 }
@@ -499,19 +503,19 @@ impl<'a> FieldsGraph<'a> {
                                         root,
                                         selection_set,
                                         current_node_id,
+                                        parent_resolver_value,
                                     )
                                     .await
                                 }
                             }));
                         }
                         _ => {
-                            let registry = ctx.registry();
                             self.add_spread_fields(
-                                registry,
                                 root,
                                 type_condition,
                                 &ctx.with_selection_set(selection_set),
                                 current_node_id,
+                                parent_resolver_value,
                             )?;
                         }
                     }
@@ -524,19 +528,19 @@ impl<'a> FieldsGraph<'a> {
     /// Adds spread fields to the current set in the case where we're not on a union.
     fn add_spread_fields(
         &mut self,
-        registry: &crate::registry::Registry,
         root: &'a MetaType,
         type_condition: Option<&str>,
         ctx: &ContextSelectionSet<'a>,
         current_node_id: Option<NodeID<'a>>,
+        parent_resolver_value: Option<ResolvedValue>,
     ) -> Result<(), ServerError> {
-        let introspection_type_name = registry.introspection_type_name(root);
+        let introspection_type_name = root.name();
         let applies_concrete_object = type_condition.map_or(false, |condition| {
             typename_matches_condition(introspection_type_name, condition, root, &ctx.schema_env.registry)
         });
 
         if applies_concrete_object {
-            collect_all_fields_graph_meta(root, ctx, self, current_node_id)?;
+            collect_all_fields_graph_meta(root, ctx, self, current_node_id, parent_resolver_value)?;
         } else if type_condition.map_or(true, |condition| root.name() == condition) {
             // The fragment applies to an interface type.
             // self.add_set(&ctx, root)?;
@@ -553,19 +557,10 @@ async fn resolve_spread_with_type_condition<'a>(
     containing_type: &'a MetaType,
     selection_set: &Positioned<dynaql_parser::types::SelectionSet>,
     current_node_id: Option<NodeID<'a>>,
+    parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<GraphFutureOutput> {
     let registry = ctx.registry();
-    let field = Positioned::new(
-        dynaql_parser::types::Field {
-            alias: None,
-            name: Positioned::new(Name::new("__typename"), Pos::default()),
-            arguments: vec![],
-            directives: vec![],
-            selection_set: Positioned::new(dynaql_parser::types::SelectionSet::default(), Pos::default()),
-        },
-        Pos::default(),
-    );
-    let typename = resolve_typename(&ctx, &field, containing_type, registry).await;
+    let typename = resolve_typename(containing_type, parent_resolver_value.as_ref()).await;
 
     if !typename_matches_condition(&typename, type_condition, containing_type, registry) {
         return Ok(GraphFutureOutput::MultipleFields(vec![]));
@@ -577,7 +572,12 @@ async fn resolve_spread_with_type_condition<'a>(
         .ok_or_else(|| ServerError::new(format!(r#"Found an unknown typename: "{typename}"."#,), None))?;
 
     let mut subfields = FieldsGraph(Vec::new());
-    subfields.add_set(&ctx.with_selection_set(selection_set), subtype, current_node_id)?;
+    subfields.add_set(
+        &ctx.with_selection_set(selection_set),
+        subtype,
+        current_node_id,
+        parent_resolver_value,
+    )?;
 
     Ok(GraphFutureOutput::MultipleFields(
         futures_util::future::try_join_all(subfields.0).await?.flatten(),
@@ -603,22 +603,17 @@ fn typename_matches_condition(
     }
 }
 
-async fn resolve_typename<'a>(
-    ctx: &ContextSelectionSet<'a>,
-    field: &'a Positioned<dynaql_parser::types::Field>,
-    root: &'a MetaType,
-    registry: &crate::registry::Registry,
-) -> String {
+async fn resolve_typename<'a>(root: &'a MetaType, parent_resolver_value: Option<&ResolvedValue>) -> String {
     match root {
         MetaType::Union(_) | MetaType::Interface(_) => {
-            if let Some(typename) = resolve_remote_typename(ctx, field, root).await {
+            if let Some(typename) = resolve_remote_typename(parent_resolver_value).await {
                 return typename;
             }
         }
         _ => {}
     }
 
-    registry.introspection_type_name(root).to_owned()
+    root.name().to_string()
 }
 
 /// The `@openapi` & `@graphql` connectors, put the __typename into the JSON
@@ -626,16 +621,9 @@ async fn resolve_typename<'a>(
 ///
 /// We should only need to call this for unions & interfaces - any other type and
 /// we'll know the __typename ourselves based on context
-async fn resolve_remote_typename<'a>(
-    ctx: &ContextSelectionSet<'a>,
-    field: &Positioned<dynaql_parser::types::Field>,
-    root: &MetaType,
-) -> Option<String> {
-    let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
-    let resolved_value = ctx.resolver_node.as_ref()?.resolve(&ctx_field).await.ok()?;
-
+async fn resolve_remote_typename<'a>(parent_resolver_value: Option<&ResolvedValue>) -> Option<String> {
     Some(
-        resolved_value
+        parent_resolver_value?
             .data_resolved()
             .as_object()?
             .get("__typename")?
@@ -748,7 +736,6 @@ impl<'a> Fields<'a> {
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,
-                                                resolvers_cache: ctx_field.resolvers_cache.clone(),
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
                                                 response_graph: ctx_field.response_graph.clone(),
                                             };

@@ -28,7 +28,7 @@ impl CustomResolver {
         ctx: &Context<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
-        use crate::registry::resolver_chain::ResolverChainNode;
+        use crate::context::ResolverChainNode;
 
         // Little hack while QP is not live
         //

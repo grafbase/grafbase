@@ -80,8 +80,7 @@ pub async fn resolve_list<'a>(
                                         .insert_node(ResponsePrimitive::new(result.into())),
                                 ))
                             }
-                            // TODO: node_step
-                            _ => resolve_container(&ctx_idx, ty, None)
+                            _ => resolve_container(&ctx_idx, ty, None, Some(item))
                                 .await
                                 .map(Option::Some)
                                 .map_err(|err| ctx_idx.set_error_path(err)),
@@ -115,8 +114,7 @@ pub async fn resolve_list<'a>(
                             .await
                             .insert_node(ResponsePrimitive::new(result.into())))
                     }
-                    // TODO: node_step
-                    _ => resolve_container(&ctx_idx, ty, None)
+                    _ => resolve_container(&ctx_idx, ty, None, Some(item))
                         .await
                         .map_err(|err| ctx_idx.set_error_path(err)),
                 }

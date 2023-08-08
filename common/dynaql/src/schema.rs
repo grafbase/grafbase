@@ -1,7 +1,6 @@
 use std::{any::Any, collections::HashMap, ops::Deref, sync::Arc};
 
 use async_lock::RwLock;
-use cached::UnboundCache;
 use dynamodb::CurrentDateTime;
 use futures_util::stream::{self, Stream, StreamExt};
 use graph_entities::QueryResponse;
@@ -18,7 +17,7 @@ use crate::{
         Positioned,
     },
     registry::{MetaDirective, MetaInputValue, Registry},
-    resolver_utils::{resolve_container, resolve_container_serial},
+    resolver_utils::{resolve_root_container, resolve_root_container_serial},
     subscription::collect_subscription_streams,
     types::QueryRoot,
     validation::{check_rules, ValidationMode},
@@ -525,7 +524,6 @@ impl Schema {
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
             query_env: &env,
-            resolvers_cache: Arc::new(RwLock::new(UnboundCache::with_capacity(32))),
             resolvers_data: Default::default(),
             response_graph: Arc::new(RwLock::new(QueryResponse::default())),
         };
@@ -533,8 +531,8 @@ impl Schema {
         let query = ctx.registry().query_root();
 
         let res = match &env.operation.node.ty {
-            OperationType::Query => resolve_container(&ctx, query, None).await,
-            OperationType::Mutation => resolve_container_serial(&ctx, ctx.registry().mutation_root(), None).await,
+            OperationType::Query => resolve_root_container(&ctx, query).await,
+            OperationType::Mutation => resolve_root_container_serial(&ctx, ctx.registry().mutation_root()).await,
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
                 None,
