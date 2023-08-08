@@ -10,7 +10,7 @@ pub enum Error {
     DatadogPushFailed(reqwest::StatusCode, Option<String>),
 }
 
-#[derive(Clone, Copy, serde::Serialize, strum::Display, PartialEq, Eq)]
+#[derive(Clone, Copy, serde::Serialize, strum::Display, PartialEq, Eq, Ord, PartialOrd)]
 #[strum(serialize_all = "snake_case")]
 pub enum LogSeverity {
     Trace,
@@ -50,4 +50,5 @@ pub struct LogConfig<'a> {
     pub source_type: &'static str,
     pub trace_id: String,
     pub extra_tags: Vec<(&'static str, Cow<'a, str>)>,
+    pub log_level: LogSeverity,
 }
