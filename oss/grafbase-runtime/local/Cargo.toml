@@ -12,7 +12,7 @@ serde_json = { workspace = true }
 worker = { workspace = true }
 
 grafbase-runtime = { workspace = true }
-graph-entities = { path = "../../../common/graph-entities" }
+graph-entities = { path = "../../../oss/graph-entities" }
 gateway-protocol = { workspace = true }
 log = { path = "../../log", features = ["with-worker"] }
 registry-provider = { workspace = true }

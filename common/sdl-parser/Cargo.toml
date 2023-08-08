@@ -5,11 +5,11 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1"
-dynaql-parser = { path = "../dynaql/parser" }
+dynaql-parser = { path = "../../oss/dynaql/parser" }
 dynaql-value = { workspace = true }
-dynaql = { path = "../dynaql", features = ["tracing_worker"] }
+dynaql = { path = "../../oss/dynaql", features = ["tracing_worker"] }
 dynamodb = { workspace = true }
-grafbase = { path = "../grafbase", features = ["json"] }
+grafbase = { path = "../../oss/grafbase", features = ["json"] }
 grafbase-runtime = { workspace = true }
 case = "1"
 if_chain = "1"
