@@ -8,29 +8,29 @@ use dynaql::registry::{
 use grafbase::auth::Operations;
 
 use crate::{
-    registry::names::{MetaNames, INPUT_ARG_BY},
+    registry::names::{MetaNames, INPUT_ARG_FILTER},
     rules::{mongodb_directive::model_directive::create_type_context::CreateTypeContext, visitor::VisitorContext},
 };
 
-pub(super) fn create(
+pub(crate) fn create(
     visitor_ctx: &mut VisitorContext<'_>,
     create_ctx: &CreateTypeContext<'_>,
-    filter_oneof_type: &str,
+    filter_input_type: &str,
     output_type_name: &str,
 ) {
-    let mutation_name = MetaNames::mutation_delete(create_ctx.r#type);
+    let mutation_name = MetaNames::mutation_delete_many(create_ctx.r#type);
 
     let mut query = MetaField::new(mutation_name, output_type_name);
-    query.description = Some(format!("Delete a unique {}", create_ctx.model_name()));
+    query.description = Some(format!("Delete many {}s", create_ctx.model_name()));
 
-    let input_value = MetaInputValue::new(INPUT_ARG_BY, filter_oneof_type);
+    let input_value = MetaInputValue::new(INPUT_ARG_FILTER, format!("{filter_input_type}!"));
     query.args = std::iter::once(input_value)
         .map(|input| (input.name.clone(), input))
         .collect();
 
     query.resolver = Resolver::MongoResolver(AtlasDataApiResolver {
         collection: create_ctx.collection().to_string(),
-        operation_type: OperationType::DeleteOne,
+        operation_type: OperationType::DeleteMany,
         directive_name: create_ctx.config().name.clone(),
     });
 

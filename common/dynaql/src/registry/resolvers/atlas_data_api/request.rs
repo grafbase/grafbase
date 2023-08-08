@@ -1,5 +1,7 @@
 mod query;
 
+use self::query::DeleteMany;
+
 use super::OperationType;
 use crate::{
     registry::{
@@ -43,6 +45,7 @@ pub(super) async fn execute(
         OperationType::FindMany => FindMany::new(ctx, resolver_ctx)?.into(),
         OperationType::InsertOne => InsertOne::new(ctx)?.into(),
         OperationType::DeleteOne => DeleteOne::new(ctx)?.into(),
+        OperationType::DeleteMany => DeleteMany::new(ctx)?.into(),
     };
 
     let request = AtlasRequest {
