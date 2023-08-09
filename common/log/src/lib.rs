@@ -135,7 +135,7 @@ pub fn collect_logs_to_be_pushed(log_config: &LogConfig<'_>) -> Vec<LogEntry> {
         let entries = borrowed
             .iter()
             // FIXME: Replace with `Vec::drain_filter()` when it's stable.
-            .filter(|entry| entry.trace_id == log_config.trace_id)
+            .filter(|entry| entry.trace_id == log_config.trace_id && entry.severity >= log_config.log_level)
             .cloned()
             .collect::<Vec<_>>();
         borrowed.retain(|entry| entry.trace_id != log_config.trace_id);
