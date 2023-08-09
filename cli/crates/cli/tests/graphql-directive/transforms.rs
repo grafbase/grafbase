@@ -9,10 +9,10 @@ use crate::{
 
 #[tokio::test(flavor = "multi_thread")]
 async fn graphql_test_with_transforms() {
-    server::run(54305).await;
+    let port = server::run().await;
 
     let mut env = Environment::init_async().await;
-    let client = start_grafbase(&mut env, schema(54305)).await;
+    let client = start_grafbase(&mut env, schema(port)).await;
 
     let introspection_query = IntrospectionQuery::build(());
     let response = client
