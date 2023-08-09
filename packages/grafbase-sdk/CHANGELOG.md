@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.0] - Tue Aug 08 2023
+
+[CHANGELOG](changelog/0.5.0.md)
+
 ## [0.4.0] - Thu Aug 03 2023
 
 [CHANGELOG](changelog/0.4.0.md)
