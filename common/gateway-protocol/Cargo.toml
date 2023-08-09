@@ -12,7 +12,7 @@ ulid = { workspace = true }
 worker = { workspace = true }
 
 dynaql = { workspace = true }
-grafbase = { path = "../grafbase", features = ["json"] }
+grafbase = { path = "../../oss/grafbase", features = ["json"] }
 
 [dev-dependencies]
 serde_json = { version = "1", default-features = false }
