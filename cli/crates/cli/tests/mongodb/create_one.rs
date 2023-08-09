@@ -183,9 +183,7 @@ async fn with_datetime() {
     let document = json!({
         "document": {
             "date": {
-                "$date": {
-                    "$numberLong": "1641954803067",
-                },
+                "$date": "2022-01-12T02:33:23.067+00:00"
             },
         }
     });
