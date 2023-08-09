@@ -1,5 +1,5 @@
 import { AuthRuleF } from '../auth'
-import { MutationInvalidation, renderMutationInvalidation } from '../cache'
+import {AccessScope, MutationInvalidation, renderMutationInvalidation, renderAccessScope} from '../cache'
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { EnumDefinition } from './enum'
@@ -24,11 +24,13 @@ export interface TypeCacheParams {
   maxAge: number
   staleWhileRevalidate?: number
   mutationInvalidation?: MutationInvalidation
+  scopes?: AccessScope[]
 }
 
 export interface FieldCacheParams {
   maxAge: number
   staleWhileRevalidate?: number
+  scopes?: AccessScope[]
 }
 
 export class TypeLevelCache {
@@ -39,19 +41,26 @@ export class TypeLevelCache {
   }
 
   public toString(): string {
-    let maxAge = `maxAge: ${this.params.maxAge}`
+    const maxAge = `maxAge: ${this.params.maxAge}`
 
-    let staleWhileRevalidate = this.params.staleWhileRevalidate
+    const staleWhileRevalidate = this.params.staleWhileRevalidate
       ? `, staleWhileRevalidate: ${this.params.staleWhileRevalidate}`
       : ''
 
-    let mutationInvalidation = this.params.mutationInvalidation
+    const mutationInvalidation = this.params.mutationInvalidation
       ? `, mutationInvalidation: ${renderMutationInvalidation(
           this.params.mutationInvalidation
         )}`
       : ''
 
-    return `@cache(${maxAge}${staleWhileRevalidate}${mutationInvalidation})`
+    const scopes = this.params.scopes ? `, scopes: [${
+        this.params.scopes
+          .map(scope => renderAccessScope(scope))
+          .join(', ')
+      }]`
+      : ''
+
+    return `@cache(${maxAge}${staleWhileRevalidate}${mutationInvalidation}${scopes})`
   }
 }
 
@@ -63,13 +72,20 @@ export class FieldLevelCache {
   }
 
   public toString(): string {
-    let maxAge = `maxAge: ${this.params.maxAge}`
+    const maxAge = `maxAge: ${this.params.maxAge}`
 
-    let staleWhileRevalidate = this.params.staleWhileRevalidate
+    const staleWhileRevalidate = this.params.staleWhileRevalidate
       ? `, staleWhileRevalidate: ${this.params.staleWhileRevalidate}`
       : ''
 
-    return `@cache(${maxAge}${staleWhileRevalidate})`
+    const scopes = this.params.scopes ? `, scopes: [${
+        this.params.scopes
+          .map(scope => renderAccessScope(scope))
+          .join(', ')
+      }]`
+      : ''
+
+    return `@cache(${maxAge}${staleWhileRevalidate}${scopes})`
   }
 }
 
