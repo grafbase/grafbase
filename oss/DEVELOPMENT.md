@@ -116,6 +116,9 @@ Add any other context about the problem here.
 **Describe the solution you'd like**
 A clear and concise description of what you want to happen.
 
+**Describe the problem this feature would solve (if applicable)**
+A clear and concise description of the problem that led you to request this issue
+
 **Additional context**
 Add any other context or screenshots about the feature request here.
 ```
