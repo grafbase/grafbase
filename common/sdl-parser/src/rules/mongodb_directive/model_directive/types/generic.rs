@@ -1,15 +1,38 @@
-use dynaql::registry::{InputObjectType, MetaInputValue};
+use dynaql::registry::{EnumType, InputObjectType, MetaEnumValue, MetaInputValue};
 
-use crate::rules::{mongodb_directive::MONGODB_SCALARS, visitor::VisitorContext};
+use crate::rules::{
+    mongodb_directive::{DATE_TIME_SCALARS, MONGODB_SCALARS, NUMERIC_SCALARS},
+    visitor::VisitorContext,
+};
+
+pub(crate) const MONGO_POP_POSITION: &str = "MongoDBPopPosition";
 
 pub(crate) fn filter_type_name(scalar: &str) -> String {
     format!("MongoDB{scalar}SearchFilterInput")
 }
 
+pub(crate) fn required_update_type_name(scalar: &str) -> String {
+    format!("MongoDBRequired{scalar}UpdateInput")
+}
+
+pub(crate) fn optional_update_type_name(scalar: &str) -> String {
+    format!("MongoDBOptional{scalar}UpdateInput")
+}
+
 pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>) {
+    register_pop_input(visitor_ctx);
+
     for scalar in MONGODB_SCALARS {
         register_singular_type(visitor_ctx, scalar);
         register_array_type(visitor_ctx, scalar, true);
+
+        if NUMERIC_SCALARS.contains(scalar) {
+            register_numeric_update_type(visitor_ctx, scalar, true);
+            register_numeric_update_type(visitor_ctx, scalar, false);
+        } else {
+            register_update_type(visitor_ctx, scalar, true);
+            register_update_type(visitor_ctx, scalar, false);
+        }
     }
 }
 
@@ -101,4 +124,154 @@ pub(crate) fn register_singular_type(visitor_ctx: &mut VisitorContext<'_>, scala
         .registry
         .borrow_mut()
         .create_type(|_| input_type.into(), &type_name, &type_name);
+}
+
+pub(crate) fn register_update_type(visitor_ctx: &mut VisitorContext<'_>, scalar: &str, optional_field: bool) {
+    let type_name = if optional_field {
+        optional_update_type_name(scalar)
+    } else {
+        required_update_type_name(scalar)
+    };
+
+    let mut fields = Vec::new();
+
+    fields.push({
+        let mut input = MetaInputValue::new("set", scalar);
+        input.description = Some(String::from("Replaces the value of a field with the specified value."));
+        input.rename = Some(String::from("$set"));
+
+        input
+    });
+
+    if optional_field {
+        fields.push({
+            let mut input = MetaInputValue::new("unset", "Boolean");
+            input.description = Some(String::from("Deletes a particular field."));
+            input.rename = Some(String::from("$unset"));
+
+            input
+        });
+    }
+
+    if DATE_TIME_SCALARS.contains(&scalar) {
+        fields.push({
+            let mut input = MetaInputValue::new("currentDate", "Boolean");
+            input.description = Some(format!("Sets the field value to the current {scalar}."));
+            input.rename = Some(format!("$current{scalar}"));
+
+            input
+        });
+    }
+
+    let description = format!("Update input for {scalar} type.");
+    let input_type = InputObjectType::new(type_name.clone(), fields).with_description(Some(description));
+
+    visitor_ctx
+        .registry
+        .borrow_mut()
+        .create_type(|_| input_type.into(), &type_name, &type_name);
+}
+
+pub(crate) fn register_numeric_update_type(visitor_ctx: &mut VisitorContext<'_>, scalar: &str, optional_field: bool) {
+    let type_name = if optional_field {
+        optional_update_type_name(scalar)
+    } else {
+        required_update_type_name(scalar)
+    };
+
+    let mut fields = Vec::new();
+
+    fields.push({
+        let mut input = MetaInputValue::new("increment", scalar);
+        input.description = Some(String::from(
+            "Increments the value of the field by the specified amount.",
+        ));
+        input.rename = Some(String::from("$inc"));
+
+        input
+    });
+
+    fields.push({
+        let mut input = MetaInputValue::new("minimum", scalar);
+        input.description = Some(String::from(
+            "Only updates the field if the specified value is less than the existing field value.",
+        ));
+        input.rename = Some(String::from("$min"));
+
+        input
+    });
+
+    fields.push({
+        let mut input = MetaInputValue::new("maximum", scalar);
+        input.description = Some(String::from(
+            "Only updates the field if the specified value is greater than the existing field value.",
+        ));
+        input.rename = Some(String::from("$max"));
+
+        input
+    });
+
+    fields.push({
+        let mut input = MetaInputValue::new("multiply", scalar);
+        input.description = Some(String::from(
+            "Multiplies the value of the field by the specified amount.",
+        ));
+        input.rename = Some(String::from("$mul"));
+
+        input
+    });
+
+    fields.push({
+        let mut input = MetaInputValue::new("set", scalar);
+        input.description = Some(String::from("Replaces the value of a field with the specified value."));
+        input.rename = Some(String::from("$set"));
+
+        input
+    });
+
+    if optional_field {
+        fields.push({
+            let mut input = MetaInputValue::new("unset", "Boolean");
+            input.description = Some(String::from("Deletes a particular field."));
+            input.rename = Some(String::from("$unset"));
+
+            input
+        });
+    }
+
+    let description = format!("Update input for {scalar} type.");
+    let input_type = InputObjectType::new(type_name.clone(), fields).with_description(Some(description));
+
+    visitor_ctx
+        .registry
+        .borrow_mut()
+        .create_type(|_| input_type.into(), &type_name, &type_name);
+}
+
+fn register_pop_input(visitor_ctx: &mut VisitorContext<'_>) {
+    let type_name = MONGO_POP_POSITION;
+    let mut variants = Vec::new();
+
+    variants.push({
+        let mut variant = MetaEnumValue::new("FIRST".to_string());
+        variant.value = Some("-1".to_string());
+        variant.description = Some("Removes the first element.".to_string());
+
+        variant
+    });
+
+    variants.push({
+        let mut variant = MetaEnumValue::new("LAST".to_string());
+        variant.value = Some("1".to_string());
+        variant.description = Some("Removes the last element.".to_string());
+
+        variant
+    });
+
+    let r#enum = EnumType::new(type_name.to_string(), variants);
+
+    visitor_ctx
+        .registry
+        .borrow_mut()
+        .create_type(|_| r#enum.into(), type_name, type_name);
 }

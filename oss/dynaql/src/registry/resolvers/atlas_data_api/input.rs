@@ -1,21 +1,12 @@
 pub(super) mod pagination;
 
 use super::JsonMap;
-use crate::{
-    names::MONGODB_OUTPUT_FIELD_ID,
-    registry::{resolvers::atlas_data_api::normalize, variables::VariableResolveDefinition},
-    Context, ServerResult,
-};
+use crate::{names::MONGODB_OUTPUT_FIELD_ID, registry::resolvers::atlas_data_api::normalize, Context, ServerResult};
 use indexmap::IndexMap;
 use serde_json::{json, Value};
-use std::sync::OnceLock;
 
 pub(super) fn by(ctx: &Context<'_>) -> ServerResult<JsonMap> {
-    static BY_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = BY_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("by".to_string()));
-
-    let map: JsonMap = resolve_definition.resolve(ctx, Option::<Value>::None)?;
+    let map = ctx.input_by_name("by")?;
     let input_type = ctx.find_argument_type("by")?;
     let map = normalize::keys_and_values(ctx, map, input_type);
 
@@ -23,11 +14,7 @@ pub(super) fn by(ctx: &Context<'_>) -> ServerResult<JsonMap> {
 }
 
 pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<JsonMap> {
-    static FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("filter".to_string()));
-
-    let map: JsonMap = resolve_definition.resolve(ctx, Option::<Value>::None)?;
+    let map = ctx.input_by_name("filter")?;
     let input_type = ctx.find_argument_type("filter")?;
     let map = normalize::flatten_keys(normalize::keys_and_values(ctx, map, input_type));
 
@@ -59,11 +46,7 @@ pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<JsonMap> {
 }
 
 pub(super) fn input(ctx: &Context<'_>) -> ServerResult<JsonMap> {
-    static INPUT_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = INPUT_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("input".to_string()));
-
-    let map: JsonMap = resolve_definition.resolve(ctx, Option::<Value>::None)?;
+    let map = ctx.input_by_name("input")?;
     let input_type = ctx.find_argument_type("input")?;
     let map = normalize::keys_and_values(ctx, map, input_type);
 
@@ -71,11 +54,7 @@ pub(super) fn input(ctx: &Context<'_>) -> ServerResult<JsonMap> {
 }
 
 pub(super) fn input_many(ctx: &Context<'_>) -> ServerResult<Vec<JsonMap>> {
-    static INPUT_FILTER: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = INPUT_FILTER.get_or_init(|| VariableResolveDefinition::InputTypeName("input".to_string()));
-
-    let maps: Vec<JsonMap> = resolve_definition.resolve(ctx, Option::<Value>::None)?;
+    let maps: Vec<JsonMap> = ctx.input_by_name("input")?;
     let input_type = ctx.find_argument_type("input")?;
 
     let result = maps
@@ -87,13 +66,7 @@ pub(super) fn input_many(ctx: &Context<'_>) -> ServerResult<Vec<JsonMap>> {
 }
 
 pub(super) fn order_by(ctx: &Context<'_>) -> Option<Vec<JsonMap>> {
-    static ORDER_BY: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = ORDER_BY.get_or_init(|| VariableResolveDefinition::InputTypeName("orderBy".to_string()));
-
-    resolve_definition
-        .resolve::<Vec<JsonMap>>(ctx, Option::<Value>::None)
-        .ok()
+    ctx.input_by_name("orderBy").ok()
 }
 
 pub(super) fn sort(ctx: &Context<'_>, definition: Option<&[JsonMap]>) -> ServerResult<Option<IndexMap<String, Value>>> {
@@ -147,23 +120,54 @@ pub(super) fn sort(ctx: &Context<'_>, definition: Option<&[JsonMap]>) -> ServerR
 }
 
 pub(super) fn first(ctx: &Context<'_>) -> Option<usize> {
-    static FIRST: OnceLock<VariableResolveDefinition> = OnceLock::new();
-
-    let resolve_definition = FIRST.get_or_init(|| VariableResolveDefinition::InputTypeName("first".to_string()));
-
-    match resolve_definition.resolve::<usize>(ctx, Option::<Value>::None) {
-        Ok(value) => Some(value),
-        _ => None,
-    }
+    ctx.input_by_name("first").ok()
 }
 
 pub(super) fn last(ctx: &Context<'_>) -> Option<usize> {
-    static LAST: OnceLock<VariableResolveDefinition> = OnceLock::new();
+    ctx.input_by_name("last").ok()
+}
 
-    let resolve_definition = LAST.get_or_init(|| VariableResolveDefinition::InputTypeName("last".to_string()));
+pub(super) fn update(ctx: &Context<'_>) -> ServerResult<JsonMap> {
+    let input: JsonMap = ctx.input_by_name("input")?;
+    let input_type = ctx.find_argument_type("input")?;
+    let input = normalize::keys_and_values(ctx, input, input_type);
+    let input = normalize::flatten_keys(input);
 
-    match resolve_definition.resolve::<usize>(ctx, Option::<Value>::None) {
-        Ok(value) => Some(value),
-        _ => None,
+    let mut update = JsonMap::new();
+
+    for (field, statement) in input {
+        let object = match statement {
+            Value::Object(object) => object,
+            _ => continue,
+        };
+
+        for (query_name, query) in object {
+            let is_date_time_query = query_name.starts_with("$current");
+
+            if is_date_time_query && !query.as_bool().unwrap_or_default() {
+                continue;
+            }
+
+            if query_name == "$unset" && !query.as_bool().unwrap_or_default() {
+                continue;
+            }
+
+            let (query_name, query) = match query_name.as_str() {
+                "$currentTimestamp" => (String::from("$currentDate"), json!({ "$type": "timestamp" })),
+                "$currentDate" | "$currentDateTime" => (String::from("$currentDate"), json!({ "$type": "date" })),
+                _ => (query_name, query),
+            };
+
+            let entry = update.entry(query_name).or_insert(Value::Object(JsonMap::new()));
+
+            let object = match entry.as_object_mut() {
+                Some(object) => object,
+                _ => continue,
+            };
+
+            object.insert(field.clone(), query);
+        }
     }
+
+    Ok(update)
 }

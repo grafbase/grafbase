@@ -5,7 +5,7 @@
 //! When you need a Variable inside a Resolver, you can use a
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 
 use dynaql_value::{ConstValue, Name};
 use grafbase_runtime::search::GraphqlCursor;
@@ -27,24 +27,44 @@ pub mod oneof;
 pub enum VariableResolveDefinition {
     /// A Debug VariableResolveDefinition where you can just put the Value you
     /// would like to have.
-    DebugString(String),
+    DebugString(Cow<'static, str>),
     /// Check the last Resolver in the Query Graph and try to resolve the
     /// variable defined in this field.
-    InputTypeName(String),
+    InputTypeName(Cow<'static, str>),
     /// Check the last Resolver in the Query Graph, try to resolve the
     /// variable defined in this field and then apply connector transforms
-    ConnectorInputTypeName(String),
+    ConnectorInputTypeName(Cow<'static, str>),
     /// Resolve a Value by querying the ResolverContextData with a key_id.
     /// What is store in the ResolverContextData is described on each Resolver
     /// implementation.
     ///
     #[deprecated = "Should not use Context anymore in SDL def"]
-    ResolverData(String),
+    ResolverData(Cow<'static, str>),
     /// Resolve a Value by querying the most recent ancestor resolver property.
-    LocalData(String),
+    LocalData(Cow<'static, str>),
 }
 
 impl VariableResolveDefinition {
+    pub fn debug_string(value: impl Into<Cow<'static, str>>) -> Self {
+        Self::DebugString(value.into())
+    }
+
+    pub fn input_type_name(value: impl Into<Cow<'static, str>>) -> Self {
+        Self::InputTypeName(value.into())
+    }
+
+    pub fn connector_input_type_name(value: impl Into<Cow<'static, str>>) -> Self {
+        Self::ConnectorInputTypeName(value.into())
+    }
+
+    pub fn resolver_data(value: impl Into<Cow<'static, str>>) -> Self {
+        Self::ResolverData(value.into())
+    }
+
+    pub fn local_data(value: impl Into<Cow<'static, str>>) -> Self {
+        Self::LocalData(value.into())
+    }
+
     /// Resolve the first variable with this definition
     pub fn param<'a>(
         &self,
@@ -52,20 +72,20 @@ impl VariableResolveDefinition {
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<Value>, ServerError> {
         match self {
-            Self::InputTypeName(name) => ctx.param_value_dynamic(name, InputResolveMode::Default),
+            Self::InputTypeName(name) => ctx.param_value_dynamic(name.as_ref(), InputResolveMode::Default),
             Self::ConnectorInputTypeName(name) => {
-                ctx.param_value_dynamic(name, InputResolveMode::ApplyConnectorTransforms)
+                ctx.param_value_dynamic(name.as_ref(), InputResolveMode::ApplyConnectorTransforms)
             }
             #[allow(deprecated)]
             Self::ResolverData(key) => Ok(resolver_data_get_opt_ref::<Value>(
                 &ctx.resolvers_data.read().expect("handle"),
-                key,
+                key.as_ref(),
             )
             .map(std::clone::Clone::clone)),
-            Self::DebugString(inner) => Ok(Some(Value::String(inner.clone()))),
+            Self::DebugString(inner) => Ok(Some(Value::String(inner.to_string()))),
             Self::LocalData(inner) => {
                 let result = last_resolver_value
-                    .and_then(|x| x.get(inner))
+                    .and_then(|x| x.get(inner.as_ref()))
                     .map(std::borrow::ToOwned::to_owned)
                     .unwrap_or_else(|| serde_json::Value::Null);
 

@@ -40,6 +40,10 @@ impl DynamicParse for TimestampScalar {
 
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
         match value {
+            serde_json::Value::Object(object) => match object.get("T") {
+                Some(serde_json::Value::Number(ms)) if ms.is_u64() => Ok(ConstValue::Number(ms.clone())),
+                _ => Err(Error::new("Cannot coerce the initial value into a valid Timestamp")),
+            },
             serde_json::Value::Number(ms) => {
                 if ms.is_u64() {
                     Ok(ConstValue::Number(ms))

@@ -222,15 +222,15 @@ pub fn add_query_paginated_collection(
         )),
         // Multiple entities
         resolver: Resolver::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
-            r#type: VariableResolveDefinition::DebugString(type_name.to_string()),
-            first: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_FIRST.to_string()),
-            after: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_AFTER.to_string()),
-            before: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_BEFORE.to_string()),
-            last: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_LAST.to_string()),
-            order_by: Some(VariableResolveDefinition::InputTypeName(
-                PAGINATION_INPUT_ARG_ORDER_BY.to_string(),
+            r#type: VariableResolveDefinition::debug_string(type_name.to_string()),
+            first: VariableResolveDefinition::input_type_name(PAGINATION_INPUT_ARG_FIRST),
+            after: VariableResolveDefinition::input_type_name(PAGINATION_INPUT_ARG_AFTER),
+            before: VariableResolveDefinition::input_type_name(PAGINATION_INPUT_ARG_BEFORE),
+            last: VariableResolveDefinition::input_type_name(PAGINATION_INPUT_ARG_LAST),
+            order_by: Some(VariableResolveDefinition::input_type_name(
+                PAGINATION_INPUT_ARG_ORDER_BY,
             )),
-            filter: Some(VariableResolveDefinition::InputTypeName(INPUT_ARG_FILTER.to_string())),
+            filter: Some(VariableResolveDefinition::input_type_name(INPUT_ARG_FILTER)),
             nested: Box::new(None),
         }),
         required_operation: Some(Operations::LIST),

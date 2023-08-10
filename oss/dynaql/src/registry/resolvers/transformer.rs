@@ -228,12 +228,12 @@ impl Transformer {
                 // names defined in common/parser, so the actual resolver should be defined
                 // there. My refactor changes this, but we're not there yet...
                 let result = DynamoResolver::ListResultByTypePaginated {
-                    r#type: VariableResolveDefinition::DebugString(expected_ty.to_string()),
-                    first: VariableResolveDefinition::InputTypeName("first".to_string()),
-                    after: VariableResolveDefinition::InputTypeName("after".to_string()),
-                    before: VariableResolveDefinition::InputTypeName("before".to_string()),
-                    last: VariableResolveDefinition::InputTypeName("last".to_string()),
-                    order_by: Some(VariableResolveDefinition::InputTypeName("orderBy".to_string())),
+                    r#type: VariableResolveDefinition::debug_string(expected_ty.to_string()),
+                    first: VariableResolveDefinition::input_type_name("first"),
+                    after: VariableResolveDefinition::input_type_name("after"),
+                    before: VariableResolveDefinition::input_type_name("before"),
+                    last: VariableResolveDefinition::input_type_name("last"),
+                    order_by: Some(VariableResolveDefinition::input_type_name("orderBy")),
                     filter: None,
                     nested: Box::new(Some((relation_name.clone(), sk.clone()))),
                 }

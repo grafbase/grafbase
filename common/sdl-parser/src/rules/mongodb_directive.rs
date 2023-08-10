@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use dynaql::registry::MongoDBConfiguration;
 use dynaql_parser::types::SchemaDefinition;
+pub(super) use model_directive::create_type_context::CreateTypeContext;
 pub use model_directive::MongoDBModelDirective;
 pub use type_directive::MongoDBTypeDirective;
 
@@ -13,6 +14,8 @@ use super::{
     visitor::{Visitor, VisitorContext},
 };
 use crate::directive_de::parse_directive;
+
+static NUMERIC_SCALARS: &[&str] = &["BigInt", "Decimal", "Float", "Int"];
 
 static MONGODB_SCALARS: &[&str] = &[
     "Boolean",
@@ -30,6 +33,8 @@ static MONGODB_SCALARS: &[&str] = &[
     "Timestamp",
     "URL",
 ];
+
+static DATE_TIME_SCALARS: &[&str] = &["Date", "DateTime", "Timestamp"];
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate};
 use dynaql_value::ConstValue;
 
 use super::{DynamicParse, SDLDefinitionScalar};
@@ -46,7 +46,8 @@ impl DynamicParse for DateScalar {
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
         match value {
             serde_json::Value::String(v) => {
-                if NaiveDate::parse_from_str(&v, DATE_FORMAT).is_ok() {
+                // mongo sends everything in rfc3339, dynamo stores in DATE_FORMAT
+                if NaiveDate::parse_from_str(&v, DATE_FORMAT).is_ok() || DateTime::parse_from_rfc3339(&v).is_ok() {
                     Ok(ConstValue::String(v))
                 } else {
                     Err(Error::new("Data violation: Cannot coerce the initial value to a Date"))

@@ -68,6 +68,11 @@ impl TypeDefinition {
     pub fn description(&self) -> Option<&str> {
         self.description.as_ref().map(|description| description.node.as_str())
     }
+
+    /// The type is referencing another type in the schema.
+    pub fn is_composite(&self) -> bool {
+        matches!(self.kind, TypeKind::Object(_) | TypeKind::InputObject(_))
+    }
 }
 
 /// A kind of type; scalar, object, enum, etc.

@@ -12,23 +12,14 @@ use http::{
     header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
     StatusCode,
 };
-use query::{AtlasQuery, DeleteMany, DeleteOne, FindMany, FindOne, InsertMany, InsertOne};
+use query::{AtlasQuery, DeleteMany, DeleteOne, FindMany, FindOne, InsertMany, InsertOne, UpdateMany, UpdateOne};
 use serde::Serialize;
+use serde_json::Value;
 
 mod headers {
     pub const API_KEY_HEADER_NAME: &str = "apiKey";
     pub const APPLICATION_JSON_CONTENT_TYPE: &str = "application/json";
     pub const APPLICATION_EJSON_CONTENT_TYPE: &str = "application/ejson";
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AtlasRequest<'a> {
-    data_source: &'a str,
-    database: &'a str,
-    collection: &'a str,
-    #[serde(flatten)]
-    query: AtlasQuery,
 }
 
 pub(super) async fn execute(
@@ -38,14 +29,26 @@ pub(super) async fn execute(
     collection: &str,
     operation_type: OperationType,
 ) -> Result<ResolvedValue, Error> {
-    let query = match operation_type {
+    let query: AtlasQuery = match operation_type {
         OperationType::FindOne => FindOne::new(ctx, resolver_ctx)?.into(),
         OperationType::FindMany => FindMany::new(ctx, resolver_ctx)?.into(),
         OperationType::InsertOne => InsertOne::new(ctx)?.into(),
         OperationType::DeleteOne => DeleteOne::new(ctx)?.into(),
         OperationType::DeleteMany => DeleteMany::new(ctx)?.into(),
         OperationType::InsertMany => InsertMany::new(ctx)?.into(),
+        OperationType::UpdateOne => UpdateOne::new(ctx)?.into(),
+        OperationType::UpdateMany => UpdateMany::new(ctx)?.into(),
     };
+
+    // In some cases, if our input is empty, we want to short-circuit here and
+    // return an early response.
+    //
+    // In cases of update statements, the user might send us `unset: false` for a
+    // field, which we will take out from the final query. If the `update` statement
+    // is then empty, it will _remove all fields_ from the document(s).
+    if query.is_empty() {
+        return Ok(ResolvedValue::new(query.empty_response()));
+    }
 
     let request = AtlasRequest {
         data_source: &config.data_source,
@@ -66,7 +69,7 @@ pub(super) async fn execute(
         .header(headers::API_KEY_HEADER_NAME, &config.api_key)
         .header(USER_AGENT, "Grafbase");
 
-    let mut value = request_builder
+    let value = request_builder
         .json(&request)
         .send()
         .await
@@ -78,13 +81,34 @@ pub(super) async fn execute(
         .map_err(map_err)?
         .take();
 
-    let result = match request.query {
-        AtlasQuery::FindOne(ref query) => query.convert_result(&mut value),
-        AtlasQuery::FindMany(ref query) => query.convert_result(ctx, resolver_ctx, &mut value)?,
-        _ => ResolvedValue::new(value),
-    };
+    request.convert_result(ctx, resolver_ctx, value)
+}
 
-    Ok(result)
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AtlasRequest<'a> {
+    data_source: &'a str,
+    database: &'a str,
+    collection: &'a str,
+    #[serde(flatten)]
+    query: AtlasQuery,
+}
+
+impl<'a> AtlasRequest<'a> {
+    fn convert_result(
+        &self,
+        ctx: &Context<'_>,
+        resolver_ctx: &ResolverContext<'_>,
+        mut value: Value,
+    ) -> Result<ResolvedValue, Error> {
+        let result = match self.query {
+            AtlasQuery::FindOne(ref query) => query.convert_result(&mut value),
+            AtlasQuery::FindMany(ref query) => query.convert_result(ctx, resolver_ctx, &mut value)?,
+            _ => ResolvedValue::new(value),
+        };
+
+        Ok(result)
+    }
 }
 
 fn map_err(error: reqwest::Error) -> Error {

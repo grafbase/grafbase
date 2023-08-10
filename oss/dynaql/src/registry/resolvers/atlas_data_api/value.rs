@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, NaiveDate};
+use chrono::{Duration, NaiveDate};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -45,6 +45,7 @@ impl MongoValue {
             ("Bytes", Value::String(value)) => Self::Bytes(value),
             ("BigInt", Value::Number(value)) => Self::BigInt(value.as_i64().expect("BigInt not stored as i64.")),
             ("MongoOrderByDirection", Value::String(value)) => Self::NegInt(if value == "ASC" { 1 } else { -1 }),
+            ("MongoDBPopPosition", Value::String(value)) => Self::NegInt(if value == "FIRST" { -1 } else { 1 }),
             (_, Value::Null) => Self::Null,
             (_, Value::Bool(value)) => Self::Boolean(value),
             (_, Value::Number(value)) => value
@@ -84,14 +85,7 @@ impl From<MongoValue> for Value {
                 json!({ "$date": { "$numberLong": date } })
             }
             MongoValue::DateTime(value) => {
-                let date = DateTime::parse_from_rfc3339(&value)
-                    .ok()
-                    .as_ref()
-                    .map(DateTime::timestamp_millis)
-                    .map(|date| date.to_string())
-                    .unwrap_or(value);
-
-                json!({ "$date": { "$numberLong": date } })
+                json!({ "$date": value })
             }
             MongoValue::Timestamp(value) => {
                 json!({ "$timestamp": { "t": value, "i": 1 }})

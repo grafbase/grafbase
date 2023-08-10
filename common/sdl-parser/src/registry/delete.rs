@@ -39,7 +39,7 @@ pub fn add_mutation_delete<'a>(
         ty: payload.as_nullable().into(),
         resolver: DynamoMutationResolver::DeleteNode {
             ty: type_name.clone().into(),
-            by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
+            by: VariableResolveDefinition::input_type_name(INPUT_ARG_BY),
         }
         .into(),
         cache_control: cache_control.clone(),
@@ -59,7 +59,7 @@ pub fn add_mutation_delete<'a>(
             .collect(),
         ty: delete_many_payload.as_nullable().into(),
         resolver: DynamoMutationResolver::DeleteNodes {
-            input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+            input: VariableResolveDefinition::input_type_name(INPUT_ARG_INPUT),
             ty: type_name.into(),
         }
         .into(),

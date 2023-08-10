@@ -2,6 +2,7 @@
 
 use std::{
     any::{Any, TypeId},
+    borrow::Cow,
     collections::{hash_map::Entry, HashMap, HashSet},
     fmt::{self, Debug, Display, Formatter, Write},
     hash::Hash,
@@ -20,6 +21,7 @@ use http::{
     HeaderValue,
 };
 use serde::{
+    de::DeserializeOwned,
     ser::{SerializeSeq, Serializer},
     Serialize,
 };
@@ -29,8 +31,8 @@ use crate::{
     extensions::Extensions,
     parser::types::{Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
     registry::{
-        relations::MetaRelation, type_kinds::InputType, MetaInputValue, MetaType, MongoDBConfiguration, Registry,
-        TypeReference,
+        relations::MetaRelation, type_kinds::InputType, variables::VariableResolveDefinition, MetaInputValue, MetaType,
+        MongoDBConfiguration, Registry, TypeReference,
     },
     resolver_utils::{resolve_input, InputResolveMode},
     schema::SchemaEnv,
@@ -940,6 +942,11 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             field: &self.item.node,
             context: self,
         }
+    }
+
+    pub fn input_by_name<T: DeserializeOwned>(&self, name: impl Into<Cow<'static, str>>) -> ServerResult<T> {
+        let resolve_definition = VariableResolveDefinition::input_type_name(name);
+        resolve_definition.resolve(self, Option::<serde_json::Value>::None)
     }
 }
 
