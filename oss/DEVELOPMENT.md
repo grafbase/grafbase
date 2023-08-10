@@ -100,7 +100,6 @@ A clear and concise description of what you expected to happen.
 If applicable, add examples of input and output to help explain your problem.
 
 **Environment (please complete the following information)**
-
 - Affected Component: [CLI, Gateway]
 - Affected version: [e.g. 0.0.1]
 - OS: [e.g. macOS]
