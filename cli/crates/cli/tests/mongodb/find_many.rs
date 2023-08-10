@@ -1891,7 +1891,7 @@ async fn datetime_eq() {
 
     let body = json!({
         "filter": {
-            "date": { "$eq": { "$date": { "$numberLong": "1641954803067" } } },
+            "date": { "$eq": { "$date": "2022-01-12T02:33:23.067+00:00" } },
         },
         "projection": {
             "_id": 1
