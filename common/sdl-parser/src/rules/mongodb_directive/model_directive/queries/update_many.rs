@@ -8,25 +8,25 @@ use dynaql::registry::{
 use grafbase::auth::Operations;
 
 use crate::{
-    registry::names::{MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT},
+    registry::names::{MetaNames, INPUT_ARG_FILTER, INPUT_ARG_INPUT},
     rules::{mongodb_directive::CreateTypeContext, visitor::VisitorContext},
 };
 
 pub(crate) fn create(
     visitor_ctx: &mut VisitorContext<'_>,
     create_ctx: &CreateTypeContext<'_>,
-    filter_oneof_type: &str,
+    filter_input_type: &str,
     update_input_type: &str,
     update_output_type: &str,
 ) {
-    let query_name = MetaNames::mutation_update(create_ctx.r#type);
+    let query_name = MetaNames::mutation_update_many(create_ctx.r#type);
 
     let mut mutation = MetaField::new(query_name, update_output_type);
-    mutation.description = Some(format!("Update a unique {}", create_ctx.model_name()));
+    mutation.description = Some(format!("Update many {}s", create_ctx.model_name()));
 
     mutation.args.insert(
-        INPUT_ARG_BY.to_string(),
-        MetaInputValue::new(INPUT_ARG_BY, format!("{filter_oneof_type}!")),
+        INPUT_ARG_FILTER.to_string(),
+        MetaInputValue::new(INPUT_ARG_FILTER, format!("{filter_input_type}!")),
     );
 
     mutation.args.insert(
@@ -35,7 +35,7 @@ pub(crate) fn create(
     );
 
     mutation.resolver = Resolver::MongoResolver(AtlasDataApiResolver {
-        operation_type: OperationType::UpdateOne,
+        operation_type: OperationType::UpdateMany,
         directive_name: create_ctx.config().name.clone(),
         collection: create_ctx.collection().to_string(),
     });
