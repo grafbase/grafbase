@@ -58,29 +58,13 @@ impl Extension for AuthExtension {
         let auth_context = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
-        if contains_introspection {
-            if auth_context.is_introspection_allowed() {
-                Ok(document)
-            } else {
-                // FIXME: needs to be removed with a gateway version upgrade.
-                match auth_context {
-                    ExecutionAuth::ApiKey | ExecutionAuth::Token(_) => Ok(document),
-                    ExecutionAuth::Public { .. } => {
-                        cfg_if::cfg_if! {
-                            if #[cfg(feature = "local")] {
-                                Ok(document)
-                            } else {
-                                Err(dynaql::ServerError::new(
-                                    "Unauthorized for introspection. Please set 'authorization' header with a JWT token or \
+        if contains_introspection && !auth_context.is_introspection_allowed() {
+            Err(dynaql::ServerError::new(
+                "Unauthorized for introspection. Please set 'authorization' header with a JWT token or \
                                                     'x-api-key' header with an API key from the project settings page. \
                                                     More info: https://grafbase.com/docs/auth",
-                                    None,
-                                ))
-                            }
-                        }
-                    }
-                }
-            }
+                None,
+            ))
         } else {
             Ok(document)
         }
