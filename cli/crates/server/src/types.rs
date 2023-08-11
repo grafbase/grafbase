@@ -9,7 +9,7 @@ pub enum RequestCompletedOutcome {
     BadRequest,
 }
 
-#[derive(serde::Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub enum NestedRequestScopedMessage {
     UdfMessage {
         udf_kind: UdfKind,
@@ -22,6 +22,8 @@ pub enum NestedRequestScopedMessage {
         method: String,
         status_code: u16,
         duration: std::time::Duration,
+        body: Option<String>,
+        content_type: Option<String>,
     },
 }
 

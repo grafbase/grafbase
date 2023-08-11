@@ -130,6 +130,26 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
     );
 }
 
+fn format_response_body(indent: &str, body: Option<String>, content_type: Option<String>) -> Option<String> {
+    use itertools::Itertools;
+    body.and_then(|body| match content_type.as_deref() {
+        Some("application/json") => serde_json::from_str::<serde_json::Value>(&body)
+            .ok()
+            .and_then(|value| serde_json::to_string_pretty(&value).ok()),
+        Some("text/plain") => Some(body),
+        other => {
+            trace!("unsupported content type for tracing the body: {other:?}");
+            None
+        }
+    })
+    .map(|formatted_body| {
+        formatted_body
+            .lines()
+            .map(|line| format!("{indent}{indent}{line}"))
+            .join("\n")
+    })
+}
+
 pub fn operation_log(
     name: Option<String>,
     duration: std::time::Duration,
@@ -202,7 +222,18 @@ pub fn operation_log(
                 method,
                 status_code,
                 duration,
+                body,
+                content_type,
             } => {
+                let required_log_level = if status_code >= 400 {
+                    LogLevel::Error
+                } else {
+                    LogLevel::Info
+                };
+                if log_level_filters.fetch_requests < Some(required_log_level) {
+                    continue;
+                }
+
                 let formatted_duration = format_duration(duration);
                 println!(
                     "{indent}{} {} {} {status_code} {formatted_duration}",
@@ -210,6 +241,12 @@ pub fn operation_log(
                     method.bold(),
                     url.bold(),
                 );
+
+                if log_level_filters.fetch_requests >= Some(LogLevel::Debug) {
+                    if let Some(formatted_body) = format_response_body(indent, body, content_type) {
+                        println!("{formatted_body}");
+                    }
+                }
             }
         }
     }

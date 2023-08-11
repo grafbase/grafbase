@@ -100,6 +100,9 @@ pub enum LogEventType {
         status_code: u16,
         #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
         duration: std::time::Duration,
+        body: Option<String>,
+        #[serde(rename = "contentType")]
+        content_type: Option<String>,
     },
 }
 

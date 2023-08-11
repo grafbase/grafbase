@@ -32,11 +32,15 @@ pub async fn log_event_endpoint(
                 method,
                 status_code,
                 duration,
+                body,
+                content_type,
             } => OutputLogEventType::NestedEvent(crate::types::NestedRequestScopedMessage::NestedRequest {
                 url,
                 method,
                 status_code,
                 duration,
+                body,
+                content_type,
             }),
         },
     };

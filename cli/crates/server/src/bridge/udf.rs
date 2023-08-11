@@ -34,6 +34,8 @@ struct FetchRequest {
     duration: std::time::Duration,
     method: String,
     status_code: u16,
+    body: Option<String>,
+    content_type: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -368,6 +370,8 @@ pub async fn invoke(
         duration,
         method,
         status_code,
+        body,
+        content_type,
     } in fetch_requests
     {
         messages.push((
@@ -380,6 +384,8 @@ pub async fn invoke(
                         duration,
                         method,
                         status_code,
+                        body,
+                        content_type,
                     },
                 ),
             },
