@@ -17,6 +17,12 @@ pub enum NestedRequestScopedMessage {
         level: LogLevel,
         message: String,
     },
+    NestedRequest {
+        url: String,
+        method: String,
+        status_code: u16,
+        duration: std::time::Duration,
+    },
 }
 
 #[derive(Clone, Debug)]

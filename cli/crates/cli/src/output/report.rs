@@ -197,6 +197,20 @@ pub fn operation_log(
                     message.to_string().color(message_colour)
                 );
             }
+            NestedRequestScopedMessage::NestedRequest {
+                url,
+                method,
+                status_code,
+                duration,
+            } => {
+                let formatted_duration = format_duration(duration);
+                println!(
+                    "{indent}{} {} {} {status_code} {formatted_duration}",
+                    watercolor!("fetch", @Yellow),
+                    method.bold(),
+                    url.bold(),
+                );
+            }
         }
     }
 }

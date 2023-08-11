@@ -19,13 +19,27 @@ use super::types::UdfInvocation;
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UdfMessage {
+    logged_at: u64,
     message: String,
     level: LogLevel,
+}
+
+#[serde_with::serde_as]
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FetchRequest {
+    logged_at: u64,
+    url: String,
+    #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+    duration: std::time::Duration,
+    method: String,
+    status_code: u16,
 }
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UdfResponse {
+    fetch_requests: Vec<FetchRequest>,
     log_entries: Vec<UdfMessage>,
     value: serde_json::Value,
 }
@@ -315,14 +329,26 @@ pub async fn invoke(
         .await
         .map_err(|_| ApiError::UdfInvocation)?;
 
-    let UdfResponse { log_entries, value } = serde_json::from_str(&json_string).map_err(|err| {
+    let UdfResponse {
+        fetch_requests,
+        log_entries,
+        value,
+    } = serde_json::from_str(&json_string).map_err(|err| {
         error!("deserialization from '{json_string}' failed: {err:?}");
         ApiError::UdfInvocation
     })?;
 
-    for UdfMessage { level, message } in log_entries {
-        bridge_sender
-            .send(ServerMessage::RequestScopedMessage {
+    let mut messages = vec![];
+
+    for UdfMessage {
+        logged_at: logged_time,
+        level,
+        message,
+    } in log_entries
+    {
+        messages.push((
+            logged_time,
+            ServerMessage::RequestScopedMessage {
                 request_id: request_id.to_owned(),
                 event_type: crate::types::LogEventType::NestedEvent(
                     crate::types::NestedRequestScopedMessage::UdfMessage {
@@ -332,9 +358,37 @@ pub async fn invoke(
                         message,
                     },
                 ),
-            })
-            .await
-            .unwrap();
+            },
+        ));
+    }
+
+    for FetchRequest {
+        logged_at: logged_time,
+        url,
+        duration,
+        method,
+        status_code,
+    } in fetch_requests
+    {
+        messages.push((
+            logged_time,
+            ServerMessage::RequestScopedMessage {
+                request_id: request_id.to_owned(),
+                event_type: crate::types::LogEventType::NestedEvent(
+                    crate::types::NestedRequestScopedMessage::NestedRequest {
+                        url,
+                        duration,
+                        method,
+                        status_code,
+                    },
+                ),
+            },
+        ));
+    }
+
+    messages.sort_by_key(|(logged_time, _)| *logged_time);
+    for (_, message) in messages {
+        bridge_sender.send(message).await.unwrap();
     }
 
     Ok(value)

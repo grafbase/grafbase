@@ -93,9 +93,18 @@ pub enum LogEventType {
         #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
         duration: std::time::Duration,
     },
+    NestedRequest {
+        url: String,
+        method: String,
+        #[serde(rename = "statusCode")]
+        status_code: u16,
+        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+        duration: std::time::Duration,
+    },
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct LogEvent {
     pub request_id: String,
     pub r#type: LogEventType,
