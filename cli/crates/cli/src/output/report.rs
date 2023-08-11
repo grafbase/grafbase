@@ -130,6 +130,7 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
     );
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn format_response_body(indent: &str, body: Option<String>, content_type: Option<String>) -> Option<String> {
     use itertools::Itertools;
     body.and_then(|body| match content_type.as_deref() {
