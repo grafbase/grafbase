@@ -8,7 +8,7 @@
 
 - [Rust](https://www.rust-lang.org/learn/get-started)
 - [Node.js](https://nodejs.org)
-- [`cargo-make`](https://github.com/sagiegurari/cargo-make#installation) <!-- TBD --> 
+- [`cargo-make`](https://github.com/sagiegurari/cargo-make#installation) <!-- TBD -->
 - [`cargo-nextest`](https://nexte.st/book/installation.html)
 - [`esbuild`](https://esbuild.github.io/getting-started/#install-esbuild)
 
@@ -63,14 +63,14 @@ Prefix        Description
 
 ### Allowed Prefixes
 
-| Prefix     | Description                                                                    |
-| ---------- | ------------------------------------------------------------------------------ |
-| `chore`    | An internal change this is not observable by users                             |
-| `enhance`  | Any user observable enhancement to an existing feature                         |
-| `feat`     | Any user observable new feature, such as a new connector, auth provider, etc   |
-| `fix`      | Any user observable bug fix                                                    |
-| `docs`     | A documentation change                                                         |
-| `revert`   | A revert of a previous change                                                  |
+| Prefix    | Description                                                                  |
+| --------- | ---------------------------------------------------------------------------- |
+| `chore`   | An internal change this is not observable by users                           |
+| `enhance` | Any user observable enhancement to an existing feature                       |
+| `feat`    | Any user observable new feature, such as a new connector, auth provider, etc |
+| `fix`     | Any user observable bug fix                                                  |
+| `docs`    | A documentation change                                                       |
+| `revert`  | A revert of a previous change                                                |
 
 ## PR Checklist
 
@@ -100,6 +100,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add examples of input and output to help explain your problem.
 
 **Environment (please complete the following information)**
+
 - Affected Component: [CLI, Gateway]
 - Affected version: [e.g. 0.0.1]
 - OS: [e.g. macOS]
