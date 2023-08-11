@@ -14,7 +14,7 @@ pub(super) fn keys(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>) -
     let mut result = JsonMap::new();
 
     for (key, value) in map {
-        let meta_field = input_type.field(&key).unwrap();
+        let Some(meta_field) = input_type.field(&key) else { continue };
         let key = meta_field.rename.clone().unwrap_or(key);
         let value = normalize(keys, ctx, value, &meta_field);
 

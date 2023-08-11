@@ -1,0 +1,29 @@
+[package]
+name = "dynaql-integration-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+indoc = "1"
+reqwest = "0.11"
+async-trait = "0.1"
+serde_json.workspace = true
+names = "0.14"
+expect-test = "1.4"
+serde.workspace = true
+futures = "0.3"
+
+[dependencies.tokio]
+version = "1.30"
+features = ["rt-multi-thread", "macros"]
+
+[dependencies.dynaql]
+path = "../dynaql"
+default-features = false
+features = ["tracing_worker"]
+
+[dependencies.sdl-parser]
+path = "../../common/sdl-parser"
+
+[dependencies.grafbase-runtime]
+path = "../grafbase-runtime"

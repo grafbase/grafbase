@@ -1,0 +1,28 @@
+version: '3'
+services:
+  data-api:
+    image: grafbase/mongodb-data-api:latest
+    restart: always
+    environment:
+      MONGODB_DATABASE_URL: 'mongodb://grafbase:grafbase@mongodb:27017'
+    ports:
+      - '3000:3000'
+    depends_on:
+      - mongodb
+    networks:
+      - databases
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: 'grafbase'
+      MONGO_INITDB_ROOT_PASSWORD: 'grafbase'
+      INIT_WAIT_SEC: $INIT_WAIT_SEC
+    ports:
+      - '27018:27017'
+    networks:
+      - databases
+
+networks:
+  databases: null

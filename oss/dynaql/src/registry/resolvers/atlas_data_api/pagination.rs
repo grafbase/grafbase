@@ -1,4 +1,4 @@
-use super::{cursor::AtlasCursor, input::pagination::before_definition, JsonMap};
+use super::{cursor::AtlasCursor, input::first, JsonMap};
 use crate::{
     registry::resolvers::{ResolvedPaginationInfo, ResolverContext},
     Context, Error,
@@ -14,7 +14,7 @@ pub(super) struct PaginationContext<'a> {
 
 impl<'a> PaginationContext<'a> {
     pub(super) fn new(context: &'a Context<'a>, resolver_context: &'a ResolverContext<'a>) -> Self {
-        let forward = before_definition(context).is_some();
+        let forward = first(context).is_some();
 
         Self {
             context,

@@ -36,19 +36,11 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
         input
     });
 
-    let not_filter = std::iter::once({
-        let mut input = MetaInputValue::new("NOT", input_type_name.clone());
-        input.description = Some(String::from("The given filter must not match"));
-        input.rename = Some(String::from("$not"));
-
-        input
-    });
-
     register_type_input(
         visitor_ctx,
         create_ctx.object,
         &input_type_name,
-        implicit_fields.chain(logical_array_fields).chain(not_filter),
+        implicit_fields.chain(logical_array_fields),
     );
 
     input_type_name

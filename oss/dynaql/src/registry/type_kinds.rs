@@ -116,7 +116,7 @@ impl<'a> TryFrom<&'a MetaType> for OutputType<'a> {
 }
 
 /// A type in output position - i.e. an argument or field of an input object
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum InputType<'a> {
     Scalar(&'a ScalarType),
     Enum(&'a EnumType),
@@ -139,7 +139,7 @@ impl InputType<'_> {
         }
     }
 
-    pub fn fields(&self) -> Box<dyn Iterator<Item = &MetaInputValue> + '_> {
+    pub fn fields(&self) -> Box<dyn ExactSizeIterator<Item = &MetaInputValue> + '_> {
         match self {
             InputType::Scalar(_) | InputType::Enum(_) => Box::new(iter::empty()),
             InputType::InputObject(input_object) => Box::new(input_object.input_fields.values()),

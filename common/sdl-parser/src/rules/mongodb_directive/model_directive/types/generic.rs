@@ -94,6 +94,14 @@ pub(crate) fn register_singular_type(visitor_ctx: &mut VisitorContext<'_>, scala
     }
 
     fields.push({
+        let mut input = MetaInputValue::new("not", type_name.clone());
+        input.description = Some(String::from("The value does not match the filters."));
+        input.rename = Some(String::from("$not"));
+
+        input
+    });
+
+    fields.push({
         let mut input = MetaInputValue::new("in", format!("[{scalar}]"));
         input.description = Some(String::from("The value is in the given array of values"));
         input.rename = Some(String::from("$in"));

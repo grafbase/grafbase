@@ -47,11 +47,16 @@ impl DynamicParse for DateScalar {
         match value {
             serde_json::Value::String(v) => {
                 // mongo sends everything in rfc3339, dynamo stores in DATE_FORMAT
-                if NaiveDate::parse_from_str(&v, DATE_FORMAT).is_ok() || DateTime::parse_from_rfc3339(&v).is_ok() {
-                    Ok(ConstValue::String(v))
-                } else {
-                    Err(Error::new("Data violation: Cannot coerce the initial value to a Date"))
+
+                if NaiveDate::parse_from_str(&v, DATE_FORMAT).is_ok() {
+                    return Ok(ConstValue::String(v));
                 }
+
+                if let Ok(datetime) = DateTime::parse_from_rfc3339(&v) {
+                    return Ok(ConstValue::String(datetime.naive_local().date().to_string()));
+                }
+
+                Err(Error::new("Data violation: Cannot coerce the initial value to a Date"))
             }
             _ => Err(Error::new("Data violation: Cannot coerce the initial value to a Date")),
         }
