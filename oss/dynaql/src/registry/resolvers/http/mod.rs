@@ -80,8 +80,11 @@ impl HttpResolver {
             .unwrap_or_default();
 
         Box::pin(SendWrapper::new(async move {
+            let ray_id = &ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?.ray_id;
             let url = self.build_url(ctx, last_resolver_value)?;
-            let mut request_builder = reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
+            let mut request_builder = reqwest::Client::new()
+                .request(self.method.parse()?, Url::parse(&url)?)
+                .header("x-grafbase-request-id", ray_id);
 
             for (name, value) in headers {
                 request_builder = request_builder.header(name, value);

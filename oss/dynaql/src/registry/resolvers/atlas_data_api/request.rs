@@ -62,8 +62,11 @@ pub(super) async fn execute(
         config.host_url, config.app_id, operation_type
     );
 
+    let ray_id = &ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?.ray_id;
+
     let request_builder = reqwest::Client::new()
         .post(url)
+        .header("x-grafbase-request-id", ray_id)
         .header(CONTENT_TYPE, headers::APPLICATION_EJSON_CONTENT_TYPE)
         .header(ACCEPT, headers::APPLICATION_JSON_CONTENT_TYPE)
         .header(headers::API_KEY_HEADER_NAME, &config.api_key)
