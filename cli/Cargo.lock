@@ -1862,6 +1862,7 @@ dependencies = [
  "indoc",
  "inquire",
  "insta",
+ "itertools 0.11.0",
  "json_dotpath",
  "jwt-compact",
  "log",

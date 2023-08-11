@@ -35,6 +35,7 @@ impl From<LogLevelFilter> for Option<LogLevel> {
 pub struct LogLevelFilters {
     pub functions: Option<LogLevel>,
     pub graphql_operations: Option<LogLevel>,
+    pub fetch_requests: Option<LogLevel>,
 }
 
 #[derive(Debug, Parser)]
@@ -54,16 +55,28 @@ pub struct DevCommand {
     /// Log level to print for GraphQL operations, defaults to 'log-level'
     #[arg(long, value_name = "GRAPHQL_OPERATION_LOG_LEVEL")]
     pub log_level_graphql_operations: Option<LogLevelFilter>,
+    /// Log level to print for fetch requests, defaults to 'log-level'
+    #[arg(long, value_name = "GRAPHQL_OPERATION_LOG_LEVEL")]
+    pub log_level_fetch_requests: Option<LogLevelFilter>,
     /// Default log level to print
-    #[arg(long, default_value = "info")]
-    pub log_level: LogLevelFilter,
+    #[arg(long)]
+    pub log_level: Option<LogLevelFilter>,
+    /// A shortcut to enable fairly detailed logging
+    #[arg(short, long)]
+    pub verbose: bool,
 }
 
 impl DevCommand {
     pub fn log_levels(&self) -> LogLevelFilters {
+        let default_log_level = if self.verbose {
+            LogLevelFilter::Debug
+        } else {
+            LogLevelFilter::Info
+        };
         LogLevelFilters {
-            functions: self.log_level_functions.unwrap_or(self.log_level).into(),
-            graphql_operations: self.log_level_graphql_operations.unwrap_or(self.log_level).into(),
+            functions: self.log_level_functions.unwrap_or(default_log_level).into(),
+            graphql_operations: self.log_level_graphql_operations.unwrap_or(default_log_level).into(),
+            fetch_requests: self.log_level_fetch_requests.unwrap_or(default_log_level).into(),
         }
     }
 }
