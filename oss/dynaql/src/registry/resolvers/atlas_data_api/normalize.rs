@@ -1,6 +1,8 @@
 use super::{value::MongoValue, JsonMap};
 use crate::{
-    registry::{type_kinds::InputType, MetaInputValue, TypeReference},
+    registry::{
+        resolvers::atlas_data_api::consts::OP_ELEM_MATCH, type_kinds::InputType, MetaInputValue, TypeReference,
+    },
     Context,
 };
 use serde_json::Value;
@@ -63,7 +65,7 @@ pub(super) fn flatten_keys(input: JsonMap) -> JsonMap {
 
                     recurse(input, output, acc);
                 }
-                Value::Object(input) if key == "$elemMatch" => {
+                Value::Object(input) if key == OP_ELEM_MATCH => {
                     let elem_match = flatten_keys(input);
 
                     match acc {

@@ -2,6 +2,10 @@ use chrono::{Duration, NaiveDate};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use crate::registry::resolvers::atlas_data_api::consts::{
+    BASE64, OP_BINARY, OP_DATE, OP_DECIMAL, OP_LONG, OP_OID, OP_TIMESTAMP, SUBTYPE,
+};
+
 use super::JsonMap;
 
 /// A value representation in MongoDB. Extends over JSON with a few special types.
@@ -71,7 +75,7 @@ impl From<MongoValue> for Value {
     fn from(value: MongoValue) -> Self {
         match value {
             MongoValue::ObjectId(value) => {
-                json!({ "$oid": value })
+                json!({ OP_OID: value })
             }
             MongoValue::Date(value) => {
                 let date = NaiveDate::parse_from_str(&value, "%Y-%m-%d")
@@ -82,22 +86,22 @@ impl From<MongoValue> for Value {
                     .map(|milliseconds| milliseconds.to_string())
                     .unwrap_or(value);
 
-                json!({ "$date": { "$numberLong": date } })
+                json!({ OP_DATE: { OP_LONG: date } })
             }
             MongoValue::DateTime(value) => {
-                json!({ "$date": value })
+                json!({ OP_DATE: value })
             }
             MongoValue::Timestamp(value) => {
-                json!({ "$timestamp": { "t": value, "i": 1 }})
+                json!({ OP_TIMESTAMP: { "t": value, "i": 1 }})
             }
             MongoValue::Decimal(value) => {
-                json!({ "$numberDecimal": value })
+                json!({ OP_DECIMAL: value })
             }
             MongoValue::Bytes(value) => {
-                json!({ "$binary": { "base64": value, "subType": "05" } })
+                json!({ OP_BINARY: { BASE64: value, SUBTYPE: "05" } })
             }
             MongoValue::BigInt(value) => {
-                json!({ "$numberLong": value.to_string() })
+                json!({ OP_LONG: value.to_string() })
             }
             MongoValue::String(value) => Value::String(value),
             MongoValue::PosInt(value) => Value::from(value),

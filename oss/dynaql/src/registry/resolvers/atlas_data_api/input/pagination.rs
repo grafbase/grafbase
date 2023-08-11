@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 
 use crate::{
     registry::resolvers::atlas_data_api::{
+        consts::{OP_AND, OP_EQ, OP_GT, OP_LT, OP_NE, OP_OR},
         cursor::{AtlasCursor, CursorField, OrderByDirection},
         JsonMap,
     },
@@ -59,7 +60,7 @@ pub(super) fn before(ctx: &Context<'_>) -> ServerResult<Option<JsonMap>> {
         let mut filter = JsonMap::new();
 
         filter.insert(
-            "$or".to_string(),
+            OP_OR.to_string(),
             Value::Array(filters.into_iter().map(Value::from).collect()),
         );
 
@@ -93,7 +94,7 @@ pub(super) fn after(ctx: &Context<'_>) -> ServerResult<Option<JsonMap>> {
         let mut filter = JsonMap::new();
 
         filter.insert(
-            "$or".to_string(),
+            OP_OR.to_string(),
             Value::Array(filters.into_iter().map(Value::from).collect()),
         );
 
@@ -158,7 +159,7 @@ fn fields_filter(fields: &[CursorField], cursor_parameter: CursorParameter) -> O
                     map.insert(
                         field.name.clone(),
                         json!({
-                            "$ne": Value::Null
+                            OP_NE: Value::Null
                         }),
                     );
 
@@ -170,16 +171,16 @@ fn fields_filter(fields: &[CursorField], cursor_parameter: CursorParameter) -> O
                         let mut map = JsonMap::new();
 
                         map.insert(
-                            "$or".to_string(),
+                            OP_OR.to_string(),
                             json!([
                                 {
                                     &field.name: {
-                                        "$lt": Value::from(field.value.clone())
+                                        OP_LT: Value::from(field.value.clone())
                                     }
                                 },
                                 {
                                     &field.name: {
-                                        "$eq": Value::Null
+                                        OP_EQ: Value::Null
                                     }
 
                                 }
@@ -194,7 +195,7 @@ fn fields_filter(fields: &[CursorField], cursor_parameter: CursorParameter) -> O
                         map.insert(
                             field.name.clone(),
                             json!({
-                                "$gt": Value::from(field.value.clone()),
+                                OP_GT: Value::from(field.value.clone()),
                             }),
                         );
 
@@ -209,7 +210,7 @@ fn fields_filter(fields: &[CursorField], cursor_parameter: CursorParameter) -> O
                         map.insert(
                             field.name.clone(),
                             json!({
-                                "$lt": Value::from(field.value.clone())
+                                OP_LT: Value::from(field.value.clone())
                             }),
                         );
 
@@ -221,7 +222,7 @@ fn fields_filter(fields: &[CursorField], cursor_parameter: CursorParameter) -> O
                         map.insert(
                             field.name.clone(),
                             json!({
-                                "$gt": Value::from(field.value.clone())
+                                OP_GT: Value::from(field.value.clone())
                             }),
                         );
 
@@ -234,7 +235,7 @@ fn fields_filter(fields: &[CursorField], cursor_parameter: CursorParameter) -> O
             map.insert(
                 field.name.clone(),
                 json!({
-                    "$eq": Value::from(field.value.clone())
+                    OP_EQ: Value::from(field.value.clone())
                 }),
             );
 
@@ -250,7 +251,7 @@ fn fields_filter(fields: &[CursorField], cursor_parameter: CursorParameter) -> O
         let mut filter = JsonMap::new();
 
         filter.insert(
-            "$and".to_string(),
+            OP_AND.to_string(),
             Value::Array(filters.into_iter().map(Value::from).collect()),
         );
 

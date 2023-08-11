@@ -1,3 +1,4 @@
+mod consts;
 mod cursor;
 mod input;
 mod normalize;

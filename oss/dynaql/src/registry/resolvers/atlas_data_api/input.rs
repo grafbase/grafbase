@@ -1,7 +1,17 @@
 pub(super) mod pagination;
 
-use super::JsonMap;
-use crate::{names::MONGODB_OUTPUT_FIELD_ID, registry::resolvers::atlas_data_api::normalize, Context, ServerResult};
+use super::{
+    consts::{CURRENT_DATE, CURRENT_DATETIME, CURRENT_TIMESTAMP, OP_AND, OP_UNSET},
+    JsonMap,
+};
+use crate::{
+    names::MONGODB_OUTPUT_FIELD_ID,
+    registry::resolvers::atlas_data_api::{
+        consts::{TYPE, TYPE_DATE, TYPE_TIMESTAMP},
+        normalize,
+    },
+    Context, ServerResult,
+};
 use indexmap::IndexMap;
 use serde_json::{json, Value};
 
@@ -23,7 +33,7 @@ pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<JsonMap> {
             let inner = map;
 
             let mut map = JsonMap::new();
-            map.insert("$and".to_string(), json!([inner, before]));
+            map.insert(OP_AND.to_string(), json!([inner, before]));
 
             map
         }
@@ -35,7 +45,7 @@ pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<JsonMap> {
             let inner = map;
 
             let mut map = JsonMap::new();
-            map.insert("$and".to_string(), json!([inner, after]));
+            map.insert(OP_AND.to_string(), json!([inner, after]));
 
             map
         }
@@ -148,13 +158,13 @@ pub(super) fn update(ctx: &Context<'_>) -> ServerResult<JsonMap> {
                 continue;
             }
 
-            if query_name == "$unset" && !query.as_bool().unwrap_or_default() {
+            if query_name == OP_UNSET && !query.as_bool().unwrap_or_default() {
                 continue;
             }
 
             let (query_name, query) = match query_name.as_str() {
-                "$currentTimestamp" => (String::from("$currentDate"), json!({ "$type": "timestamp" })),
-                "$currentDate" | "$currentDateTime" => (String::from("$currentDate"), json!({ "$type": "date" })),
+                CURRENT_TIMESTAMP => (String::from(CURRENT_DATE), json!({ TYPE: TYPE_TIMESTAMP })),
+                CURRENT_DATE | CURRENT_DATETIME => (String::from(CURRENT_DATE), json!({ TYPE: TYPE_DATE })),
                 _ => (query_name, query),
             };
 
