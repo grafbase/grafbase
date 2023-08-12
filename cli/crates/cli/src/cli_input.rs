@@ -83,15 +83,13 @@ impl DevCommand {
             }
         };
         LogLevelFilters {
-            functions: self.log_level_functions.unwrap_or(default_log_levels.functions).into(),
+            functions: self.log_level_functions.unwrap_or(default_log_levels.functions),
             graphql_operations: self
                 .log_level_graphql_operations
-                .unwrap_or(default_log_levels.graphql_operations)
-                .into(),
+                .unwrap_or(default_log_levels.graphql_operations),
             fetch_requests: self
                 .log_level_fetch_requests
-                .unwrap_or(default_log_levels.fetch_requests)
-                .into(),
+                .unwrap_or(default_log_levels.fetch_requests),
         }
     }
 }
