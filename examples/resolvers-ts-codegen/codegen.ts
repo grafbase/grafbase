@@ -11,9 +11,11 @@ const config: CodegenConfig = {
     }
   ],
   generates: {
-    'grafbase/__generated/resolvers.ts': {
+    'grafbase/resolvers.ts': {
       plugins: ['typescript', 'typescript-resolvers'],
       config: {
+        contextType: './context#GrafbaseContext',
+        customResolveInfo: './context#GrafbaseInfo',
         useIndexSignature: true
       }
     }

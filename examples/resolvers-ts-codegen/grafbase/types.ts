@@ -1,4 +1,5 @@
-import { GraphQLResolveInfo } from 'graphql';
+import { GrafbaseInfo as GraphQLResolveInfo } from './context';
+import { GrafbaseContext } from './context';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -128,29 +129,29 @@ export type ResolversParentTypes = ResolversObject<{
 
 export type LiveDirectiveArgs = { };
 
-export type LiveDirectiveResolver<Result, Parent, ContextType = any, Args = LiveDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type LiveDirectiveResolver<Result, Parent, ContextType = GrafbaseContext, Args = LiveDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type OneOfDirectiveArgs = { };
 
-export type OneOfDirectiveResolver<Result, Parent, ContextType = any, Args = OneOfDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+export type OneOfDirectiveResolver<Result, Parent, ContextType = GrafbaseContext, Args = OneOfDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
-export type MyTypeResolvers<ContextType = any, ParentType extends ResolversParentTypes['MyType'] = ResolversParentTypes['MyType']> = ResolversObject<{
+export type MyTypeResolvers<ContextType = GrafbaseContext, ParentType extends ResolversParentTypes['MyType'] = ResolversParentTypes['MyType']> = ResolversObject<{
   inputA?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   inputB?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   total?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type QueryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
+export type QueryResolvers<ContextType = GrafbaseContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   sum?: Resolver<ResolversTypes['MyType'], ParentType, ContextType, RequireFields<QuerySumArgs, 'a' | 'b'>>;
 }>;
 
-export type Resolvers<ContextType = any> = ResolversObject<{
+export type Resolvers<ContextType = GrafbaseContext> = ResolversObject<{
   MyType?: MyTypeResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
 }>;
 
-export type DirectiveResolvers<ContextType = any> = ResolversObject<{
+export type DirectiveResolvers<ContextType = GrafbaseContext> = ResolversObject<{
   live?: LiveDirectiveResolver<any, any, ContextType>;
   oneOf?: OneOfDirectiveResolver<any, any, ContextType>;
 }>;
