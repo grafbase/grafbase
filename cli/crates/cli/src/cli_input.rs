@@ -63,7 +63,7 @@ pub struct DevCommand {
     #[arg(long)]
     pub log_level: Option<LogLevelFilter>,
     /// A shortcut to enable fairly detailed logging
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with = "log_level")]
     pub verbose: bool,
 }
 
@@ -77,9 +77,9 @@ impl DevCommand {
             }
         } else {
             LogLevelFilters {
-                functions: LogLevelFilter::Info,
-                graphql_operations: LogLevelFilter::Info,
-                fetch_requests: LogLevelFilter::Info,
+                functions: self.log_level.unwrap_or(LogLevelFilter::Info),
+                graphql_operations: self.log_level.unwrap_or(LogLevelFilter::Info),
+                fetch_requests: self.log_level.unwrap_or(LogLevelFilter::Info),
             }
         };
         LogLevelFilters {
