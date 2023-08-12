@@ -1,12 +1,21 @@
-import type { QuerySumArgs, Query } from '../__generated/resolvers'
+import type {
+  ResolversParentTypes,
+  QuerySumArgs,
+  MyType
+} from '../__generated/resolvers'
 
-export default function SumResolver(
-  _: unknown,
+const SumResolver: (
+  parent: ResolversParentTypes['Query'],
   args: QuerySumArgs
-): Query['sum'] {
+) => MyType = (_, args) => {
+  const { a, b } = args
+  const total = a + b
+
   return {
-    total: args.a + args.b,
-    inputA: args.a,
-    inputB: args.b
+    inputA: a,
+    inputB: b,
+    total
   }
 }
+
+export default SumResolver
