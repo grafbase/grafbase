@@ -158,7 +158,7 @@ pub fn operation_log(
     nested_events: Vec<NestedRequestScopedMessage>,
     log_level_filters: LogLevelFilters,
 ) {
-    if log_level_filters.graphql_operations < Some(LogLevel::Info) {
+    if !log_level_filters.graphql_operations.should_display(LogLevel::Info) {
         return;
     }
 
@@ -166,7 +166,7 @@ pub fn operation_log(
         RequestCompletedOutcome::Success { r#type } => {
             let colour = match r#type {
                 common::types::OperationType::Query { is_introspection } => {
-                    if is_introspection && log_level_filters.graphql_operations < Some(LogLevel::Debug) {
+                    if is_introspection && !log_level_filters.graphql_operations.should_display(LogLevel::Debug) {
                         return;
                     }
                     watercolor::colored::Color::Green
@@ -201,7 +201,7 @@ pub fn operation_log(
                 level,
                 message,
             } => {
-                if log_level_filters.functions < Some(level) {
+                if !log_level_filters.functions.should_display(level) {
                     continue;
                 }
 
@@ -231,7 +231,7 @@ pub fn operation_log(
                 } else {
                     LogLevel::Info
                 };
-                if log_level_filters.fetch_requests < Some(required_log_level) {
+                if !log_level_filters.fetch_requests.should_display(required_log_level) {
                     continue;
                 }
 
@@ -243,7 +243,7 @@ pub fn operation_log(
                     url.bold(),
                 );
 
-                if log_level_filters.fetch_requests >= Some(LogLevel::Debug) {
+                if log_level_filters.fetch_requests.should_display(LogLevel::Debug) {
                     if let Some(formatted_body) = format_response_body(indent, body, content_type) {
                         println!("{formatted_body}");
                     }
