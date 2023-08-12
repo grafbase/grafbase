@@ -16,9 +16,16 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type MyType = {
+  __typename?: 'MyType';
+  inputA: Scalars['Int']['output'];
+  inputB: Scalars['Int']['output'];
+  total: Scalars['Int']['output'];
+};
+
 export type Query = {
   __typename?: 'Query';
-  sum: Scalars['Int']['output'];
+  sum: MyType;
 };
 
 
@@ -103,6 +110,7 @@ export type ResolversTypes = ResolversObject<{
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  MyType: ResolverTypeWrapper<MyType>;
   Query: ResolverTypeWrapper<{}>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
 }>;
@@ -113,6 +121,7 @@ export type ResolversParentTypes = ResolversObject<{
   Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
+  MyType: MyType;
   Query: {};
   String: Scalars['String']['output'];
 }>;
@@ -125,11 +134,19 @@ export type OneOfDirectiveArgs = { };
 
 export type OneOfDirectiveResolver<Result, Parent, ContextType = any, Args = OneOfDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
+export type MyTypeResolvers<ContextType = any, ParentType extends ResolversParentTypes['MyType'] = ResolversParentTypes['MyType']> = ResolversObject<{
+  inputA?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  inputB?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type QueryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
-  sum?: Resolver<ResolversTypes['Int'], ParentType, ContextType, RequireFields<QuerySumArgs, 'a' | 'b'>>;
+  sum?: Resolver<ResolversTypes['MyType'], ParentType, ContextType, RequireFields<QuerySumArgs, 'a' | 'b'>>;
 }>;
 
 export type Resolvers<ContextType = any> = ResolversObject<{
+  MyType?: MyTypeResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
 }>;
 
