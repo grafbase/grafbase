@@ -19,23 +19,24 @@ pub enum LogLevelFilter {
     Debug,
 }
 
-impl From<LogLevelFilter> for Option<LogLevel> {
-    fn from(value: LogLevelFilter) -> Self {
-        match value {
-            LogLevelFilter::None => None,
-            LogLevelFilter::Error => Some(LogLevel::Error),
-            LogLevelFilter::Warn => Some(LogLevel::Warn),
-            LogLevelFilter::Info => Some(LogLevel::Info),
-            LogLevelFilter::Debug => Some(LogLevel::Debug),
-        }
+impl LogLevelFilter {
+    pub fn should_display(self, level: LogLevel) -> bool {
+        Some(level)
+            <= (match self {
+                LogLevelFilter::None => None,
+                LogLevelFilter::Error => Some(LogLevel::Error),
+                LogLevelFilter::Warn => Some(LogLevel::Warn),
+                LogLevelFilter::Info => Some(LogLevel::Info),
+                LogLevelFilter::Debug => Some(LogLevel::Debug),
+            })
     }
 }
 
 #[derive(Clone, Copy)]
 pub struct LogLevelFilters {
-    pub functions: Option<LogLevel>,
-    pub graphql_operations: Option<LogLevel>,
-    pub fetch_requests: Option<LogLevel>,
+    pub functions: LogLevelFilter,
+    pub graphql_operations: LogLevelFilter,
+    pub fetch_requests: LogLevelFilter,
 }
 
 #[derive(Debug, Parser)]
@@ -68,15 +69,29 @@ pub struct DevCommand {
 
 impl DevCommand {
     pub fn log_levels(&self) -> LogLevelFilters {
-        let default_log_level = if self.verbose {
-            LogLevelFilter::Debug
+        let default_log_levels = if self.verbose {
+            LogLevelFilters {
+                functions: LogLevelFilter::Debug,
+                graphql_operations: LogLevelFilter::Info,
+                fetch_requests: LogLevelFilter::Debug,
+            }
         } else {
-            LogLevelFilter::Info
+            LogLevelFilters {
+                functions: LogLevelFilter::Info,
+                graphql_operations: LogLevelFilter::Info,
+                fetch_requests: LogLevelFilter::Info,
+            }
         };
         LogLevelFilters {
-            functions: self.log_level_functions.unwrap_or(default_log_level).into(),
-            graphql_operations: self.log_level_graphql_operations.unwrap_or(default_log_level).into(),
-            fetch_requests: self.log_level_fetch_requests.unwrap_or(default_log_level).into(),
+            functions: self.log_level_functions.unwrap_or(default_log_levels.functions).into(),
+            graphql_operations: self
+                .log_level_graphql_operations
+                .unwrap_or(default_log_levels.graphql_operations)
+                .into(),
+            fetch_requests: self
+                .log_level_fetch_requests
+                .unwrap_or(default_log_levels.fetch_requests)
+                .into(),
         }
     }
 }
