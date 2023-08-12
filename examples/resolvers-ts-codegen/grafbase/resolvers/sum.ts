@@ -1,12 +1,12 @@
-import { GrafbaseContext, GrafbaseInfo } from '../context'
-import type { ResolversParentTypes, QuerySumArgs, MyType } from '../types'
+import { GrafbaseContext } from '../context'
+import { Resolver, ResolversParentTypes, QuerySumArgs, MyType } from '../types'
 
-const SumResolver: (
-  parent: ResolversParentTypes['Query'],
-  args: QuerySumArgs,
-  ctx: GrafbaseContext,
-  info: GrafbaseInfo
-) => MyType = (_, args, ctx, info) => {
+const SumResolver: Resolver<
+  MyType,
+  ResolversParentTypes['Query'],
+  GrafbaseContext,
+  QuerySumArgs
+> = (_, args, ctx, info) => {
   const { a, b } = args
   const total = a + b
 
