@@ -26,6 +26,7 @@ env:
   GRAFBASE_RUDDERSTACK_WRITE_KEY: ${{ secrets.GRAFBASE_RUDDERSTACK_WRITE_KEY }}
   GRAFBASE_RUDDERSTACK_DATAPLANE_URL: ${{ secrets.GRAFBASE_RUDDERSTACK_DATAPLANE_URL }}
   CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL: https://d267a8ab95268b272f5147e8939c9d38.r2.cloudflarestorage.com
+  CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL: https://pub-b0013effd6614b32a4fb9bf338b90658.r2.dev
   CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME: cli-releases
 
 concurrency:
@@ -241,7 +242,7 @@ jobs:
           name: linux-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
 
-      - if: ${{ matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
         name: Upload the binary of the change to R2
         run: |
           aws s3api put-object \
@@ -315,7 +316,8 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - name: Upload the binary of the change to R2
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+        name: Upload the binary of the change to R2
         run: |
           aws s3api put-object \
             --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
@@ -344,3 +346,18 @@ jobs:
     secrets:
       CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
       NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+
+  post-comment-with-asset-urls:
+    needs: [windows, linux, darwin]
+    runs-on: buildjet-2vcpu-ubuntu-2204
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Comment PR
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            ### Built binaries:
+
+            * [Linux (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase)
+            * [Mac (M1)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase)
+            * [Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase)
