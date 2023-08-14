@@ -15,6 +15,7 @@ mod transforms;
 const NAMESPACED_QUERY: &str = "
     query($id: ID!) {
         gothub {
+            serverVersion
             pullRequestOrIssue(id: $id) {
                 __typename
                 title
@@ -85,6 +86,7 @@ async fn graphql_test_with_namespace() {
 
 const UNNAMESPACED_QUERY: &str = "
     query($id: ID!) {
+        serverVersion
         pullRequestOrIssue(id: $id) {
             __typename
             title
