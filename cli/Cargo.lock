@@ -1835,7 +1835,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.31.0"
+version = "0.32.1"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -1862,6 +1862,7 @@ dependencies = [
  "indoc",
  "inquire",
  "insta",
+ "itertools 0.11.0",
  "json_dotpath",
  "jwt-compact",
  "log",
@@ -1893,7 +1894,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.31.0"
+version = "0.32.1"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -1923,7 +1924,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.31.0"
+version = "0.32.1"
 dependencies = [
  "chrono",
  "derivative",
@@ -1938,7 +1939,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.31.0"
+version = "0.32.1"
 dependencies = [
  "axum",
  "base64 0.21.2",

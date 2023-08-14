@@ -27,6 +27,21 @@ pub async fn log_event_endpoint(
                 duration,
                 request_completed_type: RequestCompletedOutcome::BadRequest,
             },
+            InputLogEventType::NestedRequest {
+                url,
+                method,
+                status_code,
+                duration,
+                body,
+                content_type,
+            } => OutputLogEventType::NestedEvent(crate::types::NestedRequestScopedMessage::NestedRequest {
+                url,
+                method,
+                status_code,
+                duration,
+                body,
+                content_type,
+            }),
         },
     };
     handler_state.bridge_sender.send(message).await.unwrap();
