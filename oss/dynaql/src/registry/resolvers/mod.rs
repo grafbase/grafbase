@@ -197,7 +197,7 @@ impl Resolver {
                     .ty
                     .ok_or_else(|| Error::new("Internal error"))?
                     .try_into()
-                    .map_err(|_| Error::new("Internal error"))?;
+                    .ok();
 
                 let target = match resolver.namespace {
                     Some(_) => Target::SelectionSet(Box::new(
@@ -229,7 +229,7 @@ impl Resolver {
                         &headers,
                         fragment_definitions,
                         target,
-                        Some(current_object),
+                        current_object,
                         error_handler,
                         variables,
                         variable_definitions,
