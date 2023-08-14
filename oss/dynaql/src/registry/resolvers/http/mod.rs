@@ -84,7 +84,7 @@ impl HttpResolver {
             let url = self.build_url(ctx, last_resolver_value)?;
             let mut request_builder = reqwest::Client::new()
                 .request(self.method.parse()?, Url::parse(&url)?)
-                .header("x-grafbase-request-id", ray_id);
+                .header("x-grafbase-fetch-trace-id", ray_id);
 
             for (name, value) in headers {
                 request_builder = request_builder.header(name, value);

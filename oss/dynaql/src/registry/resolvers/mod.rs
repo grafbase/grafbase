@@ -165,14 +165,17 @@ impl Resolver {
             }
             Resolver::Http(resolver) => resolver.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::Graphql(resolver) => {
+                let ray_id = &ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?.ray_id;
+
                 let registry = ctx.registry();
                 let request_headers = ctx.data::<RequestHeaders>().ok();
-                let headers = registry
+                let mut headers = registry
                     .http_headers
                     .get(&format!("GraphQLConnector{}", resolver.id))
                     .zip(request_headers)
                     .map(|(connector_headers, request_headers)| connector_headers.build_header_vec(request_headers))
                     .unwrap_or_default();
+                headers.push(("x-grafbase-fetch-trace-id", ray_id.as_str()));
 
                 let fragment_definitions = ctx
                     .query_env

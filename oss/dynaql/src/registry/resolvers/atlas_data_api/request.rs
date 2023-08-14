@@ -66,7 +66,7 @@ pub(super) async fn execute(
 
     let request_builder = reqwest::Client::new()
         .post(url)
-        .header("x-grafbase-request-id", ray_id)
+        .header("x-grafbase-fetch-trace-id", ray_id)
         .header(CONTENT_TYPE, headers::APPLICATION_EJSON_CONTENT_TYPE)
         .header(ACCEPT, headers::APPLICATION_JSON_CONTENT_TYPE)
         .header(headers::API_KEY_HEADER_NAME, &config.api_key)
