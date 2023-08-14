@@ -269,6 +269,10 @@ pub fn linked(name: &str) {
     watercolor::output!("\n✨ Successfully linked your local project to {name}!", @BrightBlue);
 }
 
+pub fn linked_non_interactive() {
+    watercolor::output!("✨ Successfully linked your local project!", @BrightBlue);
+}
+
 pub fn unlinked() {
     watercolor::output!("✨ Successfully unlinked your project!", @BrightBlue);
 }

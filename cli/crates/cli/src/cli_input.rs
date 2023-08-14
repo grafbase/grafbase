@@ -165,6 +165,13 @@ impl CreateCommand {
     }
 }
 
+#[derive(Debug, clap::Args)]
+pub struct LinkCommand {
+    /// The id of the linked project
+    #[arg(short, long, value_name = "PROJECT_ID")]
+    pub project: Option<String>,
+}
+
 #[derive(Debug, Parser)]
 pub enum SubCommand {
     /// Run your Grafbase project locally
@@ -185,7 +192,7 @@ pub enum SubCommand {
     /// Deploy your project
     Deploy,
     /// Connect a local project to a remote project
-    Link,
+    Link(LinkCommand),
     /// Disconnect a local project from a remote project
     Unlink,
 }
@@ -250,7 +257,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Login
             | SubCommand::Logout
             | SubCommand::Deploy
-            | SubCommand::Link
+            | SubCommand::Link(_)
             | SubCommand::Unlink
             | SubCommand::Completions(_) => None,
         }
@@ -261,7 +268,7 @@ impl SubCommand {
     pub(crate) fn in_project_context(&self) -> bool {
         matches!(
             self,
-            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link | Self::Unlink | Self::Reset
+            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link(_) | Self::Unlink | Self::Reset
         )
     }
 }
@@ -277,7 +284,7 @@ impl AsRef<str> for SubCommand {
             SubCommand::Logout => "logout",
             SubCommand::Create(_) => "create",
             SubCommand::Deploy => "deploy",
-            SubCommand::Link => "link",
+            SubCommand::Link(_) => "link",
             SubCommand::Unlink => "unlink",
         }
     }
