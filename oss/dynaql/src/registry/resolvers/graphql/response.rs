@@ -71,9 +71,9 @@ fn handle_error_after_response(
     let error = error.into();
     #[cfg(feature = "tracing_worker")]
     {
-        logworker::debug!("", "Error in GraphQL connector: {error}");
+        tracing::debug!("Error in GraphQL connector: {error}");
         if let Some(text) = response_body {
-            logworker::debug!("", "Response Body: {text}");
+            tracing::debug!("Response Body: {text}");
         }
     }
 

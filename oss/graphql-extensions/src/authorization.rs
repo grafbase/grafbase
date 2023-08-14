@@ -221,9 +221,9 @@ impl AuthExtension {
             return Ok(());
         };
 
-        log::info!("", "{:?}", opts.mutation_name);
-        log::info!("", "{:?}", opts.type_name);
-        log::info!("", "{:?}", input_fields);
+        log::info!(self.trace_id, "{:?}", opts.mutation_name);
+        log::info!(self.trace_id, "{:?}", opts.type_name);
+        log::info!(self.trace_id, "{:?}", input_fields);
         let type_fields = opts
             .registry
             .lookup(&opts.type_name)

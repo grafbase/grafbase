@@ -94,6 +94,9 @@ macro_rules! log {
 
 #[macro_export]
 macro_rules! trace {
+    ("", $($t:tt)*) => {
+        compile_error!("pass the actual trace ID here or we will leak memory.")
+    };
     ($request_id:expr, $($t:tt)*) => {
         $crate::log!($crate::LogSeverity::Trace, $request_id, $($t)*)
     }
@@ -101,6 +104,9 @@ macro_rules! trace {
 
 #[macro_export]
 macro_rules! debug {
+    ("", $($t:tt)*) => {
+        compile_error!("pass the actual trace ID here or we will leak memory.")
+    };
     ($request_id:expr, $($t:tt)*) => {
         $crate::log!($crate::LogSeverity::Debug, $request_id, $($t)*)
     }
@@ -108,6 +114,9 @@ macro_rules! debug {
 
 #[macro_export]
 macro_rules! info {
+    ("", $($t:tt)*) => {
+        compile_error!("pass the actual trace ID here or we will leak memory.")
+    };
     ($request_id:expr, $($t:tt)*) => {
         $crate::log!($crate::LogSeverity::Info, $request_id, $($t)*)
     }
@@ -115,6 +124,9 @@ macro_rules! info {
 
 #[macro_export]
 macro_rules! warn {
+    ("", $($t:tt)*) => {
+        compile_error!("pass an actual trace ID here or we will leak memory")
+    };
     ($request_id:expr, $($t:tt)*) => {
         $crate::log!($crate::LogSeverity::Warn, $request_id, $($t)*)
     }
@@ -122,6 +134,9 @@ macro_rules! warn {
 
 #[macro_export]
 macro_rules! error {
+    ("", $($t:tt)*) => {
+        compile_error!("pass the actual trace ID here or we will leak memory.")
+    };
     ($request_id:expr, $($t:tt)*) => {
         $crate::log!($crate::LogSeverity::Error, $request_id, $($t)*)
     }

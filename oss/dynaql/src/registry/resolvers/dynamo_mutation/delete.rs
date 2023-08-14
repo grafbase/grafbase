@@ -61,14 +61,14 @@ async fn generate_changes(ctx: &Context<'_>, input: Vec<PostDeleteManyInput>, ty
             deleted_ids.insert(id_to_be_deleted);
         } else {
             #[cfg(feature = "tracing_worker")]
-            logworker::trace!("", "constraint: {}", by.name);
+            logworker::trace!(ctx.trace_id(), "constraint: {}", by.name);
             let constraint_id = meta_type
                 .constraints
                 .iter()
                 .find(|constraint| constraint.name() == by.name)
                 .and_then(|constraint| {
                     #[cfg(feature = "tracing_worker")]
-                    logworker::trace!("", "constraint obj: {:#?}", constraint);
+                    logworker::trace!(ctx.trace_id(), "constraint obj: {:#?}", constraint);
                     constraint.extract_id_from_by_input_field(
                         &meta_type.name,
                         &by.value.clone().try_into().expect("was a ConstValue before"),

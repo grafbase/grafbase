@@ -61,9 +61,7 @@ async fn resolve_primitive_field(
             if field.ty.is_non_null() && *result.data_resolved() == serde_json::Value::Null {
                 #[cfg(feature = "tracing_worker")]
                 logworker::warn!(
-                    ctx.data_unchecked::<std::sync::Arc<dynamodb::DynamoDBBatchersData>>()
-                        .ctx
-                        .trace_id,
+                    ctx.trace_id(),
                     "{}",
                     serde_json::to_string_pretty(&serde_json::json!({
                         "message": "Something went wrong here",

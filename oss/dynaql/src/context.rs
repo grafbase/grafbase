@@ -781,14 +781,16 @@ pub enum QueryByVariables {
     Constraint { key: String, value: Value },
 }
 
-impl<'a> ContextBase<'a, &'a Positioned<Field>> {
+impl<'a, T> ContextBase<'a, T> {
     pub fn trace_id(&self) -> String {
         self.data::<Arc<DynamoDBBatchersData>>()
             .map(|x| x.ctx.trace_id.clone())
             .ok()
             .unwrap_or_default()
     }
+}
 
+impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     #[doc(hidden)]
     pub fn param_value<T: LegacyInputType>(&self, name: &str, default: Option<fn() -> T>) -> ServerResult<(Pos, T)> {
         self.get_param_value(&self.item.node.arguments, name, default)

@@ -448,9 +448,7 @@ impl MetaField {
                         let Some(resolved_field_value) = resolved_field_value else {
                             #[cfg(feature = "tracing_worker")]
                             logworker::warn!(
-                                ctx.data_unchecked::<std::sync::Arc<dynamodb::DynamoDBBatchersData>>()
-                                    .ctx
-                                    .trace_id,
+                                ctx.trace_id(),
                                 "missing field valued for resolved {}#{} and cache type {}",
                                 resolved_field_type,
                                 resolved_field_name,
