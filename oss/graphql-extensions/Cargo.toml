@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1"
 lazy_static = "1"
-wasm-timer = "0.2"
+web-time = { workspace = true }
 
 dynaql = { path = "../../oss/dynaql", default-features = false }
 dynaql-value = { workspace = true }

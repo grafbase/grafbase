@@ -10,7 +10,7 @@ use futures_util as _;
 pub use log_;
 // Re-export.
 pub use types::*;
-pub use wasm_timer;
+pub use web_time;
 #[cfg(feature = "with-worker")]
 pub use worker;
 
@@ -83,7 +83,7 @@ macro_rules! log {
                             line_number,
                             message,
                             severity: $status,
-                            timestamp: $crate::wasm_timer::SystemTime::now(),
+                            timestamp: $crate::web_time::SystemTime::now(),
                             trace_id: $request_id.to_string(),
                         })
                 });

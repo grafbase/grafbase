@@ -26,7 +26,7 @@ rusoto_dynamodb = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-wasm-timer = { version = "0.2" }
+web-time = { workspace = true }
 
 dynamodb-utils = { path = "../dynamodb-utils" }
 grafbase = { path = "../grafbase", features = ["json"] }

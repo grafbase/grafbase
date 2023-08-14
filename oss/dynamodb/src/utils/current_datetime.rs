@@ -5,7 +5,7 @@ use std::{
 
 use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
 use dynomite::{Attribute, AttributeValue};
-use wasm_timer::{SystemTime, UNIX_EPOCH};
+use web_time::{SystemTime, UNIX_EPOCH};
 
 // TODO: It should be placed in a different crate than dynamodb
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,7 +26,7 @@ impl CurrentDateTime {
 #[allow(clippy::derived_hash_with_manual_eq)]
 impl Hash for CurrentDateTime {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // Hash is not implemented for wasm_timer::SystemTime on wasm
+        // Hash is not implemented for web_time::SystemTime on wasm
         Into::<DateTime<Utc>>::into(self.clone()).hash(state);
     }
 }

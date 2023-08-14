@@ -39,11 +39,11 @@ impl Extension for RuntimeLogExtension {
         request: Request,
         next: NextPrepareRequest<'_>,
     ) -> ServerResult<Request> {
-        let start = wasm_timer::SystemTime::now();
+        let start = web_time::SystemTime::now();
 
         let operation_name = request.operation_name.clone();
         let prepare_result = next.run(ctx, request).await;
-        let end = wasm_timer::SystemTime::now();
+        let end = web_time::SystemTime::now();
         let duration: std::time::Duration = end.duration_since(start).unwrap();
 
         if prepare_result.is_err() {
@@ -85,9 +85,9 @@ impl Extension for RuntimeLogExtension {
             .invoke(request_id, LogEventType::OperationStarted { name: operation_name })
             .await;
 
-        let start = wasm_timer::SystemTime::now();
+        let start = web_time::SystemTime::now();
         let response = next.run(ctx, operation_name, operation).await;
-        let end = wasm_timer::SystemTime::now();
+        let end = web_time::SystemTime::now();
         let duration: std::time::Duration = end.duration_since(start).unwrap();
 
         let operation_name = operation_name.or_else(|| match operation.selection_set.node.items.as_slice() {
