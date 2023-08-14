@@ -12,8 +12,10 @@ permissions:
   checks: write
   # Allow repo checkout
   contents: write
-  # Allow PRs read
-  pull-requests: read
+  # Allow PRs write
+  pull-requests: write
+  # Allow issues write
+  issues: write
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
