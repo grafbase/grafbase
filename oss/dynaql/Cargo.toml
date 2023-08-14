@@ -88,6 +88,6 @@ indoc = "2"
 insta = { version = "1", features = ["json"] }
 rstest = { workspace = true }
 sanitize-filename = "0.5"
-tokio = "1"
+tokio = { workspace = true, features = ["macros"] }
 urlencoding = "2.1"
 wiremock = "0.5"

@@ -30,15 +30,20 @@ impl ParamApply for String {
     }
 
     fn apply_query_parameters(self, params: &[QueryParameter], values: &[serde_json::Value]) -> Result<String, Error> {
+        assert_eq!(params.len(), values.len());
+
         let mut url = Url::parse(&self).unwrap();
-        let mut serializer = url.query_pairs_mut();
 
-        for (param, value) in params.iter().zip(values.iter()) {
-            urlencode_value(&param.name, value, param.encoding_style, &mut serializer)?;
+        if !params.is_empty() {
+            let mut serializer = url.query_pairs_mut();
+
+            for (param, value) in params.iter().zip(values.iter()) {
+                urlencode_value(&param.name, value, param.encoding_style, &mut serializer)?;
+            }
+
+            serializer.finish();
+            drop(serializer);
         }
-
-        serializer.finish();
-        drop(serializer);
 
         Ok(url.to_string())
     }
@@ -258,6 +263,12 @@ mod tests {
             ..id_param.clone()
         };
         let url = "https://example.com/users".to_string();
+
+        // Test with no params
+        insta::assert_snapshot!(
+            url.clone().apply_query_parameters(&[], &[]).unwrap(),
+            @"https://example.com/users"
+        );
 
         // Test an integer
         insta::assert_snapshot!(
