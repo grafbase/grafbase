@@ -235,12 +235,19 @@ pub fn operation_log(
                     continue;
                 }
 
+                // A minor presentational tweak for URLs.
+                let url: url::Url = url.parse().expect("must be a valid URL surely");
+                let mut url_string = url.to_string();
+                if url.path() == "/" && url.query().is_none() {
+                    url_string = url_string.trim_end_matches('/').to_owned();
+                }
+
                 let formatted_duration = format_duration(duration);
                 println!(
                     "{indent}{} {} {} {status_code} {formatted_duration}",
                     watercolor!("fetch", @Yellow),
                     method.bold(),
-                    url.bold(),
+                    url_string.bold(),
                 );
 
                 if log_level_filters.fetch_requests.should_display(LogLevel::Debug) {
