@@ -39,6 +39,7 @@ async fn graphql_test_with_transforms() {
     }
 
     type Query {
+      serverVersion: String!
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       headers: [Header!]!
     }

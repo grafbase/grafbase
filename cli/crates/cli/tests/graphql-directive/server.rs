@@ -45,6 +45,11 @@ struct Query {
 
 #[Object]
 impl Query {
+    // A top level scalar field for testing
+    async fn server_version(&self) -> &str {
+        "1"
+    }
+
     async fn pull_request_or_issue(&self, id: ID) -> Option<PullRequestOrIssue> {
         if id == "1" {
             return Some(PullRequestOrIssue::PullRequest(PullRequest {
