@@ -51,6 +51,57 @@ async fn query() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn namespaced_query() {
+    let config = indoc::formatdoc! {r#"
+        type User @model(connector: "{MONGODB_CONNECTOR}", collection: "users") {{
+          name: String! @map(name: "real_name")
+        }}
+    "#};
+
+    let expected_body = json!({
+        "filter": {
+            "_id": { "$oid": "5ca4bbc7a2dd94ee5816238d" }
+        },
+        "projection": {
+            "_id": 1,
+            "real_name": 1,
+        }
+    });
+
+    let mut server = Server::find_one_namespaced("bongo", &config, "users", expected_body).await;
+    server.set_response(ResponseTemplate::new(200).set_body_json(json!({
+        "document": {
+            "_id": "5ca4bbc7a2dd94ee5816238d",
+            "real_name": "Bob"
+        }
+    })));
+
+    let request = server.request(indoc::indoc! {r#"
+        query {
+          bongo {
+            user(by: { id: "5ca4bbc7a2dd94ee5816238d" }) {
+              id
+              name
+            } 
+          }
+        }   
+    "#});
+
+    insta::assert_json_snapshot!(request.await, @r###"
+    {
+      "data": {
+        "bongo": {
+          "user": {
+            "id": "5ca4bbc7a2dd94ee5816238d",
+            "name": "Bob"
+          }
+        }
+      }
+    }
+    "###);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn nested_query() {
     let config = indoc::formatdoc! {r#"
         type Address {{
