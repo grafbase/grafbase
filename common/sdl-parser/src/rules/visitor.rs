@@ -255,6 +255,32 @@ impl<'a> VisitorContext<'a> {
         f(self);
         self.type_stack.pop();
     }
+
+    pub(crate) fn push_namespaced_query(&mut self, type_name: Option<&str>, meta_field: MetaField) {
+        match type_name {
+            Some(type_name) => self.push_namespaced_field(type_name, meta_field),
+            None => self.queries.push(meta_field),
+        }
+    }
+
+    pub(crate) fn push_namespaced_mutation(&mut self, type_name: Option<&str>, meta_field: MetaField) {
+        match type_name {
+            Some(type_name) => self.push_namespaced_field(type_name, meta_field),
+            None => self.mutations.push(meta_field),
+        }
+    }
+
+    fn push_namespaced_field(&mut self, type_name: &str, meta_field: MetaField) {
+        let fields = self
+            .registry
+            .get_mut()
+            .types
+            .get_mut(type_name)
+            .and_then(|r#type| r#type.fields_mut())
+            .expect("Namespaced query/mutation type not registered.");
+
+        fields.insert(meta_field.name.to_string(), meta_field);
+    }
 }
 
 pub trait Visitor<'a> {

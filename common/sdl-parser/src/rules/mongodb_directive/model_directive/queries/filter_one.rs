@@ -51,5 +51,5 @@ pub(super) fn create(
         ..Default::default()
     };
 
-    visitor_ctx.queries.push(meta_field);
+    visitor_ctx.push_namespaced_query(create_ctx.query_type_name(), meta_field);
 }

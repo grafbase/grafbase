@@ -43,5 +43,5 @@ pub(crate) fn create(
     mutation.required_operation = Some(Operations::UPDATE);
     mutation.auth = create_ctx.model_auth().clone();
 
-    visitor_ctx.mutations.push(mutation);
+    visitor_ctx.push_namespaced_mutation(create_ctx.mutation_type_name(), mutation);
 }

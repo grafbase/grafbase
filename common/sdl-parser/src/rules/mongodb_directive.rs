@@ -3,7 +3,8 @@ mod type_directive;
 
 use std::collections::HashMap;
 
-use dynaql::registry::MongoDBConfiguration;
+use case::CaseExt;
+use dynaql::registry::{MetaField, MongoDBConfiguration, ObjectType};
 use dynaql_parser::types::SchemaDefinition;
 pub(super) use model_directive::create_type_context::CreateTypeContext;
 pub use model_directive::MongoDBModelDirective;
@@ -172,9 +173,35 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                             data_source: parsed_directive.data_source().to_string(),
                             database: parsed_directive.database().to_string(),
                             host_url: parsed_directive.host_url().to_string(),
+                            namespace: parsed_directive.namespace.clone(),
                         },
                         parsed_directive.name(),
                     );
+
+                    if let Some(namespace) = parsed_directive.namespace() {
+                        let query_type_name = format!("{namespace}Query").to_camel();
+                        let mutation_type_name = format!("{namespace}Mutation").to_camel();
+
+                        ctx.registry.borrow_mut().create_type(
+                            |_| ObjectType::new(query_type_name.clone(), []).into(),
+                            &query_type_name,
+                            &query_type_name,
+                        );
+
+                        ctx.queries
+                            .push(MetaField::new(namespace.to_camel_lowercase(), query_type_name.clone()));
+
+                        ctx.registry.borrow_mut().create_type(
+                            |_| ObjectType::new(mutation_type_name.clone(), []).into(),
+                            &mutation_type_name,
+                            &mutation_type_name,
+                        );
+
+                        ctx.mutations.push(MetaField::new(
+                            namespace.to_camel_lowercase(),
+                            mutation_type_name.clone(),
+                        ));
+                    }
 
                     found_directive = true;
                 }

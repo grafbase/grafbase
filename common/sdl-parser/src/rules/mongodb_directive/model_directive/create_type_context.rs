@@ -1,3 +1,4 @@
+use case::CaseExt;
 use dynaql::{
     registry::{Constraint, MongoDBConfiguration},
     AuthConfig, CacheControl, Positioned,
@@ -16,6 +17,8 @@ pub(crate) struct CreateTypeContext<'a> {
     collection: String,
     unique_directives: Vec<UniqueDirective>,
     config: MongoDBConfiguration,
+    query_type_name: Option<String>,
+    mutation_type_name: Option<String>,
 }
 
 impl<'a> CreateTypeContext<'a> {
@@ -46,6 +49,16 @@ impl<'a> CreateTypeContext<'a> {
             .filter_map(|field| UniqueDirective::parse(visitor_ctx, object, model_name, field))
             .collect();
 
+        let query_type_name = config
+            .namespace
+            .as_deref()
+            .map(|namespace| format!("{namespace}Query").to_camel());
+
+        let mutation_type_name = config
+            .namespace
+            .as_deref()
+            .map(|namespace| format!("{namespace}Mutation").to_camel());
+
         Self {
             r#type,
             object,
@@ -55,6 +68,8 @@ impl<'a> CreateTypeContext<'a> {
             collection,
             unique_directives,
             config,
+            query_type_name,
+            mutation_type_name,
         }
     }
 
@@ -92,5 +107,13 @@ impl<'a> CreateTypeContext<'a> {
 
     pub(super) fn collection(&self) -> &str {
         &self.collection
+    }
+
+    pub(super) fn query_type_name(&self) -> Option<&str> {
+        self.query_type_name.as_deref()
+    }
+
+    pub(super) fn mutation_type_name(&self) -> Option<&str> {
+        self.mutation_type_name.as_deref()
     }
 }

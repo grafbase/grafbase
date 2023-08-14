@@ -1308,6 +1308,7 @@ pub struct MongoDBConfiguration {
     pub data_source: String,
     pub database: String,
     pub host_url: String,
+    pub namespace: Option<String>,
 }
 
 #[derive(

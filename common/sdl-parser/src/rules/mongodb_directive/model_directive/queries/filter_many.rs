@@ -70,7 +70,7 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
     field.required_operation = Some(Operations::LIST);
     field.auth = create_ctx.model_auth().clone();
 
-    visitor_ctx.queries.push(field);
+    visitor_ctx.push_namespaced_query(create_ctx.query_type_name(), field);
 }
 
 fn register_collection_type(
