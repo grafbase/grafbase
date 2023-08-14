@@ -25,6 +25,7 @@ pub enum LogEventType<'a> {
 }
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct LogEvent<'a> {
     pub request_id: &'a str,
     pub r#type: LogEventType<'a>,
