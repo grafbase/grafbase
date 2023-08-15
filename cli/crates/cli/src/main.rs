@@ -102,7 +102,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
         SubCommand::Deploy => deploy(),
-        SubCommand::Link(cmd) => link(cmd.project.map(|ulid| ulid.to_string())),
+        SubCommand::Link(cmd) => link(cmd.project),
         SubCommand::Unlink => unlink(),
     }
 }

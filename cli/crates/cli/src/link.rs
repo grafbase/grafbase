@@ -5,6 +5,7 @@ use backend::api::{
 };
 use inquire::Select;
 use std::fmt::Display;
+use ulid::Ulid;
 
 #[derive(Debug)]
 struct AccountSelection(AccountWithProjects);
@@ -24,11 +25,11 @@ impl Display for ProjectSelection {
 }
 
 #[tokio::main]
-pub async fn link(project_id: Option<String>) -> Result<(), CliError> {
+pub async fn link(project_id: Option<Ulid>) -> Result<(), CliError> {
     project_link_validations().await.map_err(CliError::BackendApiError)?;
 
     if let Some(project_id) = project_id {
-        link::link_project(project_id)
+        link::link_project(project_id.to_string())
             .await
             .map_err(CliError::BackendApiError)?;
 
