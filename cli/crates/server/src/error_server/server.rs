@@ -1,3 +1,5 @@
+use std::net::Ipv4Addr;
+
 use crate::{
     errors::ServerError,
     event::{wait_for_event, Event},
@@ -9,7 +11,6 @@ use axum::{
     Json, Router,
 };
 use serde_json::{json, Value};
-use std::net::{Ipv4Addr, SocketAddr};
 use tower_http::trace::TraceLayer;
 
 #[allow(clippy::unused_async)]
@@ -45,9 +46,7 @@ pub async fn start(
         .with_state(error)
         .layer(TraceLayer::new_for_http());
 
-    let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
-
-    let server = axum::Server::bind(&socket_address)
+    let server = axum::Server::bind(&std::net::SocketAddr::from((Ipv4Addr::LOCALHOST, port)))
         .serve(router.into_make_service())
         .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
             event.should_restart_servers()

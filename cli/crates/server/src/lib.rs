@@ -21,13 +21,14 @@ let server_handle = server::start(PORT).unwrap();
 #[macro_use]
 extern crate log;
 
+mod atomics;
 mod bridge;
 mod consts;
 mod environment;
 mod error_server;
 mod event;
 mod file_watcher;
-mod pathfinder;
+mod proxy;
 mod servers;
 mod udf_builder;
 

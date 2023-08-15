@@ -1,3 +1,4 @@
+use crate::atomics::WORKER_PORT;
 use crate::consts::{
     ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
     MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT_PATH,
@@ -7,16 +8,18 @@ use crate::file_watcher::start_watcher;
 use crate::types::{ServerMessage, ASSETS_GZIP};
 use crate::udf_builder::install_wrangler;
 use crate::{bridge, errors::ServerError};
-use crate::{error_server, pathfinder};
+use crate::{error_server, proxy};
+use common::consts::MAX_PORT;
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project, SchemaLocation};
 use common::types::UdfKind;
 use flate2::read::GzDecoder;
-use futures_util::{try_join, FutureExt};
+use futures_util::FutureExt;
 use std::borrow::Cow;
 use std::env;
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::Path;
+use std::sync::atomic::Ordering;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
     fs,
@@ -48,7 +51,12 @@ const EVENT_BUS_BOUND: usize = 5;
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
 #[must_use]
-pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
+pub fn start(
+    port: u16,
+    search: bool,
+    watch: bool,
+    tracing: bool,
+) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
     let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
 
     let project = Project::get();
@@ -74,10 +82,10 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                             let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
                             watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
                         }) => { result }
-                        result = server_loop(port, watch, sender, event_bus, tracing) => { result }
+                        result = server_loop(port, search, watch, sender, event_bus, tracing) => { result }
                     }
                 } else {
-                    server_loop(port, watch, sender, event_bus, tracing).await
+                    server_loop(port, search, watch, sender, event_bus, tracing).await
                 }
             })
     });
@@ -86,35 +94,52 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
 }
 
 async fn server_loop(
-    worker_port: u16,
+    port: u16,
+    search: bool,
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
     tracing: bool,
 ) -> Result<(), ServerError> {
+    let proxy_event_bus = event_bus.clone();
+    let proxy_error_event_bus = event_bus.clone();
+    let listener = find_listener_for_available_port(search, port).await?;
+    let proxy_port = listener.local_addr().expect("must have a local addr").port();
+    let proxy_handle = tokio::spawn(async move {
+        if let Err(error) = proxy::start(listener, proxy_event_bus).await {
+            proxy_error_event_bus.send(Event::ProxyError).expect("must succeed");
+            Err(error)
+        } else {
+            Ok(())
+        }
+    });
     let mut path_changed = None;
     loop {
         let receiver = event_bus.subscribe();
+
         tokio::select! {
-            result = spawn_servers(worker_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
+            result = spawn_servers(proxy_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
             path = wait_for_event_and_match(receiver, |event| match event {
                 Event::Reload(path) => Some(path),
-                Event::BridgeReady => None
+                Event::BridgeReady |
+                Event::ProxyError => None,
             }) => {
                 trace!("reload");
                 let _: Result<_, _> = sender.send(ServerMessage::Reload(path.clone()));
                 path_changed = Some(path);
             }
+            _ = wait_for_event(event_bus.subscribe(), |event| *event == Event::ProxyError) => { break; }
         }
     }
+    proxy_handle.await?
 }
 
 #[allow(clippy::too_many_arguments)]
 #[tracing::instrument(level = "trace")]
 async fn spawn_servers(
-    worker_port: u16,
+    proxy_port: u16,
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
@@ -122,13 +147,16 @@ async fn spawn_servers(
     tracing: bool,
 ) -> Result<(), ServerError> {
     let bridge_event_bus = event_bus.clone();
-    let pathfinder_event_bus = event_bus.clone();
 
     let receiver = event_bus.subscribe();
 
     validate_dependencies().await?;
 
     let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
+
+    let worker_port = get_random_port_unchecked().await?;
+
+    WORKER_PORT.store(worker_port, Ordering::Relaxed);
 
     let ParsingResponse { mut detected_udfs } = match run_schema_parser(&environment_variables).await {
         Ok(parsing_response) => parsing_response,
@@ -176,8 +204,7 @@ async fn spawn_servers(
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
 
-    let ((bridge_listener, bridge_port), (pathfinder_listener, pathfinder_port)) =
-        try_join!(get_listener_for_random_port(), get_listener_for_random_port())?;
+    let (bridge_listener, bridge_port) = get_listener_for_random_port().await?;
 
     let mut bridge_handle = tokio::spawn(async move {
         bridge::start(
@@ -189,11 +216,6 @@ async fn spawn_servers(
             tracing,
         )
         .await
-    })
-    .fuse();
-
-    let pathfinder_handle = tokio::spawn(async move {
-        pathfinder::start(pathfinder_listener, pathfinder_port, worker_port, pathfinder_event_bus).await
     })
     .fuse();
 
@@ -217,7 +239,8 @@ async fn spawn_servers(
 
     let worker_port_string = worker_port.to_string();
     let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
-    let pathfinder_port_binding_string = format!("PATHFINDER_PORT={pathfinder_port}");
+    // TODO remove
+    let pathfinder_port_binding_string = "PATHFINDER_PORT=0".to_owned();
     let registry_text_blob_string = format!("REGISTRY={registry_path}");
 
     #[allow(unused_mut)]
@@ -281,7 +304,7 @@ async fn spawn_servers(
     trace!("Spawning {miniflare:?}");
     let miniflare = miniflare.spawn().map_err(ServerError::MiniflareCommandError)?;
 
-    let _: Result<_, _> = sender.send(ServerMessage::Ready(worker_port));
+    let _: Result<_, _> = sender.send(ServerMessage::Ready(proxy_port));
 
     let miniflare_output_result = miniflare.wait_with_output();
 
@@ -296,7 +319,6 @@ async fn spawn_servers(
                 .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
         }
         bridge_handle_result = bridge_handle => { bridge_handle_result??; }
-        pathfinder_handle_result = pathfinder_handle => { pathfinder_handle_result??; }
     }
 
     Ok(())
@@ -592,4 +614,40 @@ pub async fn get_listener_for_random_port() -> Result<(std::net::TcpListener, u1
         .map_err(|_| ServerError::AvailablePort)?;
     let port = listener.local_addr().map_err(|_| ServerError::AvailablePort)?.port();
     Ok((listener.into_std().map_err(|_| ServerError::AvailablePort)?, port))
+}
+
+pub async fn get_random_port_unchecked() -> Result<u16, ServerError> {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+        .await
+        .map_err(|_| ServerError::AvailablePort)?;
+    Ok(listener.local_addr().map_err(|_| ServerError::AvailablePort)?.port())
+}
+
+/// determines if a port or port range are available
+pub async fn find_listener_for_available_port(
+    search: bool,
+    start_port: u16,
+) -> Result<std::net::TcpListener, ServerError> {
+    if search {
+        find_listener_for_available_port_in_range(start_port..MAX_PORT).await
+    } else {
+        TcpListener::bind((Ipv6Addr::UNSPECIFIED, start_port))
+            .await
+            .map_err(|_| ServerError::PortInUse(start_port))?
+            .into_std()
+            .map_err(|_| ServerError::PortInUse(start_port))
+    }
+}
+
+/// finds an available port within a range
+pub async fn find_listener_for_available_port_in_range<R>(range: R) -> Result<std::net::TcpListener, ServerError>
+where
+    R: ExactSizeIterator<Item = u16>,
+{
+    for port in range {
+        if let Ok(listener) = TcpListener::bind((Ipv6Addr::UNSPECIFIED, port)).await {
+            return listener.into_std().map_err(|_| ServerError::AvailablePort);
+        }
+    }
+    Err(ServerError::AvailablePortMiniflare)
 }

@@ -9,12 +9,14 @@ pub enum Event {
     Reload(PathBuf),
     /// emitted when the bridge is ready to receive requests
     BridgeReady,
+    /// emitted when the proxy server has a startup error
+    ProxyError,
 }
 
 impl Event {
     pub fn should_restart_servers(&self) -> bool {
         match self {
-            Self::Reload(_) => true,
+            Self::Reload(_) | Self::ProxyError => true,
             Self::BridgeReady => false,
         }
     }
