@@ -13,13 +13,19 @@ use std::iter;
 /// # Errors
 ///
 /// see [`ApiError`]
+pub async fn project_link_validations() -> Result<(), ApiError> {
+    if project_linked().await? {
+        Err(ApiError::ProjectAlreadyLinked)
+    } else {
+        Ok(())
+    }
+}
+
+/// # Errors
+///
+/// see [`ApiError`]
 #[allow(clippy::module_name_repetitions)]
 pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiError> {
-    // TODO consider if we want to do this elsewhere
-    if project_linked().await? {
-        return Err(ApiError::ProjectAlreadyLinked);
-    }
-
     let client = create_client().await?;
 
     let query = Viewer::build(());
@@ -84,7 +90,7 @@ pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiE
 ///
 /// see [`ApiError`]
 #[allow(clippy::module_name_repetitions)]
-pub async fn link_project(account_id: String, project_id: String) -> Result<(), ApiError> {
+pub async fn link_project(project_id: String) -> Result<(), ApiError> {
     let project = Project::get();
     match project.dot_grafbase_directory_path.try_exists() {
         Ok(true) => {}
@@ -94,10 +100,7 @@ pub async fn link_project(account_id: String, project_id: String) -> Result<(), 
         Err(error) => return Err(ApiError::ReadProjectDotGrafbaseFolder(error)),
     }
     let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
-    tokio::fs::write(
-        &project_metadata_path,
-        ProjectMetadata { account_id, project_id }.to_string(),
-    )
-    .await
-    .map_err(ApiError::WriteProjectMetadataFile)
+    tokio::fs::write(&project_metadata_path, ProjectMetadata { project_id }.to_string())
+        .await
+        .map_err(ApiError::WriteProjectMetadataFile)
 }
