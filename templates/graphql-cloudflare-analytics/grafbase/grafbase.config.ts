@@ -3,12 +3,25 @@ import { g, connector, config } from '@grafbase/sdk'
 const cloudflare = connector.GraphQL({
   url: 'https://api.cloudflare.com/client/v4/graphql',
   headers: (headers) => {
-    headers.static('Authorization', `Bearer ${g.env('API_TOKEN')}`)
+    headers.set('Authorization', { forward: 'Authorization' })
   }
 })
 
-g.datasource(cloudflare, { namespace: 'Cloudflare' })
+g.datasource(cloudflare)
 
 export default config({
-  schema: g
+  schema: g,
+  cache: {
+    rules: [
+      {
+        types: ['Query'],
+        maxAge: 60
+      }
+    ]
+  },
+  auth: {
+    rules: (rules) => {
+      rules.public()
+    }
+  }
 })

@@ -1,10 +1,11 @@
 use crate::{
+    cli_input::LogLevelFilters,
     errors::CliError,
     watercolor::{self, watercolor},
 };
 use backend::{
     project::{ConfigType, Template},
-    types::LogEventType,
+    types::{NestedRequestScopedMessage, RequestCompletedOutcome},
 };
 use colored::Colorize;
 use common::consts::GRAFBASE_TS_CONFIG_FILE_NAME;
@@ -109,7 +110,11 @@ pub fn goodbye() {
 }
 
 pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
-    println!("- {} compiling {udf_kind} {udf_name}...", watercolor!("wait", @Cyan));
+    println!(
+        "{} compiling {udf_kind} {udf_name}...",
+        watercolor!("wait", @Cyan),
+        udf_name = udf_name.to_string().bold()
+    );
 }
 
 pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time::Duration) {
@@ -119,48 +124,49 @@ pub fn complete_udf_build(udf_kind: UdfKind, udf_name: &str, duration: std::time
         format!("{:.1}s", duration.as_secs_f64())
     };
     println!(
-        "- {} compiled {udf_kind} {udf_name} successfully in {formatted_duration}",
-        watercolor!("event", @BrightMagenta)
+        "{} compiled {udf_kind} {udf_name} successfully in {formatted_duration}",
+        watercolor!("event", @BrightMagenta),
+        udf_name = udf_name.to_string().bold()
     );
 }
 
-pub fn udf_message(
-    udf_kind: UdfKind,
-    udf_name: &str,
-    message: &str,
-    message_level: LogLevel,
-    log_level_filter: Option<LogLevel>,
-) {
-    let Some(log_level_filter) = log_level_filter else {
-        return;
-    };
-    if message_level > log_level_filter {
-        return;
-    }
-
-    let colour = match message_level {
-        LogLevel::Debug => watercolor::colored::Color::BrightBlack,
-        LogLevel::Error => watercolor::colored::Color::Red,
-        LogLevel::Info => watercolor::colored::Color::Cyan,
-        LogLevel::Warn => watercolor::colored::Color::Yellow,
-    };
-    println!("{}", format!("[{udf_kind} '{udf_name}'] {message}").color(colour));
+#[allow(clippy::needless_pass_by_value)]
+fn format_response_body(indent: &str, body: Option<String>, content_type: Option<String>) -> Option<String> {
+    use itertools::Itertools;
+    body.and_then(|body| match content_type.as_deref() {
+        Some("application/json") => serde_json::from_str::<serde_json::Value>(&body)
+            .ok()
+            .and_then(|value| serde_json::to_string_pretty(&value).ok()),
+        Some("text/plain") => Some(body),
+        other => {
+            trace!("unsupported content type for tracing the body: {other:?}");
+            None
+        }
+    })
+    .map(|formatted_body| {
+        formatted_body
+            .lines()
+            .map(|line| format!("{indent}{indent}{line}"))
+            .join("\n")
+    })
 }
 
-pub fn operation_log(log_event_type: LogEventType, log_level_filter: Option<LogLevel>) {
-    let Some(log_level_filter) = log_level_filter else {
-        return;
-    };
-    if log_level_filter < LogLevel::Info {
+pub fn operation_log(
+    name: Option<String>,
+    duration: std::time::Duration,
+    request_completed: RequestCompletedOutcome,
+    nested_events: Vec<NestedRequestScopedMessage>,
+    log_level_filters: LogLevelFilters,
+) {
+    if !log_level_filters.graphql_operations.should_display(LogLevel::Info) {
         return;
     }
 
-    let (name, r#type, colour, duration) = match log_event_type {
-        LogEventType::OperationStarted { .. } => return,
-        LogEventType::OperationCompleted { name, duration, r#type } => {
+    let (name, r#type, colour, duration) = match request_completed {
+        RequestCompletedOutcome::Success { r#type } => {
             let colour = match r#type {
                 common::types::OperationType::Query { is_introspection } => {
-                    if is_introspection && log_level_filter < LogLevel::Debug {
+                    if is_introspection && !log_level_filters.graphql_operations.should_display(LogLevel::Debug) {
                         return;
                     }
                     watercolor::colored::Color::Green
@@ -172,16 +178,86 @@ pub fn operation_log(log_event_type: LogEventType, log_level_filter: Option<LogL
             };
             (name, Some(r#type), colour, duration)
         }
-        LogEventType::BadRequest { name, duration } => (name, None, watercolor::colored::Color::Red, duration),
+        RequestCompletedOutcome::BadRequest => (name, None, watercolor::colored::Color::Red, duration),
     };
 
     let formatted_duration = format_duration(duration);
-    let formatted_name = name.map(|name| format!(" {name}")).unwrap_or_default();
-    let formatted_type = r#type.map_or_else(|| "operation".to_owned(), |r#type| r#type.to_string());
+    let formatted_name = name
+        .map(|name| format!(" {}", name.to_string().bold()))
+        .unwrap_or_default();
+    let formatted_type = r#type.map_or_else(|| "operation".to_owned(), |value| value.to_string());
     println!(
-        "- {formatted_type}{formatted_name} {formatted_duration}",
+        "{formatted_type}{formatted_name} {formatted_duration}",
         formatted_type = formatted_type.color(colour)
     );
+
+    let indent = "  ";
+
+    for nested_event in nested_events {
+        match nested_event {
+            NestedRequestScopedMessage::UdfMessage {
+                udf_kind,
+                udf_name,
+                level,
+                message,
+            } => {
+                if !log_level_filters.functions.should_display(level) {
+                    continue;
+                }
+
+                let message_colour = match level {
+                    LogLevel::Debug => watercolor::colored::Color::BrightBlack,
+                    LogLevel::Error => watercolor::colored::Color::Red,
+                    LogLevel::Info => watercolor::colored::Color::Cyan,
+                    LogLevel::Warn => watercolor::colored::Color::Yellow,
+                };
+                println!(
+                    "{indent}{} {} {}",
+                    watercolor!("{udf_kind}", @Blue),
+                    udf_name.bold(),
+                    message.to_string().color(message_colour)
+                );
+            }
+            NestedRequestScopedMessage::NestedRequest {
+                url,
+                method,
+                status_code,
+                duration,
+                body,
+                content_type,
+            } => {
+                let required_log_level = if status_code >= 400 {
+                    LogLevel::Error
+                } else {
+                    LogLevel::Info
+                };
+                if !log_level_filters.fetch_requests.should_display(required_log_level) {
+                    continue;
+                }
+
+                // A minor presentational tweak for URLs.
+                let url: url::Url = url.parse().expect("must be a valid URL surely");
+                let mut url_string = url.to_string();
+                if url.path() == "/" && url.query().is_none() {
+                    url_string = url_string.trim_end_matches('/').to_owned();
+                }
+
+                let formatted_duration = format_duration(duration);
+                println!(
+                    "{indent}{} {} {} {status_code} {formatted_duration}",
+                    watercolor!("fetch", @Yellow),
+                    method.bold(),
+                    url_string.bold(),
+                );
+
+                if log_level_filters.fetch_requests.should_display(LogLevel::Debug) {
+                    if let Some(formatted_body) = format_response_body(indent, body, content_type) {
+                        println!("{formatted_body}");
+                    }
+                }
+            }
+        }
+    }
 }
 
 pub fn format_duration(duration: std::time::Duration) -> String {
@@ -250,6 +326,10 @@ pub fn deploy_success() {
 
 pub fn linked(name: &str) {
     watercolor::output!("\n✨ Successfully linked your local project to {name}!", @BrightBlue);
+}
+
+pub fn linked_non_interactive() {
+    watercolor::output!("✨ Successfully linked your local project!", @BrightBlue);
 }
 
 pub fn unlinked() {

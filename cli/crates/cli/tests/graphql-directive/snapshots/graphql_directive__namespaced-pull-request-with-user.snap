@@ -4,6 +4,7 @@ expression: "client.gql::<Value>(NAMESPACED_QUERY).variables(json!({ \"id\" : \"
 ---
 data:
   gothub:
+    serverVersion: "1"
     pullRequestOrIssue:
       __typename: GothubPullRequest
       title: Creating the thing

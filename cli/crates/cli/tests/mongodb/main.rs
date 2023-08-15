@@ -1,9 +1,14 @@
 #![allow(unused_crate_dependencies)]
 
+mod create_many;
 mod create_one;
+mod delete_many;
 mod delete_one;
 mod find_many;
 mod find_one;
+mod update_many;
+mod update_one;
+
 #[path = "../utils/mod.rs"]
 mod utils;
 
@@ -16,7 +21,7 @@ use serde_json::{json, Value};
 use utils::environment::Environment;
 use wiremock::{
     matchers::{body_json, header, method, path},
-    Mock, MockServer, ResponseTemplate,
+    Mock, MockServer, ResponseTemplate, Times,
 };
 
 const MONGODB_API_KEY: &str = "FAKE KEY";
@@ -33,6 +38,7 @@ struct Server {
     server: MockServer,
     request: Value,
     response: ResponseTemplate,
+    expected_requests: u64,
 }
 
 impl Server {
@@ -56,6 +62,7 @@ impl Server {
             server,
             request: Self::create_request(collection, request),
             response,
+            expected_requests: 1,
         }
     }
 
@@ -84,6 +91,7 @@ impl Server {
             server,
             request: Self::create_request(collection, request),
             response,
+            expected_requests: 1,
         }
     }
 
@@ -111,6 +119,35 @@ impl Server {
             server,
             request: Self::create_request(collection, request),
             response,
+            expected_requests: 1,
+        }
+    }
+
+    /// Construct a mock server to catch a createMany  query.
+    ///
+    /// ## Parameters
+    ///
+    /// - config: the models and types as SDL
+    /// - collection: the collection we're expected to query
+    /// - documents: the expected documents we send to `MongoDB`
+    /// - response: the mock response we expect `MongoDB` to send us
+    ///
+    /// [docs](https://www.mongodb.com/docs/atlas/app-services/data-api/openapi/#operation/insertMany)
+    pub async fn create_many(config: impl fmt::Display, collection: &'static str, body: Value) -> Self {
+        let server = MockServer::start().await;
+        let request = body.as_object().cloned().unwrap();
+
+        let response = ResponseTemplate::new(200).set_body_json(json!({
+            "insertedIds": ["5ca4bbc7a2dd94ee5816238d", "5ca4bbc7a2dd94ee5816238e"]
+        }));
+
+        Self {
+            action: "insertMany",
+            config: Self::merge_config(config, server.address()),
+            server,
+            request: Self::create_request(collection, request),
+            response,
+            expected_requests: 1,
         }
     }
 
@@ -138,6 +175,95 @@ impl Server {
             server,
             request: Self::create_request(collection, request),
             response,
+            expected_requests: 1,
+        }
+    }
+
+    /// Construct a mock server to catch a updateOne query.
+    ///
+    /// ## Parameters
+    ///
+    /// - config: the models and types as SDL
+    /// - collection: the collection we're expected to query
+    /// - filter: the expected filter we send to `MongoDB`
+    /// - update: the expected update statement we send to `MongoDB`
+    /// - response: the mock response we expect `MongoDB` to send us
+    ///
+    /// [docs](https://www.mongodb.com/docs/atlas/app-services/data-api/openapi/#operation/updateOne)
+    async fn update_one(config: impl fmt::Display, collection: &'static str, body: Value) -> Self {
+        let server = MockServer::start().await;
+        let request = body.as_object().cloned().unwrap();
+
+        let response = ResponseTemplate::new(200).set_body_json(json!({
+            "matchedCount": 1,
+            "modifiedCount": 1,
+        }));
+
+        Self {
+            action: "updateOne",
+            config: Self::merge_config(config, server.address()),
+            server,
+            request: Self::create_request(collection, request),
+            response,
+            expected_requests: 1,
+        }
+    }
+
+    /// Construct a mock server to catch a updateMany query.
+    ///
+    /// ## Parameters
+    ///
+    /// - config: the models and types as SDL
+    /// - collection: the collection we're expected to query
+    /// - filter: the expected filter we send to `MongoDB`
+    /// - update: the expected update statement we send to `MongoDB`
+    /// - response: the mock response we expect `MongoDB` to send us
+    ///
+    /// [docs](https://www.mongodb.com/docs/atlas/app-services/data-api/openapi/#operation/updateMany)
+    async fn update_many(config: impl fmt::Display, collection: &'static str, body: Value) -> Self {
+        let server = MockServer::start().await;
+        let request = body.as_object().cloned().unwrap();
+
+        let response = ResponseTemplate::new(200).set_body_json(json!({
+            "matchedCount": 1,
+            "modifiedCount": 1,
+        }));
+
+        Self {
+            action: "updateMany",
+            config: Self::merge_config(config, server.address()),
+            server,
+            request: Self::create_request(collection, request),
+            response,
+            expected_requests: 1,
+        }
+    }
+
+    /// Construct a mock server to catch a deleteMany query.
+    ///
+    /// ## Parameters
+    ///
+    /// - config: the models and types as SDL
+    /// - collection: the collection we're expected to query
+    /// - filter: the expected filter we send to `MongoDB`
+    /// - response: the mock response we expect `MongoDB` to send us
+    ///
+    /// [docs](https://www.mongodb.com/docs/atlas/app-services/data-api/openapi/#operation/deleteMany)
+    async fn delete_many(config: impl fmt::Display, collection: &'static str, body: Value) -> Self {
+        let server = MockServer::start().await;
+        let request = body.as_object().cloned().unwrap();
+
+        let response = ResponseTemplate::new(200).set_body_json(json!({
+            "deletedCount": 2
+        }));
+
+        Self {
+            action: "deleteMany",
+            config: Self::merge_config(config, server.address()),
+            server,
+            request: Self::create_request(collection, request),
+            response,
+            expected_requests: 1,
         }
     }
 
@@ -151,7 +277,7 @@ impl Server {
             .and(header(USER_AGENT, "Grafbase"))
             .and(body_json(&self.request))
             .respond_with(self.response.clone())
-            .expect(1)
+            .expect(Times::from(self.expected_requests))
             .mount(&self.server)
             .await;
 
@@ -164,12 +290,42 @@ impl Server {
         let client = env.create_async_client().with_api_key();
 
         client.poll_endpoint(30, 300).await;
-        client.gql(request).await
+
+        let response = client.gql(request).await;
+        self.debug_received_requests().await;
+
+        response
+    }
+
+    /// Prints all received requests for debugging.
+    pub async fn debug_received_requests(&self) {
+        let requests = self.server.received_requests().await.unwrap();
+
+        println!("# Captured requests");
+
+        for request in requests {
+            let body: Value = request.body_json().unwrap();
+            println!("## URL");
+            println!("{}", request.url);
+
+            println!("## Headers");
+            for header in request.headers {
+                println!("- {}: {:?}", header.0, header.1);
+            }
+
+            println!("## Body");
+            println!("{}", serde_json::to_string_pretty(&body).unwrap());
+        }
     }
 
     /// Changes the response from the default.
     pub fn set_response(&mut self, response: ResponseTemplate) {
         self.response = response;
+    }
+
+    /// Changes how many time we expect the request to be called.
+    pub fn expected_requests(&mut self, requests: u64) {
+        self.expected_requests = requests;
     }
 
     fn merge_config(config: impl fmt::Display, address: &SocketAddr) -> String {

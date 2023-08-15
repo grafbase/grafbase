@@ -1,5 +1,5 @@
 use backend::project::ConfigType;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     server,
@@ -8,12 +8,12 @@ use crate::{
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_header_forwarding() {
-    server::run(54303).await;
+    let port = server::run().await;
 
     let mut env = Environment::init_async().await;
-    let client = start_grafbase(&mut env, schema(54303)).await;
+    let client = start_grafbase(&mut env, schema(port)).await;
 
-    let response = client
+    let mut response = client
         .gql::<Value>(
             r#"
                 query {
@@ -30,12 +30,25 @@ async fn test_header_forwarding() {
         .header("Authorization", "Basic XYZ")
         .await;
 
+    // Remove the host header because it's dynamic
+    response.get_mut("data").and_then(|data| {
+        let headers = data.get_mut("headers")?;
+
+        let host_header_index = headers
+            .as_array()?
+            .iter()
+            .enumerate()
+            .find(|(_, header)| header.get("name") == Some(&json!("host")))?
+            .0;
+
+        headers.as_array_mut()?.remove(host_header_index);
+        Some(())
+    });
+
     insta::assert_yaml_snapshot!(response, @r###"
     ---
     data:
       headers:
-        - name: host
-          value: "127.0.0.1:54303"
         - name: connection
           value: keep-alive
         - name: another-one

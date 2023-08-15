@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{net::TcpListener, time::Duration};
 
 use async_graphql::{EmptyMutation, EmptySubscription, Interface, Object, Schema, SimpleObject, Union, ID};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -19,13 +19,24 @@ async fn graphql_handler(headers: HeaderMap, req: GraphQLRequest) -> GraphQLResp
     schema.execute(req.into_inner()).await.into()
 }
 
-pub(crate) async fn run(port: u16) {
+pub(crate) async fn run() -> u16 {
     let app = Router::new().route("/", post(graphql_handler));
 
+    let socket = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = socket.local_addr().unwrap().port();
+
     tokio::spawn(async move {
-        let addr = SocketAddr::from(([127, 0, 0, 1], port));
-        axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
+        axum::Server::from_tcp(socket)
+            .unwrap()
+            .serve(app.into_make_service())
+            .await
+            .unwrap();
     });
+
+    // Give the server time to start
+    tokio::time::sleep(Duration::from_millis(20)).await;
+
+    port
 }
 
 struct Query {
@@ -34,6 +45,11 @@ struct Query {
 
 #[Object]
 impl Query {
+    // A top level scalar field for testing
+    async fn server_version(&self) -> &str {
+        "1"
+    }
+
     async fn pull_request_or_issue(&self, id: ID) -> Option<PullRequestOrIssue> {
         if id == "1" {
             return Some(PullRequestOrIssue::PullRequest(PullRequest {

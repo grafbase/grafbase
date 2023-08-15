@@ -55,13 +55,14 @@ tower-http = { version = "0.4", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 unicode-normalization = "0.1"
 uuid = { version = "1", features = ["v4"] }
+ulid = "1"
 version-compare = "0.1"
 which = "4"
 
 # Same version as Tantivy
 tantivy-fst = "0.4.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.29.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.32.2" }
 
 [dev-dependencies]
 serde_json = "1"

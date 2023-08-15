@@ -106,7 +106,6 @@ pub async fn create(
             tokio::fs::write(
                 &project_metadata_path,
                 ProjectMetadata {
-                    account_id: account_id.to_owned(),
                     project_id: project_create_success.project.id.into_inner().clone(),
                 }
                 .to_string(),
@@ -116,7 +115,15 @@ pub async fn create(
 
             deploy::deploy().await?;
 
-            Ok(project_create_success.project.production_branch.domains)
+            let domains = project_create_success
+                .project
+                .production_branch
+                .domains
+                .iter()
+                .map(|domain| format!("{domain}/graphql"))
+                .collect();
+
+            Ok(domains)
         }
         ProjectCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
         ProjectCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),

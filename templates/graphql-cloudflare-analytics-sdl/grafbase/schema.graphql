@@ -1,6 +1,7 @@
 extend schema
   @graphql(
-    name: "Cloudflare"
+    # Use namespaces if you connect multiple APIs to avoid conflicts
+    # namespace: "Cloudflare"
     url: "https://api.cloudflare.com/client/v4/graphql"
-    headers: [{ name: "Authorization", value: "Bearer {{ env.API_TOKEN }}" }]
+    headers: [{ name: "Authorization", forward: "Authorization" }]
   )

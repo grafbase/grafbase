@@ -12,12 +12,14 @@ permissions:
   checks: write
   # Allow repo checkout
   contents: write
-  # Allow PRs read
-  pull-requests: read
+  # Allow PRs write
+  pull-requests: write
+  # Allow issues write
+  issues: write
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: release/959d2c7-2023-07-31
+  ASSETS_VERSION: release/431d243-2023-08-14
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
   CARGO_PROFILE_DEV_DEBUG: 0
@@ -25,6 +27,9 @@ env:
   DO_NOT_TRACK: 1
   GRAFBASE_RUDDERSTACK_WRITE_KEY: ${{ secrets.GRAFBASE_RUDDERSTACK_WRITE_KEY }}
   GRAFBASE_RUDDERSTACK_DATAPLANE_URL: ${{ secrets.GRAFBASE_RUDDERSTACK_DATAPLANE_URL }}
+  CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL: https://d267a8ab95268b272f5147e8939c9d38.r2.cloudflarestorage.com
+  CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL: https://pub-b0013effd6614b32a4fb9bf338b90658.r2.dev
+  CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME: cli-releases
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -159,11 +164,17 @@ jobs:
           name: windows-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
 
-      - name: Upload the binary as an artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: x86_64-pc-windows-msvc.exe
-          path: cli/target/x86_64-pc-windows-msvc/release/grafbase.exe
+      - if: ${{ false }}
+        name: Upload the binary of the change to R2
+        run: |
+          aws s3api put-object \
+            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
+            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
+            --key ${GITHUB_SHA}/x86_64-pc-windows-msvc/grafbase.exe \
+            --body cli/target/x86_64-pc-windows-msvc.exe/release/grafbase.exe
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
       - name: Parse version tag
         if: startsWith(github.ref, 'refs/tags/')
@@ -233,11 +244,17 @@ jobs:
           name: linux-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
 
-      - name: Upload the binary as an artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.archs.target }}
-          path: cli/target/${{ matrix.archs.target }}/release/grafbase
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+        name: Upload the binary of the change to R2
+        run: |
+          aws s3api put-object \
+            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
+            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
+            --key ${GITHUB_SHA}/${{ matrix.archs.target }}/grafbase \
+            --body cli/target/${{ matrix.archs.target }}/release/grafbase
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
       - name: Parse version tag
         if: startsWith(github.ref, 'refs/tags/')
@@ -301,11 +318,17 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - name: Upload the binary as an artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.target }}
-          path: cli/target/${{ matrix.target }}/release/grafbase
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+        name: Upload the binary of the change to R2
+        run: |
+          aws s3api put-object \
+            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
+            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
+            --key ${GITHUB_SHA}/${{ matrix.target }}/grafbase \
+            --body cli/target/${{ matrix.target }}/release/grafbase
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload ${{ matrix.target }} binary
@@ -325,3 +348,18 @@ jobs:
     secrets:
       CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
       NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+
+  post-comment-with-asset-urls:
+    needs: [windows, linux, darwin]
+    runs-on: buildjet-2vcpu-ubuntu-2204
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Comment PR
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            ### Built binaries:
+
+            * [Linux (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase)
+            * [Mac (M1)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase)
+            * [Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase)

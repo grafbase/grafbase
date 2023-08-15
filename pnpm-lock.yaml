@@ -13,7 +13,7 @@ importers:
         version: link:packages/eslint-config-grafbase
       prettier:
         specifier: latest
-        version: 3.0.0
+        version: 3.0.1
       turbo:
         specifier: latest
         version: 1.10.12
@@ -279,8 +279,8 @@ importers:
         specifier: 3.0.4
         version: 3.0.4
       '@urql/core':
-        specifier: 4.1.0
-        version: 4.1.0(graphql@16.7.1)
+        specifier: 4.1.1
+        version: 4.1.1(graphql@16.7.1)
       graphql:
         specifier: 16.7.1
         version: 16.7.1
@@ -288,8 +288,8 @@ importers:
         specifier: 1.6.2
         version: 1.6.2
       wonka:
-        specifier: 6.3.3
-        version: 6.3.3
+        specifier: 6.3.4
+        version: 6.3.4
     devDependencies:
       eslint:
         specifier: ^8.0.0
@@ -2155,11 +2155,11 @@ packages:
       '@typescript-eslint/types': 5.59.2
       eslint-visitor-keys: 3.4.0
 
-  /@urql/core@4.1.0(graphql@16.7.1):
-    resolution: {integrity: sha512-mQLO6RAOhITvq6oktFzsEuAngdVwJbTuS+XaZi6evUQu797MXhI0smldEkWg9osvn/I2dyO57oR3LpxpMr9nTg==}
+  /@urql/core@4.1.1(graphql@16.7.1):
+    resolution: {integrity: sha512-iIoAy6BY+BUZZ7KIpnMT7C9q+ULf5ZCVxGe3/i7WZSJBrQa2h1QkIMhL+8fAKmOn9gt83jSIv5drWWnhZ9izEA==}
     dependencies:
       '@0no-co/graphql.web': 1.0.1(graphql@16.7.1)
-      wonka: 6.3.3
+      wonka: 6.3.4
     transitivePeerDependencies:
       - graphql
     dev: false
@@ -5547,8 +5547,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  /prettier@3.0.0:
-    resolution: {integrity: sha512-zBf5eHpwHOGPC47h0zrPyNn+eAEIdEzfywMoYn2XPi0P44Zp0tSq64rq0xAREh4auw2cJZHo9QUob+NqCQky4g==}
+  /prettier@3.0.1:
+    resolution: {integrity: sha512-fcOWSnnpCrovBsmFZIGIy9UqK2FaI7Hqax+DIO0A9UxeVoY4iweyaFjS5TavZN97Hfehph0nhsZnjlVKzEQSrQ==}
     engines: {node: '>=14'}
     hasBin: true
     dev: true
@@ -6721,8 +6721,8 @@ packages:
     dependencies:
       isexe: 2.0.0
 
-  /wonka@6.3.3:
-    resolution: {integrity: sha512-id4wYGsT6aEc8/3+by7NTHvTe0DwsOjv7vah0K0+AorV1MHKuS3OQ2g8DGsem1OEXrNShbVLPsg4kG2O6GZ2SQ==}
+  /wonka@6.3.4:
+    resolution: {integrity: sha512-CjpbqNtBGNAeyNS/9W6q3kSkKE52+FjIj7AkFlLr11s/VWGUu6a2CdYSdGxocIhIVjaW/zchesBQUKPVU69Cqg==}
     dev: false
 
   /word-wrap@1.2.3:

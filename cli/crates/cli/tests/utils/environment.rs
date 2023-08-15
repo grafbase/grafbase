@@ -260,6 +260,16 @@ impl Environment {
         .unwrap()
     }
 
+    pub fn grafbase_link_non_interactive(&self, project: &str) -> Output {
+        cmd!(cargo_bin("grafbase"), "link", "--project", project)
+            .dir(&self.directory)
+            .stdout_capture()
+            .stderr_capture()
+            .unchecked()
+            .run()
+            .unwrap()
+    }
+
     pub fn grafbase_init_template(&self, name: Option<&str>, template: &str) {
         if let Some(name) = name {
             cmd!(cargo_bin("grafbase"), "init", name, "--template", template)

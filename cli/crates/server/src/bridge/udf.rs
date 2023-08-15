@@ -19,13 +19,29 @@ use super::types::UdfInvocation;
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UdfMessage {
+    logged_at: u64,
     message: String,
     level: LogLevel,
+}
+
+#[serde_with::serde_as]
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FetchRequest {
+    logged_at: u64,
+    url: String,
+    #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+    duration: std::time::Duration,
+    method: String,
+    status_code: u16,
+    body: Option<String>,
+    content_type: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UdfResponse {
+    fetch_requests: Vec<FetchRequest>,
     log_entries: Vec<UdfMessage>,
     value: serde_json::Value,
 }
@@ -50,13 +66,18 @@ pub async fn invoke_udf_endpoint(
     trace!("UDF invocation\n\n{:#?}\n", payload);
 
     let environment = Environment::get();
-    let udf_kind = payload.udf_kind;
+    let UdfInvocation {
+        request_id,
+        name: udf_name,
+        payload,
+        udf_kind,
+    } = payload;
 
     let udf_worker_port = loop {
         let notify = {
             let mut udf_builds: tokio::sync::MutexGuard<'_, _> = handler_state.udf_builds.lock().await;
 
-            if let Some(udf_build) = udf_builds.get(&(payload.name.clone(), udf_kind)) {
+            if let Some(udf_build) = udf_builds.get(&(udf_name.clone(), udf_kind)) {
                 match udf_build {
                     UdfBuild::Succeeded { worker_port, .. } => break *worker_port,
                     UdfBuild::Failed => return Err(ApiError::UdfInvocation),
@@ -76,7 +97,7 @@ pub async fn invoke_udf_endpoint(
             } else {
                 let notify = Arc::new(Notify::new());
                 udf_builds.insert(
-                    (payload.name.clone(), udf_kind),
+                    (udf_name.clone(), udf_kind),
                     UdfBuild::InProgress { notify: notify.clone() },
                 );
                 notify
@@ -88,7 +109,7 @@ pub async fn invoke_udf_endpoint(
             .bridge_sender
             .send(ServerMessage::StartUdfBuild {
                 udf_kind,
-                udf_name: payload.name.clone(),
+                udf_name: udf_name.clone(),
             })
             .await
             .unwrap();
@@ -99,17 +120,17 @@ pub async fn invoke_udf_endpoint(
             environment,
             &handler_state.environment_variables,
             udf_kind,
-            &payload.name,
+            &udf_name,
             tracing,
         )
         .and_then(|(package_json_path, wrangler_toml_path)| {
-            super::udf::spawn_miniflare(udf_kind, &payload.name, package_json_path, wrangler_toml_path, tracing)
+            super::udf::spawn_miniflare(udf_kind, &udf_name, package_json_path, wrangler_toml_path, tracing)
         })
         .await
         {
             Ok((miniflare_handle, worker_port)) => {
                 handler_state.udf_builds.lock().await.insert(
-                    (payload.name.clone(), udf_kind),
+                    (udf_name.clone(), udf_kind),
                     UdfBuild::Succeeded {
                         miniflare_handle,
                         worker_port,
@@ -121,7 +142,7 @@ pub async fn invoke_udf_endpoint(
                     .bridge_sender
                     .send(ServerMessage::CompleteUdfBuild {
                         udf_kind,
-                        udf_name: payload.name.clone(),
+                        udf_name: udf_name.clone(),
                         duration: start.elapsed(),
                     })
                     .await
@@ -130,15 +151,11 @@ pub async fn invoke_udf_endpoint(
                 break worker_port;
             }
             Err(err) => {
-                error!(
-                    "Build of {udf_kind} '{udf_name}' failed: {err:?}",
-                    udf_name = payload.name
-                );
+                error!("Build of {udf_kind} '{udf_name}' failed: {err:?}");
                 handler_state
                     .bridge_sender
                     .send(ServerMessage::CompilationError(format!(
-                        "{udf_kind} '{udf_name}' failed to build: {err}",
-                        udf_name = payload.name
+                        "{udf_kind} '{udf_name}' failed to build: {err}"
                     )))
                     .await
                     .unwrap();
@@ -149,17 +166,18 @@ pub async fn invoke_udf_endpoint(
             .udf_builds
             .lock()
             .await
-            .insert((payload.name.clone(), udf_kind), UdfBuild::Failed);
+            .insert((udf_name.clone(), udf_kind), UdfBuild::Failed);
         notify.notify_waiters();
         return Err(ApiError::UdfInvocation);
     };
 
     super::udf::invoke(
         &handler_state.bridge_sender,
+        &request_id,
         udf_worker_port,
         udf_kind,
-        &payload.name,
-        &payload.payload,
+        &udf_name,
+        &payload,
     )
     .await
     .map(Json)
@@ -294,6 +312,7 @@ pub async fn spawn_miniflare(
 
 pub async fn invoke(
     bridge_sender: &tokio::sync::mpsc::Sender<ServerMessage>,
+    request_id: &str,
     udf_worker_port: u16,
     udf_kind: UdfKind,
     udf_name: &str,
@@ -312,21 +331,70 @@ pub async fn invoke(
         .await
         .map_err(|_| ApiError::UdfInvocation)?;
 
-    let UdfResponse { log_entries, value } = serde_json::from_str(&json_string).map_err(|err| {
+    let UdfResponse {
+        fetch_requests,
+        log_entries,
+        value,
+    } = serde_json::from_str(&json_string).map_err(|err| {
         error!("deserialization from '{json_string}' failed: {err:?}");
         ApiError::UdfInvocation
     })?;
 
-    for UdfMessage { level, message } in log_entries {
-        bridge_sender
-            .send(ServerMessage::UdfMessage {
-                udf_kind,
-                udf_name: udf_name.to_owned(),
-                level,
-                message,
-            })
-            .await
-            .unwrap();
+    let mut messages = vec![];
+
+    for UdfMessage {
+        logged_at: logged_time,
+        level,
+        message,
+    } in log_entries
+    {
+        messages.push((
+            logged_time,
+            ServerMessage::RequestScopedMessage {
+                request_id: request_id.to_owned(),
+                event_type: crate::types::LogEventType::NestedEvent(
+                    crate::types::NestedRequestScopedMessage::UdfMessage {
+                        udf_kind,
+                        udf_name: udf_name.to_owned(),
+                        level,
+                        message,
+                    },
+                ),
+            },
+        ));
+    }
+
+    for FetchRequest {
+        logged_at: logged_time,
+        url,
+        duration,
+        method,
+        status_code,
+        body,
+        content_type,
+    } in fetch_requests
+    {
+        messages.push((
+            logged_time,
+            ServerMessage::RequestScopedMessage {
+                request_id: request_id.to_owned(),
+                event_type: crate::types::LogEventType::NestedEvent(
+                    crate::types::NestedRequestScopedMessage::NestedRequest {
+                        url,
+                        duration,
+                        method,
+                        status_code,
+                        body,
+                        content_type,
+                    },
+                ),
+            },
+        ));
+    }
+
+    messages.sort_by_key(|(logged_time, _)| *logged_time);
+    for (_, message) in messages {
+        bridge_sender.send(message).await.unwrap();
     }
 
     Ok(value)
