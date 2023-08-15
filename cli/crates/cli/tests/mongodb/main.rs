@@ -66,35 +66,6 @@ impl Server {
         }
     }
 
-    /// Construct a mock server to catch a namespaced findOne query.
-    ///
-    /// ## Parameters
-    ///
-    /// - config: the models and types as SDL
-    /// - collection: the collection we're expected to query
-    /// - body: the expected request body we send to `MongoDB`
-    ///
-    /// [docs](https://www.mongodb.com/docs/atlas/api/data-api-resources/#find-a-single-document)
-    pub async fn find_one_namespaced(
-        namespace: &str,
-        config: impl fmt::Display,
-        collection: &'static str,
-        body: Value,
-    ) -> Self {
-        let server = MockServer::start().await;
-        let request = body.as_object().cloned().unwrap();
-        let response = ResponseTemplate::new(200).set_body_json(json!({ "document": null }));
-
-        Self {
-            action: "findOne",
-            config: Self::merge_namespaced_config(namespace, config, server.address()),
-            server,
-            request: Self::create_request(collection, request),
-            response,
-            expected_requests: 1,
-        }
-    }
-
     /// Construct a mock server to catch a findMany query.
     ///
     /// ## Parameters
@@ -117,40 +88,6 @@ impl Server {
         Self {
             action: "find",
             config: Self::merge_config(config, server.address()),
-            server,
-            request: Self::create_request(collection, request),
-            response,
-            expected_requests: 1,
-        }
-    }
-
-    /// Construct a mock server to catch a namespaced findMany query.
-    ///
-    /// ## Parameters
-    ///
-    /// - config: the models and types as SDL
-    /// - collection: the collection we're expected to query
-    /// - filter: the expected filter we send to `MongoDB`
-    /// - projection: the expected projection we send to `MongoDB`
-    /// - response: the mock response we expect `MongoDB` to send us
-    ///
-    /// [docs](https://www.mongodb.com/docs/atlas/api/data-api-resources/#find-a-single-document)
-    pub async fn find_many_namespaced(
-        namespace: &str,
-        config: impl fmt::Display,
-        collection: &'static str,
-        body: Value,
-    ) -> Self {
-        let server = MockServer::start().await;
-        let request = body.as_object().cloned().unwrap();
-
-        let response = ResponseTemplate::new(200).set_body_json(json!({
-            "documents": []
-        }));
-
-        Self {
-            action: "find",
-            config: Self::merge_namespaced_config(namespace, config, server.address()),
             server,
             request: Self::create_request(collection, request),
             response,
@@ -581,11 +518,6 @@ impl Server {
             println!("## Body");
             println!("{}", serde_json::to_string_pretty(&body).unwrap());
         }
-    }
-
-    /// Changes the response from the default.
-    pub fn set_response(&mut self, response: ResponseTemplate) {
-        self.response = response;
     }
 
     /// Changes how many time we expect the request to be called.
