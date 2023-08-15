@@ -534,20 +534,32 @@ async fn entrypoint_query_field_resolver() {
         ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
     ]));
     env.grafbase_dev();
-    let token = generate_hs512_token("cli_user", &[]);
-    let private_client = env
-        .create_async_client()
-        .with_header("Authorization", &format!("Bearer {token}"));
-    private_client.poll_endpoint(30, 300).await;
     let public_client = env.create_async_client();
-    insta::assert_json_snapshot!(
-        "entrypoint_query_field_resolver__private_entrypoint_field_query_should_succeed",
-        private_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
-    );
+    public_client.poll_endpoint(30, 300).await;
     insta::assert_json_snapshot!(
         "entrypoint_query_field_resolver__public_entrypoint_field_query_should_fail",
         public_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
     );
+    {
+        let token = generate_hs512_token("cli_user", &["reader"]);
+        let reader_client = env
+            .create_async_client()
+            .with_header("Authorization", &format!("Bearer {token}"));
+        insta::assert_json_snapshot!(
+            "entrypoint_query_field_resolver__reader_with_entrypoint_field_query_should_succeed",
+            reader_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
+        );
+    }
+    {
+        let token = generate_hs512_token("cli_user", &["writer"]);
+        let writer_client = env
+            .create_async_client()
+            .with_header("Authorization", &format!("Bearer {token}"));
+        insta::assert_json_snapshot!(
+            "entrypoint_query_field_resolver__writer_with_entrypoint_field_query_should_fail",
+            writer_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
+        );
+    }
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -561,20 +573,33 @@ async fn entrypoint_mutation_field_resolver_mixed() {
         ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
     ]));
     env.grafbase_dev();
-    let token = generate_hs512_token("cli_user", &[]);
-    let private_client = env
-        .create_async_client()
-        .with_header("Authorization", &format!("Bearer {token}"));
-    private_client.poll_endpoint(30, 300).await;
     let public_client = env.create_async_client();
-    insta::assert_json_snapshot!(
-        "entrypoint_mutation_field_resolver_mixed__private_entrypoint_field_mutation_should_succeed",
-        private_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
-    );
+    public_client.poll_endpoint(30, 300).await;
     insta::assert_json_snapshot!(
         "entrypoint_mutation_field_resolver_mixed__public_entrypoint_field_mutation_should_fail",
         public_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
     );
+
+    {
+        let token = generate_hs512_token("cli_user", &["writer"]);
+        let writer_client = env
+            .create_async_client()
+            .with_header("Authorization", &format!("Bearer {token}"));
+        insta::assert_json_snapshot!(
+            "entrypoint_mutation_field_resolver_mixed___writer_with_entrypoint_field_mutation_should_succeed",
+            writer_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
+        );
+    }
+    {
+        let token = generate_hs512_token("cli_user", &["reader"]);
+        let reader_client = env
+            .create_async_client()
+            .with_header("Authorization", &format!("Bearer {token}"));
+        insta::assert_json_snapshot!(
+            "entrypoint_mutation_field_resolver_mixed__reader_entrypoint_field_mutation_should_fail",
+            reader_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
+        );
+    }
 }
 
 #[tokio::test(flavor = "multi_thread")]
