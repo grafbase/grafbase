@@ -32,11 +32,14 @@ slugify = "0.1.0"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+ulid = "1"
 uuid = { version = "1", features = ["v4"] }
+url = "2"
 webbrowser = "0.8"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.32.0-rc.1" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.32.0-rc.1" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.32.2" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.32.2" }
+
 
 [dev-dependencies]
 async-graphql = "5"
