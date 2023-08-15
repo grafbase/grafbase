@@ -1,10 +1,11 @@
 use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
 use backend::api::{
-    link,
+    link::{self, project_link_validations},
     types::{AccountWithProjects, Project},
 };
 use inquire::Select;
 use std::fmt::Display;
+use ulid::Ulid;
 
 #[derive(Debug)]
 struct AccountSelection(AccountWithProjects);
@@ -24,7 +25,19 @@ impl Display for ProjectSelection {
 }
 
 #[tokio::main]
-pub async fn link() -> Result<(), CliError> {
+pub async fn link(project_id: Option<Ulid>) -> Result<(), CliError> {
+    project_link_validations().await.map_err(CliError::BackendApiError)?;
+
+    if let Some(project_id) = project_id {
+        link::link_project(project_id.to_string())
+            .await
+            .map_err(CliError::BackendApiError)?;
+
+        report::linked_non_interactive();
+
+        return Ok(());
+    }
+
     let accounts = link::get_viewer_data_for_link()
         .await
         .map_err(CliError::BackendApiError)?;
@@ -46,7 +59,7 @@ pub async fn link() -> Result<(), CliError> {
         .prompt()
         .map_err(handle_inquire_error)?;
 
-    link::link_project(selected_account.id, selected_project.id)
+    link::link_project(selected_project.id)
         .await
         .map_err(CliError::BackendApiError)?;
 

@@ -106,7 +106,6 @@ pub async fn create(
             tokio::fs::write(
                 &project_metadata_path,
                 ProjectMetadata {
-                    account_id: account_id.to_owned(),
                     project_id: project_create_success.project.id.into_inner().clone(),
                 }
                 .to_string(),

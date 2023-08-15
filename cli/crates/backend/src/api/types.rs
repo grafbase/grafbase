@@ -46,7 +46,6 @@ impl<'a> ToString for Credentials<'a> {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectMetadata {
-    pub account_id: String,
     pub project_id: String,
 }
 
