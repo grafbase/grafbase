@@ -6,6 +6,7 @@ use common::{
     types::LogLevel,
 };
 use std::{fmt, path::PathBuf};
+use ulid::Ulid;
 
 const DEFAULT_PORT: u16 = 4000;
 
@@ -195,7 +196,7 @@ impl CreateCommand {
 pub struct LinkCommand {
     /// The id of the linked project
     #[arg(short, long, value_name = "PROJECT_ID")]
-    pub project: Option<String>,
+    pub project: Option<Ulid>,
 }
 
 #[derive(Debug, Parser)]
