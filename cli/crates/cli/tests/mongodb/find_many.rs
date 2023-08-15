@@ -56,6 +56,62 @@ async fn id_eq() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn id_eq_namespaced() {
+    let config = indoc::formatdoc! {r#"
+        type User @model(connector: "{MONGODB_CONNECTOR}", collection: "users") {{
+          name: String
+        }}
+    "#};
+
+    let body = json!({
+        "filter": {
+            "_id": { "$eq": { "$oid": "5ca4bbc7a2dd94ee5816238d" } },
+        },
+        "projection": {
+            "_id": 1
+        },
+        "limit": 101
+    });
+
+    let response = ResponseTemplate::new(200).set_body_json(json!({
+        "documents": [{
+            "_id": "5ca4bbc7a2dd94ee5816238d",
+        }]
+    }));
+
+    let mut server = Server::find_many_namespaced("bongo", &config, "users", body).await;
+    server.set_response(response);
+
+    let request = server.request(indoc::indoc! {r#"
+        query {
+          bongo {
+            userCollection(filter: { id: { eq: "5ca4bbc7a2dd94ee5816238d" } }, first: 100) {
+              edges { node { id } }
+            }
+          }
+        }   
+    "#});
+
+    insta::assert_json_snapshot!(request.await, @r###"
+    {
+      "data": {
+        "bongo": {
+          "userCollection": {
+            "edges": [
+              {
+                "node": {
+                  "id": "5ca4bbc7a2dd94ee5816238d"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+    "###);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn cursor() {
     let config = indoc::formatdoc! {r#"
         type User @model(connector: "{MONGODB_CONNECTOR}", collection: "users") {{
