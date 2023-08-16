@@ -2,10 +2,6 @@ name: Download CLI assets
 description: Download CLI assets from Grafbase CDN
 
 inputs:
-  working-directory:
-    description: Where to run
-    required: false
-    default: cli
   cdn:
     description: CDN to use when fetching assets
     required: true
@@ -18,7 +14,7 @@ runs:
   steps:
     - name: Fetch CDN assets
       shell: bash
-      working-directory: ${{ inputs.working-directory }}
+      working-directory: cli
       run: |
         curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.tar.gz --output assets.tar.gz --fail
         curl https://${{ inputs.cdn }}/cli/pathfinder/static.tgz --output static.tgz --fail

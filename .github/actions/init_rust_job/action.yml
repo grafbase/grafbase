@@ -33,24 +33,24 @@ runs:
 
     - name: Extract the Rust version to use from the `rust-toolchain.toml` file
       shell: bash
+      working-directory: cli
       run: |
-        cd cli
         rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
         echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
 
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@master
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: ${{ env.RUST_VERSION }}
-        components: clippy, rustfmt
+        components: clippy,rustfmt
+        cache: 'false'
 
     - name: rustup
       shell: bash
-      run: |
-        rustup target list
+      run: rustup target list
 
     - name: Install cargo-nextest & libs linux
-      if: ${{ startsWith(inputs.platform, 'linux') }}
+      if: ${{ inputs.platform == 'linux' }}
       shell: bash
       run: |
         curl -LsSf https://get.nexte.st/latest/${{ inputs.platform }} | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
@@ -59,11 +59,9 @@ runs:
     - name: Install cargo-nextest windows
       if: ${{ inputs.platform == 'windows' }}
       shell: bash
-      run: |
-        curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+      run: curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
 
     - name: Install cargo-nextest macos
       if: ${{ inputs.platform == 'macos' }}
       shell: bash
-      run: |
-        curl -LsSf https://get.nexte.st/latest/mac | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+      run: curl -LsSf https://get.nexte.st/latest/mac | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin

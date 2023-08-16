@@ -18,6 +18,10 @@ on:
       NPM_ACCESS_TOKEN:
         required: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   release:
     name: Release CLI
@@ -91,9 +95,8 @@ jobs:
           path: cli/npm/x86_64-pc-windows-msvc
 
       - name: Process artifacts
-        shell: bash
+        working-directory: cli/npm
         run: |
-          cd cli/npm
           mkdir github
           cp aarch64-apple-darwin/grafbase github/grafbase-aarch64-apple-darwin
           cp x86_64-apple-darwin/grafbase github/grafbase-x86_64-apple-darwin
@@ -107,25 +110,23 @@ jobs:
           chmod +x aarch64-unknown-linux-musl/grafbase
 
       - name: Install cargo-binstall and cargo-about
-        shell: bash
         run: |
           curl -LsSf https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
           cargo binstall --no-symlinks --no-confirm cargo-about
 
       - name: Generate licenses
-        shell: bash
+        working-directory: cli
         run: |
-          (cd cli && cargo about generate -o "licenses.html" about.hbs)
-          find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
-          find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
+          cargo about generate -o "licenses.html" about.hbs
+          find crates -maxdepth 1 -type d -exec cp licenses.html {} \;
+          find npm -maxdepth 1 -type d -exec cp licenses.html {} \;
 
       - name: Publish npm
-        shell: bash
         env:
           INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
+        working-directory: cli/npm
         run: |
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
-          cd cli/npm
           PUBLISH_ARGUMENTS=()
           if [[ $INPUT_PRERELEASE != "false" ]]; then
               echo "Running prerelease: $INPUT_PRERELEASE"
@@ -136,7 +137,7 @@ jobs:
           (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd .. && npm publish "${PUBLISH_ARGUMENTS[@]}")
 
       - name: Github Release
         id: gh-release

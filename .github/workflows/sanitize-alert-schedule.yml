@@ -6,11 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  # Allow checks read
   checks: write
-  # Allow repo checkout
   contents: write
-  # Allow PRs read
   pull-requests: read
 
 env:
@@ -49,9 +46,9 @@ jobs:
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
-          notification_title: "{workflow} has {status_message}"
-          message_format: "{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}>"
-          footer: "<{run_url}|View Run>"
-          notify_when: "failure"
+          notification_title: '{workflow} has {status_message}'
+          message_format: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}>'
+          footer: '<{run_url}|View Run>'
+          notify_when: 'failure'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

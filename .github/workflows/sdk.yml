@@ -17,10 +17,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   release-sdk:
     name: Release @grafbase/sdk
-    needs: []
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Get sources
@@ -40,12 +43,10 @@ jobs:
 
       - name: Get pnpm store directory
         id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-      - uses: buildjet/cache@v3
-        name: Setup pnpm cache
+      - name: Setup pnpm cache
+        uses: buildjet/cache@v3
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -53,17 +54,13 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: |
-          pnpm install --ignore-scripts --frozen-lockfile
+        run: pnpm install --ignore-scripts --frozen-lockfile
 
       - name: Build @grafbase/sdk
-        shell: bash
         working-directory: ./packages/grafbase-sdk
-        run: |
-          pnpm build
+        run: pnpm build
 
       - name: Publish @grafbase/sdk
-        shell: bash
         run: |
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
           cd packages/grafbase-sdk

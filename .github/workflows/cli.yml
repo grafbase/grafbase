@@ -8,13 +8,9 @@ on:
       - 'cli-*'
 
 permissions:
-  # Allow checks read
   checks: write
-  # Allow repo checkout
   contents: write
-  # Allow PRs write
   pull-requests: write
-  # Allow issues write
   issues: write
 
 env:
@@ -33,6 +29,11 @@ env:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   detect-change-type:
@@ -54,7 +55,7 @@ jobs:
               - '.github/actions/**/*'
 
   prettier:
-    needs: [detect-change-type]
+    needs: detect-change-type
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
@@ -62,13 +63,11 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run prettier on workspace
-        shell: bash
-        run: |
-          cd cli
-          npx prettier --check .
+        working-directory: cli
+        run: npx prettier --check .
 
   lint:
-    needs: [detect-change-type]
+    needs: detect-change-type
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
@@ -94,7 +93,7 @@ jobs:
           test: false
 
   individual-builds:
-    needs: [detect-change-type]
+    needs: detect-change-type
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     strategy:
       fail-fast: false
@@ -119,7 +118,6 @@ jobs:
           assets_version: ${{ env.ASSETS_VERSION }}
 
       - name: Individual package build
-        shell: bash
         run: |
           set -euo pipefail
           cd cli/crates
@@ -130,7 +128,7 @@ jobs:
           cd ${{ matrix.package }} && cargo check --all-features
 
   windows:
-    needs: [lint]
+    needs: lint
     runs-on: windows-latest-8-cores
     steps:
       - name: Get sources
@@ -155,9 +153,8 @@ jobs:
           lint: false
 
       - name: Build release
-        run: |
-          cd cli
-          cargo build --release --target x86_64-pc-windows-msvc --timings
+        working-directory: cli
+        run: cargo build --release --target x86_64-pc-windows-msvc --timings
 
       - uses: actions/upload-artifact@v3
         with:
@@ -178,7 +175,6 @@ jobs:
 
       - name: Parse version tag
         if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
         run: |
           VERSION_BUMP="${{ github.ref_name }}"
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
@@ -189,11 +185,10 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.VERSION_BUMP }}-windows
-          path: |
-            cli/target/x86_64-pc-windows-msvc/release/grafbase.exe
+          path: cli/target/x86_64-pc-windows-msvc/release/grafbase.exe
 
   linux:
-    needs: [lint]
+    needs: lint
     strategy:
       fail-fast: false
       matrix:
@@ -235,9 +230,8 @@ jobs:
           lint: false
 
       - name: Build release
-        run: |
-          cd cli
-          cargo build --release --target ${{ matrix.archs.target }} --timings
+        working-directory: cli
+        run: cargo build --release --target ${{ matrix.archs.target }} --timings
 
       - uses: actions/upload-artifact@v3
         with:
@@ -268,11 +262,10 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
-          path: |
-            cli/target/${{ matrix.archs.target }}/release/grafbase
+          path: cli/target/${{ matrix.archs.target }}/release/grafbase
 
   darwin:
-    needs: [lint]
+    needs: lint
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -302,9 +295,8 @@ jobs:
           lint: false
 
       - name: Build ${{ matrix.target }} release
-        run: |
-          cd cli
-          cargo build --release --target ${{ matrix.target }} --timings
+        working-directory: cli
+        run: cargo build --release --target ${{ matrix.target }} --timings
 
       - uses: actions/upload-artifact@v3
         with:
