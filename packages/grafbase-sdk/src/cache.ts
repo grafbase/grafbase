@@ -80,11 +80,10 @@ export class GlobalCache {
           )}`
         : ''
 
-      const scopes = rule.scopes ? `,\n      scopes: [${
-          rule.scopes
-            .map(scope => renderAccessScope(scope))
-            .join(', ')
-        }]`
+      const scopes = rule.scopes
+        ? `,\n      scopes: [${rule.scopes
+            .map((scope) => renderAccessScope(scope))
+            .join(', ')}]`
         : ''
 
       return `    {${types}${maxAge}${staleWhileRevalidate}${mutationInvalidation}${scopes}\n    }`
@@ -104,8 +103,8 @@ export function renderMutationInvalidation(val: MutationInvalidation): string {
 
 export function renderAccessScope(scope: AccessScope): string {
   if (typeof scope === 'object') {
-    const key = Object.keys(scope)[0];
-    const value = Object.values(scope)[0];
+    const key = Object.keys(scope)[0]
+    const value = Object.values(scope)[0]
     return `{ ${key}: "${value}" }`
   } else {
     return scope
@@ -123,7 +122,7 @@ function renderTypes(types: CachedTypes): string {
         } else {
           let fields = type.fields
             ? type.fields.map((field) => `"${field}"`).join(',')
-            : '';
+            : ''
           fields = fields ? `,\n        fields: [${fields}]\n` : '\n'
 
           return `{\n        name: "${type.name}"${fields}      }`

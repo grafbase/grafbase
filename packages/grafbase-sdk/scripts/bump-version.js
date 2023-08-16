@@ -23,14 +23,17 @@ fs.writeFileSync(`changelog/${pkg.version}.md`, changelog)
 
 childProcess.execSync(`git add changelog/${pkg.version}.md`)
 
-var fullChangelog = "# Changelog\n\n"
+var fullChangelog = '# Changelog\n\n'
 
-fs.readdirSync('changelog/').sort().reverse().forEach(file => {
-  const stat = fs.statSync(`changelog/${file}`)
-  const modified = stat.ctime.toDateString()
-  const version = file.replace('.md', '')
+fs.readdirSync('changelog/')
+  .sort()
+  .reverse()
+  .forEach((file) => {
+    const stat = fs.statSync(`changelog/${file}`)
+    const modified = stat.ctime.toDateString()
+    const version = file.replace('.md', '')
 
-  fullChangelog += `## [${version}] - ${modified}\n\n[CHANGELOG](changelog/${file})\n\n`
-})
+    fullChangelog += `## [${version}] - ${modified}\n\n[CHANGELOG](changelog/${file})\n\n`
+  })
 
 fs.writeFileSync('CHANGELOG.md', fullChangelog)
