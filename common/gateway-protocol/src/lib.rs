@@ -76,9 +76,19 @@ pub struct ExecutionHealthRequest {
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
+pub struct UdfHealthResult {
+    pub udf_kind: UdfKind,
+    pub udf_name: String,
+    pub worker_name: String,
+    pub ready: bool,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExecutionHealthResponse {
     pub deployment_id: String,
     pub ready: bool,
+    #[serde(default)]
+    pub udf_results: Vec<UdfHealthResult>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
