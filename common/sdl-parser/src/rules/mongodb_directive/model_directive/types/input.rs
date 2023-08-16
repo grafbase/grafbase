@@ -61,8 +61,13 @@ fn register_list_input(
     container_name: &str,
     is_composite: bool,
 ) -> String {
-    let composite_input = is_composite
-        .then(|| field_type.override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str()))));
+    let composite_input = is_composite.then(|| {
+        Type::nullable(
+            field_type
+                .override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str())))
+                .base,
+        )
+    });
 
     let optional_field_type = Type::nullable(field_type.base.clone());
     let type_name = format!("MongoDB{container_name}{}", field_name.to_camel());
@@ -183,8 +188,13 @@ fn register_push_input(
     container_name: &str,
     is_composite: bool,
 ) -> String {
-    let composite_input = is_composite
-        .then(|| field_type.override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str()))));
+    let composite_input = is_composite.then(|| {
+        Type::nullable(
+            field_type
+                .override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str())))
+                .base,
+        )
+    });
 
     let type_name = format!("MongoDB{container_name}{}PushInput", field_name.to_camel());
     let mut fields = Vec::new();
@@ -245,8 +255,13 @@ fn register_add_to_set_input(
     container_name: &str,
     is_composite: bool,
 ) -> String {
-    let composite_input = is_composite
-        .then(|| field_type.override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str()))));
+    let composite_input = is_composite.then(|| {
+        Type::nullable(
+            field_type
+                .override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str())))
+                .base,
+        )
+    });
 
     let type_name = format!("MongoDB{container_name}{}AddToSetInput", field_name.to_camel());
     let mut fields = Vec::new();
