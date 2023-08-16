@@ -4,6 +4,7 @@ import {
   DefaultValueType,
   renderDefault
 } from './typedefs/default'
+import { EnumDefinition } from './typedefs/enum'
 import { InputDefinition } from './typedefs/input'
 import { ListDefinition } from './typedefs/list'
 import { ReferenceDefinition } from './typedefs/reference'
@@ -16,6 +17,7 @@ export type InputType =
   | ListDefinition
   | InputDefinition
   | InputDefaultDefinition
+  | EnumDefinition<any, any>
 
 /** The possible types of an output parameters of a query. */
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
