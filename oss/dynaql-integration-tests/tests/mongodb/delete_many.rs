@@ -1,6 +1,4 @@
-mod pagination;
-
-use dynaql_integration_tests::{with_mongodb, with_namespaced_mongodb};
+use dynaql_integration_tests::{with_mongodb, with_namespaced_mongodb, GetPath};
 use expect_test::expect;
 use indoc::indoc;
 use serde_json::json;
@@ -15,9 +13,9 @@ fn empty() {
 
     let response = with_mongodb(schema, |api| async move {
         let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: { age: { eq: 39 } }) {
-                edges { node { age } }  
+            mutation {
+              userDeleteMany(filter: { age: { eq: 39 } }) {
+                deletedCount
               }
             }
         "#};
@@ -28,8 +26,8 @@ fn empty() {
     let expected = expect![[r#"
         {
           "data": {
-            "userCollection": {
-              "edges": []
+            "userDeleteMany": {
+              "deletedCount": 0
             }
           }
         }"#]];
@@ -45,12 +43,12 @@ fn namespaced() {
         }
     "#};
 
-    let response = with_namespaced_mongodb("myMongo", schema, |api| async move {
+    let response = with_namespaced_mongodb("mongo", schema, |api| async move {
         let query = indoc! {r#"
-            query {
-              myMongo {
-                userCollection(first: 10, filter: { age: { eq: 39 } }) {
-                  edges { node { age } }  
+            mutation {
+              mongo {
+                userDeleteMany(filter: { age: { eq: 39 } }) {
+                  deletedCount
                 }
               }
             }
@@ -62,54 +60,12 @@ fn namespaced() {
     let expected = expect![[r#"
         {
           "data": {
-            "myMongo": {
-              "userCollection": {
-                "edges": []
+            "mongo": {
+              "userDeleteMany": {
+                "deletedCount": 0
               }
             }
           }
-        }"#]];
-
-    expected.assert_eq(&response);
-}
-
-#[test]
-fn missing_first_or_last() {
-    let schema = indoc! {r#"
-        type User @model(connector: "test", collection: "users") {
-          age: Int!
-        }
-    "#};
-
-    let response = with_mongodb(schema, |api| async move {
-        let query = indoc! {r#"
-            query {
-              userCollection(filter: { age: { eq: 39 } }) {
-                edges { node { age } }  
-              }
-            }
-        "#};
-
-        api.execute(query).await
-    });
-
-    let expected = expect![[r#"
-        {
-          "data": null,
-          "errors": [
-            {
-              "message": "please limit your selection by setting either the first or last parameter",
-              "locations": [
-                {
-                  "line": 2,
-                  "column": 3
-                }
-              ],
-              "path": [
-                "userCollection"
-              ]
-            }
-          ]
         }"#]];
 
     expected.assert_eq(&response);
@@ -132,9 +88,22 @@ fn eq() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { eq: 39 } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: { age: { eq: 39 } }) {
+              userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
@@ -150,7 +119,220 @@ fn eq() {
               "edges": [
                 {
                   "node": {
-                    "age": 39
+                    "age": 38
+                  }
+                },
+                {
+                  "node": {
+                    "age": 40
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn renamed_eq() {
+    let schema = indoc! {r#"
+        type User @model(connector: "test", collection: "users") {
+          age: Int! @map(name: "renamed")
+        }
+    "#};
+
+    let response = with_mongodb(schema, |api| async move {
+        let documents = json!([
+            { "renamed": 38 },
+            { "renamed": 39 },
+            { "renamed": 40 },
+        ]);
+
+        api.create_many("users", documents).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { eq: 39 } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
+                edges { node { age } }  
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "age": 38
+                  }
+                },
+                {
+                  "node": {
+                    "age": 40
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn nested() {
+    let schema = indoc! {r#"
+        type Age {
+          number: Int
+        }
+
+        type User @model(connector: "test", collection: "users") {
+          age: Age!
+        }
+    "#};
+
+    let response = with_mongodb(schema, |api| async move {
+        let documents = json!([
+            { "age": { "number": 38 } },
+            { "age": { "number": 39 } },
+            { "age": { "number": 40 } },
+        ]);
+
+        api.create_many("users", documents).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { number: { eq: 39 } } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
+                edges { node { age { number } } }  
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "age": {
+                      "number": 38
+                    }
+                  }
+                },
+                {
+                  "node": {
+                    "age": {
+                      "number": 40
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn nested_renamed() {
+    let schema = indoc! {r#"
+        type Age {
+          number: Int @map(name: "renamed")
+        }
+
+        type User @model(connector: "test", collection: "users") {
+          age: Age! @map(name: "renamed")
+        }
+    "#};
+
+    let response = with_mongodb(schema, |api| async move {
+        let documents = json!([
+            { "renamed": { "renamed": 38 } },
+            { "renamed": { "renamed": 39 } },
+            { "renamed": { "renamed": 40 } },
+        ]);
+
+        api.create_many("users", documents).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { number: { eq: 39 } } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
+                edges { node { age { number } } }  
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "age": {
+                      "number": 38
+                    }
+                  }
+                },
+                {
+                  "node": {
+                    "age": {
+                      "number": 40
+                    }
                   }
                 }
               ]
@@ -188,24 +370,29 @@ fn nested_eq() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
+                data: {
+                  b: { c: { eq: "test" } }
+                  d: { eq: "other" }
+                }
+                other: { eq: 1 }
+              }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(
-                filter: {
-                  data: {
-                    b: { c: { eq: "test" } }
-                    d: { eq: "other" }
-                  }
-                  other: { eq: 1 }
-                },
-                first: 100
-              ) {
-                edges {
-                  node {
-                    data { b { c } d }
-                    other
-                  }
-                }
+              userCollection(first: 10) {
+                edges { node { data { b { c } d } other} }  
               }
             }
         "#};
@@ -222,11 +409,22 @@ fn nested_eq() {
                   "node": {
                     "data": {
                       "b": {
-                        "c": "test"
+                        "c": "jest"
                       },
-                      "d": "other"
+                      "d": "brother"
                     },
-                    "other": 1
+                    "other": 2
+                  }
+                },
+                {
+                  "node": {
+                    "data": {
+                      "b": {
+                        "c": "gest"
+                      },
+                      "d": "nothing"
+                    },
+                    "other": 3
                   }
                 }
               ]
@@ -254,9 +452,22 @@ fn ne() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { ne: 39 } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":2}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: { age: { ne: 39 } }) {
+              userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
@@ -272,12 +483,7 @@ fn ne() {
               "edges": [
                 {
                   "node": {
-                    "age": 38
-                  }
-                },
-                {
-                  "node": {
-                    "age": 40
+                    "age": 39
                   }
                 }
               ]
@@ -305,9 +511,22 @@ fn gt() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { gt: 39 } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: { age: { gt: 39 } }) {
+              userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
@@ -323,7 +542,12 @@ fn gt() {
               "edges": [
                 {
                   "node": {
-                    "age": 40
+                    "age": 38
+                  }
+                },
+                {
+                  "node": {
+                    "age": 39
                   }
                 }
               ]
@@ -351,9 +575,22 @@ fn lt() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { lt: 39 } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: { age: { lt: 39 } }) {
+              userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
@@ -369,7 +606,12 @@ fn lt() {
               "edges": [
                 {
                   "node": {
-                    "age": 38
+                    "age": 39
+                  }
+                },
+                {
+                  "node": {
+                    "age": 40
                   }
                 }
               ]
@@ -397,9 +639,22 @@ fn gte() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { gte: 39 } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":2}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: { age: { gte: 39 } }) {
+              userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
@@ -415,12 +670,7 @@ fn gte() {
               "edges": [
                 {
                   "node": {
-                    "age": 39
-                  }
-                },
-                {
-                  "node": {
-                    "age": 40
+                    "age": 38
                   }
                 }
               ]
@@ -448,9 +698,22 @@ fn lte() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { lte: 39 } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":2}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: { age: { lte: 39 } }) {
+              userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
@@ -466,12 +729,7 @@ fn lte() {
               "edges": [
                 {
                   "node": {
-                    "age": 38
-                  }
-                },
-                {
-                  "node": {
-                    "age": 39
+                    "age": 40
                   }
                 }
               ]
@@ -499,9 +757,22 @@ fn r#in() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { in: [38, 40] } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":2}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: { age: { in: [38, 40] } }) {
+              userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
@@ -517,12 +788,7 @@ fn r#in() {
               "edges": [
                 {
                   "node": {
-                    "age": 38
-                  }
-                },
-                {
-                  "node": {
-                    "age": 40
+                    "age": 39
                   }
                 }
               ]
@@ -550,9 +816,22 @@ fn nin() {
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { age: { nin: [38, 40] } }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: { age: { nin: [38, 40] } }) {
+              userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
@@ -568,7 +847,12 @@ fn nin() {
               "edges": [
                 {
                   "node": {
-                    "age": 39
+                    "age": 38
+                  }
+                },
+                {
+                  "node": {
+                    "age": 40
                   }
                 }
               ]
@@ -597,12 +881,25 @@ fn all() {
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: { ALL: [
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { ALL: [
                 { age: { eq: 39 } },
                 { name: { eq: "Alice" } }
               ]}) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
@@ -618,7 +915,13 @@ fn all() {
               "edges": [
                 {
                   "node": {
-                    "name": "Alice",
+                    "name": "Bob",
+                    "age": 38
+                  }
+                },
+                {
+                  "node": {
+                    "name": "Tim",
                     "age": 39
                   }
                 }
@@ -648,12 +951,25 @@ fn none() {
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: { NONE: [
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { NONE: [
                 { age: { eq: 38 } },
                 { name: { eq: "Alice" } }
               ]}) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
@@ -669,7 +985,13 @@ fn none() {
               "edges": [
                 {
                   "node": {
-                    "name": "Tim",
+                    "name": "Bob",
+                    "age": 38
+                  }
+                },
+                {
+                  "node": {
+                    "name": "Alice",
                     "age": 39
                   }
                 }
@@ -695,16 +1017,30 @@ fn any() {
             { "age": 38, "name": "Bob" },
             { "age": 39, "name": "Alice" },
             { "age": 39, "name": "Tim" },
+            { "age": 40, "name": "Rachel" }
         ]);
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: { ANY: [
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { ANY: [
                 { age: { eq: 39 } },
                 { name: { eq: "Bob" } }
               ]}) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":3}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
@@ -720,20 +1056,8 @@ fn any() {
               "edges": [
                 {
                   "node": {
-                    "name": "Bob",
-                    "age": 38
-                  }
-                },
-                {
-                  "node": {
-                    "name": "Alice",
-                    "age": 39
-                  }
-                },
-                {
-                  "node": {
-                    "name": "Tim",
-                    "age": 39
+                    "name": "Rachel",
+                    "age": 40
                   }
                 }
               ]
@@ -748,26 +1072,38 @@ fn any() {
 fn not() {
     let schema = indoc! {r#"
         type User @model(connector: "test", collection: "users") {
-          name: String!
           age: Int!
         }
     "#};
 
     let response = with_mongodb(schema, |api| async move {
         let documents = json!([
-            { "age": 38, "name": "Bob" },
-            { "age": 39, "name": "Alice" },
-            { "age": 39, "name": "Tim" },
+            { "age": 38 },
+            { "age": 39 },
+            { "age": 39 },
         ]);
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: {
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
                 age: { not: { eq: 39 } }
               }) {
-                edges { node { name age } }  
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
+                edges { node { age } }  
               }
             }
         "#};
@@ -782,8 +1118,12 @@ fn not() {
               "edges": [
                 {
                   "node": {
-                    "name": "Bob",
-                    "age": 38
+                    "age": 39
+                  }
+                },
+                {
+                  "node": {
+                    "age": 39
                   }
                 }
               ]
@@ -822,11 +1162,24 @@ fn date_eq() {
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: {
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
                 birthday: { eq: "2022-01-12" }
               }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { birthday } }  
               }
             }
@@ -842,7 +1195,7 @@ fn date_eq() {
               "edges": [
                 {
                   "node": {
-                    "birthday": "2022-01-12"
+                    "birthday": "2022-01-23"
                   }
                 }
               ]
@@ -877,11 +1230,24 @@ fn datetime_eq() {
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: {
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
                 birthday: { eq: "2022-01-12T02:33:23.067+04:00" }
               }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { birthday } }  
               }
             }
@@ -897,7 +1263,7 @@ fn datetime_eq() {
               "edges": [
                 {
                   "node": {
-                    "birthday": "2022-01-11T22:33:23.067Z"
+                    "birthday": "2022-01-12T02:33:23.067Z"
                   }
                 }
               ]
@@ -938,11 +1304,24 @@ fn timestamp_eq() {
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: {
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
                 registered: { eq: 1565545684 }
               }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { registered } }  
               }
             }
@@ -958,7 +1337,7 @@ fn timestamp_eq() {
               "edges": [
                 {
                   "node": {
-                    "registered": 1565545684
+                    "registered": 1565545687
                   }
                 }
               ]
@@ -979,18 +1358,31 @@ fn simple_array_all() {
 
     let response = with_mongodb(schema, |api| async move {
         let documents = json!([
-            { "data": [1, 2, 3] },
+            { "data": [4, 2, 0] },
             { "data": [2, 3, 4] },
             { "data": [6, 6, 6] }
         ]);
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: {
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
                 data: { all: [2, 3, 4] }
               }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { data } }  
               }
             }
@@ -1007,9 +1399,18 @@ fn simple_array_all() {
                 {
                   "node": {
                     "data": [
+                      4,
                       2,
-                      3,
-                      4
+                      0
+                    ]
+                  }
+                },
+                {
+                  "node": {
+                    "data": [
+                      6,
+                      6,
+                      6
                     ]
                   }
                 }
@@ -1032,17 +1433,30 @@ fn simple_array_size() {
     let response = with_mongodb(schema, |api| async move {
         let documents = json!([
             { "data": [1] },
-            { "data": [1, 2] },
-            { "data": [1, 2, 3] }
+            { "data": [6, 9] },
+            { "data": [4, 2, 0] }
         ]);
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: {
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
                 data: { size: 2 }
               }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { data } }  
               }
             }
@@ -1059,8 +1473,16 @@ fn simple_array_size() {
                 {
                   "node": {
                     "data": [
-                      1,
-                      2
+                      1
+                    ]
+                  }
+                },
+                {
+                  "node": {
+                    "data": [
+                      4,
+                      2,
+                      0
                     ]
                   }
                 }
@@ -1083,17 +1505,30 @@ fn simple_array_elemmatch() {
     let response = with_mongodb(schema, |api| async move {
         let documents = json!([
             { "data": [1] },
-            { "data": [1, 2] },
-            { "data": [1, 2, 3] }
+            { "data": [6, 9] },
+            { "data": [4, 2, 0] }
         ]);
 
         api.create_many("users", documents).await;
 
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
+                data: { elemMatch: { eq: 1 } }
+              }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
         let query = indoc! {r#"
             query {
-              userCollection(first: 10, filter: {
-                data: { elemMatch: { eq: 2 } }
-              }) {
+              userCollection(first: 10) {
                 edges { node { data } }  
               }
             }
@@ -1110,17 +1545,17 @@ fn simple_array_elemmatch() {
                 {
                   "node": {
                     "data": [
-                      1,
-                      2
+                      6,
+                      9
                     ]
                   }
                 },
                 {
                   "node": {
                     "data": [
-                      1,
+                      4,
                       2,
-                      3
+                      0
                     ]
                   }
                 }
@@ -1153,12 +1588,25 @@ fn complex_array_elemmatch() {
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: {
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
                 data: { elemMatch: { street: { eq: "Wall" } } }
               }) {
-                edges { node { data { street }} }  
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
+                edges { node { data { street } } }  
               }
             }
         "#};
@@ -1175,7 +1623,16 @@ fn complex_array_elemmatch() {
                   "node": {
                     "data": [
                       {
-                        "street": "Wall"
+                        "street": "Ball"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "node": {
+                    "data": [
+                      {
+                        "street": "Gall"
                       }
                     ]
                   }
@@ -1213,11 +1670,24 @@ fn complex_double_nested_array_elemmatch() {
 
         api.create_many("users", documents).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10, filter: {
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: {
                 data: { elemMatch: { street: { name: { eq: "Wall" } } } }
               }) {
+                deletedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
                 edges { node { data { street { name } } } }  
               }
             }
@@ -1236,183 +1706,21 @@ fn complex_double_nested_array_elemmatch() {
                     "data": [
                       {
                         "street": {
-                          "name": "Wall"
+                          "name": "Ball"
                         }
                       }
                     ]
                   }
-                }
-              ]
-            }
-          }
-        }"#]];
-
-    expected.assert_eq(&response);
-}
-
-#[test]
-fn simple_sort_asc() {
-    let schema = indoc! {r#"
-        type User @model(connector: "test", collection: "users") {
-          age: Int!
-        }
-    "#};
-
-    let response = with_mongodb(schema, |api| async move {
-        let documents = json!([
-            { "age": 39 },
-            { "age": 40 },
-            { "age": 38 },
-        ]);
-
-        api.create_many("users", documents).await;
-
-        let query = indoc! {r#"
-            query {
-              userCollection(
-                first: 10,
-                filter: { age: { gt: 38 } },
-                orderBy: [{ age: ASC }]
-              ) {
-                edges { node { age } }  
-              }
-            }
-        "#};
-
-        api.execute(query).await
-    });
-
-    let expected = expect![[r#"
-        {
-          "data": {
-            "userCollection": {
-              "edges": [
-                {
-                  "node": {
-                    "age": 39
-                  }
                 },
                 {
                   "node": {
-                    "age": 40
-                  }
-                }
-              ]
-            }
-          }
-        }"#]];
-
-    expected.assert_eq(&response);
-}
-
-#[test]
-fn simple_sort_desc() {
-    let schema = indoc! {r#"
-        type User @model(connector: "test", collection: "users") {
-          age: Int!
-        }
-    "#};
-
-    let response = with_mongodb(schema, |api| async move {
-        let documents = json!([
-            { "age": 39 },
-            { "age": 40 },
-            { "age": 38 },
-        ]);
-
-        api.create_many("users", documents).await;
-
-        let query = indoc! {r#"
-            query {
-              userCollection(
-                first: 10,
-                filter: { age: { gt: 38 } },
-                orderBy: [{ age: DESC }]
-              ) {
-                edges { node { age } }  
-              }
-            }
-        "#};
-
-        api.execute(query).await
-    });
-
-    let expected = expect![[r#"
-        {
-          "data": {
-            "userCollection": {
-              "edges": [
-                {
-                  "node": {
-                    "age": 40
-                  }
-                },
-                {
-                  "node": {
-                    "age": 39
-                  }
-                }
-              ]
-            }
-          }
-        }"#]];
-
-    expected.assert_eq(&response);
-}
-
-#[test]
-fn nested_sort() {
-    let schema = indoc! {r#"
-        type Age {
-          number: Int! @map(name: "real_number")
-        }
-
-        type User @model(connector: "test", collection: "users") {
-          age: Age!
-        }
-    "#};
-
-    let response = with_mongodb(schema, |api| async move {
-        let documents = json!([
-            { "age": { "real_number": 40 } },
-            { "age": { "real_number": 38 } },
-            { "age": { "real_number": 39 } },
-        ]);
-
-        api.create_many("users", documents).await;
-
-        let query = indoc! {r#"
-            query {
-              userCollection(
-                first: 10,
-                filter: { age: { number: { gt: 38 } } },
-                orderBy: [{ age: { number: ASC } }]
-              ) {
-                edges { node { age { number } } }  
-              }
-            }
-        "#};
-
-        api.execute(query).await
-    });
-
-    let expected = expect![[r#"
-        {
-          "data": {
-            "userCollection": {
-              "edges": [
-                {
-                  "node": {
-                    "age": {
-                      "number": 39
-                    }
-                  }
-                },
-                {
-                  "node": {
-                    "age": {
-                      "number": 40
-                    }
+                    "data": [
+                      {
+                        "street": {
+                          "name": "Gall"
+                        }
+                      }
+                    ]
                   }
                 }
               ]
