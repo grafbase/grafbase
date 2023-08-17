@@ -27,8 +27,11 @@ pub(crate) struct QueryRoot<T> {
 #[async_trait::async_trait]
 impl<T: ObjectType> ContainerType for QueryRoot<T> {
     async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
-        if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
-            if ctx.item.node.name.node == "__schema" {
+        let introspection_enabled =
+            !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection;
+
+        if ctx.item.node.name.node == "__schema" {
+            if introspection_enabled {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
 
@@ -39,7 +42,14 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 )
                 .await
                 .map(Some);
-            } else if ctx.item.node.name.node == "__type" {
+            } else {
+                return Err(ServerError::new(
+                    "Unauthorized for introspection.",
+                    Some(ctx.item.node.name.pos),
+                ));
+            }
+        } else if ctx.item.node.name.node == "__type" {
+            if introspection_enabled {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
@@ -55,6 +65,11 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 )
                 .await
                 .map(Some);
+            } else {
+                return Err(ServerError::new(
+                    "Unauthorized for introspection.",
+                    Some(ctx.item.node.name.pos),
+                ));
             }
         }
 

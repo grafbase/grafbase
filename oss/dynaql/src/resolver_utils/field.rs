@@ -20,15 +20,29 @@ pub async fn resolve_field(
     parent_type: &MetaType,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> Result<Option<ResponseNodeId>, ServerError> {
-    if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
-        if ctx.item.node.name.node == "__schema" {
+    let introspection_enabled = !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection;
+
+    if ctx.item.node.name.node == "__schema" {
+        if introspection_enabled {
             return introspection::resolve_schema_field(ctx)
                 .await
                 .map_err(|error| ctx.set_error_path(error));
-        } else if ctx.item.node.name.node == "__type" {
+        } else {
+            return Err(ServerError::new(
+                "Unauthorized for introspection.",
+                Some(ctx.item.node.name.pos),
+            ));
+        }
+    } else if ctx.item.node.name.node == "__type" {
+        if introspection_enabled {
             return introspection::resolve_type_field(ctx)
                 .await
                 .map_err(|error| ctx.set_error_path(error));
+        } else {
+            return Err(ServerError::new(
+                "Unauthorized for introspection.",
+                Some(ctx.item.node.name.pos),
+            ));
         }
     }
 
