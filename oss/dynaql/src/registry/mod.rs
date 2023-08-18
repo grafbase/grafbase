@@ -1302,10 +1302,9 @@ pub struct MetaDirective {
 pub struct MongoDBConfiguration {
     pub name: String,
     pub api_key: String,
-    pub app_id: String,
+    pub url: String,
     pub data_source: String,
     pub database: String,
-    pub host_url: String,
     pub namespace: Option<String>,
 }
 
