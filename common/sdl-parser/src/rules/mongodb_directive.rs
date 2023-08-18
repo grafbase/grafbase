@@ -41,18 +41,17 @@ static DATE_TIME_SCALARS: &[&str] = &["Date", "DateTime", "Timestamp"];
 #[serde(rename_all = "camelCase")]
 pub struct MongoDBDirective {
     name: String,
+    url: String,
     api_key: String,
-    app_id: String,
     data_source: String,
     database: String,
     namespace: Option<String>,
-    host_url: Option<String>,
 }
 
 impl MongoDBDirective {
     /// The host url for the Atlas Data API.
-    pub fn host_url(&self) -> &str {
-        self.host_url.as_deref().unwrap_or("https://data.mongodb-api.com")
+    pub fn url(&self) -> &str {
+        &self.url
     }
 
     /// A unique name for the given directive. Used in the model
@@ -65,12 +64,6 @@ impl MongoDBDirective {
     /// in the Atlas dashboard.
     pub fn api_key(&self) -> &str {
         &self.api_key
-    }
-
-    /// A unique ID for the application. Found from the
-    /// MongoDB Atlas dashboard.
-    pub fn app_id(&self) -> &str {
-        &self.app_id
     }
 
     /// The name of the database cluster. Found from the
@@ -111,10 +104,9 @@ impl Directive for MongoDBDirective {
           apiKey: String!
 
           """
-          A unique ID for the application. Found from the
-          MongoDB Atlas dashboard.
+          The full URL. Found from the MongoDB Atlas dashboard.
           """
-          appId: String!
+          url: String!
 
           """
           The name of the database cluster. Found from the
@@ -133,11 +125,6 @@ impl Directive for MongoDBDirective {
           types when implementing introspection for the connector.
           """
           namespace: String
-
-          """
-          Overrides the Atlas Data API host URL.
-          """
-          hostUrl: String
         ) on SCHEMA
         "#
         .to_string()
@@ -169,10 +156,9 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                         |_| MongoDBConfiguration {
                             name: parsed_directive.name().to_string(),
                             api_key: parsed_directive.api_key().to_string(),
-                            app_id: parsed_directive.app_id().to_string(),
+                            url: parsed_directive.url().to_string(),
                             data_source: parsed_directive.data_source().to_string(),
                             database: parsed_directive.database().to_string(),
-                            host_url: parsed_directive.host_url().to_string(),
                             namespace: parsed_directive.namespace.clone(),
                         },
                         parsed_directive.name(),

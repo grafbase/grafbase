@@ -7,7 +7,7 @@ use sdl_parser::ParseResult;
 use serde_json::json;
 use std::{collections::HashMap, fmt, future::Future, panic::AssertUnwindSafe, sync::Arc};
 
-pub(super) static DATA_API_URL: &str = "http://localhost:3000";
+pub(super) static DATA_API_URL: &str = "http://localhost:3000/app/data-test/endpoint/data/v1";
 
 /// With a given schema, initialize DynaQL and provide a test API
 /// to run queries and mutations against.
@@ -67,9 +67,7 @@ where
 
         api.inner
             .client
-            .post(format!(
-                "{DATA_API_URL}/app/data-test/endpoint/data/v1/action/dropDatabase"
-            ))
+            .post(format!("{DATA_API_URL}/action/dropDatabase"))
             .json(&json!({
                 "dataSource": "grafbase",
                 "database": database
@@ -102,10 +100,9 @@ impl TestApi {
               @mongodb(
                  name: "test",
                  apiKey: "TEST"
-                 appId: "data-test"
+                 url: "{DATA_API_URL}"
                  dataSource: "TEST"
                  database: "{database}"
-                 hostUrl: "{DATA_API_URL}"
               )
     
             {schema}
@@ -122,10 +119,9 @@ impl TestApi {
               @mongodb(
                  name: "test",
                  apiKey: "TEST"
-                 appId: "data-test"
+                 url: "{DATA_API_URL}"
                  dataSource: "TEST"
                  database: "{database}"
-                 hostUrl: "{DATA_API_URL}"
                  namespace: "{namespace}"
               )
     
@@ -177,7 +173,7 @@ impl TestApi {
             document,
         };
 
-        let url = format!("{DATA_API_URL}/app/data-test/endpoint/data/v1/action/insertOne");
+        let url = format!("{DATA_API_URL}/action/insertOne");
         let res = self.inner.client.post(url).json(&request).send().await.unwrap();
 
         res.json().await.unwrap()
@@ -192,7 +188,7 @@ impl TestApi {
             documents,
         };
 
-        let url = format!("{DATA_API_URL}/app/data-test/endpoint/data/v1/action/insertMany");
+        let url = format!("{DATA_API_URL}/action/insertMany");
         let res = self.inner.client.post(url).json(&request).send().await.unwrap();
 
         res.json().await.unwrap()

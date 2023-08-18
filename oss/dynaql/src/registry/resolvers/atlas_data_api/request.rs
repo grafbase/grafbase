@@ -57,11 +57,7 @@ pub(super) async fn execute(
         query,
     };
 
-    let url = format!(
-        "{}/app/{}/endpoint/data/v1/action/{}",
-        config.host_url, config.app_id, operation_type
-    );
-
+    let url = format!("{}/action/{}", config.url, operation_type);
     let ray_id = &ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?.ray_id;
 
     let request_builder = reqwest::Client::new()
