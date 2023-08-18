@@ -115,6 +115,90 @@ fn namespacing() {
 }
 
 #[test]
+fn capital_namespacing() {
+    let schema = indoc! {r#"
+        type User @model(connector: "test", collection: "users") {
+          name: String!
+        }
+    "#};
+
+    let response = with_namespaced_mongodb("Mongo", schema, |api| async move {
+        let document = json!({
+            "name": "Bob",
+        });
+
+        let id = api.create_one("users", document).await.inserted_id;
+
+        let query = formatdoc! {r#"
+            query {{
+              mongo {{
+                user(by: {{ id: "{id}" }}) {{
+                  name
+                }}
+              }}
+            }}
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "mongo": {
+              "user": {
+                "name": "Bob"
+              }
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn snake_namespacing() {
+    let schema = indoc! {r#"
+        type User @model(connector: "test", collection: "users") {
+          name: String!
+        }
+    "#};
+
+    let response = with_namespaced_mongodb("mong_o", schema, |api| async move {
+        let document = json!({
+            "name": "Bob",
+        });
+
+        let id = api.create_one("users", document).await.inserted_id;
+
+        let query = formatdoc! {r#"
+            query {{
+              mongO {{
+                user(by: {{ id: "{id}" }}) {{
+                  name
+                }}
+              }}
+            }}
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "mongO": {
+              "user": {
+                "name": "Bob"
+              }
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn field_mapping() {
     let schema = indoc! {r#"
         type User @model(connector: "test", collection: "users") {
