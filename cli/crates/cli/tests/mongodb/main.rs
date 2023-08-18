@@ -24,8 +24,8 @@ use wiremock::{
     Mock, MockServer, ResponseTemplate, Times,
 };
 
+const MONGODB_PATH: &str = "/app/data-asdf/endpoint/data/v1";
 const MONGODB_API_KEY: &str = "FAKE KEY";
-const MONGODB_APP_ID: &str = "data-asdf";
 const MONGODB_DATA_SOURCE: &str = "grafbase";
 const MONGODB_DATABASE: &str = "test";
 const MONGODB_CONNECTOR: &str = "mongo";
@@ -269,7 +269,7 @@ impl Server {
 
     /// Send a query or mutation to the server, returning JSON response.
     pub async fn request(&self, request: &str) -> Value {
-        let request_path = format!("/app/{MONGODB_APP_ID}/endpoint/data/v1/action/{}", self.action);
+        let request_path = format!("{MONGODB_PATH}/action/{}", self.action);
 
         Mock::given(method("POST"))
             .and(path(&request_path))
@@ -324,11 +324,10 @@ impl Server {
             extend schema
               @mongodb(
                 name: "{MONGODB_CONNECTOR}",
+                url: "http://{address}{MONGODB_PATH}"
                 apiKey: "{MONGODB_API_KEY}"
-                appId: "{MONGODB_APP_ID}"
                 dataSource: "{MONGODB_DATA_SOURCE}"
                 database: "{MONGODB_DATABASE}"
-                hostUrl: "http://{address}"
               )
 
             {config} 
