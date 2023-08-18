@@ -2,7 +2,7 @@ import { ModelFields, MongoDBModel } from './mongodb/model'
 
 export interface MongoDBParams {
   name: string
-  url: string,
+  url: string
   apiKey: string
   dataSource: string
   database: string
