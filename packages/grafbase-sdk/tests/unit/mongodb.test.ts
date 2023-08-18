@@ -32,14 +32,14 @@ describe('MongoDB generator', () => {
   it('generates a simple model', () => {
     const mongo = connector.MongoDB(mongoParams)
 
+    g.datasource(mongo)
+
     mongo
       .model('User', {
         id: g.id().unique().mapped('_id'),
         field: g.string()
       })
       .collection('users')
-
-    g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
