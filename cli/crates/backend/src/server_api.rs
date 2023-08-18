@@ -12,6 +12,7 @@ type ServerInfo = (thread::JoinHandle<Result<(), ServerError>>, Receiver<ServerM
 /// returns [`BackendError::AvailablePort`] if no available port can  be found
 ///
 /// returns [`BackendError::PortInUse`] if search is off and the supplied port is in use
+#[must_use]
 pub fn start_server(start_port: u16, search: bool, watch: bool, tracing: bool) -> ServerInfo {
     server::start(start_port, search, watch, tracing)
 }
