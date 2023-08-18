@@ -127,7 +127,7 @@ fn capital_namespacing() {
             "name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -169,7 +169,7 @@ fn snake_namespacing() {
             "name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
