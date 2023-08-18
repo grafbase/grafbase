@@ -5,8 +5,8 @@ import { renderGraphQL } from '../utils'
 describe('MongoDB generator', () => {
   const mongoParams = {
     name: 'Test',
+    url: 'https://data.mongodb-api.com/app/data-test/endpoint/data/v1',
     apiKey: 'SOME_KEY',
-    appId: 'test',
     dataSource: 'data',
     database: 'tables'
   }
@@ -21,8 +21,8 @@ describe('MongoDB generator', () => {
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )"
@@ -32,6 +32,8 @@ describe('MongoDB generator', () => {
   it('generates a simple model', () => {
     const mongo = connector.MongoDB(mongoParams)
 
+    g.datasource(mongo)
+
     mongo
       .model('User', {
         id: g.id().unique().mapped('_id'),
@@ -39,14 +41,12 @@ describe('MongoDB generator', () => {
       })
       .collection('users')
 
-    g.datasource(mongo)
-
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )
@@ -72,8 +72,8 @@ describe('MongoDB generator', () => {
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )
@@ -101,8 +101,8 @@ describe('MongoDB generator', () => {
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )
@@ -130,8 +130,8 @@ describe('MongoDB generator', () => {
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )
@@ -159,8 +159,8 @@ describe('MongoDB generator', () => {
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )
@@ -191,8 +191,8 @@ describe('MongoDB generator', () => {
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )
@@ -224,8 +224,8 @@ describe('MongoDB generator', () => {
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )
@@ -242,8 +242,8 @@ describe('MongoDB generator', () => {
 
     const another = connector.MongoDB({
       name: 'Another',
+      url: 'https://data.mongodb-api.com/app/data-jest/endpoint/data/v1',
       apiKey: 'OTHER_KEY',
-      appId: 'foo',
       dataSource: 'bar',
       database: 'something'
     })
@@ -267,15 +267,15 @@ describe('MongoDB generator', () => {
       "extend schema
         @mongodb(
           name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
-          appId: "test"
           dataSource: "data"
           database: "tables"
         )
         @mongodb(
           name: "Another"
+          url: "https://data.mongodb-api.com/app/data-jest/endpoint/data/v1"
           apiKey: "OTHER_KEY"
-          appId: "foo"
           dataSource: "bar"
           database: "something"
         )
