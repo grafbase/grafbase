@@ -207,7 +207,7 @@ impl TestApi {
             filter: json!({}),
         };
 
-        let url = format!("{DATA_API_URL}/app/data-test/endpoint/data/v1/action/find");
+        let url = format!("{DATA_API_URL}/action/find");
         let res = self.inner.client.post(url).json(&request).send().await.unwrap();
 
         res.json().await.unwrap()
