@@ -94,7 +94,7 @@ fn set() {
             "name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let mutation = formatdoc! {r#"
             mutation {{

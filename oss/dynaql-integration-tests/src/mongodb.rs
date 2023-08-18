@@ -20,6 +20,7 @@ pub(super) static DATA_API_URL: &str = "http://localhost:3000";
 ///
 /// This function doesn't namespace the Mongo models, but has them
 /// directly in the root.
+#[track_caller]
 pub fn with_mongodb<D, F, U>(schema: D, test: F) -> String
 where
     D: fmt::Display,
@@ -42,6 +43,7 @@ where
 /// closure is done.
 ///
 /// This function adds the Mongo models to a namespace.
+#[track_caller]
 pub fn with_namespaced_mongodb<D, F, U>(namespace: &str, schema: D, test: F) -> String
 where
     D: fmt::Display,
@@ -54,6 +56,7 @@ where
     inner_mongodb(test_api, &database, test)
 }
 
+#[track_caller]
 fn inner_mongodb<G, O, A, T>(api: A, database: &str, test: G) -> String
 where
     G: FnOnce(TestApi) -> O,
@@ -169,7 +172,7 @@ impl TestApi {
     }
 
     /// Insert a document directly to the underlying database.
-    pub async fn create_one(&self, collection: &str, document: serde_json::Value) -> MongoDBCreateOneResponse {
+    pub async fn insert_one(&self, collection: &str, document: serde_json::Value) -> MongoDBCreateOneResponse {
         let request = MongoDBCreateOneRequest {
             data_source: "TEST",
             database: &self.inner.database,
@@ -184,7 +187,7 @@ impl TestApi {
     }
 
     /// Insert multiple documents directly to the underlying database.
-    pub async fn create_many(&self, collection: &str, documents: serde_json::Value) -> MongoDBCreateManyResponse {
+    pub async fn insert_many(&self, collection: &str, documents: serde_json::Value) -> MongoDBCreateManyResponse {
         let request = MongoDBCreateManyRequest {
             data_source: "TEST",
             database: &self.inner.database,
@@ -193,6 +196,22 @@ impl TestApi {
         };
 
         let url = format!("{DATA_API_URL}/app/data-test/endpoint/data/v1/action/insertMany");
+        let res = self.inner.client.post(url).json(&request).send().await.unwrap();
+
+        res.json().await.unwrap()
+    }
+
+    /// Load all documents from the given collection
+    pub async fn fetch_all(&self, collection: &str, projection: serde_json::Value) -> MongoDBFetchAllResponse {
+        let request = MongoDBFetchAllRequest {
+            data_source: "TEST",
+            database: &self.inner.database,
+            collection,
+            projection,
+            filter: json!({}),
+        };
+
+        let url = format!("{DATA_API_URL}/app/data-test/endpoint/data/v1/action/find");
         let res = self.inner.client.post(url).json(&request).send().await.unwrap();
 
         res.json().await.unwrap()
@@ -227,4 +246,20 @@ pub struct MongoDBCreateOneResponse {
 #[serde(rename_all = "camelCase")]
 pub struct MongoDBCreateManyResponse {
     pub inserted_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MongoDBFetchAllRequest<'a> {
+    data_source: &'static str,
+    database: &'a str,
+    collection: &'a str,
+    projection: serde_json::Value,
+    filter: serde_json::Value,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MongoDBFetchAllResponse {
+    pub documents: Vec<serde_json::Value>,
 }

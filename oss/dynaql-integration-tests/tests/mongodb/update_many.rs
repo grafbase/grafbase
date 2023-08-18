@@ -97,7 +97,7 @@ fn set() {
             { "age": 40, "name": "Rachel" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -173,7 +173,7 @@ fn combining_operators() {
             { "age": 39, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -244,7 +244,7 @@ fn unset_false() {
             { "age": 40, "name": "Rachel" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -290,7 +290,7 @@ fn unset_true() {
             { "age": 40, "name": "Rachel" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -367,7 +367,7 @@ fn current_timestamp_false() {
             { "time": 1_565_545_684, "name": "Rachel" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -443,7 +443,7 @@ fn current_timestamp_true() {
             { "time": 1_565_545_684, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -532,7 +532,7 @@ fn current_datetime_true() {
             { "time": "2022-01-12T02:33:23.067Z", "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -590,7 +590,7 @@ fn inc_int() {
             { "age": 39, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -660,7 +660,7 @@ fn minimum_int() {
             { "age": 39, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -730,7 +730,7 @@ fn maximum_int() {
             { "age": 39, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -800,7 +800,7 @@ fn multiply_int() {
             { "age": 39, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -870,7 +870,7 @@ fn inc_float() {
             { "age": 39.0, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -940,7 +940,7 @@ fn minimum_float() {
             { "age": 39.0, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1010,7 +1010,7 @@ fn maximum_float() {
             { "age": 39.0, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1080,7 +1080,7 @@ fn multiply_float() {
             { "age": 39.0, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1150,7 +1150,7 @@ fn inc_bigint() {
             { "age": { "$numberLong": "39" }, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1220,7 +1220,7 @@ fn minimum_bigint() {
             { "age": { "$numberLong": "39" }, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1290,7 +1290,7 @@ fn maximum_bigint() {
             { "age": { "$numberLong": "39" }, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1360,7 +1360,7 @@ fn multiply_bigint() {
             { "age": { "$numberLong": "39" }, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1430,7 +1430,7 @@ fn inc_decimal() {
             { "age": { "$numberDecimal": "39.0" }, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1500,7 +1500,7 @@ fn minimum_decimal() {
             { "age": { "$numberDecimal": "39.0" }, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1570,7 +1570,7 @@ fn maximum_decimal() {
             { "age": { "$numberDecimal": "39.0" }, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1640,7 +1640,7 @@ fn multiply_decimal() {
             { "age": { "$numberDecimal": "39.0" }, "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1696,6 +1696,85 @@ fn multiply_decimal() {
 }
 
 #[test]
+fn array_add_to_set() {
+    let schema = indoc! {r#"
+        type User @model(connector: "test", collection: "users") {
+          name: String!
+          numbers: [Int!]!
+        }
+    "#};
+
+    let response = with_mongodb(schema, |api| async move {
+        let documents = json!([
+            { "numbers": [6, 9], "name": "Alice" },
+            { "numbers": [4, 2, 0], "name": "Bob" },
+        ]);
+
+        api.insert_many("users", documents).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userUpdateMany(
+                filter: { name: { eq: "Bob" } },
+                input: { numbers: { addToSet: { each: [4, 2, 0, 6, 9 ] } } }
+              ) {
+                matchedCount
+                modifiedCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+        let expected = expect![[r#"{"data":{"userUpdateMany":{"matchedCount":1,"modifiedCount":1}}}"#]];
+
+        expected.assert_eq(&result.as_json_string());
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
+                edges { node { name numbers } }  
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "name": "Alice",
+                    "numbers": [
+                      6,
+                      9
+                    ]
+                  }
+                },
+                {
+                  "node": {
+                    "name": "Bob",
+                    "numbers": [
+                      4,
+                      2,
+                      0,
+                      6,
+                      9
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn array_pop_first() {
     let schema = indoc! {r#"
         type User @model(connector: "test", collection: "users") {
@@ -1710,7 +1789,7 @@ fn array_pop_first() {
             { "numbers": [4, 2, 0], "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1786,7 +1865,7 @@ fn array_pop_last() {
             { "numbers": [4, 2, 0], "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1862,7 +1941,7 @@ fn array_pull() {
             { "numbers": [4, 2, 0, 0], "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1942,7 +2021,7 @@ fn array_pull_nested() {
             { "inner": [{ "value": 4 }, { "value": 2 }], "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -2023,7 +2102,7 @@ fn array_push() {
             { "numbers": [6, 9], "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -2102,7 +2181,7 @@ fn array_pull_all() {
             { "numbers": [6, 9, 1, 2, 3], "name": "Bob" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {

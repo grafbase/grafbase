@@ -47,7 +47,7 @@ fn id_found() {
             "name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -85,7 +85,7 @@ fn namespacing() {
             "name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -127,7 +127,7 @@ fn field_mapping() {
             "real_name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -173,7 +173,7 @@ fn nesting() {
             }
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -214,7 +214,7 @@ fn fragment() {
             "name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             fragment Person on User {{
@@ -260,7 +260,7 @@ fn date() {
             },
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -300,7 +300,7 @@ fn datetime() {
             },
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -343,7 +343,7 @@ fn timestamp() {
             },
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -386,7 +386,7 @@ fn bytes() {
             },
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -424,7 +424,7 @@ fn boolean() {
             "yes": true
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -462,7 +462,7 @@ fn float() {
             "num": 1.23
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -502,7 +502,7 @@ fn decimal() {
             }
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -542,7 +542,7 @@ fn bigint() {
             }
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -580,7 +580,7 @@ fn simple_array() {
             "ints": [1, 2, 3]
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{
@@ -630,7 +630,7 @@ fn complex_array() {
             ]
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             query {{

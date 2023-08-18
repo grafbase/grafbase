@@ -1,6 +1,7 @@
 use dynaql_integration_tests::{with_mongodb, with_namespaced_mongodb, GetPath};
 use expect_test::expect;
 use indoc::indoc;
+use serde_json::json;
 
 #[test]
 fn only_implicit_fields() {
@@ -65,43 +66,32 @@ fn nested_data() {
         }
     "#};
 
-    let result = with_mongodb(schema, |api| async move {
+    with_mongodb(schema, |api| async move {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { address: { street: "Wall", city: "New York" }}) { insertedId }
             }         
         "#};
 
-        api.execute(mutation).await;
+        let response = api.execute(mutation).await;
+        let projection = json!({ "address_data.street_name": 1, "address_data.city": 1, "_id": 0 });
+        let all = api.fetch_all("users", projection).await;
 
-        let query = indoc! {r#"
-            query {
-              userCollection(first: 10) { edges { node { address { street city } } } }
-            }    
-        "#};
-
-        api.execute(query).await
-    });
-
-    let expected = expect![[r#"
-        {
-          "data": {
-            "userCollection": {
-              "edges": [
-                {
-                  "node": {
-                    "address": {
-                      "street": "Wall",
-                      "city": "New York"
-                    }
-                  }
+        let expected = expect![[r#"
+            [
+              {
+                "address_data": {
+                  "city": "New York",
+                  "street_name": "Wall"
                 }
-              ]
-            }
-          }
-        }"#]];
+              }
+            ]"#]];
 
-    expected.assert_eq(&result);
+        let actual = serde_json::to_string_pretty(&all.documents).unwrap();
+        expected.assert_eq(&actual);
+
+        response
+    });
 }
 
 #[test]

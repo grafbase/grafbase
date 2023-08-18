@@ -86,7 +86,7 @@ fn eq() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -150,7 +150,7 @@ fn renamed_eq() {
             { "renamed": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -218,7 +218,7 @@ fn nested() {
             { "age": { "number": 40 } },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -290,7 +290,7 @@ fn nested_renamed() {
             { "renamed": { "renamed": 40 } },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -368,7 +368,7 @@ fn nested_eq() {
             { "other": 3, "data": { "b": { "c": "gest" }, "d": "nothing" } },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -450,7 +450,7 @@ fn ne() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -509,7 +509,7 @@ fn gt() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -573,7 +573,7 @@ fn lt() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -637,7 +637,7 @@ fn gte() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -696,7 +696,7 @@ fn lte() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -755,7 +755,7 @@ fn r#in() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -814,7 +814,7 @@ fn nin() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -879,7 +879,7 @@ fn all() {
             { "age": 39, "name": "Tim" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -949,7 +949,7 @@ fn none() {
             { "age": 39, "name": "Tim" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1020,7 +1020,7 @@ fn any() {
             { "age": 40, "name": "Rachel" }
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1083,7 +1083,7 @@ fn not() {
             { "age": 39 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1160,7 +1160,7 @@ fn date_eq() {
             },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1228,7 +1228,7 @@ fn datetime_eq() {
             },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1302,7 +1302,7 @@ fn timestamp_eq() {
             },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1363,7 +1363,7 @@ fn simple_array_all() {
             { "data": [6, 6, 6] }
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1437,7 +1437,7 @@ fn simple_array_size() {
             { "data": [4, 2, 0] }
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1509,7 +1509,7 @@ fn simple_array_elemmatch() {
             { "data": [4, 2, 0] }
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1586,7 +1586,7 @@ fn complex_array_elemmatch() {
             { "data": [ { "street_name": "Gall" }] },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
@@ -1668,7 +1668,7 @@ fn complex_double_nested_array_elemmatch() {
             { "data": [ { "street": { "street_name": "Gall" } } ] },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let mutation = indoc! {r#"
             mutation {
