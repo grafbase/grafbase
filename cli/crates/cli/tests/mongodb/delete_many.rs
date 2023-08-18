@@ -41,6 +41,48 @@ async fn simple_eq() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn simple_eq_namespaced() {
+    // Just a smoke test, we must test this properly with a real database.
+
+    let config = indoc::formatdoc! {r#"
+        type User @model(connector: "{MONGODB_CONNECTOR}", collection: "users") {{
+          age: Int
+        }}
+    "#};
+
+    let body = json!({
+        "filter": {
+            "age": { "$gt": 30 },
+        },
+    });
+
+    let server = Server::delete_many_namespaced("bongo", &config, "users", body).await;
+
+    let request = server.request(indoc::indoc! {r#"
+        mutation {
+          bongo {
+            userDeleteMany(filter: { age: { gt: 30 } })
+            {
+              deletedCount
+            }
+          }
+        }   
+    "#});
+
+    insta::assert_json_snapshot!(request.await, @r###"
+    {
+      "data": {
+        "bongo": {
+          "userDeleteMany": {
+            "deletedCount": 2
+          }
+        }
+      }
+    }
+    "###);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn eq_with_rename() {
     // Just a smoke test, we must test this properly with a real database.
 

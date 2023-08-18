@@ -263,7 +263,7 @@ describe('Cache generator', () => {
               { name: 'Address', fields: ['street', 'city'] }
             ],
             maxAge: 60,
-            scopes: ["apikey", {claim: "my_claim"}]
+            scopes: ['apikey', { claim: 'my_claim' }]
           }
         ]
       }
