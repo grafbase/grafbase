@@ -3,9 +3,9 @@ mod type_directive;
 
 use std::collections::HashMap;
 
-use case::CaseExt;
 use dynaql::registry::{MetaField, MongoDBConfiguration, ObjectType};
 use dynaql_parser::types::SchemaDefinition;
+use inflector::Inflector;
 pub(super) use model_directive::create_type_context::CreateTypeContext;
 pub use model_directive::MongoDBModelDirective;
 pub use type_directive::MongoDBTypeDirective;
@@ -165,8 +165,8 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                     );
 
                     if let Some(namespace) = parsed_directive.namespace() {
-                        let query_type_name = format!("{namespace}Query").to_camel();
-                        let mutation_type_name = format!("{namespace}Mutation").to_camel();
+                        let query_type_name = format!("{namespace}Query").to_pascal_case();
+                        let mutation_type_name = format!("{namespace}Mutation").to_pascal_case();
 
                         ctx.registry.borrow_mut().create_type(
                             |_| ObjectType::new(query_type_name.clone(), []).into(),
@@ -175,7 +175,7 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                         );
 
                         ctx.queries
-                            .push(MetaField::new(namespace.to_camel_lowercase(), query_type_name.clone()));
+                            .push(MetaField::new(namespace.to_camel_case(), query_type_name.clone()));
 
                         ctx.registry.borrow_mut().create_type(
                             |_| ObjectType::new(mutation_type_name.clone(), []).into(),
@@ -183,10 +183,8 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                             &mutation_type_name,
                         );
 
-                        ctx.mutations.push(MetaField::new(
-                            namespace.to_camel_lowercase(),
-                            mutation_type_name.clone(),
-                        ));
+                        ctx.mutations
+                            .push(MetaField::new(namespace.to_camel_case(), mutation_type_name.clone()));
                     }
 
                     found_directive = true;

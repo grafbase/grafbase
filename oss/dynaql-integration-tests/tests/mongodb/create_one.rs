@@ -54,6 +54,32 @@ fn namespacing() {
 }
 
 #[test]
+fn capital_namespacing() {
+    let schema = indoc! {r#"
+        type User @model(connector: "test", collection: "users") {
+          name: String
+        }
+    "#};
+
+    with_namespaced_mongodb("Mongo", schema, |api| async move {
+        let mutation = indoc! {r#"
+            mutation {
+              mongo {
+                userCreate(input: {}) { insertedId }
+              }
+            }         
+        "#};
+
+        let result = api.execute(mutation).await;
+        let inserted_id = result.get_string_opt("mongo.userCreate.insertedId");
+
+        assert!(inserted_id.is_ok());
+
+        result
+    });
+}
+
+#[test]
 fn nested_data() {
     let schema = indoc! {r#"
         type Address {
