@@ -130,7 +130,7 @@ fn eq() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -186,7 +186,7 @@ fn nested_eq() {
             { "other": 3, "data": { "b": { "c": "gest" }, "d": "nothing" } },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -252,7 +252,7 @@ fn ne() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -303,7 +303,7 @@ fn gt() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -349,7 +349,7 @@ fn lt() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -395,7 +395,7 @@ fn gte() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -446,7 +446,7 @@ fn lte() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -497,7 +497,7 @@ fn r#in() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -548,7 +548,7 @@ fn nin() {
             { "age": 40 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -595,7 +595,7 @@ fn all() {
             { "age": 39, "name": "Tim" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -646,7 +646,7 @@ fn none() {
             { "age": 39, "name": "Tim" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -697,7 +697,7 @@ fn any() {
             { "age": 39, "name": "Tim" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -760,7 +760,7 @@ fn not() {
             { "age": 39, "name": "Tim" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -820,7 +820,7 @@ fn date_eq() {
             },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -875,7 +875,7 @@ fn datetime_eq() {
             },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -936,7 +936,7 @@ fn timestamp_eq() {
             },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -984,7 +984,7 @@ fn simple_array_all() {
             { "data": [6, 6, 6] }
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -1036,7 +1036,7 @@ fn simple_array_size() {
             { "data": [1, 2, 3] }
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -1087,7 +1087,7 @@ fn simple_array_elemmatch() {
             { "data": [1, 2, 3] }
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -1151,7 +1151,7 @@ fn complex_array_elemmatch() {
             { "data": [ { "street_name": "Gall" }] },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -1211,7 +1211,7 @@ fn complex_double_nested_array_elemmatch() {
             { "data": [ { "street": { "street_name": "Gall" } } ] },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -1265,7 +1265,7 @@ fn simple_sort_asc() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -1320,7 +1320,7 @@ fn simple_sort_desc() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -1379,7 +1379,7 @@ fn nested_sort() {
             { "age": { "real_number": 39 } },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {

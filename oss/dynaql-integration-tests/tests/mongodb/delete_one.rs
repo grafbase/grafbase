@@ -48,7 +48,7 @@ fn id_found() {
             "name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             mutation {{
@@ -86,7 +86,7 @@ fn namespaced() {
             "name": "Bob",
         });
 
-        let id = api.create_one("users", document).await.inserted_id;
+        let id = api.insert_one("users", document).await.inserted_id;
 
         let query = formatdoc! {r#"
             mutation {{

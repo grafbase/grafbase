@@ -18,7 +18,7 @@ fn after_with_no_sort() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -71,7 +71,7 @@ fn after_with_sort_asc_no_nulls() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -135,7 +135,7 @@ fn after_with_sort_asc_with_nulls() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -203,7 +203,7 @@ fn after_with_sort_desc_no_nulls() {
             { "age": 39 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -267,7 +267,7 @@ fn after_with_sort_desc_with_nulls() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -330,7 +330,7 @@ fn after_has_next_and_previous_page_if_more_data() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -371,7 +371,7 @@ fn after_has_next_and_previous_page_if_not_more_data() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -412,7 +412,7 @@ fn before_with_no_sort() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -465,7 +465,7 @@ fn before_with_sort_asc_no_nulls() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -531,7 +531,7 @@ fn before_with_sort_asc_with_nulls() {
             { "age": null, "name": "Richard" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -597,7 +597,7 @@ fn before_with_sort_desc_no_nulls() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -663,7 +663,7 @@ fn before_with_sort_desc_with_nulls() {
             { "age": null, "name": "Richard" },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -729,7 +729,7 @@ fn before_has_previous_page_if_more_data() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
@@ -782,7 +782,7 @@ fn before_has_previous_page_if_not_more_data() {
             { "age": 38 },
         ]);
 
-        api.create_many("users", documents).await;
+        api.insert_many("users", documents).await;
 
         let query = indoc! {r#"
             query {
