@@ -50,3 +50,4 @@ yarn-error.log*
 # Direnv
 .envrc
 .env
+.direnv/
