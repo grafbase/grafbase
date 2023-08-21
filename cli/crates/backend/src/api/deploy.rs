@@ -11,6 +11,7 @@ use common::consts::GRAFBASE_DIRECTORY_NAME;
 use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};
+use log::trace;
 use reqwest::{header, Body, Client};
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -103,6 +104,8 @@ pub async fn deploy() -> Result<(), ApiError> {
     });
 
     let response = client.post(API_URL).run_graphql(operation).await?;
+
+    trace!("deploy response = {response:#?}");
 
     let payload = response
         .data

@@ -1908,6 +1908,7 @@ dependencies = [
  "grafbase-local-common",
  "grafbase-local-server",
  "http-cache-reqwest",
+ "log",
  "reqwest",
  "reqwest-middleware",
  "serde",
