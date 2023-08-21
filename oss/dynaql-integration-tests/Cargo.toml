@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-indoc = "1"
+indoc = "2"
 reqwest = "0.11"
 async-trait = "0.1"
 serde_json.workspace = true
