@@ -4,6 +4,7 @@ version = "3.0.31"
 edition = "2021"
 description = "Macros for dynaql"
 repository = "https://github.com/grafbase/api"
+license = "MPL-2.0"
 
 [lib]
 proc-macro = true

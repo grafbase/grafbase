@@ -2,6 +2,7 @@
 name = "async-runtime"
 version = "0.1.0"
 edition = "2021"
+license = "MPL-2.0"
 
 [dependencies]
 futures = "0.3"
