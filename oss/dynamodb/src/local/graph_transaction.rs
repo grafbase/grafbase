@@ -18,7 +18,7 @@ use crate::{
         UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput, UpdateUniqueConstraint,
     },
     local::types::SqlValue,
-    DynamoDBBatchersData, DynamoDBContext, OperationAuthorization, RequestedOperation,
+    CurrentDateTime, DynamoDBBatchersData, DynamoDBContext, OperationAuthorization, RequestedOperation,
 };
 
 impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
@@ -283,35 +283,17 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
                 current_datetime,
                 ..
             } = self;
+            let mut document = RelationDocumentBuilder {
+                pk: pk.clone(),
+                sk: sk.clone(),
+                from_ty: from_ty.clone(),
+                to_ty: to_ty.clone(),
+                relation_names: relation_names.clone(),
+                current_datetime,
+                fields,
+            }
+            .build();
 
-            let mut document = fields;
-
-            let now_attr = current_datetime.into_attr();
-            let gsi1pk_attr = from_ty.clone().into_attr();
-            let ty_attr = to_ty.clone().into_attr();
-
-            document.insert(PK.to_string(), pk.clone().into_attr());
-            document.insert(SK.to_string(), sk.clone().into_attr());
-            document.insert(TYPE.to_string(), ty_attr);
-            // The relation stores a COPY of the node, so it's the createdAt of the
-            // node not of the relation here. As the document may be a new node
-            // we need to add all reserved fields. But if it's an existing one we have
-            // to keep the original values of createdAt & updatedAt.
-            document
-                .entry(CREATED_AT.to_string())
-                .or_insert_with(|| now_attr.clone());
-            document.entry(UPDATED_AT.to_string()).or_insert(now_attr);
-            document.insert(TYPE_INDEX_PK.to_string(), gsi1pk_attr);
-            document.insert(TYPE_INDEX_SK.to_string(), pk.clone().into_attr());
-            document.insert(INVERTED_INDEX_PK.to_string(), sk.clone().into_attr());
-            document.insert(INVERTED_INDEX_SK.to_string(), pk.clone().into_attr());
-            document.insert(
-                RELATION_NAMES.to_string(),
-                AttributeValue {
-                    ss: Some(relation_names.clone()),
-                    ..Default::default()
-                },
-            );
             if let OperationAuthorization::OwnerBased(user_id) = ctx.authorize_operation(RequestedOperation::Create)? {
                 document
                     .entry(OWNED_BY.to_string())
@@ -434,10 +416,12 @@ impl ExecuteChangesOnDatabase for UpdateRelationInternalInput {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
-        Box::pin(async {
+        Box::pin(async move {
             let UpdateRelationInternalInput {
                 user_defined_item,
                 relation_names,
+                from_ty,
+                to_ty,
                 current_datetime,
                 ..
             } = self;
@@ -450,7 +434,18 @@ impl ExecuteChangesOnDatabase for UpdateRelationInternalInput {
 
             let now_attr = current_datetime.clone().into_attr();
 
-            let mut document = user_defined_item;
+            let mut document = RelationDocumentBuilder {
+                pk: pk.clone(),
+                sk: sk.clone(),
+                from_ty: from_ty.clone(),
+                to_ty: to_ty.clone(),
+                // Shouldn't matter with sqlite implementation... hopefully...
+                relation_names: vec![],
+                current_datetime: current_datetime.clone(),
+                fields: user_defined_item,
+            }
+            .build();
+
             document.insert(UPDATED_AT.to_string(), now_attr);
             let document = serde_json::to_string(&document).expect("must serialize");
 
@@ -467,6 +462,59 @@ impl ExecuteChangesOnDatabase for UpdateRelationInternalInput {
 
             Ok((query, values, None))
         })
+    }
+}
+
+struct RelationDocumentBuilder {
+    pk: String,
+    sk: String,
+    from_ty: String,
+    to_ty: String,
+    relation_names: Vec<String>,
+    current_datetime: CurrentDateTime,
+    fields: HashMap<String, AttributeValue>,
+}
+
+impl RelationDocumentBuilder {
+    fn build(self) -> HashMap<String, AttributeValue> {
+        let RelationDocumentBuilder {
+            pk,
+            sk,
+            from_ty,
+            to_ty,
+            relation_names,
+            current_datetime,
+            fields,
+        } = self;
+        let mut document = fields;
+
+        let now_attr = current_datetime.into_attr();
+        let gsi1pk_attr = from_ty.clone().into_attr();
+        let ty_attr = to_ty.clone().into_attr();
+
+        document.insert(PK.to_string(), pk.clone().into_attr());
+        document.insert(SK.to_string(), sk.clone().into_attr());
+        document.insert(TYPE.to_string(), ty_attr);
+        // The relation stores a COPY of the node, so it's the createdAt of the
+        // node not of the relation here. As the document may be a new node
+        // we need to add all reserved fields. But if it's an existing one we have
+        // to keep the original values of createdAt & updatedAt.
+        document
+            .entry(CREATED_AT.to_string())
+            .or_insert_with(|| now_attr.clone());
+        document.entry(UPDATED_AT.to_string()).or_insert(now_attr);
+        document.insert(TYPE_INDEX_PK.to_string(), gsi1pk_attr);
+        document.insert(TYPE_INDEX_SK.to_string(), pk.clone().into_attr());
+        document.insert(INVERTED_INDEX_PK.to_string(), sk.clone().into_attr());
+        document.insert(INVERTED_INDEX_SK.to_string(), pk.clone().into_attr());
+        document.insert(
+            RELATION_NAMES.to_string(),
+            AttributeValue {
+                ss: Some(relation_names.clone()),
+                ..Default::default()
+            },
+        );
+        document
     }
 }
 
