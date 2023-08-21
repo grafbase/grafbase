@@ -14,7 +14,7 @@ serde.workspace = true
 futures = "0.3"
 
 [dependencies.tokio]
-version = "1.30"
+version = "1.32"
 features = ["rt-multi-thread", "macros"]
 
 [dependencies.dynaql]

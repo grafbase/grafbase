@@ -14,7 +14,7 @@ lru = { version = "0.11", default-features = false }
 tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.31", features = [
+tokio = { version = "1.32", features = [
   "macros",
   "rt-multi-thread",
   "sync",
