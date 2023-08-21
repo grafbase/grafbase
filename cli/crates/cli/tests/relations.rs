@@ -1,4 +1,5 @@
 #![allow(unused_crate_dependencies)]
+#![allow(clippy::too_many_lines)]
 mod utils;
 
 use backend::project::ConfigType;
@@ -329,4 +330,117 @@ fn test_relation_unlink_and_create() {
             "data": {"group": {"id": new_group_id, "environment": {"id": env_id}}}
         })
     );
+}
+
+#[test]
+fn update_bug_gb4646() {
+    let mut env = Environment::init();
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(
+        r#"
+        type Player @model {
+          name: String! @unique
+          notes: [Note]
+        }
+
+        type Note @model {
+          note: String!
+          player: Player!
+        }
+    "#,
+    );
+    env.grafbase_dev();
+    let client = env.create_client().with_api_key();
+    client.poll_endpoint(30, 300);
+
+    let resp = client
+        .gql::<Value>(
+            r#"
+            mutation PlayerCreate {
+              playerCreate(input: {name: "freddie"}) {
+                player {
+                  id
+                }
+              }
+            }
+            "#,
+        )
+        .send();
+    let player_id: String = dot_get!(resp, "data.playerCreate.player.id");
+
+    let resp = client
+        .gql::<Value>(
+            r#"
+            mutation NotesCreate($id: ID!) {
+              noteCreate(input: {note: "first", player: {link: $id}}) {
+                note {
+                  id
+                  note
+                }
+              }
+            }
+            "#,
+        )
+        .variables(json!({
+            "id": player_id
+        }))
+        .send();
+    let note_id: String = dot_get!(resp, "data.noteCreate.note.id");
+
+    let update = |note: &str| {
+        client
+            .gql::<Value>(
+                r#"
+                mutation NotesUpdate($id: ID!, $note: String!) {
+                  noteUpdate(by: {id: $id}, input: {note: $note}) {
+                    note {
+                      id
+                    }
+                  }
+                }
+                "#,
+            )
+            .variables(json!({
+                "id": note_id,
+                "note": note
+            }))
+            .send();
+    };
+    let get_relation_note = || -> String {
+        dot_get!(
+            client
+                .gql::<Value>(
+                    r#"
+                query ListPlayers {
+                  playerCollection(first: 100) {
+                    edges {
+                      node {
+                        id
+                        name
+                        notes(first: 100) {
+                          edges {
+                            node {
+                              id
+                              note
+                              player {
+                                id
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                "#,
+                )
+                .send(),
+            "data.playerCollection.edges.0.node.notes.edges.0.node.note"
+        )
+    };
+    update("second");
+    assert_eq!(get_relation_note(), "second");
+
+    update("third");
+    assert_eq!(get_relation_note(), "third");
 }
