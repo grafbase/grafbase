@@ -103,9 +103,11 @@ pub async fn deploy() -> Result<(), ApiError> {
         },
     });
 
-    let response = client.post(API_URL).run_graphql(operation).await?;
+    let response = client.post(API_URL).run_graphql(operation).await;
 
     trace!("deploy response = {response:#?}");
+
+    let response = response?;
 
     let payload = response
         .data
