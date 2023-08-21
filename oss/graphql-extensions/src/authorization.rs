@@ -5,11 +5,10 @@
 use std::sync::Arc;
 
 use dynaql::{
-    extensions::{Extension, ExtensionContext, ExtensionFactory, NextParseQuery, NextResolve, ResolveInfo},
+    extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
-    parser::types::ExecutableDocument,
     registry::{relations::MetaRelation, ModelName, NamedType, Registry, TypeReference},
-    AuthConfig, ServerError, ServerResult, Variables,
+    AuthConfig, ServerError, ServerResult,
 };
 use dynaql_value::{indexmap::IndexMap, ConstValue};
 use grafbase::auth::{ExecutionAuth, Operations};
@@ -37,37 +36,22 @@ impl ExtensionFactory for AuthExtension {
 // Use ExecutionAuth from ctx and AuthConfig from ResolveInfo (global) or MetaField  to allow/deny the request.
 #[async_trait::async_trait]
 impl Extension for AuthExtension {
-    // Deny access if the query contains introspection and using Public access in the cloud.
-    // If Ok is returned, the query will then be verified using `resolve`
-    async fn parse_query(
+    /// Called at prepare request.
+    async fn prepare_request(
         &self,
         ctx: &ExtensionContext<'_>,
-        query: &str,
-        variables: &Variables,
-        next: NextParseQuery<'_>,
-    ) -> ServerResult<ExecutableDocument> {
-        let document = next.run(ctx, query, variables).await?;
-        // if type starts with `__` it is part of introspection system, see http://spec.graphql.org/October2021/#sec-Names.Reserved-Names
-        let contains_introspection = document
-            .operations
-            .iter()
-            .all(|(_, operation)| crate::is_operation_introspection(operation));
-        // Currently the introspection query auth is not configurable.
-        // Locally we allow it with Public access as well when using a JWT token or an API key.
-        // In the cloud we only allow it when using API key or a JWT token.
+        request: dynaql::Request,
+        next: dynaql::extensions::NextPrepareRequest<'_>,
+    ) -> ServerResult<dynaql::Request> {
         let auth_context = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
-        if contains_introspection && !auth_context.is_introspection_allowed() {
-            Err(dynaql::ServerError::new(
-                "Unauthorized for introspection. Please set 'authorization' header with a JWT token or \
-                                                    'x-api-key' header with an API key from the project settings page. \
-                                                    More info: https://grafbase.com/docs/auth",
-                None,
-            ))
+        let request = if auth_context.is_introspection_allowed() {
+            request
         } else {
-            Ok(document)
-        }
+            request.disable_introspection()
+        };
+        next.run(ctx, request).await
     }
 
     async fn resolve(
