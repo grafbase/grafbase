@@ -17,7 +17,7 @@ use crate::{
         length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMENT},
         visitor::VisitorContext,
     },
-    utils::to_input_type,
+    utils::{to_base_type_str, to_input_type},
 };
 
 mod create_update;
@@ -45,23 +45,52 @@ pub fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> NamedType
 pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &ObjectType, type_name: &str) -> String {
     let type_name = type_name.to_string();
     let input_type = format!("{}Input", type_name.to_camel());
+    let fields = object
+        .fields
+        .iter()
+        .filter_map(|field| {
+            let field_ty = to_base_type_str(&field.node.ty.node.base);
+            match ctx.types.get(&field_ty) {
+                Some(field_type_definition) => {
+                    if field_type_definition
+                        .directives
+                        .iter()
+                        .any(|directive| directive.is_model())
+                    {
+                        ctx.report_error(
+                            vec![field.pos],
+                            format!(
+                                "Non @model type ({ty}) cannot have a field ({field}) with a @model type ({field_ty}). Consider adding @model directive to {ty}.",
+                                ty = type_name,
+                                field = field.node.name,
+                            ),
+                        );
+                        None
+                    } else {
+                        Some(MetaInputValue {
+                            description: field.node.description.clone().map(|x| x.node),
+                            ..MetaInputValue::new(
+                                field.name.node.to_string(),
+                                to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
+                            )
+                            .with_rename(field.mapped_name().map(ToString::to_string))
+                        })
+                    }
+                }
+                None => {
+                    ctx.report_error(vec![field.pos], format!("Unknown type: {field_ty}"));
+                    None
+                }
+            }
+        })
+        .collect::<Vec<_>>();
 
     // Input
     ctx.registry.get_mut().create_type(
         |_| {
-            dynaql::registry::InputObjectType::new(
-                input_type.clone(),
-                object.fields.iter().map(|field| MetaInputValue {
-                    description: field.node.description.clone().map(|x| x.node),
-                    ..MetaInputValue::new(
-                        field.name.node.to_string(),
-                        to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
-                    )
-                    .with_rename(field.mapped_name().map(ToString::to_string))
-                }),
-            )
-            .with_description(Some(format!("{type_name} input type.")))
-            .into()
+            dynaql::registry::InputObjectType::new(input_type.clone(), fields)
+                .with_description(Some(format!("{type_name} input type.")))
+                .into()
         },
         &input_type,
         &input_type,

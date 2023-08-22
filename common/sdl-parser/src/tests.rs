@@ -697,3 +697,19 @@ fn test_with_lowercase_model_names() {
         "Models must be named in PascalCase.  Try renaming user to User."
     );
 }
+
+#[test]
+fn test_missing_model_relation_gb4652() {
+    assert_validation_error!(
+        r#"
+        type Space @model {
+          posts: [Post]
+        }
+
+        type Post {
+          space: Space!
+        }
+        "#,
+        "Non @model type (Post) cannot have a field (space) with a @model type (Space). Consider adding @model directive to Post."
+    );
+}
