@@ -1,6 +1,6 @@
 # Grafbase ⨯ Couchbase
 
-This example shows how to create a Grafbase resolver that can execute read and write operations to Couchbase.
+This example shows how to create a Grafbase resolver that can execute read and write operations to Couchbase &mdash; [read guide](https://grafbase.com/guides/deploy-graphql-apis-at-the-edge-with-couchbase).
 
 ## Getting Started
 
