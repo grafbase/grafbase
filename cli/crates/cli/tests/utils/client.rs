@@ -117,12 +117,12 @@ impl Client {
         let start = SystemTime::now();
 
         loop {
-            if self
+            let valid_response = self
                 .client
                 .head(&self.endpoint)
                 .send()
-                .is_ok_and(|response| response.status() != StatusCode::SERVICE_UNAVAILABLE)
-            {
+                .is_ok_and(|response| response.status() != StatusCode::SERVICE_UNAVAILABLE);
+            if valid_response {
                 break;
             }
 

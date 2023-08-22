@@ -17,7 +17,7 @@ use flate2::read::GzDecoder;
 use futures_util::FutureExt;
 use std::borrow::Cow;
 use std::env;
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::Ipv4Addr;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -112,7 +112,8 @@ async fn server_loop(
         } else {
             Ok(())
         }
-    });
+    })
+    .fuse();
     let mut path_changed = None;
     loop {
         let receiver = event_bus.subscribe();
@@ -631,7 +632,7 @@ pub async fn find_listener_for_available_port(
     if search {
         find_listener_for_available_port_in_range(start_port..MAX_PORT).await
     } else {
-        TcpListener::bind((Ipv6Addr::UNSPECIFIED, start_port))
+        TcpListener::bind((Ipv4Addr::LOCALHOST, start_port))
             .await
             .map_err(|_| ServerError::PortInUse(start_port))?
             .into_std()
@@ -645,8 +646,8 @@ where
     R: ExactSizeIterator<Item = u16>,
 {
     for port in range {
-        if let Ok(listener) = TcpListener::bind((Ipv6Addr::UNSPECIFIED, port)).await {
-            return listener.into_std().map_err(|_| ServerError::AvailablePort);
+        if let Ok(listener) = TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await {
+            return listener.into_std().map_err(|_| ServerError::AvailablePortMiniflare);
         }
     }
     Err(ServerError::AvailablePortMiniflare)

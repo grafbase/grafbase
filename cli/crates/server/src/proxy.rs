@@ -99,6 +99,8 @@ async fn graphql(
 
     let worker_port = WORKER_PORT.load(Ordering::Relaxed);
 
+    dbg!(worker_port);
+
     if worker_port == 0 {
         return Err(StatusCode::SERVICE_UNAVAILABLE);
     }
@@ -108,6 +110,8 @@ async fn graphql(
     *req.uri_mut() = Uri::try_from(uri).expect("must be valid");
 
     let response = client.request(req).await;
+
+    dbg!(&response);
 
     match response {
         Ok(response) => Ok(response),

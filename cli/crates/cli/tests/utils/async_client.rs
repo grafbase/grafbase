@@ -85,8 +85,10 @@ impl AsyncClient {
             .send()
             .await
         {
-            if let Ok(text) = response.text().await {
-                return Some(text);
+            if response.status() != StatusCode::SERVICE_UNAVAILABLE {
+                if let Ok(text) = response.text().await {
+                    return Some(text);
+                }
             }
         }
 
@@ -100,13 +102,14 @@ impl AsyncClient {
         let start = SystemTime::now();
 
         loop {
-            if self
+            let valid_response = self
                 .client
                 .head(&self.endpoint)
                 .send()
                 .await
-                .is_ok_and(|response| response.status() != StatusCode::SERVICE_UNAVAILABLE)
-            {
+                .is_ok_and(|response| response.status() != StatusCode::SERVICE_UNAVAILABLE);
+
+            if valid_response {
                 break;
             }
 
