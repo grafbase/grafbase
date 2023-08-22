@@ -5,7 +5,7 @@ const username = process.env.COUCHBASE_USERNAME
 const password = process.env.COUCHBASE_PASSWORD
 const url = process.env.COUCHBASE_URL
 
-export default async function ProductCreateResolver(_, { input }) {
+export default async function ProductsCreateResolver(_, { input }) {
   const id = nanoid()
 
   try {

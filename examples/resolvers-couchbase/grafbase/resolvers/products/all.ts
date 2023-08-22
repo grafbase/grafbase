@@ -3,7 +3,7 @@ const username = process.env.COUCHBASE_USERNAME
 const password = process.env.COUCHBASE_PASSWORD
 const url = process.env.COUCHBASE_URL
 
-export default async function ProductCreateResolver() {
+export default async function ProductsAllResolver() {
   try {
     const response = await fetch(url, {
       method: 'POST',
