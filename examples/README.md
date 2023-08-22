@@ -62,3 +62,4 @@ See how easy it is to use features of Grafbase by browsing the examples below.
 - [Resolvers + Turso](/examples/resolvers-turso)
 - [Resolvers + PlanetScale](/examples/resolvers-planetscale)
 - [Resolvers + Fauna](/examples/resolvers-fauna)
+- [Resolvers + Couchbase](/examples/resolvers-couchbase)
