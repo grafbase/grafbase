@@ -5,6 +5,7 @@ use crate::{
     errors::ServerError,
     event::{wait_for_event, Event},
 };
+use axum::routing::head;
 use axum::{
     body::{Body, HttpBody},
     extract::{Query, RawPathParams, State},
@@ -24,6 +25,7 @@ use std::{
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, TcpListener},
     sync::atomic::Ordering,
 };
+use tokio::signal;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
 type Client = hyper::client::Client<HttpConnector, Body>;
@@ -38,7 +40,9 @@ pub async fn start(listener: TcpListener, event_bus: tokio::sync::broadcast::Sen
     let port = listener.local_addr().expect("must have a local addr").port();
     trace!("starting pathfinder at port {port}");
 
-    let client: Client = hyper::Client::builder().build(HttpConnector::new());
+    let client: Client = hyper::Client::builder()
+        .http1_preserve_header_case(true)
+        .build(HttpConnector::new());
 
     let mut handlebars = Handlebars::new();
     let template = include_str!("../templates/pathfinder.hbs");
@@ -63,6 +67,7 @@ pub async fn start(listener: TcpListener, event_bus: tokio::sync::broadcast::Sen
     let router = Router::new()
         .route("/", get(root))
         .route("/graphql", get(graphql))
+        .route("/graphql", head(graphql))
         .route("/graphql", post(graphql))
         .nest_service("/static", ServeDir::new(static_asset_path))
         .layer(CorsLayer::permissive())
@@ -73,6 +78,7 @@ pub async fn start(listener: TcpListener, event_bus: tokio::sync::broadcast::Sen
 
     axum::Server::from_tcp(listener)
         .map_err(ServerError::StartProxyServer)?
+        .http1_title_case_headers(true)
         .serve(router.into_make_service())
         .await
         .map_err(ServerError::StartProxyServer);
@@ -88,7 +94,7 @@ async fn root(State(ProxyState { pathfinder_html, .. }): State<ProxyState>) -> i
 async fn graphql(
     State(ProxyState { client, .. }): State<ProxyState>,
     mut req: Request<Body>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let query = req.uri().query().map_or(String::new(), |query| format!("?{query}"));
 
     let worker_port = WORKER_PORT.load(Ordering::Relaxed);
@@ -101,5 +107,16 @@ async fn graphql(
 
     *req.uri_mut() = Uri::try_from(uri).expect("must be valid");
 
-    Ok(client.request(req).await.map_err(|_| StatusCode::BAD_REQUEST))
+    let response = client.request(req).await;
+
+    match response {
+        Ok(response) => Ok(response),
+        Err(error) => {
+            if error.is_connect() {
+                Err(StatusCode::SERVICE_UNAVAILABLE)
+            } else {
+                Err(StatusCode::BAD_REQUEST)
+            }
+        }
+    }
 }

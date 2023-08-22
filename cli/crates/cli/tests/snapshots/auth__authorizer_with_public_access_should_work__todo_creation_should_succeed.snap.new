@@ -1,0 +1,11 @@
+---
+source: crates/cli/tests/auth.rs
+assertion_line: 676
+expression: "private_client.gql::<Value>(AUTH_CREATE_MUTATION).await"
+---
+{
+  "data": null,
+  "errors": [
+    "command error: npm failed with output:\n"
+  ]
+}

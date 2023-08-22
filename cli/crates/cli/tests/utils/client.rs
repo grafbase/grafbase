@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use reqwest::header::HeaderMap;
+use reqwest::{header::HeaderMap, StatusCode};
 use serde_json::json;
 use std::{
     marker::PhantomData,
@@ -100,8 +100,10 @@ impl Client {
             .headers(self.headers.clone())
             .send()
         {
-            if let Ok(text) = response.text() {
-                return Some(text);
+            if response.status() != StatusCode::SERVICE_UNAVAILABLE {
+                if let Ok(text) = response.text() {
+                    return Some(text);
+                }
             }
         }
 
@@ -115,7 +117,12 @@ impl Client {
         let start = SystemTime::now();
 
         loop {
-            if self.client.head(&self.endpoint).send().is_ok() {
+            if self
+                .client
+                .head(&self.endpoint)
+                .send()
+                .is_ok_and(|response| response.status() != StatusCode::SERVICE_UNAVAILABLE)
+            {
                 break;
             }
 

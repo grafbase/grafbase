@@ -1,0 +1,11 @@
+---
+source: crates/cli/tests/auth.rs
+assertion_line: 539
+expression: "public_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await"
+---
+{
+  "data": null,
+  "errors": [
+    "command error: npm failed with output:\n"
+  ]
+}
