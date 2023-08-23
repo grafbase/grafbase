@@ -282,9 +282,9 @@ mod tests {
         },
     };
 
-    use dynaql::parser::types::OperationType;
     use futures_util::future::BoxFuture;
     use gateway_protocol::CustomerDeploymentConfig;
+    use grafbase_engine::parser::types::OperationType;
     use worker_utils::CloudflareRequestContext;
 
     use crate::{
