@@ -87,7 +87,8 @@ fn petstore_schema_with_header_forwarding(address: &SocketAddr) -> String {
         r#"
           extend schema
           @openapi(
-            namespace: "petstore",
+            name: "petstore",
+            namespace: true,
             url: "http://{address}",
             schema: "http://{address}/spec.json",
             headers: [

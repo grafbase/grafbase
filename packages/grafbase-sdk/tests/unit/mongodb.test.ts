@@ -19,6 +19,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -43,6 +44,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -70,6 +72,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -99,6 +102,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -128,6 +132,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -157,6 +162,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -189,6 +195,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -222,6 +229,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -264,6 +272,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -271,6 +280,7 @@ describe('MongoDB generator', () => {
           database: "tables"
         )
         @mongodb(
+          namespace: true
           name: "Another"
           url: "https://data.mongodb-api.com/app/data-jest/endpoint/data/v1"
           apiKey: "OTHER_KEY"

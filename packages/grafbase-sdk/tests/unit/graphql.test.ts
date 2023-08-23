@@ -16,6 +16,23 @@ describe('GraphQL connector', () => {
       "extend schema
         @graphql(
           name: "Contentful"
+          namespace: true
+          url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
+        )"
+    `)
+  })
+
+  it('generates the minimum possible GraphQL datasource, namespace false', () => {
+    const contentful = connector.GraphQL('Contentful', {
+      url: 'https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}'
+    })
+
+    g.datasource(contentful, { namespace: false })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "extend schema
+        @graphql(
+          name: "Contentful"
           url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
         )"
     `)
@@ -38,13 +55,13 @@ describe('GraphQL connector', () => {
       }
     })
 
-    g.datasource(contentful, { namespace: 'Contentful' })
+    g.datasource(contentful, { namespace: true })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
           name: "Contentful"
-          namespace: "Contentful"
+          namespace: true
           url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
           headers: [
             { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
@@ -75,19 +92,19 @@ describe('GraphQL connector', () => {
       url: 'https://api.github.com/graphql'
     })
 
-    g.datasource(contentful, { namespace: 'Contentful' })
-    g.datasource(github, { namespace: 'GitHub' })
+    g.datasource(contentful)
+    g.datasource(github)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
           name: "Contentful"
-          namespace: "Contentful"
+          namespace: true
           url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
         )
         @graphql(
           name: "GitHug"
-          namespace: "GitHub"
+          namespace: true
           url: "https://api.github.com/graphql"
         )"
     `)

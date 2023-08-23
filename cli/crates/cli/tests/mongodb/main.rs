@@ -324,6 +324,7 @@ impl Server {
             extend schema
               @mongodb(
                 name: "{MONGODB_CONNECTOR}",
+                namespace: false,
                 url: "http://{address}{MONGODB_PATH}"
                 apiKey: "{MONGODB_API_KEY}"
                 dataSource: "{MONGODB_DATA_SOURCE}"

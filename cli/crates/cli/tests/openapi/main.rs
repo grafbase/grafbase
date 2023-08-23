@@ -220,7 +220,8 @@ fn petstore_schema(address: &SocketAddr) -> String {
         r#"
           extend schema
           @openapi(
-            namespace: "petstore",
+            name: "petstore",
+            namespace: true,
             url: "http://{address}",
             schema: "http://{address}/spec.json",
             headers: [{{ name: "authorization", value: "Bearer {{{{ env.API_KEY }}}}" }}],
@@ -234,6 +235,8 @@ fn no_namespace_schema(address: &SocketAddr) -> String {
         r#"
           extend schema
           @openapi(
+            name: "petstore",
+            namespace: false,
             url: "http://{address}",
             schema: "http://{address}/spec.json",
             headers: [{{ name: "authorization", value: "Bearer {{{{ env.API_KEY }}}}" }}],

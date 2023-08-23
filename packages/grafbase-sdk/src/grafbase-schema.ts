@@ -54,7 +54,7 @@ export class Datasources {
 }
 
 export interface IntrospectParams {
-  namespace?: string
+  namespace?: boolean
 }
 
 export class GrafbaseSchema {

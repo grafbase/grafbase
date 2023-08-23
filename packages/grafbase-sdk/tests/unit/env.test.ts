@@ -28,13 +28,13 @@ describe('Env var accessor', () => {
       }
     })
 
-    g.datasource(github, { namespace: 'GitHub' })
+    g.datasource(github)
 
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
           name: "GitHub"
-          namespace: "GitHub"
+          namespace: true
           url: "https://api.github.com/graphql"
           headers: [
             { name: "Authorization", value: "Bearer test_token" }

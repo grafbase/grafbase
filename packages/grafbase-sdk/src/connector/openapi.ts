@@ -50,7 +50,7 @@ export class PartialOpenAPI {
     this.introspectionHeaders = headers.introspectionHeaders
   }
 
-  finalize(namespace?: string): OpenAPI {
+  finalize(namespace?: boolean): OpenAPI {
     return new OpenAPI(
       this.name,
       this.schema,
@@ -65,7 +65,7 @@ export class PartialOpenAPI {
 
 export class OpenAPI {
   private name: string
-  private namespace?: string
+  private namespace?: boolean
   private schema: string
   private apiUrl?: string
   private transforms: OpenApiTransform[]
@@ -79,7 +79,7 @@ export class OpenAPI {
     introspectionHeaders: Header[],
     transforms: OpenApiTransform[],
     url?: string,
-    namespace?: string
+    namespace?: boolean
   ) {
     this.name = name
     this.namespace = namespace
@@ -94,9 +94,13 @@ export class OpenAPI {
     const header = '  @openapi(\n'
     const name = `    name: "${this.name}"\n`
 
-    const namespace = this.namespace
-      ? `    namespace: "${this.namespace}"\n`
-      : ''
+    let namespace;
+    if (this.namespace === undefined || this.namespace === true)  {
+      namespace = `    namespace: true\n`
+    } else {
+      namespace = ''
+    }
+
     const url = this.apiUrl ? `    url: "${this.apiUrl}"\n` : ''
     const schema = `    schema: "${this.schema}"\n`
 

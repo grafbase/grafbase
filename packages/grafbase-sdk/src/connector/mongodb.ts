@@ -41,7 +41,7 @@ export class PartialMongoDBAPI {
     return model
   }
 
-  finalize(namespace?: string): MongoDBAPI {
+  finalize(namespace?: boolean): MongoDBAPI {
     return new MongoDBAPI(
       this.name,
       this.apiKey,
@@ -60,7 +60,7 @@ export class MongoDBAPI {
   private url: string
   private dataSource: string
   private database: string
-  private namespace?: string
+  private namespace?: boolean
   public models: MongoDBModel[]
 
   constructor(
@@ -70,7 +70,7 @@ export class MongoDBAPI {
     dataSource: string,
     database: string,
     models: MongoDBModel[],
-    namespace?: string
+    namespace?: boolean
   ) {
     this.name = name
     this.apiKey = apiKey
@@ -88,10 +88,13 @@ export class MongoDBAPI {
     const apiKey = `    apiKey: "${this.apiKey}"\n`
     const dataSource = `    dataSource: "${this.dataSource}"\n`
     const database = `    database: "${this.database}"\n`
-
-    const namespace = this.namespace
-      ? `    namespace: "${this.namespace}"\n`
-      : ''
+    
+    let namespace;
+    if (this.namespace === undefined || this.namespace === true)  {
+      namespace = `    namespace: true\n`
+    } else {
+      namespace = ''
+    }
 
     const footer = '  )'
 

@@ -37,7 +37,7 @@ export class PartialGraphQLAPI {
     this.transforms = transforms.transforms
   }
 
-  finalize(namespace?: string): GraphQLAPI {
+  finalize(namespace?: boolean): GraphQLAPI {
     return new GraphQLAPI(
       this.name,
       this.apiUrl,
@@ -51,7 +51,7 @@ export class PartialGraphQLAPI {
 
 export class GraphQLAPI {
   private name: string
-  private namespace?: string
+  private namespace?: boolean
   private url: string
   private headers: Header[]
   private introspectionHeaders: Header[]
@@ -63,7 +63,7 @@ export class GraphQLAPI {
     headers: Header[],
     introspectionHeaders: Header[],
     transforms: SchemaTransform[],
-    namespace?: string
+    namespace?: boolean
   ) {
     this.name = name
     this.namespace = namespace
@@ -77,9 +77,12 @@ export class GraphQLAPI {
     const header = '  @graphql(\n'
     const name = `    name: "${this.name}"\n`
 
-    const namespace = this.namespace
-      ? `    namespace: "${this.namespace}"\n`
-      : ''
+    let namespace;
+    if (this.namespace === undefined || this.namespace === true)  {
+      namespace = `    namespace: true\n`
+    } else {
+      namespace = ''
+    }
 
     const url = this.url ? `    url: "${this.url}"\n` : ''
 
