@@ -4,7 +4,6 @@ import { renderGraphQL } from '../utils'
 
 describe('MongoDB generator', () => {
   const mongoParams = {
-    name: 'Test',
     url: 'https://data.mongodb-api.com/app/data-test/endpoint/data/v1',
     apiKey: 'SOME_KEY',
     dataSource: 'data',
@@ -14,7 +13,7 @@ describe('MongoDB generator', () => {
   beforeEach(() => g.clear())
 
   it('generates the minimum possible MongoDB datasource', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
@@ -30,7 +29,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a simple model', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     g.datasource(mongo)
 
@@ -59,7 +58,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a simple model with no specified collection', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo.model('User', {
       id: g.id().unique().mapped('_id'),
@@ -86,7 +85,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a decimal field', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -115,7 +114,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a bytes field', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -144,7 +143,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a bigint field', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -173,7 +172,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a model with auth', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -208,7 +207,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a model with cache', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -238,10 +237,9 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a two datasources with separate models', () => {
-    const test = connector.MongoDB(mongoParams)
+    const test = connector.MongoDB('Test', mongoParams)
 
-    const another = connector.MongoDB({
-      name: 'Another',
+    const another = connector.MongoDB('Another', {
       url: 'https://data.mongodb-api.com/app/data-jest/endpoint/data/v1',
       apiKey: 'OTHER_KEY',
       dataSource: 'bar',

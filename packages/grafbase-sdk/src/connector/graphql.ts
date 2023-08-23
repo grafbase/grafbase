@@ -12,12 +12,13 @@ export interface GraphQLParams {
 }
 
 export class PartialGraphQLAPI {
+  private name: string
   private apiUrl: string
   private headers: Header[]
   private introspectionHeaders: Header[]
   private transforms: SchemaTransform[]
 
-  constructor(params: GraphQLParams) {
+  constructor(name: string, params: GraphQLParams) {
     const headers = new Headers()
 
     if (params.headers) {
@@ -29,6 +30,7 @@ export class PartialGraphQLAPI {
       params.transforms(transforms)
     }
 
+    this.name = name
     this.apiUrl = params.url
     this.headers = headers.headers
     this.introspectionHeaders = headers.introspectionHeaders
@@ -37,6 +39,7 @@ export class PartialGraphQLAPI {
 
   finalize(namespace?: string): GraphQLAPI {
     return new GraphQLAPI(
+      this.name,
       this.apiUrl,
       this.headers,
       this.introspectionHeaders,
@@ -47,6 +50,7 @@ export class PartialGraphQLAPI {
 }
 
 export class GraphQLAPI {
+  private name: string
   private namespace?: string
   private url: string
   private headers: Header[]
@@ -54,12 +58,14 @@ export class GraphQLAPI {
   private transforms: SchemaTransform[]
 
   constructor(
+    name: string,
     url: string,
     headers: Header[],
     introspectionHeaders: Header[],
     transforms: SchemaTransform[],
     namespace?: string
   ) {
+    this.name = name
     this.namespace = namespace
     this.url = url
     this.headers = headers
@@ -69,9 +75,12 @@ export class GraphQLAPI {
 
   public toString(): string {
     const header = '  @graphql(\n'
+    const name = `    name: "${this.name}"\n`
+
     const namespace = this.namespace
       ? `    namespace: "${this.namespace}"\n`
       : ''
+
     const url = this.url ? `    url: "${this.url}"\n` : ''
 
     let headers = this.headers.map((header) => `      ${header}`).join('\n')
@@ -95,6 +104,6 @@ export class GraphQLAPI {
 
     const footer = '  )'
 
-    return `${header}${namespace}${url}${headers}${introspectionHeaders}${transforms}${footer}`
+    return `${header}${name}${namespace}${url}${headers}${introspectionHeaders}${transforms}${footer}`
   }
 }

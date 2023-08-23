@@ -1,7 +1,6 @@
 import { ModelFields, MongoDBModel } from './mongodb/model'
 
 export interface MongoDBParams {
-  name: string
   url: string
   apiKey: string
   dataSource: string
@@ -16,8 +15,8 @@ export class PartialMongoDBAPI {
   private database: string
   private models: MongoDBModel[]
 
-  constructor(params: MongoDBParams) {
-    this.name = params.name
+  constructor(name: string, params: MongoDBParams) {
+    this.name = name
     this.url = params.url
     this.apiKey = params.apiKey
     this.dataSource = params.dataSource

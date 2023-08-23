@@ -21,13 +21,14 @@ export interface OpenAPIParams {
 }
 
 export class PartialOpenAPI {
+  private name: string
   private schema: string
   private apiUrl?: string
   private transforms: OpenApiTransform[]
   private headers: Header[]
   private introspectionHeaders: Header[]
 
-  constructor(params: OpenAPIParams) {
+  constructor(name: string, params: OpenAPIParams) {
     const headers = new Headers()
 
     if (params.headers) {
@@ -41,6 +42,7 @@ export class PartialOpenAPI {
       transforms.queryNaming(params.transforms.queryNaming)
     }
 
+    this.name = name
     this.schema = params.schema
     this.apiUrl = params.url
     this.transforms = transforms.transforms
@@ -50,6 +52,7 @@ export class PartialOpenAPI {
 
   finalize(namespace?: string): OpenAPI {
     return new OpenAPI(
+      this.name,
       this.schema,
       this.headers,
       this.introspectionHeaders,
@@ -61,6 +64,7 @@ export class PartialOpenAPI {
 }
 
 export class OpenAPI {
+  private name: string
   private namespace?: string
   private schema: string
   private apiUrl?: string
@@ -69,6 +73,7 @@ export class OpenAPI {
   private introspectionHeaders: Header[]
 
   constructor(
+    name: string,
     schema: string,
     headers: Header[],
     introspectionHeaders: Header[],
@@ -76,6 +81,7 @@ export class OpenAPI {
     url?: string,
     namespace?: string
   ) {
+    this.name = name
     this.namespace = namespace
     this.schema = schema
     this.apiUrl = url
@@ -86,6 +92,8 @@ export class OpenAPI {
 
   public toString(): string {
     const header = '  @openapi(\n'
+    const name = `    name: "${this.name}"\n`
+
     const namespace = this.namespace
       ? `    namespace: "${this.namespace}"\n`
       : ''
@@ -113,6 +121,6 @@ export class OpenAPI {
 
     const footer = '  )'
 
-    return `${header}${namespace}${url}${schema}${transforms}${headers}${introspectionHeaders}${footer}`
+    return `${header}${name}${namespace}${url}${schema}${transforms}${headers}${introspectionHeaders}${footer}`
   }
 }

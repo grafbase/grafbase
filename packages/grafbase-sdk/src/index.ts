@@ -37,24 +37,24 @@ export const connector = {
    *
    * @param params - The configuration parameters.
    */
-  OpenAPI: (params: OpenAPIParams): PartialOpenAPI => {
-    return new PartialOpenAPI(params)
+  OpenAPI: (name: string, params: OpenAPIParams): PartialOpenAPI => {
+    return new PartialOpenAPI(name, params)
   },
   /**
    * Create a new GraphQL connector object.
    *
    * @param params - The configuration parameters.
    */
-  GraphQL: (params: GraphQLParams): PartialGraphQLAPI => {
-    return new PartialGraphQLAPI(params)
+  GraphQL: (name: string, params: GraphQLParams): PartialGraphQLAPI => {
+    return new PartialGraphQLAPI(name, params)
   },
   /**
    * Create a new MongoDB connector object.
    *
    * @param params = The configuration parameters.
    */
-  MongoDB: (params: MongoDBParams): PartialMongoDBAPI => {
-    return new PartialMongoDBAPI(params)
+  MongoDB: (name: string, params: MongoDBParams): PartialMongoDBAPI => {
+    return new PartialMongoDBAPI(name, params)
   }
 }
 

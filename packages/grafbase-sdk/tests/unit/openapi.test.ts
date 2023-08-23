@@ -6,7 +6,7 @@ describe('OpenAPI generator', () => {
   beforeEach(() => g.clear())
 
   it('generates the minimum possible OpenAPI datasource', () => {
-    const stripe = connector.OpenAPI({
+    const stripe = connector.OpenAPI('Stripe', {
       schema:
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json'
     })
@@ -16,13 +16,14 @@ describe('OpenAPI generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
+          name: "Stripe"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
         )"
     `)
   })
 
   it('generates the maximum possible OpenAPI datasource', () => {
-    const stripe = connector.OpenAPI({
+    const stripe = connector.OpenAPI('Strike', {
       schema:
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
       url: 'https://api.stripe.com',
@@ -47,6 +48,7 @@ describe('OpenAPI generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
+          name: "Strike"
           namespace: "Stripe"
           url: "https://api.stripe.com"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
@@ -72,12 +74,12 @@ describe('OpenAPI generator', () => {
   })
 
   it('combines multiple apis into one extension', () => {
-    const stripe = connector.OpenAPI({
+    const stripe = connector.OpenAPI('Stripe', {
       schema:
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json'
     })
 
-    const openai = connector.OpenAPI({
+    const openai = connector.OpenAPI('OpenAI', {
       schema:
         'https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml'
     })
@@ -88,10 +90,12 @@ describe('OpenAPI generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
+          name: "Stripe"
           namespace: "Stripe"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
         )
         @openapi(
+          name: "OpenAI"
           namespace: "OpenAI"
           schema: "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml"
         )"
