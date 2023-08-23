@@ -19,7 +19,7 @@ pub struct GraphqlDirective {
     pub name: String,
 
     /// The namespace within which the upstream GraphQL schema is embedded.
-    namespace: Option<String>,
+    pub namespace: bool,
 
     pub url: Url,
     #[serde(default)]
@@ -56,14 +56,6 @@ impl GraphqlDirective {
                 })
                 .collect(),
         }
-    }
-
-    /// The optional *namespace* for the given GraphQL directive.
-    ///
-    /// This will default to the `namespace` field if present, or the (deprecated) `name` field
-    /// otherwise.
-    pub fn namespace(&self) -> Option<&str> {
-        self.namespace.as_deref()
     }
 }
 
@@ -151,6 +143,7 @@ mod tests {
             extend schema
               @graphql(
                 name: "countries",
+                namespace: false,
                 url: "https://countries.trevorblades.com",
                 headers: [{ name: "authorization", value: "Bearer {{ env.MY_API_KEY }}"}],
                 introspectionHeaders: [{ name: "x-user-id", value: "{{ env.ADMIN_USER_ID }}"}]
@@ -163,7 +156,7 @@ mod tests {
         [
             GraphqlDirective {
                 name: "countries",
-                namespace: None,
+                namespace: false,
                 url: Url {
                     scheme: "https",
                     cannot_be_a_base: false,
@@ -214,6 +207,7 @@ mod tests {
             extend schema
               @graphql(
                 name: "Test",
+                namespace: false,
                 url: "https://countries.trevorblades.com",
                 headers: [{ name: "authorization", value: "Bearer {{ env.MY_API_KEY }}"}],
                 introspectionHeaders: [{ name: "x-user-id", value: "{{ env.ADMIN_USER_ID }}"}]
@@ -226,7 +220,7 @@ mod tests {
         [
             GraphqlDirective {
                 name: "Test",
-                namespace: None,
+                namespace: false,
                 url: Url {
                     scheme: "https",
                     cannot_be_a_base: false,
@@ -287,6 +281,7 @@ mod tests {
             extend schema
               @graphql(
                 name: "countries",
+                namespace: false,
                 headers: [{ name: "authorization", value: "..."}],
               )
             "#,
@@ -301,11 +296,12 @@ mod tests {
             extend schema
               @graphql(
                 name: "countries",
+                namespace: false,
                 url: "https://countries.trevorblades.com",
                 headers: [{ name: 12, value: "..."}],
               )
             "#,
-            "[6:26] invalid type: integer `12`, expected a string"
+            "[7:26] invalid type: integer `12`, expected a string"
         );
     }
 
@@ -316,11 +312,12 @@ mod tests {
             extend schema
               @graphql(
                 name: "countries",
+                namespace: false,
                 url: "https://countries.trevorblades.com",
                 introspectionHeaders: [{ name: 12, value: "..."}],
               )
             "#,
-            "[6:39] invalid type: integer `12`, expected a string"
+            "[7:39] invalid type: integer `12`, expected a string"
         );
     }
 
@@ -330,6 +327,7 @@ mod tests {
             extend schema
               @graphql(
                 name: "countries",
+                namespace: false,
                 url: "https://countries.trevorblades.com",
                 headers: [{ name: "authorization", value: "Bearer blah"}],
                 introspectionHeaders: []
@@ -352,6 +350,7 @@ mod tests {
             extend schema
               @graphql(
                 name: "countries",
+                namespace: false,
                 url: "https://countries.trevorblades.com",
                 headers: [{ name: "authorization", value: "Bearer blah"}],
               )

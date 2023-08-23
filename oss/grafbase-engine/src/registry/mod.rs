@@ -1305,7 +1305,7 @@ pub struct MongoDBConfiguration {
     pub url: String,
     pub data_source: String,
     pub database: String,
-    pub namespace: Option<String>,
+    pub namespace: bool,
 }
 
 #[derive(

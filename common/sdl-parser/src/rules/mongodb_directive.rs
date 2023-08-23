@@ -43,7 +43,7 @@ pub struct MongoDBDirective {
     api_key: String,
     data_source: String,
     database: String,
-    namespace: Option<String>,
+    namespace: bool,
 }
 
 impl MongoDBDirective {
@@ -75,12 +75,6 @@ impl MongoDBDirective {
     pub fn database(&self) -> &str {
         &self.database
     }
-
-    /// For now, does nothing. Could be used for the generated
-    /// types when implementing introspection for the connector.
-    pub fn namespace(&self) -> Option<&str> {
-        self.namespace.as_deref()
-    }
 }
 
 const MONGODB_DIRECTIVE_NAME: &str = "mongodb";
@@ -90,8 +84,7 @@ impl Directive for MongoDBDirective {
         r#"
         directive @mongodb(
           """
-          A unique name for the given directive. Used in the model
-          definitions to map them into the correct datasource.
+          A unique name for the given directive.
           """
           name: String!
 
@@ -119,10 +112,10 @@ impl Directive for MongoDBDirective {
           database: String!
 
           """
-          For now, does nothing. Could be used for the generated
-          types when implementing introspection for the connector.
+          If true, namespaces queries and mutations with the
+          connector name.
           """
-          namespace: String
+          namespace: Boolean
         ) on SCHEMA
         "#
         .to_string()
@@ -151,12 +144,13 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                             url: parsed_directive.url().to_string(),
                             data_source: parsed_directive.data_source().to_string(),
                             database: parsed_directive.database().to_string(),
-                            namespace: parsed_directive.namespace.clone(),
+                            namespace: parsed_directive.namespace,
                         },
                         parsed_directive.name(),
                     );
 
-                    if let Some(namespace) = parsed_directive.namespace() {
+                    if parsed_directive.namespace {
+                        let namespace = parsed_directive.name.as_str();
                         let query_type_name = format!("{namespace}Query").to_pascal_case();
                         let mutation_type_name = format!("{namespace}Mutation").to_pascal_case();
 

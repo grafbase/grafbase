@@ -41,7 +41,7 @@ fn not_namespaced() {
 #[test]
 fn namespaced() {
     let schema = indoc! {r#"
-        type User @model(connector: "test", collection: "users") {
+        type User @model(connector: "mongo", collection: "users") {
           age: Int
         }
     "#};
