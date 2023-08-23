@@ -86,13 +86,12 @@ impl<'ctx, 'a> Visitor<'ctx> for ComplexityCalculate<'ctx, 'a> {
 
 #[cfg(test)]
 mod tests {
-    use futures_util::stream::BoxStream;
 
     use super::*;
     use crate::{
         parser::parse_query,
         validation::{visit, VisitorContext},
-        EmptyMutation, Object, Schema, Subscription,
+        EmptyMutation, EmptySubscription, Object, Schema,
     };
 
     struct Query;
@@ -139,32 +138,8 @@ mod tests {
         }
     }
 
-    struct Subscription;
-
-    #[Subscription(internal)]
-    impl Subscription {
-        async fn value(&self) -> BoxStream<'static, i32> {
-            todo!()
-        }
-
-        async fn obj(&self) -> BoxStream<'static, MyObj> {
-            todo!()
-        }
-
-        #[graphql(complexity = "count * child_complexity")]
-        #[allow(unused_variables)]
-        async fn objs(&self, #[graphql(default_with = "5")] count: usize) -> BoxStream<'static, Vec<MyObj>> {
-            todo!()
-        }
-
-        #[graphql(complexity = 3)]
-        async fn d(&self) -> BoxStream<'static, MyObj> {
-            todo!()
-        }
-    }
-
     fn check_complex(query: &str, expect_complex: usize) {
-        let registry = Schema::create_registry_static::<Query, EmptyMutation, Subscription>();
+        let registry = Schema::create_registry_static::<Query, EmptyMutation, EmptySubscription>();
         let doc = parse_query(query).unwrap();
         let mut ctx = VisitorContext::new(&registry, &doc, None);
         let mut complex = 0;
@@ -280,121 +255,6 @@ mod tests {
         }
 
         query {
-            objs(count: 10) {
-                ... A
-            }
-        }"#,
-            20,
-        );
-    }
-
-    #[test]
-    fn complex_subscription() {
-        check_complex(
-            r#"
-        subscription {
-            value #1
-        }"#,
-            1,
-        );
-
-        check_complex(
-            r#"
-        subscription {
-            value #1
-            d #3
-        }"#,
-            4,
-        );
-
-        check_complex(
-            r#"
-        subscription {
-            value obj { #2
-                a b #2
-            }
-        }"#,
-            4,
-        );
-
-        check_complex(
-            r#"
-        subscription {
-            value obj { #2
-                a b obj { #3
-                    a b obj { #3
-                        a #1
-                    }
-                }
-            }
-        }"#,
-            9,
-        );
-
-        check_complex(
-            r#"
-        fragment A on MyObj {
-            a b ... A2 #2
-        }
-
-        fragment A2 on MyObj {
-            obj { # 1
-                a # 1
-            }
-        }
-
-        subscription query {
-            obj { # 1
-                ... A
-            }
-        }"#,
-            5,
-        );
-
-        check_complex(
-            r#"
-        subscription {
-            obj { # 1
-                ... on MyObj {
-                    a b #2
-                    ... on MyObj {
-                        obj { #1
-                            a #1
-                        }
-                    }
-                }
-            }
-        }"#,
-            5,
-        );
-
-        check_complex(
-            r#"
-        subscription {
-            objs(count: 10) {
-                a b
-            }
-        }"#,
-            20,
-        );
-
-        check_complex(
-            r#"
-        subscription {
-            objs {
-                a b
-            }
-        }"#,
-            10,
-        );
-
-        check_complex(
-            r#"
-        fragment A on MyObj {
-            a b
-        }
-
-        subscription query {
             objs(count: 10) {
                 ... A
             }

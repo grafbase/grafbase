@@ -5,7 +5,6 @@
 use once_cell::sync::Lazy;
 
 use crate::{
-    futures_util::Stream,
     parser::types::ExecutableDocument,
     validation::visitor::{visit, RuleError, Visitor, VisitorContext},
     *,
@@ -340,15 +339,8 @@ impl Mutation {
 
 pub struct Subscription;
 
-#[Subscription(internal)]
-impl Subscription {
-    async fn values(&self) -> impl Stream<Item = i32> {
-        futures_util::stream::once(async move { 10 })
-    }
-}
-
 static TEST_HARNESS: Lazy<Schema> =
-    Lazy::new(|| Schema::new(Schema::create_registry_static::<Query, Mutation, Subscription>()));
+    Lazy::new(|| Schema::new(Schema::create_registry_static::<Query, Mutation, EmptySubscription>()));
 
 pub(crate) fn validate<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> Result<(), Vec<RuleError>>
 where

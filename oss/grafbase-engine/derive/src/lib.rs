@@ -21,7 +21,6 @@ mod object;
 mod output_type;
 mod scalar;
 mod simple_object;
-mod subscription;
 mod union;
 mod utils;
 mod validators;
@@ -135,20 +134,6 @@ pub fn derive_union(input: TokenStream) -> TokenStream {
         Err(err) => return TokenStream::from(err.write_errors()),
     };
     match union::generate(&union_args) {
-        Ok(expanded) => expanded,
-        Err(err) => err.write_errors().into(),
-    }
-}
-
-#[proc_macro_attribute]
-#[allow(non_snake_case)]
-pub fn Subscription(args: TokenStream, input: TokenStream) -> TokenStream {
-    let object_args = match args::Subscription::from_list(&parse_macro_input!(args as AttributeArgs).0) {
-        Ok(object_args) => object_args,
-        Err(err) => return TokenStream::from(err.write_errors()),
-    };
-    let mut item_impl = parse_macro_input!(input as ItemImpl);
-    match subscription::generate(&object_args, &mut item_impl) {
         Ok(expanded) => expanded,
         Err(err) => err.write_errors().into(),
     }

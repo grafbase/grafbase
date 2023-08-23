@@ -129,5 +129,5 @@ pub type FieldResult<T> = Result<T>;
 
 pub use grafbase_engine_derive::{
     ComplexObject, Description, Directive, Enum, InputObject, Interface, MergedObject, MergedSubscription, NewType,
-    Object, Scalar, SimpleObject, Subscription, Union,
+    Object, Scalar, SimpleObject, Union,
 };
