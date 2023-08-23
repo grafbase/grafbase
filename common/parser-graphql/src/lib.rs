@@ -86,8 +86,8 @@ static BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
 ///
 /// See [`Error`] for more details.
 pub async fn parse_schema(
-    id: u16,
     client: reqwest::Client,
+    name: &str,
     namespace: Option<&str>,
     url: &Url,
     headers: ConnectorHeaders,
@@ -115,19 +115,19 @@ pub async fn parse_schema(
     let schema = data.into_schema().map_err(|err| vec![err.into()])?;
 
     let parser = Parser {
-        id,
+        name: name.to_string(),
         namespace: namespace.map(ToOwned::to_owned),
         url: url.clone(),
     };
 
     let mut registry = parser.into_registry(schema);
-    registry.http_headers.insert(format!("GraphQLConnector{id}"), headers);
+    registry.http_headers.insert(format!("GraphQLConnector{name}"), headers);
 
     Ok(registry)
 }
 
 struct Parser {
-    id: u16,
+    name: String,
     namespace: Option<String>,
     url: Url,
 }
@@ -285,7 +285,7 @@ impl Parser {
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolver: Resolver::Graphql(graphql::Resolver {
-                    id: self.id,
+                    name: self.name.clone(),
                     url: self.url.clone(),
                     namespace: Some(prefix.to_owned()),
                 }),
@@ -308,7 +308,7 @@ impl Parser {
         // server.
         for (_name, field) in fields {
             field.resolver = Resolver::Graphql(graphql::Resolver {
-                id: self.id,
+                name: self.name.clone(),
                 url: self.url.clone(),
                 namespace: None,
             });
@@ -337,7 +337,7 @@ impl Parser {
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolver: Resolver::Graphql(graphql::Resolver {
-                    id: self.id,
+                    name: self.name.clone(),
                     url: self.url.clone(),
                     namespace: Some(prefix.to_owned()),
                 }),
@@ -364,7 +364,7 @@ impl Parser {
         // server.
         for (_name, field) in fields {
             field.resolver = Resolver::Graphql(graphql::Resolver {
-                id: self.id,
+                name: self.name.clone(),
                 url: self.url.clone(),
                 namespace: None,
             });
@@ -436,8 +436,8 @@ mod tests {
             .await;
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
+            "Test",
             Some("FooBar"),
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
@@ -481,8 +481,8 @@ mod tests {
         ]);
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
+            "Test",
             Some("FooBar"),
             &Url::parse(&server.uri()).unwrap(),
             headers.clone(),
@@ -493,7 +493,7 @@ mod tests {
 
         assert_eq!(
             result.http_headers,
-            BTreeMap::from([(String::from("GraphQLConnector1"), headers)])
+            BTreeMap::from([(String::from("GraphQLConnectorTest"), headers)])
         );
     }
 
@@ -507,8 +507,8 @@ mod tests {
             .await;
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
+            "Test",
             None,
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
@@ -531,8 +531,8 @@ mod tests {
             .await;
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
+            "Test",
             None,
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
@@ -555,8 +555,8 @@ mod tests {
             .await;
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
+            "Test",
             Some("pre_fix"),
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
