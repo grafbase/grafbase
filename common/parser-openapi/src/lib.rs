@@ -42,7 +42,7 @@ pub fn parse_spec(
 
 #[derive(Clone, Debug)]
 pub struct ApiMetadata {
-    pub id: u16,
+    pub name: String,
     pub namespace: Option<String>,
     pub url: Option<Url>,
     pub headers: ConnectorHeaders,
@@ -54,7 +54,7 @@ impl ApiMetadata {
         self.namespace
             .as_deref()
             .map(|namespace| namespace.to_camel_case())
-            .unwrap_or_else(|| format!("openAPI{}", self.id))
+            .unwrap_or_else(|| format!("openAPI{}", self.name))
     }
 
     pub fn namespaced(&self, name: &str) -> String {
@@ -64,11 +64,13 @@ impl ApiMetadata {
 
 impl From<sdl_parser::OpenApiDirective> for ApiMetadata {
     fn from(val: sdl_parser::OpenApiDirective) -> Self {
+        let headers = val.headers();
+
         ApiMetadata {
-            id: val.id.unwrap_or_default(),
-            namespace: val.namespace.clone(),
-            url: val.url.clone(),
-            headers: val.headers(),
+            name: val.name,
+            namespace: val.namespace,
+            url: val.url,
+            headers,
             query_naming: val.transforms.query_naming,
         }
     }
@@ -394,7 +396,7 @@ mod tests {
 
     fn metadata(name: Option<&str>) -> ApiMetadata {
         ApiMetadata {
-            id: 1,
+            name: String::from("Test"),
             namespace: name.map(Into::into),
             url: Some(Url::parse("http://example.com").unwrap()),
             headers: ConnectorHeaders::new([]),
