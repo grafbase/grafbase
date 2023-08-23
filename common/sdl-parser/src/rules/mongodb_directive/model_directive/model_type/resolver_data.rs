@@ -1,4 +1,4 @@
-use dynaql::{
+use grafbase_engine::{
     indexmap::IndexMap,
     registry::{
         resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
@@ -6,7 +6,7 @@ use dynaql::{
     },
     CacheControl,
 };
-use dynaql_parser::types::FieldDefinition;
+use grafbase_engine_parser::types::FieldDefinition;
 
 use crate::rules::cache_directive::CacheDirective;
 

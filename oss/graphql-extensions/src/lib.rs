@@ -1,10 +1,10 @@
-use dynaql::parser::types::{OperationDefinition, OperationType};
+use grafbase_engine::parser::types::{OperationDefinition, OperationType};
 
 pub mod authorization;
 pub mod runtime_log;
 
 fn is_operation_introspection(operation: &OperationDefinition) -> bool {
-    use dynaql::parser::types::Selection;
+    use grafbase_engine::parser::types::Selection;
     operation.ty == OperationType::Query
         && operation
             .selection_set

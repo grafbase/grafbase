@@ -21,7 +21,8 @@ pub mod types;
 use std::{borrow::Cow, collections::HashMap};
 
 use case::CaseExt;
-use dynaql::{
+use grafbase::auth::Operations;
+use grafbase_engine::{
     indexmap::IndexMap,
     names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT},
     registry::{
@@ -33,8 +34,7 @@ use dynaql::{
     },
     AuthConfig, Positioned,
 };
-use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
-use grafbase::auth::Operations;
+use grafbase_engine_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
 use if_chain::if_chain;
 
 use super::{
@@ -60,7 +60,7 @@ pub struct ModelDirective;
 pub const METADATA_FIELD_CREATED_AT: &str = "createdAt";
 pub const METADATA_FIELD_UPDATED_AT: &str = "updatedAt";
 pub const METADATA_FIELDS: [&str; 3] = [
-    dynaql::names::OUTPUT_FIELD_ID,
+    grafbase_engine::names::OUTPUT_FIELD_ID,
     METADATA_FIELD_UPDATED_AT,
     METADATA_FIELD_CREATED_AT,
 ];
@@ -151,7 +151,7 @@ impl<'a> Visitor<'a> for ModelDirective {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
+        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
     ) {
         if !&type_definition
             .node
@@ -343,12 +343,12 @@ impl<'a> Visitor<'a> for ModelDirective {
                     insert_metadata_field(
                         &mut fields,
                         &type_name,
-                        dynaql::names::OUTPUT_FIELD_ID,
+                        grafbase_engine::names::OUTPUT_FIELD_ID,
                         Some("Unique identifier".to_owned()),
                         "ID!",
                         dynamodb::constant::SK,
                         field_auth
-                            .get(dynaql::names::OUTPUT_FIELD_ID)
+                            .get(grafbase_engine::names::OUTPUT_FIELD_ID)
                             .map(|e| e.as_ref())
                             .unwrap_or(model_auth.as_ref()),
                     );
@@ -400,7 +400,10 @@ impl<'a> Visitor<'a> for ModelDirective {
             //
 
             let one_of_type_name = {
-                let extra_fields = vec![MetaInputValue::new(dynaql::names::OUTPUT_FIELD_ID, "ID".to_string())];
+                let extra_fields = vec![MetaInputValue::new(
+                    grafbase_engine::names::OUTPUT_FIELD_ID,
+                    "ID".to_string(),
+                )];
 
                 types::register_oneof_type(ctx, type_definition, &unique_directives, extra_fields)
             };
@@ -419,7 +422,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     args
                 },
                 ty: type_name.clone().into(),
-                deprecation: dynaql::registry::Deprecation::NoDeprecated,
+                deprecation: grafbase_engine::registry::Deprecation::NoDeprecated,
                 cache_control: model_cache.clone(),
                 // TODO: Should be defined as a ResolveNode
                 // Single entity
@@ -450,7 +453,7 @@ fn has_any_invalid_metadata_fields(ctx: &mut VisitorContext<'_>, object_name: &s
         let field_name = field.node.name.node.as_str();
         let expected_type_name = match field_name {
             METADATA_FIELD_CREATED_AT | METADATA_FIELD_UPDATED_AT => DateTimeScalar::name(),
-            dynaql::names::OUTPUT_FIELD_ID => IDScalar::name(),
+            grafbase_engine::names::OUTPUT_FIELD_ID => IDScalar::name(),
             // Field is not reserved.
             _ => continue,
         }
@@ -477,9 +480,9 @@ fn has_any_invalid_metadata_fields(ctx: &mut VisitorContext<'_>, object_name: &s
 mod tests {
     use std::collections::HashMap;
 
-    use dynaql::AuthConfig;
-    use dynaql_parser::parse_schema;
     use grafbase::auth::Operations;
+    use grafbase_engine::AuthConfig;
+    use grafbase_engine_parser::parse_schema;
     use pretty_assertions::assert_eq;
     use serde_json as _;
 

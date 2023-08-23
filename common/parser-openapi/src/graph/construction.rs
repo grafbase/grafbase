@@ -1,4 +1,6 @@
-use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
+use grafbase_engine::registry::resolvers::http::{
+    ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
+};
 use petgraph::{graph::NodeIndex, Graph};
 use serde_json::Value;
 

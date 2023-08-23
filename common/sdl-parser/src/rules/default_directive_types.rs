@@ -1,5 +1,5 @@
-use dynaql::Positioned;
-use dynaql_parser::types::{FieldDefinition, TypeDefinition};
+use grafbase_engine::Positioned;
+use grafbase_engine_parser::types::{FieldDefinition, TypeDefinition};
 
 use super::{
     model_directive::ModelDirective,
@@ -10,7 +10,7 @@ pub const VALUE_ARGUMENT: &str = "value";
 
 pub struct DefaultDirectiveTypes;
 
-const FIELDS_NOT_ALLOWED: &[&str] = &[dynaql::names::OUTPUT_FIELD_ID];
+const FIELDS_NOT_ALLOWED: &[&str] = &[grafbase_engine::names::OUTPUT_FIELD_ID];
 
 impl<'a> Visitor<'a> for DefaultDirectiveTypes {
     fn enter_field(
@@ -48,13 +48,13 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
 
                 let error = {
                     let ctx_registry = ctx.registry.borrow();
-                    dynaql::validation::utils::is_valid_input_value(
+                    grafbase_engine::validation::utils::is_valid_input_value(
                         &ctx_registry,
                         &field.node.ty.node.to_string(),
                         &default_value,
-                        dynaql::QueryPathNode {
+                        grafbase_engine::QueryPathNode {
                             parent: None,
-                            segment: dynaql::QueryPathSegment::Name(&field.node.name.node),
+                            segment: grafbase_engine::QueryPathSegment::Name(&field.node.name.node),
                         },
                     )
                 };
@@ -71,8 +71,8 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
 
 #[cfg(test)]
 mod tests {
-    use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
-    use dynaql_parser::parse_schema;
+    use grafbase_engine::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
+    use grafbase_engine_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
     use super::*;

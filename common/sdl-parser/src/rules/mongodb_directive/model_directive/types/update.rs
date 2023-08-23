@@ -1,5 +1,5 @@
-use dynaql::registry::{resolvers::transformer::Transformer, MetaField, ObjectType};
 use grafbase::auth::Operations;
+use grafbase_engine::registry::{resolvers::transformer::Transformer, MetaField, ObjectType};
 
 use crate::{
     registry::names::MetaNames,

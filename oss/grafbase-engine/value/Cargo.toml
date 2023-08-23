@@ -1,0 +1,18 @@
+[package]
+name = "grafbase-engine-value"
+version = "3.0.31"
+edition = "2021"
+description = "GraphQL value for grafbase-engine"
+repository = "https://github.com/grafbase/api"
+license = "MPL-2.0"
+
+[features]
+default = []
+
+[dependencies]
+serde_json = { workspace = true }
+serde = { workspace = true }
+bytes = { version = "1", features = ["serde"] }
+indexmap = { git = "https://github.com/bluss/indexmap.git", features = [
+  "serde",
+], rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }

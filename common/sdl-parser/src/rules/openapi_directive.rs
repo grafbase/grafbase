@@ -1,4 +1,4 @@
-use dynaql::registry::ConnectorHeaders;
+use grafbase_engine::registry::ConnectorHeaders;
 use url::Url;
 
 use super::{
@@ -115,7 +115,7 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
     fn enter_schema(
         &mut self,
         ctx: &mut super::visitor::VisitorContext<'a>,
-        doc: &'a dynaql::Positioned<dynaql_parser::types::SchemaDefinition>,
+        doc: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::SchemaDefinition>,
     ) {
         let directives = doc
             .node

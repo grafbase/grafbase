@@ -1,6 +1,6 @@
 [package]
 name = "graphql-extensions"
-description = "Has extensions to be used on dynaql"
+description = "Has extensions to be used on grafbase-engine"
 version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
@@ -10,8 +10,8 @@ async-trait = "0.1"
 lazy_static = "1"
 web-time = { workspace = true }
 
-dynaql = { path = "../../oss/dynaql", default-features = false }
-dynaql-value = { workspace = true }
+grafbase-engine = { path = "../../oss/grafbase-engine", default-features = false }
+grafbase-engine-value = { workspace = true }
 log = { path = "../../oss/log", features = ["with-worker"] }
 grafbase = { path = "../../oss/grafbase", features = ["json"] }
 grafbase-runtime = { workspace = true }

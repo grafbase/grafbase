@@ -1,8 +1,0 @@
----
-source: common/dynaql/src/registry/resolvers/graphql/serializer.rs
-expression: serialize(input)
----
-query {
-	foo @include(if: true) @exclude(if: 42)
-}
-

@@ -1,4 +1,4 @@
-//! `QueryResponse` is an AST which aims to represent a result of a `DynaQL` response.
+//! `QueryResponse` is an AST which aims to represent a result of a `GrafbaseEngine` response.
 //!
 //! This structure is the **resolved** version of a query, the point is not to have a logic of any
 //! kind considering graph, the point is to be able to have a representation of a answer where we
@@ -28,7 +28,7 @@ use core::fmt::{self, Display, Formatter};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use derivative::Derivative;
-use dynaql_value::Name;
+use grafbase_engine_value::Name;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
 

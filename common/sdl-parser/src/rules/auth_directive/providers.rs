@@ -1,4 +1,4 @@
-use dynaql::ServerError;
+use grafbase_engine::ServerError;
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_GROUPS_CLAIM: &str = "groups";

@@ -1,5 +1,5 @@
-use dynaql::Positioned;
-use dynaql_parser::types::{TypeDefinition, TypeKind};
+use grafbase_engine::Positioned;
+use grafbase_engine_parser::types::{TypeDefinition, TypeKind};
 
 use super::{
     auth_directive::AuthDirective,

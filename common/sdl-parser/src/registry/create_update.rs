@@ -1,5 +1,6 @@
 use case::CaseExt;
-use dynaql::{
+use grafbase::auth::Operations;
+use grafbase_engine::{
     registry::{
         self,
         relations::MetaRelationKind,
@@ -9,8 +10,7 @@ use dynaql::{
     },
     AuthConfig,
 };
-use dynaql_parser::types::{BaseType, ObjectType, Type, TypeDefinition, TypeKind};
-use grafbase::auth::Operations;
+use grafbase_engine_parser::types::{BaseType, ObjectType, Type, TypeDefinition, TypeKind};
 
 use super::names::{INPUT_FIELD_NUM_OP_DECREMENT, INPUT_FIELD_NUM_OP_INCREMENT, INPUT_FIELD_NUM_OP_SET};
 use crate::{

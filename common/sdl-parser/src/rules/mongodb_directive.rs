@@ -3,8 +3,8 @@ mod type_directive;
 
 use std::collections::HashMap;
 
-use dynaql::registry::{MetaField, MongoDBConfiguration, ObjectType};
-use dynaql_parser::types::SchemaDefinition;
+use grafbase_engine::registry::{MetaField, MongoDBConfiguration, ObjectType};
+use grafbase_engine_parser::types::SchemaDefinition;
 use inflector::Inflector;
 pub(super) use model_directive::create_type_context::CreateTypeContext;
 pub use model_directive::MongoDBModelDirective;
@@ -134,14 +134,14 @@ impl Directive for MongoDBDirective {
 pub struct MongoDBVisitor;
 
 impl<'a> Visitor<'a> for MongoDBVisitor {
-    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a dynaql::Positioned<SchemaDefinition>) {
+    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a grafbase_engine::Positioned<SchemaDefinition>) {
         let directives = doc
             .node
             .directives
             .iter()
             .filter(|d| d.node.name.node == MONGODB_DIRECTIVE_NAME);
 
-        let mut directive_names: HashMap<String, Vec<dynaql::Pos>> = HashMap::new();
+        let mut directive_names: HashMap<String, Vec<grafbase_engine::Pos>> = HashMap::new();
         let mut found_directive = false;
 
         for directive in directives {

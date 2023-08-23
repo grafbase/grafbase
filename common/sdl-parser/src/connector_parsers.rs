@@ -1,11 +1,11 @@
 use std::{borrow::Cow, sync::Mutex};
 
 use async_trait::async_trait;
-use dynaql::{
+use grafbase_engine::{
     registry::{self, MetaField, MetaType, Registry},
     Name, Pos, Positioned,
 };
-use dynaql_parser::types::TypeDefinition;
+use grafbase_engine_parser::types::TypeDefinition;
 
 use crate::{rules::visitor::VisitorContext, GraphqlDirective, OpenApiDirective};
 
@@ -93,7 +93,7 @@ fn type_fields(src_type: MetaType) -> impl Iterator<Item = MetaField> {
 }
 
 fn meta_type_to_type_definition(ty: &MetaType, position: Pos) -> Positioned<TypeDefinition> {
-    use dynaql_parser::types::{EnumType, InputObjectType, InterfaceType, ObjectType, TypeKind, UnionType};
+    use grafbase_engine_parser::types::{EnumType, InputObjectType, InterfaceType, ObjectType, TypeKind, UnionType};
 
     Positioned::new(
         TypeDefinition {

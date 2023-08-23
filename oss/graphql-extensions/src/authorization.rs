@@ -1,17 +1,17 @@
 //! ----------------------------------------------------------------------------
-//! The Auth is going to be injected inside dynaql instead of just living as an
+//! The Auth is going to be injected inside grafbase_engine instead of just living as an
 //! Extension as it's adding complexity without much gain.
 //! ----------------------------------------------------------------------------
 use std::sync::Arc;
 
-use dynaql::{
+use grafbase::auth::{ExecutionAuth, Operations};
+use grafbase_engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
     registry::{relations::MetaRelation, ModelName, NamedType, Registry, TypeReference},
     AuthConfig, ServerError, ServerResult,
 };
-use dynaql_value::{indexmap::IndexMap, ConstValue};
-use grafbase::auth::{ExecutionAuth, Operations};
+use grafbase_engine_value::{indexmap::IndexMap, ConstValue};
 use log::{trace, warn};
 
 const INPUT_ARG: &str = "input";
@@ -40,9 +40,9 @@ impl Extension for AuthExtension {
     async fn prepare_request(
         &self,
         ctx: &ExtensionContext<'_>,
-        request: dynaql::Request,
-        next: dynaql::extensions::NextPrepareRequest<'_>,
-    ) -> ServerResult<dynaql::Request> {
+        request: grafbase_engine::Request,
+        next: grafbase_engine::extensions::NextPrepareRequest<'_>,
+    ) -> ServerResult<grafbase_engine::Request> {
         let auth_context = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
@@ -61,7 +61,7 @@ impl Extension for AuthExtension {
         next: NextResolve<'_>,
     ) -> ServerResult<Option<ResponseNodeId>> {
         lazy_static::lazy_static! {
-            static ref EMPTY_INDEX_MAP: IndexMap<dynaql_value::Name, ConstValue> = IndexMap::new();
+            static ref EMPTY_INDEX_MAP: IndexMap<grafbase_engine_value::Name, ConstValue> = IndexMap::new();
         }
 
         if info.parent_type.starts_with("__") || info.parent_type.starts_with("[__") || info.name.starts_with("__") {
@@ -306,9 +306,12 @@ impl AuthExtension {
     ) -> Result<(), ServerError> {
         self.check_input(CheckInputOptions {
             input: &ConstValue::Object(
-                vec![(dynaql::Name::new("id"), ConstValue::String("ignored".to_string()))]
-                    .into_iter()
-                    .collect(),
+                vec![(
+                    grafbase_engine::Name::new("id"),
+                    ConstValue::String("ignored".to_string()),
+                )]
+                .into_iter()
+                .collect(),
             ),
             type_name: type_name.named_type(),
             mutation_name,

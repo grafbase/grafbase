@@ -1,5 +1,0 @@
----
-source: common/dynaql/src/validation/dynamic_validators/length.rs
-expression: "ctx.errors[0].message"
----
-Invalid value for argument "test", length 4 is too long, must be no larger than 1

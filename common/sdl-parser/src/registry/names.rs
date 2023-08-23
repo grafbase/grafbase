@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
 use case::CaseExt;
-pub use dynaql::names::*;
-use dynaql::registry::NamedType;
-use dynaql_parser::types::TypeDefinition;
+pub use grafbase_engine::names::*;
+use grafbase_engine::registry::NamedType;
+use grafbase_engine_parser::types::TypeDefinition;
 
 use super::NumericFieldKind;
 use crate::{registry::ParentRelation, utils::to_lower_camelcase};

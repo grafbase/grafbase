@@ -1,5 +1,5 @@
-use dynaql_parser::types::FieldDefinition;
-use dynaql_value::ConstValue;
+use grafbase_engine_parser::types::FieldDefinition;
+use grafbase_engine_value::ConstValue;
 
 use super::{default_directive_types::VALUE_ARGUMENT, directive::Directive};
 

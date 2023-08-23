@@ -1,4 +1,4 @@
-use dynaql::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
+use grafbase_engine::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
 use graph::OpenApiGraph;
 use inflector::Inflector;
 use sdl_parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
@@ -194,7 +194,7 @@ fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use dynaql::registry::{MetaType, UnionType};
+    use grafbase_engine::registry::{MetaType, UnionType};
 
     use super::*;
 

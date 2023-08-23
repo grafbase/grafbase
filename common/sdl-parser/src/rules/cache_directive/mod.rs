@@ -4,11 +4,11 @@ use std::{
     fmt::Formatter,
 };
 
-use dynaql::{
+use grafbase_engine::{
     registry::{CacheAccessScope, CacheInvalidationPolicy},
     CacheControl,
 };
-use dynaql_parser::{types::ConstDirective, Pos, Positioned};
+use grafbase_engine_parser::{types::ConstDirective, Pos, Positioned};
 use serde::{
     de::{value::MapAccessDeserializer, Error, MapAccess, Unexpected, Visitor},
     Deserialize, Deserializer,
@@ -90,7 +90,7 @@ impl<'de> Visitor<'de> for MutationInvalidationVisitor {
     {
         match v {
             "entity" => Ok(Some(CacheInvalidationPolicy::Entity {
-                field: dynaql::names::OUTPUT_FIELD_ID.to_string(),
+                field: grafbase_engine::names::OUTPUT_FIELD_ID.to_string(),
             })),
             "list" => Ok(Some(CacheInvalidationPolicy::List)),
             "type" => Ok(Some(CacheInvalidationPolicy::Type)),

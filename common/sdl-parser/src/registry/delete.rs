@@ -1,4 +1,5 @@
-use dynaql::{
+use grafbase::auth::Operations;
+use grafbase_engine::{
     names::{OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS},
     registry::{
         resolvers::{dynamo_mutation::DynamoMutationResolver, transformer::Transformer},
@@ -7,8 +8,7 @@ use dynaql::{
     },
     AuthConfig, CacheControl,
 };
-use dynaql_parser::types::{BaseType, TypeDefinition};
-use grafbase::auth::Operations;
+use grafbase_engine_parser::types::{BaseType, TypeDefinition};
 
 use crate::{
     registry::names::{MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT},

@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use dynaql::{registry::Registry, Schema};
 use function_name::named;
 use grafbase::UdfKind;
+use grafbase_engine::{registry::Registry, Schema};
 use serde_json as _;
 
 use crate::rules::visitor::RuleError;

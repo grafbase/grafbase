@@ -1,4 +1,4 @@
-use dynaql::registry::ConnectorHeaderValue;
+use grafbase_engine::registry::ConnectorHeaderValue;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct IntrospectionHeader {

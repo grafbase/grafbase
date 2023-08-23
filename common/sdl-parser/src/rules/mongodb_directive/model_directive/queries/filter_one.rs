@@ -1,4 +1,5 @@
-use dynaql::{
+use grafbase::auth::Operations;
+use grafbase_engine::{
     indexmap::IndexMap,
     registry::{
         resolvers::{
@@ -8,7 +9,6 @@ use dynaql::{
         Deprecation, MetaField, MetaInputValue,
     },
 };
-use grafbase::auth::Operations;
 
 use crate::{
     registry::names::INPUT_ARG_BY,

@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
 use aws_region_nearby::AwsRegion;
-use dynaql::{
+use grafbase::{auth::ExecutionAuth, UdfKind};
+use grafbase_engine::{
     registry::{CacheConfig, CacheControlError},
     AuthConfig, CacheControl,
 };
-use grafbase::{auth::ExecutionAuth, UdfKind};
 use serde_with::serde_as;
 use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct VersionedRegistry<'a> {
-    pub registry: std::borrow::Cow<'a, dynaql::registry::Registry>,
+    pub registry: std::borrow::Cow<'a, grafbase_engine::registry::Registry>,
     pub deployment_id: std::borrow::Cow<'a, str>,
 }
 
@@ -45,7 +45,7 @@ impl TryFrom<GatewayRequest> for worker::Request {
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExecutionRequest {
     /// The request to execute
-    pub request: dynaql::Request,
+    pub request: grafbase_engine::Request,
     /// Customer specific configuration needed to execute the request
     pub config: CustomerDeploymentConfig,
     /// Authorization details
@@ -238,7 +238,7 @@ where
 mod tests {
     use std::borrow::Cow;
 
-    use dynaql::registry::Registry;
+    use grafbase_engine::registry::Registry;
     use sha2::{Digest, Sha256};
 
     use super::*;

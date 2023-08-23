@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use dynaql::{
+use grafbase::auth::Operations;
+use grafbase_engine::{
     names::{INPUT_FIELD_FILTER_REGEX, OUTPUT_EDGE_CURSOR},
     registry::{
         self,
@@ -14,8 +15,7 @@ use dynaql::{
     },
     AuthConfig, Positioned,
 };
-use dynaql_parser::types::{FieldDefinition, TypeDefinition};
-use grafbase::auth::Operations;
+use grafbase_engine_parser::types::{FieldDefinition, TypeDefinition};
 use grafbase_runtime::search;
 use itertools::Itertools;
 
@@ -259,7 +259,7 @@ pub fn add_query_search(
             args.into_iter().map(|input| (input.name.clone(), input)).collect()
         },
         ty: connection_type.into(),
-        deprecation: dynaql::registry::Deprecation::NoDeprecated,
+        deprecation: grafbase_engine::registry::Deprecation::NoDeprecated,
         cache_control: CacheDirective::parse(&model_type_definition.directives),
         external: false,
         provides: None,

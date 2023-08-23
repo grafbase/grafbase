@@ -9,7 +9,7 @@ license = "MPL-2.0"
 [dependencies]
 base64 = "0.21"
 derivative = "2"
-dynaql-value = { path = "../../oss/dynaql/value", version = "3" }
+grafbase-engine-value = { path = "../../oss/grafbase-engine/value", version = "3" }
 dynomite = "0.10"
 internment = { version = "0.7", features = ["serde", "arc"] }
 serde_json = { workspace = true }

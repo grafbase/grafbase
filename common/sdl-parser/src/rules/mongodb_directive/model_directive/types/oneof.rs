@@ -1,4 +1,4 @@
-use dynaql::{
+use grafbase_engine::{
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::MetaInputValue,
 };

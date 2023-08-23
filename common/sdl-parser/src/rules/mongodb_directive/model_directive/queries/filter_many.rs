@@ -1,4 +1,5 @@
-use dynaql::{
+use grafbase::auth::Operations;
+use grafbase_engine::{
     indexmap::IndexMap,
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_EDGE_CURSOR, OUTPUT_FIELD_ID},
     registry::{
@@ -11,8 +12,7 @@ use dynaql::{
     },
     AuthConfig,
 };
-use dynaql_parser::types::TypeDefinition;
-use grafbase::auth::Operations;
+use grafbase_engine_parser::types::TypeDefinition;
 
 use crate::{
     registry::{

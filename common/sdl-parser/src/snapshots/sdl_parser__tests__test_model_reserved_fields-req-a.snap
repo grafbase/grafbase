@@ -976,7 +976,7 @@ expression: req_string_a
           }
         },
         "n": "__Directive",
-        "r": "dynaql::model::directive::__Directive"
+        "r": "grafbase_engine::model::directive::__Directive"
       }
     },
     "__DirectiveLocation": {
@@ -1061,7 +1061,7 @@ expression: req_string_a
           }
         },
         "n": "__DirectiveLocation",
-        "r": "dynaql::model::directive::__DirectiveLocation"
+        "r": "grafbase_engine::model::directive::__DirectiveLocation"
       }
     },
     "__EnumValue": {
@@ -1094,7 +1094,7 @@ expression: req_string_a
           }
         },
         "n": "__EnumValue",
-        "r": "dynaql::model::enum_value::__EnumValue"
+        "r": "grafbase_engine::model::enum_value::__EnumValue"
       }
     },
     "__Field": {
@@ -1139,7 +1139,7 @@ expression: req_string_a
           }
         },
         "n": "__Field",
-        "r": "dynaql::model::field::__Field"
+        "r": "grafbase_engine::model::field::__Field"
       }
     },
     "__InputValue": {
@@ -1172,7 +1172,7 @@ expression: req_string_a
           }
         },
         "n": "__InputValue",
-        "r": "dynaql::model::input_value::__InputValue"
+        "r": "grafbase_engine::model::input_value::__InputValue"
       }
     },
     "__Schema": {
@@ -1222,7 +1222,7 @@ expression: req_string_a
           }
         },
         "n": "__Schema",
-        "r": "dynaql::model::schema::__Schema"
+        "r": "grafbase_engine::model::schema::__Schema"
       }
     },
     "__Type": {
@@ -1309,7 +1309,7 @@ expression: req_string_a
           }
         },
         "n": "__Type",
-        "r": "dynaql::model::type::__Type"
+        "r": "grafbase_engine::model::type::__Type"
       }
     },
     "__TypeKind": {
@@ -1350,7 +1350,7 @@ expression: req_string_a
           }
         },
         "n": "__TypeKind",
-        "r": "dynaql::model::kind::__TypeKind"
+        "r": "grafbase_engine::model::kind::__TypeKind"
       }
     }
   }

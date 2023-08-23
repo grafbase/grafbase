@@ -1,4 +1,4 @@
-use dynaql_value::{ConstValue, Name, Number};
+use grafbase_engine_value::{ConstValue, Name, Number};
 use internment::ArcIntern;
 
 mod value_serde;
@@ -87,7 +87,7 @@ impl From<CompactValue> for ConstValue {
 
 #[cfg(test)]
 mod test {
-    use dynaql_value::ConstValue;
+    use grafbase_engine_value::ConstValue;
 
     use super::*;
 

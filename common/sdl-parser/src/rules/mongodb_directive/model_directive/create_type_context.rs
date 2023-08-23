@@ -1,9 +1,9 @@
 use case::CaseExt;
-use dynaql::{
+use grafbase_engine::{
     registry::{Constraint, MongoDBConfiguration},
     AuthConfig, CacheControl, Positioned,
 };
-use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
+use grafbase_engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
 
 use super::COLLECTION_KEY;
 use crate::rules::{cache_directive::CacheDirective, unique_directive::UniqueDirective, visitor::VisitorContext};

@@ -1,8 +1,8 @@
-use dynaql::{
+use grafbase_engine::{
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::{EnumType, InputObjectType, MetaEnumValue, MetaInputValue},
 };
-use dynaql_parser::types::{BaseType, ObjectType, Type};
+use grafbase_engine_parser::types::{BaseType, ObjectType, Type};
 
 use super::generic;
 use crate::{

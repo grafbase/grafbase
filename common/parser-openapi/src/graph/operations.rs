@@ -1,4 +1,4 @@
-use dynaql::registry::resolvers::http::ExpectedStatusCode;
+use grafbase_engine::registry::resolvers::http::ExpectedStatusCode;
 use inflector::Inflector;
 use petgraph::{
     graph::NodeIndex,

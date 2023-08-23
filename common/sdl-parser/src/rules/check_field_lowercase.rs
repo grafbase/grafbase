@@ -18,8 +18,8 @@ impl<'a> Visitor<'a> for CheckFieldCamelCase {
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        field: &'a dynaql::Positioned<dynaql_parser::types::FieldDefinition>,
-        _parent: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
+        field: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::FieldDefinition>,
+        _parent: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
     ) {
         if_chain! {
             let name = &field.node.name.node;
@@ -38,7 +38,7 @@ impl<'a> Visitor<'a> for CheckFieldCamelCase {
 
 #[cfg(test)]
 mod tests {
-    use dynaql_parser::parse_schema;
+    use grafbase_engine_parser::parse_schema;
     use serde_json as _;
 
     use super::CheckFieldCamelCase;

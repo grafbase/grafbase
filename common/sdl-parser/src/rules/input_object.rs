@@ -1,6 +1,6 @@
 //! Pulls input objects into the registry
-use dynaql::registry::{InputObjectType, MetaInputValue};
-use dynaql_parser::types::TypeKind;
+use grafbase_engine::registry::{InputObjectType, MetaInputValue};
+use grafbase_engine_parser::types::TypeKind;
 
 use super::visitor::{Visitor, VisitorContext};
 
@@ -10,7 +10,7 @@ impl<'a> Visitor<'a> for InputObjectVisitor {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
+        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
     ) {
         let TypeKind::InputObject(input_object) = &type_definition.node.kind else {
             return;

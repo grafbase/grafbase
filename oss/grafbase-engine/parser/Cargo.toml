@@ -1,0 +1,13 @@
+[package]
+name = "grafbase-engine-parser"
+version = "3.0.31"
+edition = "2021"
+description = "GraphQL query parser for grafbase-engine"
+repository = "https://github.com/grafbase/api"
+license = "MPL-2.0"
+
+[dependencies]
+grafbase-engine-value = { path = "../value", version = "3" }
+pest = "2"
+pest_derive = "2"
+serde = { workspace = true }

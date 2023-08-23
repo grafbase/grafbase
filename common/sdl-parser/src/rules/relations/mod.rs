@@ -10,7 +10,7 @@ pub const fn relations_rules() -> VisitorCons<RelationEngine, VisitorNil> {
 
 #[cfg(test)]
 mod tests {
-    use dynaql_parser::parse_schema;
+    use grafbase_engine_parser::parse_schema;
     use insta::assert_debug_snapshot;
     use serde_json as _;
 

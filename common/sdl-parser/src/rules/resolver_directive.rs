@@ -1,6 +1,6 @@
-use dynaql::Positioned;
-use dynaql_parser::types::{FieldDefinition, TypeDefinition};
-use dynaql_value::ConstValue;
+use grafbase_engine::Positioned;
+use grafbase_engine_parser::types::{FieldDefinition, TypeDefinition};
+use grafbase_engine_value::ConstValue;
 
 use super::{
     directive::Directive,
@@ -65,7 +65,7 @@ impl Directive for ResolverDirective {
 
 #[cfg(test)]
 mod tests {
-    use dynaql_parser::parse_schema;
+    use grafbase_engine_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
     use super::*;

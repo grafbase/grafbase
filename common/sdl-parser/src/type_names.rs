@@ -1,8 +1,8 @@
 //! Utilities for correctly constructing graphql types from names
 
-use dynaql::registry::{InputValueType, MetaFieldType, NamedType};
+use grafbase_engine::registry::{InputValueType, MetaFieldType, NamedType};
 
-/// An extension trait for `dynaql::registry::TypeName`
+/// An extension trait for `grafbase_engine::registry::TypeName`
 ///
 /// Provides convenience functions for converting into `MetaFieldType`
 /// (and eventually a `MetaInputType`)

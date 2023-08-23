@@ -17,7 +17,7 @@ use cynic::{
     GraphQlError, QueryBuilder,
 };
 use cynic_introspection::{query::IntrospectionQuery, SchemaError};
-use dynaql::{
+use grafbase_engine::{
     registry::{
         resolvers::{graphql, transformer::Transformer, Resolver},
         ConnectorHeaders, Deprecation, MetaField, ObjectType, Registry,
@@ -410,7 +410,7 @@ pub struct ApiMetadata {
 mod tests {
     use std::collections::BTreeMap;
 
-    use dynaql::registry::ConnectorHeaderValue;
+    use grafbase_engine::registry::ConnectorHeaderValue;
     use serde_json::json;
     use wiremock::{
         matchers::{header, method},

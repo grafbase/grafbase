@@ -4,7 +4,9 @@ mod components;
 
 use std::collections::BTreeMap;
 
-use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
+use grafbase_engine::registry::resolvers::http::{
+    ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
+};
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapi::v2::{Operation, PathItem};

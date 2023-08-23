@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use dynaql::ServerError;
-use dynaql_value::ConstValue;
+use grafbase_engine::ServerError;
+use grafbase_engine_value::ConstValue;
 use serde::{Deserialize, Serialize};
 
 use super::operations::Operations;

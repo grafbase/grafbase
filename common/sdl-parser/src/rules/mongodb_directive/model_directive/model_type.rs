@@ -1,6 +1,6 @@
 mod resolver_data;
 
-use dynaql::{
+use grafbase_engine::{
     indexmap::IndexMap,
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::{self, resolvers::transformer::Transformer, MetaField, MetaType},

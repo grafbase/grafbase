@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
-use dynaql::registry::{MetaType, Registry};
-use dynaql_parser::types::Type;
+use grafbase_engine::registry::{MetaType, Registry};
+use grafbase_engine_parser::types::Type;
 
 #[derive(Debug, PartialEq)]
 pub enum RequiredMigration {

@@ -1,6 +1,6 @@
 use std::fmt::{self, Formatter};
 
-use dynaql_value::Number;
+use grafbase_engine_value::Number;
 use serde::{
     de::{Error as DeError, MapAccess, SeqAccess, Visitor},
     ser::SerializeMap,

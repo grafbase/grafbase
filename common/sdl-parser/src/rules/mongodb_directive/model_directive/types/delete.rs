@@ -1,8 +1,8 @@
-use dynaql::registry::{
+use grafbase::auth::Operations;
+use grafbase_engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     MetaField, ObjectType,
 };
-use grafbase::auth::Operations;
 
 use crate::{
     registry::names::MetaNames,

@@ -1,12 +1,12 @@
 use case::CaseExt;
-use dynaql::{
+use grafbase::auth::Operations;
+use grafbase_engine::{
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::{
         resolvers::{transformer::Transformer, Resolver},
         InputObjectType, MetaField, MetaInputValue, ObjectType,
     },
 };
-use grafbase::auth::Operations;
 
 use crate::{
     registry::{get_length_validator, names::MetaNames},

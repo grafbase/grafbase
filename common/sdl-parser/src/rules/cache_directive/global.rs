@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use dynaql::{
+use grafbase_engine::{
     indexmap::IndexMap,
     registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference},
     CacheControl,
@@ -204,7 +204,9 @@ fn validate_mutation_invalidation(
     match mutation_invalidation_policy {
         // ensure the referenced field exists in the type
         // we allow the _id_ to be missing because our @model types have it
-        CacheInvalidationPolicy::Entity { field: policy_field } if policy_field != dynaql::names::OUTPUT_FIELD_ID => {
+        CacheInvalidationPolicy::Entity { field: policy_field }
+            if policy_field != grafbase_engine::names::OUTPUT_FIELD_ID =>
+        {
             let referenced_field = fields.iter().find(|(field_name, _)| *field_name == policy_field);
 
             // doesn't exist return early with appropriate message
@@ -238,11 +240,11 @@ fn validate_mutation_invalidation(
 mod tests {
     use std::{borrow::Cow, collections::HashMap};
 
-    use dynaql::{
+    use grafbase_engine::{
         registry::{CacheInvalidationPolicy, MetaField},
         CacheControl,
     };
-    use dynaql_parser::parse_schema;
+    use grafbase_engine_parser::parse_schema;
 
     use crate::{
         rules::{

@@ -1,5 +1,5 @@
-use dynaql::{Positioned, ServerError};
-use dynaql_parser::types::{ConstDirective, FieldDefinition, SchemaDefinition, TypeDefinition};
+use grafbase_engine::{Positioned, ServerError};
+use grafbase_engine_parser::types::{ConstDirective, FieldDefinition, SchemaDefinition, TypeDefinition};
 
 use crate::{rules::model_directive::MODEL_DIRECTIVE, Visitor, VisitorContext};
 
@@ -19,7 +19,7 @@ impl AuthDirective {
         ctx: &VisitorContext<'_>,
         directives: &[Positioned<ConstDirective>],
         is_global: bool,
-    ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
+    ) -> Result<Option<grafbase_engine::AuthConfig>, ServerError> {
         if let Some(directive) = directives.iter().find(|d| d.is_auth()) {
             config::parse_auth_config(ctx, directive, is_global).map(Some)
         } else {
@@ -40,7 +40,7 @@ impl<'a> Visitor<'a> for AuthDirective {
     fn enter_schema(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        schema_definition: &'a dynaql::Positioned<SchemaDefinition>,
+        schema_definition: &'a grafbase_engine::Positioned<SchemaDefinition>,
     ) {
         match Self::parse(ctx, &schema_definition.node.directives, true) {
             Ok(Some(auth)) => {
@@ -58,7 +58,7 @@ impl<'a> Visitor<'a> for AuthDirective {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a dynaql::Positioned<TypeDefinition>,
+        type_definition: &'a grafbase_engine::Positioned<TypeDefinition>,
     ) {
         if let (Some(auth_directive), false) = (
             type_definition.node.directives.iter().find(|d| d.is_auth()),
@@ -95,8 +95,8 @@ impl<'a> Visitor<'a> for AuthDirective {
 pub mod tests {
     use std::collections::HashMap;
 
-    use dynaql_parser::parse_schema;
     use grafbase::auth::Operations;
+    use grafbase_engine_parser::parse_schema;
     use pretty_assertions::assert_eq;
     use providers::DEFAULT_GROUPS_CLAIM;
 
@@ -184,7 +184,7 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_private_ops: Operations::all(),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
@@ -200,7 +200,7 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_private_ops: Operations::CREATE | Operations::DELETE,
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
@@ -216,7 +216,7 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_private_ops: Operations::empty(),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
@@ -232,7 +232,7 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_group_ops: HashMap::from_iter(vec![
                 ("admin".to_string(), Operations::all()),
                 ("moderator".to_string(), Operations::all()),
@@ -254,7 +254,7 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_group_ops: HashMap::from_iter(vec![
                 ("admin".to_string(), Operations::all()),
                 ("moderator".to_string(), Operations::GET | Operations::LIST),
@@ -322,7 +322,7 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_owner_ops: Operations::all(),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
@@ -338,7 +338,7 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_owner_ops: Operations::CREATE,
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
@@ -354,8 +354,8 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Oidc(grafbase_engine::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
@@ -433,8 +433,8 @@ pub mod tests {
             ("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),
             ("CLIENT_ID".to_string(), "some-id".to_string()),
         ]),
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Oidc(grafbase_engine::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
@@ -509,8 +509,8 @@ pub mod tests {
             ("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),
             ("JWT_SECRET".to_string(), "s3cr3t".to_string())
         ]),
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Jwt(grafbase_engine::JwtProvider {
                 issuer: "https://my.idp.com".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
@@ -530,8 +530,8 @@ pub mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Jwt(grafbase_engine::JwtProvider {
                 issuer: "https://my.idp.com".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
@@ -551,8 +551,8 @@ pub mod tests {
         query: Query
       }
       "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Jwt(grafbase_engine::JwtProvider {
                 issuer: "myidp".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
@@ -584,8 +584,8 @@ pub mod tests {
         query: Query
       }
       "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Oidc(grafbase_engine::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: "grps".to_string(),
@@ -605,8 +605,8 @@ pub mod tests {
       query: Query
     }
     "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Jwt(grafbase_engine::JwtProvider {
                 issuer: "myidp".to_string(),
                 groups_claim: "grps".to_string(),
                 client_id: None,
@@ -626,8 +626,8 @@ schema @auth(
   query: Query
 }
 "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Jwks(grafbase_engine::JwksProvider {
                 issuer: Some("http://example.com".to_string()),
                 jwks_endpoint: "http://example.com/.well-known/jwks.json".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
@@ -647,8 +647,8 @@ schema @auth(
     query: Query
   }
   "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Jwks(grafbase_engine::JwksProvider {
                 issuer: None,
                 jwks_endpoint: "http://example.com/jwks".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
@@ -668,8 +668,8 @@ schema @auth(
   query: Query
 }
 "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Jwks(grafbase_engine::JwksProvider {
                 issuer: Some("myidp".to_string()),
                 jwks_endpoint: "http://example.com/jwks".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
@@ -694,8 +694,8 @@ query: Query
             ("CLIENT_ID".to_string(), "some-id".to_string()),
             ("GROUPS".to_string(), "grps".to_string()),
         ]),
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Jwks(grafbase_engine::JwksProvider {
                 issuer: Some("https://my.idp.com".to_string()),
                 jwks_endpoint: "https://my.idp.com/.well-known/jwks.json".parse().unwrap(),
                 groups_claim: "grps".to_string(),
@@ -715,8 +715,8 @@ query: Query
         query: Query
       }
       "#,
-        dynaql::AuthConfig {
-            provider: Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
+        grafbase_engine::AuthConfig {
+            provider: Some(grafbase_engine::AuthProvider::Oidc(grafbase_engine::OidcProvider {
                 issuer: "https://my.idp.com/some/path/".to_string(),
                 issuer_base_url: "https://my.idp.com/some/path/".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
@@ -736,7 +736,7 @@ query: Query
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_public_ops: Operations::all(),
             ..Default::default()
         }
@@ -751,7 +751,7 @@ query: Query
         query: Query
       }
       "#,
-        dynaql::AuthConfig {
+        grafbase_engine::AuthConfig {
             allowed_public_ops: allowed_public_ops(Operations::GET),
             allowed_private_ops: Operations::all(),
             ..Default::default()

@@ -1,5 +1,5 @@
-use dynaql::registry::{ConnectorHeaderValue, ConnectorHeaders};
-use dynaql_parser::types::SchemaDefinition;
+use grafbase_engine::registry::{ConnectorHeaderValue, ConnectorHeaders};
+use grafbase_engine_parser::types::SchemaDefinition;
 use tracing::warn;
 use url::Url;
 
@@ -148,7 +148,7 @@ impl Directive for GraphqlDirective {
 pub struct GraphqlVisitor;
 
 impl<'a> Visitor<'a> for GraphqlVisitor {
-    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a dynaql::Positioned<SchemaDefinition>) {
+    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a grafbase_engine::Positioned<SchemaDefinition>) {
         let directives = doc
             .node
             .directives

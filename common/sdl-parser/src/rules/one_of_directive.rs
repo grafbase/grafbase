@@ -1,10 +1,10 @@
 use std::vec;
 
-use dynaql::{
+use grafbase_engine::{
     indexmap::IndexMap,
     registry::{InputObjectType, MetaDirective, MetaInputValue, __DirectiveLocation},
 };
-use dynaql_parser::types::TypeKind;
+use grafbase_engine_parser::types::TypeKind;
 use if_chain::if_chain;
 
 use super::{
@@ -29,7 +29,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
+        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {
@@ -82,8 +82,8 @@ impl<'a> Visitor<'a> for OneOfDirective {
 
 #[test]
 fn test_not_usable_on_nullable_fields() {
-    use dynaql::registry::MetaType;
-    use dynaql_parser::parse_schema;
+    use grafbase_engine::registry::MetaType;
+    use grafbase_engine_parser::parse_schema;
 
     use super::visitor::{visit, VisitorContext};
 

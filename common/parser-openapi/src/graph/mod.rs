@@ -1,6 +1,8 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
+use grafbase_engine::registry::resolvers::http::{
+    ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
+};
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use petgraph::{
@@ -67,7 +69,7 @@ impl OpenApiGraph {
 
     #[cfg(test)]
     pub fn from_petgraph(graph: Graph<Node, Edge>) -> Self {
-        use dynaql::registry::ConnectorHeaders;
+        use grafbase_engine::registry::ConnectorHeaders;
         use sdl_parser::OpenApiQueryNamingStrategy;
 
         OpenApiGraph {
@@ -247,7 +249,7 @@ pub enum ScalarKind {
 
 impl ScalarKind {
     pub fn type_name(self) -> String {
-        use dynaql::registry::scalars::{JSONScalar, SDLDefinitionScalar};
+        use grafbase_engine::registry::scalars::{JSONScalar, SDLDefinitionScalar};
 
         match self {
             ScalarKind::String => "String".to_string(),

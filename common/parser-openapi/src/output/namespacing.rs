@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use dynaql::{
+use grafbase_engine::{
     indexmap::IndexMap,
     registry::{MetaField, MetaType, Registry},
 };

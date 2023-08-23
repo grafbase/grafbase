@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
-use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
+use grafbase_engine::registry::resolvers::http::{
+    ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
+};
 use indexmap::IndexMap;
 use openapiv3::{Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
 
@@ -282,7 +284,7 @@ fn convert_status_code(code: &openapiv3::StatusCode) -> Result<ExpectedStatusCod
 
 #[cfg(test)]
 mod tests {
-    use dynaql::registry::resolvers::http::ExpectedStatusCode;
+    use grafbase_engine::registry::resolvers::http::ExpectedStatusCode;
     use rstest::rstest;
 
     use super::*;

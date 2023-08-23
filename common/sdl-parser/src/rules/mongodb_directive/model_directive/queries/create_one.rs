@@ -1,13 +1,13 @@
 use std::iter;
 
-use dynaql::registry::{
+use grafbase::auth::Operations;
+use grafbase_engine::registry::{
     resolvers::{
         atlas_data_api::{AtlasDataApiResolver, OperationType},
         Resolver,
     },
     MetaField, MetaInputValue,
 };
-use grafbase::auth::Operations;
 
 use crate::{
     registry::names::{MetaNames, INPUT_ARG_INPUT},

@@ -1,5 +1,5 @@
-use dynaql::registry::{InputObjectType, MetaInputValue};
-use dynaql_parser::types::TypeDefinition;
+use grafbase_engine::registry::{InputObjectType, MetaInputValue};
+use grafbase_engine_parser::types::TypeDefinition;
 
 use crate::{
     registry::names::MetaNames,

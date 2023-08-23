@@ -1,5 +1,5 @@
-use dynaql::Name;
-use dynaql_value::ConstValue;
+use grafbase_engine::Name;
+use grafbase_engine_value::ConstValue;
 use inflector::Inflector;
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use serde_json::Value;

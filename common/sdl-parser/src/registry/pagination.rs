@@ -1,5 +1,6 @@
 use dynamodb::constant;
-use dynaql::{
+use grafbase::auth::Operations;
+use grafbase_engine::{
     indexmap::IndexMap,
     names::INPUT_FIELD_FILTER_IN,
     registry::{
@@ -12,15 +13,14 @@ use dynaql::{
     },
     AuthConfig,
 };
-use dynaql_parser::types::{Type, TypeDefinition};
-use grafbase::auth::Operations;
+use grafbase_engine_parser::types::{Type, TypeDefinition};
 
 use super::{
     names::{
         INPUT_ARG_FILTER, PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST,
         PAGINATION_INPUT_ARG_LAST, PAGINATION_INPUT_ARG_ORDER_BY,
     },
-    register_dynaql_enum,
+    register_grafbase_engine_enum,
 };
 use crate::{
     registry::names::{
@@ -208,7 +208,7 @@ pub fn add_query_paginated_collection(
         },
         // TODO: Should this be really nullable?
         ty: connection_type.as_nullable().into(),
-        deprecation: dynaql::registry::Deprecation::NoDeprecated,
+        deprecation: grafbase_engine::registry::Deprecation::NoDeprecated,
         cache_control,
         external: false,
         provides: None,
@@ -304,7 +304,7 @@ fn register_orderby_input(registry: &mut Registry, model_type_definition: &TypeD
     let input_type_name = MetaNames::pagination_orderby_input(model_type_definition);
     registry.create_type(
         |registry| {
-            let order_by_direction_type = register_dynaql_enum::<OrderByDirection>(registry);
+            let order_by_direction_type = register_grafbase_engine_enum::<OrderByDirection>(registry);
             InputObjectType::new(
                 input_type_name.to_string(),
                 [MetaInputValue::new(

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use dynaql::Pos;
-use dynaql_parser::types::ObjectType;
+use grafbase_engine::Pos;
+use grafbase_engine_parser::types::ObjectType;
 
 use super::visitor::{Visitor, VisitorContext};
 

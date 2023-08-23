@@ -4,15 +4,15 @@ extern crate assert_matches;
 
 use std::collections::{HashMap, HashSet};
 
-use dynaql::{
+use grafbase::UdfKind;
+use grafbase_engine::{
     registry::{
-        enums::DynaqlEnums,
+        enums::GrafbaseEngineEnums,
         scalars::{PossibleScalar, SDLDefinitionScalar},
     },
     Pos,
 };
-use dynaql_parser::{parse_schema, types::ServiceDocument, Error as ParserError};
-use grafbase::UdfKind;
+use grafbase_engine_parser::{parse_schema, types::ServiceDocument, Error as ParserError};
 use rules::{
     auth_directive::AuthDirective,
     basic_type::BasicType,
@@ -47,7 +47,7 @@ use rules::{
 mod type_names;
 
 pub use connector_parsers::ConnectorParsers;
-pub use dynaql::registry::Registry;
+pub use grafbase_engine::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
 pub use rules::{
     cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
@@ -136,7 +136,7 @@ pub async fn parse<'a>(
     let schema = format!(
         "{}\n{}\n{}\n{}",
         schema,
-        DynaqlEnums::sdl(),
+        GrafbaseEngineEnums::sdl(),
         PossibleScalar::sdl(),
         directives.to_definition(),
     );
