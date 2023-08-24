@@ -168,12 +168,12 @@ async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> Async
 }
 
 fn schema(port: u16, namespace: bool) -> String {
-    let namespace_param = if namespace { "namespace: \"gothub\"" } else { "" };
     format!(
         r#"
           extend schema
           @graphql(
-            {namespace_param}
+            name: "gothub",
+            namespace: {namespace},
             url: "http://127.0.0.1:{port}",
             schema: "http://127.0.0.1:{port}/spec.json",
           )

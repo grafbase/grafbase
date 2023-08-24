@@ -361,12 +361,12 @@ import { connector } from '../../src/index'
 The OpenAPI connector can be created with the `OpenAPI` method:
 
 ```typescript
-const openai = connector.OpenAPI({
+const openai = connector.OpenAPI("OpenAI",
   schema:
     'https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml'
 })
 
-const stripe = connector.OpenAPI({
+const stripe = connector.OpenAPI("Stripe", {
   schema:
     'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
   headers: (headers) => {
@@ -392,7 +392,7 @@ g.datasource(openai, { namespace: 'OpenAI' })
 The GraphQL connector can be created with the `GraphQL` method:
 
 ```typescript
-const contentful = connector.GraphQL({
+const contentful = connector.GraphQL('Contentful', {
   url: g.env('CONTENTFUL_API_URL'),
   headers: (headers) => {
     headers.set('Authorization', `Bearer ${g.env('CONTENTFUL_API_KEY')}`)
@@ -401,7 +401,7 @@ const contentful = connector.GraphQL({
   }
 })
 
-const github = connector.GraphQL({
+const github = connector.GraphQL('GitHub', {
   url: 'https://api.github.com/graphql'
 })
 ```
@@ -411,6 +411,30 @@ Connectors can be added to the schema using `g.datasource()`, including an optio
 ```typescript
 g.datasource(contentful, { namespace: 'Contentful' })
 g.datasource(github, { namespace: 'GitHub' })
+```
+
+### MongoDB
+
+The MongoDB connector can be created with the `MongoDB` method:
+
+```typescript
+const mongodb = connector.MongoDB('MongoDB', {
+  url: 'https://data.mongodb-api.com/app/data-test/endpoint/data/v1',
+  apiKey: 'SOME_KEY',
+  dataSource: 'data',
+  database: 'tables'
+})
+
+// Models must be added manually for this connector.
+
+mongodb
+  .model('User', {
+    id: g.id().unique().mapped('_id'),
+    field: g.string()
+  })
+  .collection('users')
+
+g.datasource(mongodb, { namespace: 'MongoDB' })
 ```
 
 ### Authentication
@@ -645,7 +669,7 @@ g.extend('StripeCustomer', {
 Node's `process.env` return nullable strings, which are a bit annoying to use in fields requiring non-nullable values. The schema has a helper `g.env()` that throws if the variable is not set, and returns a guaranteed string.
 
 ```ts
-const github = connector.GraphQL({
+const github = connector.GraphQL('GitHub', {
   url: 'https://api.github.com/graphql',
   headers: (headers) => {
     headers.set('Authorization', `Bearer ${g.env('GITHUB_TOKEN')}`)

@@ -12,12 +12,13 @@ export interface GraphQLParams {
 }
 
 export class PartialGraphQLAPI {
+  private name: string
   private apiUrl: string
   private headers: Header[]
   private introspectionHeaders: Header[]
   private transforms: SchemaTransform[]
 
-  constructor(params: GraphQLParams) {
+  constructor(name: string, params: GraphQLParams) {
     const headers = new Headers()
 
     if (params.headers) {
@@ -29,14 +30,16 @@ export class PartialGraphQLAPI {
       params.transforms(transforms)
     }
 
+    this.name = name
     this.apiUrl = params.url
     this.headers = headers.headers
     this.introspectionHeaders = headers.introspectionHeaders
     this.transforms = transforms.transforms
   }
 
-  finalize(namespace?: string): GraphQLAPI {
+  finalize(namespace?: boolean): GraphQLAPI {
     return new GraphQLAPI(
+      this.name,
       this.apiUrl,
       this.headers,
       this.introspectionHeaders,
@@ -47,19 +50,22 @@ export class PartialGraphQLAPI {
 }
 
 export class GraphQLAPI {
-  private namespace?: string
+  private name: string
+  private namespace?: boolean
   private url: string
   private headers: Header[]
   private introspectionHeaders: Header[]
   private transforms: SchemaTransform[]
 
   constructor(
+    name: string,
     url: string,
     headers: Header[],
     introspectionHeaders: Header[],
     transforms: SchemaTransform[],
-    namespace?: string
+    namespace?: boolean
   ) {
+    this.name = name
     this.namespace = namespace
     this.url = url
     this.headers = headers
@@ -69,9 +75,15 @@ export class GraphQLAPI {
 
   public toString(): string {
     const header = '  @graphql(\n'
-    const namespace = this.namespace
-      ? `    namespace: "${this.namespace}"\n`
-      : ''
+    const name = `    name: "${this.name}"\n`
+
+    let namespace;
+    if (this.namespace === undefined || this.namespace === true)  {
+      namespace = `    namespace: true\n`
+    } else {
+      namespace = ''
+    }
+
     const url = this.url ? `    url: "${this.url}"\n` : ''
 
     let headers = this.headers.map((header) => `      ${header}`).join('\n')
@@ -95,6 +107,6 @@ export class GraphQLAPI {
 
     const footer = '  )'
 
-    return `${header}${namespace}${url}${headers}${introspectionHeaders}${transforms}${footer}`
+    return `${header}${name}${namespace}${url}${headers}${introspectionHeaders}${transforms}${footer}`
   }
 }
