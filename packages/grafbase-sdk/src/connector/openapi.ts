@@ -94,8 +94,8 @@ export class OpenAPI {
     const header = '  @openapi(\n'
     const name = `    name: "${this.name}"\n`
 
-    let namespace;
-    if (this.namespace === undefined || this.namespace === true)  {
+    let namespace
+    if (this.namespace === undefined || this.namespace === true) {
       namespace = `    namespace: true\n`
     } else {
       namespace = ''
