@@ -4,7 +4,6 @@ import { renderGraphQL } from '../utils'
 
 describe('MongoDB generator', () => {
   const mongoParams = {
-    name: 'Test',
     url: 'https://data.mongodb-api.com/app/data-test/endpoint/data/v1',
     apiKey: 'SOME_KEY',
     dataSource: 'data',
@@ -14,12 +13,13 @@ describe('MongoDB generator', () => {
   beforeEach(() => g.clear())
 
   it('generates the minimum possible MongoDB datasource', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -30,7 +30,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a simple model', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     g.datasource(mongo)
 
@@ -44,6 +44,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -58,8 +59,50 @@ describe('MongoDB generator', () => {
     `)
   })
 
+  it('expects a valid identifier as a name', () => {
+    expect(() => connector.MongoDB('Nest Test', mongoParams)).toThrow(
+      'Given name "Nest Test" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('generates a simple model with a nested type', () => {
+    const mongo = connector.MongoDB('Test', mongoParams)
+
+    g.datasource(mongo)
+
+    const address = g.type('Address', {
+      street: g.string().mapped('street_name')
+    })
+
+    mongo
+      .model('User', {
+        address: g.ref(address)
+      })
+      .collection('users')
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "extend schema
+        @mongodb(
+          namespace: true
+          name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
+          apiKey: "SOME_KEY"
+          dataSource: "data"
+          database: "tables"
+        )
+
+      type Address {
+        street: String! @map(name: "street_name")
+      }
+
+      type User @model(connector: "Test", collection: "users") {
+        address: Address!
+      }"
+    `)
+  })
+
   it('generates a simple model with no specified collection', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo.model('User', {
       id: g.id().unique().mapped('_id'),
@@ -71,6 +114,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -86,7 +130,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a decimal field', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -100,6 +144,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -115,7 +160,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a bytes field', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -129,6 +174,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -144,7 +190,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a bigint field', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -158,6 +204,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -173,7 +220,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a model with auth', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -190,6 +237,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -208,7 +256,7 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a model with cache', () => {
-    const mongo = connector.MongoDB(mongoParams)
+    const mongo = connector.MongoDB('Test', mongoParams)
 
     mongo
       .model('User', {
@@ -223,6 +271,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -238,10 +287,9 @@ describe('MongoDB generator', () => {
   })
 
   it('generates a two datasources with separate models', () => {
-    const test = connector.MongoDB(mongoParams)
+    const test = connector.MongoDB('Test', mongoParams)
 
-    const another = connector.MongoDB({
-      name: 'Another',
+    const another = connector.MongoDB('Another', {
       url: 'https://data.mongodb-api.com/app/data-jest/endpoint/data/v1',
       apiKey: 'OTHER_KEY',
       dataSource: 'bar',
@@ -266,6 +314,7 @@ describe('MongoDB generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @mongodb(
+          namespace: true
           name: "Test"
           url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
           apiKey: "SOME_KEY"
@@ -273,6 +322,7 @@ describe('MongoDB generator', () => {
           database: "tables"
         )
         @mongodb(
+          namespace: true
           name: "Another"
           url: "https://data.mongodb-api.com/app/data-jest/endpoint/data/v1"
           apiKey: "OTHER_KEY"

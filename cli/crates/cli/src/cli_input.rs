@@ -58,7 +58,7 @@ pub struct DevCommand {
     #[arg(long, value_name = "GRAPHQL_OPERATION_LOG_LEVEL")]
     pub log_level_graphql_operations: Option<LogLevelFilter>,
     /// Log level to print for fetch requests, defaults to 'log-level'
-    #[arg(long, value_name = "GRAPHQL_OPERATION_LOG_LEVEL")]
+    #[arg(long, value_name = "FETCH_REQUEST_LOG_LEVEL")]
     pub log_level_fetch_requests: Option<LogLevelFilter>,
     /// Default log level to print
     #[arg(long)]

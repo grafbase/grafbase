@@ -6,7 +6,7 @@ describe('OpenAPI generator', () => {
   beforeEach(() => g.clear())
 
   it('generates the minimum possible OpenAPI datasource', () => {
-    const stripe = connector.OpenAPI({
+    const stripe = connector.OpenAPI('Stripe', {
       schema:
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json'
     })
@@ -16,13 +16,32 @@ describe('OpenAPI generator', () => {
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
+          name: "Stripe"
+          namespace: true
+          schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+        )"
+    `)
+  })
+
+  it('generates the minimum possible OpenAPI datasource, namespace false', () => {
+    const stripe = connector.OpenAPI('Stripe', {
+      schema:
+        'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json'
+    })
+
+    g.datasource(stripe, { namespace: false })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "extend schema
+        @openapi(
+          name: "Stripe"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
         )"
     `)
   })
 
   it('generates the maximum possible OpenAPI datasource', () => {
-    const stripe = connector.OpenAPI({
+    const stripe = connector.OpenAPI('Stripe', {
       schema:
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
       url: 'https://api.stripe.com',
@@ -42,12 +61,13 @@ describe('OpenAPI generator', () => {
       }
     })
 
-    g.datasource(stripe, { namespace: 'Stripe' })
+    g.datasource(stripe)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
-          namespace: "Stripe"
+          name: "Stripe"
+          namespace: true
           url: "https://api.stripe.com"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
           transforms: {
@@ -72,27 +92,29 @@ describe('OpenAPI generator', () => {
   })
 
   it('combines multiple apis into one extension', () => {
-    const stripe = connector.OpenAPI({
+    const stripe = connector.OpenAPI('Stripe', {
       schema:
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json'
     })
 
-    const openai = connector.OpenAPI({
+    const openai = connector.OpenAPI('OpenAI', {
       schema:
         'https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml'
     })
 
-    g.datasource(stripe, { namespace: 'Stripe' })
-    g.datasource(openai, { namespace: 'OpenAI' })
+    g.datasource(stripe)
+    g.datasource(openai)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
-          namespace: "Stripe"
+          name: "Stripe"
+          namespace: true
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
         )
         @openapi(
-          namespace: "OpenAI"
+          name: "OpenAI"
+          namespace: true
           schema: "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml"
         )"
     `)
