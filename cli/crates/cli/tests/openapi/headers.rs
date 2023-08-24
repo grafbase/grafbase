@@ -72,8 +72,6 @@ async fn test_header_passthrough() {
         })
         .collect::<Vec<_>>();
 
-    dbg!(&headers);
-
     insta::assert_yaml_snapshot!(headers, @r###"
     ---
     - another-one: "[\"yes\"]"

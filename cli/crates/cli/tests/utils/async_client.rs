@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use reqwest::header::HeaderMap;
+use reqwest::{header::HeaderMap, StatusCode};
 use serde_json::json;
 use std::{
     future::{Future, IntoFuture},
@@ -85,8 +85,10 @@ impl AsyncClient {
             .send()
             .await
         {
-            if let Ok(text) = response.text().await {
-                return Some(text);
+            if response.status() != StatusCode::SERVICE_UNAVAILABLE {
+                if let Ok(text) = response.text().await {
+                    return Some(text);
+                }
             }
         }
 
@@ -100,7 +102,14 @@ impl AsyncClient {
         let start = SystemTime::now();
 
         loop {
-            if self.client.head(&self.endpoint).send().await.is_ok() {
+            let valid_response = self
+                .client
+                .head(&self.endpoint)
+                .send()
+                .await
+                .is_ok_and(|response| response.status() != StatusCode::SERVICE_UNAVAILABLE);
+
+            if valid_response {
                 break;
             }
 

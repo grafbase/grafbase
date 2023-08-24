@@ -4,20 +4,12 @@ use crate::{
 };
 use axum::{
     extract::State,
-    response::Html,
     routing::{get, post},
     Json, Router,
 };
 use serde_json::{json, Value};
-use std::net::{Ipv4Addr, SocketAddr};
+use std::net::Ipv4Addr;
 use tower_http::trace::TraceLayer;
-
-#[allow(clippy::unused_async)]
-async fn playground(State(error): State<String>) -> Html<String> {
-    let document = include_str!("error-page.html").replace("{{error}}", &error);
-
-    Html(document)
-}
 
 #[allow(clippy::unused_async)]
 async fn endpoint(State(error): State<String>) -> Json<Value> {
@@ -39,15 +31,12 @@ pub async fn start(
     trace!("starting error server at port {port}");
 
     let router = Router::new()
-        .route("/", get(playground))
         .route("/graphql", post(endpoint))
         .route("/graphql", get(endpoint))
         .with_state(error)
         .layer(TraceLayer::new_for_http());
 
-    let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
-
-    let server = axum::Server::bind(&socket_address)
+    let server = axum::Server::bind(&std::net::SocketAddr::from((Ipv4Addr::LOCALHOST, port)))
         .serve(router.into_make_service())
         .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
             event.should_restart_servers()

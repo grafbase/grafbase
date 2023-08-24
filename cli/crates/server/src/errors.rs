@@ -146,6 +146,15 @@ pub enum ServerError {
     #[error("could not find an available port for an internal server")]
     AvailablePort,
 
+    /// returned if no port is available.
+    /// used specifically when searching for ports
+    #[error("could not find an available port")]
+    AvailablePortMiniflare,
+
+    /// returned if a given port is in use and the search option is not used
+    #[error("port {0} is currently in use")]
+    PortInUse(u16),
+
     /// returned if a spawned task panics
     #[error(transparent)]
     SpawnedTaskPanic(#[from] JoinError),
@@ -166,9 +175,9 @@ pub enum ServerError {
     #[error("A file watcher encountered an error\nCaused by: {0}")]
     FileWatcher(#[from] NotifyError),
 
-    /// returned if the Pathfinder server could not be started
-    #[error("could not start the Pathfinder server\nCaused by:{0}")]
-    StartPathfinderServer(hyper::Error),
+    /// returned if the proxy server could not be started
+    #[error("could not start the proxy server\nCaused by:{0}")]
+    StartProxyServer(hyper::Error),
 
     #[error("Could not create a lock for the wrangler installation: {0}")]
     Lock(fslock::Error),
