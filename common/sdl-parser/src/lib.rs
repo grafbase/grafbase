@@ -183,7 +183,8 @@ async fn parse_connectors<'a>(
 
     // We could probably parallelise this, but the schemas and the associated
     // processing use a reasonable amount of memory so going to keep it sequential
-    for (directive, position) in std::mem::take(&mut ctx.openapi_directives) {
+    for (mut directive, position) in std::mem::take(&mut ctx.openapi_directives) {
+        directive.id = Some(ctx.connector_id_generator.new_id());
         let directive_name = directive.namespace.clone();
         let transforms = directive.transforms.transforms.clone();
         match connector_parsers.fetch_and_parse_openapi(directive).await {

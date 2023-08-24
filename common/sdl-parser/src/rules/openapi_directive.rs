@@ -12,7 +12,13 @@ use crate::directive_de::parse_directive;
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenApiDirective {
-    pub name: String,
+    /// A unique identifier for the given directive.
+    ///
+    /// This ID *MUST NOT* be persisted (and defaults to `None` when deserializing), as the ID is
+    /// re-generated whenever the schema is parsed.
+    #[serde(skip)]
+    pub id: Option<u16>,
+    #[serde(alias = "name")]
     pub namespace: Option<String>,
     pub url: Option<Url>,
     #[serde(rename = "schema")]
@@ -144,7 +150,6 @@ mod tests {
         let schema = r#"
             extend schema
               @openapi(
-                name: "Stripe",
                 namespace: "stripe",
                 url: "https://api.stripe.com",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
@@ -156,7 +161,9 @@ mod tests {
         insta::assert_debug_snapshot!(connector_parsers.openapi_directives.lock().unwrap(), @r###"
         [
             OpenApiDirective {
-                name: "Stripe",
+                id: Some(
+                    0,
+                ),
                 namespace: Some(
                     "stripe",
                 ),
@@ -207,7 +214,6 @@ mod tests {
             r#"
                     extend schema
                       @openapi(
-                        name: "Stripe",
                         namespace: "stripe",
                         url: "https://api.stripe.com",
                         schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
@@ -255,7 +261,6 @@ mod tests {
             r#"
             extend schema
               @openapi(
-                name: "Stripe",
                 namespace: "stripe",
                 url: "https://api.stripe.com",
                 headers: [{ name: "authorization", value: "BLAH" }],
@@ -271,14 +276,13 @@ mod tests {
             r#"
             extend schema
               @openapi(
-                name: "Stripe",
                 namespace: "stripe",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 url: "https://api.stripe.com",
                 transforms: {queryNaming: PIES}
               )
             "#,
-            "[8:29] unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"
+            "[7:29] unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"
         );
     }
 }
