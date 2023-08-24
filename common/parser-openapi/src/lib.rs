@@ -42,8 +42,8 @@ pub fn parse_spec(
 
 #[derive(Clone, Debug)]
 pub struct ApiMetadata {
-    pub id: u16,
-    pub namespace: Option<String>,
+    pub name: String,
+    pub namespace: bool,
     pub url: Option<Url>,
     pub headers: ConnectorHeaders,
     pub query_naming: QueryNamingStrategy,
@@ -51,10 +51,7 @@ pub struct ApiMetadata {
 
 impl ApiMetadata {
     pub fn unique_namespace(&self) -> String {
-        self.namespace
-            .as_deref()
-            .map(|namespace| namespace.to_camel_case())
-            .unwrap_or_else(|| format!("openAPI{}", self.id))
+        self.name.to_camel_case()
     }
 
     pub fn namespaced(&self, name: &str) -> String {
@@ -64,11 +61,13 @@ impl ApiMetadata {
 
 impl From<sdl_parser::OpenApiDirective> for ApiMetadata {
     fn from(val: sdl_parser::OpenApiDirective) -> Self {
+        let headers = val.headers();
+
         ApiMetadata {
-            id: val.id.unwrap_or_default(),
-            namespace: val.namespace.clone(),
-            url: val.url.clone(),
-            headers: val.headers(),
+            name: val.name,
+            namespace: val.namespace,
+            url: val.url,
+            headers,
             query_naming: val.transforms.query_naming,
         }
     }
@@ -202,7 +201,7 @@ mod tests {
     fn test_stripe_output() {
         let metadata = ApiMetadata {
             url: None,
-            ..metadata(Some("stripe"))
+            ..metadata("stripe", true)
         };
         insta::assert_snapshot!(build_registry("test_data/stripe.openapi.json", Format::Json, metadata)
             .unwrap()
@@ -213,7 +212,7 @@ mod tests {
     fn test_stripe_output_json() {
         let metadata = ApiMetadata {
             url: None,
-            ..metadata(Some("stripe"))
+            ..metadata("stripe", true)
         };
         let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata).unwrap();
         insta::assert_json_snapshot!(registry);
@@ -224,7 +223,7 @@ mod tests {
         let registry = build_registry(
             "test_data/petstore.openapi.json",
             Format::Json,
-            metadata(Some("petstore")),
+            metadata("petstore", true),
         )
         .unwrap();
 
@@ -234,7 +233,12 @@ mod tests {
 
     #[test]
     fn test_flat_output() {
-        let registry = build_registry("test_data/petstore.openapi.json", Format::Json, metadata(None)).unwrap();
+        let registry = build_registry(
+            "test_data/petstore.openapi.json",
+            Format::Json,
+            metadata("petstore", false),
+        )
+        .unwrap();
 
         insta::assert_snapshot!(registry.export_sdl(false));
         insta::assert_debug_snapshot!(registry);
@@ -244,7 +248,7 @@ mod tests {
     fn test_url_without_host_failure() {
         let metadata = ApiMetadata {
             url: None,
-            ..metadata(Some("petstore"))
+            ..metadata("petstore", true)
         };
         assert_matches!(
             build_registry("test_data/petstore.openapi.json", Format::Json, metadata)
@@ -263,7 +267,7 @@ mod tests {
             Format::Yaml,
             ApiMetadata {
                 query_naming: QueryNamingStrategy::OperationId,
-                ..metadata(Some("openai"))
+                ..metadata("openai", true)
             }
         )
         .unwrap()
@@ -277,7 +281,7 @@ mod tests {
             Format::Json,
             ApiMetadata {
                 url: None,
-                ..metadata(Some("planetscale"))
+                ..metadata("planetscale", true)
             }
         )
         .unwrap()
@@ -292,7 +296,7 @@ mod tests {
             Format::Json,
             ApiMetadata {
                 url: None,
-                ..metadata(Some("orb"))
+                ..metadata("orb", true)
             }
         )
         .unwrap()
@@ -309,7 +313,7 @@ mod tests {
             Format::Json,
             ApiMetadata {
                 url: None,
-                ..metadata(Some("mongo"))
+                ..metadata("mongo", true)
             }
         )
         .unwrap()
@@ -321,7 +325,7 @@ mod tests {
         insta::assert_snapshot!(build_registry(
             "test_data/impossible-unions.json",
             Format::Json,
-            metadata(Some("petstore"))
+            metadata("petstore", true)
         )
         .unwrap()
         .export_sdl(false));
@@ -333,7 +337,7 @@ mod tests {
         insta::assert_snapshot!(build_registry(
             "test_data/all-ofs-simple.json",
             Format::Json,
-            metadata(Some("petstore"))
+            metadata("petstore", true)
         )
         .unwrap()
         .export_sdl(false));
@@ -347,7 +351,7 @@ mod tests {
         insta::assert_snapshot!(build_registry(
             "test_data/all-ofs-complex.json",
             Format::Json,
-            metadata(Some("petstore"))
+            metadata("petstore", true)
         )
         .unwrap()
         .export_sdl(false));
@@ -356,7 +360,7 @@ mod tests {
     #[test]
     fn test_supabase() {
         insta::assert_snapshot!(
-            build_registry("test_data/supabase.json", Format::Json, metadata(Some("supabase")))
+            build_registry("test_data/supabase.json", Format::Json, metadata("supabase", true))
                 .unwrap()
                 .export_sdl(false)
         );
@@ -364,7 +368,7 @@ mod tests {
 
     #[test]
     fn test_stripe_discrimnator_detection() {
-        let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata(Some("stripe"))).unwrap();
+        let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe", true)).unwrap();
         let discriminators = registry
             .types
             .values()
@@ -392,10 +396,10 @@ mod tests {
         Ok(registry)
     }
 
-    fn metadata(name: Option<&str>) -> ApiMetadata {
+    fn metadata(name: &str, namespace: bool) -> ApiMetadata {
         ApiMetadata {
-            id: 1,
-            namespace: name.map(Into::into),
+            name: name.to_string(),
+            namespace,
             url: Some(Url::parse("http://example.com").unwrap()),
             headers: ConnectorHeaders::new([]),
             query_naming: QueryNamingStrategy::SchemaName,

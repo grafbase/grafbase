@@ -43,7 +43,7 @@ fn nothing_found() {
 #[test]
 fn namespaced() {
     let schema = indoc! {r#"
-        type User @model(connector: "test", collection: "users") {
+        type User @model(connector: "mongo", collection: "users") {
           name: String!
         }
     "#};

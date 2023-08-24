@@ -19,9 +19,10 @@ pub trait RegistryExt {
 
 impl RegistryExt for Registry {
     fn query_fields_mut(&mut self, api_metadata: &ApiMetadata) -> &mut IndexMap<String, MetaField> {
-        let object_name = match api_metadata.namespace {
-            Some(ref namespace) => format!("{}Query", namespace.to_pascal_case()),
-            None => String::from("Query"),
+        let object_name = if api_metadata.namespace {
+            format!("{}Query", api_metadata.name.to_pascal_case())
+        } else {
+            String::from("Query")
         };
 
         insert_field(
@@ -40,16 +41,13 @@ impl RegistryExt for Registry {
             insert_empty_object(&mut self.types, name);
         }
 
-        let object_name = match api_metadata.namespace {
-            Some(ref namespace) => format!("{}Mutation", namespace.to_pascal_case()),
-            None => String::from("Mutation"),
+        let object_name = if api_metadata.namespace {
+            format!("{}Mutation", api_metadata.name.to_pascal_case())
+        } else {
+            String::from("Mutation")
         };
 
-        let namespace = api_metadata
-            .namespace
-            .as_deref()
-            .map(|namespace| namespace.to_camel_case())
-            .unwrap_or_default();
+        let namespace = api_metadata.name.to_camel_case();
 
         insert_field(
             self.mutation_root_mut()

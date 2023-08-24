@@ -86,9 +86,9 @@ static BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
 ///
 /// See [`Error`] for more details.
 pub async fn parse_schema(
-    id: u16,
     client: reqwest::Client,
-    namespace: Option<&str>,
+    name: &str,
+    namespace: bool,
     url: &Url,
     headers: ConnectorHeaders,
     introspection_headers: impl IntoIterator<Item = (&str, &str)>,
@@ -115,20 +115,20 @@ pub async fn parse_schema(
     let schema = data.into_schema().map_err(|err| vec![err.into()])?;
 
     let parser = Parser {
-        id,
-        namespace: namespace.map(ToOwned::to_owned),
+        name: name.to_string(),
+        namespace,
         url: url.clone(),
     };
 
     let mut registry = parser.into_registry(schema);
-    registry.http_headers.insert(format!("GraphQLConnector{id}"), headers);
+    registry.http_headers.insert(format!("GraphQLConnector{name}"), headers);
 
     Ok(registry)
 }
 
 struct Parser {
-    id: u16,
-    namespace: Option<String>,
+    name: String,
+    namespace: bool,
     url: Url,
 }
 
@@ -151,25 +151,17 @@ impl Parser {
 
         let mut registry = schema.into();
 
-        match self.namespace {
-            // If we don't have a namespace, we need to update the fields in the `Query` object, to
-            // attach the GraphQL resolver.
-            None => {
-                self.update_root_query_fields(&mut registry);
+        if self.namespace {
+            self.add_root_query_field(&mut registry, &self.name);
 
-                if registry.mutation_type.is_some() {
-                    self.update_root_mutation_fields(&mut registry);
-                }
+            if registry.mutation_type.is_some() {
+                self.add_root_mutation_field(&mut registry, &self.name);
             }
+        } else {
+            self.update_root_query_fields(&mut registry);
 
-            // If we *do* have a namespace, we'll add a new `<namespace>Query` object, and point to
-            // it from the `<namespace>` field in the root `Query` object.
-            Some(ref prefix) => {
-                self.add_root_query_field(&mut registry, prefix);
-
-                if registry.mutation_type.is_some() {
-                    self.add_root_mutation_field(&mut registry, prefix);
-                }
+            if registry.mutation_type.is_some() {
+                self.update_root_mutation_fields(&mut registry);
             }
         };
 
@@ -285,7 +277,7 @@ impl Parser {
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolver: Resolver::Graphql(graphql::Resolver {
-                    id: self.id,
+                    name: self.name.clone(),
                     url: self.url.clone(),
                     namespace: Some(prefix.to_owned()),
                 }),
@@ -308,7 +300,7 @@ impl Parser {
         // server.
         for (_name, field) in fields {
             field.resolver = Resolver::Graphql(graphql::Resolver {
-                id: self.id,
+                name: self.name.clone(),
                 url: self.url.clone(),
                 namespace: None,
             });
@@ -337,7 +329,7 @@ impl Parser {
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolver: Resolver::Graphql(graphql::Resolver {
-                    id: self.id,
+                    name: self.name.clone(),
                     url: self.url.clone(),
                     namespace: Some(prefix.to_owned()),
                 }),
@@ -364,7 +356,7 @@ impl Parser {
         // server.
         for (_name, field) in fields {
             field.resolver = Resolver::Graphql(graphql::Resolver {
-                id: self.id,
+                name: self.name.clone(),
                 url: self.url.clone(),
                 namespace: None,
             });
@@ -372,8 +364,8 @@ impl Parser {
     }
 
     fn prefixed(&self, s: &mut String) {
-        if let Some(namespace) = &self.namespace {
-            *s = format!("{}{}", namespace.to_pascal_case(), s);
+        if self.namespace {
+            *s = format!("{}{}", self.name.to_pascal_case(), s);
         }
     }
 }
@@ -436,9 +428,9 @@ mod tests {
             .await;
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
-            Some("FooBar"),
+            "FooBar",
+            true,
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             introspection_headers,
@@ -481,9 +473,9 @@ mod tests {
         ]);
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
-            Some("FooBar"),
+            "FooBar",
+            true,
             &Url::parse(&server.uri()).unwrap(),
             headers.clone(),
             std::iter::empty(),
@@ -493,7 +485,7 @@ mod tests {
 
         assert_eq!(
             result.http_headers,
-            BTreeMap::from([(String::from("GraphQLConnector1"), headers)])
+            BTreeMap::from([(String::from("GraphQLConnectorFooBar"), headers)])
         );
     }
 
@@ -507,9 +499,9 @@ mod tests {
             .await;
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
-            None,
+            "Test",
+            false,
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
@@ -531,9 +523,9 @@ mod tests {
             .await;
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
-            None,
+            "Test",
+            false,
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
@@ -555,9 +547,9 @@ mod tests {
             .await;
 
         let result = parse_schema(
-            1,
             reqwest::Client::new(),
-            Some("pre_fix"),
+            "pre_fix",
+            true,
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
