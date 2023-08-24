@@ -59,6 +59,48 @@ describe('MongoDB generator', () => {
     `)
   })
 
+  it('expects a valid identifier as a name', () => {
+    expect(() => connector.MongoDB('Nest Test', mongoParams)).toThrow(
+      'Given name "Nest Test" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('generates a simple model with a nested type', () => {
+    const mongo = connector.MongoDB('Test', mongoParams)
+
+    g.datasource(mongo)
+
+    const address = g.type('Address', {
+      street: g.string().mapped('street_name')
+    })
+
+    mongo
+      .model('User', {
+        address: g.ref(address)
+      })
+      .collection('users')
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "extend schema
+        @mongodb(
+          namespace: true
+          name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
+          apiKey: "SOME_KEY"
+          dataSource: "data"
+          database: "tables"
+        )
+
+      type Address {
+        street: String! @map(name: "street_name")
+      }
+
+      type User @model(connector: "Test", collection: "users") {
+        address: Address!
+      }"
+    `)
+  })
+
   it('generates a simple model with no specified collection', () => {
     const mongo = connector.MongoDB('Test', mongoParams)
 
