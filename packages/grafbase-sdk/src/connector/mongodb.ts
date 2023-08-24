@@ -88,9 +88,9 @@ export class MongoDBAPI {
     const apiKey = `    apiKey: "${this.apiKey}"\n`
     const dataSource = `    dataSource: "${this.dataSource}"\n`
     const database = `    database: "${this.database}"\n`
-    
-    let namespace;
-    if (this.namespace === undefined || this.namespace === true)  {
+
+    let namespace
+    if (this.namespace === undefined || this.namespace === true) {
       namespace = `    namespace: true\n`
     } else {
       namespace = ''

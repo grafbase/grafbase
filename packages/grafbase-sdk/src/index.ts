@@ -10,6 +10,7 @@ import dotenv from 'dotenv'
 import { Authorizer, AuthorizerParams } from './auth/authorizer'
 import { MongoDBParams, PartialMongoDBAPI } from './connector/mongodb'
 import path from 'path'
+import { validateIdentifier } from './validation'
 
 dotenv.config({
   // must exist, defined by "~/.grafbase/parser/parse-config.ts"
@@ -35,25 +36,34 @@ export const connector = {
   /**
    * Create a new OpenAPI connector object.
    *
+   * @param name - A unique name for the connector.
    * @param params - The configuration parameters.
    */
   OpenAPI: (name: string, params: OpenAPIParams): PartialOpenAPI => {
+    validateIdentifier(name)
+
     return new PartialOpenAPI(name, params)
   },
   /**
    * Create a new GraphQL connector object.
    *
+   * @param name - A unique name for the connector.
    * @param params - The configuration parameters.
    */
   GraphQL: (name: string, params: GraphQLParams): PartialGraphQLAPI => {
+    validateIdentifier(name)
+
     return new PartialGraphQLAPI(name, params)
   },
   /**
    * Create a new MongoDB connector object.
    *
-   * @param params = The configuration parameters.
+   * @param name - A unique name for the connector.
+   * @param params - The configuration parameters.
    */
   MongoDB: (name: string, params: MongoDBParams): PartialMongoDBAPI => {
+    validateIdentifier(name)
+
     return new PartialMongoDBAPI(name, params)
   }
 }

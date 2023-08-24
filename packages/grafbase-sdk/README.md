@@ -383,8 +383,8 @@ const stripe = connector.OpenAPI("Stripe", {
 Connectors can be added to the schema using `g.datasource()`, including an optional `namespace`:
 
 ```typescript
-g.datasource(stripe, { namespace: 'Stripe' })
-g.datasource(openai, { namespace: 'OpenAI' })
+g.datasource(stripe)
+g.datasource(openai)
 ```
 
 ### GraphQL
@@ -409,8 +409,8 @@ const github = connector.GraphQL('GitHub', {
 Connectors can be added to the schema using `g.datasource()`, including an optional `namespace`:
 
 ```typescript
-g.datasource(contentful, { namespace: 'Contentful' })
-g.datasource(github, { namespace: 'GitHub' })
+g.datasource(contentful)
+g.datasource(github)
 ```
 
 ### MongoDB
@@ -426,15 +426,9 @@ const mongodb = connector.MongoDB('MongoDB', {
 })
 
 // Models must be added manually for this connector.
+mongodb.model('User', { field: g.string() }).collection('users')
 
-mongodb
-  .model('User', {
-    id: g.id().unique().mapped('_id'),
-    field: g.string()
-  })
-  .collection('users')
-
-g.datasource(mongodb, { namespace: 'MongoDB' })
+g.datasource(mongodb)
 ```
 
 ### Authentication
