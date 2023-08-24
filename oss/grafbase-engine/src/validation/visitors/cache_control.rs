@@ -22,7 +22,7 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
             self.cache_control.merge(object.cache_control.clone());
 
             if let Some(policy) = &object.cache_control.invalidation_policy {
-                let ty = object.rust_typename.to_string();
+                let ty = object.name.clone();
                 self.invalidation_policies.insert(CacheInvalidation {
                     ty,
                     policy: policy.clone(),
