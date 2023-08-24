@@ -88,7 +88,7 @@ static BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
 pub async fn parse_schema(
     client: reqwest::Client,
     name: &str,
-    namespace: bool,
+    namespace: Option<&str>,
     url: &Url,
     headers: ConnectorHeaders,
     introspection_headers: impl IntoIterator<Item = (&str, &str)>,
@@ -116,7 +116,7 @@ pub async fn parse_schema(
 
     let parser = Parser {
         name: name.to_string(),
-        namespace,
+        namespace: namespace.map(ToOwned::to_owned),
         url: url.clone(),
     };
 
@@ -128,7 +128,7 @@ pub async fn parse_schema(
 
 struct Parser {
     name: String,
-    namespace: bool,
+    namespace: Option<String>,
     url: Url,
 }
 
@@ -151,17 +151,25 @@ impl Parser {
 
         let mut registry = schema.into();
 
-        if self.namespace {
-            self.add_root_query_field(&mut registry, &self.name);
+        match self.namespace {
+            // If we don't have a namespace, we need to update the fields in the `Query` object, to
+            // attach the GraphQL resolver.
+            None => {
+                self.update_root_query_fields(&mut registry);
 
-            if registry.mutation_type.is_some() {
-                self.add_root_mutation_field(&mut registry, &self.name);
+                if registry.mutation_type.is_some() {
+                    self.update_root_mutation_fields(&mut registry);
+                }
             }
-        } else {
-            self.update_root_query_fields(&mut registry);
 
-            if registry.mutation_type.is_some() {
-                self.update_root_mutation_fields(&mut registry);
+            // If we *do* have a namespace, we'll add a new `<namespace>Query` object, and point to
+            // it from the `<namespace>` field in the root `Query` object.
+            Some(ref prefix) => {
+                self.add_root_query_field(&mut registry, prefix);
+
+                if registry.mutation_type.is_some() {
+                    self.add_root_mutation_field(&mut registry, prefix);
+                }
             }
         };
 
@@ -364,8 +372,8 @@ impl Parser {
     }
 
     fn prefixed(&self, s: &mut String) {
-        if self.namespace {
-            *s = format!("{}{}", self.name.to_pascal_case(), s);
+        if let Some(namespace) = &self.namespace {
+            *s = format!("{}{}", namespace.to_pascal_case(), s);
         }
     }
 }
@@ -429,8 +437,8 @@ mod tests {
 
         let result = parse_schema(
             reqwest::Client::new(),
-            "FooBar",
-            true,
+            "Test",
+            Some("FooBar"),
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             introspection_headers,
@@ -474,8 +482,8 @@ mod tests {
 
         let result = parse_schema(
             reqwest::Client::new(),
-            "FooBar",
-            true,
+            "Test",
+            Some("FooBar"),
             &Url::parse(&server.uri()).unwrap(),
             headers.clone(),
             std::iter::empty(),
@@ -485,7 +493,7 @@ mod tests {
 
         assert_eq!(
             result.http_headers,
-            BTreeMap::from([(String::from("GraphQLConnectorFooBar"), headers)])
+            BTreeMap::from([(String::from("GraphQLConnectorTest"), headers)])
         );
     }
 
@@ -501,7 +509,7 @@ mod tests {
         let result = parse_schema(
             reqwest::Client::new(),
             "Test",
-            false,
+            None,
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
@@ -525,7 +533,7 @@ mod tests {
         let result = parse_schema(
             reqwest::Client::new(),
             "Test",
-            false,
+            None,
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
@@ -548,8 +556,8 @@ mod tests {
 
         let result = parse_schema(
             reqwest::Client::new(),
-            "pre_fix",
-            true,
+            "Test",
+            Some("pre_fix"),
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),

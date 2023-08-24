@@ -38,7 +38,6 @@ pub struct MongoDBModelDirective;
 impl<'a> Visitor<'a> for MongoDBModelDirective {
     fn enter_type_definition(&mut self, ctx: &mut VisitorContext<'a>, r#type: &'a Positioned<TypeDefinition>) {
         let Some(config) = get_config(ctx, r#type) else { return };
-
         let TypeKind::Object(ref object) = r#type.node.kind else {
             return;
         };

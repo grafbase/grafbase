@@ -49,8 +49,15 @@ impl<'a> CreateTypeContext<'a> {
             .filter_map(|field| UniqueDirective::parse(visitor_ctx, object, model_name, field))
             .collect();
 
-        let query_type_name = config.namespace.then(|| format!("{}Query", config.name).to_camel());
-        let mutation_type_name = config.namespace.then(|| format!("{}Mutation", config.name).to_camel());
+        let query_type_name = config
+            .namespace
+            .as_deref()
+            .map(|namespace| format!("{namespace}Query").to_camel());
+
+        let mutation_type_name = config
+            .namespace
+            .as_deref()
+            .map(|namespace| format!("{namespace}Mutation").to_camel());
 
         Self {
             r#type,
@@ -103,7 +110,7 @@ impl<'a> CreateTypeContext<'a> {
     }
 
     pub(super) fn query_type_name(&self) -> Option<&str> {
-        dbg!(self.query_type_name.as_deref())
+        self.query_type_name.as_deref()
     }
 
     pub(super) fn mutation_type_name(&self) -> Option<&str> {

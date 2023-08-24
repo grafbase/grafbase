@@ -13,7 +13,7 @@ use crate::directive_de::parse_directive;
 #[serde(rename_all = "camelCase")]
 pub struct OpenApiDirective {
     pub name: String,
-    pub namespace: bool,
+    pub namespace: Option<String>,
     pub url: Option<Url>,
     #[serde(rename = "schema")]
     pub schema_url: String,
@@ -65,10 +65,8 @@ impl Directive for OpenApiDirective {
     fn definition() -> String {
         r#"
         directive @openapi(
-          "A unique name for the connector"
-          name: String!
-          "If true, namespaces all queries and types with the name"
-          namespace: Boolean!
+          "The namespace of this OpenAPI source"
+          namespace: String
           "The URL of the API"
           url: Url!,
           "The URL of this APIs schema"
@@ -147,7 +145,7 @@ mod tests {
             extend schema
               @openapi(
                 name: "Stripe",
-                namespace: true,
+                namespace: "stripe",
                 url: "https://api.stripe.com",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 headers: [{ name: "authorization", value: "Bearer {{env.STRIPE_API_KEY}}"}],
@@ -159,7 +157,9 @@ mod tests {
         [
             OpenApiDirective {
                 name: "Stripe",
-                namespace: true,
+                namespace: Some(
+                    "stripe",
+                ),
                 url: Some(
                     Url {
                         scheme: "https",
@@ -208,7 +208,7 @@ mod tests {
                     extend schema
                       @openapi(
                         name: "Stripe",
-                        namespace: true,
+                        namespace: "stripe",
                         url: "https://api.stripe.com",
                         schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                         transforms: {{
@@ -256,7 +256,7 @@ mod tests {
             extend schema
               @openapi(
                 name: "Stripe",
-                namespace: true,
+                namespace: "stripe",
                 url: "https://api.stripe.com",
                 headers: [{ name: "authorization", value: "BLAH" }],
               )
@@ -272,7 +272,7 @@ mod tests {
             extend schema
               @openapi(
                 name: "Stripe",
-                namespace: true,
+                namespace: "stripe",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 url: "https://api.stripe.com",
                 transforms: {queryNaming: PIES}
@@ -289,7 +289,7 @@ mod tests {
             extend schema
               @openapi(
                 name: "Test",
-                namespace: true,
+                namespace: "stripe",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 url: "https://api.stripe.com",
               )
@@ -297,7 +297,6 @@ mod tests {
             extend schema
               @graphql(
                 name: "Test",
-                namespace: true,
                 url: "https://countries.trevorblades.com",
               )
             "#,
@@ -312,7 +311,7 @@ mod tests {
             extend schema
               @openapi(
                 name: "Test",
-                namespace: true,
+                namespace: "stripe",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 url: "https://api.stripe.com",
               )
@@ -324,7 +323,7 @@ mod tests {
                  url: "TEST"
                  dataSource: "TEST"
                  database: "TEST"
-                 namespace: true,
+                 namespace: "TEST"
               )
             "#,
             "Name \"Test\" is not unique. A connector must have a unique name."

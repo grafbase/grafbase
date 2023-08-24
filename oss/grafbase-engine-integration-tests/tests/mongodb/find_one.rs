@@ -75,7 +75,7 @@ fn id_found() {
 #[test]
 fn namespacing() {
     let schema = indoc! {r#"
-        type User @model(connector: "myMongo", collection: "users") {
+        type User @model(connector: "test", collection: "users") {
           name: String!
         }
     "#};
@@ -117,7 +117,7 @@ fn namespacing() {
 #[test]
 fn capital_namespacing() {
     let schema = indoc! {r#"
-        type User @model(connector: "Mongo", collection: "users") {
+        type User @model(connector: "test", collection: "users") {
           name: String!
         }
     "#};
@@ -159,7 +159,7 @@ fn capital_namespacing() {
 #[test]
 fn snake_namespacing() {
     let schema = indoc! {r#"
-        type User @model(connector: "mong_o", collection: "users") {
+        type User @model(connector: "test", collection: "users") {
           name: String!
         }
     "#};

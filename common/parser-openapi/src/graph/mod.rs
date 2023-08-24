@@ -77,7 +77,7 @@ impl OpenApiGraph {
             operation_indices: vec![],
             metadata: ApiMetadata {
                 name: String::from("Test"),
-                namespace: false,
+                namespace: None,
                 url: None,
                 headers: ConnectorHeaders::default(),
                 query_naming: OpenApiQueryNamingStrategy::default(),
