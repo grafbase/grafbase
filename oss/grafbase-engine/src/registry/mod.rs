@@ -1556,7 +1556,7 @@ impl Registry {
         self.types.insert(ty.name().to_string(), ty);
     }
 
-    pub fn create_mongo_config<F>(&mut self, f: F, name: &str)
+    pub fn create_mongo_directive<F>(&mut self, f: F, name: &str)
     where
         F: FnOnce(&mut Registry) -> MongoDBConfiguration,
     {

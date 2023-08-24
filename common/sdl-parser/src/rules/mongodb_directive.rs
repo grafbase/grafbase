@@ -1,6 +1,8 @@
 mod model_directive;
 mod type_directive;
 
+use std::collections::HashMap;
+
 use grafbase_engine::registry::{MetaField, MongoDBConfiguration, ObjectType};
 use grafbase_engine_parser::types::SchemaDefinition;
 use inflector::Inflector;
@@ -139,12 +141,18 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
             .iter()
             .filter(|d| d.node.name.node == MONGODB_DIRECTIVE_NAME);
 
+        let mut directive_names: HashMap<String, Vec<grafbase_engine::Pos>> = HashMap::new();
         let mut found_directive = false;
 
         for directive in directives {
             match parse_directive::<MongoDBDirective>(&directive.node, ctx.variables) {
                 Ok(parsed_directive) => {
-                    ctx.registry.get_mut().create_mongo_config(
+                    directive_names
+                        .entry(parsed_directive.name().to_string())
+                        .or_default()
+                        .push(directive.name.pos);
+
+                    ctx.registry.get_mut().create_mongo_directive(
                         |_| MongoDBConfiguration {
                             name: parsed_directive.name().to_string(),
                             api_key: parsed_directive.api_key().to_string(),
@@ -179,8 +187,6 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
                             .push(MetaField::new(namespace.to_camel_case(), mutation_type_name.clone()));
                     }
 
-                    ctx.mongodb_directives.push((parsed_directive, directive.pos));
-
                     found_directive = true;
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
@@ -189,6 +195,14 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
 
         if found_directive {
             model_directive::types::generic::register_input(ctx);
+        }
+
+        for (name, positions) in directive_names.into_iter().filter(|(_, positions)| positions.len() > 1) {
+            let message = format!(
+                "Directive name '{name}' is already in use in more than one MongoDB connector, please use a distinctive name.",
+            );
+
+            ctx.report_error(positions, message);
         }
     }
 }

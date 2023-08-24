@@ -19,6 +19,9 @@ pub struct GraphqlDirective {
     pub name: String,
 
     /// The namespace within which the upstream GraphQL schema is embedded.
+    ///
+    /// If unset, a namespace is auto-generated based on the `id`, or an error is returned if no
+    /// `id` is defined.
     namespace: Option<String>,
 
     pub url: Url,

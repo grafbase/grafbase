@@ -181,8 +181,6 @@ async fn parse_connectors<'a>(
 
     visit(&mut connector_rules, ctx, schema);
 
-    validate_unique_names(ctx)?;
-
     // We could probably parallelise this, but the schemas and the associated
     // processing use a reasonable amount of memory so going to keep it sequential
     for (directive, position) in std::mem::take(&mut ctx.openapi_directives) {
@@ -211,44 +209,6 @@ async fn parse_connectors<'a>(
             }
             Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),
         }
-    }
-
-    Ok(())
-}
-
-fn validate_unique_names(ctx: &VisitorContext<'_>) -> Result<(), Error> {
-    let mut names = HashMap::new();
-
-    for (directive, position) in &ctx.openapi_directives {
-        let names = names.entry(directive.name.as_str()).or_insert(Vec::new());
-        names.push(*position);
-    }
-
-    for (directive, position) in &ctx.graphql_directives {
-        let names = names.entry(directive.name.as_str()).or_insert(Vec::new());
-        names.push(*position);
-    }
-
-    for (directive, position) in &ctx.mongodb_directives {
-        let names = names.entry(directive.name()).or_insert(Vec::new());
-        names.push(*position);
-    }
-
-    let mut errors = Vec::new();
-
-    for (name, locations) in names {
-        if locations.len() < 2 {
-            continue;
-        }
-
-        errors.push(RuleError {
-            locations,
-            message: format!(r#"Name "{name}" is not unique. A connector must have a unique name."#),
-        });
-    }
-
-    if !errors.is_empty() {
-        return Err(Error::Validation(errors));
     }
 
     Ok(())
