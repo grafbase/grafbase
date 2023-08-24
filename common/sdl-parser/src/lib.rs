@@ -197,7 +197,8 @@ async fn parse_connectors<'a>(
         }
     }
 
-    for (directive, position) in std::mem::take(&mut ctx.graphql_directives) {
+    for (mut directive, position) in std::mem::take(&mut ctx.graphql_directives) {
+        directive.id = Some(ctx.connector_id_generator.new_id());
         let directive_name = directive.namespace().map(ToOwned::to_owned);
         let transforms = directive.transforms.clone();
         match connector_parsers.fetch_and_parse_graphql(directive).await {

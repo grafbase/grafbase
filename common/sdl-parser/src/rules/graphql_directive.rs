@@ -1,5 +1,6 @@
 use grafbase_engine::registry::{ConnectorHeaderValue, ConnectorHeaders};
 use grafbase_engine_parser::types::SchemaDefinition;
+use tracing::warn;
 use url::Url;
 
 use super::{
@@ -13,16 +14,35 @@ use crate::directive_de::parse_directive;
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphqlDirective {
-    /// A unique name for the given directive.
+    /// A unique identifier for the given directive.
     ///
-    /// Must be unique between all connectors.
-    pub name: String,
+    /// This ID *MUST NOT* be persisted (and defaults to `None` when deserializing), as the ID is
+    /// re-generated whenever the schema is parsed.
+    #[serde(skip)]
+    pub id: Option<u16>,
 
     /// The namespace within which the upstream GraphQL schema is embedded.
     ///
     /// If unset, a namespace is auto-generated based on the `id`, or an error is returned if no
     /// `id` is defined.
     namespace: Option<String>,
+
+    /// The name of the connector.
+    ///
+    /// See the `namespace` field for more details.
+    ///
+    /// # Deprecation
+    ///
+    /// This field was renamed to `namespace`, to better align with its intent.
+    ///
+    /// If this field exists in the schema, a warning is logged, until a future date at which point
+    /// an error is returned.
+    ///
+    /// If both fields exist, `namespace` is used over `name`, a warning is logged, `namespace` is
+    /// used over `name`, until a future date, at which point an error is returned.
+    #[serde(default)]
+    #[serde(deserialize_with = "deprecated_name")]
+    name: Option<String>,
 
     pub url: Url,
     #[serde(default)]
@@ -32,6 +52,19 @@ pub struct GraphqlDirective {
 
     #[serde(default)]
     pub transforms: Option<Transforms>,
+}
+
+fn deprecated_name<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    let name: Option<String> = serde::de::Deserialize::deserialize(deserializer)?;
+
+    if name.is_some() {
+        warn!("`name` field on `@graphql` directive is deprecated. Use `namespace` instead.");
+    }
+
+    Ok(name)
 }
 
 impl GraphqlDirective {
@@ -66,7 +99,7 @@ impl GraphqlDirective {
     /// This will default to the `namespace` field if present, or the (deprecated) `name` field
     /// otherwise.
     pub fn namespace(&self) -> Option<&str> {
-        self.namespace.as_deref()
+        self.namespace.as_deref().or(self.name.as_deref())
     }
 }
 
@@ -165,8 +198,13 @@ mod tests {
         insta::assert_debug_snapshot!(connector_parsers.graphql_directives.lock().unwrap(), @r###"
         [
             GraphqlDirective {
-                name: "countries",
+                id: Some(
+                    0,
+                ),
                 namespace: None,
+                name: Some(
+                    "countries",
+                ),
                 url: Url {
                     scheme: "https",
                     cannot_be_a_base: false,
@@ -216,7 +254,6 @@ mod tests {
         let schema = r#"
             extend schema
               @graphql(
-                name: "Test",
                 url: "https://countries.trevorblades.com",
                 headers: [{ name: "authorization", value: "Bearer {{ env.MY_API_KEY }}"}],
                 introspectionHeaders: [{ name: "x-user-id", value: "{{ env.ADMIN_USER_ID }}"}]
@@ -228,8 +265,11 @@ mod tests {
         insta::assert_debug_snapshot!(connector_parsers.graphql_directives.lock().unwrap(), @r###"
         [
             GraphqlDirective {
-                name: "Test",
+                id: Some(
+                    0,
+                ),
                 namespace: None,
+                name: None,
                 url: Url {
                     scheme: "https",
                     cannot_be_a_base: false,
