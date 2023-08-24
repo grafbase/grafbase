@@ -83,8 +83,8 @@ pub enum Error {
     ),
     #[error("{0:?}")]
     Validation(Vec<RuleError>),
-    #[error("Errors parsing {} connector: \n\n{}", .0, .1.join("\n"))]
-    ConnectorErrors(String, Vec<String>, Pos),
+    #[error("Errors parsing {} connector: \n\n{}", .0.as_deref().unwrap_or("unnamed"), .1.join("\n"))]
+    ConnectorErrors(Option<String>, Vec<String>, Pos),
 }
 
 impl From<Vec<RuleError>> for Error {
@@ -181,12 +181,11 @@ async fn parse_connectors<'a>(
 
     visit(&mut connector_rules, ctx, schema);
 
-    validate_unique_names(ctx)?;
-
     // We could probably parallelise this, but the schemas and the associated
     // processing use a reasonable amount of memory so going to keep it sequential
-    for (directive, position) in std::mem::take(&mut ctx.openapi_directives) {
-        let directive_name = directive.name.clone();
+    for (mut directive, position) in std::mem::take(&mut ctx.openapi_directives) {
+        directive.id = Some(ctx.connector_id_generator.new_id());
+        let directive_name = directive.namespace.clone();
         let transforms = directive.transforms.transforms.clone();
         match connector_parsers.fetch_and_parse_openapi(directive).await {
             Ok(mut registry) => {
@@ -199,8 +198,9 @@ async fn parse_connectors<'a>(
         }
     }
 
-    for (directive, position) in std::mem::take(&mut ctx.graphql_directives) {
-        let directive_name = directive.name.clone();
+    for (mut directive, position) in std::mem::take(&mut ctx.graphql_directives) {
+        directive.id = Some(ctx.connector_id_generator.new_id());
+        let directive_name = directive.namespace().map(ToOwned::to_owned);
         let transforms = directive.transforms.clone();
         match connector_parsers.fetch_and_parse_graphql(directive).await {
             Ok(mut registry) => {
@@ -211,44 +211,6 @@ async fn parse_connectors<'a>(
             }
             Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),
         }
-    }
-
-    Ok(())
-}
-
-fn validate_unique_names(ctx: &VisitorContext<'_>) -> Result<(), Error> {
-    let mut names = HashMap::new();
-
-    for (directive, position) in &ctx.openapi_directives {
-        let names = names.entry(directive.name.as_str()).or_insert(Vec::new());
-        names.push(*position);
-    }
-
-    for (directive, position) in &ctx.graphql_directives {
-        let names = names.entry(directive.name.as_str()).or_insert(Vec::new());
-        names.push(*position);
-    }
-
-    for (directive, position) in &ctx.mongodb_directives {
-        let names = names.entry(directive.name()).or_insert(Vec::new());
-        names.push(*position);
-    }
-
-    let mut errors = Vec::new();
-
-    for (name, locations) in names {
-        if locations.len() < 2 {
-            continue;
-        }
-
-        errors.push(RuleError {
-            locations,
-            message: format!(r#"Name "{name}" is not unique. A connector must have a unique name."#),
-        });
-    }
-
-    if !errors.is_empty() {
-        return Err(Error::Validation(errors));
     }
 
     Ok(())

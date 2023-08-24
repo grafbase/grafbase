@@ -40,7 +40,7 @@ fn empty() {
 #[test]
 fn namespaced() {
     let schema = indoc! {r#"
-        type User @model(connector: "myMongo", collection: "users") {
+        type User @model(connector: "test", collection: "users") {
           age: Int!
         }
     "#};

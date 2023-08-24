@@ -75,8 +75,8 @@ impl Default for QueryBatcher {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct Resolver {
-    /// A unique name for the given GraphQL resolver instance.
-    pub name: String,
+    /// A unique ID for the given GraphQL resolver instance.
+    pub id: u16,
 
     /// The name of this GraphQL resolver instance.
     ///
@@ -100,14 +100,14 @@ pub struct Resolver {
 
 impl Resolver {
     #[cfg(test)]
-    pub fn stub(name: &str, namespace: impl AsRef<str>, url: impl AsRef<str>) -> Self {
+    pub fn stub(namespace: impl AsRef<str>, url: impl AsRef<str>) -> Self {
         let namespace = match namespace.as_ref() {
             "" => None,
             v => Some(v.to_owned()),
         };
 
         Self {
-            name: name.to_string(),
+            id: 0,
             namespace,
             url: Url::parse(url.as_ref()).expect("valid url"),
         }
@@ -131,7 +131,7 @@ type LoadResult = Result<HashMap<QueryData, (UpstreamResponse, StatusCode)>, Err
 fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send>> {
     #[derive(Eq, PartialEq, Ord, PartialOrd, Hash)]
     struct ResolverDetails {
-        name: String,
+        id: u16,
         url: String,
         headers: Vec<(String, String)>,
     }
@@ -140,7 +140,7 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
 
     for data in queries.iter().cloned() {
         let id = ResolverDetails {
-            name: data.resolver_name,
+            id: data.resolver_id,
             url: data.url,
             headers: data.headers,
         };
@@ -184,8 +184,8 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
                 let key = QueryData {
                     query,
                     headers: resolver.headers.clone(),
+                    resolver_id: resolver.id,
                     url: resolver.url.clone(),
-                    resolver_name: resolver.name.clone(),
                 };
 
                 results.insert(key, (upstream_response.clone(), http_status));
@@ -263,12 +263,12 @@ struct QueryData {
     /// The URL of the remote endpoint.
     url: String,
 
-    /// The name of the resolver this query belongs to.
+    /// The ID of the resolver this query belongs to.
     ///
     /// This data is needed to ensure queries are grouped by resolver. We cannot rely on the URL
     /// alone, as two resolvers might have the same URL, but other properties (such as headers)
     /// might differ.
-    resolver_name: String,
+    resolver_id: u16,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
@@ -338,7 +338,7 @@ impl Resolver {
                     .copied()
                     .map(|(a, b)| (a.to_owned(), b.to_owned()))
                     .collect(),
-                resolver_name: self.name.clone(),
+                resolver_id: self.id,
                 url: self.url.to_string(),
             };
 
@@ -507,13 +507,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let result = resolve_registry(
-            Resolver::stub("Test", "myApi", server.uri()),
-            registry.clone(),
-            None,
-            query,
-        )
-        .await;
+        let result = resolve_registry(Resolver::stub("myApi", server.uri()), registry.clone(), None, query).await;
 
         assert_eq!(result.as_ref().err(), None);
 
@@ -560,14 +554,14 @@ mod tests {
 
         // 3. Perform two different queries in parallel, using the same `QueryBatcher`.
         let foo = resolve_registry(
-            Resolver::stub("Test", "", server.uri()),
+            Resolver::stub("", server.uri()),
             registry.clone(),
             Some(&batcher),
             "query { foo }",
         );
 
         let bar = resolve_registry(
-            Resolver::stub("Test", "", server.uri()),
+            Resolver::stub("", server.uri()),
             registry,
             Some(&batcher),
             "query { bar }",
@@ -607,14 +601,14 @@ mod tests {
 
         // 3. Perform two different queries in parallel, using the same `QueryBatcher`.
         let foo = resolve_registry(
-            Resolver::stub("Test", "", server.uri()),
+            Resolver::stub("", server.uri()),
             registry.clone(),
             Some(&batcher),
             "query Hello { foo }",
         );
 
         let bar = resolve_registry(
-            Resolver::stub("Test", "", server.uri()),
+            Resolver::stub("", server.uri()),
             registry,
             Some(&batcher),
             "query World { bar }",
@@ -658,14 +652,14 @@ mod tests {
 
         // 3. Perform two different queries in parallel, using the same `QueryBatcher`.
         let foo = resolve_registry(
-            Resolver::stub("Test", "", server.uri()),
+            Resolver::stub("", server.uri()),
             registry.clone(),
             Some(&batcher),
             "mutation { foo }",
         );
 
         let bar = resolve_registry(
-            Resolver::stub("Test", "", server.uri()),
+            Resolver::stub("", server.uri()),
             registry,
             Some(&batcher),
             "mutation { bar }",
@@ -717,14 +711,14 @@ mod tests {
 
         // 3. Perform two different queries in parallel, using the same `QueryBatcher`.
         let foo = resolve_registry(
-            Resolver::stub("Test", "", server.uri()),
+            Resolver::stub("", server.uri()),
             registry.clone(),
             Some(&batcher),
             "query Foo($foo: ID) { foo(id: $foo) }",
         );
 
         let bar = resolve_registry(
-            Resolver::stub("Test", "", server.uri()),
+            Resolver::stub("", server.uri()),
             registry,
             Some(&batcher),
             "query Foo($bar: ID) { bar(id: $bar) }",

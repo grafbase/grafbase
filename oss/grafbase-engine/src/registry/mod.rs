@@ -1305,7 +1305,7 @@ pub struct MongoDBConfiguration {
     pub url: String,
     pub data_source: String,
     pub database: String,
-    pub namespace: bool,
+    pub namespace: Option<String>,
 }
 
 #[derive(
@@ -1556,7 +1556,7 @@ impl Registry {
         self.types.insert(ty.name().to_string(), ty);
     }
 
-    pub fn create_mongo_config<F>(&mut self, f: F, name: &str)
+    pub fn create_mongo_directive<F>(&mut self, f: F, name: &str)
     where
         F: FnOnce(&mut Registry) -> MongoDBConfiguration,
     {

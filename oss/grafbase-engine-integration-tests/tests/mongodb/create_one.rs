@@ -30,7 +30,7 @@ fn only_implicit_fields() {
 #[test]
 fn namespacing() {
     let schema = indoc! {r#"
-        type User @model(connector: "mongo", collection: "users") {
+        type User @model(connector: "test", collection: "users") {
           name: String
         }
     "#};
@@ -56,7 +56,7 @@ fn namespacing() {
 #[test]
 fn capital_namespacing() {
     let schema = indoc! {r#"
-        type User @model(connector: "Mongo", collection: "users") {
+        type User @model(connector: "test", collection: "users") {
           name: String
         }
     "#};

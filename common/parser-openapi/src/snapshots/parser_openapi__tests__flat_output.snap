@@ -3,81 +3,81 @@ source: common/parser-openapi/src/lib.rs
 expression: registry.export_sdl(false)
 ---
 type Mutation {
-	updatePet(input: PetstorePetInput!): PetstorePet
-	addPet(input: PetstorePetInput!): PetstorePet
-	uploadFile(petId: Int!, additionalMetadata: String): PetstoreApiResponse
-	placeOrder(input: PetstoreOrderInput!): PetstoreOrder
-	createUsersWithListInput(input: [PetstoreUserInput!]!): PetstoreUser
+	updatePet(input: OpenAPI1PetInput!): OpenAPI1Pet
+	addPet(input: OpenAPI1PetInput!): OpenAPI1Pet
+	uploadFile(petId: Int!, additionalMetadata: String): OpenAPI1ApiResponse
+	placeOrder(input: OpenAPI1OrderInput!): OpenAPI1Order
+	createUsersWithListInput(input: [OpenAPI1UserInput!]!): OpenAPI1User
 }
-type PetstoreApiResponse {
+type OpenAPI1ApiResponse {
 	message: String
 	type: String
 	code: Int
 }
-type PetstoreCategory {
+type OpenAPI1Category {
 	name: String
 	id: Int
 }
-input PetstoreCategoryInput {
+input OpenAPI1CategoryInput {
 	name: String
 	id: Int
 }
-enum PetstoreFindPetsByStatusStatus {
+enum OpenAPI1FindPetsByStatusStatus {
 	AVAILABLE
 	PENDING
 	SOLD
 }
-type PetstoreOrder {
+type OpenAPI1Order {
 	complete: Boolean
-	status: PetstoreOrderStatus
+	status: OpenAPI1OrderStatus
 	shipDate: String
 	quantity: Int
 	petId: Int
 	id: Int
 }
-input PetstoreOrderInput {
+input OpenAPI1OrderInput {
 	complete: Boolean
-	status: PetstoreOrderStatus
+	status: OpenAPI1OrderStatus
 	shipDate: String
 	quantity: Int
 	petId: Int
 	id: Int
 }
-enum PetstoreOrderStatus {
+enum OpenAPI1OrderStatus {
 	PLACED
 	APPROVED
 	DELIVERED
 }
-type PetstorePet {
-	status: PetstorePetStatus
-	tags: [PetstoreTag!]
+type OpenAPI1Pet {
+	status: OpenAPI1PetStatus
+	tags: [OpenAPI1Tag!]
 	photoUrls: [String!]!
-	category: PetstoreCategory
+	category: OpenAPI1Category
 	name: String!
 	id: Int
 }
-input PetstorePetInput {
-	status: PetstorePetStatus
-	tags: [PetstoreTagInput!]!
+input OpenAPI1PetInput {
+	status: OpenAPI1PetStatus
+	tags: [OpenAPI1TagInput!]!
 	photoUrls: [String!]!
-	category: PetstoreCategoryInput!
+	category: OpenAPI1CategoryInput!
 	name: String!
 	id: Int
 }
-enum PetstorePetStatus {
+enum OpenAPI1PetStatus {
 	AVAILABLE
 	PENDING
 	SOLD
 }
-type PetstoreTag {
+type OpenAPI1Tag {
 	name: String
 	id: Int
 }
-input PetstoreTagInput {
+input OpenAPI1TagInput {
 	name: String
 	id: Int
 }
-type PetstoreUser {
+type OpenAPI1User {
 	userStatus: Int
 	phone: String
 	password: String
@@ -87,7 +87,7 @@ type PetstoreUser {
 	username: String
 	id: Int
 }
-input PetstoreUserInput {
+input OpenAPI1UserInput {
 	userStatus: Int
 	phone: String
 	password: String
@@ -98,13 +98,13 @@ input PetstoreUserInput {
 	id: Int
 }
 type Query {
-	findPetsByStatus(status: PetstoreFindPetsByStatusStatus = AVAILABLE): [PetstorePet!]
-	findPetsByTags(tags: [String!]): [PetstorePet!]
-	pet(petId: Int!): PetstorePet
+	findPetsByStatus(status: OpenAPI1FindPetsByStatusStatus = AVAILABLE): [OpenAPI1Pet!]
+	findPetsByTags(tags: [String!]): [OpenAPI1Pet!]
+	pet(petId: Int!): OpenAPI1Pet
 	inventory: JSON
-	order(orderId: Int!): PetstoreOrder
+	order(orderId: Int!): OpenAPI1Order
 	loginUser(password: String, username: String): String
-	user(username: String!): PetstoreUser
+	user(username: String!): OpenAPI1User
 }
 schema {
 	query: Query

@@ -12,8 +12,14 @@ use crate::directive_de::parse_directive;
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenApiDirective {
-    pub name: String,
-    pub namespace: bool,
+    /// A unique identifier for the given directive.
+    ///
+    /// This ID *MUST NOT* be persisted (and defaults to `None` when deserializing), as the ID is
+    /// re-generated whenever the schema is parsed.
+    #[serde(skip)]
+    pub id: Option<u16>,
+    #[serde(alias = "name")]
+    pub namespace: Option<String>,
     pub url: Option<Url>,
     #[serde(rename = "schema")]
     pub schema_url: String,
@@ -65,10 +71,8 @@ impl Directive for OpenApiDirective {
     fn definition() -> String {
         r#"
         directive @openapi(
-          "A unique name for the connector"
-          name: String!
-          "If true, namespaces all queries and types with the name"
-          namespace: Boolean!
+          "The namespace of this OpenAPI source"
+          namespace: String
           "The URL of the API"
           url: Url!,
           "The URL of this APIs schema"
@@ -146,8 +150,7 @@ mod tests {
         let schema = r#"
             extend schema
               @openapi(
-                name: "Stripe",
-                namespace: true,
+                namespace: "stripe",
                 url: "https://api.stripe.com",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 headers: [{ name: "authorization", value: "Bearer {{env.STRIPE_API_KEY}}"}],
@@ -158,8 +161,12 @@ mod tests {
         insta::assert_debug_snapshot!(connector_parsers.openapi_directives.lock().unwrap(), @r###"
         [
             OpenApiDirective {
-                name: "Stripe",
-                namespace: true,
+                id: Some(
+                    0,
+                ),
+                namespace: Some(
+                    "stripe",
+                ),
                 url: Some(
                     Url {
                         scheme: "https",
@@ -207,8 +214,7 @@ mod tests {
             r#"
                     extend schema
                       @openapi(
-                        name: "Stripe",
-                        namespace: true,
+                        namespace: "stripe",
                         url: "https://api.stripe.com",
                         schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                         transforms: {{
@@ -255,8 +261,7 @@ mod tests {
             r#"
             extend schema
               @openapi(
-                name: "Stripe",
-                namespace: true,
+                namespace: "stripe",
                 url: "https://api.stripe.com",
                 headers: [{ name: "authorization", value: "BLAH" }],
               )
@@ -271,63 +276,13 @@ mod tests {
             r#"
             extend schema
               @openapi(
-                name: "Stripe",
-                namespace: true,
+                namespace: "stripe",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 url: "https://api.stripe.com",
                 transforms: {queryNaming: PIES}
               )
             "#,
-            "[8:29] unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"
-        );
-    }
-
-    #[test]
-    fn test_parsing_directive_with_duplicate_name_with_graphql() {
-        assert_validation_error!(
-            r#"
-            extend schema
-              @openapi(
-                name: "Test",
-                namespace: true,
-                schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
-                url: "https://api.stripe.com",
-              )
-
-            extend schema
-              @graphql(
-                name: "Test",
-                namespace: true,
-                url: "https://countries.trevorblades.com",
-              )
-            "#,
-            "Name \"Test\" is not unique. A connector must have a unique name."
-        );
-    }
-
-    #[test]
-    fn test_parsing_directive_with_duplicate_name_with_mongo() {
-        assert_validation_error!(
-            r#"
-            extend schema
-              @openapi(
-                name: "Test",
-                namespace: true,
-                schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
-                url: "https://api.stripe.com",
-              )
-
-            extend schema
-              @mongodb(
-                 name: "Test",
-                 apiKey: "TEST"
-                 url: "TEST"
-                 dataSource: "TEST"
-                 database: "TEST"
-                 namespace: true,
-              )
-            "#,
-            "Name \"Test\" is not unique. A connector must have a unique name."
+            "[7:29] unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"
         );
     }
 }
