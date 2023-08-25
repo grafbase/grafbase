@@ -1,6 +1,6 @@
 use std::{
     borrow::Borrow,
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet},
     hash::Hash,
 };
 
@@ -8,8 +8,6 @@ use grafbase_engine_parser::types::OperationType::Query;
 use inflector::Inflector;
 
 use crate::registry::{MetaType, Registry};
-
-use super::{InterfaceType, MetaField, MetaFieldType, ObjectType};
 
 /// Cache control values
 ///
@@ -140,177 +138,24 @@ pub enum CacheControlError {
     Validate(Vec<crate::ServerError>),
 }
 
-// Not really necessary, we only needed CacheMetaType to be equivalent the MetaType for backward
-// compatibility with existing projects. Confused a few things
-#[serde_with::serde_as]
-#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
-pub struct MaybeCacheMetaType(#[serde_as(deserialize_as = "serde_with::DefaultOnError")] Option<CacheMetaType>);
-
-impl From<ObjectType> for MaybeCacheMetaType {
-    fn from(value: ObjectType) -> Self {
-        Self(Some(CacheMetaType::Object(value.into())))
-    }
-}
-impl From<InterfaceType> for MaybeCacheMetaType {
-    fn from(value: InterfaceType) -> Self {
-        Self(Some(CacheMetaType::Interface(value.into())))
-    }
-}
-
-#[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum CacheMetaType {
-    Object(CacheObjectType),
-    Interface(CacheInterfaceType),
-}
-
-impl From<MetaType> for MaybeCacheMetaType {
-    fn from(value: MetaType) -> Self {
-        match value {
-            MetaType::Object(object) => Self(Some(CacheMetaType::Object(object.into()))),
-            MetaType::Interface(interface) => Self(Some(CacheMetaType::Interface(interface.into()))),
-            _ => Self(None),
-        }
-    }
-}
-
-#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, HashMap)]
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct CacheObjectType {
-    pub name: String,
-    pub fields: HashMap<String, CacheMetaField>,
-    pub cache_control: CacheControl,
-}
-
-impl From<ObjectType> for CacheObjectType {
-    fn from(value: ObjectType) -> Self {
-        Self {
-            name: value.name,
-            fields: value
-                .fields
-                .into_iter()
-                .map(|(key, value)| (key, value.into()))
-                .collect(),
-            cache_control: value.cache_control,
-        }
-    }
-}
-
-#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, HashMap)]
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct CacheInterfaceType {
-    pub name: String,
-    pub fields: HashMap<String, CacheMetaField>,
-}
-
-impl From<InterfaceType> for CacheInterfaceType {
-    fn from(value: InterfaceType) -> Self {
-        Self {
-            name: value.name,
-            fields: value
-                .fields
-                .into_iter()
-                .map(|(key, value)| (key, value.into()))
-                .collect(),
-        }
-    }
-}
-
-#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl)]
-#[derive(Clone, Default, PartialEq, Eq, derivative::Derivative, serde::Deserialize, serde::Serialize)]
-#[derivative(Debug)]
-pub struct CacheMetaField {
-    pub name: String,
-    pub ty: MetaFieldType,
-    pub cache_control: CacheControl,
-}
-
-impl From<CacheMetaField> for MetaField {
-    fn from(value: CacheMetaField) -> Self {
-        let CacheMetaField {
-            name,
-            ty,
-            cache_control,
-        } = value;
-
-        MetaField {
-            name,
-            ty,
-            cache_control,
-            ..Default::default()
-        }
-    }
-}
-
-impl From<MetaField> for CacheMetaField {
-    fn from(value: MetaField) -> Self {
-        CacheMetaField {
-            name: value.name,
-            ty: value.ty,
-            cache_control: value.cache_control,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct CacheConfig {
     pub enable_caching: bool,
-    types: BTreeMap<String, MaybeCacheMetaType>,
-}
-
-impl PartialEq for CacheConfig {
-    fn eq(&self, other: &Self) -> bool {
-        self.enable_caching == other.enable_caching && self.types() == other.types()
-    }
+    pub types: BTreeMap<String, MetaType>,
 }
 
 impl CacheConfig {
-    // TODO: remove  me with MaybeCacheType
-    fn types(&self) -> BTreeMap<String, CacheMetaType> {
-        self.types
-            .clone()
-            .into_iter()
-            .filter_map(|(key, maybe_type)| maybe_type.0.map(|ty| (key, ty)))
-            .collect()
-    }
-
-    // FIXME: we shouldn't have to rely on check_rules and Registry to compute the cache_control of
-    // a request.
-    fn registry_view(&self) -> Registry {
-        Registry {
-            enable_caching: self.enable_caching,
-            types: self
-                .types
-                .clone()
-                .into_iter()
-                .filter_map(|(key, value)| {
-                    value
-                        .0
-                        .map(|cache_meta_type| match cache_meta_type {
-                            CacheMetaType::Object(object) => MetaType::Object(
-                                ObjectType::new(object.name, object.fields.into_values().map(Into::into))
-                                    .with_cache_control(object.cache_control),
-                            ),
-                            CacheMetaType::Interface(interface) => MetaType::Interface(InterfaceType::new(
-                                interface.name,
-                                interface.fields.into_values().map(Into::into),
-                            )),
-                        })
-                        .map(|meta_type| (key, meta_type))
-                })
-                .collect(),
-            ..Default::default()
-        }
-    }
-
     pub fn get_cache_control(&self, request: &crate::Request) -> Result<CacheControl, CacheControlError> {
         let document = grafbase_engine_parser::parse_query(&request.query).map_err(CacheControlError::Parse)?;
 
+        let registry_caching_view = Registry {
+            enable_caching: self.enable_caching,
+            types: self.types.clone(),
+            ..Default::default()
+        };
+
         crate::validation::check_rules(
-            &self.registry_view(),
+            &registry_caching_view,
             &document,
             Some(&request.variables),
             crate::ValidationMode::Fast,
@@ -331,13 +176,13 @@ impl<T: Borrow<Registry>> From<T> for CacheConfig {
                 // it is expected that the Query node is always present as it is the starting point
                 // for validation visiting. check rules/visitor.rs:588
                 if *type_name == Query.to_string().to_pascal_case() {
-                    return Some((type_name.to_string(), type_value.clone().into()));
+                    return Some((type_name.to_string(), type_value.clone()));
                 }
 
                 match type_value {
                     MetaType::Object(o) => {
                         if o.cache_control != Default::default() {
-                            return Some((type_name.clone(), o.clone().into()));
+                            return Some((type_name.clone(), MetaType::Object(o.clone())));
                         }
                         None
                     }
@@ -348,7 +193,7 @@ impl<T: Borrow<Registry>> From<T> for CacheConfig {
                             .find(|value| value.cache_control != Default::default());
 
                         if has_relevant_cache_control.is_some() {
-                            return Some((type_name.clone(), i.clone().into()));
+                            return Some((type_name.clone(), MetaType::Interface(i.clone())));
                         }
                         None
                     }
@@ -422,7 +267,7 @@ mod tests {
         registry.insert_type(meta_enum);
 
         // act
-        let caching_config: CacheConfig = registry.clone().into();
+        let caching_config: CacheConfig = registry.into();
 
         // assert
         assert!(caching_config.enable_caching);
@@ -430,10 +275,7 @@ mod tests {
         assert!(caching_config
             .types
             .keys()
-            .all(|k| k.starts_with("cached") || k.to_lowercase() == Query.to_string().to_lowercase()));
-
-        // Ensure we're constructing correctly the registry back.
-        assert_eq!(CacheConfig::from(caching_config.registry_view()), caching_config);
+            .all(|k| k.starts_with("cached") || k.to_lowercase() == Query.to_string().to_lowercase()))
     }
 
     #[test]
@@ -488,14 +330,5 @@ mod tests {
         );
 
         assert_eq!(non_cached_validation_result.cache_control, Default::default());
-    }
-
-    // The router isn't versioned (yet?)
-    #[test]
-    fn backward_compatibiliy_test() {
-        // Took a big registry JSON from a snapshot (which aren't entirely json) to check backward
-        // compatibility.
-        let data = include_str!("./snapshots/registry.json");
-        serde_json::from_str::<CacheConfig>(data).unwrap();
     }
 }
