@@ -1,0 +1,18 @@
+[package]
+name = "search-protocol"
+version = "0.1.0"
+edition = "2021"
+description = "Search protocol"
+license = "MPL-2.0"
+
+[dependencies]
+serde = { workspace = true }
+serde_with = { workspace = true, features = ["base64"] }
+thiserror = "1"
+chrono = { version = "0.4", features = ["serde"] }
+ulid = { workspace = true, features = ["serde"] }
+strum = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+rstest = { workspace = true }

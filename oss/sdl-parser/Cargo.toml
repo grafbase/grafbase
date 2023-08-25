@@ -1,0 +1,42 @@
+[package]
+name = "sdl-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1"
+grafbase-engine-parser = { path = "../../oss/grafbase-engine/parser" }
+grafbase-engine-value = { workspace = true }
+grafbase-engine = { path = "../../oss/grafbase-engine", features = ["tracing_worker"] }
+dynamodb = { workspace = true }
+grafbase-types = { workspace = true }
+grafbase-runtime = { workspace = true }
+case = "1"
+if_chain = "1"
+itertools = { workspace = true }
+lazy_static = { workspace = true }
+regex = { workspace = true }
+secrecy = "0.8"
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+tracing = { workspace = true, features = ["log"] }
+url = { version = "2" }
+thiserror = { workspace = true }
+tuple = "0.5"
+futures = "0.3"
+nom = "7"
+Inflector = { version = "0.11", default-features = false }
+
+[dev-dependencies]
+insta = { version = "1", features = ["json"] }
+pretty_assertions = "1"
+serde_json = { workspace = true }
+rstest = { workspace = true }
+assert_matches = "1.5"
+function_name = "0.3"
+maplit = "1"
+
+[features]
+default = []
+local = []

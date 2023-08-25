@@ -30,7 +30,7 @@ thiserror = { workspace = true }
 web-time = { workspace = true }
 
 dynamodb-utils = { path = "../dynamodb-utils" }
-grafbase = { path = "../grafbase", features = ["json"] }
+grafbase-types = { path = "../grafbase-types" }
 dataloader = { workspace = true }
 async-runtime = { workspace = true }
 graph-entities = { workspace = true }

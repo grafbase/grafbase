@@ -2,7 +2,6 @@ use std::hash::Hash;
 
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
-use grafbase::UdfKind;
 use grafbase_runtime::{
     udf::{
         CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
@@ -10,6 +9,7 @@ use grafbase_runtime::{
     },
     GraphqlRequestExecutionContext,
 };
+use grafbase_types::UdfKind;
 use send_wrapper::SendWrapper;
 #[cfg(feature = "tracing_worker")]
 use tracing::{info_span, Instrument};

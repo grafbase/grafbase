@@ -22,9 +22,9 @@ use std::{
     sync::atomic::AtomicU16,
 };
 
-use grafbase::auth::Operations;
 use grafbase_engine_parser::types::OperationType::Query;
 use grafbase_engine_value::ConstValue;
+use grafbase_types::auth::Operations;
 use graph_entities::NodeID;
 use indexmap::{map::IndexMap, set::IndexSet};
 use inflector::Inflector;

@@ -7,9 +7,9 @@ use std::{
 };
 
 use futures_util::stream::BoxStream;
-use grafbase::auth::Operations;
 use grafbase_engine_parser::{types::OperationDefinition, Positioned};
 use grafbase_engine_value::Name;
+use grafbase_types::auth::Operations;
 use graph_entities::ResponseNodeId;
 
 use crate::{

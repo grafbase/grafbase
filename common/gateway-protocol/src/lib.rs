@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use aws_region_nearby::AwsRegion;
-use grafbase::{auth::ExecutionAuth, UdfKind};
 use grafbase_engine::{
     registry::{CacheConfig, CacheControlError},
     AuthConfig, CacheControl,
 };
+use grafbase_types::{auth::ExecutionAuth, UdfKind};
 use serde_with::serde_as;
 use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 
@@ -278,7 +278,7 @@ mod tests {
     fn serialize_customer_deployment_config() {
         use std::collections::HashMap;
 
-        use grafbase::UdfKind;
+        use grafbase_types::UdfKind;
         let customer_gateway_config = CustomerDeploymentConfig {
             udf_bindings: HashMap::from([((UdfKind::Authorizer, "name".to_string()), "value".to_string())]),
             ..Default::default()

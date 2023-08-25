@@ -12,7 +12,8 @@ ulid = { workspace = true }
 worker = { workspace = true }
 
 grafbase-engine = { workspace = true }
-grafbase = { path = "../../oss/grafbase", features = ["json"] }
+grafbase-types = { workspace = true }
+grafbase = { path = "../../common/grafbase", features = ["json"] }
 
 [dev-dependencies]
 serde_json = { version = "1", default-features = false }

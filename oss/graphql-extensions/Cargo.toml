@@ -13,8 +13,8 @@ web-time = { workspace = true }
 grafbase-engine = { path = "../../oss/grafbase-engine", default-features = false }
 grafbase-engine-value = { workspace = true }
 log = { path = "../../oss/log", features = ["with-worker"] }
-grafbase = { path = "../../oss/grafbase", features = ["json"] }
 grafbase-runtime = { workspace = true }
+grafbase-types = { workspace = true }
 
 [features]
 local = []

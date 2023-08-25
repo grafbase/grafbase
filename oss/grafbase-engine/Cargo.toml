@@ -16,6 +16,7 @@ async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
+grafbase-types = { path = "../grafbase-types" }
 bytes = { version = "1", features = ["serde"] }
 case = "1"
 chrono = { version = "0.4", default-features = false, features = [
@@ -61,7 +62,6 @@ grafbase-engine-derive = { path = "derive", version = "3" }
 grafbase-engine-value = { path = "value", version = "3" }
 grafbase-engine-parser = { path = "parser", version = "3" }
 grafbase-runtime = { workspace = true }
-grafbase = { path = "../grafbase", features = ["json"] }
 graph-entities = { workspace = true }
 logworker = { path = "../log", package = "log", features = [
   "with-worker",

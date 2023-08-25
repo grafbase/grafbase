@@ -23,7 +23,7 @@ default-features = false
 features = ["tracing_worker"]
 
 [dependencies.sdl-parser]
-path = "../../common/sdl-parser"
+path = "../../oss/sdl-parser"
 
 [dependencies.grafbase-runtime]
 path = "../grafbase-runtime"
