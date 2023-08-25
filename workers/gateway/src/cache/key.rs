@@ -4,8 +4,8 @@ use std::{
     marker::PhantomData,
 };
 
-use grafbase::auth::ExecutionAuth;
 use grafbase_engine_value::ConstValue;
+use grafbase_types::auth::ExecutionAuth;
 
 #[derive(Debug, Hash)]
 pub enum CacheAccess<'a> {
@@ -100,9 +100,9 @@ impl<HB: Hasher + Default> Hash for CacheKey<'_, HB> {
 mod tests {
     use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 
-    use grafbase::auth::{ExecutionAuth, Operations};
     use grafbase_engine::indexmap::IndexMap;
     use grafbase_engine_value::{ConstValue, Name, Variables};
+    use grafbase_types::auth::{ExecutionAuth, Operations};
 
     use crate::cache::{key::CacheKey, CacheAccess};
 
