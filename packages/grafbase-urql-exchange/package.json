@@ -19,7 +19,7 @@
     "@n1ru4l/push-pull-async-iterable-iterator": "3.2.0",
     "@repeaterjs/repeater": "3.0.4",
     "@urql/core": "4.1.1",
-    "graphql": "16.7.1",
+    "graphql": "16.8.0",
     "reconnecting-eventsource": "1.6.2",
     "wonka": "6.3.4"
   },
