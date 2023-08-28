@@ -16,6 +16,7 @@ inputs:
       - windows
       - macos
       - linux
+      - linux-arm
 
 runs:
   using: 'composite'
@@ -50,7 +51,7 @@ runs:
       run: rustup target list
 
     - name: Install cargo-nextest & libs linux
-      if: ${{ inputs.platform == 'linux' }}
+      if: ${{ inputs.platform == 'linux' || inputs.platform == 'linux-arm' }}
       shell: bash
       run: |
         curl -LsSf https://get.nexte.st/latest/${{ inputs.platform }} | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
