@@ -98,7 +98,7 @@ export class OpenAPI {
     if (this.namespace === undefined || this.namespace === true) {
       namespace = `    namespace: true\n`
     } else {
-      namespace = ''
+      namespace = '    namespace: false\n'
     }
 
     const url = this.apiUrl ? `    url: "${this.apiUrl}"\n` : ''

@@ -93,7 +93,7 @@ export class MongoDBAPI {
     if (this.namespace === undefined || this.namespace === true) {
       namespace = `    namespace: true\n`
     } else {
-      namespace = ''
+      namespace = '    namespace: false\n'
     }
 
     const footer = '  )'

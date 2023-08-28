@@ -35,6 +35,7 @@ describe('OpenAPI generator', () => {
       "extend schema
         @openapi(
           name: "Stripe"
+          namespace: false
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
         )"
     `)
