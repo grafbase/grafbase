@@ -18,7 +18,7 @@ Registry {
                                 name: "input",
                                 description: None,
                                 ty: InputValueType(
-                                    "OpenAPI1PetInput!",
+                                    "PetstorePetInput!",
                                 ),
                                 default_value: None,
                                 is_secret: false,
@@ -26,7 +26,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "OpenAPI1Pet",
+                            "PetstorePet",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -45,7 +45,7 @@ Registry {
                             HttpResolver {
                                 method: "PUT",
                                 url: "http://example.com/pet",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: Some(
@@ -73,7 +73,7 @@ Registry {
                                 name: "input",
                                 description: None,
                                 ty: InputValueType(
-                                    "OpenAPI1PetInput!",
+                                    "PetstorePetInput!",
                                 ),
                                 default_value: None,
                                 is_secret: false,
@@ -81,7 +81,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "OpenAPI1Pet",
+                            "PetstorePet",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -100,7 +100,7 @@ Registry {
                             HttpResolver {
                                 method: "POST",
                                 url: "http://example.com/pet",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: Some(
@@ -146,7 +146,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "OpenAPI1ApiResponse",
+                            "PetstoreApiResponse",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -165,7 +165,7 @@ Registry {
                             HttpResolver {
                                 method: "POST",
                                 url: "http://example.com/pet/{petId}/uploadImage",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [
                                     PathParameter {
                                         name: "petId",
@@ -201,7 +201,7 @@ Registry {
                                 name: "input",
                                 description: None,
                                 ty: InputValueType(
-                                    "OpenAPI1OrderInput!",
+                                    "PetstoreOrderInput!",
                                 ),
                                 default_value: None,
                                 is_secret: false,
@@ -209,7 +209,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "OpenAPI1Order",
+                            "PetstoreOrder",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -228,7 +228,7 @@ Registry {
                             HttpResolver {
                                 method: "POST",
                                 url: "http://example.com/store/order",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: Some(
@@ -256,7 +256,7 @@ Registry {
                                 name: "input",
                                 description: None,
                                 ty: InputValueType(
-                                    "[OpenAPI1UserInput!]!",
+                                    "[PetstoreUserInput!]!",
                                 ),
                                 default_value: None,
                                 is_secret: false,
@@ -264,7 +264,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "OpenAPI1User",
+                            "PetstoreUser",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -283,7 +283,7 @@ Registry {
                             HttpResolver {
                                 method: "POST",
                                 url: "http://example.com/user/createWithList",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: Some(
@@ -318,9 +318,9 @@ Registry {
                 constraints: [],
             },
         ),
-        "OpenAPI1ApiResponse": Object(
+        "PetstoreApiResponse": Object(
             ObjectType {
-                name: "OpenAPI1ApiResponse",
+                name: "PetstoreApiResponse",
                 description: None,
                 fields: {
                     "message": MetaField {
@@ -422,13 +422,13 @@ Registry {
                 keys: None,
                 is_subscription: false,
                 is_node: false,
-                rust_typename: "OpenAPI1ApiResponse",
+                rust_typename: "PetstoreApiResponse",
                 constraints: [],
             },
         ),
-        "OpenAPI1Category": Object(
+        "PetstoreCategory": Object(
             ObjectType {
-                name: "OpenAPI1Category",
+                name: "PetstoreCategory",
                 description: None,
                 fields: {
                     "name": MetaField {
@@ -501,13 +501,13 @@ Registry {
                 keys: None,
                 is_subscription: false,
                 is_node: false,
-                rust_typename: "OpenAPI1Category",
+                rust_typename: "PetstoreCategory",
                 constraints: [],
             },
         ),
-        "OpenAPI1CategoryInput": InputObject(
+        "PetstoreCategoryInput": InputObject(
             InputObjectType {
-                name: "OpenAPI1CategoryInput",
+                name: "PetstoreCategoryInput",
                 description: None,
                 input_fields: {
                     "name": MetaInputValue {
@@ -531,13 +531,13 @@ Registry {
                         rename: None,
                     },
                 },
-                rust_typename: "OpenAPI1CategoryInput",
+                rust_typename: "PetstoreCategoryInput",
                 oneof: false,
             },
         ),
-        "OpenAPI1FindPetsByStatusStatus": Enum(
+        "PetstoreFindPetsByStatusStatus": Enum(
             EnumType {
-                name: "OpenAPI1FindPetsByStatusStatus",
+                name: "PetstoreFindPetsByStatusStatus",
                 description: None,
                 enum_values: {
                     "AVAILABLE": MetaEnumValue {
@@ -565,12 +565,12 @@ Registry {
                         ),
                     },
                 },
-                rust_typename: "OpenAPI1FindPetsByStatusStatus",
+                rust_typename: "PetstoreFindPetsByStatusStatus",
             },
         ),
-        "OpenAPI1Order": Object(
+        "PetstoreOrder": Object(
             ObjectType {
-                name: "OpenAPI1Order",
+                name: "PetstoreOrder",
                 description: None,
                 fields: {
                     "complete": MetaField {
@@ -608,7 +608,7 @@ Registry {
                         description: None,
                         args: {},
                         ty: MetaFieldType(
-                            "OpenAPI1OrderStatus",
+                            "PetstoreOrderStatus",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -766,13 +766,13 @@ Registry {
                 keys: None,
                 is_subscription: false,
                 is_node: false,
-                rust_typename: "OpenAPI1Order",
+                rust_typename: "PetstoreOrder",
                 constraints: [],
             },
         ),
-        "OpenAPI1OrderInput": InputObject(
+        "PetstoreOrderInput": InputObject(
             InputObjectType {
-                name: "OpenAPI1OrderInput",
+                name: "PetstoreOrderInput",
                 description: None,
                 input_fields: {
                     "complete": MetaInputValue {
@@ -789,7 +789,7 @@ Registry {
                         name: "status",
                         description: None,
                         ty: InputValueType(
-                            "OpenAPI1OrderStatus",
+                            "PetstoreOrderStatus",
                         ),
                         default_value: None,
                         is_secret: false,
@@ -836,13 +836,13 @@ Registry {
                         rename: None,
                     },
                 },
-                rust_typename: "OpenAPI1OrderInput",
+                rust_typename: "PetstoreOrderInput",
                 oneof: false,
             },
         ),
-        "OpenAPI1OrderStatus": Enum(
+        "PetstoreOrderStatus": Enum(
             EnumType {
-                name: "OpenAPI1OrderStatus",
+                name: "PetstoreOrderStatus",
                 description: None,
                 enum_values: {
                     "PLACED": MetaEnumValue {
@@ -870,12 +870,12 @@ Registry {
                         ),
                     },
                 },
-                rust_typename: "OpenAPI1OrderStatus",
+                rust_typename: "PetstoreOrderStatus",
             },
         ),
-        "OpenAPI1Pet": Object(
+        "PetstorePet": Object(
             ObjectType {
-                name: "OpenAPI1Pet",
+                name: "PetstorePet",
                 description: None,
                 fields: {
                     "status": MetaField {
@@ -884,7 +884,7 @@ Registry {
                         description: None,
                         args: {},
                         ty: MetaFieldType(
-                            "OpenAPI1PetStatus",
+                            "PetstorePetStatus",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -920,7 +920,7 @@ Registry {
                         description: None,
                         args: {},
                         ty: MetaFieldType(
-                            "[OpenAPI1Tag!]",
+                            "[PetstoreTag!]",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -978,7 +978,7 @@ Registry {
                         description: None,
                         args: {},
                         ty: MetaFieldType(
-                            "OpenAPI1Category",
+                            "PetstoreCategory",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -1071,20 +1071,20 @@ Registry {
                 keys: None,
                 is_subscription: false,
                 is_node: false,
-                rust_typename: "OpenAPI1Pet",
+                rust_typename: "PetstorePet",
                 constraints: [],
             },
         ),
-        "OpenAPI1PetInput": InputObject(
+        "PetstorePetInput": InputObject(
             InputObjectType {
-                name: "OpenAPI1PetInput",
+                name: "PetstorePetInput",
                 description: None,
                 input_fields: {
                     "status": MetaInputValue {
                         name: "status",
                         description: None,
                         ty: InputValueType(
-                            "OpenAPI1PetStatus",
+                            "PetstorePetStatus",
                         ),
                         default_value: None,
                         is_secret: false,
@@ -1094,7 +1094,7 @@ Registry {
                         name: "tags",
                         description: None,
                         ty: InputValueType(
-                            "[OpenAPI1TagInput!]!",
+                            "[PetstoreTagInput!]!",
                         ),
                         default_value: None,
                         is_secret: false,
@@ -1114,7 +1114,7 @@ Registry {
                         name: "category",
                         description: None,
                         ty: InputValueType(
-                            "OpenAPI1CategoryInput!",
+                            "PetstoreCategoryInput!",
                         ),
                         default_value: None,
                         is_secret: false,
@@ -1141,13 +1141,13 @@ Registry {
                         rename: None,
                     },
                 },
-                rust_typename: "OpenAPI1PetInput",
+                rust_typename: "PetstorePetInput",
                 oneof: false,
             },
         ),
-        "OpenAPI1PetStatus": Enum(
+        "PetstorePetStatus": Enum(
             EnumType {
-                name: "OpenAPI1PetStatus",
+                name: "PetstorePetStatus",
                 description: None,
                 enum_values: {
                     "AVAILABLE": MetaEnumValue {
@@ -1175,12 +1175,12 @@ Registry {
                         ),
                     },
                 },
-                rust_typename: "OpenAPI1PetStatus",
+                rust_typename: "PetstorePetStatus",
             },
         ),
-        "OpenAPI1Tag": Object(
+        "PetstoreTag": Object(
             ObjectType {
-                name: "OpenAPI1Tag",
+                name: "PetstoreTag",
                 description: None,
                 fields: {
                     "name": MetaField {
@@ -1253,13 +1253,13 @@ Registry {
                 keys: None,
                 is_subscription: false,
                 is_node: false,
-                rust_typename: "OpenAPI1Tag",
+                rust_typename: "PetstoreTag",
                 constraints: [],
             },
         ),
-        "OpenAPI1TagInput": InputObject(
+        "PetstoreTagInput": InputObject(
             InputObjectType {
-                name: "OpenAPI1TagInput",
+                name: "PetstoreTagInput",
                 description: None,
                 input_fields: {
                     "name": MetaInputValue {
@@ -1283,13 +1283,13 @@ Registry {
                         rename: None,
                     },
                 },
-                rust_typename: "OpenAPI1TagInput",
+                rust_typename: "PetstoreTagInput",
                 oneof: false,
             },
         ),
-        "OpenAPI1User": Object(
+        "PetstoreUser": Object(
             ObjectType {
-                name: "OpenAPI1User",
+                name: "PetstoreUser",
                 description: None,
                 fields: {
                     "userStatus": MetaField {
@@ -1536,13 +1536,13 @@ Registry {
                 keys: None,
                 is_subscription: false,
                 is_node: false,
-                rust_typename: "OpenAPI1User",
+                rust_typename: "PetstoreUser",
                 constraints: [],
             },
         ),
-        "OpenAPI1UserInput": InputObject(
+        "PetstoreUserInput": InputObject(
             InputObjectType {
-                name: "OpenAPI1UserInput",
+                name: "PetstoreUserInput",
                 description: None,
                 input_fields: {
                     "userStatus": MetaInputValue {
@@ -1626,7 +1626,7 @@ Registry {
                         rename: None,
                     },
                 },
-                rust_typename: "OpenAPI1UserInput",
+                rust_typename: "PetstoreUserInput",
                 oneof: false,
             },
         ),
@@ -1644,7 +1644,7 @@ Registry {
                                 name: "status",
                                 description: None,
                                 ty: InputValueType(
-                                    "OpenAPI1FindPetsByStatusStatus",
+                                    "PetstoreFindPetsByStatusStatus",
                                 ),
                                 default_value: Some(
                                     Enum(
@@ -1658,7 +1658,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "[OpenAPI1Pet!]",
+                            "[PetstorePet!]",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -1677,7 +1677,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/pet/findByStatus",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [],
                                 query_parameters: [
                                     QueryParameter {
@@ -1714,7 +1714,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "[OpenAPI1Pet!]",
+                            "[PetstorePet!]",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -1733,7 +1733,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/pet/findByTags",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [],
                                 query_parameters: [
                                     QueryParameter {
@@ -1770,7 +1770,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "OpenAPI1Pet",
+                            "PetstorePet",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -1789,7 +1789,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/pet/{petId}",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [
                                     PathParameter {
                                         name: "petId",
@@ -1833,7 +1833,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/store/inventory",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [],
                                 query_parameters: [],
                                 request_body: None,
@@ -1862,7 +1862,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "OpenAPI1Order",
+                            "PetstoreOrder",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -1881,7 +1881,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/store/order/{orderId}",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [
                                     PathParameter {
                                         name: "orderId",
@@ -1946,7 +1946,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/user/login",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [],
                                 query_parameters: [
                                     QueryParameter {
@@ -1990,7 +1990,7 @@ Registry {
                             },
                         },
                         ty: MetaFieldType(
-                            "OpenAPI1User",
+                            "PetstoreUser",
                         ),
                         deprecation: NoDeprecated,
                         cache_control: CacheControl {
@@ -2009,7 +2009,7 @@ Registry {
                             HttpResolver {
                                 method: "GET",
                                 url: "http://example.com/user/{username}",
-                                api_name: "openAPI1",
+                                api_name: "petstore",
                                 path_parameters: [
                                     PathParameter {
                                         name: "username",
@@ -2070,7 +2070,7 @@ Registry {
     },
     mongodb_configurations: {},
     http_headers: {
-        "openAPI1": ConnectorHeaders(
+        "petstore": ConnectorHeaders(
             [],
         ),
     },

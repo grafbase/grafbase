@@ -106,6 +106,7 @@ impl TestApi {
                  url: "{DATA_API_URL}"
                  dataSource: "TEST"
                  database: "{database}"
+                 namespace: false
               )
     
             {schema}
@@ -120,12 +121,12 @@ impl TestApi {
             r#"
             extend schema
               @mongodb(
-                 name: "test",
+                 name: "{namespace}",
                  apiKey: "TEST"
                  url: "{DATA_API_URL}"
                  dataSource: "TEST"
                  database: "{database}"
-                 namespace: "{namespace}"
+                 namespace: true
               )
     
             {schema}

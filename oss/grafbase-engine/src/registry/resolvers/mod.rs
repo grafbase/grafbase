@@ -171,7 +171,7 @@ impl Resolver {
                 let request_headers = ctx.data::<RequestHeaders>().ok();
                 let mut headers = registry
                     .http_headers
-                    .get(&format!("GraphQLConnector{}", resolver.id))
+                    .get(&format!("GraphQLConnector{}", resolver.name))
                     .zip(request_headers)
                     .map(|(connector_headers, request_headers)| connector_headers.build_header_vec(request_headers))
                     .unwrap_or_default();
