@@ -28,8 +28,7 @@ pub fn dev(
 
     trace!("attempting to start server");
 
-    let (server_handle, receiver) =
-        start_server(external_port, search, watch, tracing).map_err(CliError::BackendError)?;
+    let (server_handle, receiver) = start_server(external_port, search, watch, tracing);
 
     let reporter_handle = thread::spawn(move || {
         let mut resolvers_reported = false;

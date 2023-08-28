@@ -1,13 +1,11 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use std::collections::HashMap;
-
 use backend::project::ConfigType;
 use serde_json::Value;
 use utils::consts::{
     COMPILATION_ERROR_QUERY, COMPILATION_ERROR_RESOLVER_QUERY, COMPILATION_ERROR_RESOLVER_SCHEMA,
-    COMPILATION_ERROR_SCHEMA, DEFAULT_QUERY, DEFAULT_SCHEMA, ENVIRONMENT_SCHEMA,
+    COMPILATION_ERROR_SCHEMA, DEFAULT_QUERY, DEFAULT_SCHEMA,
 };
 use utils::environment::Environment;
 
@@ -26,10 +24,6 @@ fn compilation_error_schema() {
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
 
-    let error_page = client.get_playground_html();
-
-    assert!(error_page.contains("Encountered a compilation error"));
-
     client.snapshot();
 
     env.write_schema(DEFAULT_SCHEMA);
@@ -43,27 +37,6 @@ fn compilation_error_schema() {
     assert!(errors.is_none());
 
     client.snapshot();
-
-    env.write_schema(ENVIRONMENT_SCHEMA);
-
-    client.poll_endpoint_for_changes(30, 300);
-
-    let error_page = client.get_playground_html();
-
-    assert!(error_page.contains("Encountered a compilation error"));
-
-    client.snapshot();
-
-    env.set_variables(HashMap::from([(
-        "ISSUER_URL".to_owned(),
-        "https://example.com".to_owned(),
-    )]));
-
-    client.poll_endpoint_for_changes(30, 300);
-
-    let error_page = client.get_playground_html();
-
-    assert!(!error_page.contains("Encountered a compilation error"));
 }
 
 #[test]

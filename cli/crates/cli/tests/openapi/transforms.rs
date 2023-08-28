@@ -56,7 +56,8 @@ fn petstore_schema_with_transforms(address: &SocketAddr) -> String {
         r#"
           extend schema
           @openapi(
-            namespace: "petstore",
+            name: "petstore",
+            namespace: true,
             url: "http://{address}",
             schema: "http://{address}/spec.json",
             transforms: {{

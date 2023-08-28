@@ -1,28 +1,4 @@
-use crate::{consts::MAX_PORT, types::LocalAddressType};
-use std::{any::Any, net::TcpListener};
-
-/// determines if a port or port range are available
-#[must_use]
-pub fn find_available_port(search: bool, start_port: u16, local_address_type: LocalAddressType) -> Option<u16> {
-    if search {
-        find_available_port_in_range(start_port..MAX_PORT, local_address_type)
-    } else {
-        let local_address = local_address_type.to_ip_v4();
-        TcpListener::bind((local_address, start_port))
-            .is_ok()
-            .then_some(start_port)
-    }
-}
-
-/// finds an available port within a range
-#[must_use]
-pub fn find_available_port_in_range<R>(mut range: R, local_address_type: LocalAddressType) -> Option<u16>
-where
-    R: ExactSizeIterator<Item = u16>,
-{
-    let local_address = local_address_type.to_ip_v4();
-    range.find(|port| TcpListener::bind((local_address, *port)).is_ok())
-}
+use std::any::Any;
 
 /// converts an unknown panic parameter from [`std::thread::JoinHandle`] `join` to an [`Option<String>`]
 #[must_use]

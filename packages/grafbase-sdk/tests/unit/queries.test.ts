@@ -141,6 +141,60 @@ describe('Query generator', () => {
     `)
   })
 
+  it('generates a mutation resolver with enum input and output', () => {
+    const output = g.type('CheckoutSessionOutput', { successful: g.boolean() })
+
+    const enm = g.enum('Foo', ['A', 'B'])
+
+    g.mutation('checkout', {
+      args: { input: g.enumRef(enm) },
+      returns: g.ref(output),
+      resolver: 'checkout'
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "enum Foo {
+        A,
+        B
+      }
+
+      type CheckoutSessionOutput {
+        successful: Boolean!
+      }
+
+      extend type Mutation {
+        checkout(input: Foo!): CheckoutSessionOutput! @resolver(name: "checkout")
+      }"
+    `)
+  })
+
+  it('generates a query resolver with enum input and output', () => {
+    const output = g.type('CheckoutSessionOutput', { successful: g.boolean() })
+
+    const enm = g.enum('Foo', ['A', 'B'])
+
+    g.query('checkout', {
+      args: { input: g.enumRef(enm) },
+      returns: g.ref(output),
+      resolver: 'checkout'
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "enum Foo {
+        A,
+        B
+      }
+
+      type CheckoutSessionOutput {
+        successful: Boolean!
+      }
+
+      extend type Query {
+        checkout(input: Foo!): CheckoutSessionOutput! @resolver(name: "checkout")
+      }"
+    `)
+  })
+
   it('generates a query as part of the full SDL', () => {
     const enm = g.enum('Foo', ['Bar', 'Baz'])
 

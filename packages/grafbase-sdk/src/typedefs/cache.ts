@@ -1,5 +1,10 @@
 import { AuthRuleF } from '../auth'
-import {AccessScope, MutationInvalidation, renderMutationInvalidation, renderAccessScope} from '../cache'
+import {
+  AccessScope,
+  MutationInvalidation,
+  renderMutationInvalidation,
+  renderAccessScope
+} from '../cache'
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { EnumDefinition } from './enum'
@@ -53,11 +58,10 @@ export class TypeLevelCache {
         )}`
       : ''
 
-    const scopes = this.params.scopes ? `, scopes: [${
-        this.params.scopes
-          .map(scope => renderAccessScope(scope))
-          .join(', ')
-      }]`
+    const scopes = this.params.scopes
+      ? `, scopes: [${this.params.scopes
+          .map((scope) => renderAccessScope(scope))
+          .join(', ')}]`
       : ''
 
     return `@cache(${maxAge}${staleWhileRevalidate}${mutationInvalidation}${scopes})`
@@ -78,11 +82,10 @@ export class FieldLevelCache {
       ? `, staleWhileRevalidate: ${this.params.staleWhileRevalidate}`
       : ''
 
-    const scopes = this.params.scopes ? `, scopes: [${
-        this.params.scopes
-          .map(scope => renderAccessScope(scope))
-          .join(', ')
-      }]`
+    const scopes = this.params.scopes
+      ? `, scopes: [${this.params.scopes
+          .map((scope) => renderAccessScope(scope))
+          .join(', ')}]`
       : ''
 
     return `@cache(${maxAge}${staleWhileRevalidate}${scopes})`

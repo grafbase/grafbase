@@ -1,25 +1,24 @@
 import { ModelFields, MongoDBModel } from './mongodb/model'
 
 export interface MongoDBParams {
-  name: string
+  url: string
   apiKey: string
-  appId: string
   dataSource: string
   database: string
 }
 
 export class PartialMongoDBAPI {
   private name: string
+  private url: string
   private apiKey: string
-  private appId: string
   private dataSource: string
   private database: string
   private models: MongoDBModel[]
 
-  constructor(params: MongoDBParams) {
-    this.name = params.name
+  constructor(name: string, params: MongoDBParams) {
+    this.name = name
+    this.url = params.url
     this.apiKey = params.apiKey
-    this.appId = params.appId
     this.dataSource = params.dataSource
     this.database = params.database
     this.models = []
@@ -42,11 +41,11 @@ export class PartialMongoDBAPI {
     return model
   }
 
-  finalize(namespace?: string): MongoDBAPI {
+  finalize(namespace?: boolean): MongoDBAPI {
     return new MongoDBAPI(
       this.name,
       this.apiKey,
-      this.appId,
+      this.url,
       this.dataSource,
       this.database,
       this.models,
@@ -58,24 +57,24 @@ export class PartialMongoDBAPI {
 export class MongoDBAPI {
   private name: string
   private apiKey: string
-  private appId: string
+  private url: string
   private dataSource: string
   private database: string
-  private namespace?: string
+  private namespace?: boolean
   public models: MongoDBModel[]
 
   constructor(
     name: string,
     apiKey: string,
-    appId: string,
+    url: string,
     dataSource: string,
     database: string,
     models: MongoDBModel[],
-    namespace?: string
+    namespace?: boolean
   ) {
     this.name = name
     this.apiKey = apiKey
-    this.appId = appId
+    this.url = url
     this.dataSource = dataSource
     this.database = database
     this.namespace = namespace
@@ -85,17 +84,20 @@ export class MongoDBAPI {
   public toString(): string {
     const header = '  @mongodb(\n'
     const name = `    name: "${this.name}"\n`
+    const url = `    url: "${this.url}"\n`
     const apiKey = `    apiKey: "${this.apiKey}"\n`
-    const appId = `    appId: "${this.appId}"\n`
     const dataSource = `    dataSource: "${this.dataSource}"\n`
     const database = `    database: "${this.database}"\n`
 
-    const namespace = this.namespace
-      ? `    namespace: "${this.namespace}"\n`
-      : ''
+    let namespace
+    if (this.namespace === undefined || this.namespace === true) {
+      namespace = `    namespace: true\n`
+    } else {
+      namespace = ''
+    }
 
     const footer = '  )'
 
-    return `${header}${namespace}${name}${apiKey}${appId}${dataSource}${database}${footer}`
+    return `${header}${namespace}${name}${url}${apiKey}${dataSource}${database}${footer}`
   }
 }

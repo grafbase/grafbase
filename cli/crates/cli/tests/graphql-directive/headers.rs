@@ -88,6 +88,8 @@ fn schema(port: u16) -> String {
         r#"
           extend schema
           @graphql(
+            name: "Test",
+            namespace: false,
             url: "http://127.0.0.1:{port}",
             schema: "http://127.0.0.1:{port}/spec.json",
             headers: [

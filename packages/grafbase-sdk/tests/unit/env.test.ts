@@ -21,19 +21,20 @@ describe('Env var accessor', () => {
   it('adds the variable to the SDL', () => {
     process.env.GITHUB_TOKEN = 'test_token'
 
-    const github = connector.GraphQL({
+    const github = connector.GraphQL('GitHub', {
       url: 'https://api.github.com/graphql',
       headers: (headers) => {
         headers.static('Authorization', `Bearer ${g.env('GITHUB_TOKEN')}`)
       }
     })
 
-    g.datasource(github, { namespace: 'GitHub' })
+    g.datasource(github)
 
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
-          namespace: "GitHub"
+          name: "GitHub"
+          namespace: true
           url: "https://api.github.com/graphql"
           headers: [
             { name: "Authorization", value: "Bearer test_token" }

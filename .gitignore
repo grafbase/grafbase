@@ -44,3 +44,10 @@ yarn-error.log*
 .envrc
 .direnv/
 
+# Jujutsu
+.jj/
+
+# Direnv
+.envrc
+.env
+.direnv/

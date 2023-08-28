@@ -31,7 +31,7 @@ export type PartialDatasource =
 export type Datasource = OpenAPI | GraphQLAPI | MongoDBAPI
 
 export class Datasources {
-  private inner: Datasource[]
+  inner: Datasource[]
 
   constructor() {
     this.inner = []
@@ -54,7 +54,7 @@ export class Datasources {
 }
 
 export interface IntrospectParams {
-  namespace?: string
+  namespace?: boolean
 }
 
 export class GrafbaseSchema {
@@ -88,10 +88,6 @@ export class GrafbaseSchema {
    */
   public datasource(datasource: PartialDatasource, params?: IntrospectParams) {
     const finalDatasource = datasource.finalize(params?.namespace)
-
-    if (finalDatasource instanceof MongoDBAPI) {
-      this.models = this.models.concat(finalDatasource.models)
-    }
 
     this.datasources.push(finalDatasource)
   }
@@ -456,6 +452,12 @@ export class GrafbaseSchema {
   }
 
   public toString(): string {
+    this.datasources.inner.forEach((datasource) => {
+      if (datasource instanceof MongoDBAPI) {
+        this.models = this.models.concat(datasource.models)
+      }
+    })
+
     const datasources = this.datasources.toString()
     const interfaces = this.interfaces.map(String).join('\n\n')
     const types = this.types.map(String).join('\n\n')

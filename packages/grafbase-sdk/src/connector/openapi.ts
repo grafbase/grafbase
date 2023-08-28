@@ -21,13 +21,14 @@ export interface OpenAPIParams {
 }
 
 export class PartialOpenAPI {
+  private name: string
   private schema: string
   private apiUrl?: string
   private transforms: OpenApiTransform[]
   private headers: Header[]
   private introspectionHeaders: Header[]
 
-  constructor(params: OpenAPIParams) {
+  constructor(name: string, params: OpenAPIParams) {
     const headers = new Headers()
 
     if (params.headers) {
@@ -41,6 +42,7 @@ export class PartialOpenAPI {
       transforms.queryNaming(params.transforms.queryNaming)
     }
 
+    this.name = name
     this.schema = params.schema
     this.apiUrl = params.url
     this.transforms = transforms.transforms
@@ -48,8 +50,9 @@ export class PartialOpenAPI {
     this.introspectionHeaders = headers.introspectionHeaders
   }
 
-  finalize(namespace?: string): OpenAPI {
+  finalize(namespace?: boolean): OpenAPI {
     return new OpenAPI(
+      this.name,
       this.schema,
       this.headers,
       this.introspectionHeaders,
@@ -61,7 +64,8 @@ export class PartialOpenAPI {
 }
 
 export class OpenAPI {
-  private namespace?: string
+  private name: string
+  private namespace?: boolean
   private schema: string
   private apiUrl?: string
   private transforms: OpenApiTransform[]
@@ -69,13 +73,15 @@ export class OpenAPI {
   private introspectionHeaders: Header[]
 
   constructor(
+    name: string,
     schema: string,
     headers: Header[],
     introspectionHeaders: Header[],
     transforms: OpenApiTransform[],
     url?: string,
-    namespace?: string
+    namespace?: boolean
   ) {
+    this.name = name
     this.namespace = namespace
     this.schema = schema
     this.apiUrl = url
@@ -86,9 +92,15 @@ export class OpenAPI {
 
   public toString(): string {
     const header = '  @openapi(\n'
-    const namespace = this.namespace
-      ? `    namespace: "${this.namespace}"\n`
-      : ''
+    const name = `    name: "${this.name}"\n`
+
+    let namespace
+    if (this.namespace === undefined || this.namespace === true) {
+      namespace = `    namespace: true\n`
+    } else {
+      namespace = ''
+    }
+
     const url = this.apiUrl ? `    url: "${this.apiUrl}"\n` : ''
     const schema = `    schema: "${this.schema}"\n`
 
@@ -113,6 +125,6 @@ export class OpenAPI {
 
     const footer = '  )'
 
-    return `${header}${namespace}${url}${schema}${transforms}${headers}${introspectionHeaders}${footer}`
+    return `${header}${name}${namespace}${url}${schema}${transforms}${headers}${introspectionHeaders}${footer}`
   }
 }

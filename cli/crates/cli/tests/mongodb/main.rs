@@ -24,8 +24,8 @@ use wiremock::{
     Mock, MockServer, ResponseTemplate, Times,
 };
 
+const MONGODB_PATH: &str = "/app/data-asdf/endpoint/data/v1";
 const MONGODB_API_KEY: &str = "FAKE KEY";
-const MONGODB_APP_ID: &str = "data-asdf";
 const MONGODB_DATA_SOURCE: &str = "grafbase";
 const MONGODB_DATABASE: &str = "test";
 const MONGODB_CONNECTOR: &str = "mongo";
@@ -123,39 +123,6 @@ impl Server {
         }
     }
 
-    /// Construct a mock server to catch a namespaced createOne query.
-    ///
-    /// ## Parameters
-    ///
-    /// - config: the models and types as SDL
-    /// - collection: the collection we're expected to query
-    /// - document: the expected document we send to `MongoDB`
-    /// - response: the mock response we expect `MongoDB` to send us
-    ///
-    /// [docs](https://www.mongodb.com/docs/atlas/api/data-api-resources/#insert-a-single-document)
-    pub async fn create_one_namespaced(
-        namespace: &str,
-        config: impl fmt::Display,
-        collection: &'static str,
-        body: Value,
-    ) -> Self {
-        let server = MockServer::start().await;
-        let request = body.as_object().cloned().unwrap();
-
-        let response = ResponseTemplate::new(200).set_body_json(json!({
-            "insertedId": "5ca4bbc7a2dd94ee5816238d"
-        }));
-
-        Self {
-            action: "insertOne",
-            config: Self::merge_namespaced_config(namespace, config, server.address()),
-            server,
-            request: Self::create_request(collection, request),
-            response,
-            expected_requests: 1,
-        }
-    }
-
     /// Construct a mock server to catch a createMany  query.
     ///
     /// ## Parameters
@@ -184,39 +151,6 @@ impl Server {
         }
     }
 
-    /// Construct a mock server to catch a namespaced createMany  query.
-    ///
-    /// ## Parameters
-    ///
-    /// - config: the models and types as SDL
-    /// - collection: the collection we're expected to query
-    /// - documents: the expected documents we send to `MongoDB`
-    /// - response: the mock response we expect `MongoDB` to send us
-    ///
-    /// [docs](https://www.mongodb.com/docs/atlas/app-services/data-api/openapi/#operation/insertMany)
-    pub async fn create_many_namespaced(
-        namespace: &str,
-        config: impl fmt::Display,
-        collection: &'static str,
-        body: Value,
-    ) -> Self {
-        let server = MockServer::start().await;
-        let request = body.as_object().cloned().unwrap();
-
-        let response = ResponseTemplate::new(200).set_body_json(json!({
-            "insertedIds": ["5ca4bbc7a2dd94ee5816238d", "5ca4bbc7a2dd94ee5816238e"]
-        }));
-
-        Self {
-            action: "insertMany",
-            config: Self::merge_namespaced_config(namespace, config, server.address()),
-            server,
-            request: Self::create_request(collection, request),
-            response,
-            expected_requests: 1,
-        }
-    }
-
     /// Construct a mock server to catch a deleteOne query.
     ///
     /// ## Parameters
@@ -238,39 +172,6 @@ impl Server {
         Self {
             action: "deleteOne",
             config: Self::merge_config(config, server.address()),
-            server,
-            request: Self::create_request(collection, request),
-            response,
-            expected_requests: 1,
-        }
-    }
-
-    /// Construct a mock server to catch a namespaced, deleteOne query.
-    ///
-    /// ## Parameters
-    ///
-    /// - config: the models and types as SDL
-    /// - collection: the collection we're expected to query
-    /// - filter: the expected filter we send to `MongoDB`
-    /// - response: the mock response we expect `MongoDB` to send us
-    ///
-    /// [docs](https://www.mongodb.com/docs/atlas/api/data-api-resources/#delete-a-single-document)
-    async fn delete_one_namespaced(
-        namespace: &str,
-        config: impl fmt::Display,
-        collection: &'static str,
-        body: Value,
-    ) -> Self {
-        let server = MockServer::start().await;
-        let request = body.as_object().cloned().unwrap();
-
-        let response = ResponseTemplate::new(200).set_body_json(json!({
-            "deletedCount": 1
-        }));
-
-        Self {
-            action: "deleteOne",
-            config: Self::merge_namespaced_config(namespace, config, server.address()),
             server,
             request: Self::create_request(collection, request),
             response,
@@ -308,41 +209,6 @@ impl Server {
         }
     }
 
-    /// Construct a mock server to catch a namespaced updateOne query.
-    ///
-    /// ## Parameters
-    ///
-    /// - config: the models and types as SDL
-    /// - collection: the collection we're expected to query
-    /// - filter: the expected filter we send to `MongoDB`
-    /// - update: the expected update statement we send to `MongoDB`
-    /// - response: the mock response we expect `MongoDB` to send us
-    ///
-    /// [docs](https://www.mongodb.com/docs/atlas/app-services/data-api/openapi/#operation/updateOne)
-    async fn update_one_namespaced(
-        namespace: &str,
-        config: impl fmt::Display,
-        collection: &'static str,
-        body: Value,
-    ) -> Self {
-        let server = MockServer::start().await;
-        let request = body.as_object().cloned().unwrap();
-
-        let response = ResponseTemplate::new(200).set_body_json(json!({
-            "matchedCount": 1,
-            "modifiedCount": 1,
-        }));
-
-        Self {
-            action: "updateOne",
-            config: Self::merge_namespaced_config(namespace, config, server.address()),
-            server,
-            request: Self::create_request(collection, request),
-            response,
-            expected_requests: 1,
-        }
-    }
-
     /// Construct a mock server to catch a updateMany query.
     ///
     /// ## Parameters
@@ -366,41 +232,6 @@ impl Server {
         Self {
             action: "updateMany",
             config: Self::merge_config(config, server.address()),
-            server,
-            request: Self::create_request(collection, request),
-            response,
-            expected_requests: 1,
-        }
-    }
-
-    /// Construct a mock server to catch a namespaced updateMany query.
-    ///
-    /// ## Parameters
-    ///
-    /// - config: the models and types as SDL
-    /// - collection: the collection we're expected to query
-    /// - filter: the expected filter we send to `MongoDB`
-    /// - update: the expected update statement we send to `MongoDB`
-    /// - response: the mock response we expect `MongoDB` to send us
-    ///
-    /// [docs](https://www.mongodb.com/docs/atlas/app-services/data-api/openapi/#operation/updateMany)
-    async fn update_many_namespaced(
-        namespace: &str,
-        config: impl fmt::Display,
-        collection: &'static str,
-        body: Value,
-    ) -> Self {
-        let server = MockServer::start().await;
-        let request = body.as_object().cloned().unwrap();
-
-        let response = ResponseTemplate::new(200).set_body_json(json!({
-            "matchedCount": 1,
-            "modifiedCount": 1,
-        }));
-
-        Self {
-            action: "updateMany",
-            config: Self::merge_namespaced_config(namespace, config, server.address()),
             server,
             request: Self::create_request(collection, request),
             response,
@@ -436,42 +267,9 @@ impl Server {
         }
     }
 
-    /// Construct a mock server to catch a namespaced deleteMany query.
-    ///
-    /// ## Parameters
-    ///
-    /// - config: the models and types as SDL
-    /// - collection: the collection we're expected to query
-    /// - filter: the expected filter we send to `MongoDB`
-    /// - response: the mock response we expect `MongoDB` to send us
-    ///
-    /// [docs](https://www.mongodb.com/docs/atlas/app-services/data-api/openapi/#operation/deleteMany)
-    async fn delete_many_namespaced(
-        namespace: &str,
-        config: impl fmt::Display,
-        collection: &'static str,
-        body: Value,
-    ) -> Self {
-        let server = MockServer::start().await;
-        let request = body.as_object().cloned().unwrap();
-
-        let response = ResponseTemplate::new(200).set_body_json(json!({
-            "deletedCount": 2
-        }));
-
-        Self {
-            action: "deleteMany",
-            config: Self::merge_namespaced_config(namespace, config, server.address()),
-            server,
-            request: Self::create_request(collection, request),
-            response,
-            expected_requests: 1,
-        }
-    }
-
     /// Send a query or mutation to the server, returning JSON response.
     pub async fn request(&self, request: &str) -> Value {
-        let request_path = format!("/app/{MONGODB_APP_ID}/endpoint/data/v1/action/{}", self.action);
+        let request_path = format!("{MONGODB_PATH}/action/{}", self.action);
 
         Mock::given(method("POST"))
             .and(path(&request_path))
@@ -520,41 +318,17 @@ impl Server {
         }
     }
 
-    /// Changes how many time we expect the request to be called.
-    pub fn expected_requests(&mut self, requests: u64) {
-        self.expected_requests = requests;
-    }
-
     fn merge_config(config: impl fmt::Display, address: &SocketAddr) -> String {
         formatdoc!(
             r#"
             extend schema
               @mongodb(
                 name: "{MONGODB_CONNECTOR}",
+                namespace: false,
+                url: "http://{address}{MONGODB_PATH}"
                 apiKey: "{MONGODB_API_KEY}"
-                appId: "{MONGODB_APP_ID}"
                 dataSource: "{MONGODB_DATA_SOURCE}"
                 database: "{MONGODB_DATABASE}"
-                hostUrl: "http://{address}"
-              )
-
-            {config} 
-        "#
-        )
-    }
-
-    fn merge_namespaced_config(namespace: &str, config: impl fmt::Display, address: &SocketAddr) -> String {
-        formatdoc!(
-            r#"
-            extend schema
-              @mongodb(
-                name: "{MONGODB_CONNECTOR}",
-                apiKey: "{MONGODB_API_KEY}"
-                appId: "{MONGODB_APP_ID}"
-                dataSource: "{MONGODB_DATA_SOURCE}"
-                database: "{MONGODB_DATABASE}"
-                hostUrl: "http://{address}"
-                namespace: "{namespace}"
               )
 
             {config} 

@@ -25,6 +25,46 @@ describe('OpenID auth provider', () => {
     `)
   })
 
+  it('public access with introspection operations', () => {
+    const cfg = config({
+      schema: g,
+      auth: {
+        rules: (rules) => {
+          rules.public().introspection()
+        }
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @auth(
+          rules: [
+            { allow: public, operations: [introspection] }
+          ]
+        )"
+    `)
+  })
+
+  it('public access with read and introspection operations', () => {
+    const cfg = config({
+      schema: g,
+      auth: {
+        rules: (rules) => {
+          rules.public().read().introspection()
+        }
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @auth(
+          rules: [
+            { allow: public, operations: [read, introspection] }
+          ]
+        )"
+    `)
+  })
+
   it('renders a provider with private access', () => {
     const clerk = auth.OpenIDConnect({
       issuer: '{{ env.ISSUER_URL }}'
@@ -302,6 +342,34 @@ describe('OpenID auth provider', () => {
           ]
           rules: [
             { allow: private, operations: [get, list, read] }
+          ]
+        )"
+    `)
+  })
+
+  it('renders a provider with private access for read and introspection', () => {
+    const clerk = auth.OpenIDConnect({
+      issuer: '{{ env.ISSUER_URL }}'
+    })
+
+    const cfg = config({
+      schema: g,
+      auth: {
+        providers: [clerk],
+        rules: (rules) => {
+          rules.private().read().introspection()
+        }
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @auth(
+          providers: [
+            { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
+          ]
+          rules: [
+            { allow: private, operations: [read, introspection] }
           ]
         )"
     `)

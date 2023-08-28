@@ -72,8 +72,6 @@ async fn test_header_passthrough() {
         })
         .collect::<Vec<_>>();
 
-    dbg!(&headers);
-
     insta::assert_yaml_snapshot!(headers, @r###"
     ---
     - another-one: "[\"yes\"]"
@@ -87,7 +85,8 @@ fn petstore_schema_with_header_forwarding(address: &SocketAddr) -> String {
         r#"
           extend schema
           @openapi(
-            namespace: "petstore",
+            name: "petstore",
+            namespace: true,
             url: "http://{address}",
             schema: "http://{address}/spec.json",
             headers: [
