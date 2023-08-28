@@ -29,6 +29,23 @@ describe('MongoDB generator', () => {
     `)
   })
 
+  it('generates the minimum possible MongoDB datasource, namespace: false', () => {
+    const mongo = connector.MongoDB('Test', mongoParams)
+    g.datasource(mongo, { namespace: false })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "extend schema
+        @mongodb(
+          namespace: false
+          name: "Test"
+          url: "https://data.mongodb-api.com/app/data-test/endpoint/data/v1"
+          apiKey: "SOME_KEY"
+          dataSource: "data"
+          database: "tables"
+        )"
+    `)
+  })
+
   it('generates a simple model', () => {
     const mongo = connector.MongoDB('Test', mongoParams)
 

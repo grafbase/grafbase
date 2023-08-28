@@ -81,7 +81,7 @@ export class GraphQLAPI {
     if (this.namespace === undefined || this.namespace === true) {
       namespace = `    namespace: true\n`
     } else {
-      namespace = ''
+      namespace = '    namespace: false\n'
     }
 
     const url = this.url ? `    url: "${this.url}"\n` : ''

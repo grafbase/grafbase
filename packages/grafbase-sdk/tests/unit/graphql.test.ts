@@ -33,6 +33,7 @@ describe('GraphQL connector', () => {
       "extend schema
         @graphql(
           name: "Contentful"
+          namespace: false
           url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
         )"
     `)
