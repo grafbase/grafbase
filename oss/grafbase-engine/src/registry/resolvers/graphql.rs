@@ -29,6 +29,7 @@ mod response;
 pub mod serializer;
 
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, HashMap},
     pin::Pin,
 };
@@ -73,10 +74,21 @@ impl Default for QueryBatcher {
     }
 }
 
+// FIXME: Currently the CustomerDeploymentConfig stores MetaField for cache metadata
+//        so we must be strictly backward compatible for serialization even though those
+//        fields won't be used. Previously we had a `id` field, now we have a `name`.
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+#[serde(untagged)]
+enum IdOrName {
+    LegacyId { id: u16 },
+    Name { name: String },
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct Resolver {
     /// A unique name for the given GraphQL resolver instance.
-    pub name: String,
+    #[serde(flatten)]
+    id_or_name: IdOrName,
 
     /// The name of this GraphQL resolver instance.
     ///
@@ -99,6 +111,23 @@ pub struct Resolver {
 }
 
 impl Resolver {
+    #[must_use]
+    pub fn new(name: String, url: Url, namespace: Option<String>) -> Self {
+        Self {
+            id_or_name: IdOrName::Name { name },
+            url,
+            namespace,
+        }
+    }
+
+    #[must_use]
+    pub fn name(&self) -> Cow<'_, String> {
+        match &self.id_or_name {
+            IdOrName::LegacyId { id } => Cow::Owned(id.to_string()),
+            IdOrName::Name { name } => Cow::Borrowed(name),
+        }
+    }
+
     #[cfg(test)]
     pub fn stub(name: &str, namespace: impl AsRef<str>, url: impl AsRef<str>) -> Self {
         let namespace = match namespace.as_ref() {
@@ -107,7 +136,7 @@ impl Resolver {
         };
 
         Self {
-            name: name.to_string(),
+            id_or_name: IdOrName::Name { name: name.to_string() },
             namespace,
             url: Url::parse(url.as_ref()).expect("valid url"),
         }
@@ -338,7 +367,7 @@ impl Resolver {
                     .copied()
                     .map(|(a, b)| (a.to_owned(), b.to_owned()))
                     .collect(),
-                resolver_name: self.name.clone(),
+                resolver_name: self.name().to_string(),
                 url: self.url.to_string(),
             };
 
@@ -803,5 +832,46 @@ mod tests {
         };
 
         Ok(response)
+    }
+
+    #[test]
+    fn backward_compatibility_serde() {
+        assert_eq!(
+            serde_json::from_str::<Resolver>(
+                r#"
+                {
+                    "id": 1,
+                    "url": "https://example.com",
+                    "namespace": "prefix"
+                }
+                "#
+            )
+            .unwrap(),
+            Resolver {
+                id_or_name: IdOrName::LegacyId { id: 1 },
+                url: "https://example.com".parse().unwrap(),
+                namespace: Some("prefix".into())
+            }
+        );
+
+        assert_eq!(
+            serde_json::from_str::<Resolver>(
+                r#"
+                {
+                    "name": "hello",
+                    "url": "https://example.com",
+                    "namespace": "prefix"
+                }
+                "#
+            )
+            .unwrap(),
+            Resolver {
+                id_or_name: IdOrName::Name {
+                    name: "hello".to_string()
+                },
+                url: "https://example.com".parse().unwrap(),
+                namespace: Some("prefix".into())
+            }
+        );
     }
 }

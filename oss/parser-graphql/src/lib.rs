@@ -276,11 +276,11 @@ impl Parser {
                 ty: format!("{}{}!", prefix.to_pascal_case(), &registry.query_type).into(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
-                resolver: Resolver::Graphql(graphql::Resolver {
-                    name: self.name.clone(),
-                    url: self.url.clone(),
-                    namespace: Some(prefix.to_owned()),
-                }),
+                resolver: Resolver::Graphql(graphql::Resolver::new(
+                    self.name.clone(),
+                    self.url.clone(),
+                    Some(prefix.to_owned()),
+                )),
                 ..Default::default()
             },
         );
@@ -299,11 +299,7 @@ impl Parser {
         // fields from the upstream API. No fields, means no API access exposed by the upstream
         // server.
         for (_name, field) in fields {
-            field.resolver = Resolver::Graphql(graphql::Resolver {
-                name: self.name.clone(),
-                url: self.url.clone(),
-                namespace: None,
-            });
+            field.resolver = Resolver::Graphql(graphql::Resolver::new(self.name.clone(), self.url.clone(), None));
         }
     }
 
@@ -328,11 +324,11 @@ impl Parser {
                 ty: format!("{}{mutation_type}!", prefix.to_pascal_case()).into(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
-                resolver: Resolver::Graphql(graphql::Resolver {
-                    name: self.name.clone(),
-                    url: self.url.clone(),
-                    namespace: Some(prefix.to_owned()),
-                }),
+                resolver: Resolver::Graphql(graphql::Resolver::new(
+                    self.name.clone(),
+                    self.url.clone(),
+                    Some(prefix.to_owned()),
+                )),
                 ..Default::default()
             },
         );
@@ -355,11 +351,7 @@ impl Parser {
         // fields from the upstream API. No fields, means no API access exposed by the upstream
         // server.
         for (_name, field) in fields {
-            field.resolver = Resolver::Graphql(graphql::Resolver {
-                name: self.name.clone(),
-                url: self.url.clone(),
-                namespace: None,
-            });
+            field.resolver = Resolver::Graphql(graphql::Resolver::new(self.name.clone(), self.url.clone(), None));
         }
     }
 
