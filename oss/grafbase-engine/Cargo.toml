@@ -1,11 +1,14 @@
 [package]
 name = "grafbase-engine"
 version = "3.0.31"
-edition = "2021"
+authors = ["Grafbase"]
 description = "A dynamic GraphQL engine written in Rust"
-repository = "https://github.com/grafbase/api"
+edition = "2021"
 readme = "README.md"
 license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "engine", "grafbase"]
 
 [features]
 default = []
