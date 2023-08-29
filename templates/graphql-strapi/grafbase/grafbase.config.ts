@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const strapi = connector.GraphQL({
+const strapi = connector.GraphQL('Strapi', {
   url: g.env('STRAPI_API_URL'),
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
@@ -9,8 +9,8 @@ const strapi = connector.GraphQL({
 
 g.datasource(strapi)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(strapi, { namespace: 'Strapi' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(strapi, { namespace: false })
 
 export default config({
   schema: g,

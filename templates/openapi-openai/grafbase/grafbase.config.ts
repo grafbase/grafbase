@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const openai = connector.OpenAPI({
+const openai = connector.OpenAPI('OpenAI', {
   schema:
     'https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml',
   headers: (headers) => {
@@ -11,8 +11,8 @@ const openai = connector.OpenAPI({
 
 g.datasource(openai)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(openai, { namespace: 'OpenAI' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(openai, { namespace: false })
 
 export default config({
   schema: g,

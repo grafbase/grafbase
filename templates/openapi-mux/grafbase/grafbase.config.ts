@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const mux = connector.OpenAPI({
+const mux = connector.OpenAPI('Mux', {
   schema: 'https://docs.mux.com/api-spec.json',
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
@@ -10,8 +10,8 @@ const mux = connector.OpenAPI({
 
 g.datasource(mux)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(mux, { namespace: 'Mux' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(mux, { namespace: false })
 
 export default config({
   schema: g,

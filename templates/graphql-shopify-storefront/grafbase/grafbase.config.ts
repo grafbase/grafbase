@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const shopify = connector.GraphQL({
+const shopify = connector.GraphQL('Shopify', {
   url: `https://${g.env(
     'SHOPIFY_STORE_NAME'
   )}.myshopify.com/api/2023-04/graphql.json`,
@@ -13,8 +13,8 @@ const shopify = connector.GraphQL({
 
 g.datasource(shopify)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(shopify, { namespace: 'Shopify' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(shopify, { namespace: false })
 
 export default config({
   schema: g,

@@ -1,7 +1,8 @@
 extend schema
   @openapi(
-    # Use namespaces if you connect multiple APIs to avoid conflicts
-    # namespace: "Stripe"
+    name: "Stripe"
+    # Disabling namespace may cause conficts with other connectors
+    # namespace: false
     url: "https://api.stripe.com/"
     schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
     headers: [{ name: "Authorization", forward: "Authorization" }]

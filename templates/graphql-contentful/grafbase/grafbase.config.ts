@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const contentful = connector.GraphQL({
+const contentful = connector.GraphQL('Contentful', {
   url: g.env('CONTENTFUL_API_URL'),
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
@@ -9,8 +9,8 @@ const contentful = connector.GraphQL({
 
 g.datasource(contentful)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(contentful, { namespace: 'Contentful' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(contentful, { namespace: false })
 
 export default config({
   schema: g,

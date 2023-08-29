@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const neon = connector.OpenAPI({
+const neon = connector.OpenAPI('Neon', {
   schema: 'https://console.neon.tech/api/v2/',
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
@@ -10,8 +10,8 @@ const neon = connector.OpenAPI({
 
 g.datasource(neon)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(neon, { namespace: 'Neon' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(neon, { namespace: false })
 
 export default config({
   schema: g,

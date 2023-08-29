@@ -1,7 +1,8 @@
 extend schema
   @openapi(
-    # Use namespaces if you connect multiple APIs to avoid conflicts
-    # namespace: "OpenAI"
+    name: "OpenAI"
+    # Disabling namespace may cause conficts with other connectors
+    # namespace: false
     url: "https://api.openai.com/v1/"
     schema: "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml"
     headers: [{ name: "Authorization", forward: "Authorization" }]
