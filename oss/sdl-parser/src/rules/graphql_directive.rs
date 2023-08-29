@@ -18,7 +18,8 @@ pub struct GraphqlDirective {
     /// Must be unique between all connectors.
     pub name: String,
 
-    /// The namespace within which the upstream GraphQL schema is embedded.
+    /// If true the GraphQL schema will be namespaced inside a dedicated object.
+    #[serde(default = "default_to_true")]
     pub namespace: bool,
 
     pub url: Url,
@@ -120,6 +121,10 @@ impl<'a> Visitor<'a> for GraphqlVisitor {
             }
         }
     }
+}
+
+fn default_to_true() -> bool {
+    true
 }
 
 #[cfg(test)]

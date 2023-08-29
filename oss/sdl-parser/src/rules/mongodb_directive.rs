@@ -43,6 +43,7 @@ pub struct MongoDBDirective {
     api_key: String,
     data_source: String,
     database: String,
+    #[serde(default = "default_to_true")]
     namespace: bool,
 }
 
@@ -75,6 +76,10 @@ impl MongoDBDirective {
     pub fn database(&self) -> &str {
         &self.database
     }
+}
+
+fn default_to_true() -> bool {
+    true
 }
 
 const MONGODB_DIRECTIVE_NAME: &str = "mongodb";

@@ -13,6 +13,7 @@ use crate::directive_de::parse_directive;
 #[serde(rename_all = "camelCase")]
 pub struct OpenApiDirective {
     pub name: String,
+    #[serde(default = "default_to_true")]
     pub namespace: bool,
     pub url: Option<Url>,
     #[serde(rename = "schema")]
@@ -128,6 +129,10 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
             }
         }
     }
+}
+
+fn default_to_true() -> bool {
+    true
 }
 
 #[cfg(test)]
