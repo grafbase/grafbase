@@ -1,4 +1,5 @@
 use grafbase_engine::Response;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::ResponseData;
@@ -65,5 +66,33 @@ impl GetPath for Response {
             Some(result) => Ok(result),
             None => Err(Error("Invalid path".to_string())),
         }
+    }
+}
+
+pub trait ResponseExt: Sized {
+    /// Asserts that there are no errors in this Response
+    #[must_use]
+    fn assert_success(self) -> Self;
+
+    /// Converts the response into a serde_json Value
+    #[must_use]
+    fn into_value(self) -> Value;
+
+    /// Asserts that there are no errors and then decodes the data within the response
+    #[must_use]
+    fn into_data<T: DeserializeOwned>(self) -> T {
+        let this = self.assert_success();
+        serde_json::from_value(this.into_value()["data"].clone()).unwrap()
+    }
+}
+
+impl ResponseExt for Response {
+    fn assert_success(self) -> Self {
+        assert_eq!(self.errors, vec![]);
+        self
+    }
+
+    fn into_value(self) -> Value {
+        serde_json::to_value(self.to_graphql_response()).expect("response to be serializable")
     }
 }

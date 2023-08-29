@@ -1,11 +1,9 @@
-use crate::MockConnectorParsers;
+use crate::Engine;
 use futures::FutureExt;
-use grafbase_engine::{registry::resolvers::graphql::QueryBatcher, Request, Response, Schema};
-use grafbase_runtime::GraphqlRequestExecutionContext;
+use grafbase_engine::Response;
 use indoc::formatdoc;
-use sdl_parser::ParseResult;
 use serde_json::json;
-use std::{collections::HashMap, fmt, future::Future, panic::AssertUnwindSafe, sync::Arc};
+use std::{fmt, future::Future, panic::AssertUnwindSafe, sync::Arc};
 
 pub(super) static DATA_API_URL: &str = "http://localhost:3000/app/data-test/endpoint/data/v1";
 
@@ -85,7 +83,7 @@ where
 }
 
 struct Inner {
-    schema: Schema,
+    engine: Engine,
     client: reqwest::Client,
     database: String,
 }
@@ -108,7 +106,7 @@ impl TestApi {
                  database: "{database}"
                  namespace: false
               )
-    
+
             {schema}
         "#
         );
@@ -128,7 +126,7 @@ impl TestApi {
                  database: "{database}"
                  namespace: true
               )
-    
+
             {schema}
         "#
         );
@@ -137,25 +135,13 @@ impl TestApi {
     }
 
     async fn new_inner(database: &str, schema: String) -> Self {
-        let ParseResult { registry, .. } = sdl_parser::parse(&schema, &HashMap::new(), &MockConnectorParsers)
-            .await
-            .unwrap();
-
-        let registry = serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap();
-
-        let schema = Schema::build(registry)
-            .data(QueryBatcher::new())
-            .data(GraphqlRequestExecutionContext {
-                ray_id: String::new(),
-                headers: Default::default(),
-            })
-            .finish();
+        let engine = Engine::new(schema).await;
 
         let client = reqwest::Client::new();
 
         Self {
             inner: Arc::new(Inner {
-                schema,
+                engine,
                 client,
                 database: database.to_string(),
             }),
@@ -164,8 +150,7 @@ impl TestApi {
 
     /// Execute a GraphQL query or mutation against the database.
     pub async fn execute(&self, operation: impl AsRef<str>) -> Response {
-        let request = Request::new(operation.as_ref());
-        self.inner.schema.execute(request).await
+        self.inner.engine.execute(operation.as_ref()).await
     }
 
     /// Insert a document directly to the underlying database.
