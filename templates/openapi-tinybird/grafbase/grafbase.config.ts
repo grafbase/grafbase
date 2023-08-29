@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const tinybird = connector.OpenAPI({
+const tinybird = connector.OpenAPI('Tinybird', {
   schema: g.env('TINYBIRD_API_SCHEMA'),
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
@@ -10,8 +10,8 @@ const tinybird = connector.OpenAPI({
 
 g.datasource(tinybird)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(tinybird, { namespace: 'Tinybird' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(tinybird, { namespace: false })
 
 export default config({
   schema: g,

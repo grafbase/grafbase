@@ -1,7 +1,8 @@
 extend schema
   @graphql(
-    # Use namespaces if you connect multiple APIs to avoid conflicts
-    # namespace: "Shopify"
+    name: "Shopify"
+    # Disabling namespace may cause conficts with other connectors
+    # namespace: false
     url: "https://{{ env.SHOPIFY_STORE_NAME }}.myshopify.com/api/2023-04/graphql.json"
     headers: [
       {

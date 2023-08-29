@@ -1,7 +1,8 @@
 extend schema
   @openapi(
-    # Use namespaces if you connect multiple APIs to avoid conflicts
-    # namespace: "Neon"
+    name: "Neon"
+    # Disabling namespace may cause conficts with other connectors
+    # namespace: false
     schema: "https://console.neon.tech/api/v2/"
     headers: [{ name: "Authorization", forward: "Authorization" }]
   )

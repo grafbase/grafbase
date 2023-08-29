@@ -1,18 +1,13 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const dgraph = connector.GraphQL({
+const dgraph = connector.GraphQL('Dgraph', {
   url: g.env('DGRAPH_API_URL')
-
-  // Enable headers if your Dgraph Cloud API requires it
-  // headers: (headers) => {
-  //   headers.set('Authorization', { forward: 'Authorization' })
-  // }
 })
 
 g.datasource(dgraph)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(dgraph, { namespace: 'Dgraph' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(dgraph, { namespace: false })
 
 export default config({
   schema: g,

@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const github = connector.OpenAPI({
+const github = connector.OpenAPI('GitHub', {
   schema:
     'https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/ghes-3.0/ghes-3.0.json',
   headers: (headers) => {
@@ -10,8 +10,8 @@ const github = connector.OpenAPI({
 
 g.datasource(github)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(github, { namespace: 'GitHub' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(github, { namespace: false })
 
 export default config({
   schema: g,
