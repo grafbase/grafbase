@@ -1,0 +1,25 @@
+[package]
+name = "gateway-local"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dynamodb = { path = "../dynamodb", features = ["tracing"] }
+grafbase-engine = { path = "../grafbase-engine", features = ["tracing_worker"], default-features = false }
+grafbase-local = { path = "../grafbase-runtime/local" }
+grafbase-runtime = { path = "../grafbase-runtime" }
+gateway-types = { path = "../gateway-types" }
+
+# TODO: these are private dependencies, that must be removed.
+worker-env = { path = "../../oss/worker-env" }
+gateway-protocol = { path = "../../common/gateway-protocol" }
+
+async-trait = "0.1"
+worker = "0.0.18"
+cfg-if = "1"
+ulid = "1"
+graphql-extensions = { path = "../graphql-extensions" }
+serde_json = "1"
+
+[features]
+sqlite = ["dynamodb/sqlite"]

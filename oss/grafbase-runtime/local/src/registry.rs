@@ -17,7 +17,7 @@ impl<'a> Registry<'a> {
 #[async_trait(?Send)]
 impl RegistryProvider for Registry<'_> {
     async fn get_registry(&self) -> RegistryResult<VersionedRegistry<'static>> {
-        use worker_utils::{EnvExt, VarType};
+        use worker_env::{EnvExt, VarType};
         let registry = self
             .env
             .js_var_get(VarType::Var, self.var_name)
