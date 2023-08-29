@@ -78,7 +78,7 @@ pub async fn start(listener: TcpListener, event_bus: tokio::sync::broadcast::Sen
 
     axum::Server::from_tcp(listener)
         .map_err(ServerError::StartProxyServer)?
-        .http1_title_case_headers(true)
+        .http1_preserve_header_case(true)
         .serve(router.into_make_service())
         .await
         .map_err(ServerError::StartProxyServer);
