@@ -1,8 +1,14 @@
 [package]
 name = "log"
+authors = ["Grafbase"]
 version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
+description = "Logging facilities for various Grafbase crates"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["log", "logging", "grafbase"]
+
 
 [dependencies]
 bitflags = { workspace = true }

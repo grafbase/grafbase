@@ -1,7 +1,12 @@
 [package]
 name = "parser-openapi"
+authors = ["Grafbase"]
+description = "An OpenAPI schema parser for the Grafbase platform"
 version = "0.1.0"
 edition = "2021"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["openapi", "parser", "grafbase"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -1,7 +1,12 @@
 [package]
 name = "sdl-parser"
+authors = ["Grafbase"]
+description = "A parser that transforms GraphQL SDL into the Grafbase registry format"
 version = "0.1.0"
 edition = "2021"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["parser", "sdl", "grafbase"]
 
 [dependencies]
 async-trait = "0.1"

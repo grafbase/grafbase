@@ -1,9 +1,13 @@
 [package]
 name = "dataloader"
+authors = ["Grafbase"]
+description = "A GraphQL dataloader implementation for Grafbase"
 version = "0.1.0"
 edition = "2021"
-publish = false
 license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "dataloader", "grafbase"]
 
 [dependencies]
 async-trait = { version = "0.1", default-features = false }

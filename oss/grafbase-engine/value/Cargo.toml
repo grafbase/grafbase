@@ -1,10 +1,13 @@
 [package]
 name = "grafbase-engine-value"
+authors = ["Grafbase"]
+description = "A GraphQL value type for grafbase-engine"
 version = "3.0.31"
 edition = "2021"
-description = "GraphQL value for grafbase-engine"
-repository = "https://github.com/grafbase/api"
 license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "value", "grafbase"]
 
 [features]
 default = []
