@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const fauna = connector.GraphQL({
+const fauna = connector.GraphQL('Fauna', {
   url: 'https://graphql.fauna.com/graphql',
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
@@ -9,8 +9,8 @@ const fauna = connector.GraphQL({
 
 g.datasource(fauna)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(fauna, { namespace: 'Fauna' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(fauna, { namespace: false })
 
 export default config({
   schema: g,

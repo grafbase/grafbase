@@ -1,7 +1,8 @@
 extend schema
   @graphql(
-    # Use namespaces if you connect multiple APIs to avoid conflicts
-    # namespace: "Contentful"
+    name: "Contentful"
+    # Disabling namespace may cause conficts with other connectors
+    # namespace: false
     url: "{{ env.CONTENTFUL_API_URL }}"
     headers: [{ name: "Authorization", forward: "Authorization" }]
   )

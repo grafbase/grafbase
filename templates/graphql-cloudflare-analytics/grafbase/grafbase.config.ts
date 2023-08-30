@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const cloudflare = connector.GraphQL({
+const cloudflare = connector.GraphQL('Cloudflare', {
   url: 'https://api.cloudflare.com/client/v4/graphql',
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
@@ -8,6 +8,9 @@ const cloudflare = connector.GraphQL({
 })
 
 g.datasource(cloudflare)
+
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(cloudflare, { namespace: false })
 
 export default config({
   schema: g,

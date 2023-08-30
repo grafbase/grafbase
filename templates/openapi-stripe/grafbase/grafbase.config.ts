@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const stripe = connector.OpenAPI({
+const stripe = connector.OpenAPI('Stripe', {
   schema:
     'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
   headers: (headers) => {
@@ -11,8 +11,8 @@ const stripe = connector.OpenAPI({
 
 g.datasource(stripe)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(stripe, { namespace: 'Stripe' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(stripe, { namespace: false })
 
 export default config({
   schema: g,

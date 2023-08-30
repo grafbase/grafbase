@@ -1,6 +1,6 @@
 import { g, connector, config } from '@grafbase/sdk'
 
-const github = connector.GraphQL({
+const github = connector.GraphQL('GitHub', {
   url: 'https://api.github.com/graphql',
   headers: (headers) => {
     headers.set('Authorization', { forward: 'Authorization' })
@@ -9,8 +9,8 @@ const github = connector.GraphQL({
 
 g.datasource(github)
 
-// Use namespaces if you connect multiple APIs to avoid conflicts
-// g.datasource(github, { namespace: 'GitHub' })
+// Disabling namespace may cause conficts with other connectors
+// g.datasource(github, { namespace: false })
 
 export default config({
   schema: g,

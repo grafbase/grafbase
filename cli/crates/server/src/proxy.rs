@@ -78,7 +78,7 @@ pub async fn start(listener: TcpListener, event_bus: tokio::sync::broadcast::Sen
 
     axum::Server::from_tcp(listener)
         .map_err(ServerError::StartProxyServer)?
-        .http1_title_case_headers(true)
+        .http1_preserve_header_case(true)
         .serve(router.into_make_service())
         .await
         .map_err(ServerError::StartProxyServer);
@@ -99,8 +99,6 @@ async fn graphql(
 
     let worker_port = WORKER_PORT.load(Ordering::Relaxed);
 
-    dbg!(worker_port);
-
     if worker_port == 0 {
         return Err(StatusCode::SERVICE_UNAVAILABLE);
     }
@@ -110,8 +108,6 @@ async fn graphql(
     *req.uri_mut() = Uri::try_from(uri).expect("must be valid");
 
     let response = client.request(req).await;
-
-    dbg!(&response);
 
     match response {
         Ok(response) => Ok(response),

@@ -46,7 +46,7 @@ fn init_ts_existing_package_json() {
       "author": "",
       "license": "ISC",
       "devDependencies": {
-        "@grafbase/sdk": "~0.6.0"
+        "@grafbase/sdk": "~0.6.1"
       }
     }
     "###);
@@ -73,8 +73,8 @@ fn init_ts_new_project() {
     let package_json = package_json.as_object().unwrap().get("devDependencies").unwrap();
 
     insta::assert_json_snapshot!(&package_json, @r###"
-        {
-          "@grafbase/sdk": "~0.6.0"
-        }
+    {
+      "@grafbase/sdk": "~0.6.1"
+    }
     "###);
 }
