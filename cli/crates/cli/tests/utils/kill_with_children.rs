@@ -6,7 +6,7 @@ pub fn kill_with_children(pid: u32) {
     let mut sys = System::new();
     sys.refresh_processes();
 
-    let signal_preference = vec![Signal::Interrupt, Signal::Kill];
+    let signal_preference = [Signal::Interrupt, Signal::Kill];
     let signal = signal_preference
         .iter()
         .find(|signal| System::SUPPORTED_SIGNALS.contains(signal))

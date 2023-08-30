@@ -95,9 +95,10 @@ fn pagination() {
         let [Edge {
             cursor: last_cursor,
             node: last_todo,
-        }] = &edges[..] else {
-                panic!("Expected exactly one edge {edges:?}");
-            };
+        }] = &edges[..]
+        else {
+            panic!("Expected exactly one edge {edges:?}");
+        };
         assert_eq!(last_todo, &todos[2]);
         assert_eq!(
             page_info,
@@ -119,9 +120,10 @@ fn pagination() {
         }, Edge {
             cursor: middle_cursor,
             node: middle_todo,
-        }] = &edges[..] else {
-                panic!("Expected exactly one edge {edges:?}");
-            };
+        }] = &edges[..]
+        else {
+            panic!("Expected exactly one edge {edges:?}");
+        };
 
         assert_eq!(first_todo, &todos[0]);
         assert_eq!(middle_todo, &todos[1]);
@@ -142,9 +144,10 @@ fn pagination() {
         let [Edge {
             cursor: first_cursor,
             node: first_todo,
-        }] = &edges[..] else {
-                panic!("Expected exactly one edge {edges:?}");
-            };
+        }] = &edges[..]
+        else {
+            panic!("Expected exactly one edge {edges:?}");
+        };
         assert_eq!(first_todo, &todos[0]);
         assert_eq!(
             page_info,
@@ -163,9 +166,10 @@ fn pagination() {
         let [Edge {
             cursor: middle_cursor,
             node: middle_todo,
-        }] = &edges[..] else {
-                panic!("Expected exactly one edge {edges:?}");
-            };
+        }] = &edges[..]
+        else {
+            panic!("Expected exactly one edge {edges:?}");
+        };
         assert_eq!(middle_todo, &todos[1]);
         assert_eq!(
             page_info,
@@ -185,9 +189,10 @@ fn pagination() {
         let [Edge {
             cursor: last_cursor,
             node: last_todo,
-        }] = &edges[..] else {
-                panic!("Expected exactly one edge {edges:?}");
-            };
+        }] = &edges[..]
+        else {
+            panic!("Expected exactly one edge {edges:?}");
+        };
         assert_eq!(last_todo, &todos[2]);
         assert_eq!(
             page_info,

@@ -350,11 +350,11 @@ pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, ver
     let mut package_json = if package_json_path.exists() {
         let file = fs::File::open(&package_json_path).map_err(CommonError::AccessPackageJson)?;
         let Ok(Value::Object(package_json)) = serde_json::from_reader(&file) else {
-        return Err(CommonError::AccessPackageJson(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "the file is not a JSON object",
-        )));
-    };
+            return Err(CommonError::AccessPackageJson(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "the file is not a JSON object",
+            )));
+        };
         package_json
     } else {
         let name = project_dir
