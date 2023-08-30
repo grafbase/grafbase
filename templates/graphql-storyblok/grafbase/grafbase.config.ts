@@ -1,7 +1,11 @@
 import { g, connector, config } from '@grafbase/sdk'
 
 const storyblok = connector.GraphQL('Storyblok', {
-  url: 'https://gapi.storyblok.com/v1/api'
+  url: 'https://gapi.storyblok.com/v1/api',
+  headers: (headers) => {
+    headers.set('Token', { forward: 'Token' })
+    headers.set('Version', { forward: 'Version' })
+  }
 })
 
 g.datasource(storyblok)
