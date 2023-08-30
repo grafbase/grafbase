@@ -297,10 +297,10 @@ fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_q
             "bool": false
         });
         if name == "listFields" {
-            for (_, value) in dog_fields.as_object_mut().unwrap().iter_mut() {
+            for (_, value) in &mut *dog_fields.as_object_mut().unwrap() {
                 *value = serde_json::Value::Array(vec![value.clone()]);
             }
-            for (_, value) in cat_fields.as_object_mut().unwrap().iter_mut() {
+            for (_, value) in &mut *cat_fields.as_object_mut().unwrap() {
                 *value = serde_json::Value::Array(vec![value.clone()]);
             }
         }

@@ -468,7 +468,7 @@ fn test_query_mutation_resolver(
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(schema);
-    for (file_name, file_contents) in resolver_files.iter() {
+    for (file_name, file_contents) in resolver_files {
         env.write_resolver(file_name, file_contents);
     }
 
