@@ -99,8 +99,14 @@ impl<'a> StreamExecutionRequest<'a> {
         self.schema.execute_stream(request)
     }
 
+    // Collects the StreamingPayloads into a vec
     pub async fn collect(self) -> Vec<StreamingPayload> {
         self.into_stream().collect().await
+    }
+
+    /// Converts the execution request into an iterator
+    pub async fn into_iter(self) -> impl Iterator<Item = StreamingPayload> {
+        self.collect().await.into_iter()
     }
 }
 

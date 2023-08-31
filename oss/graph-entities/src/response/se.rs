@@ -85,7 +85,7 @@ impl serde::Serialize for NodeSerializer<'_> {
                     .filter(|(_, node_id)| self.graph.node_exists(*node_id))
                     .map(|(key, value)| {
                         (
-                            key.to_string(),
+                            key.response_key(),
                             NodeSerializer {
                                 node_id: *value,
                                 graph: self.graph,
