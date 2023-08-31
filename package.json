@@ -13,7 +13,7 @@
     "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@types/react": "18.2.20",
+    "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
     "@vitejs/plugin-react": "^4.0.0",
     "monaco-editor": "0.41.0",
