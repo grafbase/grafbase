@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use gateway_protocol::VersionedRegistry;
+use grafbase_engine::registry::VersionedRegistry;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistryError {

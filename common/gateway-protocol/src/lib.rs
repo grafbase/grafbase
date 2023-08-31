@@ -9,11 +9,7 @@ use grafbase_types::{auth::ExecutionAuth, UdfKind};
 use serde_with::serde_as;
 use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct VersionedRegistry<'a> {
-    pub registry: std::borrow::Cow<'a, grafbase_engine::registry::Registry>,
-    pub deployment_id: std::borrow::Cow<'a, str>,
-}
+pub use grafbase_engine::registry::VersionedRegistry;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct GatewayRequest {

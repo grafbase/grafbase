@@ -11,5 +11,5 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1"
-gateway-protocol = { workspace = true }
+grafbase-engine = { workspace = true }
 thiserror = "1"

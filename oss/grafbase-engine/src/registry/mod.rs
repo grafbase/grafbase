@@ -16,6 +16,7 @@ pub mod utils;
 pub mod variables;
 
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fmt::{Display, Formatter},
     hash::Hash,
@@ -28,7 +29,7 @@ use grafbase_types::auth::Operations;
 use graph_entities::NodeID;
 use indexmap::{map::IndexMap, set::IndexSet};
 use inflector::Inflector;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub use self::{
     cache_control::{
@@ -1354,6 +1355,12 @@ impl ConnectorIdGenerator {
     pub fn new_id(&self) -> u16 {
         self.cur.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct VersionedRegistry<'a> {
+    pub registry: Cow<'a, Registry>,
+    pub deployment_id: Cow<'a, str>,
 }
 
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside grafbase_engine
