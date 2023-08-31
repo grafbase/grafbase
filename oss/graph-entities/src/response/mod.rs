@@ -27,7 +27,6 @@
 use core::fmt::{self, Display, Formatter};
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use derivative::Derivative;
 use grafbase_engine_value::Name;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
@@ -418,15 +417,23 @@ impl QueryResponseNode {
     }
 
     pub fn child(&self, relation: &ResponseNodeRelation) -> Option<&ResponseNodeId> {
-        self.children()?
-            .iter()
-            .find_map(|(key, child)| if key == relation { Some(child) } else { None })
+        self.children()?.iter().find_map(|(key, child)| {
+            if key.same_internal_field(relation) {
+                Some(child)
+            } else {
+                None
+            }
+        })
     }
 
     pub fn child_mut(&mut self, relation: &ResponseNodeRelation) -> Option<&mut ResponseNodeId> {
-        self.children_mut()?
-            .iter_mut()
-            .find_map(|(key, child)| if key == relation { Some(child) } else { None })
+        self.children_mut()?.iter_mut().find_map(|(key, child)| {
+            if key.same_internal_field(relation) {
+                Some(child)
+            } else {
+                None
+            }
+        })
     }
 
     pub fn children(&self) -> Option<&Vec<(ResponseNodeRelation, ResponseNodeId)>> {
@@ -494,8 +501,7 @@ impl Default for ResponsePrimitive {
 /// NB: `NotARelation` is hashed based on the field value **only**.
 // temp: might be interesting to invest time to change it at the root level to have vertices
 // flattened depending on the needs on the structure.
-#[derive(Derivative, Debug, Deserialize, Serialize, Clone, Ord, PartialOrd, Eq)]
-#[derivative(Hash, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum ResponseNodeRelation {
     #[serde(rename = "R")]
     Relation {
@@ -510,7 +516,6 @@ pub enum ResponseNodeRelation {
     },
     #[serde(rename = "NR")]
     NotARelation {
-        #[derivative(Hash = "ignore", PartialEq = "ignore")]
         #[serde(rename = "rk", default, skip_serializing_if = "Option::is_none")]
         response_key: Option<ArcIntern<String>>,
         #[serde(rename = "f")]
@@ -532,6 +537,42 @@ impl ResponseNodeRelation {
         Self::NotARelation {
             field: value,
             response_key,
+        }
+    }
+
+    /// Returns true if self & other appear to represent the same field of a model/type (i.e. ignoring response_key)
+    pub fn same_internal_field(&self, other: &ResponseNodeRelation) -> bool {
+        match (self, other) {
+            (
+                ResponseNodeRelation::Relation {
+                    relation_name: relation_name_lhs,
+                    from: from_lhs,
+                    to: to_lhs,
+                    ..
+                },
+                ResponseNodeRelation::Relation {
+                    relation_name: relation_name_rhs,
+                    from: from_rhs,
+                    to: to_rhs,
+                    ..
+                },
+            ) => relation_name_lhs == relation_name_rhs && from_lhs == from_rhs && to_lhs == to_rhs,
+            (
+                ResponseNodeRelation::NotARelation { field: field_lhs, .. },
+                ResponseNodeRelation::NotARelation { field: field_rhs, .. },
+            ) => field_lhs == field_rhs,
+            _ => false,
+        }
+    }
+
+    fn response_key(&self) -> &str {
+        match self {
+            ResponseNodeRelation::Relation { response_key, .. }
+            | ResponseNodeRelation::NotARelation {
+                response_key: Some(response_key),
+                ..
+            } => response_key.as_str(),
+            ResponseNodeRelation::NotARelation { field, .. } => field.as_str(),
         }
     }
 }
@@ -624,7 +665,7 @@ impl ResponseContainer {
         if let Some((_, existing)) = self
             .children
             .iter_mut()
-            .find(|(existing_name, _)| *existing_name == name)
+            .find(|(existing_relation, _)| existing_relation.response_key() == name.response_key())
         {
             std::mem::swap(existing, &mut node);
             return Some(node);
