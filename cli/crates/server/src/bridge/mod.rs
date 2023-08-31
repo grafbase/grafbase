@@ -1,6 +1,5 @@
 mod api_counterfeit;
 mod consts;
-mod listener;
 mod log;
 mod search;
 mod server;
