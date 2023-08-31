@@ -109,11 +109,6 @@ impl ResponseExt for StreamingPayload {
     }
 
     fn into_value(self) -> Value {
-        match self {
-            StreamingPayload::Response(response) => response.into_value(),
-            StreamingPayload::Incremental(incremental) => {
-                serde_json::to_value(incremental.to_graphql_response()).expect("incremental payload to be serializable")
-            }
-        }
+        serde_json::to_value(self).expect("streaming payload to be serializable")
     }
 }

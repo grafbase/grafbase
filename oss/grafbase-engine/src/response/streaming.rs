@@ -14,6 +14,18 @@ pub enum StreamingPayload {
     Incremental(IncrementalPayload),
 }
 
+impl serde::Serialize for StreamingPayload {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            StreamingPayload::Response(response) => response.to_graphql_response().serialize(serializer),
+            StreamingPayload::Incremental(incremental) => incremental.to_graphql_response().serialize(serializer),
+        }
+    }
+}
+
 /// An incremental response payload as described in the [stream & defer RFC][1].
 ///
 /// This is very similar to the main Response payload, but with additional fields for
