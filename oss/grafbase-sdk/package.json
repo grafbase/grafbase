@@ -1,0 +1,9 @@
+{
+  "name": "grafbase-sdk",
+  "version": "0.0.1",
+  "description": "Grafbase capabilities available at runtime",
+  "main": "dist/shim.mjs",
+  "files": [
+    "dist/shim.mjs"
+  ]
+}
