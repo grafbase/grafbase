@@ -84,8 +84,9 @@
           ];
 
         shellHook = ''
-          export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || jj workspace root 2>/dev/null)/cli/.cargo";
-          export PATH="$CARGO_INSTALL_ROOT/bin:$PATH";
+          project_root="$(git rev-parse --show-toplevel 2>/dev/null || jj workspace root 2>/dev/null)"
+          export CARGO_INSTALL_ROOT="$project_root/cli/.cargo";
+          export PATH="$CARGO_INSTALL_ROOT/bin:$project_root/node_modules/.bin:$PATH";
           if [[ "${system}" == "aarch64-darwin" ]]; then
             cargo binstall --no-confirm --no-symlinks --quiet ${aarch64DarwinExternalCargoCrates}
           fi

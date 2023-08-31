@@ -208,15 +208,7 @@ async fn spawn_servers(
     let (bridge_listener, bridge_port) = get_listener_for_random_port().await?;
 
     let mut bridge_handle = tokio::spawn(async move {
-        bridge::start(
-            bridge_listener,
-            bridge_port,
-            worker_port,
-            bridge_sender,
-            bridge_event_bus,
-            tracing,
-        )
-        .await
+        bridge::start(bridge_listener, bridge_port, bridge_sender, bridge_event_bus, tracing).await
     })
     .fuse();
 
@@ -266,8 +258,6 @@ async fn spawn_servers(
             &pathfinder_port_binding_string,
             "--text-blob",
             &registry_text_blob_string,
-            "--mount",
-            "stream-router=./stream-router",
         ]
         .map(Cow::Borrowed),
     );

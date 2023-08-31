@@ -2,7 +2,6 @@ use super::consts::{DATABASE_FILE, DATABASE_URL_PREFIX, PREPARE};
 use super::types::{Mutation, Operation, Record};
 use super::udf::UdfBuild;
 use crate::bridge::errors::ApiError;
-use crate::bridge::listener;
 use crate::bridge::log::log_event_endpoint;
 use crate::bridge::search::search_endpoint;
 use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
@@ -101,7 +100,6 @@ async fn mutation_endpoint(
 pub async fn start(
     tcp_listener: TcpListener,
     port: u16,
-    worker_port: u16,
     bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
     event_bus: tokio::sync::broadcast::Sender<Event>,
     tracing: bool,
@@ -160,13 +158,8 @@ pub async fn start(
         }));
 
     event_bus.send(Event::BridgeReady).expect("cannot fail");
-
-    tokio::select! {
-        server_result = server => { server_result? }
-        listener_result = listener::start(worker_port, event_bus.clone()) => { listener_result? }
-    };
+    server.await?;
 
     handler_state.pool.close().await;
-
     Ok(())
 }
