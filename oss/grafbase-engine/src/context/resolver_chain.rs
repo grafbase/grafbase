@@ -7,7 +7,7 @@ use grafbase_engine_parser::{
 use ulid::Ulid;
 
 use crate::{
-    registry::{resolvers::Resolver, MetaField, MetaInputValue, MetaType},
+    registry::{resolvers::Resolver, MetaField, MetaType},
     QueryPathSegment, Result,
 };
 
@@ -44,9 +44,6 @@ pub struct ResolverChainNode<'a> {
     /// The current resolver to apply, if it exists.
     /// There is no resolvers on QueryPathSegment::Index for instance.
     pub resolver: Option<&'a Resolver>,
-
-    /// The current variables on this node
-    pub variables: Option<Vec<(&'a str, &'a MetaInputValue)>>,
 }
 
 impl<'a> Display for ResolverChainNode<'a> {

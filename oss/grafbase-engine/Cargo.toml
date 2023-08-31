@@ -13,6 +13,7 @@ keywords = ["graphql", "engine", "grafbase"]
 [features]
 default = []
 tracing_worker = ["logworker", "dynamodb/tracing", "tracing"]
+defer = []
 
 [dependencies]
 async-lock = "2"
@@ -32,6 +33,7 @@ dynomite = "0.10"
 fast_chemail = "0.9"
 flexbuffers = { workspace = true }
 fnv = "1"
+futures = { workspace = true }
 futures-util = { workspace = true, features = ["io", "sink"] }
 http = "0.2"
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }

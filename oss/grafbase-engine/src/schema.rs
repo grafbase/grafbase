@@ -2,6 +2,7 @@ use std::{any::Any, collections::HashMap, ops::Deref, sync::Arc};
 
 use async_lock::RwLock;
 use dynamodb::CurrentDateTime;
+
 use futures_util::stream::{self, Stream, StreamExt};
 use graph_entities::QueryResponse;
 use indexmap::map::IndexMap;
@@ -9,6 +10,7 @@ use indexmap::map::IndexMap;
 use crate::{
     context::{Data, QueryEnvInner},
     custom_directive::CustomDirectiveFactory,
+    deferred::{self, DeferredWorkloadSender},
     extensions::{ExtensionFactory, Extensions},
     model::__DirectiveLocation,
     parser::{
@@ -17,7 +19,8 @@ use crate::{
         Positioned,
     },
     registry::{MetaDirective, MetaInputValue, Registry},
-    resolver_utils::{resolve_root_container, resolve_root_container_serial},
+    resolver_utils::{self, resolve_root_container, resolve_root_container_serial},
+    response::{IncrementalPayload, StreamingPayload},
     subscription::collect_subscription_streams,
     types::QueryRoot,
     validation::{check_rules, ValidationMode},
@@ -371,6 +374,28 @@ impl Schema {
             visible: None,
         });
 
+        #[cfg(feature = "defer")]
+        registry.add_directive(MetaDirective {
+            name: "defer".to_string(),
+            description: Some("De-prioritizes a fragment, causing the fragment to be omitted in the initial response and delivered as a subsequent response afterward.".to_string()),
+            locations: vec![
+                __DirectiveLocation::INLINE_FRAGMENT,
+                __DirectiveLocation::FRAGMENT_SPREAD,
+            ],
+            args: [
+                MetaInputValue::new("if", "Boolean!")
+                    .with_description("When true fragment may be deferred")
+                    .with_default(grafbase_engine_value::ConstValue::Boolean(true)),
+                MetaInputValue::new("label", "String")
+                    .with_description("This label should be used by GraphQL clients to identify the data from patch responses and associate it with the correct fragment.")
+            ]
+                .into_iter()
+                .map(|directive| (directive.name.clone(), directive))
+                .collect(),
+            is_repeatable: false,
+            visible: None,
+        });
+
         // register scalars
         <bool as LegacyInputType>::create_type_info(registry);
         <i32 as LegacyInputType>::create_type_info(registry);
@@ -516,7 +541,7 @@ impl Schema {
         Ok((QueryEnv::new(env), validation_result.cache_control))
     }
 
-    async fn execute_once(&self, env: QueryEnv) -> Response {
+    async fn execute_once(&self, env: QueryEnv, deferred_workloads: Option<DeferredWorkloadSender>) -> Response {
         // execute
         let ctx = ContextBase {
             path_node: None,
@@ -526,6 +551,7 @@ impl Schema {
             query_env: &env,
             resolvers_data: Default::default(),
             response_graph: Arc::new(RwLock::new(QueryResponse::default())),
+            deferred_workloads,
         };
 
         let query = ctx.registry().query_root();
@@ -543,9 +569,7 @@ impl Schema {
             Ok(value) => {
                 let response = &mut *ctx.response_graph.write().await;
                 response.set_root_unchecked(value);
-                let a = QueryResponse::default();
-                let b = std::mem::replace(response, a);
-                Response::new(b, env.operation.node.ty)
+                Response::new(std::mem::take(response), env.operation.node.ty)
             }
             Err(err) => Response::from_errors(vec![err], env.operation.node.ty),
         }
@@ -564,7 +588,7 @@ impl Schema {
             async move {
                 match self.prepare_request(extensions, request, Default::default()).await {
                     Ok((env, cache_control)) => {
-                        let fut = async { self.execute_once(env.clone()).await.cache_control(cache_control) };
+                        let fut = async { self.execute_once(env.clone(), None).await.cache_control(cache_control) };
                         futures_util::pin_mut!(fut);
                         env.extensions
                             .execute(env.operation_name.as_deref(), &env.operation, &mut fut)
@@ -593,30 +617,71 @@ impl Schema {
         }
     }
 
-    /// Execute a GraphQL subscription with session data.
+    /// Execute a GraphQL streaming request with session data
+    ///
+    /// This should be called when we receive some kind of streaming request.
+    /// It can either serve a subscription or a query/mutation that makes
+    /// use of `@stream` & `@defer`
     #[doc(hidden)]
     pub fn execute_stream_with_session_data(
         &self,
         request: impl Into<Request> + Send,
         session_data: Arc<Data>,
-    ) -> impl Stream<Item = Response> + Send + Unpin {
+    ) -> impl Stream<Item = StreamingPayload> + Send + Unpin {
         let schema = self.clone();
         let request = request.into();
         let extensions = self.create_extensions(session_data.clone());
 
-        let stream = futures_util::stream::StreamExt::boxed({
+        futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
             async_stream::stream! {
                 let (env, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
-                        yield Response::from_errors(errors, OperationType::Subscription);
+                        yield Response::from_errors(errors, OperationType::Subscription).into();
                         return;
                     }
                 };
 
                 if env.operation.node.ty != OperationType::Subscription {
-                    yield schema.execute_once(env).await.cache_control(cache_control);
+                    let (sender, mut receiver) = deferred::workload_channel();
+                    yield schema
+                        .execute_once(env.clone(), Some(sender.clone()))
+                        .await
+                        .cache_control(cache_control)
+                        .into();
+
+                    // For now we're taking the simple approach and running all the deferred
+                    // workloads serially. We can look into doing something smarter later.
+                    while let Some(workload) = receiver.receive() {
+                        let context = workload.to_context(
+                            &schema.env,
+                            &env,
+                            sender.clone()
+                        );
+                        let result = resolver_utils::resolve_deferred_container(
+                            &context,
+                            context
+                                .resolver_node
+                                .as_ref()
+                                .unwrap()
+                                .ty
+                                .as_ref()
+                                .unwrap(),
+                            workload.parent_resolver_value.clone()
+                        ).await;
+
+                        let root_node = result.expect("TODO: don't expect this, make it an error response");
+                        let mut data = std::mem::take(&mut *context.response_graph.write().await);
+                        data.set_root_unchecked(root_node);
+                        yield IncrementalPayload {
+                            label: workload.label,
+                            data,
+                            path: workload.path,
+                            has_next: true,   // TODO: Need to handle has_next properly...
+                            errors: vec![]    // TODO: Put the actual errors in here somehow...
+                        }.into()
+                    }
                     return;
                 }
 
@@ -625,27 +690,32 @@ impl Schema {
                     None,
                     None,
                     &env.operation.node.selection_set,
+                    None  // We don't support deferring in subscriptions
                 );
 
                 let mut streams = Vec::new();
-                // if let Err(err) = collect_subscription_streams(&ctx, &schema.subscription, &mut streams) {
                 if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
-                    yield Response::from_errors(vec![err], OperationType::Subscription);
+                    yield Response::from_errors(vec![err], OperationType::Subscription).into();
                 }
 
                 let mut stream = stream::select_all(streams);
                 while let Some(resp) = stream.next().await {
-                    yield resp;
+                    yield resp.into();
                 }
             }
-        });
-        extensions.subscribe(stream)
+        })
     }
 
-    /// Execute a GraphQL subscription.
-    pub fn execute_stream(&self, _request: impl Into<Request>) -> impl Stream<Item = Response> + Send + Unpin {
-        futures_util::stream::empty()
-        // self.execute_stream_with_session_data(request.into(), Default::default())
+    /// Execute a GraphQL streaming request.
+    ///
+    /// This should be called when we receive some kind of streaming request.
+    /// It can either serve a subscription or a query/mutation that makes
+    /// use of `@stream` & `@defer`
+    pub fn execute_stream(
+        &self,
+        request: impl Into<Request> + Send,
+    ) -> impl Stream<Item = StreamingPayload> + Send + Unpin {
+        self.execute_stream_with_session_data(request, Default::default())
     }
 }
 

@@ -69,6 +69,7 @@ pub mod validators;
 
 pub mod graph;
 
+mod deferred;
 pub mod registry;
 
 #[doc(hidden)]
@@ -109,7 +110,7 @@ pub use registry::{CacheControl, CacheInvalidation};
 pub use request::{BatchRequest, Request};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
-pub use response::{BatchResponse, GraphQlResponse, Response};
+pub use response::{BatchResponse, GraphQlResponse, IncrementalPayload, Response, StreamingPayload};
 pub use schema::{Schema, SchemaBuilder, SchemaEnv};
 #[doc(hidden)]
 pub use static_assertions;

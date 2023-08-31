@@ -1,10 +1,11 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use futures_util::FutureExt;
-use grafbase_engine_parser::{types::SelectionSet, Pos, Positioned};
+use grafbase_engine_parser::Positioned;
 use graph_entities::{CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
 
 use crate::{
+    deferred::DeferredWorkload,
     extensions::ResolveInfo,
     parser::types::Selection,
     registry::{resolvers::ResolvedValue, MetaType, Registry},
@@ -12,7 +13,7 @@ use crate::{
     ServerResult, Value,
 };
 
-use super::field::resolve_field;
+use super::{field::resolve_field, fragment::FragmentDetails};
 
 /// Represents a GraphQL container object.
 ///
@@ -132,6 +133,14 @@ pub async fn resolve_root_container_serial<'a>(
     root: &'a MetaType,
 ) -> ServerResult<ResponseNodeId> {
     resolve_container_inner(ctx, false, root, None, None).await
+}
+
+pub async fn resolve_deferred_container<'a>(
+    ctx: &ContextSelectionSet<'a>,
+    root: &'a MetaType,
+    parent_resolver_value: Option<ResolvedValue>,
+) -> ServerResult<ResponseNodeId> {
+    resolve_container_inner(ctx, true, root, None, parent_resolver_value).await
 }
 
 /// Resolve an container by executing each of the fields concurrently.
@@ -313,6 +322,27 @@ impl<'a> FieldExecutionSet<'a> {
                 }
                 Selection::FragmentSpread(_) | Selection::InlineFragment(_) => {
                     let fragment_details = FragmentDetails::from_fragment_selection(ctx, &selection.node)?;
+
+                    if let Some((deferred_sender, _defer_directive)) =
+                        ctx.deferred_workloads.as_ref().zip(fragment_details.defer.as_ref())
+                    {
+                        let workload = DeferredWorkload::new(
+                            fragment_details.selection_set.clone(),
+                            ctx.path_node
+                                .map(|path_node| path_node.to_owned_segments())
+                                .unwrap_or_default(),
+                            root.name().to_string().into(),
+                            parent_resolver_value.clone(),
+                        );
+
+                        if deferred_sender.send(workload).is_ok() {
+                            // Sending _shouldn't_ fail, but if it does we fall through to handling the
+                            // spread as if it didn't even have `@defer` on it (rather than just immediately
+                            // erroring out on what is almost certainly an internal error)
+                            continue;
+                        }
+                    }
+
                     self.add_spread(ctx, root, fragment_details, current_node_id, parent_resolver_value)?;
                 }
             }
@@ -432,6 +462,7 @@ impl<'a> FieldExecutionSet<'a> {
                             query_env: ctx_field.query_env,
                             resolvers_data: ctx_field.resolvers_data.clone(),
                             response_graph: ctx_field.response_graph.clone(),
+                            deferred_workloads: ctx_field.deferred_workloads.clone(),
                         };
                         let directive_instance = directive_factory.create(&ctx_directive, &directive.node)?;
                         resolve_fut = Box::pin({
@@ -525,16 +556,12 @@ impl<'a> FieldExecutionSet<'a> {
         parent_resolver_value: Option<ResolvedValue>,
     ) -> Result<(), ServerError> {
         let introspection_type_name = root.name();
-        let applies_concrete_object = type_condition.map_or(false, |condition| {
+        let typename_matches = type_condition.map_or(true, |condition| {
             typename_matches_condition(introspection_type_name, condition, root, &ctx.schema_env.registry)
         });
 
-        if applies_concrete_object {
+        if typename_matches {
             collect_all_fields_graph_meta(root, ctx, self, current_node_id, parent_resolver_value)?;
-        } else if type_condition.map_or(true, |condition| root.name() == condition) {
-            // The fragment applies to an interface type.
-            // self.add_set(&ctx, root)?;
-            todo!()
         }
 
         Ok(())
@@ -728,6 +755,7 @@ impl<'a> Fields<'a> {
                                                 query_env: ctx_field.query_env,
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
                                                 response_graph: ctx_field.response_graph.clone(),
+                                                deferred_workloads: ctx_field.deferred_workloads.clone(),
                                             };
                                             let directive_instance =
                                                 directive_factory.create(&ctx_directive, &directive.node)?;
@@ -761,6 +789,9 @@ impl<'a> Fields<'a> {
                         selection_set,
                         ..
                     } = FragmentDetails::from_fragment_selection(ctx, selection)?;
+
+                    // Note: this is the "native" resolution mechanism that's only used for
+                    // introspection.  We're not going to support defer or stream here.
 
                     let introspection_type_name = root.introspection_type_name();
 
@@ -798,51 +829,5 @@ impl VecGraphFutureOutputExt for Vec<FieldExecutionOutput> {
                 FieldExecutionOutput::MultipleFields(fields) => fields,
             })
             .collect()
-    }
-}
-
-/// The details of a fragment spread/inline fragment.
-///
-/// Used to simplify handling each
-struct FragmentDetails<'a> {
-    position: Pos,
-    type_condition: Option<&'a str>,
-    selection_set: &'a Positioned<SelectionSet>,
-}
-
-impl<'a> FragmentDetails<'a> {
-    fn from_fragment_selection(
-        ctx: &ContextBase<'a, &Positioned<SelectionSet>>,
-        selection: &'a Selection,
-    ) -> Result<FragmentDetails<'a>, ServerError> {
-        match selection {
-            Selection::Field(_) => unreachable!("this should have been validated before calling this function"),
-            Selection::FragmentSpread(spread) => {
-                let fragment = ctx.query_env.fragments.get(&spread.node.fragment_name.node);
-                let fragment = match fragment {
-                    Some(fragment) => fragment,
-                    None => {
-                        return Err(ServerError::new(
-                            format!(r#"Unknown fragment "{}"."#, spread.node.fragment_name.node),
-                            Some(spread.pos),
-                        ));
-                    }
-                };
-                Ok(FragmentDetails {
-                    position: spread.pos,
-                    type_condition: Some(fragment.node.type_condition.node.on.node.as_str()),
-                    selection_set: &fragment.node.selection_set,
-                })
-            }
-            Selection::InlineFragment(fragment) => Ok(FragmentDetails {
-                position: fragment.pos,
-                type_condition: fragment
-                    .node
-                    .type_condition
-                    .as_ref()
-                    .map(|positioned| positioned.node.on.node.as_str()),
-                selection_set: &fragment.node.selection_set,
-            }),
-        }
     }
 }

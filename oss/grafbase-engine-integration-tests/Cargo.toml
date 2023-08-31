@@ -27,7 +27,7 @@ features = ["json"]
 [dependencies.grafbase-engine]
 path = "../grafbase-engine"
 default-features = false
-features = ["tracing_worker"]
+features = ["tracing_worker", "defer"]
 
 [dependencies.sdl-parser]
 path = "../../oss/sdl-parser"

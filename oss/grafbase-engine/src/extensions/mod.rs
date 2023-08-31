@@ -6,7 +6,6 @@ use std::{
     sync::Arc,
 };
 
-use futures_util::stream::BoxStream;
 use grafbase_engine_parser::{types::OperationDefinition, Positioned};
 use grafbase_engine_value::Name;
 use grafbase_types::auth::Operations;
@@ -146,22 +145,6 @@ impl<'a> NextRequest<'a> {
                 .await
         } else {
             self.request_fut.await
-        }
-    }
-}
-
-/// The remainder of a extension chain for subscribe.
-pub struct NextSubscribe<'a> {
-    chain: &'a [Arc<dyn Extension>],
-}
-
-impl<'a> NextSubscribe<'a> {
-    /// Call the [Extension::subscribe] function of next extension.
-    pub fn run<'s>(self, ctx: &ExtensionContext<'_>, stream: BoxStream<'s, Response>) -> BoxStream<'s, Response> {
-        if let Some((first, next)) = self.chain.split_first() {
-            first.subscribe(ctx, stream, NextSubscribe { chain: next })
-        } else {
-            stream
         }
     }
 }
@@ -307,16 +290,6 @@ pub trait Extension: Sync + Send + 'static {
         next.run(ctx).await
     }
 
-    /// Called at subscribe request.
-    fn subscribe<'s>(
-        &self,
-        ctx: &ExtensionContext<'_>,
-        stream: BoxStream<'s, Response>,
-        next: NextSubscribe<'_>,
-    ) -> BoxStream<'s, Response> {
-        next.run(ctx, stream)
-    }
-
     /// Called at prepare request.
     async fn prepare_request(
         &self,
@@ -426,13 +399,6 @@ impl Extensions {
             request_fut,
         };
         next.run(&self.create_context()).await
-    }
-
-    pub fn subscribe<'s>(&self, stream: BoxStream<'s, Response>) -> BoxStream<'s, Response> {
-        let next = NextSubscribe {
-            chain: &self.extensions,
-        };
-        next.run(&self.create_context(), stream)
     }
 
     pub async fn prepare_request(&self, request: Request) -> ServerResult<Request> {

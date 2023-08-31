@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-use async_lock::RwLock as AsynRwLock;
+use async_lock::RwLock as AsyncRwLock;
 use derivative::Derivative;
 use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
 use fnv::FnvHashMap;
@@ -28,10 +28,11 @@ use serde::{
 use ulid::Ulid;
 
 use crate::{
+    deferred::DeferredWorkloadSender,
     extensions::Extensions,
     parser::types::{Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
     registry::{
-        relations::MetaRelation, type_kinds::InputType, variables::VariableResolveDefinition, MetaInputValue, MetaType,
+        relations::MetaRelation, type_kinds::InputType, variables::VariableResolveDefinition, MetaType,
         MongoDBConfiguration, Registry, TypeReference,
     },
     resolver_utils::{resolve_input, InputResolveMode},
@@ -140,7 +141,7 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
 
                 let introspection_type_name = root.name();
 
-                let applies_concrete_object = type_condition.map_or(false, |condition| {
+                let typename_matches = type_condition.map_or(true, |condition| {
                     introspection_type_name == condition
                         || ctx
                             .registry()
@@ -148,12 +149,9 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
                             .get(introspection_type_name)
                             .map_or(false, |interfaces| interfaces.contains(condition))
                 });
-                if applies_concrete_object {
+                if typename_matches {
                     let tailed = relations_edges(&ctx.with_selection_set(selection_set), root);
                     result.extend(tailed);
-                } else if type_condition.map_or(true, |condition| root.name() == condition) {
-                    // The fragment applies to an interface type.
-                    todo!()
                 }
             }
         }
@@ -285,6 +283,17 @@ impl<'a> QueryPathNode<'a> {
         }
         f(&self.segment)
     }
+
+    pub fn to_owned_segments(&self) -> Vec<PathSegment> {
+        let mut path = Vec::new();
+        self.for_each(|current_node| {
+            path.push(match current_node {
+                QueryPathSegment::Name(name) => PathSegment::Field((*name).to_string()),
+                QueryPathSegment::Index(idx) => PathSegment::Index(*idx),
+            })
+        });
+        path
+    }
 }
 
 /// An iterator over the parents of a [`QueryPathNode`](struct.QueryPathNode.html).
@@ -335,7 +344,14 @@ pub struct ContextBase<'a, T> {
     /// Every Resolvers are able to store a Value inside this cache
     pub resolvers_data: Arc<RwLock<FnvHashMap<String, Box<dyn Any + Sync + Send>>>>,
     #[doc(hidden)]
-    pub response_graph: Arc<AsynRwLock<QueryResponse>>,
+    pub response_graph: Arc<AsyncRwLock<QueryResponse>>,
+    /// A sender for deferred workloads (used by @defer & @stream)
+    ///
+    /// This is set to `None` when the user uses a transport that doesn't support
+    /// incremental delivery.  In these circumstances we should not defer any workloads
+    /// and just return the data as part of the main response.
+    #[derivative(Debug = "ignore")]
+    pub deferred_workloads: Option<DeferredWorkloadSender>,
 }
 
 #[doc(hidden)]
@@ -382,6 +398,7 @@ impl QueryEnv {
         path_node: Option<QueryPathNode<'a>>,
         resolver_node: Option<ResolverChainNode<'a>>,
         item: T,
+        deferred_workloads: Option<DeferredWorkloadSender>,
     ) -> ContextBase<'a, T> {
         ContextBase {
             path_node,
@@ -390,7 +407,8 @@ impl QueryEnv {
             schema_env,
             query_env: self,
             resolvers_data: Default::default(),
-            response_graph: Arc::new(AsynRwLock::new(QueryResponse::default())),
+            response_graph: Arc::new(AsyncRwLock::new(QueryResponse::default())),
+            deferred_workloads,
         }
     }
 }
@@ -473,20 +491,13 @@ impl<'a, T> ContextBase<'a, T> {
                 resolver: meta_field.map(|x| &x.resolver),
                 execution_id: Ulid::from_datetime(self.query_env.current_datetime.clone().into()),
                 selections,
-                variables: {
-                    meta_field.map(|x| {
-                        x.args
-                            .values()
-                            .map(|y| (x.name.as_ref(), y))
-                            .collect::<Vec<(&str, &MetaInputValue)>>()
-                    })
-                },
             }),
             item: field,
             schema_env: self.schema_env,
             query_env: self.query_env,
             resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
+            deferred_workloads: self.deferred_workloads.clone(),
         }
     }
 
@@ -503,19 +514,14 @@ impl<'a, T> ContextBase<'a, T> {
             query_env: self.query_env,
             resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
+            deferred_workloads: self.deferred_workloads.clone(),
         }
     }
 
     #[doc(hidden)]
     pub fn set_error_path(&self, error: ServerError) -> ServerError {
         if let Some(node) = self.path_node {
-            let mut path = Vec::new();
-            node.for_each(|current_node| {
-                path.push(match current_node {
-                    QueryPathSegment::Name(name) => PathSegment::Field((*name).to_string()),
-                    QueryPathSegment::Index(idx) => PathSegment::Index(*idx),
-                })
-            });
+            let path = node.to_owned_segments();
             ServerError { path, ..error }
         } else {
             error
@@ -758,13 +764,13 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
                 resolver: self.resolver_node.as_ref().and_then(|x| x.resolver),
                 execution_id: Ulid::from_datetime(self.query_env.current_datetime.clone().into()),
                 selections,
-                variables: None,
             }),
             item: self.item,
             schema_env: self.schema_env,
             query_env: self.query_env,
             resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
+            deferred_workloads: self.deferred_workloads.clone(),
         }
     }
 }

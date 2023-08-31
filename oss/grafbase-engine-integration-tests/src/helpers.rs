@@ -1,4 +1,4 @@
-use grafbase_engine::Response;
+use grafbase_engine::{Response, StreamingPayload};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
@@ -94,5 +94,26 @@ impl ResponseExt for Response {
 
     fn into_value(self) -> Value {
         serde_json::to_value(self.to_graphql_response()).expect("response to be serializable")
+    }
+}
+
+impl ResponseExt for StreamingPayload {
+    fn assert_success(self) -> Self {
+        match self {
+            StreamingPayload::Response(response) => StreamingPayload::Response(response.assert_success()),
+            StreamingPayload::Incremental(incremental) => {
+                assert_eq!(incremental.errors, vec![]);
+                StreamingPayload::Incremental(incremental)
+            }
+        }
+    }
+
+    fn into_value(self) -> Value {
+        match self {
+            StreamingPayload::Response(response) => response.into_value(),
+            StreamingPayload::Incremental(incremental) => {
+                serde_json::to_value(incremental.to_graphql_response()).expect("incremental payload to be serializable")
+            }
+        }
     }
 }

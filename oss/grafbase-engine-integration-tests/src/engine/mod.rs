@@ -2,8 +2,8 @@ mod builder;
 
 use std::{collections::HashMap, future::IntoFuture, sync::Arc};
 
-use futures::future::BoxFuture;
-use grafbase_engine::{Request, RequestHeaders, Response, Schema, Variables};
+use futures::{future::BoxFuture, Stream, StreamExt};
+use grafbase_engine::{Request, RequestHeaders, Response, Schema, StreamingPayload, Variables};
 
 pub use self::builder::EngineBuilder;
 
@@ -24,6 +24,14 @@ impl Engine {
 
     pub fn execute(&self, operation: impl Into<GraphQlRequest>) -> ExecutionRequest<'_> {
         ExecutionRequest {
+            graphql: operation.into(),
+            headers: HashMap::new(),
+            schema: &self.inner.schema,
+        }
+    }
+
+    pub fn execute_stream(&self, operation: impl Into<GraphQlRequest>) -> StreamExecutionRequest<'_> {
+        StreamExecutionRequest {
             graphql: operation.into(),
             headers: HashMap::new(),
             schema: &self.inner.schema,
@@ -62,6 +70,37 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
             }
             self.schema.execute(request).await
         })
+    }
+}
+
+#[must_use]
+pub struct StreamExecutionRequest<'a> {
+    graphql: GraphQlRequest,
+    headers: HashMap<String, String>,
+    schema: &'a Schema,
+}
+
+impl<'a> StreamExecutionRequest<'a> {
+    /// Adds a header into the request
+    pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers.insert(name.into(), value.into());
+        self
+    }
+
+    /// Converts the execution request into a Stream
+    pub fn into_stream(self) -> impl Stream<Item = StreamingPayload> + 'a {
+        let mut request = Request::new(self.graphql.query).data(RequestHeaders::from(&self.headers));
+        if let Some(name) = self.graphql.operation_name {
+            request = request.operation_name(name);
+        }
+        if let Some(variables) = self.graphql.variables {
+            request = request.variables(variables);
+        }
+        self.schema.execute_stream(request)
+    }
+
+    pub async fn collect(self) -> Vec<StreamingPayload> {
+        self.into_stream().collect().await
     }
 }
 

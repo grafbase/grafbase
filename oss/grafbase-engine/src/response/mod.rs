@@ -10,6 +10,10 @@ use serde::{ser::SerializeMap, Deserialize, Serialize};
 
 use crate::{CacheControl, Result, ServerError, Value};
 
+pub use streaming::*;
+
+mod streaming;
+
 /// Query response
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Response {

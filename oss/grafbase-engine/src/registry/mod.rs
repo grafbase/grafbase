@@ -173,6 +173,13 @@ impl MetaInputValue {
     pub fn with_rename(self, rename: Option<String>) -> MetaInputValue {
         MetaInputValue { rename, ..self }
     }
+
+    pub fn with_default(self, default: ConstValue) -> MetaInputValue {
+        MetaInputValue {
+            default_value: Some(default),
+            ..self
+        }
+    }
 }
 
 impl Eq for MetaInputValue {}

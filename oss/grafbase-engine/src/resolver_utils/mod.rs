@@ -5,6 +5,7 @@ mod container;
 mod dynamic;
 mod r#enum;
 mod field;
+mod fragment;
 mod introspection;
 mod list;
 mod scalar;
