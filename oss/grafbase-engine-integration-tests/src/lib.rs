@@ -5,6 +5,7 @@ pub mod helpers;
 pub mod mocks;
 pub mod mongodb;
 pub mod types;
+pub mod udfs;
 
 pub use engine::{Engine, EngineBuilder};
 pub use helpers::{GetPath, ResponseExt};

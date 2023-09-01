@@ -1,7 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use grafbase_engine::{registry::resolvers::graphql::QueryBatcher, Schema};
-use grafbase_runtime::GraphqlRequestExecutionContext;
+use grafbase_runtime::{
+    udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker},
+    GraphqlRequestExecutionContext,
+};
 use sdl_parser::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, Registry};
 
 use crate::Engine;
@@ -13,14 +16,16 @@ pub struct EngineBuilder {
     schema: String,
     openapi_specs: HashMap<String, String>,
     environment_variables: HashMap<String, String>,
+    custom_resolvers: Option<CustomResolversEngine>,
 }
 
 impl EngineBuilder {
-    pub fn new(schema: String) -> Self {
+    pub fn new(schema: impl Into<String>) -> Self {
         EngineBuilder {
-            schema,
+            schema: schema.into(),
             openapi_specs: HashMap::new(),
             environment_variables: HashMap::new(),
+            custom_resolvers: None,
         }
     }
 
@@ -34,6 +39,16 @@ impl EngineBuilder {
         self
     }
 
+    pub fn with_custom_resolvers(
+        self,
+        invoker: impl UdfInvoker<CustomResolverRequestPayload> + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            custom_resolvers: Some(CustomResolversEngine::new(Box::new(invoker))),
+            ..self
+        }
+    }
+
     pub async fn build(self) -> Engine {
         let ParseResult { registry, .. } = sdl_parser::parse(&self.schema, &self.environment_variables, &self)
             .await
@@ -41,13 +56,19 @@ impl EngineBuilder {
 
         let registry = serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap();
 
-        let schema = Schema::build(registry)
-            .data(QueryBatcher::new())
-            .data(GraphqlRequestExecutionContext {
-                ray_id: String::new(),
-                headers: Default::default(),
-            })
-            .finish();
+        let mut schema_builder =
+            Schema::build(registry)
+                .data(QueryBatcher::new())
+                .data(GraphqlRequestExecutionContext {
+                    ray_id: String::new(),
+                    headers: Default::default(),
+                });
+
+        if let Some(custom_resolvers) = self.custom_resolvers {
+            schema_builder = schema_builder.data(custom_resolvers);
+        }
+
+        let schema = schema_builder.finish();
 
         Engine {
             inner: Arc::new(Inner { schema }),
