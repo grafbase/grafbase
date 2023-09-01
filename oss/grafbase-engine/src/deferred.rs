@@ -11,6 +11,7 @@ use crate::{
     ContextSelectionSet, Error, PathSegment, QueryEnv, QueryPathSegment, ResolverChainNode, SchemaEnv,
 };
 
+#[derive(Debug)]
 pub struct DeferredWorkload {
     pub label: Option<String>,
     selection_set: Positioned<SelectionSet>,

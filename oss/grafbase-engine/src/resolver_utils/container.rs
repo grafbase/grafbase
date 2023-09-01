@@ -8,7 +8,7 @@ use crate::{
     deferred::DeferredWorkload,
     extensions::ResolveInfo,
     parser::types::Selection,
-    registry::{resolvers::ResolvedValue, MetaType, Registry},
+    registry::{resolvers::ResolvedValue, MetaType},
     relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name, ServerError,
     ServerResult, Value,
 };
@@ -53,20 +53,6 @@ pub trait ContainerType: LegacyOutputType {
     async fn find_entity(&self, _: &Context<'_>, _params: &Value) -> ServerResult<Option<Value>> {
         Ok(None)
     }
-}
-
-/// Collect all the fields of the container that are queried in the selection set.
-///
-/// Objects do not have to override this, but interfaces and unions must call it on their
-/// internal type.
-fn collect_all_fields_graph_meta<'a>(
-    ty: &'a MetaType,
-    ctx: &ContextSelectionSet<'a>,
-    fields: &mut FieldExecutionSet<'a>,
-    node_id: Option<NodeID<'a>>,
-    parent_resolver_value: Option<ResolvedValue>,
-) -> ServerResult<()> {
-    fields.add_selection_set(ctx, ty, node_id, parent_resolver_value)
 }
 
 #[async_trait::async_trait]
@@ -321,29 +307,13 @@ impl<'a> FieldExecutionSet<'a> {
                     self.add_field(ctx, root, field, parent_resolver_value);
                 }
                 Selection::FragmentSpread(_) | Selection::InlineFragment(_) => {
-                    let fragment_details = FragmentDetails::from_fragment_selection(ctx, &selection.node)?;
-
-                    if let Some((deferred_sender, _defer_directive)) =
-                        ctx.deferred_workloads.as_ref().zip(fragment_details.defer.as_ref())
-                    {
-                        let workload = DeferredWorkload::new(
-                            fragment_details.selection_set.clone(),
-                            ctx.path_node
-                                .map(|path_node| path_node.to_owned_segments())
-                                .unwrap_or_default(),
-                            root.name().to_string().into(),
-                            parent_resolver_value.clone(),
-                        );
-
-                        if deferred_sender.send(workload).is_ok() {
-                            // Sending _shouldn't_ fail, but if it does we fall through to handling the
-                            // spread as if it didn't even have `@defer` on it (rather than just immediately
-                            // erroring out on what is almost certainly an internal error)
-                            continue;
-                        }
-                    }
-
-                    self.add_spread(ctx, root, fragment_details, current_node_id, parent_resolver_value)?;
+                    self.add_spread(
+                        ctx,
+                        root,
+                        FragmentDetails::from_fragment_selection(ctx, &selection.node)?,
+                        current_node_id,
+                        parent_resolver_value,
+                    );
                 }
             }
         }
@@ -489,135 +459,74 @@ impl<'a> FieldExecutionSet<'a> {
         fragment_details: FragmentDetails<'a>,
         current_node_id: Option<NodeID<'a>>,
         parent_resolver_value: Option<ResolvedValue>,
-    ) -> Result<(), ServerError> {
-        let type_condition = fragment_details.type_condition;
-        match root {
-            MetaType::Union { .. } => {
-                let type_condition = type_condition.ok_or_else(|| {
-                    ServerError::new(
-                        "Spreads on union types require a type condition",
-                        Some(fragment_details.position),
-                    )
-                })?;
+    ) {
+        let ctx = ctx.clone();
+        self.0.push(Box::pin({
+            async move {
+                let registry = ctx.registry();
+                let typename = resolve_typename(root, parent_resolver_value.as_ref()).await;
+                if !fragment_details.type_condition_matches(&ctx, &typename) {
+                    return Ok(FieldExecutionOutput::MultipleFields(vec![]));
+                }
 
-                self.0.push(Box::pin({
-                    let ctx = ctx.clone();
-                    async move {
-                        resolve_spread_with_type_condition(
-                            ctx,
-                            type_condition,
-                            root,
-                            fragment_details.selection_set,
-                            current_node_id,
-                            parent_resolver_value,
-                        )
-                        .await
-                    }
-                }));
-            }
-            MetaType::Interface { .. } if type_condition.is_some() => {
-                let type_condition = type_condition.unwrap();
+                let subtype = registry
+                    .types
+                    .get(&typename)
+                    .ok_or_else(|| ServerError::new(format!(r#"Found an unknown typename: "{typename}"."#,), None))?;
 
-                self.0.push(Box::pin({
-                    let ctx = ctx.clone();
-                    async move {
-                        resolve_spread_with_type_condition(
-                            ctx,
-                            type_condition,
-                            root,
-                            fragment_details.selection_set,
-                            current_node_id,
-                            parent_resolver_value,
-                        )
-                        .await
-                    }
-                }));
-            }
-            _ => {
-                self.add_spread_fields(
-                    root,
-                    type_condition,
+                if fragment_details.should_defer(&ctx)
+                    && defer_fragment(&ctx, &fragment_details, subtype, &parent_resolver_value).is_ok()
+                {
+                    // If we succesfully deferred, then return no fields.  Otherwise fall through to handling the
+                    // spread as if it didn't even have `@defer` on it.
+                    return Ok(FieldExecutionOutput::MultipleFields(vec![]));
+                }
+
+                let mut subfields = FieldExecutionSet(Vec::new());
+                subfields.add_selection_set(
                     &ctx.with_selection_set(fragment_details.selection_set),
+                    subtype,
                     current_node_id,
                     parent_resolver_value,
                 )?;
+
+                Ok(FieldExecutionOutput::MultipleFields(
+                    futures_util::future::try_join_all(subfields.0).await?.flatten(),
+                ))
             }
-        }
-        Ok(())
-    }
-
-    /// Adds spread fields to the current set in the case where we're not on a union.
-    fn add_spread_fields(
-        &mut self,
-        root: &'a MetaType,
-        type_condition: Option<&str>,
-        ctx: &ContextSelectionSet<'a>,
-        current_node_id: Option<NodeID<'a>>,
-        parent_resolver_value: Option<ResolvedValue>,
-    ) -> Result<(), ServerError> {
-        let introspection_type_name = root.name();
-        let typename_matches = type_condition.map_or(true, |condition| {
-            typename_matches_condition(introspection_type_name, condition, root, &ctx.schema_env.registry)
-        });
-
-        if typename_matches {
-            collect_all_fields_graph_meta(root, ctx, self, current_node_id, parent_resolver_value)?;
-        }
-
-        Ok(())
+        }));
     }
 }
 
-async fn resolve_spread_with_type_condition<'a>(
-    ctx: ContextSelectionSet<'a>,
-    type_condition: &str,
-    containing_type: &'a MetaType,
-    selection_set: &Positioned<grafbase_engine_parser::types::SelectionSet>,
-    current_node_id: Option<NodeID<'a>>,
-    parent_resolver_value: Option<ResolvedValue>,
-) -> ServerResult<FieldExecutionOutput> {
-    let registry = ctx.registry();
-    let typename = resolve_typename(containing_type, parent_resolver_value.as_ref()).await;
-
-    if !typename_matches_condition(&typename, type_condition, containing_type, registry) {
-        return Ok(FieldExecutionOutput::MultipleFields(vec![]));
+/// Defers a fragment for later execution.
+///
+/// This shouldn't generally fail, but if it does we should just handle the fragment as if it
+/// doesn't have defer on it.  This avoids returning internal errors for these cases.
+fn defer_fragment(
+    ctx: &ContextSelectionSet<'_>,
+    fragment_details: &FragmentDetails<'_>,
+    root: &MetaType,
+    parent_resolver_value: &Option<ResolvedValue>,
+) -> Result<(), ()> {
+    let deferred_sender = ctx.deferred_workloads.as_ref().ok_or(())?;
+    if fragment_details.defer.is_none() {
+        return Err(());
     }
 
-    let subtype = registry
-        .types
-        .get(&typename)
-        .ok_or_else(|| ServerError::new(format!(r#"Found an unknown typename: "{typename}"."#,), None))?;
+    let workload = DeferredWorkload::new(
+        fragment_details.selection_set.clone(),
+        ctx.path_node
+            .map(|path_node| path_node.to_owned_segments())
+            .unwrap_or_default(),
+        root.name().to_string().into(),
+        parent_resolver_value.clone(),
+    );
 
-    let mut subfields = FieldExecutionSet(Vec::new());
-    subfields.add_selection_set(
-        &ctx.with_selection_set(selection_set),
-        subtype,
-        current_node_id,
-        parent_resolver_value,
-    )?;
-
-    Ok(FieldExecutionOutput::MultipleFields(
-        futures_util::future::try_join_all(subfields.0).await?.flatten(),
-    ))
-}
-
-fn typename_matches_condition(
-    typename: &str,
-    condition: &str,
-    containing_type: &MetaType,
-    registry: &Registry,
-) -> bool {
-    match containing_type {
-        MetaType::Union(union) => typename == condition || condition == union.rust_typename,
-        _ => {
-            typename == condition
-                || registry
-                    .implements
-                    .get(typename)
-                    .map(|interfaces| interfaces.contains(condition))
-                    .unwrap_or_default()
-        }
-    }
+    // Sending _shouldn't_ fail, but if it does lets return an Err so we treat the spread
+    // as if it didn't even have `@defer` on it (rather than immediately
+    // erroring out on what is almost certainly an internal error)
+    deferred_sender.send(workload).map_err(|_| ())?;
+    Ok(())
 }
 
 async fn resolve_typename<'a>(root: &'a MetaType, parent_resolver_value: Option<&ResolvedValue>) -> String {

@@ -1,3 +1,5 @@
+mod type_conditions;
+
 use std::net::SocketAddr;
 
 use grafbase_engine_integration_tests::{runtime, Engine, EngineBuilder, ResponseExt};
