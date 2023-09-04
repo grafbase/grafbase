@@ -60,8 +60,18 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                     })
             };
 
-        let mut priority_cache_tags = vec![request_context.config.customer_deployment_config.project_id.clone()];
-        if let Some(branch) = &request_context.config.customer_deployment_config.github_ref_name {
+        let mut priority_cache_tags = vec![request_context
+            .config
+            .customer_deployment_config
+            .common_customer_deployment_config()
+            .project_id
+            .clone()];
+        if let Some(branch) = &request_context
+            .config
+            .customer_deployment_config
+            .common_customer_deployment_config()
+            .github_ref_name
+        {
             priority_cache_tags.insert(0, branch.clone());
         }
 
@@ -283,7 +293,7 @@ mod tests {
     };
 
     use futures_util::future::BoxFuture;
-    use gateway_protocol::CustomerDeploymentConfig;
+    use gateway_protocol::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};
     use grafbase_engine::parser::types::OperationType;
     use worker_utils::CloudflareRequestContext;
 
@@ -848,11 +858,16 @@ mod tests {
         }
 
         let config = Config {
-            customer_deployment_config: CustomerDeploymentConfig {
-                project_id: "project_id".to_string(),
-                github_ref_name: Some("github_ref_name".to_string()),
-                ..Default::default()
-            },
+            customer_deployment_config: crate::platform::config::PlatformOrLocalConfig::Platform(
+                CustomerDeploymentConfig {
+                    common: CommonCustomerDeploymentConfig {
+                        project_id: "project_id".to_string(),
+                        github_ref_name: Some("github_ref_name".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            ),
             ..Default::default()
         };
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
