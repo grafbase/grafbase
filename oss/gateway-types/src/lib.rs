@@ -19,6 +19,7 @@ pub type ExecutionResult<T> = Result<T, ExecutionError>;
 #[async_trait(?Send)]
 pub trait ExecutionEngine {
     type Fetcher;
+    type ConfigType;
     type HealthRequest;
     type HealthResponse;
     type ExecutionRequest;

@@ -18,7 +18,7 @@ gateway-types = { path = "../gateway-types" }
 
 # TODO: these are private dependencies, that must be removed.
 worker-env = { path = "../../oss/worker-env" }
-gateway-protocol = { path = "../../common/gateway-protocol" }
+gateway-protocol = { path = "../../oss/gateway-protocol" }
 
 async-trait = "0.1"
 worker = "0.0.18"

@@ -2,7 +2,9 @@ use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
-use gateway_protocol::{ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest, VersionedRegistry};
+use gateway_protocol::{
+    ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest, LocalSpecificConfig, VersionedRegistry,
+};
 use grafbase_engine::{registry::resolvers::graphql, RequestHeaders, Response};
 use grafbase_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
 use worker::{Env, Fetcher};
@@ -26,7 +28,10 @@ const RAY_ID_HEADER: &str = "ray-id";
 pub struct LocalExecution;
 
 #[allow(unused_variables, clippy::expect_fun_call)]
-fn get_db_context(execution_request: &ExecutionRequest, env: &HashMap<String, String>) -> DynamoDBContext {
+fn get_db_context(
+    execution_request: &ExecutionRequest<gateway_protocol::LocalSpecificConfig>,
+    env: &HashMap<String, String>,
+) -> DynamoDBContext {
     #[cfg(not(feature = "sqlite"))]
     {
         return DynamoDBContext::new(
@@ -68,10 +73,11 @@ fn get_db_context(execution_request: &ExecutionRequest, env: &HashMap<String, St
 
 #[async_trait(? Send)]
 impl ExecutionEngine for LocalExecution {
+    type ConfigType = LocalSpecificConfig;
     type Fetcher = Fetcher;
-    type ExecutionRequest = ExecutionRequest;
+    type ExecutionRequest = ExecutionRequest<gateway_protocol::LocalSpecificConfig>;
     type ExecutionResponse = Response;
-    type HealthRequest = ExecutionHealthRequest;
+    type HealthRequest = ExecutionHealthRequest<gateway_protocol::LocalSpecificConfig>;
     type HealthResponse = ExecutionHealthResponse;
 
     #[allow(unused_mut, clippy::expect_fun_call)]
@@ -115,7 +121,7 @@ impl ExecutionEngine for LocalExecution {
     async fn execute(
         _fetch: Arc<Option<Fetcher>>,
         env: Arc<HashMap<String, String>>,
-        mut execution_request: ExecutionRequest,
+        mut execution_request: ExecutionRequest<gateway_protocol::LocalSpecificConfig>,
     ) -> ExecutionResult<Self::ExecutionResponse> {
         use worker::js_sys;
 
@@ -179,7 +185,7 @@ impl ExecutionEngine for LocalExecution {
 
     async fn health(
         _fetcher: Arc<Option<Fetcher>>,
-        _req: ExecutionHealthRequest,
+        _req: ExecutionHealthRequest<gateway_protocol::LocalSpecificConfig>,
     ) -> ExecutionResult<ExecutionHealthResponse> {
         Ok(ExecutionHealthResponse {
             deployment_id: "local".to_string(),

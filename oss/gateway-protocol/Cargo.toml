@@ -4,16 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aws-region-nearby = { workspace = true }
 rusoto_core = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_with = { workspace = true }
+strum = { workspace = true, features = ["derive"] }
 ulid = { workspace = true }
 worker = { workspace = true }
 
 grafbase-engine = { workspace = true }
 grafbase-types = { workspace = true }
-grafbase = { path = "../../common/grafbase", features = ["json"] }
 
 [dev-dependencies]
 serde_json = { version = "1", default-features = false }
