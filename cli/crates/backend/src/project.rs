@@ -1,4 +1,4 @@
-use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_SDL, DEFAULT_SCHEMA_TS, USER_AGENT, DEFAULT_RESOLVER};
+use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_SDL, DEFAULT_SCHEMA_TS, USER_AGENT, DEFAULT_HELLO_RESOLVER, DEFAULT_GRAVATAR_RESOLVER};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use async_tar::Archive;
@@ -153,8 +153,8 @@ pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), Back
 
 
             let default_resolver_files = [
-                ("hello.ts", DEFAULT_RESOLVER, BackendError::WriteDefaultHelloResolver),
-                ("gravatar.ts", DEFAULT_RESOLVER, BackendError::WriteDefaultGravatarResolver)
+                ("hello.ts", DEFAULT_HELLO_RESOLVER, BackendError::WriteDefaultHelloResolver),
+                ("gravatar.ts", DEFAULT_GRAVATAR_RESOLVER, BackendError::WriteDefaultGravatarResolver)
             ];
 
             for (file_name, file_contents, file_error) in default_resolver_files.iter() {
