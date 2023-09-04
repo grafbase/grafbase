@@ -2,10 +2,41 @@
 # Instant GraphQL APIs for your data
 # https://grafbase.com
 
-# TODO
+# TODO TIDY COMMENTS
 # MongoDB Connector (2 models)
-# OpenAPI Connector (header forwarding)
+extend schema
+  # @mongodb(
+  #   name: "MongoDB"
+  #   apiKey: "{{ env.MONGODB_API_KEY"
+  #   url: "{{ env.MONGODB_API_URL }}"
+  #   dataSource: "{{ env.MONGODB_DATASOURCE"
+  #   database: "{{ env.MONGODB_DATABASE"
+  # )
+  # @openapi(
+  #   name: "Stripe"
+  #   schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+  #   headers: [{ name: "Authorization", value: "{{ env.STRIPE_SECRET_KEY }}" }]
+  # )
+  # Public auth rule
+  @auth(rules: [{ allow: public }])
+  # Caching config
+  @cache(rules: [{ types: ["Query"], maxAge: 60, staleWhileRevalidate: 60 }]) {
+  query: Query
+}
+
 # Extended OpenAPI Connector (+ resolver)
+enum GravatarRating {
+  g
+  pg
+  r
+  x
+}
+
+extend type StripeCustomer {
+  gravatar(size: Int, defaultImage: URL, rating: GravatarRating, secure: Boolean): URL @resolver(name: "gravatar")
+}
+
 # Custom query resolver
-# Caching config
-# Public auth rule
+extend type Query {
+  hello(name: String): String! @resolver(name: "hello")
+}
