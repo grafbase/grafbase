@@ -33,6 +33,18 @@ pub enum BackendError {
     #[error("could not create a schema.graphql file\nCaused by: {0}")]
     WriteSchema(io::Error),
 
+    /// returned if a resolvers folder could not be created
+    #[error("could not create the folder resolvers\nCaused by: {0}")]
+    WriteDefaultResolverFolder(io::Error),
+
+    /// returned if a resolvers/hello.ts file could not be created
+    #[error("could not create the file resolvers/hello.ts\nCaused by: {0}")]
+    WriteDefaultHelloResolver(io::Error),
+
+    /// returned if a resolvers/gravatar.ts file could not be created
+    #[error("could not create the file resolvers/gravatar.ts\nCaused by: {0}")]
+    WriteDefaultGravatarResolver(io::Error),
+
     /// returned if a .env file could not be created
     #[error("could not create a .env file\nCaused by: {0}")]
     WriteEnvFile(io::Error),

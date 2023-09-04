@@ -1,10 +1,10 @@
-use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_SDL, DEFAULT_SCHEMA_TS, USER_AGENT};
+use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_SDL, DEFAULT_SCHEMA_TS, USER_AGENT, DEFAULT_RESOLVER};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use async_tar::Archive;
 use common::consts::{
     GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_SDK_PACKAGE_NAME,
-    GRAFBASE_SDK_PACKAGE_VERSION, GRAFBASE_TS_CONFIG_FILE_NAME,
+    GRAFBASE_SDK_PACKAGE_VERSION, GRAFBASE_TS_CONFIG_FILE_NAME, RESOLVERS_DIRECTORY_NAME
 };
 use common::environment::{self, Project};
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
@@ -149,6 +149,24 @@ pub async fn init(name: Option<&str>, template: Template<'_>) -> Result<(), Back
                 .map_err(BackendError::CreateGrafbaseDirectory)?;
 
             let dot_env_path = grafbase_path.join(GRAFBASE_ENV_FILE_NAME);
+            let resolvers_folder_path = grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
+
+
+            let default_resolver_files = [
+                ("hello.ts", DEFAULT_RESOLVER, BackendError::WriteDefaultHelloResolver),
+                ("gravatar.ts", DEFAULT_RESOLVER, BackendError::WriteDefaultGravatarResolver)
+            ];
+
+            for (file_name, file_contents, file_error) in default_resolver_files.iter() {
+                let file_path = resolvers_folder_path.join(file_name);
+                let _ = fs::write(&file_path, file_contents);
+                
+                // No way to map the error from the file_error
+                // Need to `match` each error perhaps and return?
+                // .map_err(file_error)?;
+            }
+
+            tokio::fs::create_dir(&resolvers_folder_path).await.map_err(BackendError::WriteDefaultResolverFolder)?;
 
             let schema_write_result = match config_type {
                 ConfigType::TypeScript => {
