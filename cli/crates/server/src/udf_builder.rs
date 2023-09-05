@@ -1,5 +1,6 @@
 use common::environment::Environment;
 use common::types::UdfKind;
+use std::io;
 
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
@@ -160,6 +161,11 @@ pub async fn build(
     let new_package_json_contents = serde_json::to_string_pretty(&package_json).expect("must be valid JSON");
     trace!("new package.json contents:\n{new_package_json_contents}");
 
+    // symlink to grafbase-wasm-sdk
+    symlink_grafbase_wasm_sdk(environment, &udf_build_artifact_directory_path)
+        .await
+        .map_err(UdfBuildError::SymlinkFailure)?;
+
     tokio::fs::write(&udf_build_package_json_path, new_package_json_contents)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
@@ -244,6 +250,9 @@ pub async fn build(
                 name = "{slugified_udf_name}"
                 [build.upload]
                 format = "modules"
+                [[build.upload.rules]]
+                type = "CompiledWasm"
+                globs = ["*.wasm"]
                 [miniflare]
                 routes = ["127.0.0.1/invoke"]
             "#,
@@ -253,6 +262,37 @@ pub async fn build(
     .map_err(UdfBuildError::CreateTemporaryFile)?;
 
     Ok((udf_build_package_json_path, wrangler_toml_file_path))
+}
+
+async fn symlink_grafbase_wasm_sdk(
+    environment: &Environment,
+    udf_build_artifact_directory_path: &Path,
+) -> io::Result<()> {
+    let grafbase_wasm_sdk_src = environment
+        .user_dot_grafbase_path
+        .join(crate::consts::GRAFBASE_WASM_SDK_PATH);
+    let grafbase_wasm_sdk_exists = grafbase_wasm_sdk_src.exists();
+    let grafbase_wasm_sdk_dst = udf_build_artifact_directory_path.join(crate::consts::GRAFBASE_WASM_SDK_NAME);
+    let udf_wasm_symlink_exists = grafbase_wasm_sdk_dst.exists();
+
+    let symlink_function = {
+        cfg_if::cfg_if! {
+            if #[cfg(unix)] {
+                move || std::os::unix::fs::symlink(grafbase_wasm_sdk_src, grafbase_wasm_sdk_dst)
+            }  else {
+                move || std::os::windows::fs::symlink_file(grafbase_wasm_sdk_src, grafbase_wasm_sdk_dst)
+            }
+        }
+    };
+
+    if !udf_wasm_symlink_exists && grafbase_wasm_sdk_exists {
+        return match tokio::task::spawn_blocking(symlink_function).await {
+            Ok(res) => res,
+            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "symlink os task failed")),
+        };
+    }
+
+    Ok(())
 }
 
 pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
