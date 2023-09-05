@@ -8,10 +8,8 @@ const storyblok = connector.GraphQL('Storyblok', {
   }
 })
 
-g.datasource(storyblok)
-
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(storyblok, { namespace: false })
+// Disabling namespace may cause conflicts with other connectors
+g.datasource(storyblok, { namespace: false })
 
 export default config({
   schema: g,
