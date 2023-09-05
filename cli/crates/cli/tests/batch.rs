@@ -159,7 +159,7 @@ fn batch_create() {
 
     // slug is unique
     assert!(!dot_get!(response, "errors", Vec<Value>).is_empty(), "{response:?}");
-    assert!(dot_get_opt!(response, "data", Value).is_none());
+    assert!(dot_get_opt!(response, "data.postCreateMany", Value).is_none());
     // Nothing was added
     assert_eq!(all_posts(&client), posts);
 
@@ -175,7 +175,7 @@ fn batch_create() {
 
     // author name is unique
     assert!(!dot_get!(response, "errors", Vec<Value>).is_empty(), "{response:?}");
-    assert!(dot_get_opt!(response, "data", Value).is_none());
+    assert!(dot_get_opt!(response, "data.postCreateMany", Value).is_none());
     // Nothing was added
     assert_eq!(all_posts(&client), posts);
 }
@@ -247,7 +247,7 @@ fn batch_update() {
         }))
         .send();
     assert!(!dot_get!(response, "errors", Vec<Value>).is_empty(), "{response:?}");
-    assert!(dot_get_opt!(response, "data", Value).is_none());
+    assert!(dot_get_opt!(response, "data.postUpdateMany", Value).is_none());
     // Nothing was updated
     assert_eq!(all_posts(&client), posts);
 
@@ -262,7 +262,7 @@ fn batch_update() {
         }))
         .send();
     assert!(!dot_get!(response, "errors", Vec<Value>).is_empty(), "{response:?}");
-    assert!(dot_get_opt!(response, "data", Value).is_none());
+    assert!(dot_get_opt!(response, "data.postUpdateMany", Value).is_none());
     // Nothing was updated
     assert_eq!(all_posts(&client), posts);
 
@@ -278,7 +278,7 @@ fn batch_update() {
         }))
         .send();
     assert!(!dot_get!(response, "errors", Vec<Value>).is_empty(), "{response:?}");
-    assert!(dot_get_opt!(response, "data", Value).is_none());
+    assert!(dot_get_opt!(response, "data.postUpdateMany", Value).is_none());
     // Nothing was updated
     assert_eq!(all_posts(&client), posts);
 }
