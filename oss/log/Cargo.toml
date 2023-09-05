@@ -17,7 +17,7 @@ futures-util = { workspace = true, features = [
 ] }
 log_ = { package = "log", version = "0.4" }
 maplit = "1"
-secrecy = { version = "0.8", features = ["alloc"] }
+secrecy = { workspace = true, features = ["alloc"] }
 serde = { workspace = true }
 strum = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }

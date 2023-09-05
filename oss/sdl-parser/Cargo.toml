@@ -21,7 +21,7 @@ if_chain = "1"
 itertools = { workspace = true }
 lazy_static = { workspace = true }
 regex = { workspace = true }
-secrecy = "0.8"
+secrecy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_with = { workspace = true }

@@ -5,10 +5,8 @@ use grafbase_engine::{
     parser::types::OperationDefinition,
     Positioned, Request, Response, ServerResult,
 };
-use grafbase_runtime::{
-    log::{LogEventReceiver, LogEventType, OperationType},
-    GraphqlRequestExecutionContext,
-};
+use grafbase_runtime::{log::LogEventReceiver, GraphqlRequestExecutionContext};
+use grafbase_types::{LogEventType, OperationType};
 
 pub struct RuntimeLogExtension {
     log_event_receiver: Arc<Box<dyn LogEventReceiver + Send + Sync>>,
@@ -56,7 +54,7 @@ impl Extension for RuntimeLogExtension {
                 .invoke(
                     request_id,
                     LogEventType::BadRequest {
-                        name: operation_name.as_deref(),
+                        name: operation_name.as_deref().map(From::from),
                         duration,
                     },
                 )
@@ -82,7 +80,12 @@ impl Extension for RuntimeLogExtension {
             .ray_id;
 
         self.log_event_receiver
-            .invoke(request_id, LogEventType::OperationStarted { name: operation_name })
+            .invoke(
+                request_id,
+                LogEventType::OperationStarted {
+                    name: operation_name.map(From::from),
+                },
+            )
             .await;
 
         let start = web_time::SystemTime::now();
@@ -102,7 +105,7 @@ impl Extension for RuntimeLogExtension {
             .invoke(
                 request_id,
                 LogEventType::OperationCompleted {
-                    name: operation_name,
+                    name: operation_name.map(From::from),
                     duration,
                     r#type: match response.operation_type {
                         ParserOperationType::Query => OperationType::Query {

@@ -13,7 +13,6 @@ keywords = ["runtime", "environment", "grafbase"]
 async-trait = "0.1"
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_with = { workspace = true }
 thiserror = { workspace = true }
 
 search-protocol = { path = "../search-protocol" }

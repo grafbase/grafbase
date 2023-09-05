@@ -1,28 +1,4 @@
-#[derive(serde::Serialize, Debug)]
-pub enum OperationType {
-    Query { is_introspection: bool },
-    Mutation,
-    Subscription,
-}
-
-#[serde_with::serde_as]
-#[derive(serde::Serialize, Debug)]
-pub enum LogEventType<'a> {
-    OperationStarted {
-        name: Option<&'a str>,
-    },
-    OperationCompleted {
-        name: Option<&'a str>,
-        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
-        duration: std::time::Duration,
-        r#type: OperationType,
-    },
-    BadRequest {
-        name: Option<&'a str>,
-        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
-        duration: std::time::Duration,
-    },
-}
+pub use grafbase_types::LogEventType;
 
 #[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
