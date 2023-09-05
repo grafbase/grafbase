@@ -54,9 +54,9 @@ impl grafbase_runtime::udf::UdfInvoker<CustomResolverRequestPayload> for RustUdf
 
 /// A trait for resolvers implemented in rust
 ///
-/// This is implemented for any Fn with the signature
-/// `Fn(CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError>`
-/// but users can also implement it by hand if they want.
+/// This is implemented for:
+/// - any Fn with the signature `Fn(CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError>`
+/// - CustomResolverResponse (if you just want to hard code a response)
 pub trait RustResolver: Send + Sync {
     fn invoke(&self, payload: CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError>;
 }
@@ -67,5 +67,11 @@ where
 {
     fn invoke(&self, payload: CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> {
         self(payload)
+    }
+}
+
+impl RustResolver for CustomResolverResponse {
+    fn invoke(&self, _: CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> {
+        Ok(self.clone())
     }
 }

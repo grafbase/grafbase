@@ -7,8 +7,8 @@
 //! set up an OpenAPI connector.  There's no real reason they need to.
 use std::net::SocketAddr;
 
-use grafbase_engine_integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
-use grafbase_runtime::udf::CustomResolverResponse;
+use grafbase_engine_integration_tests::{runtime, Engine, EngineBuilder, ResponseExt};
+
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -19,7 +19,7 @@ use wiremock::{
 fn aliases() {
     runtime().block_on(async {
         let mock_server = wiremock::MockServer::start().await;
-        let engine = build_engine(petstore_schema(mock_server.address())).await;
+        let engine = build_petstore_engine(petstore_schema(mock_server.address())).await;
 
         mock_doggo(&mock_server, 123, "Immediate Doggo").await;
         mock_doggo(&mock_server, 456, "Deferred Doggo").await;
@@ -64,35 +64,7 @@ fn aliases() {
     });
 }
 
-#[test]
-fn simple_custom_resolver() {
-    runtime().block_on(async {
-        let schema = r#"
-            extend type Query {
-                hello: String @resolver(name: "hello")
-            }
-        "#;
-        let engine = EngineBuilder::new(schema)
-            .with_custom_resolvers(
-                RustUdfs::new().resolver("hello", |_| Ok(CustomResolverResponse::Success(json!("world")))),
-            )
-            .build()
-            .await;
-
-        insta::assert_json_snapshot!(
-            engine.execute("query { hello }").await.into_value(),
-            @r###"
-        {
-          "data": {
-            "hello": "world"
-          }
-        }
-        "###
-        );
-    });
-}
-
-async fn build_engine(schema: String) -> Engine {
+async fn build_petstore_engine(schema: String) -> Engine {
     EngineBuilder::new(schema)
         .with_openapi_schema(
             "http://example.com/petstore.json",

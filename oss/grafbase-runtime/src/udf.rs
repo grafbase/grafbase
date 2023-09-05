@@ -21,7 +21,7 @@ pub struct UdfRequest<'a, P: Serialize> {
     pub udf_kind: UdfKind,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub enum CustomResolverResponse {
     Success(serde_json::Value),
     Error(String),

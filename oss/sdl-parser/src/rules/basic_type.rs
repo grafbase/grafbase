@@ -3,11 +3,21 @@
 //! When a basic type is stubble uppon on the definition of the schema, if it
 //! got no specialized behavior, we apply this behavior uppon it.
 //!
-use grafbase_engine::registry::{self, resolvers::transformer::Transformer, MetaField};
-use grafbase_engine_parser::types::TypeKind;
+use grafbase_engine::registry::{
+    self,
+    resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
+    MetaField,
+};
+use grafbase_engine_parser::{
+    types::{FieldDefinition, TypeKind},
+    Positioned,
+};
 use if_chain::if_chain;
 
-use super::visitor::{Visitor, VisitorContext};
+use super::{
+    resolver_directive::ResolverDirective,
+    visitor::{Visitor, VisitorContext},
+};
 use crate::{registry::add_input_type_non_primitive, rules::cache_directive::CacheDirective};
 
 pub struct BasicType;
@@ -33,8 +43,7 @@ impl<'a> Visitor<'a> for BasicType {
                         let name = field.name().to_string();
                         let mapped_name = field.mapped_name().map(ToString::to_string);
 
-                        let resolver_key = mapped_name.as_deref().unwrap_or(&name);
-                        let resolver = Transformer::select(resolver_key).into();
+                        let resolver = field_resolver(field, mapped_name.as_deref());
 
                         MetaField {
                             name: name.clone(),
@@ -62,4 +71,14 @@ impl<'a> Visitor<'a> for BasicType {
             }
         }
     }
+}
+
+fn field_resolver(field: &Positioned<FieldDefinition>, mapped_name: Option<&str>) -> Resolver {
+    if let Some(resolver_name) = ResolverDirective::resolver_name(&field.node) {
+        return Resolver::CustomResolver(CustomResolver {
+            resolver_name: resolver_name.to_owned(),
+        });
+    }
+
+    Transformer::select(mapped_name.unwrap_or_else(|| field.name())).into()
 }
