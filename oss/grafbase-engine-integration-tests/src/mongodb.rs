@@ -136,7 +136,6 @@ impl TestApi {
 
     async fn new_inner(database: &str, schema: String) -> Self {
         let engine = Engine::new(schema).await;
-
         let client = reqwest::Client::new();
 
         Self {

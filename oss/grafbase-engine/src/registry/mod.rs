@@ -29,6 +29,7 @@ use grafbase_types::auth::Operations;
 use graph_entities::NodeID;
 use indexmap::{map::IndexMap, set::IndexSet};
 use inflector::Inflector;
+use postgresql_types::database_definition::DatabaseDefinition;
 use serde::{Deserialize, Serialize};
 
 pub use self::{
@@ -1382,6 +1383,8 @@ pub struct Registry {
     #[serde(default)]
     pub http_headers: BTreeMap<String, ConnectorHeaders>,
     #[serde(default)]
+    pub postgres_databases: HashMap<String, DatabaseDefinition>,
+    #[serde(default)]
     pub search_config: grafbase_runtime::search::Config,
     #[serde(default)]
     pub enable_caching: bool,
@@ -1402,6 +1405,7 @@ impl Default for Registry {
             auth: Default::default(),
             mongodb_configurations: Default::default(),
             http_headers: Default::default(),
+            postgres_databases: Default::default(),
             search_config: Default::default(),
             enable_caching: false,
         }

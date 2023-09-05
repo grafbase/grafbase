@@ -34,6 +34,7 @@ use rules::{
     map_directive::MapDirective,
     model_directive::ModelDirective,
     mongodb_directive::{MongoDBModelDirective, MongoDBTypeDirective},
+    neon_directive::NeonVisitor,
     one_of_directive::OneOfDirective,
     openapi_directive::OpenApiVisitor,
     relations::{relations_rules, RelationEngine},
@@ -53,6 +54,7 @@ pub use rules::{
     cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
     graphql_directive::GraphqlDirective,
     mongodb_directive::MongoDBDirective,
+    neon_directive::NeonDirective,
     openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms},
 };
 
@@ -131,7 +133,8 @@ pub async fn parse<'a>(
         .with::<OpenApiDirective>()
         .with::<GraphqlDirective>()
         .with::<CacheDirective>()
-        .with::<MongoDBDirective>();
+        .with::<MongoDBDirective>()
+        .with::<NeonDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -177,7 +180,8 @@ async fn parse_connectors<'a>(
     let mut connector_rules = rules::visitor::VisitorNil
         .with(OpenApiVisitor)
         .with(GraphqlVisitor)
-        .with(MongoDBVisitor);
+        .with(MongoDBVisitor)
+        .with(NeonVisitor);
 
     visit(&mut connector_rules, ctx, schema);
 
@@ -213,6 +217,15 @@ async fn parse_connectors<'a>(
         }
     }
 
+    for (directive, position) in std::mem::take(&mut ctx.neon_directives) {
+        match connector_parsers.fetch_and_parse_neon(&directive).await {
+            Ok(registry) => {
+                connector_parsers::merge_registry(ctx, registry, position);
+            }
+            Err(errors) => return Err(Error::ConnectorErrors(directive.name().to_string(), errors, position)),
+        }
+    }
+
     Ok(())
 }
 
@@ -230,6 +243,11 @@ fn validate_unique_names(ctx: &VisitorContext<'_>) -> Result<(), Error> {
     }
 
     for (directive, position) in &ctx.mongodb_directives {
+        let names = names.entry(directive.name()).or_insert(Vec::new());
+        names.push(*position);
+    }
+
+    for (directive, position) in &ctx.neon_directives {
         let names = names.entry(directive.name()).or_insert(Vec::new());
         names.push(*position);
     }

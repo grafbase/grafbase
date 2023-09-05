@@ -1,5 +1,5 @@
 ---
-source: common/grafbase_engine/src/registry/introspection.rs
+source: oss/grafbase-engine/src/registry/introspection.rs
 expression: "Registry::from(schema)"
 ---
 {
@@ -3109,6 +3109,7 @@ expression: "Registry::from(schema)"
   },
   "mongodb_configurations": {},
   "http_headers": {},
+  "postgres_databases": {},
   "search_config": {
     "indices": {}
   },

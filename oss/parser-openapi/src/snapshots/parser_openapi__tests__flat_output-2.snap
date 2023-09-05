@@ -1,5 +1,5 @@
 ---
-source: common/parser-openapi/src/lib.rs
+source: oss/parser-openapi/src/lib.rs
 expression: registry
 ---
 Registry {
@@ -2074,6 +2074,7 @@ Registry {
             [],
         ),
     },
+    postgres_databases: {},
     search_config: Config {
         indices: {},
     },

@@ -7,7 +7,10 @@ use grafbase_engine::{
 };
 use grafbase_engine_parser::types::TypeDefinition;
 
-use crate::{rules::visitor::VisitorContext, GraphqlDirective, OpenApiDirective};
+use crate::{
+    rules::{neon_directive::NeonDirective, visitor::VisitorContext},
+    GraphqlDirective, OpenApiDirective,
+};
 
 /// Provides the connector sub-parsers to the parsing process.
 ///
@@ -18,6 +21,7 @@ use crate::{rules::visitor::VisitorContext, GraphqlDirective, OpenApiDirective};
 pub trait ConnectorParsers: Sync + Send {
     async fn fetch_and_parse_openapi(&self, directive: OpenApiDirective) -> Result<Registry, Vec<String>>;
     async fn fetch_and_parse_graphql(&self, directive: GraphqlDirective) -> Result<Registry, Vec<String>>;
+    async fn fetch_and_parse_neon(&self, directive: &NeonDirective) -> Result<Registry, Vec<String>>;
 }
 
 /// A mock impl of the Connectors trait for tests and when we don't really care about
@@ -26,6 +30,7 @@ pub trait ConnectorParsers: Sync + Send {
 pub struct MockConnectorParsers {
     pub(crate) openapi_directives: Mutex<Vec<OpenApiDirective>>,
     pub(crate) graphql_directives: Mutex<Vec<GraphqlDirective>>,
+    pub(crate) neon_directives: Mutex<Vec<NeonDirective>>,
 }
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
@@ -39,6 +44,12 @@ impl ConnectorParsers for MockConnectorParsers {
 
     async fn fetch_and_parse_graphql(&self, directive: GraphqlDirective) -> Result<Registry, Vec<String>> {
         self.graphql_directives.lock().unwrap().push(directive);
+
+        Ok(Registry::new())
+    }
+
+    async fn fetch_and_parse_neon(&self, directive: &NeonDirective) -> Result<Registry, Vec<String>> {
+        self.neon_directives.lock().unwrap().push(directive.clone());
 
         Ok(Registry::new())
     }

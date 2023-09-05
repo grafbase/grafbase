@@ -94,6 +94,7 @@ expression: req_string_a
   "implements": {},
   "mongodb_configurations": {},
   "mutation_type": "Mutation",
+  "postgres_databases": {},
   "query_type": "Query",
   "search_config": {
     "indices": {}

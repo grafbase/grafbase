@@ -81,7 +81,7 @@ mod tests {
     use grafbase_engine::registry::{self, MetaField, Registry};
     use serde_json as _;
 
-    use crate::{ConnectorParsers, GraphqlDirective, OpenApiDirective};
+    use crate::{rules::neon_directive::NeonDirective, ConnectorParsers, GraphqlDirective, OpenApiDirective};
 
     #[test]
     fn test_connector_models_can_be_extended() {
@@ -181,7 +181,11 @@ mod tests {
         }
 
         async fn fetch_and_parse_graphql(&self, _directive: GraphqlDirective) -> Result<Registry, Vec<String>> {
-            Err(vec![])
+            Err(Vec::new())
+        }
+
+        async fn fetch_and_parse_neon(&self, _: &NeonDirective) -> Result<Registry, Vec<String>> {
+            Err(Vec::new())
         }
     }
 }

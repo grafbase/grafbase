@@ -20,6 +20,7 @@ pub mod length_directive;
 pub mod map_directive;
 pub mod model_directive;
 pub mod mongodb_directive;
+pub mod neon_directive;
 pub mod one_of_directive;
 pub mod openapi_directive;
 pub mod relations;

@@ -118,7 +118,7 @@ impl Directive for MongoDBDirective {
 
           """
           If true, namespaces queries and mutations with the
-          connector name.
+          connector name. Defaults to true.
           """
           namespace: Boolean
         ) on SCHEMA

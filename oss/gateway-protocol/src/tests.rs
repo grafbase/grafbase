@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 
 use crate::customer_deployment_config::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};
 
-const EXPECTED_SHA: &str = "c46d25099cbf7711bc765cb67b4121803631311a06c66a417546270459028997";
+const EXPECTED_SHA: &str = "e59411b4671634d0e30c49df8817b98daa597fff6de4c2da77b80ccc21876b3c";
 
 #[test]
 fn test_serde_roundtrip() {

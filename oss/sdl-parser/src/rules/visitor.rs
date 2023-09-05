@@ -21,7 +21,7 @@ use grafbase_engine_parser::types::{
 use grafbase_engine_value::ConstValue;
 use grafbase_types::UdfKind;
 
-use super::{graphql_directive::GraphqlDirective, openapi_directive::OpenApiDirective};
+use super::{graphql_directive::GraphqlDirective, neon_directive::NeonDirective, openapi_directive::OpenApiDirective};
 use crate::{
     rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
     MongoDBDirective, ParseResult,
@@ -63,6 +63,7 @@ pub struct VisitorContext<'a> {
     pub(crate) openapi_directives: Vec<(OpenApiDirective, Pos)>,
     pub(crate) graphql_directives: Vec<(GraphqlDirective, Pos)>,
     pub(crate) mongodb_directives: Vec<(MongoDBDirective, Pos)>,
+    pub(crate) neon_directives: Vec<(NeonDirective, Pos)>,
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
 }
 
@@ -160,6 +161,7 @@ impl<'a> VisitorContext<'a> {
             openapi_directives: Vec::new(),
             graphql_directives: Vec::new(),
             mongodb_directives: Vec::new(),
+            neon_directives: Vec::new(),
             global_cache_rules: Default::default(),
         }
     }

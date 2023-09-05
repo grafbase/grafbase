@@ -1,15 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
-
+use super::Inner;
+use crate::Engine;
 use grafbase_engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use grafbase_runtime::{
     udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker},
     GraphqlRequestExecutionContext,
 };
-use sdl_parser::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, Registry};
-
-use crate::Engine;
-
-use super::Inner;
+use postgresql_types::transport::NeonTransport;
+use sdl_parser::{ConnectorParsers, GraphqlDirective, NeonDirective, OpenApiDirective, ParseResult, Registry};
+use std::{collections::HashMap, sync::Arc};
 
 #[must_use]
 pub struct EngineBuilder {
@@ -101,5 +99,13 @@ impl ConnectorParsers for EngineBuilder {
 
     async fn fetch_and_parse_graphql(&self, _directive: GraphqlDirective) -> Result<Registry, Vec<String>> {
         todo!("someone should implement this sometime, similar to the above")
+    }
+
+    async fn fetch_and_parse_neon(&self, directive: &NeonDirective) -> Result<Registry, Vec<String>> {
+        let transport = NeonTransport::new(directive.postgresql_url()).map_err(|error| vec![error.to_string()])?;
+
+        parser_postgresql::introspect(&transport, directive.name(), directive.namespace())
+            .await
+            .map_err(|error| vec![error.to_string()])
     }
 }
