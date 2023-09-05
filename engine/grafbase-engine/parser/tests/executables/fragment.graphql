@@ -1,0 +1,7 @@
+fragment frag on Friend {
+  __typename
+  node
+}
+{
+  __typename
+}

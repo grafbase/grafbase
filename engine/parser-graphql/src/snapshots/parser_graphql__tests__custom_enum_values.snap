@@ -1,0 +1,19 @@
+---
+source: common/parser-graphql/src/lib.rs
+expression: result
+---
+"""
+Amenities available near a station
+"""
+enum Amenities {
+	GB_BLOCK_POST_GRID_LANDSCAPE
+	THUMBNAIL
+	_2048X2048
+	_1536X1536
+}
+type Query {
+}
+schema {
+	query: Query
+}
+
