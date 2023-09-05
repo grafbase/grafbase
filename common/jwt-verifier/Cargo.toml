@@ -8,7 +8,7 @@ edition = "2021"
 futures-util = { workspace = true }
 json_dotpath = "1"
 jwt-compact = { workspace = true, features = ["clock", "rsa"] }
-secrecy = "0.8"
+secrecy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
