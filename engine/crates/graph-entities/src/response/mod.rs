@@ -487,6 +487,10 @@ impl ResponsePrimitive {
     pub fn new(value: CompactValue) -> Box<Self> {
         Box::new(ResponsePrimitive(value))
     }
+
+    pub fn is_null(&self) -> bool {
+        matches!(self.0, CompactValue::Null)
+    }
 }
 
 impl Default for ResponsePrimitive {

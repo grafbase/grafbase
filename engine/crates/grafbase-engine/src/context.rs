@@ -520,6 +520,11 @@ impl<'a, T> ContextBase<'a, T> {
 
     #[doc(hidden)]
     pub fn set_error_path(&self, error: ServerError) -> ServerError {
+        if !error.path.is_empty() {
+            // If the error already has a path we don't want to overwrite it.
+            return error;
+        }
+
         if let Some(node) = self.path_node {
             let path = node.to_owned_segments();
             ServerError { path, ..error }
