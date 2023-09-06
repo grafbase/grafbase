@@ -4,8 +4,7 @@ use std::{
     any::{Any, TypeId},
     borrow::Cow,
     collections::{hash_map::Entry, HashMap, HashSet},
-    fmt::{self, Debug, Display, Formatter, Write},
-    hash::Hash,
+    fmt::{self, Debug, Formatter},
     ops::Deref,
     sync::{Arc, Mutex, RwLock},
 };
@@ -20,25 +19,22 @@ use http::{
     header::{AsHeaderName, HeaderMap, IntoHeaderName},
     HeaderValue,
 };
-use serde::{
-    de::DeserializeOwned,
-    ser::{SerializeSeq, Serializer},
-    Serialize,
-};
+use serde::de::DeserializeOwned;
 use ulid::Ulid;
 
 use crate::{
     deferred::DeferredWorkloadSender,
     extensions::Extensions,
     parser::types::{Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
+    query_path::{QueryPath, QueryPathSegment},
     registry::{
         relations::MetaRelation, type_kinds::InputType, variables::VariableResolveDefinition, MetaType,
         MongoDBConfiguration, Registry, TypeReference,
     },
     resolver_utils::{resolve_input, InputResolveMode},
     schema::SchemaEnv,
-    CacheInvalidation, Error, LegacyInputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
-    ServerResult, UploadValue, Value,
+    CacheInvalidation, Error, LegacyInputType, Lookahead, Name, Pos, Positioned, Result, ServerError, ServerResult,
+    UploadValue, Value,
 };
 
 pub(crate) use self::resolver_chain::ResolverChainNode;
@@ -165,171 +161,14 @@ pub type Context<'a> = ContextBase<'a, &'a Positioned<Field>>;
 /// Context object for execute directive.
 pub type ContextDirective<'a> = ContextBase<'a, &'a Positioned<Directive>>;
 
-/// A segment in the path to the current query.
-///
-/// This is a borrowed form of [`PathSegment`](enum.PathSegment.html) used during execution instead
-/// of passed back when errors occur.
-#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum QueryPathSegment<'a> {
-    /// We are currently resolving an element in a list.
-    Index(usize),
-    /// We are currently resolving a field in an object.
-    Name(&'a str),
-}
-
-/// A path to the current query.
-///
-/// The path is stored as a kind of reverse linked list.
-#[derive(Debug, Clone, Copy)]
-pub struct QueryPathNode<'a> {
-    /// The parent node to this, if there is one.
-    pub parent: Option<&'a QueryPathNode<'a>>,
-
-    /// The current path segment being resolved.
-    pub segment: QueryPathSegment<'a>,
-}
-
-impl<'a> serde::Serialize for QueryPathNode<'a> {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut seq = serializer.serialize_seq(None)?;
-        self.try_for_each(|segment| seq.serialize_element(segment))?;
-        seq.end()
-    }
-}
-
-impl<'a> Display for QueryPathNode<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut first = true;
-        self.try_for_each(|segment| {
-            if !first {
-                write!(f, ".")?;
-            }
-            first = false;
-
-            match segment {
-                QueryPathSegment::Index(idx) => write!(f, "{}", *idx),
-                QueryPathSegment::Name(name) => write!(f, "{name}"),
-            }
-        })
-    }
-}
-
-impl<'a> QueryPathNode<'a> {
-    /// Convert the path to a JSON Pointer
-    pub fn to_json_pointer(&self) -> String {
-        let mut result = String::new();
-        let mut first = true;
-        self.try_for_each(|segment| {
-            if !first {
-                write!(&mut result, "/").expect("Shouldn't fail");
-            }
-            first = false;
-
-            match segment {
-                QueryPathSegment::Index(idx) => write!(&mut result, "{}", *idx),
-                QueryPathSegment::Name(name) => write!(&mut result, "{name}"),
-            }
-        })
-        .expect("Shouldn't fail");
-        result
-    }
-
-    /// Get the current field name.
-    ///
-    /// This traverses all the parents of the node until it finds one that is a field name.
-    pub fn field_name(&self) -> &str {
-        std::iter::once(self)
-            .chain(self.parents())
-            .find_map(|node| match node.segment {
-                QueryPathSegment::Name(name) => Some(name),
-                QueryPathSegment::Index(_) => None,
-            })
-            .unwrap()
-    }
-
-    /// Get the path represented by `Vec<String>`; numbers will be stringified.
-    #[must_use]
-    pub fn to_string_vec(self) -> Vec<String> {
-        let mut res = Vec::new();
-        self.for_each(|s| {
-            res.push(match s {
-                QueryPathSegment::Name(name) => (*name).to_string(),
-                QueryPathSegment::Index(idx) => idx.to_string(),
-            });
-        });
-        res
-    }
-
-    /// Iterate over the parents of the node.
-    pub fn parents(&self) -> Parents<'_> {
-        Parents(self)
-    }
-
-    pub(crate) fn for_each<F: FnMut(&QueryPathSegment<'a>)>(&self, mut f: F) {
-        let _ = self.try_for_each::<std::convert::Infallible, _>(|segment| {
-            f(segment);
-            Ok(())
-        });
-    }
-
-    pub(crate) fn try_for_each<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(&self, mut f: F) -> Result<(), E> {
-        self.try_for_each_ref(&mut f)
-    }
-
-    fn try_for_each_ref<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(&self, f: &mut F) -> Result<(), E> {
-        if let Some(parent) = &self.parent {
-            parent.try_for_each_ref(f)?;
-        }
-        f(&self.segment)
-    }
-
-    pub fn to_owned_segments(&self) -> Vec<PathSegment> {
-        let mut path = Vec::new();
-        self.for_each(|current_node| {
-            path.push(match current_node {
-                QueryPathSegment::Name(name) => PathSegment::Field((*name).to_string()),
-                QueryPathSegment::Index(idx) => PathSegment::Index(*idx),
-            })
-        });
-        path
-    }
-}
-
-/// An iterator over the parents of a [`QueryPathNode`](struct.QueryPathNode.html).
-#[derive(Debug, Clone)]
-pub struct Parents<'a>(&'a QueryPathNode<'a>);
-
-impl<'a> Parents<'a> {
-    /// Get the current query path node, which the next call to `next` will get the parents of.
-    #[must_use]
-    pub fn current(&self) -> &'a QueryPathNode<'a> {
-        self.0
-    }
-}
-
-impl<'a> Iterator for Parents<'a> {
-    type Item = &'a QueryPathNode<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let parent = self.0.parent;
-        if let Some(parent) = parent {
-            self.0 = parent;
-        }
-        parent
-    }
-}
-
-impl<'a> std::iter::FusedIterator for Parents<'a> {}
-
 /// Query context.
 ///
 /// **This type is not stable and should not be used directly.**
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub struct ContextBase<'a, T> {
-    /// The current path node being resolved.
-    pub path_node: Option<QueryPathNode<'a>>,
+    /// The current path being resolved.
+    pub path: QueryPath,
     /// The current resolver path being resolved.
     pub resolver_node: Option<ResolverChainNode<'a>>,
     #[doc(hidden)]
@@ -395,13 +234,12 @@ impl QueryEnv {
     pub fn create_context<'a, T>(
         &'a self,
         schema_env: &'a SchemaEnv,
-        path_node: Option<QueryPathNode<'a>>,
         resolver_node: Option<ResolverChainNode<'a>>,
         item: T,
         deferred_workloads: Option<DeferredWorkloadSender>,
     ) -> ContextBase<'a, T> {
         ContextBase {
-            path_node,
+            path: QueryPath::empty(),
             resolver_node,
             item,
             schema_env,
@@ -477,14 +315,13 @@ impl<'a, T> ContextBase<'a, T> {
 
         let meta = meta_field.and_then(|field| registry.types.get(field.ty.named_type().as_str()));
 
+        let mut path = self.path.clone();
+        path.push(field.node.response_key().node.as_str());
+
         ContextBase {
-            path_node: Some(QueryPathNode {
-                parent: self.path_node.as_ref(),
-                segment: QueryPathSegment::Name(&field.node.response_key().node),
-            }),
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
-                segment: QueryPathSegment::Name(&field.node.response_key().node),
+                segment: path.last_segment().unwrap().clone(),
                 ty: meta,
                 field: meta_field,
                 executable_field: Some(field),
@@ -492,6 +329,7 @@ impl<'a, T> ContextBase<'a, T> {
                 execution_id: Ulid::from_datetime(self.query_env.current_datetime.clone().into()),
                 selections,
             }),
+            path,
             item: field,
             schema_env: self.schema_env,
             query_env: self.query_env,
@@ -507,7 +345,7 @@ impl<'a, T> ContextBase<'a, T> {
         selection_set: &'a Positioned<SelectionSet>,
     ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
-            path_node: self.path_node,
+            path: self.path.clone(),
             resolver_node: self.resolver_node.clone(),
             item: selection_set,
             schema_env: self.schema_env,
@@ -525,11 +363,9 @@ impl<'a, T> ContextBase<'a, T> {
             return error;
         }
 
-        if let Some(node) = self.path_node {
-            let path = node.to_owned_segments();
-            ServerError { path, ..error }
-        } else {
-            error
+        ServerError {
+            path: self.path.iter_segments().cloned().collect(),
+            ..error
         }
     }
 
@@ -755,14 +591,12 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
         idx: usize,
         selections: Option<&'a SelectionSet>,
     ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
+        let mut path = self.path.clone();
+        path.push(QueryPathSegment::Index(idx));
         ContextBase {
-            path_node: Some(QueryPathNode {
-                parent: self.path_node.as_ref(),
-                segment: QueryPathSegment::Index(idx),
-            }),
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
-                segment: QueryPathSegment::Index(idx),
+                segment: path.last_segment().cloned().unwrap(),
                 field: self.resolver_node.as_ref().and_then(|x| x.field),
                 executable_field: self.resolver_node.as_ref().and_then(|x| x.executable_field),
                 ty: self.resolver_node.as_ref().and_then(|x| x.ty),
@@ -770,6 +604,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
                 execution_id: Ulid::from_datetime(self.query_env.current_datetime.clone().into()),
                 selections,
             }),
+            path,
             item: self.item,
             schema_env: self.schema_env,
             query_env: self.query_env,

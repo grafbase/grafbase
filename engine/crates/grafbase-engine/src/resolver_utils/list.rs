@@ -18,7 +18,7 @@ use crate::{
 /// Resolve a list by executing each of the items concurrently.
 pub async fn resolve_list<'a>(
     ctx: ContextSelectionSet<'a>,
-    field: &Positioned<Field>,
+    field: &'a Positioned<Field>,
     field_ty: &MetaFieldType,
     inner_ty: &'a MetaType,
     value: ResolvedValue,
@@ -157,7 +157,7 @@ fn apply_extensions<'a>(
             .collect();
 
         let resolve_info = ResolveInfo {
-            path_node: ctx.path_node.as_ref().unwrap(),
+            path: ctx.path.clone(),
             parent_type: &parent_type,
             return_type: &return_type,
             name: field.node.name.node.as_str(),
@@ -251,7 +251,7 @@ pub async fn resolve_list_native<'a, T: LegacyOutputType + 'a>(
                         .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
 
                     let resolve_info = ResolveInfo {
-                        path_node: ctx_idx.path_node.as_ref().unwrap(),
+                        path: ctx_idx.path.clone(),
                         parent_type: &Vec::<T>::type_name(),
                         return_type: &T::qualified_type_name(),
                         name: field.node.name.node.as_str(),

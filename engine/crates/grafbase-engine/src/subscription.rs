@@ -7,7 +7,7 @@ use crate::{
     parser::types::{Selection, TypeCondition},
     registry,
     registry::Registry,
-    Context, ContextSelectionSet, PathSegment, Response, ServerError, ServerResult,
+    Context, ContextSelectionSet, Response, ServerError, ServerResult,
 };
 
 /// A GraphQL subscription object
@@ -57,7 +57,7 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
                         }
                     } else {
                         let err = ServerError::new(format!(r#"Cannot query field "{}" on type "{}"."#, field_name, T::type_name()), Some(ctx.item.pos))
-                            .with_path(vec![PathSegment::Field(field_name.to_string())]);
+                            .with_path(vec![field_name.as_str().into()]);
                         yield Response::from_errors(vec![err], OperationType::Subscription);
                     }
                 }

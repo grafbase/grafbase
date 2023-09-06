@@ -8,14 +8,14 @@ use ulid::Ulid;
 
 use crate::{
     registry::{resolvers::ResolvedValue, NamedType},
-    ContextSelectionSet, Error, PathSegment, QueryEnv, QueryPathSegment, ResolverChainNode, SchemaEnv,
+    ContextSelectionSet, Error, QueryEnv, QueryPath, ResolverChainNode, SchemaEnv,
 };
 
 #[derive(Debug)]
 pub struct DeferredWorkload {
     pub label: Option<String>,
     selection_set: Positioned<SelectionSet>,
-    pub path: Vec<PathSegment>,
+    pub path: QueryPath,
     current_type_name: NamedType<'static>,
     pub parent_resolver_value: Option<ResolvedValue>,
 }
@@ -23,7 +23,7 @@ pub struct DeferredWorkload {
 impl DeferredWorkload {
     pub fn new(
         selection_set: Positioned<SelectionSet>,
-        path: Vec<PathSegment>,
+        path: QueryPath,
         current_type_name: NamedType<'static>,
         parent_resolver_value: Option<ResolvedValue>,
     ) -> Self {
@@ -43,15 +43,14 @@ impl DeferredWorkload {
         deferred_workloads: DeferredWorkloadSender,
     ) -> ContextSelectionSet<'a> {
         ContextSelectionSet {
-            // Ok, all this stuff is a massive PITA
-            path_node: None, // TODO: This needs to be set for errors to work properly...
+            path: self.path.clone(),
             resolver_node: Some(ResolverChainNode {
-                parent: None, // This will break anyone looking too far up the chain, but I don't think we care.
                 segment: self
                     .path
-                    .last()
-                    .expect("there to always be a path")
-                    .to_query_path_segment(),
+                    .last_segment()
+                    .cloned()
+                    .expect("to always have one path element"),
+                parent: None,
                 field: None,
                 executable_field: None,
                 ty: Some(
@@ -70,15 +69,6 @@ impl DeferredWorkload {
             resolvers_data: Default::default(),
             response_graph: Arc::new(RwLock::new(QueryResponse::default())),
             deferred_workloads: Some(deferred_workloads),
-        }
-    }
-}
-
-impl PathSegment {
-    pub fn to_query_path_segment(&self) -> QueryPathSegment<'_> {
-        match self {
-            PathSegment::Field(name) => QueryPathSegment::Name(name.as_str()),
-            PathSegment::Index(index) => QueryPathSegment::Index(*index),
         }
     }
 }

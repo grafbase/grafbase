@@ -1,7 +1,7 @@
 use graph_entities::QueryResponse;
 use serde::ser::SerializeMap;
 
-use crate::{PathSegment, Response, ServerError};
+use crate::{QueryPath, Response, ServerError};
 
 /// If a user makes a streaming request, this is the set of different response payloads
 /// they can received.  The first payload will always be a `Response` - followed by
@@ -36,7 +36,7 @@ impl serde::Serialize for StreamingPayload {
 pub struct IncrementalPayload {
     pub label: Option<String>,
     pub data: QueryResponse,
-    pub path: Vec<PathSegment>,
+    pub path: QueryPath,
     pub has_next: bool,
     pub errors: Vec<ServerError>,
 }
@@ -72,7 +72,7 @@ impl serde::Serialize for GraphqlIncrementalPayload<'_> {
         // 2. It calls `self.0.data.as_graphql_data()`
         let mut map = serializer.serialize_map(Some(5))?;
         map.serialize_entry("data", &self.0.data.as_graphql_data())?;
-        map.serialize_entry("path", &self.0.path)?;
+        map.serialize_entry("path", &self.0.path.iter_segments().collect::<Vec<_>>())?;
         map.serialize_entry("hasNext", &self.0.has_next)?;
         if let Some(label) = &self.0.label {
             map.serialize_entry("label", &label)?;

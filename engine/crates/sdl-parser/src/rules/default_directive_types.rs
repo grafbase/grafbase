@@ -1,4 +1,4 @@
-use grafbase_engine::Positioned;
+use grafbase_engine::{Positioned, QueryPath};
 use grafbase_engine_parser::types::{FieldDefinition, TypeDefinition};
 
 use super::{
@@ -52,10 +52,7 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
                         &ctx_registry,
                         &field.node.ty.node.to_string(),
                         &default_value,
-                        grafbase_engine::QueryPathNode {
-                            parent: None,
-                            segment: grafbase_engine::QueryPathSegment::Name(&field.node.name.node),
-                        },
+                        QueryPath::empty().child(field.node.name.node.as_str()),
                     )
                 };
                 if let Some(err) = error {

@@ -1,5 +1,3 @@
-use std::fmt::{self, Debug, Display, Formatter};
-
 use grafbase_engine_parser::{
     types::{Field, SelectionSet},
     Positioned,
@@ -8,7 +6,7 @@ use ulid::Ulid;
 
 use crate::{
     registry::{resolvers::Resolver, MetaField, MetaType},
-    QueryPathSegment, Result,
+    QueryPathSegment,
 };
 
 /// Holds some metadata about the current node in the query.
@@ -23,7 +21,7 @@ pub struct ResolverChainNode<'a> {
     pub parent: Option<&'a ResolverChainNode<'a>>,
 
     /// The current path segment being resolved.
-    pub segment: QueryPathSegment<'a>,
+    pub segment: QueryPathSegment,
 
     /// The current field being resolved if we know it.
     pub field: Option<&'a MetaField>,
@@ -46,6 +44,7 @@ pub struct ResolverChainNode<'a> {
     pub resolver: Option<&'a Resolver>,
 }
 
+#[cfg(isthisneeded)]
 impl<'a> Display for ResolverChainNode<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut first = true;
@@ -57,7 +56,7 @@ impl<'a> Display for ResolverChainNode<'a> {
 
             match segment {
                 QueryPathSegment::Index(idx) => write!(f, "{}", *idx),
-                QueryPathSegment::Name(name) => write!(f, "{name}"),
+                QueryPathSegment::Field(name) => write!(f, "{name}"),
             }
         })
     }
@@ -77,8 +76,8 @@ impl<'a> ResolverChainNode<'a> {
     pub fn field_name(&self) -> &str {
         std::iter::once(self)
             .chain(self.parents())
-            .find_map(|node| match node.segment {
-                QueryPathSegment::Name(name) => Some(name),
+            .find_map(|node| match &node.segment {
+                QueryPathSegment::Field(name) => Some(name.as_str()),
                 QueryPathSegment::Index(_) => None,
             })
             .unwrap()
@@ -96,17 +95,6 @@ impl<'a> ResolverChainNode<'a> {
     /// Iterate over the parents of the node.
     pub fn parents(&self) -> ResolversParents<'_> {
         ResolversParents(self)
-    }
-
-    pub(crate) fn try_for_each<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(&self, mut f: F) -> Result<(), E> {
-        self.try_for_each_ref(&mut f)
-    }
-
-    fn try_for_each_ref<E, F: FnMut(&QueryPathSegment<'a>) -> Result<(), E>>(&self, f: &mut F) -> Result<(), E> {
-        if let Some(parent) = &self.parent {
-            parent.try_for_each_ref(f)?;
-        }
-        f(&self.segment)
     }
 }
 

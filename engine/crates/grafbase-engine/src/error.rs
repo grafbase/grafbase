@@ -9,7 +9,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{parser, LegacyInputType, Pos, Value};
+use crate::{parser, LegacyInputType, Pos, QueryPathSegment, Value};
 
 /// Extensions to the error.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -41,7 +41,7 @@ pub struct ServerError {
     pub locations: Vec<Pos>,
     /// If the error occurred in a resolver, the path to the error.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub path: Vec<PathSegment>,
+    pub path: Vec<QueryPathSegment>,
     /// Extensions to the error.
     #[serde(skip_serializing_if = "error_extensions_is_empty", default)]
     pub extensions: Option<ErrorExtensionValues>,
@@ -124,7 +124,7 @@ impl ServerError {
 
     #[doc(hidden)]
     #[must_use]
-    pub fn with_path(self, path: Vec<PathSegment>) -> Self {
+    pub fn with_path(self, path: Vec<QueryPathSegment>) -> Self {
         Self { path, ..self }
     }
 }
@@ -151,19 +151,6 @@ impl From<parser::Error> for ServerError {
             extensions: None,
         }
     }
-}
-
-/// A segment of path to a resolver.
-///
-/// This is like [`QueryPathSegment`](enum.QueryPathSegment.html), but owned and used as a part of
-/// errors instead of during execution.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum PathSegment {
-    /// A field in an object.
-    Field(String),
-    /// An index in a list.
-    Index(usize),
 }
 
 /// Alias for `Result<T, ServerError>`.

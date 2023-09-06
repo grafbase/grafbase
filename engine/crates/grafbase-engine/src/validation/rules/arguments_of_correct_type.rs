@@ -2,14 +2,13 @@ use grafbase_engine_value::Value;
 use indexmap::map::IndexMap;
 
 use crate::{
-    context::QueryPathNode,
     parser::types::{Directive, Field},
     registry::MetaInputValue,
     validation::{
         utils::is_valid_input_value,
         visitor::{Visitor, VisitorContext},
     },
-    Name, Positioned, QueryPathSegment,
+    Name, Positioned, QueryPath,
 };
 
 #[derive(Default)]
@@ -49,15 +48,10 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
                 .ok();
 
             if let Some(reason) = value.and_then(|value| {
-                is_valid_input_value(
-                    ctx.registry,
-                    arg.ty.as_str(),
-                    &value,
-                    QueryPathNode {
-                        parent: None,
-                        segment: QueryPathSegment::Name(&arg.name),
-                    },
-                )
+                let mut query_path = QueryPath::empty();
+                query_path.push(arg.name.as_str());
+
+                is_valid_input_value(ctx.registry, arg.ty.as_str(), &value, query_path)
             }) {
                 ctx.report_error(vec![name.pos], format!("Invalid value for argument {reason}"));
             }

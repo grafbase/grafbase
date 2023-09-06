@@ -12,8 +12,8 @@ use grafbase_types::auth::Operations;
 use graph_entities::ResponseNodeId;
 
 use crate::{
-    parser::types::ExecutableDocument, registry::MetaFieldType, Data, DataContext, Error, QueryPathNode, Request,
-    Response, Result, SchemaEnv, ServerError, ServerResult, ValidationResult, Value, Variables,
+    parser::types::ExecutableDocument, registry::MetaFieldType, Data, DataContext, Error, QueryPath, Request, Response,
+    Result, SchemaEnv, ServerError, ServerResult, ValidationResult, Value, Variables,
 };
 
 /// Context for extension
@@ -88,8 +88,8 @@ impl<'a> ExtensionContext<'a> {
 /// Parameters for `Extension::resolve_field_start`
 #[derive(Debug)]
 pub struct ResolveInfo<'a> {
-    /// Current path node, You can go through the entire path.
-    pub path_node: &'a QueryPathNode<'a>,
+    /// Current path within the query
+    pub path: QueryPath,
 
     /// Parent type
     pub parent_type: &'a str,

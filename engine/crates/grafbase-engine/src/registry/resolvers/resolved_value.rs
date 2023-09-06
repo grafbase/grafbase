@@ -3,6 +3,8 @@ use std::{borrow::Borrow, sync::Arc};
 use internment::ArcIntern;
 use serde_json::Value;
 
+use crate::QueryPathSegment;
+
 use super::ResolvedPaginationInfo;
 
 /// ResolvedValue are values passed arround between resolvers, it contains the actual Resolver data
@@ -27,7 +29,7 @@ pub struct ResolvedValue {
     ///
     /// This allows us to take a sub-copy of a ResolvedValue without having to clone the entire
     /// associated serde_json::Value.
-    data_path: Vec<PathSegment>,
+    data_path: Vec<QueryPathSegment>,
     /// Optional pagination data for Paginated Resolvers
     pub pagination: Option<ResolvedPaginationInfo>,
     /// Resolvers can set this value when resolving so the engine will know it's
@@ -110,8 +112,8 @@ impl ResolvedValue {
     pub fn data_resolved(&self) -> &Value {
         self.data_path.iter().fold(self.data_root.as_ref(), |value, index| {
             match index {
-                PathSegment::Field(field) => value.get(field.as_str()),
-                PathSegment::Index(index) => value.get(*index),
+                QueryPathSegment::Field(field) => value.get(field.as_str()),
+                QueryPathSegment::Index(index) => value.get(*index),
             }
             .expect("data_path to be validated before ResolvedValue construction")
         })
@@ -122,7 +124,7 @@ impl ResolvedValue {
         self.data_resolved().get(index)?;
 
         let mut data_path = self.data_path.clone();
-        data_path.push(PathSegment::Index(index));
+        data_path.push(QueryPathSegment::Index(index));
         Some(ResolvedValue {
             data_root: Arc::clone(&self.data_root),
             data_path,
@@ -136,7 +138,7 @@ impl ResolvedValue {
         self.data_resolved().get(name)?;
 
         let mut data_path = self.data_path.clone();
-        data_path.push(PathSegment::Field(ArcIntern::from_ref(name)));
+        data_path.push(QueryPathSegment::Field(ArcIntern::from_ref(name)));
         Some(ResolvedValue {
             data_root: Arc::clone(&self.data_root),
             data_path,
@@ -151,8 +153,10 @@ impl ResolvedValue {
     pub fn take(mut self) -> Value {
         match Arc::try_unwrap(self.data_root) {
             Ok(value) => self.data_path.iter().fold(value, |mut value, index| match index {
-                PathSegment::Field(field) => value.get_mut(field.as_str()).expect("data_path to be validated").take(),
-                PathSegment::Index(index) => value.get_mut(*index).expect("data_path to be validated").take(),
+                QueryPathSegment::Field(field) => {
+                    value.get_mut(field.as_str()).expect("data_path to be validated").take()
+                }
+                QueryPathSegment::Index(index) => value.get_mut(*index).expect("data_path to be validated").take(),
             }),
             Err(arc) => {
                 self.data_root = arc;
@@ -169,7 +173,7 @@ impl ResolvedValue {
                     // We don't use get_index here because it does a data_resolved lookup everytime and
                     // that'd be inefficient.
                     let mut data_path = self.data_path.clone();
-                    data_path.push(PathSegment::Index(index));
+                    data_path.push(QueryPathSegment::Index(index));
                     ResolvedValue {
                         data_root: Arc::clone(&self.data_root),
                         data_path,
@@ -187,14 +191,6 @@ impl Default for ResolvedValue {
     fn default() -> Self {
         Self::null()
     }
-}
-
-#[derive(Debug, Clone)]
-enum PathSegment {
-    /// A field in an object.
-    Field(ArcIntern<String>),
-    /// An index in a list.
-    Index(usize),
 }
 
 #[cfg(test)]
