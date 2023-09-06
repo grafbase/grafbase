@@ -216,6 +216,10 @@ pub enum UdfBuildError {
     #[error("could not write to a temporary file '{0}': {1}")]
     CreateNotWriteToTemporaryFile(PathBuf, IoError),
 
+    /// returned if creating symlink to a file fails.
+    #[error("could not link to file: {0}")]
+    SymlinkFailure(IoError),
+
     #[error("could not find a {0} referenced in the schema under the path {1}.{{js,ts}}")]
     UdfDoesNotExist(UdfKind, PathBuf),
 

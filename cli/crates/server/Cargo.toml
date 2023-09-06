@@ -57,6 +57,7 @@ unicode-normalization = "0.1"
 ulid = "1"
 version-compare = "0.1"
 which = "4"
+cfg-if = "1"
 
 # Same version as Tantivy
 tantivy-fst = "0.4.0"
