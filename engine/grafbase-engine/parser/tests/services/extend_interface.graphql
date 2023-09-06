@@ -1,3 +1,0 @@
-extend interface Bar {
-  two(argument: InputType!): Type
-}

@@ -1,0 +1,126 @@
+---
+source: common/parser-graphql/src/lib.rs
+expression: result
+---
+"""
+Amenities available near a station
+"""
+enum PreFixAmeNitiES {
+	gb_BlOcK_pOST_GRID_landscape
+	tHUMBNAIL
+	_2048x2048
+}
+type PreFixQuery {
+	"""
+	Get a full list of amenities around a station
+	"""
+	amenityList(stationId: ID!): [PreFixamEnIty]
+	"""
+	Get information about a car by its ID
+	"""
+	car(id: ID, externalId: Int): PreFixCAR
+	"""
+	Car premium data provides even more information about your car: tire pressure, prices, drivetrain data, and more. Please contact us for access to premium data.
+	"""
+	carPremium(id: ID): PreFixCarPremium
+	"""
+	Get a full list of cars
+	"""
+	carList(query: PreFixCarListQuery, search: String, filter: PreFixCarListFilter, size: Int, page: Int): [PreFixCarList]
+	"""
+	[BETA] Get a connected vehicles by id
+	"""
+	connectedVehicle(id: ID!): PreFixConnectedVehicle
+	"""
+	[BETA] Get the connected vehicles for the current user
+	"""
+	connectedVehicleList(filter: PreFixConnectedVehicleListFilter, size: Int = "10", page: Int = "0"): [PreFixConnectedVehicle]
+	"""
+	[BETA] Retrieve live vehicle data by connected vehicle id
+	"""
+	connectedVehicleData(id: ID!): PreFixVehicleData
+	"""
+	[BETA] Get an isoline by ID
+	"""
+	isoline(id: ID!): PreFixIsoline
+	"""
+	[BETA] Get a navigation session by ID
+	"""
+	navigation(id: ID!): PreFixNavigation
+	"""
+	Get a full list of operators
+	"""
+	operatorList(query: PreFixOperatorListQuery, search: String, filter: PreFixOperatorListFilter, size: Int, page: Int): [PreFixOperator]
+	"""
+	Get information about an operator by its ID
+	"""
+	operator(id: ID!): PreFixOperator
+	"""
+	Get all reviews of a station by the station ID
+	"""
+	reviewList(stationId: ID!, size: Int, page: Int): [PreFixReview!]
+	"""
+	Get all reviews of stations that were added by an authenticated user.
+	The `x-token` header is mandatory in order to authorize the user who wants to retrieve all the reviews added by him/her.
+	This is a premium feature, contact Chargetrip for more information.
+	"""
+	userReviewList(size: Int, page: Int): [PreFixReview!]
+	"""
+	Get a route by ID
+	"""
+	route(id: ID!): PreFixRoute
+	"""
+	Retrieve information about a route path segment
+	"""
+	routePath(id: ID!, location: PreFixPointInput!, alternativeId: ID): PreFixRoutePath
+	"""
+	Get the station statistics
+	"""
+	stationStats: PreFixStationStats
+	"""
+	Get information about a station by its ID
+	"""
+	station(id: ID, evse_id: String): PreFixStation
+	"""
+	Get a full list of stations
+	"""
+	stationList(query: PreFixStationListQuery, filter: PreFixStationListFilter, search: String, size: Int, page: Int): [PreFixStation]
+	"""
+	Search for stations around a GeoJSON point with a specific distance in meters
+	"""
+	stationAround(query: PreFixStationAroundQuery, filter: PreFixStationAroundFilter, search: String, size: Int, page: Int): [PreFixStation]
+	"""
+	Get information about a tariff by the tariff ID
+	"""
+	tariff(id: ID!): PreFixOCPITariff
+	"""
+	Get the full list of tariffs
+	"""
+	tariffList(size: Int, page: Int): [PreFixOCPITariff]
+	"""
+	Deprecated: This query will be removed in favor of navigation query and subscription. Mapping can be retrieved via the instructions field.
+	"""
+	navigationMapping(id: ID!, provider: PreFixMappingProvider!, precision: Int, language: PreFixMappingLanguage): PreFixJSON
+	"""
+	[BETA] Get information about a vehicle by its ID.
+	"""
+	vehicle(id: ID!, country: PreFixCountryCodeAlpha2): PreFixVehicle
+	"""
+	[BETA] Vehicle premium data provides even more information about your vehicle: tire pressure, prices, drivetrain data, and more. Please contact us for access to premium data.
+	"""
+	vehiclePremium(id: ID!, country: PreFixCountryCodeAlpha2): PreFixVehiclePremium
+	"""
+	[BETA] Get a full list of vehicles.
+	"""
+	vehicleList(search: String, filter: PreFixVehicleListFilter, country: PreFixCountryCodeAlpha2, size: Int = "10", page: Int = "0"): [PreFixVehicleList]
+}
+type Query {
+	"""
+	Access to embedded pre_fix API.
+	"""
+	preFix: PreFixQuery!
+}
+schema {
+	query: Query
+}
+

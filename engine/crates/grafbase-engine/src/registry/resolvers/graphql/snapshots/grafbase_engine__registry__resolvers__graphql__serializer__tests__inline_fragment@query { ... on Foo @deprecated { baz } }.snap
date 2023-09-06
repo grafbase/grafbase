@@ -1,0 +1,11 @@
+---
+source: common/grafbase_engine/src/registry/resolvers/graphql/serializer.rs
+expression: serialize(input)
+---
+query {
+	... on Foo @deprecated {
+		__typename
+		baz
+	}
+}
+

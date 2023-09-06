@@ -1,0 +1,105 @@
+[workspace]
+members = [
+  "crates/*",
+  "crates/grafbase-engine/derive",
+  "crates/grafbase-engine/parser",
+  "crates/grafbase-engine/value",
+  "crates/grafbase-runtime/local",
+  
+]
+resolver = "2"
+
+[patch.crates-io]
+again = { git = "https://github.com/grafbase/again", branch = "cloudflare-workers-compatibility" }
+# Use our fork of dynomite that uses the 0.48 version of rusoto.
+dynomite = { git = "https://github.com/grafbase/dynomite", branch = "rusoto-0_48" }
+# FIXME: Drop on next release.
+reqwest = { git = "https://github.com/seanmonstar/reqwest.git", rev = "839623312f8359b173437fb01b1932f204449cca" }
+rusoto_core = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+rusoto_dynamodb = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "00b1e328bf4ce750e01ea2450dcfe83e4955f2af" }
+ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db3216f058cbfadd4923df2c7" }
+
+[workspace.dependencies]
+again = "0.1"
+base64 = "0.21"
+bitflags = "2"
+chrono = { version = "0.4", default-features = false }
+flexbuffers = "2"
+futures = { version = "0.3" }
+futures-util = { version = "0.3", default-features = false }
+itertools = "0.11"
+lazy_static = "1"
+num-traits = "0.2"
+once_cell = "1"
+regex = "1"
+rstest = "0.18"
+secrecy = "0.8"
+strum = "0.25"
+thiserror = "1"
+tokio = "1"
+ulid = "1"
+url = "2"
+uuid = "1"
+wasm-bindgen = "0.2"
+web-time = "0.2"
+worker = "0.0.18"
+
+# AWS Rusoto SDK
+rusoto_core = "0.48"
+rusoto_dynamodb = "0.48"
+
+# Serde
+serde = { version = "1", features = ["derive"] }
+serde_dynamo = "4"
+serde_json = "1"
+serde-wasm-bindgen = "0.5"
+serde_with = "3"
+
+# Tracing
+tracing = "0.1"
+# don't bump to 0.18, leads to memory access out of bounds in cloudflare workers
+tracing-subscriber = "0.3"
+tracing-futures = "0.2"
+
+dynamodb = { path = "crates/dynamodb" }
+grafbase-engine = { path = "crates/grafbase-engine" }
+grafbase-types = { path = "crates/grafbase-types" }
+grafbase-engine-value = { path = "crates/grafbase-engine/value" }
+gateway-protocol = { path = "crates/gateway-protocol" }
+gateway-protocol-platform = { path = "crates/gateway-protocol-platform" }
+gateway-types = { path = "crates/gateway-types" }
+registry-provider = { path = "crates/registry-provider" }
+graphql-extensions = { path = "crates/graphql-extensions" }
+log = { path = "crates/log" }
+grafbase-runtime = { path = "crates/grafbase-runtime" }
+dataloader = { path = "crates/dataloader", features = ["tracing"] }
+graph-entities = { path = "crates/graph-entities" }
+async-runtime = { path = "crates/async-runtime" }
+grafbase-local = { path = "crates/grafbase-runtime/local" }
+worker-env = { path = "crates/worker-env" }
+
+[profile.bench]
+debug = true
+
+[profile.release]
+debug = false
+# rustc supports two "optimize for size" levels:  opt-level = "s" and "z".
+# These names were inherited from clang / LLVM and are not too descriptive
+# but "z" is meant to give the idea that it produces smaller binaries than "s".
+# https://docs.rust-embedded.org/book/unsorted/speed-vs-size.html#optimize-for-size
+opt-level = "z"
+# by compiling as a single codegen unit (i.e. not in parallel),
+# it's possible to reduce size even further at the expense of
+# compilation time
+codegen-units = 1
+# by enabling link-time optimization, we can reduce size even further
+# by telling cargo to optimize at the link stage (in addition to the
+# normal optimizations during the compilation stage)
+lto = true
+
+# by overriding our dependencies' compilation settings, we can further optimize for size
+# https://docs.rust-embedded.org/book/unsorted/speed-vs-size.html#optimizing-dependencies
+[profile.release.package."*"]
+codegen-units = 1
+opt-level = "z"

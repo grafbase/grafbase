@@ -1,0 +1,18 @@
+---
+source: common/grafbase_engine/src/registry/resolvers/graphql/serializer.rs
+expression: serialize(input)
+---
+query {
+	foo {
+		__typename
+		bar
+		baz
+	}
+
+	qux {
+		__typename
+		quux
+	}
+
+}
+
