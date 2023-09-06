@@ -37,7 +37,10 @@ pub use self::{
         CacheAccessScope, CacheConfig, CacheControl, CacheControlError, CacheInvalidation, CacheInvalidationPolicy,
     },
     connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
-    type_names::{InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference},
+    type_names::{
+        InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference, WrappingType,
+        WrappingTypeIter,
+    },
     union_discriminator::UnionDiscriminator,
 };
 use self::{relations::MetaRelation, resolvers::Resolver, type_kinds::TypeKind};

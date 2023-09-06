@@ -7,8 +7,9 @@
 //! set up an OpenAPI connector.  There's no real reason they need to.
 use std::net::SocketAddr;
 
-use grafbase_engine_integration_tests::{runtime, Engine, EngineBuilder, ResponseExt};
+use grafbase_engine_integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
 
+use grafbase_runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -57,6 +58,197 @@ fn aliases() {
                 "name": "Deferred Doggo"
               }
             }
+          }
+        }
+        "###
+        );
+    });
+}
+
+#[test]
+fn test_nullable_list_validation() {
+    runtime().block_on(async {
+        let schema = r#"
+            extend type Query {
+                list: [[[Nested!]!]] @resolver(name: "list")
+            }
+
+            type Nested {
+                name: String @resolver(name: "name")
+            }
+        "#;
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver(
+                        "list",
+                        CustomResolverResponse::Success(json!([null, [["hello"]], [["world"], null]])),
+                    )
+                    .resolver("name", CustomResolverResponse::Success(json!("Jim"))),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine.execute("query { list { name } }").await.into_value(),
+            @r###"
+        {
+          "data": {
+            "list": [
+              null,
+              [
+                [
+                  {
+                    "name": "Jim"
+                  }
+                ]
+              ],
+              null
+            ]
+          },
+          "errors": [
+            {
+              "locations": [
+                {
+                  "column": 14,
+                  "line": 1
+                }
+              ],
+              "message": "An error occurred while fetching `list`, a non-nullable value was expected but no value was found.",
+              "path": [
+                "list",
+                2,
+                1
+              ]
+            }
+          ]
+        }
+        "###
+        );
+    });
+}
+
+#[test]
+fn test_nullable_list_item_validation() {
+    runtime().block_on(async {
+        let schema = r#"
+            extend type Query {
+                list: [[[Nested!]!]] @resolver(name: "list")
+            }
+
+            type Nested {
+                name: String! @resolver(name: "name")
+            }
+        "#;
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver(
+                        "list",
+                        // Note the null below on a type that's non-nullable in the response.
+                        // I _think_ this should be allowed because that null doesn't make it into
+                        // the response
+                        CustomResolverResponse::Success(json!([[["hello", null]], [["world"]]])),
+                    )
+                    .resolver("name", |payload: CustomResolverRequestPayload| {
+                        if payload.parent == Some(json!("world")) {
+                            Ok(CustomResolverResponse::Success(json!(null)))
+                        } else {
+                            Ok(CustomResolverResponse::Success(json!("Jim")))
+                        }
+                    }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine.execute("query { list { name } }").await.into_value(),
+            @r###"
+        {
+          "data": {
+            "list": [
+              [
+                [
+                  {
+                    "name": "Jim"
+                  },
+                  {
+                    "name": "Jim"
+                  }
+                ]
+              ],
+              null
+            ]
+          },
+          "errors": [
+            {
+              "locations": [
+                {
+                  "column": 16,
+                  "line": 1
+                }
+              ],
+              "message": "An error happened while fetching `name`, expected a non null value but found a null",
+              "path": [
+                "list",
+                1,
+                0,
+                0,
+                "name"
+              ]
+            }
+          ]
+        }
+        "###
+        );
+    });
+}
+
+#[test]
+fn test_nested_lists() {
+    runtime().block_on(async {
+        let schema = r#"
+            extend type Query {
+                list: [[[Nested]]!] @resolver(name: "list")
+            }
+
+            type Nested {
+                name: String @resolver(name: "name")
+            }
+        "#;
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver(
+                        "list",
+                        CustomResolverResponse::Success(json!([[["world"]], [["hello"]]])),
+                    )
+                    .resolver("name", CustomResolverResponse::Success(json!("Jim"))),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine.execute("query { list { name } }").await.into_value(),
+            @r###"
+        {
+          "data": {
+            "list": [
+              [
+                [
+                  {
+                    "name": "Jim"
+                  }
+                ]
+              ],
+              [
+                [
+                  {
+                    "name": "Jim"
+                  }
+                ]
+              ]
+            ]
           }
         }
         "###

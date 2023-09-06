@@ -70,6 +70,11 @@ impl MetaFieldType {
         self.0.ends_with('!')
     }
 
+    pub fn is_nullable(&self) -> bool {
+        // This makes me sad, but for now lets live with it
+        !self.0.ends_with('!')
+    }
+
     pub fn is_list(&self) -> bool {
         // Note that we do starts_with here to include both nullable and non-nullable
         // lists.
@@ -78,6 +83,10 @@ impl MetaFieldType {
 
     pub fn base_type_name(&self) -> &str {
         named_type_from_type_str(&self.0)
+    }
+
+    pub fn wrapping_types(&self) -> WrappingTypeIter<'_> {
+        WrappingTypeIter(self.as_str().chars())
     }
 }
 
@@ -219,4 +228,53 @@ fn named_type_from_type_str(meta: &str) -> &str {
     }
 
     nested.expect("Can't fail")
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum WrappingType {
+    NonNull,
+    List,
+}
+
+pub struct WrappingTypeIter<'a>(std::str::Chars<'a>);
+
+impl Iterator for WrappingTypeIter<'_> {
+    type Item = WrappingType;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.0.next_back()? {
+            '!' => Some(WrappingType::NonNull),
+            ']' => Some(WrappingType::List),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_wrapping_type_iter() {
+        let wrapping_types = |s: &str| WrappingTypeIter(s.chars()).collect::<Vec<_>>();
+        assert_eq!(wrapping_types("String"), vec![]);
+        assert_eq!(wrapping_types("String!"), vec![WrappingType::NonNull]);
+        assert_eq!(
+            wrapping_types("[String]!"),
+            vec![WrappingType::NonNull, WrappingType::List]
+        );
+        assert_eq!(wrapping_types("[String]"), vec![WrappingType::List]);
+        assert_eq!(
+            wrapping_types("[String!]"),
+            vec![WrappingType::List, WrappingType::NonNull]
+        );
+        assert_eq!(
+            wrapping_types("[String!]!"),
+            vec![WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
+        );
+        assert_eq!(
+            wrapping_types("[[String!]]"),
+            vec![WrappingType::List, WrappingType::List, WrappingType::NonNull]
+        );
+    }
 }
