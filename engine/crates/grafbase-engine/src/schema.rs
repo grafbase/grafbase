@@ -653,8 +653,12 @@ impl Schema {
 
                     // For now we're taking the simple approach and running all the deferred
                     // workloads serially. We can look into doing something smarter later.
-                    while let Some(workload) = receiver.receive() {
-                        yield process_deferred_workload(workload, &schema, &env, &sender).await.into();
+                    let mut next_workload = receiver.receive();
+                    while let Some(workload) = next_workload {
+                        let mut next_response = process_deferred_workload(workload, &schema, &env, &sender).await;
+                        next_workload = receiver.receive();
+                        next_response.has_next = next_workload.is_some();
+                        yield next_response.into()
                     }
                     return;
                 }
@@ -723,7 +727,7 @@ async fn process_deferred_workload(
         label: workload.label,
         data,
         path: workload.path,
-        has_next: true, // TODO: Need to handle has_next properly...
+        has_next: true, // We hardcode this to true here, the function calling us should override
         errors,
     }
 }
