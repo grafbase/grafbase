@@ -72,31 +72,38 @@ pub async fn resolve_list<'a>(
         });
 
         let mut children = vec![];
-        for result in futures_util::future::join_all(futures).await {
+        for (index, result) in futures_util::future::join_all(futures).await.into_iter().enumerate() {
             // Now we need to handle error propagation and validate the nullability
             // of each of the list items
             match result {
-                Ok(id) if list_kind.inner_nullablity() == ListInner::NonNullable => {
+                Ok(id) if list_kind.has_non_null_item() => {
                     let found_null = match ctx.response_graph.read().await.get_node(id) {
                         Some(QueryResponseNode::Primitive(value)) if value.is_null() => true,
                         None => true,
                         _ => false,
                     };
                     if found_null {
-                        ctx.add_error(ServerError::new(
-                            format!(
-                                "An error occurred while fetching `{}`, a non-nullable value was expected but nm value was found.",
-                                field.node.name.node
-                            ),
-                            Some(ctx.item.pos),
-                        ));
-                        children.push(ctx.response_graph.write().await.insert_node(CompactValue::Null));
-                    } else {
-                        children.push(id);
+                        let mut error =
+                            ServerError::new(
+                                format!(
+                                    "An error occurred while fetching `{}`, a non-nullable value was expected but no value was found.",
+                                    field.node.name.node
+                                ),
+                                Some(ctx.item.pos),
+                            );
+
+                        if let Some(path) = ctx.path_node {
+                            let mut path = path.to_owned_segments();
+                            path.push(crate::PathSegment::Index(index));
+                            error.path = path;
+                        }
+
+                        return Err(error);
                     }
+                    children.push(id);
                 }
                 Ok(id) => children.push(id),
-                Err(error) if list_kind.inner_nullablity() == ListInner::Nullable => {
+                Err(error) if list_kind.has_nullable_item() => {
                     ctx.add_error(error);
                     children.push(ctx.response_graph.write().await.insert_node(CompactValue::Null));
                 }
@@ -316,7 +323,15 @@ enum ListKind {
 }
 
 impl ListKind {
-    pub fn inner_nullablity(self) -> ListInner {
+    pub fn has_nullable_item(self) -> bool {
+        matches!(self.inner_nullablity(), ListInner::Nullable)
+    }
+
+    pub fn has_non_null_item(self) -> bool {
+        matches!(self.inner_nullablity(), ListInner::NonNullable)
+    }
+
+    fn inner_nullablity(self) -> ListInner {
         match self {
             ListKind::NullableList(inner) => inner,
             ListKind::NonNullList(inner) => inner,

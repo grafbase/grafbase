@@ -59,7 +59,7 @@ pub async fn resolve_field(
 
     match result {
         Ok(result) => Ok(Some(result)),
-        Err(e) if !field.ty.is_non_null() => {
+        Err(e) if field.ty.is_nullable() => {
             ctx.add_error(e);
             Ok(Some(ctx.response_graph.write().await.insert_node(CompactValue::Null)))
         }

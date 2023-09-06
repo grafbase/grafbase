@@ -70,6 +70,11 @@ impl MetaFieldType {
         self.0.ends_with('!')
     }
 
+    pub fn is_nullable(&self) -> bool {
+        // This makes me sad, but for now lets live with it
+        !self.0.ends_with('!')
+    }
+
     pub fn is_list(&self) -> bool {
         // Note that we do starts_with here to include both nullable and non-nullable
         // lists.
