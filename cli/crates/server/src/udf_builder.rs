@@ -242,19 +242,38 @@ pub async fn build(
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
 
+    let grafbase_kv_data_path = environment
+        .user_dot_grafbase_path
+        .join(crate::consts::GRAFBASE_KV_DATA_PATH)
+        .to_string_lossy()
+        .into_owned();
+
     let slugified_udf_name = slug::slugify(udf_name);
     tokio::fs::write(
         &wrangler_toml_file_path,
         format!(
             r#"
                 name = "{slugified_udf_name}"
+
+                kv_namespaces = [
+                  {{ binding = "LOCAL", id = "<ignored>", preview_id = "<ignored>" }},
+                ]
+
+                [vars]
+                KV_BASE_PREFIX = "/"
+                KV_ID = "LOCAL"
+
                 [build.upload]
                 format = "modules"
+
                 [[build.upload.rules]]
                 type = "CompiledWasm"
                 globs = ["*.wasm"]
+                fallthrough = true
+
                 [miniflare]
                 routes = ["127.0.0.1/invoke"]
+                kv_persist = '{grafbase_kv_data_path}'
             "#,
         ),
     )
