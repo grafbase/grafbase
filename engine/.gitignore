@@ -1,0 +1,18 @@
+.DS_Store
+.idea
+/.nix
+node_modules
+.env
+/.cargo
+!.cargo/config.toml
+.vscode/
+# whitelisting makes ripgrep search through those files
+!.github
+!.config
+.envrc
+.direnv/
+.venv/
+target
+.jj
+.mf
+dist
