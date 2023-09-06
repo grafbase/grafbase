@@ -1,0 +1,11 @@
+---
+source: common/grafbase_engine/src/registry/scalars/phone.rs
+assertion_line: 102
+expression: scalar
+---
+Err(
+    InputValueError {
+        message: "Failed to parse \"PhoneNumber\": Invalid phone number",
+        phantom: PhantomData<serde_json::value::Value>,
+    },
+)

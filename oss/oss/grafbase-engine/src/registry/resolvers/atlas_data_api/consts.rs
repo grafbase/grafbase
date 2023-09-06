@@ -1,0 +1,23 @@
+pub(super) const CURRENT_TIMESTAMP: &str = "$currentTimestamp";
+pub(super) const CURRENT_DATE: &str = "$currentDate";
+pub(super) const CURRENT_DATETIME: &str = "$currentDateTime";
+pub(super) const TYPE: &str = "$type";
+pub(super) const TYPE_TIMESTAMP: &str = "timestamp";
+pub(super) const TYPE_DATE: &str = "date";
+pub(super) const BASE64: &str = "base64";
+pub(super) const SUBTYPE: &str = "subType";
+
+pub(super) const OP_AND: &str = "$and";
+pub(super) const OP_OR: &str = "$or";
+pub(super) const OP_NE: &str = "$ne";
+pub(super) const OP_LT: &str = "$lt";
+pub(super) const OP_EQ: &str = "$eq";
+pub(super) const OP_GT: &str = "$gt";
+pub(super) const OP_UNSET: &str = "$unset";
+pub(super) const OP_OID: &str = "$oid";
+pub(super) const OP_DATE: &str = "$date";
+pub(super) const OP_BINARY: &str = "$binary";
+pub(super) const OP_TIMESTAMP: &str = "$timestamp";
+pub(super) const OP_LONG: &str = "$numberLong";
+pub(super) const OP_DECIMAL: &str = "$numberDecimal";
+pub(super) const OP_ELEM_MATCH: &str = "$elemMatch";

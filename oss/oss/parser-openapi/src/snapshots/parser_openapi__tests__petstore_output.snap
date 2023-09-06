@@ -1,0 +1,119 @@
+---
+source: common/parser-openapi/src/lib.rs
+expression: registry.export_sdl(false)
+---
+type Mutation {
+	petstore: PetstoreMutation!
+}
+type PetstoreApiResponse {
+	message: String
+	type: String
+	code: Int
+}
+type PetstoreCategory {
+	name: String
+	id: Int
+}
+input PetstoreCategoryInput {
+	name: String
+	id: Int
+}
+enum PetstoreFindPetsByStatusStatus {
+	AVAILABLE
+	PENDING
+	SOLD
+}
+type PetstoreMutation {
+	updatePet(input: PetstorePetInput!): PetstorePet
+	addPet(input: PetstorePetInput!): PetstorePet
+	uploadFile(petId: Int!, additionalMetadata: String): PetstoreApiResponse
+	placeOrder(input: PetstoreOrderInput!): PetstoreOrder
+	createUsersWithListInput(input: [PetstoreUserInput!]!): PetstoreUser
+}
+type PetstoreOrder {
+	complete: Boolean
+	status: PetstoreOrderStatus
+	shipDate: String
+	quantity: Int
+	petId: Int
+	id: Int
+}
+input PetstoreOrderInput {
+	complete: Boolean
+	status: PetstoreOrderStatus
+	shipDate: String
+	quantity: Int
+	petId: Int
+	id: Int
+}
+enum PetstoreOrderStatus {
+	PLACED
+	APPROVED
+	DELIVERED
+}
+type PetstorePet {
+	status: PetstorePetStatus
+	tags: [PetstoreTag!]
+	photoUrls: [String!]!
+	category: PetstoreCategory
+	name: String!
+	id: Int
+}
+input PetstorePetInput {
+	status: PetstorePetStatus
+	tags: [PetstoreTagInput!]!
+	photoUrls: [String!]!
+	category: PetstoreCategoryInput!
+	name: String!
+	id: Int
+}
+enum PetstorePetStatus {
+	AVAILABLE
+	PENDING
+	SOLD
+}
+type PetstoreQuery {
+	findPetsByStatus(status: PetstoreFindPetsByStatusStatus = AVAILABLE): [PetstorePet!]
+	findPetsByTags(tags: [String!]): [PetstorePet!]
+	pet(petId: Int!): PetstorePet
+	inventory: JSON
+	order(orderId: Int!): PetstoreOrder
+	loginUser(password: String, username: String): String
+	user(username: String!): PetstoreUser
+}
+type PetstoreTag {
+	name: String
+	id: Int
+}
+input PetstoreTagInput {
+	name: String
+	id: Int
+}
+type PetstoreUser {
+	userStatus: Int
+	phone: String
+	password: String
+	email: String
+	lastName: String
+	firstName: String
+	username: String
+	id: Int
+}
+input PetstoreUserInput {
+	userStatus: Int
+	phone: String
+	password: String
+	email: String
+	lastName: String
+	firstName: String
+	username: String
+	id: Int
+}
+type Query {
+	petstore: PetstoreQuery!
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

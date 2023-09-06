@@ -1,0 +1,2390 @@
+---
+source: common/parser-openapi/src/lib.rs
+expression: "build_registry(\"test_data/planetscale.json\", Format::Json,\n            ApiMetadata {\n                url: None,\n                ..metadata(\"planetscale\")\n            }).unwrap().export_sdl(false)"
+---
+type Mutation {
+	planetscale: PlanetscaleMutation!
+}
+type PlanetscaleCancelAQueuedDeployRequest {
+	updatedAt: String!
+	state: PlanetscaleCancelAQueuedDeployRequestState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleCancelAQueuedDeployRequestDeploymentState!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleCancelAQueuedDeployRequestClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleCancelAQueuedDeployRequestBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleCancelAQueuedDeployRequestActor!
+}
+type PlanetscaleCancelAQueuedDeployRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCancelAQueuedDeployRequestBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCancelAQueuedDeployRequestClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleCancelAQueuedDeployRequestDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+enum PlanetscaleCancelAQueuedDeployRequestState {
+	CLOSED
+	OPEN
+}
+type PlanetscaleCloseADeployRequest {
+	updatedAt: String!
+	state: PlanetscaleCloseADeployRequestState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleCloseADeployRequestDeploymentState!
+	deployment: PlanetscaleCloseADeployRequestDeployment!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleCloseADeployRequestClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleCloseADeployRequestBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleCloseADeployRequestActor!
+}
+type PlanetscaleCloseADeployRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCloseADeployRequestBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCloseADeployRequestClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCloseADeployRequestDeployment {
+	updatedAt: String!
+	submittedAt: String!
+	state: PlanetscaleCloseADeployRequestStateDeployment!
+	startedAt: String!
+	readyToCutoverAt: String!
+	queuedAt: String!
+	id: String!
+	finishedAt: String!
+	deployCheckErrors: String!
+	cutoverExpiring: Boolean!
+	cutoverAt: String!
+	createdAt: String!
+	autoCutover: Boolean!
+}
+enum PlanetscaleCloseADeployRequestDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+input PlanetscaleCloseADeployRequestInput {
+	state: PlanetscaleCloseADeployRequestState
+}
+enum PlanetscaleCloseADeployRequestState {
+	CLOSED
+	OPEN
+}
+enum PlanetscaleCloseADeployRequestStateDeployment {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+type PlanetscaleCompleteAGatedDeployRequest {
+	updatedAt: String!
+	state: PlanetscaleCompleteAGatedDeployRequestState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleCompleteAGatedDeployRequestDeploymentState!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleCompleteAGatedDeployRequestClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleCompleteAGatedDeployRequestBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleCompleteAGatedDeployRequestActor!
+}
+type PlanetscaleCompleteAGatedDeployRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCompleteAGatedDeployRequestBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCompleteAGatedDeployRequestClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleCompleteAGatedDeployRequestDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+enum PlanetscaleCompleteAGatedDeployRequestState {
+	CLOSED
+	OPEN
+}
+type PlanetscaleCompleteARevert {
+	updatedAt: String!
+	state: PlanetscaleCompleteARevertState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleCompleteARevertDeploymentState!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleCompleteARevertClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleCompleteARevertBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleCompleteARevertActor!
+}
+type PlanetscaleCompleteARevertActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCompleteARevertBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCompleteARevertClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleCompleteARevertDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+enum PlanetscaleCompleteARevertState {
+	CLOSED
+	OPEN
+}
+type PlanetscaleCompleteAnErroredDeploy {
+	updatedAt: String!
+	state: PlanetscaleCompleteAnErroredDeployState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleCompleteAnErroredDeployDeploymentState!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleCompleteAnErroredDeployClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleCompleteAnErroredDeployBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleCompleteAnErroredDeployActor!
+}
+type PlanetscaleCompleteAnErroredDeployActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCompleteAnErroredDeployBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCompleteAnErroredDeployClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleCompleteAnErroredDeployDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+enum PlanetscaleCompleteAnErroredDeployState {
+	CLOSED
+	OPEN
+}
+type PlanetscaleCreateABackup {
+	data: [PlanetscaleCreateABackupData!]!
+}
+type PlanetscaleCreateABackupActorData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCreateABackupBackupPolicyData {
+	updatedAt: String!
+	target: PlanetscaleCreateABackupTargetBackupPolicyData!
+	scheduleWeek: String!
+	scheduleDay: String!
+	retentionValue: Float!
+	retentionUnit: String!
+	nextRunAt: String!
+	name: String!
+	lastRanAt: String!
+	id: String!
+	frequencyValue: Float!
+	frequencyUnit: String!
+	createdAt: String!
+}
+type PlanetscaleCreateABackupData {
+	updatedAt: String!
+	state: PlanetscaleCreateABackupStateData!
+	size: Float!
+	schemaSnapshot: PlanetscaleCreateABackupSchemaSnapshotData!
+	restoredBranches: [String!]!
+	required: Boolean!
+	name: String!
+	id: String!
+	estimatedStorageCost: Float!
+	createdAt: String!
+	backupPolicy: PlanetscaleCreateABackupBackupPolicyData!
+	actor: PlanetscaleCreateABackupActorData!
+}
+input PlanetscaleCreateABackupInput {
+	retentionValue: Float
+	retentionUnit: PlanetscaleCreateABackupRetentionUnit
+	name: String
+}
+enum PlanetscaleCreateABackupRetentionUnit {
+	YEAR
+	MONTH
+	WEEK
+	DAY
+	HOUR
+}
+type PlanetscaleCreateABackupSchemaSnapshotData {
+	url: String!
+	updatedAt: String!
+	name: String!
+	id: String!
+	createdAt: String!
+}
+enum PlanetscaleCreateABackupStateData {
+	CANCELED
+	FAILED
+	SUCCESS
+	RUNNING
+	PENDING
+}
+enum PlanetscaleCreateABackupTargetBackupPolicyData {
+	BRANCH
+	DEVELOPMENT
+	PRODUCTION
+}
+type PlanetscaleCreateABranch {
+	updatedAt: String!
+	sharded: Boolean!
+	shardCount: Float!
+	schemaLastUpdatedAt: String!
+	restoredFromBranch: PlanetscaleCreateABranchRestoredFromBranch!
+	restoreChecklistCompletedAt: String!
+	ready: Boolean!
+	production: Boolean!
+	planetscaleRegion: PlanetscaleCreateABranchPlanetscaleRegion!
+	parentBranch: String!
+	name: String!
+	mysqlEdgeAddress: String!
+	mysqlAddress: String!
+	multipleAdminsRequiredForDemotion: Boolean!
+	initialRestoreId: String!
+	id: String!
+	htmlUrl: String!
+	createdAt: String!
+	apiActor: PlanetscaleCreateABranchApiActor!
+	accessHostUrl: String!
+}
+type PlanetscaleCreateABranchApiActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+input PlanetscaleCreateABranchInput {
+	parentBranch: String!
+	name: String!
+	backupId: String
+}
+type PlanetscaleCreateABranchPlanetscaleRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleCreateABranchRestoredFromBranch {
+	updatedAt: String!
+	name: String!
+	id: String!
+	deletedAt: String!
+	createdAt: String!
+}
+type PlanetscaleCreateADatabase {
+	url: String!
+	updatedAt: String!
+	type: String!
+	state: String!
+	sharded: Boolean!
+	schemaLastUpdatedAt: String!
+	restrictBranchRegion: Boolean!
+	requireApprovalForDeploy: Boolean!
+	region: PlanetscaleCreateADatabaseRegion!
+	ready: Boolean!
+	productionBranchesCount: Float!
+	productionBranchWebConsole: Boolean!
+	plan: String!
+	notes: String!
+	name: String!
+	multipleAdminsRequiredForDeletion: Boolean!
+	migrationTableName: String!
+	migrationFramework: String!
+	issuesCount: Float!
+	insightsRawQueries: Boolean!
+	id: String!
+	htmlUrl: String!
+	developmentBranchesCount: Float!
+	defaultBranchTableCount: Float!
+	defaultBranchShardCount: Float!
+	defaultBranchReadOnlyRegionsCount: Float!
+	defaultBranch: String!
+	dataImport: PlanetscaleCreateADatabaseDataImport!
+	createdAt: String!
+	branchesUrl: String!
+	branchesCount: Float!
+	automaticMigrations: Boolean!
+	atDevelopmentBranchLimit: Boolean!
+	atBackupRestoreBranchesLimit: Boolean!
+	allowDataBranching: Boolean!
+}
+type PlanetscaleCreateADatabaseDataImport {
+	state: String!
+	startedAt: String!
+	importCheckErrors: String!
+	finishedAt: String!
+	dataSource: PlanetscaleCreateADatabaseDataSourceDataImport!
+}
+type PlanetscaleCreateADatabaseDataSourceDataImport {
+	port: String!
+	hostname: String!
+	database: String!
+}
+input PlanetscaleCreateADatabaseInput {
+	notes: String
+	name: String!
+}
+type PlanetscaleCreateADatabaseRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleCreateADeployRequest {
+	updatedAt: String!
+	state: PlanetscaleCreateADeployRequestState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleCreateADeployRequestDeploymentState!
+	deployment: PlanetscaleCreateADeployRequestDeployment!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleCreateADeployRequestClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleCreateADeployRequestBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleCreateADeployRequestActor!
+}
+type PlanetscaleCreateADeployRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCreateADeployRequestBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCreateADeployRequestClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCreateADeployRequestDeployment {
+	updatedAt: String!
+	submittedAt: String!
+	state: PlanetscaleCreateADeployRequestStateDeployment!
+	startedAt: String!
+	readyToCutoverAt: String!
+	queuedAt: String!
+	id: String!
+	finishedAt: String!
+	deployCheckErrors: String!
+	cutoverExpiring: Boolean!
+	cutoverAt: String!
+	createdAt: String!
+	autoCutover: Boolean!
+}
+enum PlanetscaleCreateADeployRequestDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+input PlanetscaleCreateADeployRequestInput {
+	number: String
+	notes: String
+	intoBranch: String
+	branch: String
+}
+enum PlanetscaleCreateADeployRequestState {
+	CLOSED
+	OPEN
+}
+enum PlanetscaleCreateADeployRequestStateDeployment {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+type PlanetscaleCreateAPassword {
+	username: String!
+	ttlSeconds: Float!
+	role: String!
+	renewable: Boolean!
+	region: PlanetscaleCreateAPasswordRegion!
+	plainText: String!
+	name: String!
+	integrations: [String!]!
+	id: String!
+	expiresAt: String!
+	deletedAt: String!
+	databaseBranch: PlanetscaleCreateAPasswordDatabaseBranch!
+	createdAt: String!
+	actor: PlanetscaleCreateAPasswordActor!
+	accessHostUrl: String!
+}
+type PlanetscaleCreateAPasswordActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleCreateAPasswordDatabaseBranch {
+	production: Boolean!
+	name: String!
+	id: String!
+	accessHostUrl: String!
+}
+input PlanetscaleCreateAPasswordInput {
+	ttl: Float
+	role: PlanetscaleCreateAPasswordRole
+	name: String
+}
+type PlanetscaleCreateAPasswordRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+enum PlanetscaleCreateAPasswordRole {
+	READWRITER
+	ADMIN
+	WRITER
+	READER
+}
+type PlanetscaleCreateAPromotionRequest {
+	updatedAt: String!
+	state: PlanetscaleCreateAPromotionRequestState!
+	startedAt: String!
+	id: String!
+	finishedAt: String!
+	createdAt: String!
+	branchPromotionRequestLintErrors: [String!]!
+	branch: String!
+	actor: PlanetscaleCreateAPromotionRequestActor!
+}
+type PlanetscaleCreateAPromotionRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleCreateAPromotionRequestState {
+	LINT_ERROR
+	PROMOTED
+	PENDING
+}
+type PlanetscaleCreateOrRenewAnOauthToken {
+	token: String
+	serviceTokenAccesses: [String!]
+	plainTextRefreshToken: String
+	name: String
+	displayName: String
+	actorId: String
+	actorDisplayName: String
+}
+enum PlanetscaleCreateOrRenewAnOauthTokenGrantType {
+	REFRESH_TOKEN
+	AUTHORIZATION_CODE
+}
+input PlanetscaleCreateOrRenewAnOauthTokenInput {
+	refreshToken: String
+	redirectUri: String
+	grantType: PlanetscaleCreateOrRenewAnOauthTokenGrantType!
+	code: String
+	clientSecret: String!
+	clientId: String!
+}
+type PlanetscaleDemoteABranch {
+	updatedAt: String!
+	sharded: Boolean!
+	shardCount: Float!
+	schemaLastUpdatedAt: String!
+	restoredFromBranch: PlanetscaleDemoteABranchRestoredFromBranch!
+	restoreChecklistCompletedAt: String!
+	ready: Boolean!
+	production: Boolean!
+	planetscaleRegion: PlanetscaleDemoteABranchPlanetscaleRegion!
+	parentBranch: String!
+	name: String!
+	mysqlEdgeAddress: String!
+	mysqlAddress: String!
+	multipleAdminsRequiredForDemotion: Boolean!
+	initialRestoreId: String!
+	id: String!
+	htmlUrl: String!
+	createdAt: String!
+	apiActor: PlanetscaleDemoteABranchApiActor!
+	accessHostUrl: String!
+}
+type PlanetscaleDemoteABranchApiActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleDemoteABranchPlanetscaleRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleDemoteABranchRestoredFromBranch {
+	updatedAt: String!
+	name: String!
+	id: String!
+	deletedAt: String!
+	createdAt: String!
+}
+type PlanetscaleDisableSafeMigrationsForABranch {
+	updatedAt: String!
+	sharded: Boolean!
+	shardCount: Float!
+	schemaLastUpdatedAt: String!
+	restoredFromBranch: PlanetscaleDisableSafeMigrationsForABranchRestoredFromBranch!
+	restoreChecklistCompletedAt: String!
+	ready: Boolean!
+	production: Boolean!
+	planetscaleRegion: PlanetscaleDisableSafeMigrationsForABranchPlanetscaleRegion!
+	parentBranch: String!
+	name: String!
+	mysqlEdgeAddress: String!
+	mysqlAddress: String!
+	multipleAdminsRequiredForDemotion: Boolean!
+	initialRestoreId: String!
+	id: String!
+	htmlUrl: String!
+	createdAt: String!
+	apiActor: PlanetscaleDisableSafeMigrationsForABranchApiActor!
+	accessHostUrl: String!
+}
+type PlanetscaleDisableSafeMigrationsForABranchApiActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleDisableSafeMigrationsForABranchPlanetscaleRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleDisableSafeMigrationsForABranchRestoredFromBranch {
+	updatedAt: String!
+	name: String!
+	id: String!
+	deletedAt: String!
+	createdAt: String!
+}
+type PlanetscaleEnableSafeMigrationsForABranch {
+	updatedAt: String!
+	sharded: Boolean!
+	shardCount: Float!
+	schemaLastUpdatedAt: String!
+	restoredFromBranch: PlanetscaleEnableSafeMigrationsForABranchRestoredFromBranch!
+	restoreChecklistCompletedAt: String!
+	ready: Boolean!
+	production: Boolean!
+	planetscaleRegion: PlanetscaleEnableSafeMigrationsForABranchPlanetscaleRegion!
+	parentBranch: String!
+	name: String!
+	mysqlEdgeAddress: String!
+	mysqlAddress: String!
+	multipleAdminsRequiredForDemotion: Boolean!
+	initialRestoreId: String!
+	id: String!
+	htmlUrl: String!
+	createdAt: String!
+	apiActor: PlanetscaleEnableSafeMigrationsForABranchApiActor!
+	accessHostUrl: String!
+}
+type PlanetscaleEnableSafeMigrationsForABranchApiActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleEnableSafeMigrationsForABranchPlanetscaleRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleEnableSafeMigrationsForABranchRestoredFromBranch {
+	updatedAt: String!
+	name: String!
+	id: String!
+	deletedAt: String!
+	createdAt: String!
+}
+type PlanetscaleGetABackup {
+	updatedAt: String!
+	state: PlanetscaleGetABackupState!
+	size: Float!
+	schemaSnapshot: PlanetscaleGetABackupSchemaSnapshot!
+	restoredBranches: [String!]!
+	required: Boolean!
+	name: String!
+	id: String!
+	estimatedStorageCost: Float!
+	createdAt: String!
+	backupPolicy: PlanetscaleGetABackupBackupPolicy!
+	actor: PlanetscaleGetABackupActor!
+}
+type PlanetscaleGetABackupActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleGetABackupBackupPolicy {
+	updatedAt: String!
+	target: PlanetscaleGetABackupTargetBackupPolicy!
+	scheduleWeek: String!
+	scheduleDay: String!
+	retentionValue: Float!
+	retentionUnit: String!
+	nextRunAt: String!
+	name: String!
+	lastRanAt: String!
+	id: String!
+	frequencyValue: Float!
+	frequencyUnit: String!
+	createdAt: String!
+}
+type PlanetscaleGetABackupSchemaSnapshot {
+	url: String!
+	updatedAt: String!
+	name: String!
+	id: String!
+	createdAt: String!
+}
+enum PlanetscaleGetABackupState {
+	CANCELED
+	FAILED
+	SUCCESS
+	RUNNING
+	PENDING
+}
+enum PlanetscaleGetABackupTargetBackupPolicy {
+	BRANCH
+	DEVELOPMENT
+	PRODUCTION
+}
+type PlanetscaleGetABranch {
+	updatedAt: String!
+	sharded: Boolean!
+	shardCount: Float!
+	schemaLastUpdatedAt: String!
+	restoredFromBranch: PlanetscaleGetABranchRestoredFromBranch!
+	restoreChecklistCompletedAt: String!
+	ready: Boolean!
+	production: Boolean!
+	planetscaleRegion: PlanetscaleGetABranchPlanetscaleRegion!
+	parentBranch: String!
+	name: String!
+	mysqlEdgeAddress: String!
+	mysqlAddress: String!
+	multipleAdminsRequiredForDemotion: Boolean!
+	initialRestoreId: String!
+	id: String!
+	htmlUrl: String!
+	createdAt: String!
+	apiActor: PlanetscaleGetABranchApiActor!
+	accessHostUrl: String!
+}
+type PlanetscaleGetABranchApiActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleGetABranchPlanetscaleRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleGetABranchRestoredFromBranch {
+	updatedAt: String!
+	name: String!
+	id: String!
+	deletedAt: String!
+	createdAt: String!
+}
+type PlanetscaleGetABranchSchema {
+	data: [PlanetscaleGetABranchSchemaData!]!
+}
+type PlanetscaleGetABranchSchemaData {
+	raw: String!
+	name: String!
+	html: String!
+}
+type PlanetscaleGetADatabase {
+	url: String!
+	updatedAt: String!
+	type: String!
+	state: String!
+	sharded: Boolean!
+	schemaLastUpdatedAt: String!
+	restrictBranchRegion: Boolean!
+	requireApprovalForDeploy: Boolean!
+	region: PlanetscaleGetADatabaseRegion!
+	ready: Boolean!
+	productionBranchesCount: Float!
+	productionBranchWebConsole: Boolean!
+	plan: String!
+	notes: String!
+	name: String!
+	multipleAdminsRequiredForDeletion: Boolean!
+	migrationTableName: String!
+	migrationFramework: String!
+	issuesCount: Float!
+	insightsRawQueries: Boolean!
+	id: String!
+	htmlUrl: String!
+	developmentBranchesCount: Float!
+	defaultBranchTableCount: Float!
+	defaultBranchShardCount: Float!
+	defaultBranchReadOnlyRegionsCount: Float!
+	defaultBranch: String!
+	dataImport: PlanetscaleGetADatabaseDataImport!
+	createdAt: String!
+	branchesUrl: String!
+	branchesCount: Float!
+	automaticMigrations: Boolean!
+	atDevelopmentBranchLimit: Boolean!
+	atBackupRestoreBranchesLimit: Boolean!
+	allowDataBranching: Boolean!
+}
+type PlanetscaleGetADatabaseDataImport {
+	state: String!
+	startedAt: String!
+	importCheckErrors: String!
+	finishedAt: String!
+	dataSource: PlanetscaleGetADatabaseDataSourceDataImport!
+}
+type PlanetscaleGetADatabaseDataSourceDataImport {
+	port: String!
+	hostname: String!
+	database: String!
+}
+type PlanetscaleGetADatabaseRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleGetADemotionRequest {
+	state: PlanetscaleGetADemotionRequestState!
+	responder: PlanetscaleGetADemotionRequestResponder!
+	respondedAt: String!
+	id: String!
+	createdAt: String!
+	branch: String!
+	actor: PlanetscaleGetADemotionRequestActor!
+}
+type PlanetscaleGetADemotionRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleGetADemotionRequestResponder {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleGetADemotionRequestState {
+	COMPLETED
+	EXPIRED
+	IN_PROGRESS
+	PENDING
+}
+type PlanetscaleGetADeployRequest {
+	updatedAt: String!
+	state: PlanetscaleGetADeployRequestState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleGetADeployRequestDeploymentState!
+	deployment: PlanetscaleGetADeployRequestDeployment!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleGetADeployRequestClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleGetADeployRequestBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleGetADeployRequestActor!
+}
+type PlanetscaleGetADeployRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleGetADeployRequestBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleGetADeployRequestClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleGetADeployRequestDeployment {
+	updatedAt: String!
+	submittedAt: String!
+	state: PlanetscaleGetADeployRequestStateDeployment!
+	startedAt: String!
+	readyToCutoverAt: String!
+	queuedAt: String!
+	id: String!
+	finishedAt: String!
+	deployCheckErrors: String!
+	cutoverExpiring: Boolean!
+	cutoverAt: String!
+	createdAt: String!
+	autoCutover: Boolean!
+}
+enum PlanetscaleGetADeployRequestDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+enum PlanetscaleGetADeployRequestState {
+	CLOSED
+	OPEN
+}
+enum PlanetscaleGetADeployRequestStateDeployment {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+type PlanetscaleGetADeployment {
+	updatedAt: String!
+	submittedAt: String!
+	state: PlanetscaleGetADeploymentState!
+	startedAt: String!
+	readyToCutoverAt: String!
+	queuedAt: String!
+	id: String!
+	finishedAt: String!
+	deployCheckErrors: String!
+	cutoverExpiring: Boolean!
+	cutoverAt: String!
+	createdAt: String!
+	autoCutover: Boolean!
+}
+enum PlanetscaleGetADeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+type PlanetscaleGetAPassword {
+	username: String!
+	ttlSeconds: Float!
+	role: String!
+	renewable: Boolean!
+	region: PlanetscaleGetAPasswordRegion!
+	name: String!
+	integrations: [String!]!
+	id: String!
+	expiresAt: String!
+	deletedAt: String!
+	databaseBranch: PlanetscaleGetAPasswordDatabaseBranch!
+	createdAt: String!
+	actor: PlanetscaleGetAPasswordActor!
+	accessHostUrl: String!
+}
+type PlanetscaleGetAPasswordActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleGetAPasswordDatabaseBranch {
+	production: Boolean!
+	name: String!
+	id: String!
+	accessHostUrl: String!
+}
+type PlanetscaleGetAPasswordRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleGetAPromotionRequest {
+	updatedAt: String!
+	state: PlanetscaleGetAPromotionRequestState!
+	startedAt: String!
+	id: String!
+	finishedAt: String!
+	createdAt: String!
+	branchPromotionRequestLintErrors: [String!]!
+	branch: String!
+	actor: PlanetscaleGetAPromotionRequestActor!
+}
+type PlanetscaleGetAPromotionRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleGetAPromotionRequestState {
+	LINT_ERROR
+	PROMOTED
+	PENDING
+}
+type PlanetscaleGetAnOauthApplication {
+	updatedAt: String!
+	tokens: Float!
+	scopes: [String!]!
+	redirectUri: String!
+	name: String!
+	id: String!
+	domain: String!
+	createdAt: String!
+	clientId: String!
+	avatar: String!
+}
+type PlanetscaleGetAnOauthToken {
+	updatedAt: String!
+	oauthAccessesByResource: PlanetscaleGetAnOauthTokenOauthAccessesByResource!
+	name: String!
+	lastUsedAt: String!
+	id: String!
+	expiresAt: String!
+	displayName: String!
+	createdAt: String!
+	avatarUrl: String!
+	actorType: String!
+	actorId: String!
+	actorDisplayName: String!
+}
+type PlanetscaleGetAnOauthTokenBranchOauthAccessesByResource {
+	branches: [String!]!
+	accesses: [String!]!
+}
+type PlanetscaleGetAnOauthTokenDatabaseOauthAccessesByResource {
+	databases: [String!]!
+	accesses: [String!]!
+}
+type PlanetscaleGetAnOauthTokenOauthAccessesByResource {
+	user: PlanetscaleGetAnOauthTokenUserOauthAccessesByResource!
+	organization: PlanetscaleGetAnOauthTokenOrganizationOauthAccessesByResource!
+	database: PlanetscaleGetAnOauthTokenDatabaseOauthAccessesByResource!
+	branch: PlanetscaleGetAnOauthTokenBranchOauthAccessesByResource!
+}
+type PlanetscaleGetAnOauthTokenOrganizationOauthAccessesByResource {
+	organizations: [String!]!
+	accesses: [String!]!
+}
+type PlanetscaleGetAnOauthTokenUserOauthAccessesByResource {
+	users: [String!]!
+	accesses: [String!]!
+}
+type PlanetscaleGetAnOrganization {
+	validBillingInfo: Boolean!
+	updatedAt: String!
+	ssoPortalUrl: String
+	ssoDirectory: Boolean!
+	sso: Boolean!
+	sleepingDatabaseCount: Float!
+	singleTenancy: Boolean!
+	plan: String!
+	name: String!
+	id: String!
+	hasPastDueInvoices: Boolean!
+	freeDatabasesRemaining: Float!
+	flags: PlanetscaleGetAnOrganizationFlags
+	features: PlanetscaleGetAnOrganizationFeatures
+	databaseCount: Float!
+	createdAt: String!
+	canCreateDatabases: Boolean!
+	billingEmail: String!
+	adminOnlyProductionAccess: Boolean!
+}
+enum PlanetscaleGetAnOrganizationExampleFlagFlags {
+	ON
+	FULL
+}
+type PlanetscaleGetAnOrganizationFeatures {
+	sso: Boolean
+	singleTenancy: Boolean
+	insights: Boolean
+}
+type PlanetscaleGetAnOrganizationFlags {
+	exampleFlag: PlanetscaleGetAnOrganizationExampleFlagFlags
+}
+type PlanetscaleGetCurrentUser {
+	updatedAt: String
+	twoFactorAuthConfigured: Boolean
+	sso: Boolean
+	name: String
+	managed: Boolean
+	id: String
+	emailVerified: Boolean
+	email: String
+	displayName: String
+	directoryManaged: Boolean
+	defaultOrganizationId: String
+	createdAt: String
+	avatarUrl: String
+}
+type PlanetscaleGetTheDeployQueue {
+	data: [PlanetscaleGetTheDeployQueueData!]!
+}
+type PlanetscaleGetTheDeployQueueData {
+	updatedAt: String!
+	submittedAt: String!
+	state: PlanetscaleGetTheDeployQueueStateData!
+	startedAt: String!
+	readyToCutoverAt: String!
+	queuedAt: String!
+	id: String!
+	finishedAt: String!
+	deployCheckErrors: String!
+	cutoverExpiring: Boolean!
+	cutoverAt: String!
+	createdAt: String!
+	autoCutover: Boolean!
+}
+enum PlanetscaleGetTheDeployQueueStateData {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+type PlanetscaleLintABranchSchema {
+	data: [PlanetscaleLintABranchSchemaData!]!
+}
+type PlanetscaleLintABranchSchemaData {
+	vindexName: String!
+	tableName: String!
+	subjectType: PlanetscaleLintABranchSchemaSubjectTypeData!
+	partitioningType: String!
+	partitionName: String!
+	lintError: String!
+	keyspaceName: String!
+	jsonPath: String!
+	foreignKeyColumnNames: [String!]!
+	errorDescription: String!
+	enumValue: String!
+	engineName: String!
+	docsUrl: String!
+	columnName: String!
+	checkConstraintName: String!
+	charsetName: String!
+	autoIncrementColumnNames: [String!]!
+}
+enum PlanetscaleLintABranchSchemaSubjectTypeData {
+	ROUTING_RULES
+	VSCHEMA
+	TABLE
+}
+type PlanetscaleListBackups {
+	data: [PlanetscaleListBackupsData!]!
+}
+type PlanetscaleListBackupsActorData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListBackupsBackupPolicyData {
+	updatedAt: String!
+	target: PlanetscaleListBackupsTargetBackupPolicyData!
+	scheduleWeek: String!
+	scheduleDay: String!
+	retentionValue: Float!
+	retentionUnit: String!
+	nextRunAt: String!
+	name: String!
+	lastRanAt: String!
+	id: String!
+	frequencyValue: Float!
+	frequencyUnit: String!
+	createdAt: String!
+}
+type PlanetscaleListBackupsData {
+	updatedAt: String!
+	state: PlanetscaleListBackupsStateData!
+	size: Float!
+	schemaSnapshot: PlanetscaleListBackupsSchemaSnapshotData!
+	restoredBranches: [String!]!
+	required: Boolean!
+	name: String!
+	id: String!
+	estimatedStorageCost: Float!
+	createdAt: String!
+	backupPolicy: PlanetscaleListBackupsBackupPolicyData!
+	actor: PlanetscaleListBackupsActorData!
+}
+type PlanetscaleListBackupsSchemaSnapshotData {
+	url: String!
+	updatedAt: String!
+	name: String!
+	id: String!
+	createdAt: String!
+}
+enum PlanetscaleListBackupsStateData {
+	CANCELED
+	FAILED
+	SUCCESS
+	RUNNING
+	PENDING
+}
+enum PlanetscaleListBackupsTargetBackupPolicyData {
+	BRANCH
+	DEVELOPMENT
+	PRODUCTION
+}
+type PlanetscaleListBranches {
+	data: [PlanetscaleListBranchesData!]!
+}
+type PlanetscaleListBranchesApiActorData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListBranchesData {
+	updatedAt: String!
+	sharded: Boolean!
+	shardCount: Float!
+	schemaLastUpdatedAt: String!
+	restoredFromBranch: PlanetscaleListBranchesRestoredFromBranchData!
+	restoreChecklistCompletedAt: String!
+	ready: Boolean!
+	production: Boolean!
+	planetscaleRegion: PlanetscaleListBranchesPlanetscaleRegionData!
+	parentBranch: String!
+	name: String!
+	mysqlEdgeAddress: String!
+	mysqlAddress: String!
+	multipleAdminsRequiredForDemotion: Boolean!
+	initialRestoreId: String!
+	id: String!
+	htmlUrl: String!
+	createdAt: String!
+	apiActor: PlanetscaleListBranchesApiActorData!
+	accessHostUrl: String!
+}
+type PlanetscaleListBranchesPlanetscaleRegionData {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleListBranchesRestoredFromBranchData {
+	updatedAt: String!
+	name: String!
+	id: String!
+	deletedAt: String!
+	createdAt: String!
+}
+type PlanetscaleListDatabasePromotionRequests {
+	data: [PlanetscaleListDatabasePromotionRequestsData!]!
+}
+type PlanetscaleListDatabasePromotionRequestsActorData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListDatabasePromotionRequestsData {
+	updatedAt: String
+	syntaxHighlightedLintErrors: PlanetscaleListDatabasePromotionRequestsSyntaxHighlightedLintErrorsData
+	state: PlanetscaleListDatabasePromotionRequestsStateData
+	startedAt: String
+	id: String
+	finishedAt: String
+	createdAt: String
+	branchPromotionRequestLintErrors: [String!]
+	branch: String
+	actor: PlanetscaleListDatabasePromotionRequestsActorData
+}
+enum PlanetscaleListDatabasePromotionRequestsStateData {
+	LINT_ERROR
+	PROMOTED
+	PENDING
+}
+enum PlanetscaleListDatabasePromotionRequestsSubjectTypeSyntaxHighlightedLintErrorsData {
+	ROUTING_RULES
+	TABLE
+	VSCHEMA
+}
+type PlanetscaleListDatabasePromotionRequestsSyntaxHighlightedLintErrorsData {
+	tableName: String
+	subjectType: PlanetscaleListDatabasePromotionRequestsSubjectTypeSyntaxHighlightedLintErrorsData
+	keyspaceName: String
+	html: String
+}
+type PlanetscaleListDatabaseRegions {
+	data: [PlanetscaleListDatabaseRegionsData!]!
+}
+type PlanetscaleListDatabaseRegionsData {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleListDatabases {
+	data: [PlanetscaleListDatabasesData!]!
+}
+type PlanetscaleListDatabasesData {
+	url: String!
+	updatedAt: String!
+	type: String!
+	state: String!
+	sharded: Boolean!
+	schemaLastUpdatedAt: String!
+	restrictBranchRegion: Boolean!
+	requireApprovalForDeploy: Boolean!
+	region: PlanetscaleListDatabasesRegionData!
+	ready: Boolean!
+	productionBranchesCount: Float!
+	productionBranchWebConsole: Boolean!
+	plan: String!
+	notes: String!
+	name: String!
+	multipleAdminsRequiredForDeletion: Boolean!
+	migrationTableName: String!
+	migrationFramework: String!
+	issuesCount: Float!
+	insightsRawQueries: Boolean!
+	id: String!
+	htmlUrl: String!
+	developmentBranchesCount: Float!
+	defaultBranchTableCount: Float!
+	defaultBranchShardCount: Float!
+	defaultBranchReadOnlyRegionsCount: Float!
+	defaultBranch: String!
+	dataImport: PlanetscaleListDatabasesDataImportData!
+	createdAt: String!
+	branchesUrl: String!
+	branchesCount: Float!
+	automaticMigrations: Boolean!
+	atDevelopmentBranchLimit: Boolean!
+	atBackupRestoreBranchesLimit: Boolean!
+	allowDataBranching: Boolean!
+}
+type PlanetscaleListDatabasesDataImportData {
+	state: String!
+	startedAt: String!
+	importCheckErrors: String!
+	finishedAt: String!
+	dataSource: PlanetscaleListDatabasesDataSourceDataImportData!
+}
+type PlanetscaleListDatabasesDataSourceDataImportData {
+	port: String!
+	hostname: String!
+	database: String!
+}
+type PlanetscaleListDatabasesRegionData {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleListDeployOperations {
+	data: [PlanetscaleListDeployOperationsData!]!
+}
+type PlanetscaleListDeployOperationsData {
+	updatedAt: String!
+	tableRecentlyUsedAt: String!
+	tableRecentlyUsed: Boolean!
+	tableName: String!
+	syntaxHighlightedDdl: String!
+	state: PlanetscaleListDeployOperationsStateData!
+	progressPercentage: Float!
+	operationName: String!
+	keyspaceName: String!
+	id: String!
+	etaSeconds: Float!
+	deployErrors: [String!]!
+	deployErrorDocsUrl: String!
+	ddlStatement: String!
+	createdAt: String!
+	canDropData: Boolean!
+}
+enum PlanetscaleListDeployOperationsStateData {
+	ERROR
+	CANCELLED
+	COMPLETE
+	IN_PROGRESS
+	QUEUED
+	PENDING
+}
+type PlanetscaleListDeployRequestReviews {
+	data: [PlanetscaleListDeployRequestReviewsData!]!
+}
+type PlanetscaleListDeployRequestReviewsActorData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListDeployRequestReviewsData {
+	updatedAt: String!
+	state: PlanetscaleListDeployRequestReviewsStateData!
+	id: String!
+	htmlBody: String!
+	createdAt: String!
+	body: String!
+	actor: PlanetscaleListDeployRequestReviewsActorData!
+}
+enum PlanetscaleListDeployRequestReviewsStateData {
+	APPROVED
+	COMMENTED
+}
+type PlanetscaleListDeployRequests {
+	data: [PlanetscaleListDeployRequestsData!]!
+}
+type PlanetscaleListDeployRequestsActorData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListDeployRequestsBranchDeletedByData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListDeployRequestsClosedByData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListDeployRequestsData {
+	updatedAt: String!
+	state: PlanetscaleListDeployRequestsStateData!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleListDeployRequestsDeploymentStateData!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleListDeployRequestsClosedByData!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleListDeployRequestsBranchDeletedByData!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleListDeployRequestsActorData!
+}
+enum PlanetscaleListDeployRequestsDeploymentStateData {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+enum PlanetscaleListDeployRequestsStateData {
+	CLOSED
+	OPEN
+}
+type PlanetscaleListOauthApplications {
+	data: [PlanetscaleListOauthApplicationsData!]!
+}
+type PlanetscaleListOauthApplicationsData {
+	updatedAt: String!
+	tokens: Float!
+	scopes: [String!]!
+	redirectUri: String!
+	name: String!
+	id: String!
+	domain: String!
+	createdAt: String!
+	clientId: String!
+	avatar: String!
+}
+type PlanetscaleListOauthTokens {
+	data: [PlanetscaleListOauthTokensData!]!
+}
+type PlanetscaleListOauthTokensData {
+	updatedAt: String!
+	name: String!
+	lastUsedAt: String!
+	id: String!
+	expiresAt: String!
+	displayName: String!
+	createdAt: String!
+	avatarUrl: String!
+	actorType: String!
+	actorId: String!
+	actorDisplayName: String!
+}
+type PlanetscaleListOrganizations {
+	data: [PlanetscaleListOrganizationsData!]!
+}
+type PlanetscaleListOrganizationsData {
+	validBillingInfo: Boolean!
+	updatedAt: String!
+	ssoPortalUrl: String
+	ssoDirectory: Boolean!
+	sso: Boolean!
+	sleepingDatabaseCount: Float!
+	singleTenancy: Boolean!
+	plan: String!
+	name: String!
+	id: String!
+	hasPastDueInvoices: Boolean!
+	freeDatabasesRemaining: Float!
+	flags: PlanetscaleListOrganizationsFlagsData
+	features: PlanetscaleListOrganizationsFeaturesData
+	databaseCount: Float!
+	createdAt: String!
+	canCreateDatabases: Boolean!
+	billingEmail: String!
+	adminOnlyProductionAccess: Boolean!
+}
+enum PlanetscaleListOrganizationsExampleFlagFlagsData {
+	ON
+	FULL
+}
+type PlanetscaleListOrganizationsFeaturesData {
+	sso: Boolean
+	singleTenancy: Boolean
+	insights: Boolean
+}
+type PlanetscaleListOrganizationsFlagsData {
+	exampleFlag: PlanetscaleListOrganizationsExampleFlagFlagsData
+}
+type PlanetscaleListPasswords {
+	data: [PlanetscaleListPasswordsData!]!
+}
+type PlanetscaleListPasswordsActorData {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListPasswordsData {
+	username: String!
+	ttlSeconds: Float!
+	role: String!
+	renewable: Boolean!
+	region: PlanetscaleListPasswordsRegionData!
+	name: String!
+	integrations: [String!]!
+	id: String!
+	expiresAt: String!
+	deletedAt: String!
+	databaseBranch: PlanetscaleListPasswordsDatabaseBranchData!
+	createdAt: String!
+	actor: PlanetscaleListPasswordsActorData!
+	accessHostUrl: String!
+}
+type PlanetscaleListPasswordsDatabaseBranchData {
+	production: Boolean!
+	name: String!
+	id: String!
+	accessHostUrl: String!
+}
+type PlanetscaleListPasswordsRegionData {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleListReadOnlyRegions {
+	updatedAt: String!
+	region: PlanetscaleListReadOnlyRegionsRegion!
+	readyAt: String!
+	ready: Boolean!
+	id: String!
+	displayName: String!
+	createdAt: String!
+	actor: PlanetscaleListReadOnlyRegionsActor!
+}
+type PlanetscaleListReadOnlyRegionsActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleListReadOnlyRegionsRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleListRegionsForAnOrganization {
+	data: [PlanetscaleListRegionsForAnOrganizationData!]!
+}
+type PlanetscaleListRegionsForAnOrganizationData {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleMutation {
+	updateAnOrganization(name: String!, input: PlanetscaleUpdateAnOrganizationInput): PlanetscaleUpdateAnOrganization
+	createADatabase(organization: String!, input: PlanetscaleCreateADatabaseInput): PlanetscaleCreateADatabase
+	createABranch(organization: String!, database: String!, input: PlanetscaleCreateABranchInput): PlanetscaleCreateABranch
+	createABackup(organization: String!, database: String!, branch: String!, input: PlanetscaleCreateABackupInput): PlanetscaleCreateABackup
+	deleteABackup(id: String!, organization: String!, database: String!, branch: String!): JSON
+	createAPassword(organization: String!, database: String!, branch: String!, input: PlanetscaleCreateAPasswordInput): PlanetscaleCreateAPassword
+	updateAPassword(organization: String!, database: String!, branch: String!, id: String!, input: PlanetscaleUpdateAPasswordInput): PlanetscaleUpdateAPassword
+	deleteAPassword(organization: String!, database: String!, branch: String!, id: String!): JSON
+	renewAPassword(organization: String!, database: String!, branch: String!, id: String!, input: PlanetscaleRenewAPasswordInput): PlanetscaleRenewAPassword
+	deleteABranch(organization: String!, database: String!, name: String!): JSON
+	demoteABranch(organization: String!, database: String!, name: String!): PlanetscaleDemoteABranch
+	cancelOrDenyADemotionRequest(organization: String!, database: String!, name: String!): JSON
+	promoteABranch(organization: String!, database: String!, name: String!): PlanetscalePromoteABranch
+	createAPromotionRequest(organization: String!, database: String!, name: String!): PlanetscaleCreateAPromotionRequest
+	enableSafeMigrationsForABranch(organization: String!, database: String!, name: String!): PlanetscaleEnableSafeMigrationsForABranch
+	disableSafeMigrationsForABranch(organization: String!, database: String!, name: String!): PlanetscaleDisableSafeMigrationsForABranch
+	createADeployRequest(organization: String!, database: String!, input: PlanetscaleCreateADeployRequestInput): PlanetscaleCreateADeployRequest
+	closeADeployRequest(organization: String!, database: String!, number: String!, input: PlanetscaleCloseADeployRequestInput): PlanetscaleCloseADeployRequest
+	completeAGatedDeployRequest(organization: String!, database: String!, number: String!): PlanetscaleCompleteAGatedDeployRequest
+	updateAutoApplyForDeployRequest(organization: String!, database: String!, number: String!, input: PlanetscaleUpdateAutoApplyForDeployRequestInput): PlanetscaleUpdateAutoApplyForDeployRequest
+	cancelAQueuedDeployRequest(organization: String!, database: String!, number: String!): PlanetscaleCancelAQueuedDeployRequest
+	completeAnErroredDeploy(organization: String!, database: String!, number: String!): PlanetscaleCompleteAnErroredDeploy
+	queueADeployRequest(organization: String!, database: String!, number: String!): PlanetscaleQueueADeployRequest
+	completeARevert(organization: String!, database: String!, number: String!): PlanetscaleCompleteARevert
+	reviewADeployRequest(organization: String!, database: String!, number: String!, input: PlanetscaleReviewADeployRequestInput): PlanetscaleReviewADeployRequest
+	skipRevertPeriod(organization: String!, database: String!, number: String!): PlanetscaleSkipRevertPeriod
+	updateDatabaseSettings(organization: String!, name: String!, input: PlanetscaleUpdateDatabaseSettingsInput): PlanetscaleUpdateDatabaseSettings
+	deleteADatabase(organization: String!, name: String!): JSON
+	deleteAnOauthToken(organization: String!, applicationId: String!, tokenId: String!): JSON
+	createOrRenewAnOauthToken(organization: String!, id: String!, input: PlanetscaleCreateOrRenewAnOauthTokenInput): PlanetscaleCreateOrRenewAnOauthToken
+}
+type PlanetscalePromoteABranch {
+	updatedAt: String!
+	sharded: Boolean!
+	shardCount: Float!
+	schemaLastUpdatedAt: String!
+	restoredFromBranch: PlanetscalePromoteABranchRestoredFromBranch!
+	restoreChecklistCompletedAt: String!
+	ready: Boolean!
+	production: Boolean!
+	planetscaleRegion: PlanetscalePromoteABranchPlanetscaleRegion!
+	parentBranch: String!
+	name: String!
+	mysqlEdgeAddress: String!
+	mysqlAddress: String!
+	multipleAdminsRequiredForDemotion: Boolean!
+	initialRestoreId: String!
+	id: String!
+	htmlUrl: String!
+	createdAt: String!
+	apiActor: PlanetscalePromoteABranchApiActor!
+	accessHostUrl: String!
+}
+type PlanetscalePromoteABranchApiActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscalePromoteABranchPlanetscaleRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscalePromoteABranchRestoredFromBranch {
+	updatedAt: String!
+	name: String!
+	id: String!
+	deletedAt: String!
+	createdAt: String!
+}
+type PlanetscaleQuery {
+	listOrganizations(perPage: String, page: String): PlanetscaleListOrganizations
+	anOrganization(name: String!): PlanetscaleGetAnOrganization
+	listRegionsForAnOrganization(name: String!, perPage: String, page: String): PlanetscaleListRegionsForAnOrganization
+	listDatabases(organization: String!, perPage: String, page: String): PlanetscaleListDatabases
+	listBranches(organization: String!, database: String!, perPage: String, page: String): PlanetscaleListBranches
+	listBackups(organization: String!, database: String!, branch: String!, perPage: String, page: String): PlanetscaleListBackups
+	aBackup(id: String!, organization: String!, database: String!, branch: String!, perPage: String, page: String): PlanetscaleGetABackup
+	listPasswords(organization: String!, database: String!, branch: String!, perPage: String, page: String, readOnlyRegionId: String): PlanetscaleListPasswords
+	aPassword(organization: String!, database: String!, branch: String!, id: String!, readOnlyRegionId: String): PlanetscaleGetAPassword
+	aBranch(organization: String!, database: String!, name: String!): PlanetscaleGetABranch
+	aDemotionRequest(organization: String!, database: String!, name: String!): PlanetscaleGetADemotionRequest
+	aPromotionRequest(organization: String!, database: String!, name: String!): PlanetscaleGetAPromotionRequest
+	aBranchSchema(organization: String!, database: String!, name: String!, keyspace: String): PlanetscaleGetABranchSchema
+	theDeployQueue(organization: String!, database: String!): PlanetscaleGetTheDeployQueue
+	listDeployRequests(organization: String!, database: String!, perPage: String, page: String): PlanetscaleListDeployRequests
+	aDeployRequest(organization: String!, database: String!, number: String!): PlanetscaleGetADeployRequest
+	aDeployment(organization: String!, database: String!, number: String!): PlanetscaleGetADeployment
+	listDeployOperations(organization: String!, database: String!, number: String!, perPage: String, page: String): PlanetscaleListDeployOperations
+	listDeployRequestReviews(organization: String!, database: String!, number: String!): PlanetscaleListDeployRequestReviews
+	aDatabase(organization: String!, name: String!): PlanetscaleGetADatabase
+	lintABranchSchema(organization: String!, name: String!, branch: String!, perPage: String, page: String, database: String!): PlanetscaleLintABranchSchema
+	listDatabasePromotionRequests(organization: String!, name: String!, perPage: String, page: String): PlanetscaleListDatabasePromotionRequests
+	listReadOnlyRegions(organization: String!, name: String!, perPage: String, page: String): PlanetscaleListReadOnlyRegions
+	listDatabaseRegions(organization: String!, name: String!, perPage: String, page: String): PlanetscaleListDatabaseRegions
+	listOauthApplications(organization: String!, perPage: String, page: String): PlanetscaleListOauthApplications
+	anOauthApplication(organization: String!, applicationId: String!): PlanetscaleGetAnOauthApplication
+	listOauthTokens(organization: String!, applicationId: String!, perPage: String, page: String): PlanetscaleListOauthTokens
+	anOauthToken(organization: String!, applicationId: String!, tokenId: String!): PlanetscaleGetAnOauthToken
+	currentUser: PlanetscaleGetCurrentUser
+}
+type PlanetscaleQueueADeployRequest {
+	updatedAt: String!
+	state: PlanetscaleQueueADeployRequestState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleQueueADeployRequestDeploymentState!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleQueueADeployRequestClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleQueueADeployRequestBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleQueueADeployRequestActor!
+}
+type PlanetscaleQueueADeployRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleQueueADeployRequestBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleQueueADeployRequestClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleQueueADeployRequestDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+enum PlanetscaleQueueADeployRequestState {
+	CLOSED
+	OPEN
+}
+type PlanetscaleRenewAPassword {
+	username: String!
+	ttlSeconds: Float!
+	role: String!
+	renewable: Boolean!
+	region: PlanetscaleRenewAPasswordRegion!
+	plainText: String!
+	name: String!
+	integrations: [String!]!
+	id: String!
+	expiresAt: String!
+	deletedAt: String!
+	databaseBranch: PlanetscaleRenewAPasswordDatabaseBranch!
+	createdAt: String!
+	actor: PlanetscaleRenewAPasswordActor!
+	accessHostUrl: String!
+}
+type PlanetscaleRenewAPasswordActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleRenewAPasswordDatabaseBranch {
+	production: Boolean!
+	name: String!
+	id: String!
+	accessHostUrl: String!
+}
+input PlanetscaleRenewAPasswordInput {
+	readOnlyRegionId: String
+}
+type PlanetscaleRenewAPasswordRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleReviewADeployRequest {
+	updatedAt: String!
+	state: PlanetscaleReviewADeployRequestState!
+	id: String!
+	htmlBody: String!
+	createdAt: String!
+	body: String!
+	actor: PlanetscaleReviewADeployRequestActor!
+}
+type PlanetscaleReviewADeployRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+input PlanetscaleReviewADeployRequestInput {
+	state: PlanetscaleReviewADeployRequestState
+	body: String
+}
+enum PlanetscaleReviewADeployRequestState {
+	APPROVED
+	COMMENTED
+}
+type PlanetscaleSkipRevertPeriod {
+	updatedAt: String!
+	state: PlanetscaleSkipRevertPeriodState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleSkipRevertPeriodDeploymentState!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleSkipRevertPeriodClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleSkipRevertPeriodBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleSkipRevertPeriodActor!
+}
+type PlanetscaleSkipRevertPeriodActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleSkipRevertPeriodBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleSkipRevertPeriodClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleSkipRevertPeriodDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+enum PlanetscaleSkipRevertPeriodState {
+	CLOSED
+	OPEN
+}
+type PlanetscaleUpdateAPassword {
+	username: String!
+	ttlSeconds: Float!
+	role: String!
+	renewable: Boolean!
+	region: PlanetscaleUpdateAPasswordRegion!
+	name: String!
+	integrations: [String!]!
+	id: String!
+	expiresAt: String!
+	deletedAt: String!
+	databaseBranch: PlanetscaleUpdateAPasswordDatabaseBranch!
+	createdAt: String!
+	actor: PlanetscaleUpdateAPasswordActor!
+	accessHostUrl: String!
+}
+type PlanetscaleUpdateAPasswordActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleUpdateAPasswordDatabaseBranch {
+	production: Boolean!
+	name: String!
+	id: String!
+	accessHostUrl: String!
+}
+input PlanetscaleUpdateAPasswordInput {
+	name: String!
+}
+type PlanetscaleUpdateAPasswordRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type PlanetscaleUpdateAnOrganization {
+	validBillingInfo: Boolean!
+	updatedAt: String!
+	ssoPortalUrl: String
+	ssoDirectory: Boolean!
+	sso: Boolean!
+	sleepingDatabaseCount: Float!
+	singleTenancy: Boolean!
+	plan: String!
+	name: String!
+	id: String!
+	hasPastDueInvoices: Boolean!
+	freeDatabasesRemaining: Float!
+	flags: PlanetscaleUpdateAnOrganizationFlags
+	features: PlanetscaleUpdateAnOrganizationFeatures
+	databaseCount: Float!
+	createdAt: String!
+	canCreateDatabases: Boolean!
+	billingEmail: String!
+	adminOnlyProductionAccess: Boolean!
+}
+enum PlanetscaleUpdateAnOrganizationExampleFlagFlags {
+	ON
+	FULL
+}
+type PlanetscaleUpdateAnOrganizationFeatures {
+	sso: Boolean
+	singleTenancy: Boolean
+	insights: Boolean
+}
+type PlanetscaleUpdateAnOrganizationFlags {
+	exampleFlag: PlanetscaleUpdateAnOrganizationExampleFlagFlags
+}
+input PlanetscaleUpdateAnOrganizationInput {
+	requireAdminForProductionAccess: Boolean
+	billingEmail: String
+}
+type PlanetscaleUpdateAutoApplyForDeployRequest {
+	updatedAt: String!
+	state: PlanetscaleUpdateAutoApplyForDeployRequestState!
+	number: Float!
+	notes: String!
+	intoBranchSharded: Boolean!
+	intoBranchShardCount: Float!
+	intoBranch: String!
+	id: String!
+	htmlUrl: String!
+	htmlBody: String!
+	deploymentState: PlanetscaleUpdateAutoApplyForDeployRequestDeploymentState!
+	deployedAt: String!
+	createdAt: String!
+	closedBy: PlanetscaleUpdateAutoApplyForDeployRequestClosedBy!
+	closedAt: String!
+	branchDeletedBy: PlanetscaleUpdateAutoApplyForDeployRequestBranchDeletedBy!
+	branchDeletedAt: String!
+	branchDeleted: Boolean!
+	branch: String!
+	approved: Boolean!
+	actor: PlanetscaleUpdateAutoApplyForDeployRequestActor!
+}
+type PlanetscaleUpdateAutoApplyForDeployRequestActor {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleUpdateAutoApplyForDeployRequestBranchDeletedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+type PlanetscaleUpdateAutoApplyForDeployRequestClosedBy {
+	id: String!
+	displayName: String!
+	avatarUrl: String!
+}
+enum PlanetscaleUpdateAutoApplyForDeployRequestDeploymentState {
+	ERROR
+	CANCELLED
+	COMPLETE_REVERT_ERROR
+	COMPLETE_REVERT
+	IN_PROGRESS_REVERT
+	COMPLETE_PENDING_REVERT
+	COMPLETE_ERROR
+	COMPLETE_CANCEL
+	COMPLETE
+	IN_PROGRESS_CUTOVER
+	IN_PROGRESS_CANCEL
+	IN_PROGRESS_VSCHEMA
+	PENDING_CUTOVER
+	IN_PROGRESS
+	SUBMITTING
+	QUEUED
+	NO_CHANGES
+	READY
+	PENDING
+}
+input PlanetscaleUpdateAutoApplyForDeployRequestInput {
+	enable: Boolean
+}
+enum PlanetscaleUpdateAutoApplyForDeployRequestState {
+	CLOSED
+	OPEN
+}
+type PlanetscaleUpdateDatabaseSettings {
+	url: String!
+	updatedAt: String!
+	type: String!
+	state: String!
+	sharded: Boolean!
+	schemaLastUpdatedAt: String!
+	restrictBranchRegion: Boolean!
+	requireApprovalForDeploy: Boolean!
+	region: PlanetscaleUpdateDatabaseSettingsRegion!
+	ready: Boolean!
+	productionBranchesCount: Float!
+	productionBranchWebConsole: Boolean!
+	plan: String!
+	notes: String!
+	name: String!
+	multipleAdminsRequiredForDeletion: Boolean!
+	migrationTableName: String!
+	migrationFramework: String!
+	issuesCount: Float!
+	insightsRawQueries: Boolean!
+	id: String!
+	htmlUrl: String!
+	developmentBranchesCount: Float!
+	defaultBranchTableCount: Float!
+	defaultBranchShardCount: Float!
+	defaultBranchReadOnlyRegionsCount: Float!
+	defaultBranch: String!
+	dataImport: PlanetscaleUpdateDatabaseSettingsDataImport!
+	createdAt: String!
+	branchesUrl: String!
+	branchesCount: Float!
+	automaticMigrations: Boolean!
+	atDevelopmentBranchLimit: Boolean!
+	atBackupRestoreBranchesLimit: Boolean!
+	allowDataBranching: Boolean!
+}
+type PlanetscaleUpdateDatabaseSettingsDataImport {
+	state: String!
+	startedAt: String!
+	importCheckErrors: String!
+	finishedAt: String!
+	dataSource: PlanetscaleUpdateDatabaseSettingsDataSourceDataImport!
+}
+type PlanetscaleUpdateDatabaseSettingsDataSourceDataImport {
+	port: String!
+	hostname: String!
+	database: String!
+}
+input PlanetscaleUpdateDatabaseSettingsInput {
+	restrictBranchRegion: Boolean
+	requireApprovalForDeploy: Boolean
+	productionBranchWebConsole: Boolean
+	notes: String
+	migrationTableName: String
+	migrationFramework: String
+	insightsRawQueries: Boolean
+	defaultBranch: String
+	automaticMigrations: Boolean
+	allowDataBranching: Boolean
+}
+type PlanetscaleUpdateDatabaseSettingsRegion {
+	slug: String!
+	publicIpAddresses: [String!]!
+	provider: String!
+	location: String!
+	id: String!
+	enabled: String!
+	displayName: String!
+}
+type Query {
+	planetscale: PlanetscaleQuery!
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

@@ -1,0 +1,52 @@
+version: '3'
+services:
+  # MongoDB
+  data-api:
+    image: grafbase/mongodb-data-api:latest
+    restart: always
+    environment:
+      MONGODB_DATABASE_URL: 'mongodb://grafbase:grafbase@mongodb:27017'
+    ports:
+      - '3000:3000'
+    depends_on:
+      - mongodb
+    networks:
+      - databases
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: 'grafbase'
+      MONGO_INITDB_ROOT_PASSWORD: 'grafbase'
+      INIT_WAIT_SEC: $INIT_WAIT_SEC
+    ports:
+      - '27018:27017'
+    networks:
+      - databases
+
+  # PostgreSQL
+  neon-api:
+    image: grafbase/neon-proxy:latest
+    restart: always
+    command: /usr/local/bin/proxy -c /server.crt -k /server.key --auth-backend=postgres --auth-endpoint=postgres://postgres:grafbase@postgres:5432/postgres --wss=0.0.0.0:4444
+    ports:
+      - '4444:4444'
+    networks:
+      - databases
+
+  postgres:
+    image: postgres:15
+    restart: always
+    command: postgres -c 'max_connections=1000'
+    environment:
+      POSTGRES_PASSWORD: 'grafbase'
+      POSTGRES_HOST_AUTH_METHOD: 'md5'
+      POSTGRES_INITDB_ARGS: '--auth-host=md5'
+    ports:
+      - '5432:5432'
+    networks:
+      - databases
+
+networks:
+  databases: null
