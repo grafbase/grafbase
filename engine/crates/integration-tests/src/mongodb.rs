@@ -95,8 +95,7 @@ pub struct TestApi {
 
 impl TestApi {
     async fn new(database: &str, schema: impl fmt::Display) -> Self {
-        let schema = formatdoc!(
-            r#"
+        let schema = formatdoc! {r#"
             extend schema
               @mongodb(
                  name: "test",
@@ -108,8 +107,7 @@ impl TestApi {
               )
 
             {schema}
-        "#
-        );
+        "#};
 
         Self::new_inner(database, schema).await
     }

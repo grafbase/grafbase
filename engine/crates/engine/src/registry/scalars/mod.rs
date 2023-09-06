@@ -34,8 +34,16 @@ mod decimal;
 pub use decimal::DecimalScalar;
 mod bigint;
 pub use bigint::BigIntScalar;
+mod unsigned_bigint;
+pub use unsigned_bigint::UnsignedBigIntScalar;
 mod bytes;
 pub use self::bytes::BytesScalar;
+mod time;
+pub use self::time::TimeScalar;
+mod naive_datetime;
+pub use naive_datetime::NaiveDateTimeScalar;
+mod uuid;
+pub use self::uuid::UuidScalar;
 
 /// ` SDLDefinitionScalar` trait is to be implemented for every custom scalar we add into `engine`
 ///
@@ -265,5 +273,9 @@ pub type PossibleScalar = merge_scalar!(
     PhoneNumberScalar,
     DecimalScalar,
     BigIntScalar,
-    BytesScalar
+    BytesScalar,
+    UnsignedBigIntScalar,
+    TimeScalar,
+    NaiveDateTimeScalar,
+    UuidScalar
 );

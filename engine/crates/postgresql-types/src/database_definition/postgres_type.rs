@@ -6,6 +6,12 @@ pub enum DatabaseType<'a> {
     Enum(EnumWalker<'a>),
 }
 
+impl<'a> DatabaseType<'a> {
+    pub fn is_enum(self) -> bool {
+        matches!(self, DatabaseType::Enum(_))
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ColumnType {
     Scalar(ScalarType),
@@ -214,7 +220,8 @@ impl ScalarType {
             XmlArray | CidrArray | Macaddr8Array | CharArray | NameArray | TextArray | BpcharArray | VarcharArray
             | MacaddrArray | CstringArray | BitArray | VarbitArray => "[String]",
 
-            Int8 | Oid => "BigInt",
+            Int8 => "BigInt",
+            Oid => "UnsignedBigInt",
             Int2 | Int4 => "Int",
             Json | Jsonb => "JSON",
             JsonArray | JsonbArray => "[JSON]",
@@ -223,7 +230,8 @@ impl ScalarType {
             Int2Array | Int4Array => "[Int]",
             Float4Array | Float8Array => "[Float]",
             Time | Timetz => "Time",
-            Int8Array | OidArray => "[BigInt]",
+            Int8Array => "[BigInt]",
+            OidArray => "[UnsignedBigInt]",
             Float4 | Float8 => "Float",
             TimeArray | TimetzArray => "[Time]",
             Bool => "Boolean",
@@ -233,8 +241,8 @@ impl ScalarType {
             ByteaArray => "[Bytes]",
             InetArray => "[IPAddress]",
             Date => "Date",
-            Timestamp => "Timestamp",
-            TimestampArray => "[Timestamp]",
+            Timestamp => "NaiveDateTime",
+            TimestampArray => "[NaiveDateTime]",
             DateArray => "[Date]",
             Timestamptz => "DateTime",
             TimestamptzArray => "[DateTime]",

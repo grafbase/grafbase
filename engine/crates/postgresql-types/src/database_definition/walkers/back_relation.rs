@@ -1,6 +1,5 @@
-use crate::database_definition::{ids::BackRelationId, ForeignKeyId, TableId};
-
 use super::{ForeignKeyWalker, TableColumnWalker, TableWalker, Walker};
+use crate::database_definition::{ids::BackRelationId, ForeignKeyId, TableId};
 
 /// A relation from the referenced side of a foreign key. The constraint
 /// is defined on the other side.
@@ -27,23 +26,11 @@ impl<'a> BackRelationWalker<'a> {
         self.foreign_key().columns().map(|column| column.constrained_column())
     }
 
-    /// True, if the referenced row is unique, this means there can only be at most one related row.
-    pub fn is_referenced_row_unique(self) -> bool {
-        self.referenced_table()
-            .unique_constraints()
-            .any(|constraint| constraint.contains_exactly_columns(self.referenced_columns()))
+    pub(super) fn foreign_key(self) -> ForeignKeyWalker<'a> {
+        self.walk(self.get().1)
     }
 
-    /// True, if all the columns of the relation are of supported type.
-    pub fn all_columns_use_supported_types(self) -> bool {
-        self.foreign_key().all_columns_use_supported_types()
-    }
-
-    fn foreign_key(self) -> ForeignKeyWalker<'a> {
-        self.walk(self.ids().1)
-    }
-
-    fn ids(self) -> (TableId, ForeignKeyId) {
+    fn get(self) -> (TableId, ForeignKeyId) {
         self.database_definition.relations.to[self.id.0 as usize]
     }
 }

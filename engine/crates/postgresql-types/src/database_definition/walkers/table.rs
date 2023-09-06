@@ -1,11 +1,8 @@
-use super::{
-    forward_relation::ForwardRelationWalker, table_column::TableColumnWalker,
-    unique_constraint::UniqueConstraintWalker, BackRelationWalker, Walker,
-};
+use super::{table_column::TableColumnWalker, unique_constraint::UniqueConstraintWalker, RelationWalker, Walker};
 use crate::database_definition::{
     ids::{BackRelationId, ForwardRelationId},
     names::StringId,
-    Table, TableColumnId, TableId, UniqueConstraintId,
+    RelationId, Table, TableColumnId, TableId, UniqueConstraintId,
 };
 
 /// Definition of a table.
@@ -44,6 +41,10 @@ impl<'a> TableWalker<'a> {
         self.columns().next().is_some() && self.unique_constraints().next().is_some()
     }
 
+    pub fn primary_key(self) -> Option<UniqueConstraintWalker<'a>> {
+        self.unique_constraints().find(|constraint| constraint.is_primary())
+    }
+
     /// An iterator over all the unqiue constraints, including the primary key.
     pub fn unique_constraints(self) -> impl Iterator<Item = UniqueConstraintWalker<'a>> + 'a {
         let range = super::range_for_key(&self.database_definition.unique_constraints, self.id, |constraint| {
@@ -71,26 +72,25 @@ impl<'a> TableWalker<'a> {
             .map(|id| self.walk(id))
     }
 
-    /// An iterator over relations having the foreign key defined on this table.
-    pub fn forward_relations(self) -> impl Iterator<Item = ForwardRelationWalker<'a>> + 'a {
+    /// An iterator over relations having the foreign key constraint defined from or into this table.
+    pub fn relations(self) -> impl Iterator<Item = RelationWalker<'a>> + 'a {
         let range = super::range_for_key(&self.database_definition.relations.from, self.id, |(table_id, _)| {
             *table_id
         });
 
-        range
-            .map(move |id| self.walk(ForwardRelationId(id as u32)))
-            .filter(|relation| relation.all_columns_use_supported_types())
-    }
+        let forward = range
+            .map(move |id| self.walk(RelationId::Forward(ForwardRelationId(id as u32))))
+            .filter(|relation| relation.all_columns_use_supported_types());
 
-    /// An iterator over relations having the foreign key defined on the opposite table.
-    pub fn backward_relations(self) -> impl Iterator<Item = BackRelationWalker<'a>> + 'a {
         let range = super::range_for_key(&self.database_definition.relations.to, self.id, |(table_id, _)| {
             *table_id
         });
 
-        range
-            .map(move |id| self.walk(BackRelationId(id as u32)))
-            .filter(|relation| relation.all_columns_use_supported_types())
+        let back = range
+            .map(move |id| self.walk(RelationId::Back(BackRelationId(id as u32))))
+            .filter(|relation| relation.all_columns_use_supported_types());
+
+        forward.chain(back)
     }
 
     fn get(self) -> &'a Table<StringId> {

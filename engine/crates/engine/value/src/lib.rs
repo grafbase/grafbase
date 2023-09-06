@@ -500,6 +500,48 @@ impl Value {
     pub fn from_json(json: serde_json::Value) -> serde_json::Result<Self> {
         json.try_into()
     }
+
+    /// Attempt to convert the value into a u64 integer.
+    pub fn as_u64(&self) -> Option<u64> {
+        match self {
+            Value::Number(num) => num.as_u64(),
+            _ => None,
+        }
+    }
+
+    /// Attempt to convert the value into a string slice.
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Value::String(s) => Some(s.as_str()),
+            Value::Enum(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+
+    /// Attempt to convert the value into a string.
+    pub fn as_string(&self) -> Option<String> {
+        match self {
+            Value::String(s) => Some(s.to_string()),
+            Value::Enum(s) => Some(s.to_string()),
+            _ => None,
+        }
+    }
+
+    /// Attempt to convert the value into a slice.
+    pub fn as_slice(&self) -> Option<&[Value]> {
+        match self {
+            Value::List(lst) => Some(lst),
+            _ => None,
+        }
+    }
+
+    /// Attempt to convert the value into an object.
+    pub fn as_object(&self) -> Option<&IndexMap<Name, Value>> {
+        match self {
+            Value::Object(obj) => Some(obj),
+            _ => None,
+        }
+    }
 }
 
 impl Default for Value {

@@ -2,14 +2,13 @@
 
 mod engine;
 pub mod helpers;
-pub mod mocks;
 pub mod mongodb;
+pub mod postgresql;
 pub mod types;
 pub mod udfs;
 
 pub use crate::engine::{Engine, EngineBuilder};
 pub use helpers::{GetPath, ResponseExt};
-pub use mocks::MockConnectorParsers;
 pub use mongodb::{with_mongodb, with_namespaced_mongodb};
 pub use types::{Error, ResponseData};
 

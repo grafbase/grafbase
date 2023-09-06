@@ -86,9 +86,10 @@ pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Reg
     // clash with each other here.  This should be the case with the type prefixes
     // in openapi but might need revisited with other connectors.
     main_registry.types.extend(src_registry.types.into_iter());
-    main_registry.implements.extend(src_registry.implements.into_iter());
 
+    main_registry.implements.extend(src_registry.implements.into_iter());
     main_registry.http_headers.extend(src_registry.http_headers.into_iter());
+    main_registry.postgres_databases.extend(src_registry.postgres_databases);
 
     // There are other fields on a Registry, but I think these are the only
     // ones likely to be touched by connectors for now.  We can look to update

@@ -2,26 +2,36 @@ mod interner;
 
 pub(super) use self::interner::{StringId, StringInterner};
 
+use super::{
+    Enum, EnumId, EnumVariant, EnumVariantId, ForeignKey, ForeignKeyId, RelationId, SchemaId, Table, TableColumn,
+    TableColumnId, TableId, UniqueConstraint, UniqueConstraintId,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use super::{
-    Enum, EnumId, EnumVariant, EnumVariantId, ForeignKey, ForeignKeyId, SchemaId, Table, TableColumn, TableColumnId,
-    TableId, UniqueConstraint, UniqueConstraintId,
-};
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub(super) struct Names {
     interner: StringInterner,
+    #[serde(with = "super::vectorize")]
     tables: HashMap<(SchemaId, StringId), TableId>,
+    #[serde(with = "super::vectorize")]
     table_columns: HashMap<(TableId, StringId), TableColumnId>,
+    #[serde(with = "super::vectorize")]
     enums: HashMap<(SchemaId, StringId), EnumId>,
+    #[serde(with = "super::vectorize")]
     enum_variants: HashMap<(EnumId, StringId), EnumVariantId>,
+    #[serde(with = "super::vectorize")]
     foreign_keys: HashMap<(SchemaId, StringId), ForeignKeyId>,
+    #[serde(with = "super::vectorize")]
     unique_constraints: HashMap<(TableId, StringId), UniqueConstraintId>,
+    #[serde(with = "super::vectorize")]
     client_types: HashMap<StringId, TableId>,
+    #[serde(with = "super::vectorize")]
     client_fields: HashMap<(TableId, StringId), TableColumnId>,
+    #[serde(with = "super::vectorize")]
     client_enums: HashMap<StringId, EnumId>,
+    #[serde(with = "super::vectorize")]
+    client_relations: HashMap<(TableId, StringId), RelationId>,
 }
 
 impl Names {
@@ -78,8 +88,34 @@ impl Names {
         self.client_enums.insert(string_id, enum_id);
     }
 
+    pub(super) fn intern_client_relation(&mut self, field_name: &str, table_id: TableId, relation_id: RelationId) {
+        let string_id = self.interner.intern(field_name);
+        self.client_relations.insert((table_id, string_id), relation_id);
+    }
+
     pub(super) fn intern_string(&mut self, string_value: &str) -> StringId {
         self.interner.intern(string_value)
+    }
+
+    pub(super) fn get_table_id_for_client_type(&self, type_name: &str) -> Option<TableId> {
+        self.interner
+            .lookup(type_name)
+            .and_then(|string_id| self.client_types.get(&string_id))
+            .copied()
+    }
+
+    pub(super) fn get_column_id_for_client_field(&self, field_name: &str, table_id: TableId) -> Option<TableColumnId> {
+        self.interner
+            .lookup(field_name)
+            .and_then(|string_id| self.client_fields.get(&(table_id, string_id)))
+            .copied()
+    }
+
+    pub(super) fn get_relation_id_for_client_field(&self, field_name: &str, table_id: TableId) -> Option<RelationId> {
+        self.interner
+            .lookup(field_name)
+            .and_then(|string_id| self.client_relations.get(&(table_id, string_id)))
+            .copied()
     }
 
     pub(super) fn get_table_id(&self, schema_id: SchemaId, table_name: &str) -> Option<TableId> {

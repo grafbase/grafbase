@@ -4,16 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-once-cell = "0.5.3"
 async-trait = "0.1"
 cynic = "3"
 cynic-introspection = "3"
 expect-test = "1.4"
 futures = "0.3"
+graphql-parser = "0.4.0"
 indoc = "2"
 names = "0.14"
 reqwest = "0.11"
 serde.workspace = true
 serde_json.workspace = true
+url.workspace = true
 wiremock = "0.5"
 
 [dependencies.tokio]

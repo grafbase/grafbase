@@ -19,6 +19,7 @@ use http::{
     header::{AsHeaderName, HeaderMap, IntoHeaderName},
     HeaderValue,
 };
+use postgresql_types::database_definition::DatabaseDefinition;
 use serde::de::DeserializeOwned;
 use ulid::Ulid;
 
@@ -284,6 +285,10 @@ impl<'a, T> ContextBase<'a, T> {
     /// Find a mongodb configuration with name.
     pub fn get_mongodb_config(&self, name: &str) -> Option<&MongoDBConfiguration> {
         self.schema_env.registry.mongodb_configurations.get(name)
+    }
+
+    pub fn get_postgresql_definition(&self, name: &str) -> Option<&DatabaseDefinition> {
+        self.schema_env.registry.postgres_databases.get(name)
     }
 }
 

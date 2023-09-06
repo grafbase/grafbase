@@ -102,7 +102,7 @@ impl ConnectorParsers for EngineBuilder {
     }
 
     async fn fetch_and_parse_neon(&self, directive: &NeonDirective) -> Result<Registry, Vec<String>> {
-        let transport = NeonTransport::new(directive.postgresql_url()).map_err(|error| vec![error.to_string()])?;
+        let transport = NeonTransport::new(directive.connection_string()).map_err(|error| vec![error.to_string()])?;
 
         parser_postgresql::introspect(&transport, directive.name(), directive.namespace())
             .await
