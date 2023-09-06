@@ -17,7 +17,7 @@ fn empty() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { eq: 39 } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -50,7 +50,7 @@ fn namespaced() {
             query {
               myMongo {
                 userCollection(first: 10, filter: { age: { eq: 39 } }) {
-                  edges { node { age } }  
+                  edges { node { age } }
                 }
               }
             }
@@ -85,7 +85,7 @@ fn missing_first_or_last() {
         let query = indoc! {r#"
             query {
               userCollection(filter: { age: { eq: 39 } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -95,7 +95,9 @@ fn missing_first_or_last() {
 
     let expected = expect![[r#"
         {
-          "data": null,
+          "data": {
+            "userCollection": null
+          },
           "errors": [
             {
               "message": "please limit your selection by setting either the first or last parameter",
@@ -135,7 +137,7 @@ fn eq() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { eq: 39 } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -172,7 +174,7 @@ fn nested_eq() {
           b: B
           d: String
         }
-        
+
         type User @model(connector: "test", collection: "users") {
           data: A
           other: Int
@@ -257,7 +259,7 @@ fn ne() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { ne: 39 } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -308,7 +310,7 @@ fn gt() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { gt: 39 } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -354,7 +356,7 @@ fn lt() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { lt: 39 } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -400,7 +402,7 @@ fn gte() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { gte: 39 } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -451,7 +453,7 @@ fn lte() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { lte: 39 } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -502,7 +504,7 @@ fn r#in() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { in: [38, 40] } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -553,7 +555,7 @@ fn nin() {
         let query = indoc! {r#"
             query {
               userCollection(first: 10, filter: { age: { nin: [38, 40] } }) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -603,7 +605,7 @@ fn all() {
                 { age: { eq: 39 } },
                 { name: { eq: "Alice" } }
               ]}) {
-                edges { node { name age } }  
+                edges { node { name age } }
               }
             }
         "#};
@@ -654,7 +656,7 @@ fn none() {
                 { age: { eq: 38 } },
                 { name: { eq: "Alice" } }
               ]}) {
-                edges { node { name age } }  
+                edges { node { name age } }
               }
             }
         "#};
@@ -705,7 +707,7 @@ fn any() {
                 { age: { eq: 39 } },
                 { name: { eq: "Bob" } }
               ]}) {
-                edges { node { name age } }  
+                edges { node { name age } }
               }
             }
         "#};
@@ -767,7 +769,7 @@ fn not() {
               userCollection(first: 10, filter: {
                 age: { not: { eq: 39 } }
               }) {
-                edges { node { name age } }  
+                edges { node { name age } }
               }
             }
         "#};
@@ -827,7 +829,7 @@ fn date_eq() {
               userCollection(first: 10, filter: {
                 birthday: { eq: "2022-01-12" }
               }) {
-                edges { node { birthday } }  
+                edges { node { birthday } }
               }
             }
         "#};
@@ -882,7 +884,7 @@ fn datetime_eq() {
               userCollection(first: 10, filter: {
                 birthday: { eq: "2022-01-12T02:33:23.067+04:00" }
               }) {
-                edges { node { birthday } }  
+                edges { node { birthday } }
               }
             }
         "#};
@@ -943,7 +945,7 @@ fn timestamp_eq() {
               userCollection(first: 10, filter: {
                 registered: { eq: 1565545684 }
               }) {
-                edges { node { registered } }  
+                edges { node { registered } }
               }
             }
         "#};
@@ -991,7 +993,7 @@ fn simple_array_all() {
               userCollection(first: 10, filter: {
                 data: { all: [2, 3, 4] }
               }) {
-                edges { node { data } }  
+                edges { node { data } }
               }
             }
         "#};
@@ -1043,7 +1045,7 @@ fn simple_array_size() {
               userCollection(first: 10, filter: {
                 data: { size: 2 }
               }) {
-                edges { node { data } }  
+                edges { node { data } }
               }
             }
         "#};
@@ -1094,7 +1096,7 @@ fn simple_array_elemmatch() {
               userCollection(first: 10, filter: {
                 data: { elemMatch: { eq: 2 } }
               }) {
-                edges { node { data } }  
+                edges { node { data } }
               }
             }
         "#};
@@ -1158,7 +1160,7 @@ fn complex_array_elemmatch() {
               userCollection(first: 10, filter: {
                 data: { elemMatch: { street: { eq: "Wall" } } }
               }) {
-                edges { node { data { street }} }  
+                edges { node { data { street }} }
               }
             }
         "#};
@@ -1192,7 +1194,7 @@ fn complex_array_elemmatch() {
 fn complex_double_nested_array_elemmatch() {
     let schema = indoc! {r#"
         type Street {
-          name: String @map(name: "street_name")            
+          name: String @map(name: "street_name")
         }
 
         type Address {
@@ -1218,7 +1220,7 @@ fn complex_double_nested_array_elemmatch() {
               userCollection(first: 10, filter: {
                 data: { elemMatch: { street: { name: { eq: "Wall" } } } }
               }) {
-                edges { node { data { street { name } } } }  
+                edges { node { data { street { name } } } }
               }
             }
         "#};
@@ -1274,7 +1276,7 @@ fn simple_sort_asc() {
                 filter: { age: { gt: 38 } },
                 orderBy: [{ age: ASC }]
               ) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -1329,7 +1331,7 @@ fn simple_sort_desc() {
                 filter: { age: { gt: 38 } },
                 orderBy: [{ age: DESC }]
               ) {
-                edges { node { age } }  
+                edges { node { age } }
               }
             }
         "#};
@@ -1388,7 +1390,7 @@ fn nested_sort() {
                 filter: { age: { number: { gt: 38 } } },
                 orderBy: [{ age: { number: ASC } }]
               ) {
-                edges { node { age { number } } }  
+                edges { node { age { number } } }
               }
             }
         "#};

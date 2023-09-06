@@ -50,13 +50,24 @@ pub async fn resolve_field(
         return Ok(None);
     };
 
-    match CurrentResolverType::new(&field, ctx) {
+    let result = match CurrentResolverType::new(&field, ctx) {
         CurrentResolverType::PRIMITIVE => resolve_primitive_field(ctx, parent_type, field, parent_resolver_value).await,
         CurrentResolverType::CONTAINER => resolve_container_field(ctx, field, parent_resolver_value).await,
         CurrentResolverType::ARRAY => resolve_array_field(ctx, field, parent_resolver_value).await,
     }
-    .map(Some)
-    .map_err(|error| ctx.set_error_path(error))
+    .map_err(|error| ctx.set_error_path(error));
+
+    match result {
+        Ok(result) => Ok(Some(result)),
+        Err(e) if !field.ty.is_non_null() => {
+            ctx.add_error(e);
+            Ok(Some(ctx.response_graph.write().await.insert_node(CompactValue::Null)))
+        }
+        Err(error) => {
+            // Propagate the error to parents who can add it to the response and null things out
+            Err(error)
+        }
+    }
 }
 
 async fn resolve_primitive_field(
@@ -85,18 +96,17 @@ async fn resolve_primitive_field(
                     .unwrap(),
                 );
                 Err(ServerError::new(
-                    format!("An error happened while fetching {:?}", ctx.item.node.name),
+                    format!(
+                        "An error happened while fetching `{}`, expected a non null value but found a null",
+                        field.name
+                    ),
                     Some(ctx.item.pos),
                 ))
             } else {
                 Ok(result.take())
             }
         }
-        Err(err) if field.ty.is_non_null() => Err(err),
-        Err(err) => {
-            ctx.add_error(err);
-            Ok(serde_json::Value::Null)
-        }
+        Err(err) => return Err(err),
     }?;
 
     let field_type = ctx
@@ -252,44 +262,13 @@ async fn resolve_array_field(
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-    let items = match resolved_value.data_resolved() {
-        serde_json::Value::Null => {
-            if field.ty.is_non_null() {
-                return Err(ServerError::new(
-                        format!(
-                            "An error occurred while fetching `{}`, a non-nullable value was expected but no value was found.",
-                            ctx.item.node.name.node
-                        ),
-                        Some(ctx.item.pos),
-                    ));
-            } else {
-                return Ok(ctx.response_graph.write().await.insert_node(CompactValue::Null));
-            }
-        }
-        serde_json::Value::Array(_) => {
-            field
-                .check_cache_tag(ctx, container_type.name(), &field.name, None)
-                .await;
-            resolved_value.item_iter().expect("we checked its an array").collect()
-        }
-        _ => {
-            return Err(ServerError::new("An internal error happened", Some(ctx.item.pos)));
-        }
-    };
-
     let selection_ctx = ctx.with_selection_set(&ctx.item.node.selection_set);
 
-    match resolve_list(&selection_ctx, ctx.item, container_type, items).await {
-        result @ Ok(_) => result,
-        Err(err) => {
-            if field.ty.is_non_null() {
-                Err(err)
-            } else {
-                ctx.add_error(err);
-                Ok(ctx.response_graph.write().await.insert_node(CompactValue::Null))
-            }
-        }
-    }
+    field
+        .check_cache_tag(ctx, container_type.name(), &field.name, None)
+        .await;
+
+    resolve_list(selection_ctx, ctx.item, &field.ty, container_type, resolved_value).await
 }
 
 async fn run_field_resolver(
