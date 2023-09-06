@@ -1,0 +1,119 @@
+---
+source: common/parser-openapi/src/lib.rs
+expression: "build_registry(\"test_data/mongo-atlas.json\", Format::Json,\n            ApiMetadata {\n                url: None,\n                ..metadata(Some(\"mongo\"))\n            }).unwrap().export_sdl(false)"
+---
+type MongoAggregate {
+	documents: [JSON!]!
+}
+input MongoAggregateInput {
+	pipeline: [JSON!]
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+type MongoDeleteMany {
+	deletedCount: Float!
+}
+input MongoDeleteManyInput {
+	filter: JSON
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+type MongoDeleteOne {
+	deletedCount: Float!
+}
+input MongoDeleteOneInput {
+	filter: JSON
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+input MongoFindInput {
+	sort: JSON
+	skip: Float
+	projection: JSON
+	limit: Float
+	filter: JSON
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+type MongoFindManyResponseBody {
+	documents: [JSON!]
+}
+input MongoFindOneInput {
+	projection: JSON
+	filter: JSON
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+type MongoFindOneResponseBody {
+	document: JSON
+}
+type MongoInsertMany {
+	insertedIds: [String!]
+}
+input MongoInsertManyInput {
+	documents: [JSON!]!
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+type MongoInsertOne {
+	insertedId: String
+}
+input MongoInsertOneInput {
+	document: JSON!
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+type MongoMutation {
+	findOne(input: MongoFindOneInput): MongoFindOneResponseBody
+	find(input: MongoFindInput): MongoFindManyResponseBody
+	insertOne(input: MongoInsertOneInput): MongoInsertOne
+	insertMany(input: MongoInsertManyInput): MongoInsertMany
+	updateOne(input: MongoUpdateOneInput): MongoUpdateOne
+	updateMany(input: MongoUpdateManyInput): MongoUpdateMany
+	deleteOne(input: MongoDeleteOneInput): MongoDeleteOne
+	deleteMany(input: MongoDeleteManyInput): MongoDeleteMany
+	aggregate(input: MongoAggregateInput): MongoAggregate
+}
+type MongoUpdateMany {
+	upsertedId: String
+	modifiedCount: Float!
+	matchedCount: Float!
+}
+input MongoUpdateManyInput {
+	upsert: Boolean = false
+	update: JSON!
+	filter: JSON
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+type MongoUpdateOne {
+	upsertedId: String
+	modifiedCount: Float!
+	matchedCount: Float!
+}
+input MongoUpdateOneInput {
+	upsert: Boolean = false
+	update: JSON!
+	filter: JSON
+	database: String!
+	dataSource: String!
+	collection: String!
+}
+type Mutation {
+	mongo: MongoMutation!
+}
+type Query {
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

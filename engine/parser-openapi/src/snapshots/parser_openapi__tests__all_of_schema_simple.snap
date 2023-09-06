@@ -1,0 +1,19 @@
+---
+source: common/parser-openapi/src/lib.rs
+expression: "build_registry(\"test_data/all-ofs.json\", Format::Json,\n            metadata(Some(\"petstore\"))).unwrap().export_sdl(false)"
+---
+type PetstorePet {
+	someOtherProperty: String
+	name: String
+	id: Int
+}
+type PetstoreQuery {
+	pets: [PetstorePet!]
+}
+type Query {
+	petstore: PetstoreQuery!
+}
+schema {
+	query: Query
+}
+

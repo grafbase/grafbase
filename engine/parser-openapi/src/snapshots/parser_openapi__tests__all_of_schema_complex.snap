@@ -1,0 +1,20 @@
+---
+source: common/parser-openapi/src/lib.rs
+expression: "build_registry(\"test_data/all-ofs-complex.json\", Format::Json,\n            metadata(Some(\"petstore\"))).unwrap().export_sdl(false)"
+---
+type Mutation {
+	petstore: PetstoreMutation!
+}
+type PetstoreInsertOne {
+	insertedId: String!
+}
+type PetstoreMutation {
+	insertOne: PetstoreInsertOne
+}
+type Query {
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

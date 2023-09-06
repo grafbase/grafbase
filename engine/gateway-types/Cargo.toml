@@ -1,0 +1,9 @@
+[package]
+name = "gateway-types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = "1"
+worker = "0.0.18"
+async-trait = "0.1"

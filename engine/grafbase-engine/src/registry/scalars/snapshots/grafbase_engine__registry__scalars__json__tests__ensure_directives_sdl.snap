@@ -1,0 +1,10 @@
+---
+source: common/grafbase_engine/src/registry/scalars/json.rs
+assertion_line: 74
+expression: "JSONScalar::sdl()"
+---
+"""
+A JSON Value
+"""
+scalar JSON 
+

@@ -1,0 +1,44 @@
+[package]
+name = "parser-openapi"
+authors = ["Grafbase"]
+description = "An OpenAPI schema parser for the Grafbase platform"
+version = "0.1.0"
+edition = "2021"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["openapi", "parser", "grafbase"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+Inflector = "0.11"
+indexmap = "1"
+itertools = { workspace = true }
+once_cell = "1"
+petgraph = "0.6"
+regex = { workspace = true }
+serde = "1"
+serde_json = "1"
+serde_yaml = "0.9"
+strum = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+# We use the openapi crate for v2 of OpenAPI - unfortunately it's not been released on
+# crates.io for years so we're forking for now at least.
+openapi = { git = "https://github.com/grafbase/openapi.git", rev = "2972de3f2efab60f1bf49ab92d80410ad35873ad" }
+# We use the openapiv3 for v3 of OpenAPI.  The version on crates.io currently only supports 3.0
+# so we're maintaining a fork with 3.1 support for now.  Hopefully at some point
+# https://github.com/glademiller/openapiv3/pull/58 is merged and we can go back to mainline
+openapiv3 = { git = "https://github.com/grafbase/openapiv3.git", branch = "openapiv3.1" }
+
+grafbase-engine = { path = "../../oss/grafbase-engine", features = ["tracing_worker"] }
+grafbase-engine-value = { workspace = true }
+sdl-parser = { path = "../../oss/sdl-parser" }
+
+[dev-dependencies]
+assert_matches = "1.5"
+insta = { version = "1", features = ["json"] }
+rstest = "0.18"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
