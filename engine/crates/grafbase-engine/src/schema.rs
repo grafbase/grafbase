@@ -727,7 +727,7 @@ async fn process_deferred_workload(
         label: workload.label,
         data,
         path: workload.path,
-        has_next: true, // We hardcode this to true here, the function calling us should override
+        has_next: false, // We hardcode this to false here, the function calling us should override
         errors,
     }
 }
