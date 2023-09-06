@@ -31,34 +31,3 @@ fail-fast = false
 path = "junit.xml"
 store-success-output = true
 store-failure-output = true
-
-# Profile for E2E tests in CI.
-[profile.ci-e2e]
-slow-timeout = { period = "4m", terminate-after = 3 }
-
-# An arbitrary number which seems to work fine in relation to the bottlenecks in our deployment pipeline,
-# the main one being the size of the fresh DynamoDB table pool preprovisioned at any given time.
-test-threads = 24
-
-# `retries` defines the number of times a test should be retried.
-# If set to a non-zero value, tests that succeed on a subsequent attempt will be marked as flaky.
-retries = 1
-
-# shows all test statuses in output
-status-level = "all"
-
-# output failures as soon as they happen and at the end of the test run
-failure-output = "immediate-final"
-
-# don't cancel the test run on the first failure
-fail-fast = false
-
-[[profile.ci-e2e.overrides]]
-filter = 'test(/^([a-z_]+::)flaky_/)'
-retries = 3
-
-[profile.ci-e2e.junit]
-# output test results at target/nextest/ci-e2e/junit.xml
-path = "junit.xml"
-store-success-output = true
-store-failure-output = true
