@@ -1,0 +1,6 @@
+*.hbs
+crates/grafbase-engine/docs
+crates/grafbase-engine/parser/tests/executables/*
+crates/parser-openapi/test_data/*
+target
+.direnv/
