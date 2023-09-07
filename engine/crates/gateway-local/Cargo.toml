@@ -14,6 +14,7 @@ dynamodb = { path = "../dynamodb", features = ["tracing"] }
 grafbase-engine = { path = "../grafbase-engine", features = ["tracing_worker"], default-features = false }
 grafbase-local = { path = "../grafbase-runtime/local" }
 grafbase-runtime = { path = "../grafbase-runtime" }
+gateway-types = { path = "../gateway-types" }
 
 # TODO: these are private dependencies, that must be removed.
 worker-env = { path = "../worker-env" }

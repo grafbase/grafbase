@@ -1,11 +1,7 @@
 use std::collections::HashMap;
 
-pub use self::{
-    customer_deployment_config::{
-        local::LocalSpecificConfig, CommonCustomerDeploymentConfig, CustomerDeploymentConfig,
-    },
-    execution_engine::{ExecutionEngine, ExecutionError, ExecutionResult},
-};
+pub use customer_deployment_config::local::LocalSpecificConfig;
+pub use customer_deployment_config::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};
 
 use grafbase_engine::{registry::CacheControlError, CacheControl};
 use grafbase_types::{auth::ExecutionAuth, UdfKind};
@@ -14,7 +10,6 @@ use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 pub use grafbase_engine::registry::VersionedRegistry;
 
 mod customer_deployment_config;
-mod execution_engine;
 #[cfg(test)]
 mod tests;
 
