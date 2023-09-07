@@ -1251,7 +1251,6 @@ dependencies = [
  "cfg-if",
  "dynamodb",
  "gateway-protocol",
- "gateway-types",
  "grafbase-engine",
  "grafbase-local",
  "grafbase-runtime",
@@ -1266,6 +1265,7 @@ dependencies = [
 name = "gateway-protocol"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "grafbase-engine",
  "grafbase-types",
  "rusoto_core",
@@ -1274,16 +1274,8 @@ dependencies = [
  "serde_with",
  "sha2",
  "strum",
- "ulid",
- "worker",
-]
-
-[[package]]
-name = "gateway-types"
-version = "0.1.0"
-dependencies = [
- "async-trait",
  "thiserror",
+ "ulid",
  "worker",
 ]
 
