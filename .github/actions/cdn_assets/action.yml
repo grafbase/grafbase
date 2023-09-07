@@ -21,7 +21,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.tar.gz --output assets.tar.gz --fail
-        curl https://assets.grafbase.com/cli/pathfinder/static.tgz --output static.tgz --fail
+        curl https://${{ inputs.cdn }}/cli/pathfinder/static.tgz --output static.tgz --fail
         tar -zxvf static.tgz
         rm static.tgz
         gunzip assets.tar.gz
