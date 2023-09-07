@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use serde_json::json;
 use wiremock::{
