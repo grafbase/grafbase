@@ -3,14 +3,13 @@ use std::{collections::HashMap, sync::Arc};
 use async_trait::async_trait;
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
 use gateway_protocol::{
-    ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest, LocalSpecificConfig, VersionedRegistry,
+    ExecutionEngine, ExecutionError, ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest,
+    ExecutionResult, LocalSpecificConfig, VersionedRegistry,
 };
 use grafbase_engine::{registry::resolvers::graphql, RequestHeaders, Response};
 use grafbase_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
-use worker::{Env, Fetcher};
+use worker::Env;
 use worker_env::{EnvExt, VarType};
-
-use gateway_types::{ExecutionEngine, ExecutionError, ExecutionResult};
 
 pub const REGISTRY_ENV_VAR: &str = "REGISTRY";
 pub const BRIDGE_PORT_ENV_VAR: &str = "BRIDGE_PORT";
@@ -25,7 +24,9 @@ cfg_if::cfg_if! {
 
 const RAY_ID_HEADER: &str = "ray-id";
 
-pub struct LocalExecution;
+pub struct LocalExecution {
+    env: HashMap<String, String>,
+}
 
 #[allow(unused_variables, clippy::expect_fun_call)]
 fn get_db_context(
@@ -71,19 +72,9 @@ fn get_db_context(
     );
 }
 
-#[async_trait(? Send)]
-impl ExecutionEngine for LocalExecution {
-    type ConfigType = LocalSpecificConfig;
-    type Fetcher = Fetcher;
-    type ExecutionRequest = ExecutionRequest<gateway_protocol::LocalSpecificConfig>;
-    type ExecutionResponse = Response;
-    type HealthRequest = ExecutionHealthRequest<gateway_protocol::LocalSpecificConfig>;
-    type HealthResponse = ExecutionHealthResponse;
-
-    #[allow(unused_mut, clippy::expect_fun_call)]
-    fn from_env(env: &Env) -> worker::Result<HashMap<String, String>> {
-        use EnvExt;
-
+impl LocalExecution {
+    #[allow(clippy::expect_fun_call)]
+    pub fn from_env(env: &Env) -> worker::Result<Self> {
         let bridge_port = env
             .var_get(VarType::Var, BRIDGE_PORT_ENV_VAR)
             .expect(&format!("Missing env var {BRIDGE_PORT_ENV_VAR}"));
@@ -114,20 +105,26 @@ impl ExecutionEngine for LocalExecution {
             local_env.insert(DYNAMODB_TABLE_NAME_ENV_VAR.to_string(), dynamodb_table);
         }
 
-        Ok(local_env)
+        Ok(Self { env: local_env })
     }
+}
+
+#[async_trait(? Send)]
+impl ExecutionEngine for LocalExecution {
+    type ConfigType = LocalSpecificConfig;
+    type ExecutionResponse = Response;
 
     #[allow(clippy::expect_fun_call)]
     async fn execute(
-        _fetch: Arc<Option<Fetcher>>,
-        env: Arc<HashMap<String, String>>,
+        self: Arc<Self>,
         mut execution_request: ExecutionRequest<gateway_protocol::LocalSpecificConfig>,
-    ) -> ExecutionResult<Self::ExecutionResponse> {
+    ) -> ExecutionResult<Response> {
         use worker::js_sys;
 
-        let db_context = get_db_context(&execution_request, &env);
+        let db_context = get_db_context(&execution_request, &self.env);
 
-        let bridge_port = env
+        let bridge_port = self
+            .env
             .get(BRIDGE_PORT_ENV_VAR)
             .expect(&format!("Missing env var {BRIDGE_PORT_ENV_VAR}"));
         let dynamodb_batchers_data = DynamoDBBatchersData::new(
@@ -146,9 +143,12 @@ impl ExecutionEngine for LocalExecution {
         js_sys::Reflect::set(&global, &"fetchLogEndpoint".into(), &fetch_log_endpoint.into()).unwrap();
 
         let search_engine = LocalSearchEngine::new(bridge_port);
-        let versioned_registry: VersionedRegistry<'_> =
-            serde_json::from_str(env.get(REGISTRY_ENV_VAR).expect("should have REGISTRY env var defined"))
-                .map_err(|e| ExecutionError::InternalError(e.to_string()))?;
+        let versioned_registry: VersionedRegistry<'_> = serde_json::from_str(
+            self.env
+                .get(REGISTRY_ENV_VAR)
+                .expect("should have REGISTRY env var defined"),
+        )
+        .map_err(|e| ExecutionError::InternalError(e.to_string()))?;
         let registry = versioned_registry.registry.into_owned();
 
         let ray_id = execution_request
@@ -184,7 +184,7 @@ impl ExecutionEngine for LocalExecution {
     }
 
     async fn health(
-        _fetcher: Arc<Option<Fetcher>>,
+        self: Arc<Self>,
         _req: ExecutionHealthRequest<gateway_protocol::LocalSpecificConfig>,
     ) -> ExecutionResult<ExecutionHealthResponse> {
         Ok(ExecutionHealthResponse {
