@@ -11,28 +11,6 @@ expression: req_string_b
     "provider": null
   },
   "directives": {
-    "defer": {
-      "args": {
-        "if": {
-          "D": true,
-          "d": "When true fragment may be deferred",
-          "n": "if",
-          "t": "Boolean!"
-        },
-        "label": {
-          "d": "This label should be used by GraphQL clients to identify the data from patch responses and associate it with the correct fragment.",
-          "n": "label",
-          "t": "String"
-        }
-      },
-      "description": "De-prioritizes a fragment, causing the fragment to be omitted in the initial response and delivered as a subsequent response afterward.",
-      "is_repeatable": false,
-      "locations": [
-        "INLINE_FRAGMENT",
-        "FRAGMENT_SPREAD"
-      ],
-      "name": "defer"
-    },
     "include": {
       "args": {
         "if": {
