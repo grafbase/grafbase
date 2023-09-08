@@ -51,6 +51,7 @@ mod look_ahead;
 #[doc(hidden)]
 pub mod model;
 pub mod names;
+mod query_path;
 mod request;
 mod response;
 mod schema;
@@ -86,8 +87,8 @@ pub use context::ContextSelectionSet;
 pub use context::*;
 pub use custom_directive::{CustomDirective, CustomDirectiveFactory};
 pub use error::{
-    Error, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult, ParseRequestError, PathSegment,
-    Result, ResultExt, ServerError, ServerResult,
+    Error, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult, ParseRequestError, Result,
+    ResultExt, ServerError, ServerResult,
 };
 pub use extensions::ResolveFut;
 #[doc(hidden)]
@@ -106,6 +107,7 @@ pub use indexmap;
 pub use look_ahead::Lookahead;
 #[doc(no_inline)]
 pub use parser::{Pos, Positioned};
+pub use query_path::{QueryPath, QueryPathSegment};
 pub use registry::{CacheControl, CacheInvalidation};
 pub use request::{BatchRequest, Request};
 #[doc(no_inline)]

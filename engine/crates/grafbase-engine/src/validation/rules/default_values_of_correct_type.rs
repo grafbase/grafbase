@@ -1,13 +1,12 @@
 use grafbase_engine_parser::types::BaseType;
 
 use crate::{
-    context::QueryPathNode,
     parser::types::VariableDefinition,
     validation::{
         utils::is_valid_input_value,
         visitor::{Visitor, VisitorContext},
     },
-    Positioned, QueryPathSegment,
+    Positioned, QueryPath,
 };
 
 pub struct DefaultValuesOfCorrectType;
@@ -38,10 +37,7 @@ impl<'a> Visitor<'a> for DefaultValuesOfCorrectType {
                 ctx.registry,
                 &variable_definition.node.var_type.to_string(),
                 &value.node,
-                QueryPathNode {
-                    parent: None,
-                    segment: QueryPathSegment::Name(&variable_definition.node.name.node),
-                },
+                QueryPath::empty().child(variable_definition.node.name.node.as_str()),
             ) {
                 ctx.report_error(
                     vec![variable_definition.pos],

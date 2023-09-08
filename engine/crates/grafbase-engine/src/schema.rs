@@ -4,7 +4,7 @@ use async_lock::RwLock;
 use dynamodb::CurrentDateTime;
 
 use futures_util::stream::{self, Stream, StreamExt};
-use graph_entities::QueryResponse;
+use graph_entities::{CompactValue, QueryResponse};
 use indexmap::map::IndexMap;
 
 use crate::{
@@ -25,7 +25,7 @@ use crate::{
     types::QueryRoot,
     validation::{check_rules, ValidationMode},
     BatchRequest, BatchResponse, CacheControl, ContextBase, LegacyInputType, LegacyOutputType, ObjectType, QueryEnv,
-    Request, Response, ServerError, SubscriptionType, Variables, ID,
+    QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
 
 /// Schema builder
@@ -544,7 +544,7 @@ impl Schema {
     async fn execute_once(&self, env: QueryEnv, deferred_workloads: Option<DeferredWorkloadSender>) -> Response {
         // execute
         let ctx = ContextBase {
-            path_node: None,
+            path: QueryPath::empty(),
             resolver_node: None,
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
@@ -654,33 +654,7 @@ impl Schema {
                     // For now we're taking the simple approach and running all the deferred
                     // workloads serially. We can look into doing something smarter later.
                     while let Some(workload) = receiver.receive() {
-                        let context = workload.to_context(
-                            &schema.env,
-                            &env,
-                            sender.clone()
-                        );
-                        let result = resolver_utils::resolve_deferred_container(
-                            &context,
-                            context
-                                .resolver_node
-                                .as_ref()
-                                .unwrap()
-                                .ty
-                                .as_ref()
-                                .unwrap(),
-                            workload.parent_resolver_value.clone()
-                        ).await;
-
-                        let root_node = result.expect("TODO: don't expect this, make it an error response");
-                        let mut data = std::mem::take(&mut *context.response_graph.write().await);
-                        data.set_root_unchecked(root_node);
-                        yield IncrementalPayload {
-                            label: workload.label,
-                            data,
-                            path: workload.path,
-                            has_next: true,   // TODO: Need to handle has_next properly...
-                            errors: vec![]    // TODO: Put the actual errors in here somehow...
-                        }.into()
+                        yield process_deferred_workload(workload, &schema, &env, &sender).await.into();
                     }
                     return;
                 }
@@ -688,9 +662,8 @@ impl Schema {
                 let ctx = env.create_context(
                     &schema.env,
                     None,
-                    None,
                     &env.operation.node.selection_set,
-                    None  // We don't support deferring in subscriptions
+                    None, // We don't support deferring in subscriptions
                 );
 
                 let mut streams = Vec::new();
@@ -716,6 +689,42 @@ impl Schema {
         request: impl Into<Request> + Send,
     ) -> impl Stream<Item = StreamingPayload> + Send + Unpin {
         self.execute_stream_with_session_data(request, Default::default())
+    }
+}
+
+async fn process_deferred_workload(
+    workload: deferred::DeferredWorkload,
+    schema: &Schema,
+    env: &QueryEnv,
+    sender: &DeferredWorkloadSender,
+) -> IncrementalPayload {
+    let context = workload.to_context(&schema.env, env, sender.clone());
+    let result = resolver_utils::resolve_deferred_container(
+        &context,
+        context.resolver_node.as_ref().unwrap().ty.as_ref().unwrap(),
+        workload.parent_resolver_value.clone(),
+    )
+    .await;
+
+    let mut data = std::mem::take(&mut *context.response_graph.write().await);
+    let mut errors = std::mem::take(&mut *context.query_env.errors.lock().expect("to be able to lock this mutex"));
+
+    let root_node = match result {
+        Ok(root_node) => root_node,
+        Err(error) => {
+            errors.push(error);
+            data.insert_node(CompactValue::Null)
+        }
+    };
+
+    data.set_root_unchecked(root_node);
+
+    IncrementalPayload {
+        label: workload.label,
+        data,
+        path: workload.path,
+        has_next: true, // TODO: Need to handle has_next properly...
+        errors,
     }
 }
 

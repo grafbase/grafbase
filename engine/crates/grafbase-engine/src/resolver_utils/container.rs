@@ -388,7 +388,7 @@ impl<'a> FieldExecutionSet<'a> {
                     .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
 
                 let resolve_info = ResolveInfo {
-                    path_node: ctx_field.path_node.as_ref().unwrap(),
+                    path: ctx_field.path.clone(),
                     parent_type: &type_name,
                     return_type: match meta_field.map(|field| &field.ty) {
                         Some(ty) => &ty,
@@ -425,7 +425,7 @@ impl<'a> FieldExecutionSet<'a> {
                         ctx.schema_env.custom_directives.get(directive.node.name.node.as_str())
                     {
                         let ctx_directive = ContextBase {
-                            path_node: ctx_field.path_node,
+                            path: ctx_field.path.clone(),
                             resolver_node: ctx_field.resolver_node.clone(),
                             item: directive,
                             schema_env: ctx_field.schema_env,
@@ -515,9 +515,7 @@ fn defer_fragment(
 
     let workload = DeferredWorkload::new(
         fragment_details.selection_set.clone(),
-        ctx.path_node
-            .map(|path_node| path_node.to_owned_segments())
-            .unwrap_or_default(),
+        ctx.path.clone(),
         root.name().to_string().into(),
         parent_resolver_value.clone(),
     );
@@ -616,7 +614,7 @@ impl<'a> Fields<'a> {
                                     .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
 
                                 let resolve_info = ResolveInfo {
-                                    path_node: ctx_field.path_node.as_ref().unwrap(),
+                                    path: ctx_field.path.clone(),
                                     parent_type: &type_name,
                                     return_type: match meta_field.map(|field| &field.ty) {
                                         Some(ty) => &ty,
@@ -657,7 +655,7 @@ impl<'a> Fields<'a> {
                                             ctx.schema_env.custom_directives.get(directive.node.name.node.as_str())
                                         {
                                             let ctx_directive = ContextBase {
-                                                path_node: ctx_field.path_node,
+                                                path: ctx_field.path.clone(),
                                                 resolver_node: ctx_field.resolver_node.clone(),
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,

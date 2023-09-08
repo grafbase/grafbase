@@ -225,6 +225,165 @@ fn test_defer_on_named_fragment() {
     });
 }
 
+#[test]
+fn test_nested_defers() {
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_engine(petstore_schema(mock_server.address())).await;
+
+        mock_doggo(&mock_server, 123, "First Deferred Doggo").await;
+        mock_doggo(&mock_server, 456, "Second Deferred Doggo").await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute_stream(
+                r#"
+                    query {
+                        petstore {
+                          ... @defer {
+                            firstPet: pet(petId: 123) {
+                                id
+                                name
+                            }
+                            ... @defer {
+                                secondPet: pet(petId: 456) {
+                                    id
+                                    name
+                                }
+                            }
+                          }
+                        }
+                    }
+                "#,
+                )
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": {
+              "petstore": {}
+            }
+          },
+          {
+            "data": {
+              "firstPet": {
+                "id": 123,
+                "name": "First Deferred Doggo"
+              }
+            },
+            "hasNext": true,
+            "path": [
+              "petstore"
+            ]
+          },
+          {
+            "data": {
+              "secondPet": {
+                "id": 456,
+                "name": "Second Deferred Doggo"
+              }
+            },
+            "hasNext": true,
+            "path": [
+              "petstore"
+            ]
+          }
+        ]
+        "###
+        );
+    });
+}
+
+#[test]
+fn test_defer_with_errors() {
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_engine(petstore_schema(mock_server.address())).await;
+
+        // We're specifically not registering any mock pets so both
+        // the fields in the query below should error
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute_stream(
+                r#"
+                    query {
+                        petstore {
+                            pet(petId: 123) {
+                                id
+                                name
+                            }
+                            ... @defer {
+                                deferredPet: pet(petId: 456) {
+                                    id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                "#,
+                )
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": {
+              "petstore": {
+                "pet": null
+              }
+            },
+            "errors": [
+              {
+                "locations": [
+                  {
+                    "column": 29,
+                    "line": 4
+                  }
+                ],
+                "message": "Received an unexpected status from the downstream server: 404 Not Found",
+                "path": [
+                  "petstore",
+                  "pet"
+                ]
+              }
+            ]
+          },
+          {
+            "data": {
+              "deferredPet": null
+            },
+            "errors": [
+              {
+                "locations": [
+                  {
+                    "column": 33,
+                    "line": 9
+                  }
+                ],
+                "message": "Received an unexpected status from the downstream server: 404 Not Found",
+                "path": [
+                  "petstore",
+                  "deferredPet"
+                ]
+              }
+            ],
+            "hasNext": true,
+            "path": [
+              "petstore"
+            ]
+          }
+        ]
+        "###
+        );
+    });
+}
+
 async fn build_engine(schema: String) -> Engine {
     EngineBuilder::new(schema)
         .with_openapi_schema(

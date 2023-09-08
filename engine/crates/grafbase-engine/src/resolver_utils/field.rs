@@ -91,7 +91,7 @@ async fn resolve_primitive_field(
                     serde_json::to_string_pretty(&serde_json::json!({
                         "message": "Something went wrong here",
                         "expected": serde_json::Value::String(field.ty.to_string()),
-                        "path": serde_json::Value::String(resolver_node.clone().to_string()),
+                        "path": serde_json::Value::String(ctx.path.to_string()),
                     }))
                     .unwrap(),
                 );
@@ -278,9 +278,9 @@ async fn run_field_resolver(
 ) -> Result<ResolvedValue, Error> {
     let mut final_result = parent_resolver_value.unwrap_or_default();
 
-    if let QueryPathSegment::Index(idx) = resolver_node.segment {
-        // If we are in a segment, it means we do not have a current resolver (YET).
-        final_result = final_result.get_index(idx).unwrap_or_default();
+    if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
+        // If we are in an index segment, it means we do not have a current resolver (YET).
+        final_result = final_result.get_index(*idx).unwrap_or_default();
     } else if let Some(resolver) = resolver_node.resolver {
         // Avoiding the early return when we're just propagating downwards data. Container
         // fields used as namespaces have no value (so Null) but their fields have resolvers.
