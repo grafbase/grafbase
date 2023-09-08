@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use grafbase_engine::registry::{Registry, VersionedRegistry};
+use engine::registry::{Registry, VersionedRegistry};
 use sha2::{Digest, Sha256};
 
 use crate::customer_deployment_config::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};

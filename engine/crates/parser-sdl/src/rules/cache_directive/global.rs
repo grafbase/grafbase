@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use grafbase_engine::{
+use engine::{
     indexmap::IndexMap,
     registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference},
     CacheControl,
@@ -205,7 +205,7 @@ fn validate_mutation_invalidation(
         // ensure the referenced field exists in the type
         // we allow the _id_ to be missing because our @model types have it
         CacheInvalidationPolicy::Entity { field: policy_field }
-            if policy_field != grafbase_engine::names::OUTPUT_FIELD_ID =>
+            if policy_field != engine::names::OUTPUT_FIELD_ID =>
         {
             let referenced_field = fields.iter().find(|(field_name, _)| *field_name == policy_field);
 
@@ -240,11 +240,11 @@ fn validate_mutation_invalidation(
 mod tests {
     use std::{borrow::Cow, collections::HashMap};
 
-    use grafbase_engine::{
+    use engine::{
         registry::{CacheInvalidationPolicy, MetaField},
         CacheControl,
     };
-    use grafbase_engine_parser::parse_schema;
+    use engine_parser::parse_schema;
 
     use crate::{
         rules::{

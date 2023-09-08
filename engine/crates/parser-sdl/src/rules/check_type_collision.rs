@@ -7,8 +7,8 @@
 //! To avoid having an invalid schema
 use std::collections::HashSet;
 
-use grafbase_engine::Positioned;
-use grafbase_engine_parser::types::TypeDefinition;
+use engine::Positioned;
+use engine_parser::types::TypeDefinition;
 
 use super::visitor::{Visitor, VisitorContext};
 
@@ -34,7 +34,7 @@ impl<'a> Visitor<'a> for CheckTypeCollision {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine_parser::parse_schema;
+    use engine_parser::parse_schema;
     use serde_json as _;
 
     use crate::rules::{

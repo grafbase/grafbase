@@ -1,16 +1,16 @@
 //! ----------------------------------------------------------------------------
-//! The Auth is going to be injected inside grafbase_engine instead of just living as an
+//! The Auth is going to be injected inside engine instead of just living as an
 //! Extension as it's adding complexity without much gain.
 //! ----------------------------------------------------------------------------
 use std::sync::Arc;
 
-use grafbase_engine::{
+use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
     registry::{relations::MetaRelation, ModelName, NamedType, Registry, TypeReference},
     AuthConfig, ServerError, ServerResult,
 };
-use grafbase_engine_value::{indexmap::IndexMap, ConstValue};
+use engine_value::{indexmap::IndexMap, ConstValue};
 use common_types::auth::{ExecutionAuth, Operations};
 use log::{trace, warn};
 
@@ -40,9 +40,9 @@ impl Extension for AuthExtension {
     async fn prepare_request(
         &self,
         ctx: &ExtensionContext<'_>,
-        request: grafbase_engine::Request,
-        next: grafbase_engine::extensions::NextPrepareRequest<'_>,
-    ) -> ServerResult<grafbase_engine::Request> {
+        request: engine::Request,
+        next: engine::extensions::NextPrepareRequest<'_>,
+    ) -> ServerResult<engine::Request> {
         let auth_context = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
@@ -61,7 +61,7 @@ impl Extension for AuthExtension {
         next: NextResolve<'_>,
     ) -> ServerResult<Option<ResponseNodeId>> {
         lazy_static::lazy_static! {
-            static ref EMPTY_INDEX_MAP: IndexMap<grafbase_engine_value::Name, ConstValue> = IndexMap::new();
+            static ref EMPTY_INDEX_MAP: IndexMap<engine_value::Name, ConstValue> = IndexMap::new();
         }
 
         if info.parent_type.starts_with("__") || info.parent_type.starts_with("[__") || info.name.starts_with("__") {
@@ -307,7 +307,7 @@ impl AuthExtension {
         self.check_input(CheckInputOptions {
             input: &ConstValue::Object(
                 vec![(
-                    grafbase_engine::Name::new("id"),
+                    engine::Name::new("id"),
                     ConstValue::String("ignored".to_string()),
                 )]
                 .into_iter()

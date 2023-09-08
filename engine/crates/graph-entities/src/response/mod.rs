@@ -27,7 +27,7 @@
 use core::fmt::{self, Display, Formatter};
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use grafbase_engine_value::Name;
+use engine_value::Name;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
 

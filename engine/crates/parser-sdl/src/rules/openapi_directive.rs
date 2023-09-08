@@ -1,4 +1,4 @@
-use grafbase_engine::registry::ConnectorHeaders;
+use engine::registry::ConnectorHeaders;
 use url::Url;
 
 use super::{
@@ -112,7 +112,7 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
     fn enter_schema(
         &mut self,
         ctx: &mut super::visitor::VisitorContext<'a>,
-        doc: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::SchemaDefinition>,
+        doc: &'a engine::Positioned<engine_parser::types::SchemaDefinition>,
     ) {
         let directives = doc
             .node

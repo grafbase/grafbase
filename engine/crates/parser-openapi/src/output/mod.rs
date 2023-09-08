@@ -3,7 +3,7 @@ mod namespacing;
 
 use std::borrow::Cow;
 
-use grafbase_engine::{
+use engine::{
     indexmap::IndexMap,
     registry::{
         resolvers::{
@@ -293,7 +293,7 @@ impl Operation {
                 })
                 .collect(),
             request_body: self.request_body(graph).map(|request_body| {
-                grafbase_engine::registry::resolvers::http::RequestBody {
+                engine::registry::resolvers::http::RequestBody {
                     variable_resolve_definition: VariableResolveDefinition::connector_input_type_name(
                         request_body.argument_name().to_owned(),
                     ),

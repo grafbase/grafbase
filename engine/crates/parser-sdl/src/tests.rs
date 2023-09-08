@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use function_name::named;
-use grafbase_engine::{registry::Registry, Schema};
+use engine::{registry::Registry, Schema};
 use common_types::UdfKind;
 use serde_json as _;
 

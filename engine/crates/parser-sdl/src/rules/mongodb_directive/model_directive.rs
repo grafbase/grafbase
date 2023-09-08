@@ -4,7 +4,7 @@ mod queries;
 pub(super) mod types;
 
 use create_type_context::CreateTypeContext;
-use grafbase_engine::{
+use engine::{
     names::{
         INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT,
         OUTPUT_FIELD_ID,
@@ -12,7 +12,7 @@ use grafbase_engine::{
     registry::MongoDBConfiguration,
     Positioned,
 };
-use grafbase_engine_parser::types::{ObjectType, TypeDefinition, TypeKind};
+use engine_parser::types::{ObjectType, TypeDefinition, TypeKind};
 
 use crate::{
     registry::names::MetaNames,

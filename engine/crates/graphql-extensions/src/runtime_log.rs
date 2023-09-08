@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use grafbase_engine::{
+use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute, NextPrepareRequest},
     parser::types::OperationDefinition,
     Positioned, Request, Response, ServerResult,
@@ -72,7 +72,7 @@ impl Extension for RuntimeLogExtension {
         operation: &OperationDefinition,
         next: NextExecute<'_>,
     ) -> Response {
-        use grafbase_engine::parser::types::{OperationType as ParserOperationType, Selection};
+        use engine::parser::types::{OperationType as ParserOperationType, Selection};
 
         let request_id = &ctx
             .data::<GraphqlRequestExecutionContext>()

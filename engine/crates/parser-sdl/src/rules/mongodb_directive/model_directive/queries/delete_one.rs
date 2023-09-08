@@ -1,4 +1,4 @@
-use grafbase_engine::registry::{
+use engine::registry::{
     resolvers::{
         atlas_data_api::{AtlasDataApiResolver, OperationType},
         Resolver,

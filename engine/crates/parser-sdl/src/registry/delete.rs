@@ -1,4 +1,4 @@
-use grafbase_engine::{
+use engine::{
     names::{OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS},
     registry::{
         resolvers::{dynamo_mutation::DynamoMutationResolver, transformer::Transformer},
@@ -7,7 +7,7 @@ use grafbase_engine::{
     },
     AuthConfig, CacheControl,
 };
-use grafbase_engine_parser::types::{BaseType, TypeDefinition};
+use engine_parser::types::{BaseType, TypeDefinition};
 use common_types::auth::Operations;
 
 use crate::{

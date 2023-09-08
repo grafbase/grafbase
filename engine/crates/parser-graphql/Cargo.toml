@@ -9,7 +9,7 @@ repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "parser", "grafbase"]
 
 [dependencies]
-grafbase-engine = { workspace = true }
+engine = { workspace = true }
 
 serde_json = { workspace = true }
 thiserror = { workspace = true }

@@ -15,8 +15,8 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        field: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::FieldDefinition>,
-        _parent_type: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        field: &'a engine::Positioned<engine_parser::types::FieldDefinition>,
+        _parent_type: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         let base_type = to_base_type_str(&field.node.ty.node.base);
         if is_type_primitive(&field.node) {
@@ -41,7 +41,7 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine_parser::parse_schema;
+    use engine_parser::parse_schema;
     use serde_json as _;
 
     use crate::rules::{

@@ -11,7 +11,9 @@ keywords = ["grafbase"]
 
 [dependencies]
 dynamodb = { path = "../dynamodb", features = ["tracing"] }
-grafbase-engine = { path = "../grafbase-engine", features = ["tracing_worker"], default-features = false }
+engine = { path = "../engine", features = [
+    "tracing_worker",
+], default-features = false }
 runtime-local = { path = "../runtime/local" }
 runtime = { path = "../runtime" }
 

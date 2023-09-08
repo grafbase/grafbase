@@ -1,9 +1,9 @@
-use grafbase_engine::registry::{
+use engine::registry::{
     self,
     resolvers::{custom::CustomResolver, Resolver},
     MetaField, MetaInputValue, MetaType,
 };
-use grafbase_engine_parser::types::TypeKind;
+use engine_parser::types::TypeKind;
 
 use super::visitor::{Visitor, VisitorContext};
 use crate::rules::resolver_directive::ResolverDirective;
@@ -14,7 +14,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         let type_name = type_definition.node.name.as_str();
         let TypeKind::Object(object) = &type_definition.node.kind else {
@@ -78,7 +78,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
 mod tests {
     use std::collections::HashMap;
 
-    use grafbase_engine::registry::{self, MetaField, Registry};
+    use engine::registry::{self, MetaField, Registry};
     use serde_json as _;
 
     use crate::{rules::neon_directive::NeonDirective, ConnectorParsers, GraphqlDirective, OpenApiDirective};

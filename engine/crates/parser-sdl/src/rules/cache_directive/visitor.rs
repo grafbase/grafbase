@@ -1,5 +1,5 @@
-use grafbase_engine::registry::CacheInvalidationPolicy;
-use grafbase_engine_parser::{
+use engine::registry::CacheInvalidationPolicy;
+use engine_parser::{
     types::{FieldDefinition, TypeDefinition, TypeKind},
     Positioned,
 };
@@ -21,7 +21,7 @@ impl<'a> Visitor<'a> for CacheVisitor {
     fn enter_schema(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        doc: &'a Positioned<grafbase_engine_parser::types::SchemaDefinition>,
+        doc: &'a Positioned<engine_parser::types::SchemaDefinition>,
     ) {
         if let Some(global_cache_directive) =
             validate_directive(ctx, doc.node.directives.iter(), doc.pos, ValidationLevel::Global)
@@ -46,7 +46,7 @@ impl<'a> Visitor<'a> for CacheVisitor {
                     match &mutation_invalidation_policy {
                         // we allow the _id_ to be missing because our @model types have it
                         CacheInvalidationPolicy::Entity { field: policy_field }
-                            if policy_field != grafbase_engine::names::OUTPUT_FIELD_ID =>
+                            if policy_field != engine::names::OUTPUT_FIELD_ID =>
                         {
                             let referenced_field = object
                                 .fields
@@ -105,7 +105,7 @@ impl<'a> Visitor<'a> for CacheVisitor {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine_parser::parse_schema;
+    use engine_parser::parse_schema;
 
     use crate::rules::{
         cache_directive::visitor::CacheVisitor,

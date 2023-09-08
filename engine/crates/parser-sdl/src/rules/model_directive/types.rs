@@ -1,5 +1,5 @@
-use grafbase_engine::registry::{InputObjectType, MetaInputValue};
-use grafbase_engine_parser::types::TypeDefinition;
+use engine::registry::{InputObjectType, MetaInputValue};
+use engine_parser::types::TypeDefinition;
 
 use crate::{
     registry::names::MetaNames,

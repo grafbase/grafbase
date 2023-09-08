@@ -3,8 +3,8 @@
 //! There is no specialied behavior for enum right now.
 //!
 //! TODO: Manage deprecation
-use grafbase_engine::{registry, registry::MetaEnumValue};
-use grafbase_engine_parser::types::TypeKind;
+use engine::{registry, registry::MetaEnumValue};
+use engine_parser::types::TypeKind;
 use if_chain::if_chain;
 
 use super::visitor::{Visitor, VisitorContext};
@@ -15,7 +15,7 @@ impl<'a> Visitor<'a> for EnumType {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         if_chain! {
             if let TypeKind::Enum(enum_ty) = &type_definition.node.kind;

@@ -6,7 +6,7 @@ use runtime_protocol::{
     ExecutionEngine, ExecutionError, ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest,
     ExecutionResult, LocalSpecificConfig, VersionedRegistry,
 };
-use grafbase_engine::{registry::resolvers::graphql, RequestHeaders, Response};
+use engine::{registry::resolvers::graphql, RequestHeaders, Response};
 use runtime_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
 use worker::Env;
 use worker_env::{EnvExt, VarType};
@@ -164,7 +164,7 @@ impl ExecutionEngine for LocalExecution {
             headers: execution_request.execution_headers.clone(),
         };
 
-        let schema = grafbase_engine::Schema::build(registry)
+        let schema = engine::Schema::build(registry)
             .data(dynamodb_batchers_data)
             .data(graphql::QueryBatcher::new())
             .data(search_engine)

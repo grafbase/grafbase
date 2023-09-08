@@ -1,4 +1,4 @@
-use grafbase_engine::{
+use engine::{
     indexmap::IndexMap,
     registry::{
         resolvers::{

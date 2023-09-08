@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use grafbase_engine::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
+use engine::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 use petgraph::graph::EdgeIndex;
 
 use super::{input_value::InputValue, Edge, FieldName};

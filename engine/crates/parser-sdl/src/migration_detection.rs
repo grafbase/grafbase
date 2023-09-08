@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
-use grafbase_engine::registry::{MetaType, Registry};
-use grafbase_engine_parser::types::Type;
+use engine::registry::{MetaType, Registry};
+use engine_parser::types::Type;
 
 #[derive(Debug, PartialEq)]
 pub enum RequiredMigration {

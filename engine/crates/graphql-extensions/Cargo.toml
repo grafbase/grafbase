@@ -1,7 +1,7 @@
 [package]
 name = "graphql-extensions"
 authors = ["Grafbase"]
-description = "Contains extensions for grafbase-engine"
+description = "Contains extensions for engine"
 version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
@@ -14,8 +14,8 @@ async-trait = "0.1"
 lazy_static = "1"
 web-time = { workspace = true }
 
-grafbase-engine = { path = "../grafbase-engine", default-features = false }
-grafbase-engine-value = { workspace = true }
+engine = { path = "../engine", default-features = false }
+engine-value = { workspace = true }
 log = { path = "../log", features = ["with-worker"] }
 runtime = { workspace = true }
 common-types = { workspace = true }

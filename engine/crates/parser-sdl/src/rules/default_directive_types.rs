@@ -1,5 +1,5 @@
-use grafbase_engine::{Positioned, QueryPath};
-use grafbase_engine_parser::types::{FieldDefinition, TypeDefinition};
+use engine::{Positioned, QueryPath};
+use engine_parser::types::{FieldDefinition, TypeDefinition};
 
 use super::{
     model_directive::ModelDirective,
@@ -10,7 +10,7 @@ pub const VALUE_ARGUMENT: &str = "value";
 
 pub struct DefaultDirectiveTypes;
 
-const FIELDS_NOT_ALLOWED: &[&str] = &[grafbase_engine::names::OUTPUT_FIELD_ID];
+const FIELDS_NOT_ALLOWED: &[&str] = &[engine::names::OUTPUT_FIELD_ID];
 
 impl<'a> Visitor<'a> for DefaultDirectiveTypes {
     fn enter_field(
@@ -48,7 +48,7 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
 
                 let error = {
                     let ctx_registry = ctx.registry.borrow();
-                    grafbase_engine::validation::utils::is_valid_input_value(
+                    engine::validation::utils::is_valid_input_value(
                         &ctx_registry,
                         &field.node.ty.node.to_string(),
                         &default_value,
@@ -68,8 +68,8 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
-    use grafbase_engine_parser::parse_schema;
+    use engine::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
+    use engine_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
     use super::*;

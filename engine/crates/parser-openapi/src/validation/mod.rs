@@ -1,6 +1,6 @@
 //! Validates a parsed Graph against various rules
 
-use grafbase_engine::registry::resolvers::http::QueryParameterEncodingStyle;
+use engine::registry::resolvers::http::QueryParameterEncodingStyle;
 
 use crate::{
     graph::{InputValueKind, OpenApiGraph, Operation},

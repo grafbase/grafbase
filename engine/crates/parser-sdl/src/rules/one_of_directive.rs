@@ -1,10 +1,10 @@
 use std::vec;
 
-use grafbase_engine::{
+use engine::{
     indexmap::IndexMap,
     registry::{InputObjectType, MetaDirective, MetaInputValue, __DirectiveLocation},
 };
-use grafbase_engine_parser::types::TypeKind;
+use engine_parser::types::TypeKind;
 use if_chain::if_chain;
 
 use super::{
@@ -29,7 +29,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {
@@ -82,8 +82,8 @@ impl<'a> Visitor<'a> for OneOfDirective {
 
 #[test]
 fn test_not_usable_on_nullable_fields() {
-    use grafbase_engine::registry::MetaType;
-    use grafbase_engine_parser::parse_schema;
+    use engine::registry::MetaType;
+    use engine_parser::parse_schema;
 
     use super::visitor::{visit, VisitorContext};
 

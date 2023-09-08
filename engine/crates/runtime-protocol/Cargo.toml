@@ -13,7 +13,7 @@ thiserror = { workspace = true }
 ulid = { workspace = true }
 worker = { workspace = true }
 
-grafbase-engine = { workspace = true }
+engine = { workspace = true }
 common-types = { workspace = true }
 
 [dev-dependencies]

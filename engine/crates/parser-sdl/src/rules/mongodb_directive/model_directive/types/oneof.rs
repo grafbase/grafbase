@@ -1,4 +1,4 @@
-use grafbase_engine::{
+use engine::{
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::MetaInputValue,
 };

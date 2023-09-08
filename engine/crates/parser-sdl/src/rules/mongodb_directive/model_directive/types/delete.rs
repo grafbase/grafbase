@@ -1,4 +1,4 @@
-use grafbase_engine::registry::{
+use engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     MetaField, ObjectType,
 };

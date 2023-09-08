@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use grafbase_engine::ServerError;
-use grafbase_engine_parser::{types::ConstDirective, Positioned};
-use grafbase_engine_value::ConstValue;
+use engine::ServerError;
+use engine_parser::{types::ConstDirective, Positioned};
+use engine_value::ConstValue;
 
 use super::{operations::Operations, providers::AuthProvider, rules::AuthRule};
 use crate::VisitorContext;
@@ -24,7 +24,7 @@ pub fn parse_auth_config(
     ctx: &VisitorContext<'_>,
     directive: &Positioned<ConstDirective>,
     is_global: bool,
-) -> Result<grafbase_engine::AuthConfig, ServerError> {
+) -> Result<engine::AuthConfig, ServerError> {
     let value = &directive.node;
     let pos = Some(value.name.pos);
 
@@ -122,7 +122,7 @@ pub fn parse_auth_config(
         .flatten()
         .collect();
 
-    Ok(grafbase_engine::AuthConfig::from(InternalAuthConfig {
+    Ok(engine::AuthConfig::from(InternalAuthConfig {
         allowed_private_ops,
         allowed_public_ops,
         allowed_group_ops,
@@ -131,7 +131,7 @@ pub fn parse_auth_config(
     }))
 }
 
-impl From<InternalAuthConfig> for grafbase_engine::AuthConfig {
+impl From<InternalAuthConfig> for engine::AuthConfig {
     fn from(internal_auth: InternalAuthConfig) -> Self {
         Self {
             allowed_private_ops: internal_auth.allowed_private_ops.into(),
@@ -153,7 +153,7 @@ impl From<InternalAuthConfig> for grafbase_engine::AuthConfig {
                     client_id,
                 } => {
                     let issuer_base_url = issuer.parse().expect("issuer format must have been validated");
-                    grafbase_engine::AuthProvider::Oidc(grafbase_engine::OidcProvider {
+                    engine::AuthProvider::Oidc(engine::OidcProvider {
                         issuer,
                         issuer_base_url,
                         groups_claim,
@@ -168,7 +168,7 @@ impl From<InternalAuthConfig> for grafbase_engine::AuthConfig {
                 } => {
                     let jwks_endpoint = jwks_endpoint.as_ref().expect("must have been set");
                     let jwks_endpoint = jwks_endpoint.parse::<url::Url>().expect("must be a valid URL");
-                    grafbase_engine::AuthProvider::Jwks(grafbase_engine::JwksProvider {
+                    engine::AuthProvider::Jwks(engine::JwksProvider {
                         jwks_endpoint,
                         issuer,
                         groups_claim,
@@ -180,14 +180,14 @@ impl From<InternalAuthConfig> for grafbase_engine::AuthConfig {
                     groups_claim,
                     client_id,
                     secret,
-                } => grafbase_engine::AuthProvider::Jwt(grafbase_engine::JwtProvider {
+                } => engine::AuthProvider::Jwt(engine::JwtProvider {
                     issuer,
                     groups_claim,
                     client_id,
                     secret: secrecy::SecretString::new(secret),
                 }),
                 AuthProvider::Authorizer { name } => {
-                    grafbase_engine::AuthProvider::Authorizer(grafbase_engine::AuthorizerProvider { name })
+                    engine::AuthProvider::Authorizer(engine::AuthorizerProvider { name })
                 }
             }),
         }

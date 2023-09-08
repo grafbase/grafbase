@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use grafbase_engine::registry::resolvers::http::{
+use engine::registry::resolvers::http::{
     ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
 };
 use indexmap::IndexMap;
@@ -288,7 +288,7 @@ fn convert_status_code(code: &openapiv3_1::StatusCode) -> Result<ExpectedStatusC
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine::registry::resolvers::http::ExpectedStatusCode;
+    use engine::registry::resolvers::http::ExpectedStatusCode;
     use rstest::rstest;
 
     use super::*;

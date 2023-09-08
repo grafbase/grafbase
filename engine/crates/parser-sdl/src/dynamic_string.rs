@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use grafbase_engine::ServerError;
+use engine::ServerError;
 use itertools::Itertools;
 use regex::Regex;
 use serde_with::DeserializeFromStr;

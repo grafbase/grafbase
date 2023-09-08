@@ -33,8 +33,8 @@ openapi = { git = "https://github.com/grafbase/openapi.git", rev = "2972de3f2efa
 # https://github.com/glademiller/openapiv3/pull/58 is merged and we can go back to mainline
 openapiv3 = { git = "https://github.com/grafbase/openapiv3.git", branch = "openapiv3.1" }
 
-grafbase-engine = { path = "../grafbase-engine", features = ["tracing_worker"] }
-grafbase-engine-value = { workspace = true }
+engine = { path = "../engine", features = ["tracing_worker"] }
+engine-value = { workspace = true }
 parser-sdl = { path = "../parser-sdl" }
 
 [dev-dependencies]

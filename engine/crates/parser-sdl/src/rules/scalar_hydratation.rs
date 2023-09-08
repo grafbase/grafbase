@@ -1,13 +1,13 @@
 //! ### What it does
 //!
 //! The user defined scalars can be hydrated to the generated API only if those scalars belongs to
-//! the list of PossibleScalar from grafbase_engine for now.
+//! the list of PossibleScalar from engine for now.
 //!
-use grafbase_engine::{
+use engine::{
     registry::scalars::{DynamicScalar, PossibleScalar},
     Positioned, Value,
 };
-use grafbase_engine_parser::types::TypeDefinition;
+use engine_parser::types::TypeDefinition;
 
 use super::visitor::{Visitor, VisitorContext};
 
@@ -38,7 +38,7 @@ impl<'a> Visitor<'a> for ScalarHydratation {
                             _ => None,
                         });
 
-                    grafbase_engine::registry::MetaType::Scalar(grafbase_engine::registry::ScalarType {
+                    engine::registry::MetaType::Scalar(engine::registry::ScalarType {
                         name: name.clone(),
                         description: type_definition
                             .node
@@ -48,7 +48,7 @@ impl<'a> Visitor<'a> for ScalarHydratation {
                         is_valid: None,
                         visible: None,
                         specified_by_url,
-                        parser: grafbase_engine::registry::ScalarParser::BestEffort,
+                        parser: engine::registry::ScalarParser::BestEffort,
                     })
                 },
                 name.as_str(),
@@ -62,7 +62,7 @@ impl<'a> Visitor<'a> for ScalarHydratation {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine_parser::parse_schema;
+    use engine_parser::parse_schema;
     use serde_json as _;
 
     use super::ScalarHydratation;

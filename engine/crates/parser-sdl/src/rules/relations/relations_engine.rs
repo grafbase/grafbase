@@ -1,6 +1,6 @@
 //! Implement the Relation Engine
-use grafbase_engine::{indexmap::map::Entry, registry::relations::MetaRelation, Positioned, Value};
-use grafbase_engine_parser::types::{FieldDefinition, Type, TypeKind};
+use engine::{indexmap::map::Entry, registry::relations::MetaRelation, Positioned, Value};
+use engine_parser::types::{FieldDefinition, Type, TypeKind};
 use if_chain::if_chain;
 use regex::Regex;
 
@@ -29,7 +29,7 @@ use crate::{
 /// --> Attribute a relation name based on those two types.
 /// --> Store it into the VisitorContext (Will be used to compare between two iteration of a schema
 /// if there is a change in relations)
-/// --> (Store it into the generated type, need grafbase_engine work)
+/// --> (Store it into the generated type, need engine work)
 pub struct RelationEngine;
 
 pub const RELATION_DIRECTIVE: &str = "relation";
@@ -78,7 +78,7 @@ fn generate_metarelation(type_name: &str, field: &FieldDefinition) -> MetaRelati
     MetaRelation::new(name, &from_field, to_field, from_model, to_model)
 }
 
-fn relation_name(field: &FieldDefinition) -> Option<&Positioned<grafbase_engine_value::ConstValue>> {
+fn relation_name(field: &FieldDefinition) -> Option<&Positioned<engine_value::ConstValue>> {
     field
         .directives
         .iter()
@@ -105,7 +105,7 @@ impl<'a> Visitor<'a> for RelationEngine {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {
@@ -154,7 +154,7 @@ impl<'a> Visitor<'a> for RelationEngine {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine_parser::parse_schema;
+    use engine_parser::parse_schema;
     use insta::assert_debug_snapshot;
     use serde_json as _;
 

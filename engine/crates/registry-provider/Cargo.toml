@@ -1,6 +1,6 @@
 # FIXME: https://github.com/grafbase/api/pull/2099#discussion_r1176200512
 # Due to cyclic dependency, we have to create this crate, the idea would be to
-# move the grafbase-engine registry into another crate to avoid having to
+# move the engine registry into another crate to avoid having to
 # import grafbase-engine directly inside `runtime-protocol`.
 # While moving the Grafbase Engine Registry into another crate, it would be
 # interesting to also move the VersionnedRegistry.
@@ -11,5 +11,5 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1"
-grafbase-engine = { workspace = true }
+engine = { workspace = true }
 thiserror = "1"

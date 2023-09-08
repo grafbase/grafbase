@@ -17,7 +17,7 @@ pub type ExecutionResult<T> = Result<T, ExecutionError>;
 #[async_trait(?Send)]
 pub trait ExecutionEngine {
     type ConfigType;
-    type ExecutionResponse; // This is always grafbase_engine::Response (but is needed for tests)
+    type ExecutionResponse; // This is always engine::Response (but is needed for tests)
 
     async fn execute(
         self: Arc<Self>,

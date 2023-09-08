@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use grafbase_engine_parser::{types::ConstDirective, Pos, Positioned};
-use grafbase_engine_value::{ConstValue, Name};
+use engine_parser::{types::ConstDirective, Pos, Positioned};
+use engine_value::{ConstValue, Name};
 
 use crate::{
     directive_de::parse_directive,

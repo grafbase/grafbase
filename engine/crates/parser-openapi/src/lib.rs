@@ -1,4 +1,4 @@
-use grafbase_engine::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
+use engine::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
 use graph::OpenApiGraph;
 use inflector::Inflector;
 use parser_sdl::OpenApiQueryNamingStrategy as QueryNamingStrategy;
@@ -193,7 +193,7 @@ fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use grafbase_engine::registry::{MetaType, UnionType};
+    use engine::registry::{MetaType, UnionType};
 
     use super::*;
 

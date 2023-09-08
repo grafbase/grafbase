@@ -17,8 +17,8 @@ impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        field: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::FieldDefinition>,
-        parent: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        field: &'a engine::Positioned<engine_parser::types::FieldDefinition>,
+        parent: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         if_chain! {
             let name = &field.node.name.node;
@@ -37,7 +37,7 @@ impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine_parser::parse_schema;
+    use engine_parser::parse_schema;
     use serde_json as _;
 
     use crate::rules::{
