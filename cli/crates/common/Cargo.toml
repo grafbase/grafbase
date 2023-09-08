@@ -1,5 +1,5 @@
 [package]
-name = "runtime-local-common"
+name = "grafbase-local-common"
 description = "Common code used in multiple crates in the CLI workspace"
 readme = "README.md"
 version.workspace = true
