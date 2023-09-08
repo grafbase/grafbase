@@ -6,7 +6,7 @@ use grafbase_engine::{
     Positioned, Request, Response, ServerResult,
 };
 use runtime::{log::LogEventReceiver, GraphqlRequestExecutionContext};
-use grafbase_types::{LogEventType, OperationType};
+use common_types::{LogEventType, OperationType};
 
 pub struct RuntimeLogExtension {
     log_event_receiver: Arc<Box<dyn LogEventReceiver + Send + Sync>>,

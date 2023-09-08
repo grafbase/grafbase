@@ -12,7 +12,7 @@ use grafbase_engine::{
     Pos,
 };
 use grafbase_engine_parser::{types::ServiceDocument, Error as ParserError};
-use grafbase_types::UdfKind;
+use common_types::UdfKind;
 use rules::{
     auth_directive::AuthDirective,
     basic_type::BasicType,

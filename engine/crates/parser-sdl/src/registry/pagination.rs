@@ -13,7 +13,7 @@ use grafbase_engine::{
     AuthConfig,
 };
 use grafbase_engine_parser::types::{Type, TypeDefinition};
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use super::{
     names::{

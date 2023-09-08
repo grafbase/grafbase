@@ -1,5 +1,5 @@
 [package]
-name = "grafbase-types"
+name = "common-types"
 authors = ["Grafbase"]
 description = "Various type definitions for the Grafbase platform"
 version = "0.1.0"

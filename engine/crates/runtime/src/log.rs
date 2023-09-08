@@ -1,4 +1,4 @@
-pub use grafbase_types::LogEventType;
+pub use common_types::LogEventType;
 
 #[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]

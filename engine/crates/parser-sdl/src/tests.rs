@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use function_name::named;
 use grafbase_engine::{registry::Registry, Schema};
-use grafbase_types::UdfKind;
+use common_types::UdfKind;
 use serde_json as _;
 
 use crate::{parse_used_directives, rules::visitor::RuleError};

@@ -46,7 +46,7 @@ use std::{sync::Arc, time::Duration};
 
 use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
-use grafbase_types::{
+use common_types::{
     auth::{ExecutionAuth, Operations},
     UdfKind,
 };

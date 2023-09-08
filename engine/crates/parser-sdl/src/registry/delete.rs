@@ -8,7 +8,7 @@ use grafbase_engine::{
     AuthConfig, CacheControl,
 };
 use grafbase_engine_parser::types::{BaseType, TypeDefinition};
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use crate::{
     registry::names::{MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT},

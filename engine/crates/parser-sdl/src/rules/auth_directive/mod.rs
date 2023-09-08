@@ -96,7 +96,7 @@ pub mod tests {
     use std::collections::HashMap;
 
     use grafbase_engine_parser::parse_schema;
-    use grafbase_types::auth::Operations;
+    use common_types::auth::Operations;
     use pretty_assertions::assert_eq;
     use providers::DEFAULT_GROUPS_CLAIM;
 

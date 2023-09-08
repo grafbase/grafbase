@@ -16,4 +16,4 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 search-protocol = { path = "../search-protocol" }
-grafbase-types = { workspace = true }
+common-types = { workspace = true }

@@ -19,7 +19,7 @@ use grafbase_engine_parser::types::{
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
 use grafbase_engine_value::ConstValue;
-use grafbase_types::UdfKind;
+use common_types::UdfKind;
 
 use super::{graphql_directive::GraphqlDirective, neon_directive::NeonDirective, openapi_directive::OpenApiDirective};
 use crate::{

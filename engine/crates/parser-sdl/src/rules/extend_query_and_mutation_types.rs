@@ -3,7 +3,7 @@ use grafbase_engine::registry::{
     MetaField, MetaInputValue,
 };
 use grafbase_engine_parser::types::{ObjectType, TypeKind};
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
 use crate::rules::{cache_directive::CacheDirective, resolver_directive::ResolverDirective};

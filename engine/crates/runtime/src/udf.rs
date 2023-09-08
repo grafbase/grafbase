@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, ops::Deref, sync::Arc};
 
-use grafbase_types::UdfKind;
+use common_types::UdfKind;
 use serde::Serialize;
 
 #[derive(Debug, serde::Serialize)]

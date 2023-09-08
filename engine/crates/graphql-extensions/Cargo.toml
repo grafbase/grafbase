@@ -18,7 +18,7 @@ grafbase-engine = { path = "../grafbase-engine", default-features = false }
 grafbase-engine-value = { workspace = true }
 log = { path = "../log", features = ["with-worker"] }
 runtime = { workspace = true }
-grafbase-types = { workspace = true }
+common-types = { workspace = true }
 
 [features]
 local = []

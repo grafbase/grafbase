@@ -58,7 +58,7 @@ pub enum Operation {
     Introspection,
 }
 
-impl From<Operations> for grafbase_types::auth::Operations {
+impl From<Operations> for common_types::auth::Operations {
     fn from(ops: Operations) -> Self {
         let mut res = Self::empty();
         for op in ops.0 {
