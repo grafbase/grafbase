@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use postgresql_types::transport::NeonTransport;
-use sdl_parser::{ConnectorParsers, GraphqlDirective, NeonDirective, OpenApiDirective, Registry};
+use parser_sdl::{ConnectorParsers, GraphqlDirective, NeonDirective, OpenApiDirective, Registry};
 
 pub struct MockConnectorParsers;
 

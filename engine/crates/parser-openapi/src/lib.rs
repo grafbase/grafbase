@@ -1,7 +1,7 @@
 use grafbase_engine::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
 use graph::OpenApiGraph;
 use inflector::Inflector;
-use sdl_parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
+use parser_sdl::OpenApiQueryNamingStrategy as QueryNamingStrategy;
 use tracing as _;
 use url::Url;
 
@@ -59,8 +59,8 @@ impl ApiMetadata {
     }
 }
 
-impl From<sdl_parser::OpenApiDirective> for ApiMetadata {
-    fn from(val: sdl_parser::OpenApiDirective) -> Self {
+impl From<parser_sdl::OpenApiDirective> for ApiMetadata {
+    fn from(val: parser_sdl::OpenApiDirective) -> Self {
         let headers = val.headers();
 
         ApiMetadata {
