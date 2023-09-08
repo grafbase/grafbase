@@ -66,8 +66,8 @@ dynamodb = { path = "crates/dynamodb" }
 grafbase-engine = { path = "crates/grafbase-engine" }
 grafbase-types = { path = "crates/grafbase-types" }
 grafbase-engine-value = { path = "crates/grafbase-engine/value" }
-gateway-protocol = { path = "crates/gateway-protocol" }
-gateway-protocol-platform = { path = "crates/gateway-protocol-platform" }
+runtime-protocol = { path = "crates/runtime-protocol" }
+runtime-protocol-platform = { path = "crates/runtime-protocol-platform" }
 gateway-types = { path = "crates/gateway-types" }
 registry-provider = { path = "crates/registry-provider" }
 graphql-extensions = { path = "crates/graphql-extensions" }

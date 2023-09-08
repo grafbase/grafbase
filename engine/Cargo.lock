@@ -1259,33 +1259,15 @@ dependencies = [
  "async-trait",
  "cfg-if",
  "dynamodb",
- "gateway-protocol",
  "grafbase-engine",
  "grafbase-local",
  "grafbase-runtime",
  "graphql-extensions",
+ "runtime-protocol",
  "serde_json",
  "ulid",
  "worker",
  "worker-env",
-]
-
-[[package]]
-name = "gateway-protocol"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "grafbase-engine",
- "grafbase-types",
- "rusoto_core",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "strum",
- "thiserror",
- "ulid",
- "worker",
 ]
 
 [[package]]
@@ -1476,12 +1458,12 @@ name = "grafbase-local"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "gateway-protocol",
  "grafbase-runtime",
  "graph-entities",
  "log 0.1.0",
  "registry-provider",
  "reqwest",
+ "runtime-protocol",
  "search-protocol",
  "send_wrapper 0.6.0",
  "serde",
@@ -2953,6 +2935,24 @@ dependencies = [
  "rustc_version",
  "syn 2.0.31",
  "unicode-ident",
+]
+
+[[package]]
+name = "runtime-protocol"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "grafbase-engine",
+ "grafbase-types",
+ "rusoto_core",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
+ "strum",
+ "thiserror",
+ "ulid",
+ "worker",
 ]
 
 [[package]]
