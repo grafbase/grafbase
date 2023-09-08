@@ -9,7 +9,7 @@ use runtime::{
     },
     GraphqlRequestExecutionContext,
 };
-use common_types::UdfKind;
+use grafbase_types::UdfKind;
 use send_wrapper::SendWrapper;
 #[cfg(feature = "tracing_worker")]
 use tracing::{info_span, Instrument};

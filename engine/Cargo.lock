@@ -991,6 +991,106 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine"
+version = "3.0.31"
+dependencies = [
+ "Inflector",
+ "async-lock",
+ "async-recursion",
+ "async-runtime",
+ "async-stream",
+ "async-trait",
+ "base64 0.21.3",
+ "bytes",
+ "case",
+ "chrono",
+ "cynic-introspection",
+ "dataloader",
+ "derivative",
+ "dynamodb",
+ "dynomite",
+ "engine-derive",
+ "engine-parser",
+ "engine-value",
+ "fast_chemail",
+ "flexbuffers",
+ "fnv",
+ "futures",
+ "futures-util",
+ "grafbase-runtime",
+ "grafbase-types",
+ "graph-entities",
+ "http",
+ "im",
+ "indexmap 2.0.0-pre",
+ "indoc",
+ "insta",
+ "internment",
+ "ipnet",
+ "itertools",
+ "log 0.1.0",
+ "mime",
+ "multer",
+ "nom",
+ "num-traits",
+ "once_cell",
+ "pin-project-lite",
+ "postgresql-types",
+ "regex",
+ "reqwest",
+ "rstest",
+ "rust_decimal",
+ "sanitize-filename",
+ "secrecy",
+ "send_wrapper 0.6.0",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "static_assertions",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "ulid",
+ "url",
+ "urlencoding",
+ "wiremock",
+]
+
+[[package]]
+name = "engine-derive"
+version = "3.0.31"
+dependencies = [
+ "Inflector",
+ "darling 0.20.3",
+ "proc-macro-crate 1.3.1",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.31",
+ "thiserror",
+]
+
+[[package]]
+name = "engine-parser"
+version = "3.0.31"
+dependencies = [
+ "engine-value",
+ "pest",
+ "pest_derive",
+ "serde",
+]
+
+[[package]]
+name = "engine-value"
+version = "3.0.31"
+dependencies = [
+ "bytes",
+ "indexmap 2.0.0-pre",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1501,7 +1601,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.21.3",
  "dynomite",
- "grafbase-engine-value",
+ "engine-value",
  "internment",
  "rstest",
  "serde",
@@ -1863,6 +1963,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "integration-tests"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "cynic",
+ "cynic-introspection",
+ "engine",
+ "expect-test",
+ "futures",
+ "grafbase-runtime",
+ "indoc",
+ "insta",
+ "names",
+ "parser-openapi",
+ "parser-postgresql",
+ "postgresql-types",
+ "reqwest",
+ "sdl-parser",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wiremock",
 ]
 
 [[package]]
@@ -2310,7 +2435,7 @@ dependencies = [
  "Inflector",
  "cynic",
  "cynic-introspection",
- "grafbase-engine",
+ "engine",
  "http",
  "insta",
  "reqwest",
@@ -2327,8 +2452,8 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "assert_matches",
- "grafbase-engine",
- "grafbase-engine-value",
+ "engine",
+ "engine-value",
  "indexmap 1.9.3",
  "insta",
  "itertools",
@@ -2831,7 +2956,7 @@ name = "registry-provider"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "grafbase-engine",
+ "engine",
  "thiserror",
 ]
 

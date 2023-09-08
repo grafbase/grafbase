@@ -7,7 +7,7 @@ pub mod mongodb;
 pub mod types;
 pub mod udfs;
 
-pub use engine::{Engine, EngineBuilder};
+pub use crate::engine::{Engine, EngineBuilder};
 pub use helpers::{GetPath, ResponseExt};
 pub use mocks::MockConnectorParsers;
 pub use mongodb::{with_mongodb, with_namespaced_mongodb};
