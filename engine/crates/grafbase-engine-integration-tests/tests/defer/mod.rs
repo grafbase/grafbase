@@ -61,7 +61,7 @@ fn simple_defer_test() {
                 "name": "Deferred Doggo"
               }
             },
-            "hasNext": true,
+            "hasNext": false,
             "path": [
               "petstore"
             ]
@@ -215,7 +215,7 @@ fn test_defer_on_named_fragment() {
                 "name": "Deferred Doggo"
               }
             },
-            "hasNext": true,
+            "hasNext": false,
             "path": [
               "petstore"
             ]
@@ -286,7 +286,7 @@ fn test_nested_defers() {
                 "name": "Second Deferred Doggo"
               }
             },
-            "hasNext": true,
+            "hasNext": false,
             "path": [
               "petstore"
             ]
@@ -373,7 +373,7 @@ fn test_defer_with_errors() {
                 ]
               }
             ],
-            "hasNext": true,
+            "hasNext": false,
             "path": [
               "petstore"
             ]
