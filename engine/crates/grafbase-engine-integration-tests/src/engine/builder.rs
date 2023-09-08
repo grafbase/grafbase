@@ -1,7 +1,7 @@
 use super::Inner;
 use crate::Engine;
 use grafbase_engine::{registry::resolvers::graphql::QueryBatcher, Schema};
-use grafbase_runtime::{
+use runtime::{
     udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker},
     GraphqlRequestExecutionContext,
 };

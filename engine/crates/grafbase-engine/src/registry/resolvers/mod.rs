@@ -14,7 +14,7 @@ use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use grafbase_engine_parser::types::SelectionSet;
 use grafbase_engine_value::{ConstValue, Name};
-use grafbase_runtime::search::GraphqlCursor;
+use runtime::search::GraphqlCursor;
 use graph_entities::ConstraintID;
 use query::QueryResolver;
 use ulid::Ulid;
@@ -165,7 +165,7 @@ impl Resolver {
             }
             Resolver::Http(resolver) => resolver.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::Graphql(resolver) => {
-                let ray_id = &ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?.ray_id;
+                let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
 
                 let registry = ctx.registry();
                 let request_headers = ctx.data::<RequestHeaders>().ok();

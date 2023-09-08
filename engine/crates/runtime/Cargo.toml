@@ -1,5 +1,5 @@
 [package]
-name = "grafbase-runtime"
+name = "runtime"
 authors = ["Grafbase"]
 description = "An abstraction over the various Grafbase runtime environments"
 version = "0.1.0"

@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use grafbase_runtime::udf::{CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, UdfRequest};
+use runtime::udf::{CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, UdfRequest};
 
 /// A UdfInvoker implementation that calls into some rust functions.
 ///
@@ -31,7 +31,7 @@ impl RustUdfs {
 }
 
 #[async_trait::async_trait(?Send)]
-impl grafbase_runtime::udf::UdfInvoker<CustomResolverRequestPayload> for RustUdfs {
+impl runtime::udf::UdfInvoker<CustomResolverRequestPayload> for RustUdfs {
     async fn invoke(
         &self,
         _ray_id: &str,

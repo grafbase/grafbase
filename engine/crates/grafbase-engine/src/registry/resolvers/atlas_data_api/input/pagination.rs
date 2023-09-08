@@ -1,4 +1,4 @@
-use grafbase_runtime::search::GraphqlCursor;
+use runtime::search::GraphqlCursor;
 use serde_json::{json, Value};
 
 use crate::{

@@ -4,7 +4,7 @@ members = [
   "crates/grafbase-engine/derive",
   "crates/grafbase-engine/parser",
   "crates/grafbase-engine/value",
-  "crates/grafbase-runtime/local",
+  "crates/runtime/local",
   
 ]
 resolver = "2"
@@ -72,11 +72,11 @@ gateway-types = { path = "crates/gateway-types" }
 registry-provider = { path = "crates/registry-provider" }
 graphql-extensions = { path = "crates/graphql-extensions" }
 log = { path = "crates/log" }
-grafbase-runtime = { path = "crates/grafbase-runtime" }
+runtime = { path = "crates/runtime" }
 dataloader = { path = "crates/dataloader", features = ["tracing"] }
 graph-entities = { path = "crates/graph-entities" }
 async-runtime = { path = "crates/async-runtime" }
-grafbase-local = { path = "crates/grafbase-runtime/local" }
+runtime-local = { path = "crates/runtime/local" }
 worker-env = { path = "crates/worker-env" }
 
 [profile.bench]

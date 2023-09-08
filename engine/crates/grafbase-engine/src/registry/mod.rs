@@ -1388,7 +1388,7 @@ pub struct Registry {
     #[serde(default)]
     pub postgres_databases: HashMap<String, DatabaseDefinition>,
     #[serde(default)]
-    pub search_config: grafbase_runtime::search::Config,
+    pub search_config: runtime::search::Config,
     #[serde(default)]
     pub enable_caching: bool,
 }

@@ -38,8 +38,8 @@ path = "../parser-postgresql"
 [dependencies.postgresql-types]
 path = "../postgresql-types"
 
-[dependencies.grafbase-runtime]
-path = "../grafbase-runtime"
+[dependencies.runtime]
+path = "../runtime"
 
 [dependencies.parser-openapi]
 path = "../parser-openapi"

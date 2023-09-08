@@ -15,7 +15,7 @@ use grafbase_engine::{
     AuthConfig, Positioned,
 };
 use grafbase_engine_parser::types::{FieldDefinition, TypeDefinition};
-use grafbase_runtime::search;
+use runtime::search;
 use grafbase_types::auth::Operations;
 use itertools::Itertools;
 

@@ -5,7 +5,7 @@ use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, PaginationOrdering, ParentEdge, QueryKey, QuerySingleRelationKey,
     QueryTypePaginatedKey,
 };
-use grafbase_runtime::search::GraphqlCursor;
+use runtime::search::GraphqlCursor;
 use graph_entities::NodeID;
 use indexmap::IndexMap;
 use itertools::Itertools;

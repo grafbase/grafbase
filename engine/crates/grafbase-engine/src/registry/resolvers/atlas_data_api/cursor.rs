@@ -8,7 +8,7 @@ use crate::{
     },
     Context, ServerError, ServerResult,
 };
-use grafbase_runtime::search::GraphqlCursor;
+use runtime::search::GraphqlCursor;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
