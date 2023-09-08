@@ -45,11 +45,7 @@ impl DeferredWorkload {
         ContextSelectionSet {
             path: self.path.clone(),
             resolver_node: Some(ResolverChainNode {
-                segment: self
-                    .path
-                    .last_segment()
-                    .cloned()
-                    .expect("to always have one path element"),
+                segment: self.path.last().cloned().expect("to always have one path element"),
                 parent: None,
                 field: None,
                 executable_field: None,

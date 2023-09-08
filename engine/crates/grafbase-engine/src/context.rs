@@ -321,7 +321,7 @@ impl<'a, T> ContextBase<'a, T> {
         ContextBase {
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
-                segment: path.last_segment().unwrap().clone(),
+                segment: path.last().unwrap().clone(),
                 ty: meta,
                 field: meta_field,
                 executable_field: Some(field),
@@ -364,7 +364,7 @@ impl<'a, T> ContextBase<'a, T> {
         }
 
         ServerError {
-            path: self.path.iter_segments().cloned().collect(),
+            path: self.path.iter().cloned().collect(),
             ..error
         }
     }
@@ -596,7 +596,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
-                segment: path.last_segment().cloned().unwrap(),
+                segment: path.last().cloned().unwrap(),
                 field: self.resolver_node.as_ref().and_then(|x| x.field),
                 executable_field: self.resolver_node.as_ref().and_then(|x| x.executable_field),
                 ty: self.resolver_node.as_ref().and_then(|x| x.ty),

@@ -23,7 +23,7 @@ impl QueryPath {
         self.0.push_back(segment.into());
     }
 
-    pub fn last_segment(&self) -> Option<&QueryPathSegment> {
+    pub fn last(&self) -> Option<&QueryPathSegment> {
         self.0.last()
     }
 
@@ -33,8 +33,18 @@ impl QueryPath {
         child
     }
 
-    pub fn iter_segments(&self) -> impl DoubleEndedIterator<Item = &QueryPathSegment> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &QueryPathSegment> {
         self.0.iter()
+    }
+}
+
+impl IntoIterator for QueryPath {
+    type Item = QueryPathSegment;
+
+    type IntoIter = im::vector::ConsumingIter<QueryPathSegment>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

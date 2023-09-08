@@ -278,7 +278,7 @@ async fn run_field_resolver(
 ) -> Result<ResolvedValue, Error> {
     let mut final_result = parent_resolver_value.unwrap_or_default();
 
-    if let Some(QueryPathSegment::Index(idx)) = ctx.path.last_segment() {
+    if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
         // If we are in an index segment, it means we do not have a current resolver (YET).
         final_result = final_result.get_index(*idx).unwrap_or_default();
     } else if let Some(resolver) = resolver_node.resolver {

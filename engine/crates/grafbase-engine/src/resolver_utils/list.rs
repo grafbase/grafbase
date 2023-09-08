@@ -92,11 +92,7 @@ pub async fn resolve_list<'a>(
                                 Some(ctx.item.pos),
                             );
 
-                        if let Some(path) = ctx.path_node {
-                            let mut path = path.to_owned_segments();
-                            path.push(crate::PathSegment::Index(index));
-                            error.path = path;
-                        }
+                        error.path = ctx.path.child(index).into_iter().collect();
 
                         return Err(error);
                     }

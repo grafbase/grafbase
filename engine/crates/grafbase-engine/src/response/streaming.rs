@@ -72,7 +72,7 @@ impl serde::Serialize for GraphqlIncrementalPayload<'_> {
         // 2. It calls `self.0.data.as_graphql_data()`
         let mut map = serializer.serialize_map(Some(5))?;
         map.serialize_entry("data", &self.0.data.as_graphql_data())?;
-        map.serialize_entry("path", &self.0.path.iter_segments().collect::<Vec<_>>())?;
+        map.serialize_entry("path", &self.0.path.iter().collect::<Vec<_>>())?;
         map.serialize_entry("hasNext", &self.0.has_next)?;
         if let Some(label) = &self.0.label {
             map.serialize_entry("label", &label)?;
