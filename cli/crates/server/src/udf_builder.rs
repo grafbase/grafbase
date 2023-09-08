@@ -244,9 +244,10 @@ pub async fn build(
 
     let grafbase_kv_data_path = environment
         .user_dot_grafbase_path
-        .join(crate::consts::GRAFBASE_KV_DATA_PATH)
-        .to_string_lossy()
-        .into_owned();
+        .join(crate::consts::GRAFBASE_KV_DATA_PATH);
+    let grafbase_kv_data_path = grafbase_kv_data_path.to_str().ok_or(UdfBuildError::InvalidKvDataPath(
+        grafbase_kv_data_path.to_string_lossy().to_string(),
+    ))?;
 
     let slugified_udf_name = slug::slugify(udf_name);
     tokio::fs::write(
