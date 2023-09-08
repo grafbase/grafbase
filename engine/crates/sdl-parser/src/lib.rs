@@ -11,7 +11,7 @@ use grafbase_engine::{
     },
     Pos,
 };
-use grafbase_engine_parser::{parse_schema, types::ServiceDocument, Error as ParserError};
+use grafbase_engine_parser::{types::ServiceDocument, Error as ParserError};
 use grafbase_types::UdfKind;
 use rules::{
     auth_directive::AuthDirective,
@@ -65,6 +65,7 @@ use crate::rules::{
 };
 
 pub mod connector_parsers;
+pub mod usage;
 
 mod directive_de;
 mod dynamic_string;
@@ -113,12 +114,7 @@ pub struct ParseResult<'a> {
     pub global_cache_rules: GlobalCacheRules<'a>,
 }
 
-/// Transform the input into a Registry
-pub async fn parse<'a>(
-    schema: &'a str,
-    variables: &HashMap<String, String>,
-    connector_parsers: &dyn ConnectorParsers,
-) -> Result<ParseResult<'a>, Error> {
+fn parse_schema(schema: &str) -> grafbase_engine::parser::Result<ServiceDocument> {
     let directives = Directives::new()
         .with::<AuthDirective>()
         .with::<DefaultDirective>()
@@ -144,8 +140,16 @@ pub async fn parse<'a>(
         directives.to_definition(),
     );
 
-    let schema = parse_schema(schema)?;
+    grafbase_engine::parser::parse_schema(schema)
+}
 
+/// Transform the input into a Registry
+pub async fn parse<'a>(
+    schema: &'a str,
+    variables: &HashMap<String, String>,
+    connector_parsers: &dyn ConnectorParsers,
+) -> Result<ParseResult<'a>, Error> {
+    let schema = parse_schema(schema)?;
     let mut ctx = VisitorContext::new_with_variables(&schema, variables);
 
     // We parse out connectors (and run their sub-parsers) first so that our schema

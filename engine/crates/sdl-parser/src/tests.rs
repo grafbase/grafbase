@@ -5,7 +5,7 @@ use grafbase_engine::{registry::Registry, Schema};
 use grafbase_types::UdfKind;
 use serde_json as _;
 
-use crate::rules::visitor::RuleError;
+use crate::{parse_used_directives, rules::visitor::RuleError};
 
 macro_rules! assert_validation_error {
     ($schema:literal, $expected_message:literal) => {
