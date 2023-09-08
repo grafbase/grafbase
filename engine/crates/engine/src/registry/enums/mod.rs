@@ -2,15 +2,15 @@ mod order_by_direction;
 use indoc::indoc;
 pub use order_by_direction::OrderByDirection;
 
-pub struct GrafbaseEngineEnums;
+pub struct EngineEnums;
 
-impl GrafbaseEngineEnums {
+impl EngineEnums {
     pub fn sdl() -> String {
         OrderByDirection::sdl()
     }
 }
 
-pub trait GrafbaseEngineEnum {
+pub trait EngineEnum {
     fn ty() -> &'static str;
     fn values() -> Vec<String>;
     fn sdl() -> String {

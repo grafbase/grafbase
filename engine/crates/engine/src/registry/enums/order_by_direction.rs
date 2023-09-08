@@ -1,4 +1,4 @@
-use super::GrafbaseEngineEnum;
+use super::EngineEnum;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum OrderByDirection {
@@ -6,7 +6,7 @@ pub enum OrderByDirection {
     DESC,
 }
 
-impl GrafbaseEngineEnum for OrderByDirection {
+impl EngineEnum for OrderByDirection {
     fn ty() -> &'static str {
         "OrderByDirection"
     }

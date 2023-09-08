@@ -7,7 +7,7 @@ use std::{fmt, future::Future, panic::AssertUnwindSafe, sync::Arc};
 
 pub(super) static DATA_API_URL: &str = "http://localhost:3000/app/data-test/endpoint/data/v1";
 
-/// With a given schema, initialize GrafbaseEngine and provide a test API
+/// With a given schema, initialize Engine and provide a test API
 /// to run queries and mutations against.
 ///
 /// The provided closure should return a `Response`, which is then
@@ -31,7 +31,7 @@ where
     inner_mongodb(test_api, &database, test)
 }
 
-/// With a given schema, initialize GrafbaseEngine and provide a test API
+/// With a given schema, initialize Engine and provide a test API
 /// to run queries and mutations against.
 ///
 /// The provided closure should return a `Response`, which is then

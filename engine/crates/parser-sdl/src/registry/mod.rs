@@ -7,7 +7,7 @@ use std::fmt::Display;
 use case::CaseExt;
 use engine::{
     registry::{
-        self, enums::GrafbaseEngineEnum, relations::MetaRelation, MetaEnumValue, MetaInputValue, NamedType, Registry,
+        self, enums::EngineEnum, relations::MetaRelation, MetaEnumValue, MetaInputValue, NamedType, Registry,
     },
     validation::dynamic_validators::DynValidator,
 };
@@ -33,7 +33,7 @@ pub use delete::add_mutation_delete;
 pub use pagination::{add_query_paginated_collection, generate_pagination_args};
 pub use search::add_query_search;
 
-pub fn register_engine_enum<T: GrafbaseEngineEnum>(registry: &mut Registry) -> NamedType<'static> {
+pub fn register_engine_enum<T: EngineEnum>(registry: &mut Registry) -> NamedType<'static> {
     let type_name = T::ty().to_string();
     registry.create_type(
         |_| registry::EnumType::new(type_name.clone(), T::values().into_iter().map(MetaEnumValue::new)).into(),

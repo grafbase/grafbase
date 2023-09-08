@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 
 use engine::{
     registry::{
-        enums::GrafbaseEngineEnums,
+        enums::EngineEnums,
         scalars::{PossibleScalar, SDLDefinitionScalar},
     },
     Pos,
@@ -135,7 +135,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
     let schema = format!(
         "{}\n{}\n{}\n{}",
         schema,
-        GrafbaseEngineEnums::sdl(),
+        EngineEnums::sdl(),
         PossibleScalar::sdl(),
         directives.to_definition(),
     );

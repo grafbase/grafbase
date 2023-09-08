@@ -152,11 +152,11 @@ impl TryFrom<ScalarKind> for engine::registry::union_discriminator::ScalarKind {
     type Error = ();
 
     fn try_from(value: ScalarKind) -> Result<Self, Self::Error> {
-        use engine::registry::union_discriminator::ScalarKind as GrafbaseEngineScalarKind;
+        use engine::registry::union_discriminator::ScalarKind as EngineScalarKind;
         match value {
-            ScalarKind::String => Ok(GrafbaseEngineScalarKind::String),
-            ScalarKind::Integer | ScalarKind::Float => Ok(GrafbaseEngineScalarKind::Number),
-            ScalarKind::Boolean => Ok(GrafbaseEngineScalarKind::Boolean),
+            ScalarKind::String => Ok(EngineScalarKind::String),
+            ScalarKind::Integer | ScalarKind::Float => Ok(EngineScalarKind::Number),
+            ScalarKind::Boolean => Ok(EngineScalarKind::Boolean),
             ScalarKind::Json => {
                 // I'm really hoping there are no schemas that do this...
                 Err(())
