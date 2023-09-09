@@ -220,6 +220,10 @@ pub enum UdfBuildError {
     #[error("could not link to file: {0}")]
     SymlinkFailure(IoError),
 
+    /// returned if kv data path is invalid. E.g: has non unicode characters
+    #[error("invalid KV data path: {0}")]
+    InvalidKvDataPath(String),
+
     #[error("could not find a {0} referenced in the schema under the path {1}.{{js,ts}}")]
     UdfDoesNotExist(UdfKind, PathBuf),
 
