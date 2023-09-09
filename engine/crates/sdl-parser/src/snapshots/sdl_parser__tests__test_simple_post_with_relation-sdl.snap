@@ -1,0 +1,500 @@
+---
+source: common/parser/src/tests.rs
+expression: sdl
+---
+type Author {
+	name: String!
+	lastname: String!
+	country: Country!
+	posts(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): PostConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input AuthorByInput {
+	id: ID
+}
+input AuthorCollectionFilterInput {
+	id: IDCollectionFilterInput
+}
+type AuthorConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [AuthorEdge]
+}
+"""
+Input to create a Author
+"""
+input AuthorCreateInput {
+	name: String!
+	lastname: String!
+	country: Country!
+	posts: [PublishedCreatePostRelation]
+}
+input AuthorCreateManyInput {
+	input: AuthorCreateInput!
+}
+type AuthorCreateManyPayload {
+	authorCollection: [Author!]!
+}
+type AuthorCreatePayload {
+	author: Author
+}
+input AuthorDeleteManyInput {
+	by: AuthorByInput!
+}
+type AuthorDeleteManyPayload {
+	deletedIds: [ID!]!
+}
+type AuthorDeletePayload {
+	deletedId: ID!
+}
+type AuthorEdge {
+	node: Author!
+	cursor: String!
+}
+input AuthorOrderByInput {
+	createdAt: OrderByDirection
+}
+"""
+Input to create a Author for the AuthorToBlog relation of Blog
+"""
+input AuthorToBlogCreateAuthor {
+	name: String!
+	lastname: String!
+	country: Country!
+	posts: [PublishedCreatePostRelation]
+}
+"""
+Input to link to or create a Author for the AuthorToBlog relation of Blog
+"""
+input AuthorToBlogCreateAuthorRelation {
+	create: AuthorToBlogCreateAuthor
+	link: ID
+}
+"""
+Input to link/unlink to or create a Author for the AuthorToBlog relation of Blog
+"""
+input AuthorToBlogUpdateAuthorRelation {
+	create: AuthorToBlogCreateAuthor
+	link: ID
+	unlink: ID
+}
+"""
+Input to update a Author
+"""
+input AuthorUpdateInput {
+	name: String
+	lastname: String
+	country: Country
+	posts: [PublishedUpdatePostRelation]
+}
+input AuthorUpdateManyInput {
+	by: AuthorByInput!
+	input: AuthorUpdateInput!
+}
+type AuthorUpdateManyPayload {
+	authorCollection: [Author!]!
+}
+type AuthorUpdatePayload {
+	author: Author
+}
+type Blog {
+	posts(after: String, before: String, first: Int, last: Int, orderBy: BlogOrderByInput): PostConnection
+	owner: Author!
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input BlogByInput {
+	id: ID
+}
+input BlogCollectionFilterInput {
+	id: IDCollectionFilterInput
+}
+type BlogConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [BlogEdge]
+}
+"""
+Input to create a Blog
+"""
+input BlogCreateInput {
+	posts: [BlogToPostCreatePostRelation]
+	owner: AuthorToBlogCreateAuthorRelation!
+}
+input BlogCreateManyInput {
+	input: BlogCreateInput!
+}
+type BlogCreateManyPayload {
+	blogCollection: [Blog!]!
+}
+type BlogCreatePayload {
+	blog: Blog
+}
+input BlogDeleteManyInput {
+	by: BlogByInput!
+}
+type BlogDeleteManyPayload {
+	deletedIds: [ID!]!
+}
+type BlogDeletePayload {
+	deletedId: ID!
+}
+type BlogEdge {
+	node: Blog!
+	cursor: String!
+}
+input BlogOrderByInput {
+	createdAt: OrderByDirection
+}
+"""
+Input to create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostCreateBlog {
+	posts: [BlogToPostCreatePostRelation]
+	owner: AuthorToBlogCreateAuthorRelation!
+}
+"""
+Input to link to or create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostCreateBlogRelation {
+	create: BlogToPostCreateBlog
+	link: ID
+}
+"""
+Input to create a Post for the BlogToPost relation of Blog
+"""
+input BlogToPostCreatePost {
+	content: String!
+	authors: [PublishedCreateAuthorRelation]
+}
+"""
+Input to link to or create a Post for the BlogToPost relation of Blog
+"""
+input BlogToPostCreatePostRelation {
+	create: BlogToPostCreatePost
+	link: ID
+}
+"""
+Input to link/unlink to or create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostUpdateBlogRelation {
+	create: BlogToPostCreateBlog
+	link: ID
+	unlink: ID
+}
+"""
+Input to link/unlink to or create a Post for the BlogToPost relation of Blog
+"""
+input BlogToPostUpdatePostRelation {
+	create: BlogToPostCreatePost
+	link: ID
+	unlink: ID
+}
+"""
+Input to update a Blog
+"""
+input BlogUpdateInput {
+	posts: [BlogToPostUpdatePostRelation]
+	owner: AuthorToBlogUpdateAuthorRelation
+}
+input BlogUpdateManyInput {
+	by: BlogByInput!
+	input: BlogUpdateInput!
+}
+type BlogUpdateManyPayload {
+	blogCollection: [Blog!]!
+}
+type BlogUpdatePayload {
+	blog: Blog
+}
+enum Country {
+	FRANCE
+	NOT_FRANCE
+}
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
+profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
+
+# Input Coercion
+
+When expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.
+
+# Result Coercion
+
+Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.
+For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
+"""
+scalar DateTime
+input IDCollectionFilterInput {
+	in: [ID!]
+}
+type Mutation {
+	"""
+	Create a Blog
+	"""
+	blogCreate(input: BlogCreateInput!): BlogCreatePayload
+	"""
+	Create multiple Blog
+	"""
+	blogCreateMany(input: [BlogCreateManyInput!]!): BlogCreateManyPayload
+	"""
+	Update a Blog
+	"""
+	blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogUpdatePayload
+	"""
+	Update multiple Blog
+	"""
+	blogUpdateMany(input: [BlogUpdateManyInput!]!): BlogUpdateManyPayload
+	"""
+	Delete a Blog by ID or unique field
+	"""
+	blogDelete(by: BlogByInput!): BlogDeletePayload
+	"""
+	Delete multiple Blog
+	"""
+	blogDeleteMany(input: [BlogDeleteManyInput!]!): BlogDeleteManyPayload
+	"""
+	Create a Post
+	"""
+	postCreate(input: PostCreateInput!): PostCreatePayload
+	"""
+	Create multiple Post
+	"""
+	postCreateMany(input: [PostCreateManyInput!]!): PostCreateManyPayload
+	"""
+	Update a Post
+	"""
+	postUpdate(by: PostByInput!, input: PostUpdateInput!): PostUpdatePayload
+	"""
+	Update multiple Post
+	"""
+	postUpdateMany(input: [PostUpdateManyInput!]!): PostUpdateManyPayload
+	"""
+	Delete a Post by ID or unique field
+	"""
+	postDelete(by: PostByInput!): PostDeletePayload
+	"""
+	Delete multiple Post
+	"""
+	postDeleteMany(input: [PostDeleteManyInput!]!): PostDeleteManyPayload
+	"""
+	Create a Author
+	"""
+	authorCreate(input: AuthorCreateInput!): AuthorCreatePayload
+	"""
+	Create multiple Author
+	"""
+	authorCreateMany(input: [AuthorCreateManyInput!]!): AuthorCreateManyPayload
+	"""
+	Update a Author
+	"""
+	authorUpdate(by: AuthorByInput!, input: AuthorUpdateInput!): AuthorUpdatePayload
+	"""
+	Update multiple Author
+	"""
+	authorUpdateMany(input: [AuthorUpdateManyInput!]!): AuthorUpdateManyPayload
+	"""
+	Delete a Author by ID or unique field
+	"""
+	authorDelete(by: AuthorByInput!): AuthorDeletePayload
+	"""
+	Delete multiple Author
+	"""
+	authorDeleteMany(input: [AuthorDeleteManyInput!]!): AuthorDeleteManyPayload
+}
+enum OrderByDirection {
+	ASC
+	DESC
+}
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
+type Post {
+	blog: Blog
+	content: String!
+	authors(after: String, before: String, first: Int, last: Int, orderBy: PostOrderByInput): AuthorConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input PostByInput {
+	id: ID
+}
+input PostCollectionFilterInput {
+	id: IDCollectionFilterInput
+}
+type PostConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [PostEdge]
+}
+"""
+Input to create a Post
+"""
+input PostCreateInput {
+	blog: BlogToPostCreateBlogRelation
+	content: String!
+	authors: [PublishedCreateAuthorRelation]
+}
+input PostCreateManyInput {
+	input: PostCreateInput!
+}
+type PostCreateManyPayload {
+	postCollection: [Post!]!
+}
+type PostCreatePayload {
+	post: Post
+}
+input PostDeleteManyInput {
+	by: PostByInput!
+}
+type PostDeleteManyPayload {
+	deletedIds: [ID!]!
+}
+type PostDeletePayload {
+	deletedId: ID!
+}
+type PostEdge {
+	node: Post!
+	cursor: String!
+}
+input PostOrderByInput {
+	createdAt: OrderByDirection
+}
+"""
+Input to update a Post
+"""
+input PostUpdateInput {
+	blog: BlogToPostUpdateBlogRelation
+	content: String
+	authors: [PublishedUpdateAuthorRelation]
+}
+input PostUpdateManyInput {
+	by: PostByInput!
+	input: PostUpdateInput!
+}
+type PostUpdateManyPayload {
+	postCollection: [Post!]!
+}
+type PostUpdatePayload {
+	post: Post
+}
+"""
+Input to create a Author for the published relation of Post
+"""
+input PublishedCreateAuthor {
+	name: String!
+	lastname: String!
+	country: Country!
+	posts: [PublishedCreatePostRelation]
+}
+"""
+Input to link to or create a Author for the published relation of Post
+"""
+input PublishedCreateAuthorRelation {
+	create: PublishedCreateAuthor
+	link: ID
+}
+"""
+Input to create a Post for the published relation of Author
+"""
+input PublishedCreatePost {
+	blog: BlogToPostCreateBlogRelation
+	content: String!
+	authors: [PublishedCreateAuthorRelation]
+}
+"""
+Input to link to or create a Post for the published relation of Author
+"""
+input PublishedCreatePostRelation {
+	create: PublishedCreatePost
+	link: ID
+}
+"""
+Input to link/unlink to or create a Author for the published relation of Post
+"""
+input PublishedUpdateAuthorRelation {
+	create: PublishedCreateAuthor
+	link: ID
+	unlink: ID
+}
+"""
+Input to link/unlink to or create a Post for the published relation of Author
+"""
+input PublishedUpdatePostRelation {
+	create: PublishedCreatePost
+	link: ID
+	unlink: ID
+}
+type Query {
+	"""
+	Query a single Blog by an ID or a unique field
+	"""
+	blog(by: BlogByInput!): Blog
+	"""
+	Paginated query to fetch the whole list of `Blog`.
+	"""
+	blogCollection(after: String, before: String, first: Int, last: Int, orderBy: BlogOrderByInput, filter: BlogCollectionFilterInput): BlogConnection
+	"""
+	Query a single Post by an ID or a unique field
+	"""
+	post(by: PostByInput!): Post
+	"""
+	Paginated query to fetch the whole list of `Post`.
+	"""
+	postCollection(after: String, before: String, first: Int, last: Int, orderBy: PostOrderByInput, filter: PostCollectionFilterInput): PostConnection
+	"""
+	Query a single Author by an ID or a unique field
+	"""
+	author(by: AuthorByInput!): Author
+	"""
+	Paginated query to fetch the whole list of `Author`.
+	"""
+	authorCollection(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput, filter: AuthorCollectionFilterInput): AuthorConnection
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

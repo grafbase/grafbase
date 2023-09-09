@@ -1,0 +1,30 @@
+[package]
+name = "gateway-local"
+authors = ["Grafbase"]
+description = "The local interface for Grafbase's Gateway product."
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["grafbase"]
+
+[dependencies]
+dynamodb = { path = "../dynamodb", features = ["tracing"] }
+grafbase-engine = { path = "../grafbase-engine", features = ["tracing_worker"], default-features = false }
+grafbase-local = { path = "../grafbase-runtime/local" }
+grafbase-runtime = { path = "../grafbase-runtime" }
+
+# TODO: these are private dependencies, that must be removed.
+worker-env = { path = "../worker-env" }
+gateway-protocol = { path = "../gateway-protocol" }
+
+async-trait = "0.1"
+worker = "0.0.18"
+cfg-if = "1"
+ulid = "1"
+graphql-extensions = { path = "../graphql-extensions" }
+serde_json = "1"
+
+[features]
+sqlite = ["dynamodb/sqlite"]

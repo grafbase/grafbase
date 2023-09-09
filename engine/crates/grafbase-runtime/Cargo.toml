@@ -1,0 +1,19 @@
+[package]
+name = "grafbase-runtime"
+authors = ["Grafbase"]
+description = "An abstraction over the various Grafbase runtime environments"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["runtime", "environment", "grafbase"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+search-protocol = { path = "../search-protocol" }
+grafbase-types = { workspace = true }
