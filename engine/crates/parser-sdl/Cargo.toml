@@ -1,5 +1,5 @@
 [package]
-name = "sdl-parser"
+name = "parser-sdl"
 authors = ["Grafbase"]
 description = "A parser that transforms GraphQL SDL into the Grafbase registry format"
 version = "0.1.0"

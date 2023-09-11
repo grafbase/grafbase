@@ -70,7 +70,7 @@ impl OpenApiGraph {
     #[cfg(test)]
     pub fn from_petgraph(graph: Graph<Node, Edge>) -> Self {
         use grafbase_engine::registry::ConnectorHeaders;
-        use sdl_parser::OpenApiQueryNamingStrategy;
+        use parser_sdl::OpenApiQueryNamingStrategy;
 
         OpenApiGraph {
             graph,

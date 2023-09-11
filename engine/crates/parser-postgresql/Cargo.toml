@@ -10,7 +10,7 @@ repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "parser", "postgresql", "grafbase"]
 
 [dependencies]
-sdl-parser = { path = "../sdl-parser" }
+parser-sdl = { path = "../parser-sdl" }
 postgresql-types = { path = "../postgresql-types" }
 serde_json.workspace = true
 serde.workspace = true

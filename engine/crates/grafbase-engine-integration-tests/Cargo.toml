@@ -29,8 +29,8 @@ path = "../grafbase-engine"
 default-features = false
 features = ["tracing_worker", "defer"]
 
-[dependencies.sdl-parser]
-path = "../sdl-parser"
+[dependencies.parser-sdl]
+path = "../parser-sdl"
 
 [dependencies.parser-postgresql]
 path = "../parser-postgresql"

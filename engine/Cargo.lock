@@ -1424,9 +1424,9 @@ dependencies = [
  "names",
  "parser-openapi",
  "parser-postgresql",
+ "parser-sdl",
  "postgresql-types",
  "reqwest",
- "sdl-parser",
  "serde",
  "serde_json",
  "tokio",
@@ -2335,10 +2335,10 @@ dependencies = [
  "once_cell",
  "openapi",
  "openapiv3",
+ "parser-sdl",
  "petgraph",
  "regex",
  "rstest",
- "sdl-parser",
  "serde",
  "serde_json",
  "serde_yaml 0.9.25",
@@ -2353,10 +2353,44 @@ dependencies = [
 name = "parser-postgresql"
 version = "0.1.0"
 dependencies = [
+ "parser-sdl",
  "postgresql-types",
- "sdl-parser",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "parser-sdl"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "assert_matches",
+ "async-trait",
+ "case",
+ "dynamodb",
+ "function_name",
+ "futures",
+ "grafbase-engine",
+ "grafbase-engine-parser",
+ "grafbase-engine-value",
+ "grafbase-runtime",
+ "grafbase-types",
+ "if_chain",
+ "insta",
+ "itertools",
+ "lazy_static",
+ "maplit",
+ "nom",
+ "pretty_assertions",
+ "regex",
+ "rstest",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror",
+ "tuple",
+ "url",
 ]
 
 [[package]]
@@ -3177,40 +3211,6 @@ checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
 dependencies = [
  "ring",
  "untrusted",
-]
-
-[[package]]
-name = "sdl-parser"
-version = "0.1.0"
-dependencies = [
- "Inflector",
- "assert_matches",
- "async-trait",
- "case",
- "dynamodb",
- "function_name",
- "futures",
- "grafbase-engine",
- "grafbase-engine-parser",
- "grafbase-engine-value",
- "grafbase-runtime",
- "grafbase-types",
- "if_chain",
- "insta",
- "itertools",
- "lazy_static",
- "maplit",
- "nom",
- "pretty_assertions",
- "regex",
- "rstest",
- "secrecy",
- "serde",
- "serde_json",
- "serde_with",
- "thiserror",
- "tuple",
- "url",
 ]
 
 [[package]]

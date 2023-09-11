@@ -35,7 +35,7 @@ openapiv3 = { git = "https://github.com/grafbase/openapiv3.git", branch = "opena
 
 grafbase-engine = { path = "../grafbase-engine", features = ["tracing_worker"] }
 grafbase-engine-value = { workspace = true }
-sdl-parser = { path = "../sdl-parser" }
+parser-sdl = { path = "../parser-sdl" }
 
 [dev-dependencies]
 assert_matches = "1.5"
