@@ -5,7 +5,7 @@ use engine::{registry::Registry, Schema};
 use common_types::UdfKind;
 use serde_json as _;
 
-use crate::{parse_used_directives, rules::visitor::RuleError};
+use crate::rules::visitor::RuleError;
 
 macro_rules! assert_validation_error {
     ($schema:literal, $expected_message:literal) => {

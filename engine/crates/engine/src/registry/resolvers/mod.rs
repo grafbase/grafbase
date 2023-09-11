@@ -14,7 +14,7 @@ use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use engine_parser::types::SelectionSet;
 use engine_value::{ConstValue, Name};
-use runtime::search::GraphqlCursor
+use runtime::search::GraphqlCursor;
 use graph_entities::ConstraintID;
 use query::QueryResolver;
 use ulid::Ulid;

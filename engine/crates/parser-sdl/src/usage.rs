@@ -132,7 +132,7 @@ mod tests {
     fn test_parsed_used_directives(#[case] schema: &'static str, #[case] expected: &'static [&'static str]) {
         assert_eq!(
             parse_used_directives(schema).unwrap().all(),
-            expected.iter().map(|s| s.to_string()).collect::<HashSet<_>>()
+            expected.iter().map(|s| (*s).to_string()).collect::<HashSet<_>>()
         );
     }
 }
