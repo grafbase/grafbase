@@ -20,7 +20,7 @@ async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
-grafbase-types = { path = "../grafbase-types" }
+common-types = { path = "../common-types" }
 postgresql-types = { path = "../postgresql-types" }
 bytes = { version = "1", features = ["serde"] }
 case = "1"

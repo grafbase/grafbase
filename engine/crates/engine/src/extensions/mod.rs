@@ -8,7 +8,7 @@ use std::{
 
 use engine_parser::{types::OperationDefinition, Positioned};
 use engine_value::Name;
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 use graph_entities::ResponseNodeId;
 
 use crate::{

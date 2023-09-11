@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 
