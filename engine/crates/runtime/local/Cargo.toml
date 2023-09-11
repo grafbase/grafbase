@@ -19,7 +19,7 @@ worker = { workspace = true }
 
 runtime = { workspace = true }
 graph-entities = { path = "../../graph-entities" }
-gateway-protocol = { workspace = true }
+runtime-protocol = { workspace = true }
 log = { path = "../../log", features = ["with-worker"] }
 registry-provider = { workspace = true }
 search-protocol = { path = "../../search-protocol" }
