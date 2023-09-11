@@ -40,7 +40,7 @@ fn test_serde_roundtrip() {
 fn serialize_customer_deployment_config() {
     use std::collections::HashMap;
 
-    use grafbase_types::UdfKind;
+    use common_types::UdfKind;
     let customer_gateway_config: CustomerDeploymentConfig<crate::LocalSpecificConfig> = CustomerDeploymentConfig {
         common: CommonCustomerDeploymentConfig {
             udf_bindings: HashMap::from([((UdfKind::Authorizer, "name".to_string()), "value".to_string())]),

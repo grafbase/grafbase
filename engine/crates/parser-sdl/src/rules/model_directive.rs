@@ -34,7 +34,7 @@ use grafbase_engine::{
     AuthConfig, Positioned,
 };
 use grafbase_engine_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 use if_chain::if_chain;
 
 use super::{
@@ -482,7 +482,7 @@ mod tests {
 
     use grafbase_engine::AuthConfig;
     use grafbase_engine_parser::parse_schema;
-    use grafbase_types::auth::Operations;
+    use common_types::auth::Operations;
     use pretty_assertions::assert_eq;
     use serde_json as _;
 

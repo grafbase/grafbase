@@ -14,7 +14,7 @@ grafbase-engine-parser = { path = "../grafbase-engine/parser" }
 grafbase-engine-value = { workspace = true }
 grafbase-engine = { path = "../grafbase-engine", features = ["tracing_worker"] }
 dynamodb = { workspace = true }
-grafbase-types = { workspace = true }
+common-types = { workspace = true }
 runtime = { workspace = true }
 case = "1"
 if_chain = "1"

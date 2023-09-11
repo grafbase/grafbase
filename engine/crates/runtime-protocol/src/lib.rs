@@ -8,7 +8,7 @@ pub use self::{
 };
 
 use grafbase_engine::{registry::CacheControlError, CacheControl};
-use grafbase_types::{auth::ExecutionAuth, UdfKind};
+use common_types::{auth::ExecutionAuth, UdfKind};
 use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 
 pub use grafbase_engine::registry::VersionedRegistry;

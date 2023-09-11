@@ -10,7 +10,7 @@ use grafbase_engine::{
     AuthConfig,
 };
 use grafbase_engine_parser::types::{BaseType, ObjectType, Type, TypeDefinition, TypeKind};
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use super::names::{INPUT_FIELD_NUM_OP_DECREMENT, INPUT_FIELD_NUM_OP_INCREMENT, INPUT_FIELD_NUM_OP_SET};
 use crate::{

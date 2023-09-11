@@ -11,7 +11,7 @@ use grafbase_engine::{
     AuthConfig, ServerError, ServerResult,
 };
 use grafbase_engine_value::{indexmap::IndexMap, ConstValue};
-use grafbase_types::auth::{ExecutionAuth, Operations};
+use common_types::auth::{ExecutionAuth, Operations};
 use log::{trace, warn};
 
 const INPUT_ARG: &str = "input";
@@ -73,7 +73,7 @@ impl Extension for AuthExtension {
             .expect("auth must be injected into the context");
         let auth_fn = |auth: Option<&AuthConfig>, default_ops: Operations| {
             auth.map(|auth| match execution_auth {
-                ExecutionAuth::ApiKey => grafbase_types::auth::API_KEY_OPS,
+                ExecutionAuth::ApiKey => common_types::auth::API_KEY_OPS,
                 ExecutionAuth::Token(token) => auth.private_public_and_group_based_ops(token.groups_from_token()),
                 ExecutionAuth::Public { .. } => auth.allowed_public_ops,
             })

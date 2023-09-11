@@ -562,6 +562,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "common-types"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.4.0",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -896,13 +907,13 @@ dependencies = [
  "async-trait",
  "cfg-if",
  "chrono",
+ "common-types",
  "dataloader",
  "derivative",
  "dynamodb-utils",
  "dynomite",
  "futures",
  "futures-util",
- "grafbase-types",
  "graph-entities",
  "indexmap 2.0.0-pre",
  "indoc",
@@ -1342,6 +1353,7 @@ dependencies = [
  "bytes",
  "case",
  "chrono",
+ "common-types",
  "cynic-introspection",
  "dataloader",
  "derivative",
@@ -1356,7 +1368,6 @@ dependencies = [
  "grafbase-engine-parser",
  "grafbase-engine-value",
  "grafbase-runtime",
- "grafbase-types",
  "graph-entities",
  "http",
  "im",
@@ -1477,22 +1488,11 @@ name = "grafbase-runtime"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "grafbase-types",
+ "common-types",
  "search-protocol",
  "serde",
  "serde_json",
  "thiserror",
-]
-
-[[package]]
-name = "grafbase-types"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.4.0",
- "serde",
- "serde_json",
- "serde_with",
- "strum",
 ]
 
 [[package]]
@@ -1516,10 +1516,10 @@ name = "graphql-extensions"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "common-types",
  "grafbase-engine",
  "grafbase-engine-value",
  "grafbase-runtime",
- "grafbase-types",
  "lazy_static",
  "log 0.1.0",
  "web-time",

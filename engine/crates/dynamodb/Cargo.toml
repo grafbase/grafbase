@@ -35,7 +35,7 @@ thiserror = { workspace = true }
 web-time = { workspace = true }
 
 dynamodb-utils = { path = "../dynamodb-utils" }
-grafbase-types = { path = "../grafbase-types" }
+common-types = { path = "../common-types" }
 dataloader = { workspace = true }
 async-runtime = { workspace = true }
 graph-entities = { workspace = true }

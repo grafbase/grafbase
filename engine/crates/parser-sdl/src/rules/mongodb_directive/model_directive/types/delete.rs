@@ -2,7 +2,7 @@ use grafbase_engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     MetaField, ObjectType,
 };
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use crate::{
     registry::names::MetaNames,

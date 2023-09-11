@@ -6,7 +6,7 @@ use grafbase_engine::{
         InputObjectType, MetaField, MetaInputValue, ObjectType,
     },
 };
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use crate::{
     registry::{get_length_validator, names::MetaNames},

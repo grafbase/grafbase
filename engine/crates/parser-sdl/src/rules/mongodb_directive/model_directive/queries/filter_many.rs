@@ -12,7 +12,7 @@ use grafbase_engine::{
     AuthConfig,
 };
 use grafbase_engine_parser::types::TypeDefinition;
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use crate::{
     registry::{

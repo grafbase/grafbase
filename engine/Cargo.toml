@@ -64,7 +64,7 @@ tracing-futures = "0.2"
 
 dynamodb = { path = "crates/dynamodb" }
 grafbase-engine = { path = "crates/grafbase-engine" }
-grafbase-types = { path = "crates/grafbase-types" }
+common-types = { path = "crates/common-types" }
 grafbase-engine-value = { path = "crates/grafbase-engine/value" }
 runtime-protocol = { path = "crates/runtime-protocol" }
 runtime-protocol-platform = { path = "crates/runtime-protocol-platform" }

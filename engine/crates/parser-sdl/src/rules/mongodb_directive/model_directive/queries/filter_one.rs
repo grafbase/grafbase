@@ -8,7 +8,7 @@ use grafbase_engine::{
         Deprecation, MetaField, MetaInputValue,
     },
 };
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use crate::{
     registry::names::INPUT_ARG_BY,

@@ -5,7 +5,7 @@ use grafbase_engine::registry::{
     },
     MetaField, MetaInputValue,
 };
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 
 use crate::{
     registry::names::{MetaNames, INPUT_ARG_FILTER, INPUT_ARG_INPUT},

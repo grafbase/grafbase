@@ -16,7 +16,7 @@ use grafbase_engine::{
 };
 use grafbase_engine_parser::types::{FieldDefinition, TypeDefinition};
 use runtime::search;
-use grafbase_types::auth::Operations;
+use common_types::auth::Operations;
 use itertools::Itertools;
 
 use crate::{
