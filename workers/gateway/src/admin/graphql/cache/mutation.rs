@@ -1,5 +1,5 @@
 use async_graphql::Context;
-use grafbase_engine::registry::CacheTag;
+use engine::registry::CacheTag;
 use send_wrapper::SendWrapper;
 
 #[cfg(all(not(feature = "local"), not(feature = "sqlite")))]

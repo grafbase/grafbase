@@ -1,11 +1,10 @@
+use common_types::auth::ExecutionAuth;
+use engine_value::ConstValue;
 use std::{
     collections::BTreeSet,
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
-
-use grafbase_engine_value::ConstValue;
-use grafbase_types::auth::ExecutionAuth;
 
 #[derive(Debug, Hash)]
 pub enum CacheAccess<'a> {
@@ -16,13 +15,13 @@ pub enum CacheAccess<'a> {
 #[derive(Debug)]
 pub struct CacheKey<'a, H: Hasher + Default> {
     access: CacheAccess<'a>,
-    gql_request: &'a grafbase_engine::Request,
+    gql_request: &'a engine::Request,
     subdomain: &'a str,
     _hasher_builder: PhantomData<H>,
 }
 
 impl<'a, H: Hasher + Default> CacheKey<'a, H> {
-    pub fn new(access: CacheAccess<'a>, gql_request: &'a grafbase_engine::Request, subdomain: &'a str) -> Self {
+    pub fn new(access: CacheAccess<'a>, gql_request: &'a engine::Request, subdomain: &'a str) -> Self {
         CacheKey {
             access,
             gql_request,
@@ -100,9 +99,9 @@ impl<HB: Hasher + Default> Hash for CacheKey<'_, HB> {
 mod tests {
     use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 
-    use grafbase_engine::indexmap::IndexMap;
-    use grafbase_engine_value::{ConstValue, Name, Variables};
-    use grafbase_types::auth::{ExecutionAuth, Operations};
+    use common_types::auth::{ExecutionAuth, Operations};
+    use engine::indexmap::IndexMap;
+    use engine_value::{ConstValue, Name, Variables};
 
     use crate::cache::{key::CacheKey, CacheAccess};
 
@@ -122,11 +121,13 @@ mod tests {
         ]);
         let variable_2 = ConstValue::String("hello".to_string());
 
-        let gql_request = grafbase_engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
-            ConstValue::List(vec![variable_1.clone(), variable_2.clone()]),
-        ));
+        let gql_request =
+            engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(ConstValue::List(vec![
+                variable_1.clone(),
+                variable_2.clone(),
+            ])));
 
-        let gql_request_2 = grafbase_engine::Request::new("{ query { test { id } } }")
+        let gql_request_2 = engine::Request::new("{ query { test { id } } }")
             .variables(Variables::from_value(ConstValue::List(vec![variable_2, variable_1])));
 
         let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
@@ -151,13 +152,13 @@ mod tests {
             ConstValue::Enum(Name::new("hello")),
         ]);
 
-        let gql_request = grafbase_engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
+        let gql_request = engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
             ConstValue::Object(IndexMap::from([(Name::new("test"), variable_list.clone())])),
         ));
 
-        let gql_request_2 = grafbase_engine::Request::new("{ query { test { id } } }").variables(
-            Variables::from_value(ConstValue::Object(IndexMap::from([(Name::new("test"), variable_list)]))),
-        );
+        let gql_request_2 = engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
+            ConstValue::Object(IndexMap::from([(Name::new("test"), variable_list)])),
+        ));
 
         let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
         let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
@@ -176,7 +177,7 @@ mod tests {
         );
         let test_subdomain = "test-subdomain".to_string();
 
-        let gql_request = grafbase_engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
+        let gql_request = engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
             ConstValue::Object(IndexMap::from([(
                 Name::new("test"),
                 ConstValue::List(vec![
@@ -187,16 +188,16 @@ mod tests {
             )])),
         ));
 
-        let gql_request_2 = grafbase_engine::Request::new("{ query { test { id } } }").variables(
-            Variables::from_value(ConstValue::Object(IndexMap::from([(
+        let gql_request_2 = engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
+            ConstValue::Object(IndexMap::from([(
                 Name::new("test"),
                 ConstValue::List(vec![
                     ConstValue::Object(IndexMap::from([(Name::new("hash_fun"), ConstValue::Null)])),
                     ConstValue::Boolean(true),
                     ConstValue::Enum(Name::new("hello")),
                 ]),
-            )]))),
-        );
+            )])),
+        ));
 
         let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
         let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
@@ -214,7 +215,7 @@ mod tests {
         );
         let test_subdomain = "test-subdomain".to_string();
 
-        let gql_request = grafbase_engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
+        let gql_request = engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
             ConstValue::Object(IndexMap::from([
                 (
                     Name::new("test"),
@@ -227,8 +228,8 @@ mod tests {
             ])),
         ));
 
-        let gql_request_2 = grafbase_engine::Request::new("{ query { test { id } } }").variables(
-            Variables::from_value(ConstValue::Object(IndexMap::from([
+        let gql_request_2 = engine::Request::new("{ query { test { id } } }").variables(Variables::from_value(
+            ConstValue::Object(IndexMap::from([
                 (
                     Name::new("test_2"),
                     ConstValue::List(vec![ConstValue::Enum(Name::new("hello"))]),
@@ -237,8 +238,8 @@ mod tests {
                     Name::new("test"),
                     ConstValue::List(vec![ConstValue::Enum(Name::new("hello"))]),
                 ),
-            ]))),
-        );
+            ])),
+        ));
 
         let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
         let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
@@ -261,10 +262,9 @@ mod tests {
             ConstValue::Null,
         )])));
 
-        let gql_request =
-            grafbase_engine::Request::new("{ query { test { id, id2 } } }").variables(gql_variables.clone());
+        let gql_request = engine::Request::new("{ query { test { id, id2 } } }").variables(gql_variables.clone());
 
-        let gql_request_2 = grafbase_engine::Request::new("{ query { test { id, name } } }").variables(gql_variables);
+        let gql_request_2 = engine::Request::new("{ query { test { id, name } } }").variables(gql_variables);
 
         let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
         let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);
@@ -288,7 +288,7 @@ mod tests {
         );
         let test_subdomain = "test-subdomain".to_string();
 
-        let gql_request = grafbase_engine::Request::new("{ query { test { id } } }")
+        let gql_request = engine::Request::new("{ query { test { id } } }")
             .variables(Variables::from_value(ConstValue::Enum(Name::new("hello"))));
 
         let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
@@ -312,10 +312,9 @@ mod tests {
             ConstValue::Null,
         )])));
 
-        let gql_request =
-            grafbase_engine::Request::new("{ query { test { id, id2 } } }").variables(gql_variables.clone());
+        let gql_request = engine::Request::new("{ query { test { id, id2 } } }").variables(gql_variables.clone());
 
-        let gql_request_2 = grafbase_engine::Request::new("{ query { test { id, name } } }").variables(gql_variables);
+        let gql_request_2 = engine::Request::new("{ query { test { id, name } } }").variables(gql_variables);
 
         let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain_1);
         let cache_key_2 =
@@ -342,11 +341,11 @@ mod tests {
 
         let gql_variables_2 = Variables::from_value(ConstValue::Object(IndexMap::from([(
             Name::new("test"),
-            ConstValue::Number(grafbase_engine::Number::from(0)),
+            ConstValue::Number(engine::Number::from(0)),
         )])));
 
-        let gql_request = grafbase_engine::Request::new(gql_query.to_string()).variables(gql_variables);
-        let gql_request_2 = grafbase_engine::Request::new(gql_query.to_string()).variables(gql_variables_2);
+        let gql_request = engine::Request::new(gql_query.to_string()).variables(gql_variables);
+        let gql_request_2 = engine::Request::new(gql_query.to_string()).variables(gql_variables_2);
 
         let cache_key = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request, &test_subdomain);
         let cache_key_2 = CacheKey::<DefaultHasher>::new(CacheAccess::Default(&auth), &gql_request_2, &test_subdomain);

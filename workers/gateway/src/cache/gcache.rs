@@ -292,9 +292,9 @@ mod tests {
         },
     };
 
+    use engine::parser::types::OperationType;
     use futures_util::future::BoxFuture;
-    use gateway_protocol::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};
-    use grafbase_engine::parser::types::OperationType;
+    use runtime_protocol::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};
     use worker_utils::CloudflareRequestContext;
 
     use crate::{

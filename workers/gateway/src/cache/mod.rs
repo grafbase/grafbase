@@ -8,13 +8,13 @@ use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 pub use edge::EdgeCache;
+use engine::parser::types::OperationType;
 pub use error::CacheError;
 pub use gcache::{Cache, CacheResponse};
 #[cfg(any(feature = "local", feature = "sqlite", test))]
 pub use global::noop::NoopGlobalCache;
 #[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
 pub use global::remote::CloudflareGlobal;
-use grafbase_engine::parser::types::OperationType;
 pub use key::{CacheAccess, CacheKey};
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -97,7 +97,7 @@ pub trait Cacheable: DeserializeOwned + Serialize {
     fn should_cache(&self) -> bool;
 }
 
-impl Cacheable for grafbase_engine::Response {
+impl Cacheable for engine::Response {
     fn max_age_seconds(&self) -> usize {
         self.cache_control.max_age
     }
