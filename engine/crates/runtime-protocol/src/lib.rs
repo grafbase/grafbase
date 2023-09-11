@@ -21,7 +21,7 @@ mod tests;
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct GatewayRequest<C> {
     pub body: Option<Vec<u8>>,
-    pub customer_config: CustomerDeploymentConfig<C>,
+    pub customer_config: C,
     pub headers: HashMap<String, String>,
     pub method: String,
     pub url: String,
