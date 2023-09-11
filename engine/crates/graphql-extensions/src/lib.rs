@@ -1,10 +1,10 @@
-use grafbase_engine::parser::types::{OperationDefinition, OperationType};
+use engine::parser::types::{OperationDefinition, OperationType};
 
 pub mod authorization;
 pub mod runtime_log;
 
 fn is_operation_introspection(operation: &OperationDefinition) -> bool {
-    use grafbase_engine::parser::types::Selection;
+    use engine::parser::types::Selection;
     operation.ty == OperationType::Query
         && operation
             .selection_set

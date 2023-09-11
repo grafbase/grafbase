@@ -1,4 +1,4 @@
-use grafbase_engine::{
+use engine::{
     indexmap::IndexMap,
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_EDGE_CURSOR, OUTPUT_FIELD_ID},
     registry::{
@@ -11,7 +11,7 @@ use grafbase_engine::{
     },
     AuthConfig,
 };
-use grafbase_engine_parser::types::TypeDefinition;
+use engine_parser::types::TypeDefinition;
 use common_types::auth::Operations;
 
 use crate::{

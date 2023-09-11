@@ -1,8 +1,8 @@
-use grafbase_engine::{
+use engine::{
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::{EnumType, InputObjectType, MetaEnumValue, MetaInputValue},
 };
-use grafbase_engine_parser::types::{BaseType, ObjectType, Type};
+use engine_parser::types::{BaseType, ObjectType, Type};
 
 use super::generic;
 use crate::{

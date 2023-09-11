@@ -1,10 +1,10 @@
 use case::CaseExt;
-use grafbase_engine::{
+use engine::{
     registry::{Constraint, InputObjectType, MetaInputValue, Registry},
     Pos, Positioned,
 };
-use grafbase_engine_parser::types::{BaseType, FieldDefinition, ObjectType};
-use grafbase_engine_value::ConstValue;
+use engine_parser::types::{BaseType, FieldDefinition, ObjectType};
+use engine_value::ConstValue;
 
 use super::{directive::Directive, relations::RelationEngine, visitor::VisitorContext};
 use crate::registry::names::MetaNames;
@@ -170,7 +170,7 @@ impl UniqueDirectiveField {
             );
         }
 
-        if let grafbase_engine_parser::types::BaseType::List(_) = field.ty.node.base {
+        if let engine_parser::types::BaseType::List(_) = field.ty.node.base {
             ctx.report_error(
                 vec![pos],
                 format!(
@@ -210,7 +210,7 @@ impl UniqueDirectiveField {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use grafbase_engine::Schema;
+    use engine::Schema;
     use pretty_assertions::assert_eq;
 
     use crate::rules::visitor::RuleError;

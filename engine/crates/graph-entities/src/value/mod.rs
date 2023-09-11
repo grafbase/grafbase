@@ -1,4 +1,4 @@
-use grafbase_engine_value::{ConstValue, Name, Number};
+use engine_value::{ConstValue, Name, Number};
 use internment::ArcIntern;
 
 mod value_serde;
@@ -87,7 +87,7 @@ impl From<CompactValue> for ConstValue {
 
 #[cfg(test)]
 mod test {
-    use grafbase_engine_value::ConstValue;
+    use engine_value::ConstValue;
 
     use super::*;
 

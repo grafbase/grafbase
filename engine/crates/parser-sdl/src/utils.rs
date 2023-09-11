@@ -1,8 +1,8 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use case::CaseExt;
-use grafbase_engine::{Name, Positioned};
-use grafbase_engine_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, TypeKind};
+use engine::{Name, Positioned};
+use engine_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, TypeKind};
 
 // TODO: maybe get rid of this
 fn is_str_type_primitive(name: &str) -> bool {

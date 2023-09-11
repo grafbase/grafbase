@@ -10,9 +10,9 @@ keywords = ["parser", "sdl", "grafbase"]
 
 [dependencies]
 async-trait = "0.1"
-grafbase-engine-parser = { path = "../grafbase-engine/parser" }
-grafbase-engine-value = { workspace = true }
-grafbase-engine = { path = "../grafbase-engine", features = ["tracing_worker"] }
+engine-parser = { path = "../engine/parser" }
+engine-value = { workspace = true }
+engine = { path = "../engine", features = ["tracing_worker"] }
 dynamodb = { workspace = true }
 common-types = { workspace = true }
 runtime = { workspace = true }

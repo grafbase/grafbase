@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use grafbase_engine::{
+use engine::{
     indexmap::IndexMap,
     registry::{MetaField, MetaType, Registry},
 };

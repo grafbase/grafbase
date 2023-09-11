@@ -1,5 +1,5 @@
 use case::CaseExt;
-use grafbase_engine::{
+use engine::{
     registry::{
         self,
         relations::MetaRelationKind,
@@ -9,7 +9,7 @@ use grafbase_engine::{
     },
     AuthConfig,
 };
-use grafbase_engine_parser::types::{BaseType, ObjectType, Type, TypeDefinition, TypeKind};
+use engine_parser::types::{BaseType, ObjectType, Type, TypeDefinition, TypeKind};
 use common_types::auth::Operations;
 
 use super::names::{INPUT_FIELD_NUM_OP_DECREMENT, INPUT_FIELD_NUM_OP_INCREMENT, INPUT_FIELD_NUM_OP_SET};

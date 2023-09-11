@@ -6,10 +6,10 @@
 //!
 //! Unknown directives are ignored. The user should know they have no effect.
 
-// Based on grafbase_engine's visitor.
+// Based on engine's visitor.
 
-use grafbase_engine::Positioned;
-use grafbase_engine_parser::types::{ConstDirective, DirectiveLocation, TypeDefinition};
+use engine::Positioned;
+use engine_parser::types::{ConstDirective, DirectiveLocation, TypeDefinition};
 
 use super::visitor::VisitorContext;
 
@@ -78,8 +78,8 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
     fn enter_field(
         &mut self,
         _ctx: &mut super::visitor::VisitorContext<'a>,
-        _field: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::FieldDefinition>,
-        _parent_type: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        _field: &'a engine::Positioned<engine_parser::types::FieldDefinition>,
+        _parent_type: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         self.location_stack.push(DirectiveLocation::FieldDefinition);
     }
@@ -87,8 +87,8 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
     fn exit_field(
         &mut self,
         _ctx: &mut super::visitor::VisitorContext<'a>,
-        _field: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::FieldDefinition>,
-        _parent_type: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        _field: &'a engine::Positioned<engine_parser::types::FieldDefinition>,
+        _parent_type: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         self.location_stack.pop();
     }
@@ -96,7 +96,7 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
     fn enter_schema(
         &mut self,
         _ctx: &mut VisitorContext<'a>,
-        _doc: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::SchemaDefinition>,
+        _doc: &'a engine::Positioned<engine_parser::types::SchemaDefinition>,
     ) {
         self.location_stack.push(DirectiveLocation::Schema);
     }
@@ -104,7 +104,7 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
     fn exit_schema(
         &mut self,
         _ctx: &mut VisitorContext<'a>,
-        _doc: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::SchemaDefinition>,
+        _doc: &'a engine::Positioned<engine_parser::types::SchemaDefinition>,
     ) {
         self.location_stack.pop();
     }
@@ -112,7 +112,7 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
     fn enter_type_definition(
         &mut self,
         _ctx: &mut VisitorContext<'a>,
-        _type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        _type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         self.location_stack.push(DirectiveLocation::Object);
     }
@@ -120,7 +120,7 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
     fn exit_type_definition(
         &mut self,
         _ctx: &mut VisitorContext<'a>,
-        _type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        _type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         self.location_stack.pop();
     }
@@ -128,7 +128,7 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine_parser::parse_schema;
+    use engine_parser::parse_schema;
     use serde_json as _;
 
     use super::CheckAllDirectivesAreKnown;

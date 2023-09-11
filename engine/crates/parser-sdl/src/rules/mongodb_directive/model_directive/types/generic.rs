@@ -1,4 +1,4 @@
-use grafbase_engine::registry::{EnumType, InputObjectType, MetaEnumValue, MetaInputValue};
+use engine::registry::{EnumType, InputObjectType, MetaEnumValue, MetaInputValue};
 
 use crate::rules::{
     mongodb_directive::{DATE_TIME_SCALARS, MONGODB_SCALARS, NUMERIC_SCALARS},

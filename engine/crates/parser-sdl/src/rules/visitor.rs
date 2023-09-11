@@ -6,7 +6,7 @@ use std::{
     sync::RwLock,
 };
 
-use grafbase_engine::{
+use engine::{
     indexmap::IndexMap,
     model::{__Schema, __Type},
     registry::{
@@ -14,11 +14,11 @@ use grafbase_engine::{
     },
     AuthorizerProvider, LegacyOutputType, Name, Pos, Positioned, Schema,
 };
-use grafbase_engine_parser::types::{
+use engine_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
-use grafbase_engine_value::ConstValue;
+use engine_value::ConstValue;
 use common_types::UdfKind;
 
 use super::{graphql_directive::GraphqlDirective, neon_directive::NeonDirective, openapi_directive::OpenApiDirective};
@@ -195,7 +195,7 @@ impl<'a> VisitorContext<'a> {
                 });
                 fields.extend(self.queries);
 
-                grafbase_engine::registry::ObjectType::new(QUERY_TYPE.to_owned(), fields)
+                engine::registry::ObjectType::new(QUERY_TYPE.to_owned(), fields)
                     .with_cache_control(
                         self.global_cache_rules
                             .get(&GlobalCacheTarget::Type(Cow::Borrowed(QUERY_TYPE)))
@@ -210,7 +210,7 @@ impl<'a> VisitorContext<'a> {
 
         if !self.mutations.is_empty() {
             registry.create_type(
-                |_| grafbase_engine::registry::ObjectType::new(MUTATION_TYPE.to_owned(), self.mutations).into(),
+                |_| engine::registry::ObjectType::new(MUTATION_TYPE.to_owned(), self.mutations).into(),
                 MUTATION_TYPE,
                 MUTATION_TYPE,
             );
@@ -223,7 +223,7 @@ impl<'a> VisitorContext<'a> {
             .into_iter()
             .map(|udf_name| (UdfKind::Resolver, udf_name))
             .collect::<HashSet<_>>();
-        if let Some(grafbase_engine::AuthProvider::Authorizer(AuthorizerProvider { ref name })) = registry.auth.provider
+        if let Some(engine::AuthProvider::Authorizer(AuthorizerProvider { ref name })) = registry.auth.provider
         {
             required_udfs.insert((UdfKind::Authorizer, name.clone()));
         }

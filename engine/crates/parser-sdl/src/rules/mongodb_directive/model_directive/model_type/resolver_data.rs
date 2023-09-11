@@ -1,4 +1,4 @@
-use grafbase_engine::{
+use engine::{
     indexmap::IndexMap,
     registry::{
         resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
@@ -6,7 +6,7 @@ use grafbase_engine::{
     },
     CacheControl,
 };
-use grafbase_engine_parser::types::FieldDefinition;
+use engine_parser::types::FieldDefinition;
 
 use crate::rules::cache_directive::CacheDirective;
 

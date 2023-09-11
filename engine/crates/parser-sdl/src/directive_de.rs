@@ -1,8 +1,8 @@
 use std::{collections::HashMap, fmt::Display};
 
-use grafbase_engine::{Name, Pos};
-use grafbase_engine_parser::types::ConstDirective;
-use grafbase_engine_value::ConstValue;
+use engine::{Name, Pos};
+use engine_parser::types::ConstDirective;
+use engine_value::ConstValue;
 use serde::de::{Error as _, IntoDeserializer};
 
 use crate::{dynamic_string::DynamicString, rules::visitor::RuleError};
@@ -237,7 +237,7 @@ impl<'de> serde::de::SeqAccess<'de> for Sequence<'de> {
 }
 
 struct Object<'de> {
-    iter: grafbase_engine::indexmap::map::Iter<'de, Name, ConstValue>,
+    iter: engine::indexmap::map::Iter<'de, Name, ConstValue>,
     next_value: Option<&'de ConstValue>,
     environment_variables: &'de HashMap<String, String>,
 }
@@ -286,8 +286,8 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<grafbase_engine::ServerError> for Error {
-    fn from(value: grafbase_engine::ServerError) -> Self {
+impl From<engine::ServerError> for Error {
+    fn from(value: engine::ServerError) -> Self {
         Error::Message(value.message, value.locations.into_iter().next())
     }
 }
@@ -296,7 +296,7 @@ impl From<grafbase_engine::ServerError> for Error {
 mod tests {
     #![allow(clippy::panic)]
 
-    use grafbase_engine_parser::{parse_schema, types::TypeSystemDefinition};
+    use engine_parser::{parse_schema, types::TypeSystemDefinition};
 
     use super::*;
 

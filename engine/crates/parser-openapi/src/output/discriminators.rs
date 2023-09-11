@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use grafbase_engine::registry::UnionDiscriminator;
+use engine::registry::UnionDiscriminator;
 use itertools::Itertools;
 
 use crate::graph::{OpenApiGraph, ScalarKind};
@@ -16,7 +16,7 @@ impl crate::graph::OutputType {
     /// The "proper" way to do this would be to run everything through a JSON schema validator,
     /// but pulling the entire specs JSON schema into the registry is likely to be problematic
     /// so this is a best effort attempt to avoid that.
-    pub fn discriminators(self, graph: &OpenApiGraph) -> Vec<(String, grafbase_engine::registry::UnionDiscriminator)> {
+    pub fn discriminators(self, graph: &OpenApiGraph) -> Vec<(String, engine::registry::UnionDiscriminator)> {
         let possible_types = self.possible_types(graph);
 
         // The easiest discriminator is a field that's unique to a given member on the union.
@@ -148,15 +148,15 @@ impl crate::graph::OutputType {
     }
 }
 
-impl TryFrom<ScalarKind> for grafbase_engine::registry::union_discriminator::ScalarKind {
+impl TryFrom<ScalarKind> for engine::registry::union_discriminator::ScalarKind {
     type Error = ();
 
     fn try_from(value: ScalarKind) -> Result<Self, Self::Error> {
-        use grafbase_engine::registry::union_discriminator::ScalarKind as GrafbaseEngineScalarKind;
+        use engine::registry::union_discriminator::ScalarKind as EngineScalarKind;
         match value {
-            ScalarKind::String => Ok(GrafbaseEngineScalarKind::String),
-            ScalarKind::Integer | ScalarKind::Float => Ok(GrafbaseEngineScalarKind::Number),
-            ScalarKind::Boolean => Ok(GrafbaseEngineScalarKind::Boolean),
+            ScalarKind::String => Ok(EngineScalarKind::String),
+            ScalarKind::Integer | ScalarKind::Float => Ok(EngineScalarKind::Number),
+            ScalarKind::Boolean => Ok(EngineScalarKind::Boolean),
             ScalarKind::Json => {
                 // I'm really hoping there are no schemas that do this...
                 Err(())

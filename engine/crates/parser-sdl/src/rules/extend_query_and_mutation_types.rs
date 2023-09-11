@@ -1,8 +1,8 @@
-use grafbase_engine::registry::{
+use engine::registry::{
     resolvers::{custom::CustomResolver, Resolver},
     MetaField, MetaInputValue,
 };
-use grafbase_engine_parser::types::{ObjectType, TypeKind};
+use engine_parser::types::{ObjectType, TypeKind};
 use common_types::auth::Operations;
 
 use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
@@ -16,7 +16,7 @@ enum EntryPoint {
 }
 
 fn find_entry_point(
-    type_definition: &grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+    type_definition: &engine::Positioned<engine_parser::types::TypeDefinition>,
 ) -> Option<(EntryPoint, &ObjectType)> {
     match &type_definition.node.kind {
         TypeKind::Object(object) if type_definition.node.name.node == QUERY_TYPE => Some((EntryPoint::Query, object)),
@@ -31,7 +31,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         if let Some((entry_point, object)) = find_entry_point(type_definition) {
             let type_name = type_definition.node.name.node.to_string();
@@ -90,8 +90,8 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
 
 #[cfg(test)]
 mod tests {
-    use grafbase_engine::CacheControl;
-    use grafbase_engine_parser::parse_schema;
+    use engine::CacheControl;
+    use engine_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
     use super::*;

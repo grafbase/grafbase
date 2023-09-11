@@ -4,14 +4,14 @@ extern crate assert_matches;
 
 use std::collections::{HashMap, HashSet};
 
-use grafbase_engine::{
+use engine::{
     registry::{
-        enums::GrafbaseEngineEnums,
+        enums::EngineEnums,
         scalars::{PossibleScalar, SDLDefinitionScalar},
     },
     Pos,
 };
-use grafbase_engine_parser::{types::ServiceDocument, Error as ParserError};
+use engine_parser::{types::ServiceDocument, Error as ParserError};
 use common_types::UdfKind;
 use rules::{
     auth_directive::AuthDirective,
@@ -48,7 +48,7 @@ use rules::{
 mod type_names;
 
 pub use connector_parsers::ConnectorParsers;
-pub use grafbase_engine::registry::Registry;
+pub use engine::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
 pub use rules::{
     cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
@@ -114,7 +114,7 @@ pub struct ParseResult<'a> {
     pub global_cache_rules: GlobalCacheRules<'a>,
 }
 
-fn parse_schema(schema: &str) -> grafbase_engine::parser::Result<ServiceDocument> {
+fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
     let directives = Directives::new()
         .with::<AuthDirective>()
         .with::<DefaultDirective>()
@@ -135,12 +135,12 @@ fn parse_schema(schema: &str) -> grafbase_engine::parser::Result<ServiceDocument
     let schema = format!(
         "{}\n{}\n{}\n{}",
         schema,
-        GrafbaseEngineEnums::sdl(),
+        EngineEnums::sdl(),
         PossibleScalar::sdl(),
         directives.to_definition(),
     );
 
-    grafbase_engine::parser::parse_schema(schema)
+    engine::parser::parse_schema(schema)
 }
 
 /// Transform the input into a Registry

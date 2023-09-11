@@ -5,13 +5,13 @@
 use std::fmt::Display;
 
 use case::CaseExt;
-use grafbase_engine::{
+use engine::{
     registry::{
-        self, enums::GrafbaseEngineEnum, relations::MetaRelation, MetaEnumValue, MetaInputValue, NamedType, Registry,
+        self, enums::EngineEnum, relations::MetaRelation, MetaEnumValue, MetaInputValue, NamedType, Registry,
     },
     validation::dynamic_validators::DynValidator,
 };
-use grafbase_engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
+use engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
 
 use crate::{
     registry::names::MetaNames,
@@ -33,7 +33,7 @@ pub use delete::add_mutation_delete;
 pub use pagination::{add_query_paginated_collection, generate_pagination_args};
 pub use search::add_query_search;
 
-pub fn register_grafbase_engine_enum<T: GrafbaseEngineEnum>(registry: &mut Registry) -> NamedType<'static> {
+pub fn register_engine_enum<T: EngineEnum>(registry: &mut Registry) -> NamedType<'static> {
     let type_name = T::ty().to_string();
     registry.create_type(
         |_| registry::EnumType::new(type_name.clone(), T::values().into_iter().map(MetaEnumValue::new)).into(),
@@ -90,7 +90,7 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
     // Input
     ctx.registry.get_mut().create_type(
         |_| {
-            grafbase_engine::registry::InputObjectType::new(input_type.clone(), fields)
+            engine::registry::InputObjectType::new(input_type.clone(), fields)
                 .with_description(Some(format!("{type_name} input type.")))
                 .into()
         },
@@ -110,7 +110,7 @@ pub fn get_length_validator(field: &FieldDefinition) -> Option<DynValidator> {
         .map(|directive| {
             let (min_value, max_value) = (MIN_ARGUMENT, MAX_ARGUMENT).map(|argument_name| {
                 directive.node.get_argument(argument_name).and_then(|argument| {
-                    if let grafbase_engine_value::ConstValue::Number(ref min) = argument.node {
+                    if let engine_value::ConstValue::Number(ref min) = argument.node {
                         min.as_u64().and_then(|min| min.try_into().ok())
                     } else {
                         None

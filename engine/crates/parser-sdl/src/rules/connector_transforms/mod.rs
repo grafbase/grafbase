@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use grafbase_engine::registry::{
+use engine::registry::{
     type_kinds::{InputType, OutputType},
     InputObjectType, InterfaceType, MetaType, ObjectType, Registry,
 };
@@ -103,7 +103,7 @@ fn lookup_fields(registry: &Registry, lookup: &FieldLookup) -> HashSet<SelectedF
 mod tests {
     use std::collections::HashMap;
 
-    use grafbase_engine::registry::Registry;
+    use engine::registry::Registry;
     use serde::Deserialize;
     use serde_json::json;
 

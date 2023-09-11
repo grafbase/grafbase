@@ -3,12 +3,12 @@
 //! When a basic type is stubble uppon on the definition of the schema, if it
 //! got no specialized behavior, we apply this behavior uppon it.
 //!
-use grafbase_engine::registry::{
+use engine::registry::{
     self,
     resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
     MetaField,
 };
-use grafbase_engine_parser::{
+use engine_parser::{
     types::{FieldDefinition, TypeKind},
     Positioned,
 };
@@ -26,7 +26,7 @@ impl<'a> Visitor<'a> for BasicType {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a grafbase_engine::Positioned<grafbase_engine_parser::types::TypeDefinition>,
+        type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {

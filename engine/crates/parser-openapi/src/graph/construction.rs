@@ -1,4 +1,4 @@
-use grafbase_engine::registry::resolvers::http::{
+use engine::registry::resolvers::http::{
     ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
 };
 use petgraph::{graph::NodeIndex, Graph};

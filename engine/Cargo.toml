@@ -1,11 +1,10 @@
 [workspace]
 members = [
   "crates/*",
-  "crates/grafbase-engine/derive",
-  "crates/grafbase-engine/parser",
-  "crates/grafbase-engine/value",
+  "crates/engine/derive",
+  "crates/engine/parser",
+  "crates/engine/value",
   "crates/runtime/local",
-  
 ]
 resolver = "2"
 
@@ -63,9 +62,9 @@ tracing-subscriber = "0.3"
 tracing-futures = "0.2"
 
 dynamodb = { path = "crates/dynamodb" }
-grafbase-engine = { path = "crates/grafbase-engine" }
+engine = { path = "crates/engine" }
 common-types = { path = "crates/common-types" }
-grafbase-engine-value = { path = "crates/grafbase-engine/value" }
+engine-value = { path = "crates/engine/value" }
 runtime-protocol = { path = "crates/runtime-protocol" }
 runtime-protocol-platform = { path = "crates/runtime-protocol-platform" }
 gateway-types = { path = "crates/gateway-types" }

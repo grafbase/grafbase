@@ -1,4 +1,4 @@
-use grafbase_engine::{registry::CacheConfig, AuthConfig};
+use engine::{registry::CacheConfig, AuthConfig};
 use common_types::UdfKind;
 
 pub mod local;

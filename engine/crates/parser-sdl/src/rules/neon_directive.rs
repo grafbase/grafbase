@@ -1,5 +1,5 @@
-use grafbase_engine::Positioned;
-use grafbase_engine_parser::types::SchemaDefinition;
+use engine::Positioned;
+use engine_parser::types::SchemaDefinition;
 
 use crate::directive_de::parse_directive;
 

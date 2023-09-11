@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use grafbase_engine::registry::resolvers::http::{
+use engine::registry::resolvers::http::{
     ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
 };
 use inflector::Inflector;
@@ -69,7 +69,7 @@ impl OpenApiGraph {
 
     #[cfg(test)]
     pub fn from_petgraph(graph: Graph<Node, Edge>) -> Self {
-        use grafbase_engine::registry::ConnectorHeaders;
+        use engine::registry::ConnectorHeaders;
         use parser_sdl::OpenApiQueryNamingStrategy;
 
         OpenApiGraph {
@@ -249,7 +249,7 @@ pub enum ScalarKind {
 
 impl ScalarKind {
     pub fn type_name(self) -> String {
-        use grafbase_engine::registry::scalars::{JSONScalar, SDLDefinitionScalar};
+        use engine::registry::scalars::{JSONScalar, SDLDefinitionScalar};
 
         match self {
             ScalarKind::String => "String".to_string(),

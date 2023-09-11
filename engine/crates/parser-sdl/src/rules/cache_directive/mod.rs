@@ -4,11 +4,11 @@ use std::{
     fmt::Formatter,
 };
 
-use grafbase_engine::{
+use engine::{
     registry::{CacheAccessScope, CacheInvalidationPolicy},
     CacheControl,
 };
-use grafbase_engine_parser::{types::ConstDirective, Pos, Positioned};
+use engine_parser::{types::ConstDirective, Pos, Positioned};
 use serde::{
     de::{value::MapAccessDeserializer, Error, MapAccess, Unexpected, Visitor},
     Deserialize, Deserializer,
@@ -90,7 +90,7 @@ impl<'de> Visitor<'de> for MutationInvalidationVisitor {
     {
         match v {
             "entity" => Ok(Some(CacheInvalidationPolicy::Entity {
-                field: grafbase_engine::names::OUTPUT_FIELD_ID.to_string(),
+                field: engine::names::OUTPUT_FIELD_ID.to_string(),
             })),
             "list" => Ok(Some(CacheInvalidationPolicy::List)),
             "type" => Ok(Some(CacheInvalidationPolicy::Type)),

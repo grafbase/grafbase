@@ -1,4 +1,4 @@
-use grafbase_engine::registry::ConnectorHeaderValue;
+use engine::registry::ConnectorHeaderValue;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct IntrospectionHeader {

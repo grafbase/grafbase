@@ -1,9 +1,9 @@
 use case::CaseExt;
-use grafbase_engine::{
+use engine::{
     registry::{Constraint, MongoDBConfiguration},
     AuthConfig, CacheControl, Positioned,
 };
-use grafbase_engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
+use engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
 
 use super::COLLECTION_KEY;
 use crate::rules::{cache_directive::CacheDirective, unique_directive::UniqueDirective, visitor::VisitorContext};

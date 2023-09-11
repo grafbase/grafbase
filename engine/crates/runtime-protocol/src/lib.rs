@@ -7,11 +7,11 @@ pub use self::{
     execution_engine::{ExecutionEngine, ExecutionError, ExecutionResult},
 };
 
-use grafbase_engine::{registry::CacheControlError, CacheControl};
+use engine::{registry::CacheControlError, CacheControl};
 use common_types::{auth::ExecutionAuth, UdfKind};
 use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 
-pub use grafbase_engine::registry::VersionedRegistry;
+pub use engine::registry::VersionedRegistry;
 
 mod customer_deployment_config;
 mod execution_engine;
@@ -48,7 +48,7 @@ impl<C: serde::de::DeserializeOwned> TryFrom<GatewayRequest<C>> for worker::Requ
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExecutionRequest<C> {
     /// The request to execute
-    pub request: grafbase_engine::Request,
+    pub request: engine::Request,
     /// Customer specific configuration needed to execute the request
     pub config: CustomerDeploymentConfig<C>,
     /// Authorization details

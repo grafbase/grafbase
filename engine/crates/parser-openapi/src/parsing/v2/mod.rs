@@ -4,7 +4,7 @@ mod components;
 
 use std::collections::BTreeMap;
 
-use grafbase_engine::registry::resolvers::http::{
+use engine::registry::resolvers::http::{
     ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
 };
 use inflector::Inflector;

@@ -1,4 +1,4 @@
-use grafbase_engine::registry::{resolvers::transformer::Transformer, MetaField, ObjectType};
+use engine::registry::{resolvers::transformer::Transformer, MetaField, ObjectType};
 use common_types::auth::Operations;
 
 use crate::{

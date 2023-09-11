@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use grafbase_engine::Positioned;
-use grafbase_engine_parser::types::ConstDirective;
-use grafbase_engine_value::ConstValue;
+use engine::Positioned;
+use engine_parser::types::ConstDirective;
+use engine_value::ConstValue;
 
 use super::visitor::VisitorContext;
 

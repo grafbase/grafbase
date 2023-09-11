@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use grafbase_engine_parser::{
+use engine_parser::{
     types::{ConstDirective, TypeKind, TypeSystemDefinition},
     Positioned,
 };
@@ -28,7 +28,7 @@ impl UsedDirectives {
     }
 }
 
-pub fn parse_used_directives(schema: &str) -> grafbase_engine::parser::Result<UsedDirectives> {
+pub fn parse_used_directives(schema: &str) -> engine::parser::Result<UsedDirectives> {
     let doc = super::parse_schema(schema)?;
     let mut used = UsedDirectives::default();
     fn directive_name(directive: Positioned<ConstDirective>) -> String {
@@ -132,7 +132,7 @@ mod tests {
     fn test_parsed_used_directives(#[case] schema: &'static str, #[case] expected: &'static [&'static str]) {
         assert_eq!(
             parse_used_directives(schema).unwrap().all(),
-            expected.iter().map(|s| s.to_string()).collect::<HashSet<_>>()
+            expected.iter().map(|s| (*s).to_string()).collect::<HashSet<_>>()
         );
     }
 }

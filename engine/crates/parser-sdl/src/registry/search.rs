@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use grafbase_engine::{
+use engine::{
     names::{INPUT_FIELD_FILTER_REGEX, OUTPUT_EDGE_CURSOR},
     registry::{
         self,
@@ -14,7 +14,7 @@ use grafbase_engine::{
     },
     AuthConfig, Positioned,
 };
-use grafbase_engine_parser::types::{FieldDefinition, TypeDefinition};
+use engine_parser::types::{FieldDefinition, TypeDefinition};
 use runtime::search;
 use common_types::auth::Operations;
 use itertools::Itertools;
@@ -259,7 +259,7 @@ pub fn add_query_search(
             args.into_iter().map(|input| (input.name.clone(), input)).collect()
         },
         ty: connection_type.into(),
-        deprecation: grafbase_engine::registry::Deprecation::NoDeprecated,
+        deprecation: engine::registry::Deprecation::NoDeprecated,
         cache_control: CacheDirective::parse(&model_type_definition.directives),
         external: false,
         provides: None,

@@ -1,5 +1,5 @@
-use grafbase_engine::registry::{ConnectorHeaderValue, ConnectorHeaders};
-use grafbase_engine_parser::types::SchemaDefinition;
+use engine::registry::{ConnectorHeaderValue, ConnectorHeaders};
+use engine_parser::types::SchemaDefinition;
 use url::Url;
 
 use super::{
@@ -105,7 +105,7 @@ impl Directive for GraphqlDirective {
 pub struct GraphqlVisitor;
 
 impl<'a> Visitor<'a> for GraphqlVisitor {
-    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a grafbase_engine::Positioned<SchemaDefinition>) {
+    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a engine::Positioned<SchemaDefinition>) {
         let directives = doc
             .node
             .directives

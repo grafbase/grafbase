@@ -1,8 +1,8 @@
 mod model_directive;
 mod type_directive;
 
-use grafbase_engine::registry::{MetaField, MongoDBConfiguration, ObjectType};
-use grafbase_engine_parser::types::SchemaDefinition;
+use engine::registry::{MetaField, MongoDBConfiguration, ObjectType};
+use engine_parser::types::SchemaDefinition;
 use inflector::Inflector;
 pub(super) use model_directive::create_type_context::CreateTypeContext;
 pub use model_directive::MongoDBModelDirective;
@@ -130,7 +130,7 @@ impl Directive for MongoDBDirective {
 pub struct MongoDBVisitor;
 
 impl<'a> Visitor<'a> for MongoDBVisitor {
-    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a grafbase_engine::Positioned<SchemaDefinition>) {
+    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a engine::Positioned<SchemaDefinition>) {
         let directives = doc
             .node
             .directives

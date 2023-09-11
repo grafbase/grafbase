@@ -1,0 +1,101 @@
+[package]
+name = "engine"
+version = "3.0.31"
+authors = ["Grafbase"]
+description = "A dynamic GraphQL engine written in Rust"
+edition = "2021"
+readme = "README.md"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "engine", "grafbase"]
+
+[features]
+default = []
+tracing_worker = ["logworker", "dynamodb/tracing", "tracing"]
+defer = []
+
+[dependencies]
+async-lock = "2"
+async-recursion = "1"
+async-stream = "0.3"
+async-trait = "0.1"
+common-types = { path = "../common-types" }
+postgresql-types = { path = "../postgresql-types" }
+bytes = { version = "1", features = ["serde"] }
+case = "1"
+chrono = { version = "0.4", default-features = false, features = [
+  "clock",
+  "std",
+] }
+cynic-introspection = "3"
+derivative = "2"
+dynomite = "0.10"
+fast_chemail = "0.9"
+flexbuffers = { workspace = true }
+fnv = "1"
+futures = { workspace = true }
+futures-util = { workspace = true, features = ["io", "sink"] }
+http = "0.2"
+im = "15"
+indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
+indoc = "2"
+Inflector = { version = "0.11" }
+internment = { version = "0.7", features = ["serde", "arc"] }
+ipnet = "2"
+itertools = { workspace = true }
+mime = "0.3"
+multer = "2"
+nom = "7"
+num-traits = "0.2"
+once_cell = "1"
+pin-project-lite = "0.2"
+regex = { workspace = true }
+secrecy = { version = "0.8", features = ["serde"] }
+send_wrapper = { version = "0.6", features = ["futures"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+static_assertions = "1"
+tempfile = "3"
+thiserror = { workspace = true }
+ulid = { workspace = true, features = ["wasm"] }
+url = { workspace = true, features = ["serde"] }
+
+# API dependencies
+dataloader = { workspace = true }
+dynamodb = { workspace = true }
+engine-derive = { path = "derive", version = "3" }
+engine-value = { path = "value", version = "3" }
+engine-parser = { path = "parser", version = "3" }
+runtime = { workspace = true }
+graph-entities = { workspace = true }
+logworker = { path = "../log", package = "log", features = [
+  "with-worker",
+], optional = true }
+
+# Feature optional dependencies
+rust_decimal = { version = "1" }
+tracing = { workspace = true, optional = true }
+async-runtime = { workspace = true }
+
+# Non-feature optional dependencies
+base64.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+reqwest = { version = "0.11", default-features = false, features = ["json"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.11", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
+
+[dev-dependencies]
+indoc = "2"
+insta = { version = "1", features = ["json"] }
+rstest = { workspace = true }
+sanitize-filename = "0.5"
+tokio = { workspace = true, features = ["macros"] }
+urlencoding = "2.1"
+wiremock = "0.5"
