@@ -1,5 +1,5 @@
 [package]
-name = "gateway-local"
+name = "runtime-protocol-local"
 authors = ["Grafbase"]
 description = "The local interface for Grafbase's Gateway product."
 version = "0.1.0"
