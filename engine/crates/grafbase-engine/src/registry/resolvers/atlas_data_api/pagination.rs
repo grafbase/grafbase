@@ -3,7 +3,7 @@ use crate::{
     registry::resolvers::{ResolvedPaginationInfo, ResolverContext},
     Context, Error,
 };
-use grafbase_runtime::search::GraphqlCursor;
+use runtime::search::GraphqlCursor;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct PaginationContext<'a> {

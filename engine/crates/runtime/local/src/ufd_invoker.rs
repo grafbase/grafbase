@@ -1,4 +1,4 @@
-use grafbase_runtime::{
+use runtime::{
     self,
     udf::{CustomResolverError, CustomResolverResponse, UdfInvoker, UdfRequest},
 };
@@ -12,8 +12,8 @@ pub struct UdfInvokerImpl {
 
 impl UdfInvokerImpl {
     #[allow(clippy::new_ret_no_self)]
-    pub fn create_engine(bridge: Bridge) -> grafbase_runtime::udf::CustomResolversEngine {
-        grafbase_runtime::udf::CustomResolversEngine::new(Box::new(Self::new(bridge)))
+    pub fn create_engine(bridge: Bridge) -> runtime::udf::CustomResolversEngine {
+        runtime::udf::CustomResolversEngine::new(Box::new(Self::new(bridge)))
     }
 
     pub fn new(bridge: Bridge) -> Self {

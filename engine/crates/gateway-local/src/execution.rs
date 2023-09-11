@@ -7,7 +7,7 @@ use gateway_protocol::{
     ExecutionResult, LocalSpecificConfig, VersionedRegistry,
 };
 use grafbase_engine::{registry::resolvers::graphql, RequestHeaders, Response};
-use grafbase_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
+use runtime_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
 use worker::Env;
 use worker_env::{EnvExt, VarType};
 
@@ -159,7 +159,7 @@ impl ExecutionEngine for LocalExecution {
 
         let bridge = Bridge::new(bridge_port);
         let resolver_engine = UdfInvokerImpl::create_engine(bridge.clone());
-        let gql_request_exec_context = grafbase_runtime::GraphqlRequestExecutionContext {
+        let gql_request_exec_context = runtime::GraphqlRequestExecutionContext {
             ray_id: ray_id.clone(),
             headers: execution_request.execution_headers.clone(),
         };
@@ -172,7 +172,7 @@ impl ExecutionEngine for LocalExecution {
             .data(gql_request_exec_context)
             .data(RequestHeaders::from(&execution_request.execution_headers))
             .extension(graphql_extensions::runtime_log::RuntimeLogExtension::new(Box::new(
-                grafbase_local::LogEventReceiverImpl::new(bridge),
+                runtime_local::LogEventReceiverImpl::new(bridge),
             )))
             .extension(graphql_extensions::authorization::AuthExtension::new(ray_id.clone()))
             .finish();

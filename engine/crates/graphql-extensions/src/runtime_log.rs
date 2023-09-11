@@ -5,7 +5,7 @@ use grafbase_engine::{
     parser::types::OperationDefinition,
     Positioned, Request, Response, ServerResult,
 };
-use grafbase_runtime::{log::LogEventReceiver, GraphqlRequestExecutionContext};
+use runtime::{log::LogEventReceiver, GraphqlRequestExecutionContext};
 use grafbase_types::{LogEventType, OperationType};
 
 pub struct RuntimeLogExtension {

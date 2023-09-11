@@ -1,5 +1,5 @@
 use grafbase_engine_integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
-use grafbase_runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::json;
 
 #[test]

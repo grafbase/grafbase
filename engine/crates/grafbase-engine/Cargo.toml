@@ -68,7 +68,7 @@ dynamodb = { workspace = true }
 grafbase-engine-derive = { path = "derive", version = "3" }
 grafbase-engine-value = { path = "value", version = "3" }
 grafbase-engine-parser = { path = "parser", version = "3" }
-grafbase-runtime = { workspace = true }
+runtime = { workspace = true }
 graph-entities = { workspace = true }
 logworker = { path = "../log", package = "log", features = [
   "with-worker",

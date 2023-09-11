@@ -1,4 +1,4 @@
-use grafbase_runtime::{
+use runtime::{
     search::{QueryError, Request, Response, SearchEngine, SearchEngineInner},
     GraphqlRequestExecutionContext,
 };

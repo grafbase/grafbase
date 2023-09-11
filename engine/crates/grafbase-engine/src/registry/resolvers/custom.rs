@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
-use grafbase_runtime::{
+use runtime::{
     udf::{
         CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
         UdfRequestContext, UdfRequestContextRequest,
@@ -56,7 +56,7 @@ impl CustomResolver {
 
         // -- End of hack
 
-        let graphql = ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?;
+        let graphql = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
         let custom_resolvers_engine = ctx.data::<CustomResolversEngine>()?;
         let arguments = ctx
             .field()

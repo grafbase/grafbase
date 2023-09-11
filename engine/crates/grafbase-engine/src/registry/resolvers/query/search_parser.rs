@@ -1,4 +1,4 @@
-use grafbase_runtime::search::{self, GraphqlCursor, ScalarCondition};
+use runtime::search::{self, GraphqlCursor, ScalarCondition};
 use serde_json::Value;
 use thiserror::Error;
 

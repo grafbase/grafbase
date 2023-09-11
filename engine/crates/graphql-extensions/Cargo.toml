@@ -17,7 +17,7 @@ web-time = { workspace = true }
 grafbase-engine = { path = "../grafbase-engine", default-features = false }
 grafbase-engine-value = { workspace = true }
 log = { path = "../log", features = ["with-worker"] }
-grafbase-runtime = { workspace = true }
+runtime = { workspace = true }
 grafbase-types = { workspace = true }
 
 [features]

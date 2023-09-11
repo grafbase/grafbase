@@ -1,4 +1,4 @@
-use grafbase_runtime::search::{self, GraphqlCursor};
+use runtime::search::{self, GraphqlCursor};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
