@@ -17,7 +17,7 @@ runtime = { path = "../runtime" }
 
 # TODO: these are private dependencies, that must be removed.
 worker-env = { path = "../worker-env" }
-gateway-protocol = { path = "../gateway-protocol" }
+runtime-protocol = { path = "../runtime-protocol" }
 
 async-trait = "0.1"
 worker = "0.0.18"

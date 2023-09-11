@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
-use gateway_protocol::{
+use runtime_protocol::{
     ExecutionEngine, ExecutionError, ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest,
     ExecutionResult, LocalSpecificConfig, VersionedRegistry,
 };
@@ -30,7 +30,7 @@ pub struct LocalExecution {
 
 #[allow(unused_variables, clippy::expect_fun_call)]
 fn get_db_context(
-    execution_request: &ExecutionRequest<gateway_protocol::LocalSpecificConfig>,
+    execution_request: &ExecutionRequest<runtime_protocol::LocalSpecificConfig>,
     env: &HashMap<String, String>,
 ) -> DynamoDBContext {
     #[cfg(not(feature = "sqlite"))]
@@ -117,7 +117,7 @@ impl ExecutionEngine for LocalExecution {
     #[allow(clippy::expect_fun_call)]
     async fn execute(
         self: Arc<Self>,
-        mut execution_request: ExecutionRequest<gateway_protocol::LocalSpecificConfig>,
+        mut execution_request: ExecutionRequest<runtime_protocol::LocalSpecificConfig>,
     ) -> ExecutionResult<Response> {
         use worker::js_sys;
 
@@ -185,7 +185,7 @@ impl ExecutionEngine for LocalExecution {
 
     async fn health(
         self: Arc<Self>,
-        _req: ExecutionHealthRequest<gateway_protocol::LocalSpecificConfig>,
+        _req: ExecutionHealthRequest<runtime_protocol::LocalSpecificConfig>,
     ) -> ExecutionResult<ExecutionHealthResponse> {
         Ok(ExecutionHealthResponse {
             deployment_id: "local".to_string(),

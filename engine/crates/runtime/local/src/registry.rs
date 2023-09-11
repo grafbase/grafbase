@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use gateway_protocol::VersionedRegistry;
+use runtime_protocol::VersionedRegistry;
 use registry_provider::{RegistryError, RegistryProvider, RegistryResult};
 use worker::{wasm_bindgen::JsValue, Env};
 
