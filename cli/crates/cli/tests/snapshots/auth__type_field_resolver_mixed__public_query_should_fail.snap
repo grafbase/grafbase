@@ -6,7 +6,9 @@ expression: "public_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await"
   "data": {
     "todoCollection": {
       "__typename": "TodoConnection",
-      "edges": null
+      "edges": [
+        null
+      ]
     }
   },
   "errors": [
@@ -15,7 +17,8 @@ expression: "public_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await"
       "path": [
         "todoCollection",
         "edges",
-        0
+        0,
+        "node"
       ]
     }
   ]
