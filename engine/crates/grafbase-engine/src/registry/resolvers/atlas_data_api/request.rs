@@ -58,7 +58,7 @@ pub(super) async fn execute(
     };
 
     let url = format!("{}/action/{}", config.url, operation_type);
-    let ray_id = &ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?.ray_id;
+    let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
 
     let request_builder = reqwest::Client::new()
         .post(url)

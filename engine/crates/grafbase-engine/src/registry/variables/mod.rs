@@ -8,7 +8,7 @@
 use std::borrow::{Borrow, Cow};
 
 use grafbase_engine_value::{ConstValue, Name};
-use grafbase_runtime::search::GraphqlCursor;
+use runtime::search::GraphqlCursor;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 

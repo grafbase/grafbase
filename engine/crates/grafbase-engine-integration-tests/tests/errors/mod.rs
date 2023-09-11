@@ -3,7 +3,7 @@
 use std::net::SocketAddr;
 
 use grafbase_engine_integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
-use grafbase_runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},

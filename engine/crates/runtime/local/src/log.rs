@@ -1,4 +1,4 @@
-use grafbase_runtime::log::{LogEvent, LogEventReceiver, LogEventType};
+use runtime::log::{LogEvent, LogEventReceiver, LogEventType};
 
 use crate::bridge::Bridge;
 

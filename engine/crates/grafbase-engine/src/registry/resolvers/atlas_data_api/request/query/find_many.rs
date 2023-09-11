@@ -15,7 +15,7 @@ use crate::{
     },
     Context, Error,
 };
-use grafbase_runtime::search::GraphqlCursor;
+use runtime::search::GraphqlCursor;
 use indexmap::IndexMap;
 use serde::Serialize;
 use serde_json::Value;

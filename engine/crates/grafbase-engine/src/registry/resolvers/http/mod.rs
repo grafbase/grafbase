@@ -80,7 +80,7 @@ impl HttpResolver {
             .unwrap_or_default();
 
         Box::pin(SendWrapper::new(async move {
-            let ray_id = &ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?.ray_id;
+            let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
             let url = self.build_url(ctx, last_resolver_value)?;
             let mut request_builder = reqwest::Client::new()
                 .request(self.method.parse()?, Url::parse(&url)?)
