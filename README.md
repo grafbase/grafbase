@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  The unified data layer
+  Your data, globally fast.
 </p>
 
 <p align="center">
