@@ -182,6 +182,12 @@ impl<Response> GqlRequestBuilder<Response> {
         self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
         self
     }
+
+    pub fn into_reqwest_builder(self) -> reqwest::RequestBuilder {
+        let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
+
+        self.reqwest_builder.json(&json)
+    }
 }
 
 impl<Response> IntoFuture for GqlRequestBuilder<Response>
@@ -194,10 +200,7 @@ where
 
     fn into_future(self) -> Self::IntoFuture {
         Box::pin(async move {
-            let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
-
-            self.reqwest_builder
-                .json(&json)
+            self.into_reqwest_builder()
                 .send()
                 .await
                 .unwrap()

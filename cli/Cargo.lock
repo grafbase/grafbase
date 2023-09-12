@@ -1467,6 +1467,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 
 [[package]]
+name = "eventsource-stream"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74fef4569247a5f429d9156b9d0a2599914385dd189c539334c625d8099d90ab"
+dependencies = [
+ "futures-core",
+ "nom",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "exitcode"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1854,6 +1865,7 @@ dependencies = [
  "duct",
  "exitcode",
  "fslock",
+ "futures-util",
  "grafbase-local-backend",
  "grafbase-local-common",
  "hex-literal",
@@ -1865,11 +1877,13 @@ dependencies = [
  "json_dotpath",
  "jwt-compact",
  "log",
+ "multipart-stream",
  "once_cell",
  "os_type",
  "rand 0.8.5",
  "regex",
  "reqwest",
+ "reqwest-eventsource",
  "rsa",
  "rstest",
  "rusoto_core",
@@ -2927,6 +2941,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "multipart-stream"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70b4619423c3ca07881bd4d62bb853d447a63253901bee471e0b832c3e37e505"
+dependencies = [
+ "bytes",
+ "futures",
+ "http",
+ "httparse",
+ "pin-project",
+]
+
+[[package]]
 name = "murmurhash32"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3746,6 +3773,22 @@ dependencies = [
  "web-sys",
  "webpki-roots 0.22.6",
  "winreg",
+]
+
+[[package]]
+name = "reqwest-eventsource"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f03f570355882dd8d15acc3a313841e6e90eddbc76a93c748fd82cc13ba9f51"
+dependencies = [
+ "eventsource-stream",
+ "futures-core",
+ "futures-timer",
+ "mime",
+ "nom",
+ "pin-project-lite",
+ "reqwest",
+ "thiserror",
 ]
 
 [[package]]

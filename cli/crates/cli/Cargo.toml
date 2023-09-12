@@ -54,12 +54,14 @@ derive_builder = "0.12"
 dirs = "5"
 duct = "0.13"
 fslock = "0.2"
+futures-util = "0.3"
 insta = { version = "1.31", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.8.0-beta.1", default-features = false, features = [
   "clock",
   "rsa",
 ] }
+multipart-stream = "0.1"
 rand = "0.8"
 reqwest = { version = "0.11", features = [
   "rustls-tls",
@@ -73,6 +75,7 @@ tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 url = "2"
 regex = "1"
+reqwest-eventsource = "0.4"
 rstest = "0.18"
 rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
