@@ -1,10 +1,11 @@
-use common_types::auth::ExecutionAuth;
-use engine_value::ConstValue;
 use std::{
     collections::BTreeSet,
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
+
+use common_types::auth::ExecutionAuth;
+use engine_value::ConstValue;
 
 #[derive(Debug, Hash)]
 pub enum CacheAccess<'a> {
