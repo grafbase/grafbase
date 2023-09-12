@@ -4,7 +4,6 @@ members = [
   "crates/engine/derive",
   "crates/engine/parser",
   "crates/engine/value",
-  "crates/runtime/local",
 ]
 resolver = "2"
 
@@ -65,18 +64,18 @@ dynamodb = { path = "crates/dynamodb" }
 engine = { path = "crates/engine" }
 common-types = { path = "crates/common-types" }
 engine-value = { path = "crates/engine/value" }
-runtime-protocol = { path = "crates/runtime-protocol" }
-runtime-protocol-platform = { path = "crates/runtime-protocol-platform" }
+gateway-adapter = { path = "crates/gateway-adapter" }
+gateway-adapter-local = { path = "crates/gateway-adapter-local" }
 gateway-types = { path = "crates/gateway-types" }
-registry-provider = { path = "crates/registry-provider" }
 graphql-extensions = { path = "crates/graphql-extensions" }
 log = { path = "crates/log" }
-runtime = { path = "crates/runtime" }
 dataloader = { path = "crates/dataloader", features = ["tracing"] }
 graph-entities = { path = "crates/graph-entities" }
 async-runtime = { path = "crates/async-runtime" }
-runtime-local = { path = "crates/runtime/local" }
+runtime = { path = "crates/runtime" }
+runtime-local = { path = "crates/runtime-local" }
 worker-env = { path = "crates/worker-env" }
+search-protocol = { path = "crates/search-protocol" }
 
 [profile.bench]
 debug = true

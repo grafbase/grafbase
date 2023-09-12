@@ -1377,6 +1377,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "gateway-adapter"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "common-types",
+ "engine",
+ "futures-util",
+ "rusoto_core",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
+ "strum",
+ "thiserror",
+ "ulid",
+ "worker",
+]
+
+[[package]]
+name = "gateway-adapter-local"
+version = "0.1.0"
+dependencies = [
+ "async-sse",
+ "async-trait",
+ "bytes",
+ "cfg-if",
+ "dynamodb",
+ "engine",
+ "futures-channel",
+ "futures-util",
+ "gateway-adapter",
+ "graphql-extensions",
+ "multipart-stream",
+ "runtime",
+ "runtime-local",
+ "serde_json",
+ "tracing",
+ "ulid",
+ "worker",
+ "worker-env",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2804,15 +2847,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbb5fb1acd8a1a18b3dd5be62d25485eb770e05afb408a9627d14d451bae12da"
 
 [[package]]
-name = "registry-provider"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "engine",
- "thiserror",
-]
-
-[[package]]
 name = "relative-path"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2967,59 +3001,11 @@ dependencies = [
  "async-trait",
  "graph-entities",
  "log 0.1.0",
- "registry-provider",
  "reqwest",
  "runtime",
- "runtime-protocol",
  "search-protocol",
  "send_wrapper 0.6.0",
  "serde",
- "serde_json",
- "worker",
- "worker-env",
-]
-
-[[package]]
-name = "runtime-protocol"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "common-types",
- "engine",
- "futures-util",
- "rusoto_core",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "strum",
- "thiserror",
- "ulid",
- "worker",
-]
-
-[[package]]
-name = "runtime-protocol-local"
-version = "0.1.0"
-dependencies = [
- "async-sse",
- "async-trait",
- "bytes",
- "cfg-if",
- "dynamodb",
- "engine",
- "futures-channel",
- "futures-util",
- "graphql-extensions",
- "multipart-stream",
- "runtime",
- "runtime-local",
- "runtime-protocol",
- "serde_json",
- "tracing",
- "ulid",
- "worker",
- "worker-env",
 ]
 
 [[package]]

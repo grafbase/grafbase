@@ -5,16 +5,18 @@ pub use self::{
         local::LocalSpecificConfig, CommonCustomerDeploymentConfig, CustomerDeploymentConfig,
     },
     execution_engine::{ExecutionEngine, ExecutionError, ExecutionResult, StreamingFormat},
+    registry::{RegistryError, RegistryProvider, RegistryResult},
 };
+pub use engine::registry::VersionedRegistry;
 
 use common_types::{auth::ExecutionAuth, UdfKind};
 use engine::{registry::CacheControlError, CacheControl};
 use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 
-pub use engine::registry::VersionedRegistry;
-
 mod customer_deployment_config;
 mod execution_engine;
+mod registry;
+
 #[cfg(test)]
 mod tests;
 
