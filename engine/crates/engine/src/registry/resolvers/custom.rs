@@ -11,8 +11,6 @@ use runtime::{
 };
 use common_types::UdfKind;
 use send_wrapper::SendWrapper;
-#[cfg(feature = "tracing_worker")]
-use tracing::{info_span, Instrument};
 
 use super::ResolvedValue;
 use crate::{Context, Error, ErrorExtensionValues};
@@ -87,9 +85,6 @@ impl CustomResolver {
                 udf_kind: UdfKind::Resolver,
             },
         ));
-
-        #[cfg(feature = "tracing_worker")]
-        let future = future.instrument(info_span!("custom_resolver", resolver_name = self.resolver_name));
 
         match Box::pin(future).await? {
             CustomResolverResponse::Success(value) => Ok(ResolvedValue::new(value)),

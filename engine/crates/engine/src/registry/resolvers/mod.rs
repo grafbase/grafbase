@@ -38,6 +38,9 @@ pub mod query;
 mod resolved_value;
 pub mod transformer;
 
+#[cfg(feature = "tracing_worker")]
+use tracing::{info_span, Instrument};
+
 /// Resolver Context
 ///
 /// Each time a Resolver is accessed to be resolved, a context for the resolving
@@ -146,12 +149,32 @@ impl Resolver {
             Resolver::Parent => last_resolver_value
                 .cloned()
                 .ok_or_else(|| Error::new("No data to propagate!")),
-            Resolver::DynamoResolver(dynamodb) => dynamodb.resolve(ctx, resolver_ctx, last_resolver_value).await,
+            Resolver::DynamoResolver(dynamodb) => {
+                let future = dynamodb.resolve(ctx, resolver_ctx, last_resolver_value);
+
+                #[cfg(feature = "tracing_worker")]
+                let future = future.instrument(info_span!("dynamo_resolver"));
+
+                future.await
+            },
             Resolver::DynamoMutationResolver(dynamodb) => {
-                dynamodb.resolve(ctx, resolver_ctx, last_resolver_value).await
+                let future = dynamodb.resolve(ctx, resolver_ctx, last_resolver_value);
+
+                #[cfg(feature = "tracing_worker")]
+                let future = future.instrument(info_span!("dynamo_mutation_resolver"));
+
+                future.await
             }
             Resolver::Transformer(ctx_data) => ctx_data.resolve(ctx, resolver_ctx, last_resolver_value).await,
-            Resolver::CustomResolver(resolver) => resolver.resolve(ctx, last_resolver_value).await,
+            Resolver::CustomResolver(resolver) => {
+                let future = resolver.resolve(ctx, last_resolver_value);
+
+                #[cfg(feature = "tracing_worker")]
+                let future = future.instrument(info_span!("custom_resolver", resolver_name = resolver.resolver_name));
+
+
+                future.await
+            },
             Resolver::Query(query) => query.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::Composition(resolvers) => {
                 let [head, tail @ ..] = &resolvers[..] else {
@@ -163,7 +186,14 @@ impl Resolver {
                 }
                 Ok(current)
             }
-            Resolver::Http(resolver) => resolver.resolve(ctx, resolver_ctx, last_resolver_value).await,
+            Resolver::Http(resolver) => {
+                let future = resolver.resolve(ctx, resolver_ctx, last_resolver_value);
+
+                #[cfg(feature = "tracing_worker")]
+                let future = future.instrument(info_span!("http_resolver", api_name = resolver.api_name));
+
+                future.await
+            },
             Resolver::Graphql(resolver) => {
                 let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
 
@@ -222,7 +252,7 @@ impl Resolver {
 
                 let batcher = &ctx.data::<QueryBatcher>()?;
 
-                resolver
+                let future = resolver
                     .resolve(
                         // Be a lot easier to just pass the context in here...
                         operation,
@@ -235,11 +265,28 @@ impl Resolver {
                         variable_definitions,
                         registry,
                         Some(batcher),
-                    )
+                    );
+
+                #[cfg(feature = "tracing_worker")]
+                let future = future.instrument(info_span!("http_resolver", name = resolver.name().as_ref()));
+
+                future
                     .await
                     .map_err(Into::into)
             }
-            Resolver::MongoResolver(resolver) => resolver.resolve(ctx, resolver_ctx).await.map_err(Into::into),
+            Resolver::MongoResolver(resolver) => {
+                let future = resolver.resolve(ctx, resolver_ctx);
+
+                #[cfg(feature = "tracing_worker")]
+                let future = future.instrument(info_span!(
+                    "mongodb_resolver",
+                    operation_type = resolver.operation_type.as_ref(),
+                    directive_name = resolver.directive_name,
+                    collection = resolver.collection
+                ));
+
+                future.await.map_err(Into::into)
+            },
         }
     }
 
