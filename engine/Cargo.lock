@@ -244,6 +244,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-sse"
+version = "5.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e6fa871e4334a622afd6bb2f611635e8083a6f5e2936c0f90f37c7ef9856298"
+dependencies = [
+ "async-channel",
+ "futures-lite",
+ "http-types",
+ "log 0.4.20",
+ "memchr",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "async-stream"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2009,6 +2023,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "multipart-stream"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70b4619423c3ca07881bd4d62bb853d447a63253901bee471e0b832c3e37e505"
+dependencies = [
+ "bytes",
+ "futures",
+ "http",
+ "httparse",
+ "pin-project",
+]
+
+[[package]]
 name = "names"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2959,6 +2986,7 @@ dependencies = [
  "async-trait",
  "common-types",
  "engine",
+ "futures-util",
  "rusoto_core",
  "serde",
  "serde_json",
@@ -2974,15 +3002,21 @@ dependencies = [
 name = "runtime-protocol-local"
 version = "0.1.0"
 dependencies = [
+ "async-sse",
  "async-trait",
+ "bytes",
  "cfg-if",
  "dynamodb",
  "engine",
+ "futures-channel",
+ "futures-util",
  "graphql-extensions",
+ "multipart-stream",
  "runtime",
  "runtime-local",
  "runtime-protocol",
  "serde_json",
+ "tracing",
  "ulid",
  "worker",
  "worker-env",

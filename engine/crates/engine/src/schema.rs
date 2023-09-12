@@ -374,7 +374,6 @@ impl Schema {
             visible: None,
         });
 
-        #[cfg(feature = "defer")]
         registry.add_directive(MetaDirective {
             name: "defer".to_string(),
             description: Some("De-prioritizes a fragment, causing the fragment to be omitted in the initial response and delivered as a subsequent response afterward.".to_string()),
@@ -705,7 +704,10 @@ async fn process_deferred_workload(
     let context = workload.to_context(&schema.env, env, sender.clone());
     let result = resolver_utils::resolve_deferred_container(
         &context,
-        context.resolver_node.as_ref().unwrap().ty.as_ref().unwrap(),
+        context
+            .registry()
+            .lookup(&workload.current_type_name)
+            .expect("the current type name to exist"),
         workload.parent_resolver_value.clone(),
     )
     .await;

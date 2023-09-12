@@ -13,7 +13,6 @@ keywords = ["graphql", "engine", "grafbase"]
 [features]
 default = []
 tracing_worker = ["logworker", "dynamodb/tracing", "tracing"]
-defer = []
 
 [dependencies]
 async-lock = "2"

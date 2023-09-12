@@ -4,11 +4,11 @@ pub use self::{
     customer_deployment_config::{
         local::LocalSpecificConfig, CommonCustomerDeploymentConfig, CustomerDeploymentConfig,
     },
-    execution_engine::{ExecutionEngine, ExecutionError, ExecutionResult},
+    execution_engine::{ExecutionEngine, ExecutionError, ExecutionResult, StreamingFormat},
 };
 
-use engine::{registry::CacheControlError, CacheControl};
 use common_types::{auth::ExecutionAuth, UdfKind};
+use engine::{registry::CacheControlError, CacheControl};
 use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 
 pub use engine::registry::VersionedRegistry;

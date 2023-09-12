@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use async_lock::RwLock;
-use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use engine_parser::{types::SelectionSet, Positioned};
+use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use graph_entities::QueryResponse;
 use ulid::Ulid;
 
@@ -16,7 +16,7 @@ pub struct DeferredWorkload {
     pub label: Option<String>,
     selection_set: Positioned<SelectionSet>,
     pub path: QueryPath,
-    current_type_name: NamedType<'static>,
+    pub current_type_name: NamedType<'static>,
     pub parent_resolver_value: Option<ResolvedValue>,
 }
 
@@ -44,8 +44,8 @@ impl DeferredWorkload {
     ) -> ContextSelectionSet<'a> {
         ContextSelectionSet {
             path: self.path.clone(),
-            resolver_node: Some(ResolverChainNode {
-                segment: self.path.last().cloned().expect("to always have one path element"),
+            resolver_node: self.path.last().cloned().map(|segment| ResolverChainNode {
+                segment,
                 parent: None,
                 field: None,
                 executable_field: None,
@@ -53,7 +53,7 @@ impl DeferredWorkload {
                     schema_env
                         .registry
                         .lookup(&self.current_type_name)
-                        .expect("TODO: handle errors"),
+                        .expect("current type name to exist"),
                 ),
                 selections: Some(&self.selection_set),
                 execution_id: Ulid::new(),
