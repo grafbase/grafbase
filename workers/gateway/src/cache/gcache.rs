@@ -294,7 +294,7 @@ mod tests {
 
     use engine::parser::types::OperationType;
     use futures_util::future::BoxFuture;
-    use runtime_protocol::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};
+    use gateway_adapter::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};
     use worker_utils::CloudflareRequestContext;
 
     use crate::{
