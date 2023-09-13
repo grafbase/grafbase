@@ -16,7 +16,7 @@ async fn run_command<P: AsRef<Path>>(
     current_directory: P,
     tracing: bool,
     environment: &[(&'static str, &str)],
-) -> Result<(), JavascriptPackageManagerComamndError> {
+) -> Result<Vec<u8>, JavascriptPackageManagerComamndError> {
     let command_string = format!("{command_type} {}", arguments.iter().format(" "));
     let current_directory = current_directory.as_ref();
     match current_directory.try_exists() {
@@ -56,7 +56,7 @@ async fn run_command<P: AsRef<Path>>(
 
     if output.status.success() {
         trace!("'{command_string}' succeeded");
-        Ok(())
+        Ok(output.stdout)
     } else {
         trace!("'{command_string}' failed");
         Err(JavascriptPackageManagerComamndError::OutputError(
@@ -179,6 +179,8 @@ pub async fn build(
     {
         let wrangler_arguments = &[
             "exec",
+            "--prefix",
+            environment.wrangler_installation_path.to_str().expect("must be valid"),
             "--",
             "wrangler",
             "publish",
@@ -315,6 +317,30 @@ async fn symlink_grafbase_wasm_sdk(
     Ok(())
 }
 
+async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>, tracing: bool) -> Option<String> {
+    let wrangler_installation_path = wrangler_installation_path.as_ref();
+    let wrangler_arguments = &[
+        "exec",
+        "--prefix",
+        wrangler_installation_path.to_str().expect("must be valid"),
+        "--",
+        "wrangler",
+        "--version",
+    ];
+    let output_bytes = run_command(
+        JavaScriptPackageManager::Npm,
+        wrangler_arguments,
+        wrangler_installation_path,
+        tracing,
+        &[],
+    )
+    .await
+    .ok()?;
+    Some(String::from_utf8(output_bytes).ok()?.trim().to_owned())
+}
+
+const WRANGLER_VERSION: &str = "2.20.1";
+
 pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
     let lock_file_path = environment.user_dot_grafbase_path.join(".wrangler.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
@@ -325,6 +351,18 @@ pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Resul
     .await?
     .map_err(ServerError::Lock)?;
 
+    if let Some(installed_wrangler_version) =
+        installed_wrangler_version(&environment.wrangler_installation_path, tracing).await
+    {
+        info!("Installed wrangler version: {installed_wrangler_version}");
+        if installed_wrangler_version == WRANGLER_VERSION {
+            info!("wrangler of the desired version already installed, skipping…");
+            return Ok(());
+        }
+    }
+
+    let wrangler_installation_path_str = environment.wrangler_installation_path.to_str().expect("must be valid");
+
     info!("Installing wrangler…");
     tokio::fs::create_dir_all(&environment.wrangler_installation_path)
         .await
@@ -332,16 +370,22 @@ pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Resul
     // Install wrangler once and for all.
     run_command(
         JavaScriptPackageManager::Npm,
-        &["add", "--save-dev", "wrangler@2"],
-        environment.wrangler_installation_path.to_str().expect("must be valid"),
+        &[
+            "add",
+            "--save-dev",
+            &format!("wrangler@{WRANGLER_VERSION}"),
+            "--prefix",
+            wrangler_installation_path_str,
+        ],
+        wrangler_installation_path_str,
         tracing,
         &[],
     )
     .await?;
     run_command(
         JavaScriptPackageManager::Npm,
-        &["install"],
-        environment.wrangler_installation_path.to_str().expect("must be valid"),
+        &["install", "--prefix", wrangler_installation_path_str],
+        wrangler_installation_path_str,
         tracing,
         &[],
     )
