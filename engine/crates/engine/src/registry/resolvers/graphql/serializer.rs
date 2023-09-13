@@ -625,10 +625,7 @@ mod tests {
         let name = Name::new("foo");
         let variable_definition = VariableDefinition {
             name: Positioned::new(Name::new("foo"), Pos::default()),
-            var_type: Positioned::new(
-                engine_parser::types::Type::new("Bool").unwrap(),
-                Pos::default(),
-            ),
+            var_type: Positioned::new(engine_parser::types::Type::new("Bool").unwrap(), Pos::default()),
             directives: vec![],
             default_value: Some(Positioned::new(ConstValue::Boolean(true), Pos::default())),
         };

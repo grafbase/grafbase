@@ -1,12 +1,12 @@
 use super::Inner;
 use crate::Engine;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
+use parser_sdl::{ConnectorParsers, GraphqlDirective, NeonDirective, OpenApiDirective, ParseResult, Registry};
+use postgresql_types::transport::NeonTransport;
 use runtime::{
     udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker},
     GraphqlRequestExecutionContext,
 };
-use postgresql_types::transport::NeonTransport;
-use parser_sdl::{ConnectorParsers, GraphqlDirective, NeonDirective, OpenApiDirective, ParseResult, Registry};
 use std::{collections::HashMap, sync::Arc};
 
 #[must_use]

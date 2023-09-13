@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use futures_util::FutureExt;
 use engine_parser::Positioned;
+use futures_util::FutureExt;
 use graph_entities::{CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
 
 use crate::{

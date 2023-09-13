@@ -1,8 +1,8 @@
+use common_types::auth::Operations;
 use engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     MetaField, ObjectType,
 };
-use common_types::auth::Operations;
 
 use crate::{
     registry::names::MetaNames,

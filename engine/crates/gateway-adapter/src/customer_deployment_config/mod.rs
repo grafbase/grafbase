@@ -1,5 +1,5 @@
-use engine::{registry::CacheConfig, AuthConfig};
 use common_types::UdfKind;
+use engine::{registry::CacheConfig, AuthConfig};
 
 pub mod local;
 

@@ -1,8 +1,8 @@
+use graph_entities::NodeID;
 use runtime::{
     search::{QueryError, Request, Response, SearchEngine, SearchEngineInner},
     GraphqlRequestExecutionContext,
 };
-use graph_entities::NodeID;
 use search_protocol::query::{Query, QueryRequest, QueryResponse, QueryResponseDiscriminants, QueryResponseParameters};
 
 use crate::bridge::Bridge;

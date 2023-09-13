@@ -1,9 +1,9 @@
+use common_types::auth::Operations;
 use engine::registry::{
     resolvers::{custom::CustomResolver, Resolver},
     MetaField, MetaInputValue,
 };
 use engine_parser::types::{ObjectType, TypeKind};
-use common_types::auth::Operations;
 
 use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
 use crate::rules::{cache_directive::CacheDirective, resolver_directive::ResolverDirective};

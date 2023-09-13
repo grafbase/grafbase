@@ -44,12 +44,12 @@ cfg_if::cfg_if! {
 
 use std::{sync::Arc, time::Duration};
 
-use dataloader::{DataLoader, LruCache};
-use dynomite::AttributeError;
 use common_types::{
     auth::{ExecutionAuth, Operations},
     UdfKind,
 };
+use dataloader::{DataLoader, LruCache};
+use dynomite::AttributeError;
 use quick_error::quick_error;
 use rusoto_core::{credential::StaticProvider, HttpClient, RusotoError};
 use rusoto_dynamodb::{DynamoDbClient, GetItemError, PutItemError, QueryError, TransactWriteItemsError};

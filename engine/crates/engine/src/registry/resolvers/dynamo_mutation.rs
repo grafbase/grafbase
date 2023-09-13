@@ -12,8 +12,8 @@ use dynamodb::{
     QueryKey, TransactionError,
 };
 use dynomite::{Attribute, AttributeValue};
-use futures_util::{future::Shared, FutureExt, StreamExt, TryFutureExt};
 use engine_value::Name;
+use futures_util::{future::Shared, FutureExt, StreamExt, TryFutureExt};
 use graph_entities::{ConstraintID, NodeID};
 use indexmap::IndexMap;
 use ulid::Ulid;
@@ -1147,8 +1147,7 @@ impl DynamoMutationResolver {
                 let by_id = key == "id";
 
                 if by_id {
-                    let id_to_be_deleted: String =
-                        engine_value::from_value(value.clone()).expect("cannot fail");
+                    let id_to_be_deleted: String = engine_value::from_value(value.clone()).expect("cannot fail");
 
                     let opaque_id = ObfuscatedID::expect(&id_to_be_deleted, ty.as_str())
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;

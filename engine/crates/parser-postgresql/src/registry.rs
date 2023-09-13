@@ -1,5 +1,5 @@
-use postgresql_types::database_definition::DatabaseDefinition;
 use parser_sdl::Registry;
+use postgresql_types::database_definition::DatabaseDefinition;
 
 pub(super) fn generate(database_definition: DatabaseDefinition, name: &str, _namespaced: bool) -> Registry {
     let mut registry = Registry::default();

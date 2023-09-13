@@ -1,6 +1,5 @@
 mod bridge;
 mod log;
-pub mod registry;
 pub mod search;
 mod ufd_invoker;
 

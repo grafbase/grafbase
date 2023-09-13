@@ -1,3 +1,4 @@
+use common_types::auth::Operations;
 use engine::{
     indexmap::IndexMap,
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_EDGE_CURSOR, OUTPUT_FIELD_ID},
@@ -12,7 +13,6 @@ use engine::{
     AuthConfig,
 };
 use engine_parser::types::TypeDefinition;
-use common_types::auth::Operations;
 
 use crate::{
     registry::{

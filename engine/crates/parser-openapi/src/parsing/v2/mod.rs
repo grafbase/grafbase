@@ -4,9 +4,7 @@ mod components;
 
 use std::collections::BTreeMap;
 
-use engine::registry::resolvers::http::{
-    ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
-};
+use engine::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapi::v2::{Operation, PathItem};

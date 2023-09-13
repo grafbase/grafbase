@@ -4,6 +4,7 @@
 //! ----------------------------------------------------------------------------
 use std::sync::Arc;
 
+use common_types::auth::{ExecutionAuth, Operations};
 use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
@@ -11,7 +12,6 @@ use engine::{
     AuthConfig, ServerError, ServerResult,
 };
 use engine_value::{indexmap::IndexMap, ConstValue};
-use common_types::auth::{ExecutionAuth, Operations};
 use log::{trace, warn};
 
 const INPUT_ARG: &str = "input";
@@ -306,12 +306,9 @@ impl AuthExtension {
     ) -> Result<(), ServerError> {
         self.check_input(CheckInputOptions {
             input: &ConstValue::Object(
-                vec![(
-                    engine::Name::new("id"),
-                    ConstValue::String("ignored".to_string()),
-                )]
-                .into_iter()
-                .collect(),
+                vec![(engine::Name::new("id"), ConstValue::String("ignored".to_string()))]
+                    .into_iter()
+                    .collect(),
             ),
             type_name: type_name.named_type(),
             mutation_name,

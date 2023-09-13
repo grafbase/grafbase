@@ -5,10 +5,10 @@ use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, PaginationOrdering, ParentEdge, QueryKey, QuerySingleRelationKey,
     QueryTypePaginatedKey,
 };
-use runtime::search::GraphqlCursor;
 use graph_entities::NodeID;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use runtime::search::GraphqlCursor;
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
 
@@ -519,9 +519,8 @@ impl DynamoResolver {
                 let by_id = key == "id";
 
                 let (pk, sk) = if by_id {
-                    let value = match NodeID::from_owned(
-                        engine_value::from_value(value.clone()).expect("cannot fail"),
-                    ) {
+                    let value = match NodeID::from_owned(engine_value::from_value(value.clone()).expect("cannot fail"))
+                    {
                         Ok(val) => val,
                         Err(_) => {
                             return Ok(ResolvedValue::null().with_early_return());

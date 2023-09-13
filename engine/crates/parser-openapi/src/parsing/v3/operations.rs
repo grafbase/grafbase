@@ -1,8 +1,6 @@
 use std::rc::Rc;
 
-use engine::registry::resolvers::http::{
-    ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
-};
+use engine::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use indexmap::IndexMap;
 use openapiv3::{Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
 

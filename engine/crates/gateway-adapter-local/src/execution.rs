@@ -3,13 +3,13 @@ use std::{collections::HashMap, sync::Arc};
 use async_trait::async_trait;
 use bytes::Bytes;
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
-use engine::{registry::resolvers::graphql, RequestHeaders, Response, StreamingPayload};
+use engine::{registry::resolvers::graphql, registry::VersionedRegistry, RequestHeaders, Response, StreamingPayload};
 use futures_util::{future::BoxFuture, stream::BoxStream, AsyncBufReadExt, SinkExt, Stream, StreamExt};
-use runtime_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
-use runtime_protocol::{
+use gateway_adapter::{
     ExecutionEngine, ExecutionError, ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest,
-    ExecutionResult, LocalSpecificConfig, StreamingFormat, VersionedRegistry,
+    ExecutionResult, LocalSpecificConfig, StreamingFormat,
 };
+use runtime_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
 use worker::{js_sys, Env};
 use worker_env::{EnvExt, VarType};
 
@@ -33,7 +33,7 @@ pub struct LocalExecution {
 
 #[allow(unused_variables, clippy::expect_fun_call)]
 fn get_db_context(
-    execution_request: &ExecutionRequest<runtime_protocol::LocalSpecificConfig>,
+    execution_request: &ExecutionRequest<gateway_adapter::LocalSpecificConfig>,
     env: &HashMap<String, String>,
 ) -> DynamoDBContext {
     #[cfg(not(feature = "sqlite"))]
@@ -121,7 +121,7 @@ impl LocalExecution {
     #[allow(clippy::expect_fun_call)]
     pub fn build_schema(
         &self,
-        execution_request: &ExecutionRequest<runtime_protocol::LocalSpecificConfig>,
+        execution_request: &ExecutionRequest<gateway_adapter::LocalSpecificConfig>,
     ) -> ExecutionResult<engine::Schema> {
         let db_context = get_db_context(execution_request, &self.env);
 
@@ -182,7 +182,7 @@ impl ExecutionEngine for LocalExecution {
 
     async fn execute(
         self: Arc<Self>,
-        mut execution_request: ExecutionRequest<runtime_protocol::LocalSpecificConfig>,
+        mut execution_request: ExecutionRequest<gateway_adapter::LocalSpecificConfig>,
     ) -> ExecutionResult<Response> {
         let schema = self.build_schema(&execution_request)?;
 
@@ -223,7 +223,7 @@ impl ExecutionEngine for LocalExecution {
 
     async fn health(
         self: Arc<Self>,
-        _req: ExecutionHealthRequest<runtime_protocol::LocalSpecificConfig>,
+        _req: ExecutionHealthRequest<gateway_adapter::LocalSpecificConfig>,
     ) -> ExecutionResult<ExecutionHealthResponse> {
         Ok(ExecutionHealthResponse {
             deployment_id: "local".to_string(),

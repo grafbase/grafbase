@@ -95,8 +95,8 @@ impl<'a> Visitor<'a> for AuthDirective {
 pub mod tests {
     use std::collections::HashMap;
 
-    use engine_parser::parse_schema;
     use common_types::auth::Operations;
+    use engine_parser::parse_schema;
     use pretty_assertions::assert_eq;
     use providers::DEFAULT_GROUPS_CLAIM;
 

@@ -1,3 +1,4 @@
+use common_types::auth::Operations;
 use engine::registry::{
     resolvers::{
         atlas_data_api::{AtlasDataApiResolver, OperationType},
@@ -5,7 +6,6 @@ use engine::registry::{
     },
     MetaField, MetaInputValue,
 };
-use common_types::auth::Operations;
 
 use crate::{
     registry::names::{MetaNames, INPUT_ARG_FILTER, INPUT_ARG_INPUT},
