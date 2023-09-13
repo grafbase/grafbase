@@ -2,8 +2,10 @@ use engine_parser::{
     types::{Directive, Selection, SelectionSet},
     Positioned,
 };
+use engine_value::Variables;
+use serde::Deserialize;
 
-use crate::{registry::MetaType, ContextBase, ContextSelectionSet, ServerError};
+use crate::{directive::DirectiveDeserializer, registry::MetaType, ContextBase, ContextSelectionSet, ServerError};
 
 /// The details of a fragment spread/inline fragment.
 ///
@@ -16,7 +18,11 @@ pub(super) struct FragmentDetails<'a> {
 
 impl<'a> FragmentDetails<'a> {
     pub(super) fn should_defer(&self, ctx: &ContextBase<'a, &Positioned<SelectionSet>>) -> bool {
-        self.defer.is_some() && ctx.deferred_workloads.is_some()
+        self.defer
+            .as_ref()
+            .map(|directive| directive.should_defer)
+            .unwrap_or_default()
+            && ctx.deferred_workloads.is_some()
     }
 
     pub(super) fn from_fragment_selection(
@@ -26,7 +32,7 @@ impl<'a> FragmentDetails<'a> {
         match selection {
             Selection::Field(_) => unreachable!("this should have been validated before calling this function"),
             Selection::FragmentSpread(spread) => {
-                let defer = DeferDirective::parse(&spread.directives);
+                let defer = DeferDirective::parse(&spread.directives, &ctx.query_env.variables)?;
                 let fragment = ctx.query_env.fragments.get(&spread.node.fragment_name.node);
                 let fragment = match fragment {
                     Some(fragment) => fragment,
@@ -50,7 +56,7 @@ impl<'a> FragmentDetails<'a> {
                     .as_ref()
                     .map(|positioned| positioned.node.on.node.as_str()),
                 selection_set: &fragment.node.selection_set,
-                defer: DeferDirective::parse(&fragment.directives),
+                defer: DeferDirective::parse(&fragment.directives, &ctx.query_env.variables)?,
             }),
         }
     }
@@ -79,19 +85,121 @@ impl<'a> FragmentDetails<'a> {
     }
 }
 
+#[derive(serde::Deserialize, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct DeferDirective {
-    #[allow(dead_code)]
-    label: Option<String>,
+    pub label: Option<String>,
+    #[serde(rename = "if", default = "default_true")]
+    should_defer: bool,
 }
 
+fn default_true() -> bool {
+    true
+}
+
+const DEFER: &str = "defer";
+
 impl DeferDirective {
-    pub fn parse(directives: &[Positioned<Directive>]) -> Option<Self> {
+    pub fn parse(directives: &[Positioned<Directive>], variables: &Variables) -> Result<Option<Self>, ServerError> {
         directives
             .iter()
-            .find(|directive| directive.node.name.node == "defer")
-            .map(|directive| &directive.node)
-            .map(|_|
-                // currently we're not bothering to parse attributes.  that will come later
-                DeferDirective { label: None })
+            .find(|directive| directive.node.name.node == DEFER)
+            .map(|directive| {
+                DeferDirective::deserialize(DirectiveDeserializer::new(&directive.node, variables))
+                    .map_err(|error| error.into_server_error(DEFER, directive.pos))
+            })
+            .transpose()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use engine_parser::parse_query;
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn test_defer_parsing() {
+        assert_eq!(
+            parse_directive("@defer").unwrap(),
+            DeferDirective {
+                label: None,
+                should_defer: true
+            }
+        );
+
+        assert_eq!(
+            parse_directive("@defer(if: false)").unwrap(),
+            DeferDirective {
+                label: None,
+                should_defer: false
+            }
+        );
+
+        assert_eq!(
+            parse_directive("@defer(if: $two)").unwrap(),
+            DeferDirective {
+                label: None,
+                should_defer: true
+            }
+        );
+
+        assert_eq!(
+            parse_directive("@defer(if: $two, label: $one)").unwrap(),
+            DeferDirective {
+                label: Some("hello".into()),
+                should_defer: true
+            }
+        );
+
+        assert_eq!(
+            parse_directive(r#"@defer(label: "one")"#).unwrap(),
+            DeferDirective {
+                label: Some("one".into()),
+                should_defer: true
+            }
+        );
+    }
+
+    #[test]
+    fn missing_variable_error() {
+        insta::assert_display_snapshot!(parse_directive(r#"@defer(label: $nope)"#).unwrap_err(), @"Error interpreting @defer: unknown variable nope");
+    }
+
+    #[test]
+    fn additional_variable_error() {
+        insta::assert_display_snapshot!(parse_directive(r#"@defer(wrong: true)"#).unwrap_err(), @"Error interpreting @defer: unknown field `wrong`, expected `label` or `if`");
+    }
+
+    #[test]
+    fn wrong_variable_type_error() {
+        insta::assert_display_snapshot!(parse_directive(r#"@defer(label: $two)"#).unwrap_err(), @"Error interpreting @defer: invalid type: boolean `true`, expected a string for the argument `label`");
+    }
+
+    #[test]
+    fn wrong_literal_type_error() {
+        insta::assert_display_snapshot!(parse_directive(r#"@defer(label: true)"#).unwrap_err(), @"Error interpreting @defer: invalid type: boolean `true`, expected a string for the argument `label`");
+    }
+
+    fn parse_directive(directive_string: &str) -> Result<DeferDirective, ServerError> {
+        let ast_directives = parse_query(format!("query @other(blah: true) {directive_string} {{ name }}"))
+            .unwrap()
+            .operations
+            .iter()
+            .next()
+            .unwrap()
+            .1
+            .directives
+            .clone();
+
+        DeferDirective::parse(
+            &ast_directives,
+            &Variables::from_json(json!({
+                "one": "hello",
+                "two": true
+            })),
+        )
+        .map(Option::unwrap)
     }
 }

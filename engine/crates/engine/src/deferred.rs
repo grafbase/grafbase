@@ -22,13 +22,14 @@ pub struct DeferredWorkload {
 
 impl DeferredWorkload {
     pub fn new(
+        label: Option<String>,
         selection_set: Positioned<SelectionSet>,
         path: QueryPath,
         current_type_name: NamedType<'static>,
         parent_resolver_value: Option<ResolvedValue>,
     ) -> Self {
         DeferredWorkload {
-            label: None, // Will work on adding labels later
+            label,
             selection_set,
             path,
             current_type_name,

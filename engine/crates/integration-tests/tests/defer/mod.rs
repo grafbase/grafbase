@@ -449,6 +449,246 @@ fn test_defer_at_root() {
     });
 }
 
+#[test]
+fn test_defer_with_labels() {
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_engine(petstore_schema(mock_server.address())).await;
+
+        mock_doggo(&mock_server, 123, "First Deferred Doggo").await;
+        mock_doggo(&mock_server, 456, "Second Deferred Doggo").await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute_stream(
+                r#"
+                    query {
+                        petstore {
+                          ... @defer(label: "outer") {
+                            firstPet: pet(petId: 123) {
+                                id
+                                name
+                            }
+                            ... @defer(label: "inner") {
+                                secondPet: pet(petId: 456) {
+                                    id
+                                    name
+                                }
+                            }
+                          }
+                        }
+                    }
+                "#,
+                )
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": {
+              "petstore": {}
+            }
+          },
+          {
+            "data": {
+              "firstPet": {
+                "id": 123,
+                "name": "First Deferred Doggo"
+              }
+            },
+            "hasNext": true,
+            "label": "outer",
+            "path": [
+              "petstore"
+            ]
+          },
+          {
+            "data": {
+              "secondPet": {
+                "id": 456,
+                "name": "Second Deferred Doggo"
+              }
+            },
+            "hasNext": false,
+            "label": "inner",
+            "path": [
+              "petstore"
+            ]
+          }
+        ]
+        "###
+        );
+    });
+}
+
+#[test]
+fn test_defer_with_if_true() {
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_engine(petstore_schema(mock_server.address())).await;
+
+        mock_doggo(&mock_server, 123, "Immediate Doggo").await;
+        mock_doggo(&mock_server, 456, "Deferred Doggo").await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute_stream(
+                r#"
+                    query {
+                        petstore {
+                            pet(petId: 123) {
+                                id
+                                name
+                            }
+                            ... @defer(if: true) {
+                                deferredPet: pet(petId: 456) {
+                                    id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                "#,
+                )
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": {
+              "petstore": {
+                "pet": {
+                  "id": 123,
+                  "name": "Immediate Doggo"
+                }
+              }
+            }
+          },
+          {
+            "data": {
+              "deferredPet": {
+                "id": 456,
+                "name": "Deferred Doggo"
+              }
+            },
+            "hasNext": false,
+            "path": [
+              "petstore"
+            ]
+          }
+        ]
+        "###
+        );
+    });
+}
+
+#[test]
+fn test_defer_with_if_false() {
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_engine(petstore_schema(mock_server.address())).await;
+
+        mock_doggo(&mock_server, 123, "Immediate Doggo").await;
+        mock_doggo(&mock_server, 456, "Deferred Doggo").await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute_stream(
+                r#"
+                    query {
+                        petstore {
+                            pet(petId: 123) {
+                                id
+                                name
+                            }
+                            ... @defer(if: false) {
+                                notActuallyDeferredPet: pet(petId: 456) {
+                                    id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                "#,
+                )
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": {
+              "petstore": {
+                "notActuallyDeferredPet": {
+                  "id": 456,
+                  "name": "Deferred Doggo"
+                },
+                "pet": {
+                  "id": 123,
+                  "name": "Immediate Doggo"
+                }
+              }
+            }
+          }
+        ]
+        "###
+        );
+    });
+}
+
+#[test]
+fn test_invalid_defer_parameters() {
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_engine(petstore_schema(mock_server.address())).await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute_stream(
+                r#"
+                    query {
+                        petstore {
+                            ... @defer(if: "hello") {
+                                pet(petId: 456) {
+                                    id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                "#,
+                )
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": null,
+            "errors": [
+              {
+                "locations": [
+                  {
+                    "column": 40,
+                    "line": 4
+                  }
+                ],
+                "message": "Invalid value for argument \"if\", expected type \"Boolean\""
+              }
+            ]
+          }
+        ]
+        "###
+        );
+    });
+}
+
 async fn build_engine(schema: String) -> Engine {
     EngineBuilder::new(schema)
         .with_openapi_schema(

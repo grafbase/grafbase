@@ -509,11 +509,12 @@ fn defer_fragment(
     parent_resolver_value: &Option<ResolvedValue>,
 ) -> Result<(), ()> {
     let deferred_sender = ctx.deferred_workloads.as_ref().ok_or(())?;
-    if fragment_details.defer.is_none() {
+    let Some(directive) = fragment_details.defer.as_ref() else {
         return Err(());
-    }
+    };
 
     let workload = DeferredWorkload::new(
+        directive.label.clone(),
         fragment_details.selection_set.clone(),
         ctx.path.clone(),
         root.name().to_string().into(),
