@@ -9,6 +9,7 @@ use crate::{QueryPath, Response, ServerError};
 ///
 /// At some point we might add support for subscriptions in which case a user will probably
 /// see multiple Response entries.
+#[derive(Debug)]
 pub enum StreamingPayload {
     Response(Response),
     Incremental(IncrementalPayload),

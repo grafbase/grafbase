@@ -27,7 +27,7 @@ features = ["json"]
 [dependencies.engine]
 path = "../engine"
 default-features = false
-features = ["tracing_worker", "defer"]
+features = ["tracing_worker"]
 
 [dependencies.parser-sdl]
 path = "../parser-sdl"

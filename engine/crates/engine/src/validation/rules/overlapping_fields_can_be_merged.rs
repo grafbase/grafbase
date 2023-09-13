@@ -71,8 +71,8 @@ impl<'a, 'ctx> FindConflicts<'a, 'ctx> {
                     format!("Fields \"{name}\" conflict because they have differing arguments. Use different aliases on the fields to fetch both if this was intentional."));
             }
 
-            for (name, value) in &prev_field.node.arguments {
-                match field.node.get_argument(&name.node) {
+            for (arg_name, value) in &prev_field.node.arguments {
+                match field.node.get_argument(&arg_name.node) {
                     Some(other_value) if value == other_value => {}
                     _=> self.ctx.report_error(
                         vec![prev_field.pos, field.pos],

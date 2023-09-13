@@ -384,6 +384,71 @@ fn test_defer_with_errors() {
     });
 }
 
+#[test]
+fn test_defer_at_root() {
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_engine(petstore_schema(mock_server.address())).await;
+
+        mock_doggo(&mock_server, 123, "Immediate Doggo").await;
+        mock_doggo(&mock_server, 456, "Deferred Doggo").await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute_stream(
+                r#"
+                    query {
+                        petstore {
+                            pet(petId: 123) {
+                                id
+                                name
+                            }
+						}
+						... @defer {
+							petstore {
+                                deferredPet: pet(petId: 456) {
+                                    id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                "#,
+                )
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": {
+              "petstore": {
+                "pet": {
+                  "id": 123,
+                  "name": "Immediate Doggo"
+                }
+              }
+            }
+          },
+          {
+            "data": {
+              "petstore": {
+                "deferredPet": {
+                  "id": 456,
+                  "name": "Deferred Doggo"
+                }
+              }
+            },
+            "hasNext": false,
+            "path": []
+          }
+        ]
+        "###
+        );
+    });
+}
+
 async fn build_engine(schema: String) -> Engine {
     EngineBuilder::new(schema)
         .with_openapi_schema(

@@ -14,6 +14,7 @@ dynamodb = { path = "../dynamodb", features = ["tracing"] }
 engine = { path = "../engine", features = [
     "tracing_worker",
 ], default-features = false }
+graphql-extensions = { path = "../graphql-extensions" }
 runtime-local = { path = "../runtime/local" }
 runtime = { path = "../runtime" }
 
@@ -21,12 +22,18 @@ runtime = { path = "../runtime" }
 worker-env = { path = "../worker-env" }
 runtime-protocol = { path = "../runtime-protocol" }
 
+async-sse = "5"
 async-trait = "0.1"
-worker = "0.0.18"
+bytes = "1"
 cfg-if = "1"
-ulid = "1"
-graphql-extensions = { path = "../graphql-extensions" }
+futures-channel = "0.3"
+futures-util = { workspace = true }
+multipart-stream = "0.1"
 serde_json = "1"
+tracing = { workspace = true }
+ulid = "1"
+worker = "0.0.18"
+
 
 [features]
 sqlite = ["dynamodb/sqlite"]
