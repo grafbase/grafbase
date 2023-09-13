@@ -297,8 +297,8 @@ fn into_byte_stream_and_future(
 
                 // The GraphQLOverSSE spec suggests we just need the event name on the complete
                 // event but the SSE spec says that you should drop events with an empty data
-                // buffer.  So I'm just putting complete in the data buffer as well for now.
-                if let Err(error) = sse_sender.send("complete", "complete", None).await {
+                // buffer.  So I'm just putting null in the data buffer for now.
+                if let Err(error) = sse_sender.send("complete", "null", None).await {
                     tracing::error!("Could not send complete payload via sse_sender: {error}");
                 }
             });
