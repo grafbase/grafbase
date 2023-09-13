@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use function_name::named;
-use engine::{registry::Registry, Schema};
 use common_types::UdfKind;
+use engine::{registry::Registry, Schema};
+use function_name::named;
 use serde_json as _;
 
 use crate::rules::visitor::RuleError;

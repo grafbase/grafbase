@@ -292,14 +292,14 @@ impl Operation {
                     }
                 })
                 .collect(),
-            request_body: self.request_body(graph).map(|request_body| {
-                engine::registry::resolvers::http::RequestBody {
+            request_body: self
+                .request_body(graph)
+                .map(|request_body| engine::registry::resolvers::http::RequestBody {
                     variable_resolve_definition: VariableResolveDefinition::connector_input_type_name(
                         request_body.argument_name().to_owned(),
                     ),
                     content_type: request_body.content_type(graph).clone(),
-                }
-            }),
+                }),
         }))
     }
 }

@@ -1,3 +1,4 @@
+use common_types::auth::Operations;
 use dynamodb::constant;
 use engine::{
     indexmap::IndexMap,
@@ -13,7 +14,6 @@ use engine::{
     AuthConfig,
 };
 use engine_parser::types::{Type, TypeDefinition};
-use common_types::auth::Operations;
 
 use super::{
     names::{

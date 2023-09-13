@@ -21,6 +21,7 @@ pub mod types;
 use std::{borrow::Cow, collections::HashMap};
 
 use case::CaseExt;
+use common_types::auth::Operations;
 use engine::{
     indexmap::IndexMap,
     names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT},
@@ -34,7 +35,6 @@ use engine::{
     AuthConfig, Positioned,
 };
 use engine_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
-use common_types::auth::Operations;
 use if_chain::if_chain;
 
 use super::{
@@ -400,10 +400,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             //
 
             let one_of_type_name = {
-                let extra_fields = vec![MetaInputValue::new(
-                    engine::names::OUTPUT_FIELD_ID,
-                    "ID".to_string(),
-                )];
+                let extra_fields = vec![MetaInputValue::new(engine::names::OUTPUT_FIELD_ID, "ID".to_string())];
 
                 types::register_oneof_type(ctx, type_definition, &unique_directives, extra_fields)
             };
@@ -480,9 +477,9 @@ fn has_any_invalid_metadata_fields(ctx: &mut VisitorContext<'_>, object_name: &s
 mod tests {
     use std::collections::HashMap;
 
+    use common_types::auth::Operations;
     use engine::AuthConfig;
     use engine_parser::parse_schema;
-    use common_types::auth::Operations;
     use pretty_assertions::assert_eq;
     use serde_json as _;
 

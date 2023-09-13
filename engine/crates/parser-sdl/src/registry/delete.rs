@@ -1,3 +1,4 @@
+use common_types::auth::Operations;
 use engine::{
     names::{OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS},
     registry::{
@@ -8,7 +9,6 @@ use engine::{
     AuthConfig, CacheControl,
 };
 use engine_parser::types::{BaseType, TypeDefinition};
-use common_types::auth::Operations;
 
 use crate::{
     registry::names::{MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT},

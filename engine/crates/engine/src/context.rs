@@ -12,8 +12,8 @@ use std::{
 use async_lock::RwLock as AsyncRwLock;
 use derivative::Derivative;
 use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
-use fnv::FnvHashMap;
 use engine_value::{Value as InputValue, Variables};
+use fnv::FnvHashMap;
 use graph_entities::QueryResponse;
 use http::{
     header::{AsHeaderName, HeaderMap, IntoHeaderName},

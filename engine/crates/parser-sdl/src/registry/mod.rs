@@ -6,9 +6,7 @@ use std::fmt::Display;
 
 use case::CaseExt;
 use engine::{
-    registry::{
-        self, enums::EngineEnum, relations::MetaRelation, MetaEnumValue, MetaInputValue, NamedType, Registry,
-    },
+    registry::{self, enums::EngineEnum, relations::MetaRelation, MetaEnumValue, MetaInputValue, NamedType, Registry},
     validation::dynamic_validators::DynValidator,
 };
 use engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use runtime_protocol::VersionedRegistry;
 use registry_provider::{RegistryError, RegistryProvider, RegistryResult};
+use runtime_protocol::VersionedRegistry;
 use worker::{wasm_bindgen::JsValue, Env};
 
 pub struct Registry<'a> {

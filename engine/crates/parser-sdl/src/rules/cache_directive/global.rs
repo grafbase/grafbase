@@ -204,9 +204,7 @@ fn validate_mutation_invalidation(
     match mutation_invalidation_policy {
         // ensure the referenced field exists in the type
         // we allow the _id_ to be missing because our @model types have it
-        CacheInvalidationPolicy::Entity { field: policy_field }
-            if policy_field != engine::names::OUTPUT_FIELD_ID =>
-        {
+        CacheInvalidationPolicy::Entity { field: policy_field } if policy_field != engine::names::OUTPUT_FIELD_ID => {
             let referenced_field = fields.iter().find(|(field_name, _)| *field_name == policy_field);
 
             // doesn't exist return early with appropriate message

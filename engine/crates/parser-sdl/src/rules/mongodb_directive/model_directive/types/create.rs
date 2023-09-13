@@ -1,4 +1,5 @@
 use case::CaseExt;
+use common_types::auth::Operations;
 use engine::{
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
     registry::{
@@ -6,7 +7,6 @@ use engine::{
         InputObjectType, MetaField, MetaInputValue, ObjectType,
     },
 };
-use common_types::auth::Operations;
 
 use crate::{
     registry::{get_length_validator, names::MetaNames},

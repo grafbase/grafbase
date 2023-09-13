@@ -35,7 +35,6 @@ use std::{
 };
 
 use dataloader::{DataLoader, Loader, NoCache};
-use futures_util::Future;
 use engine_parser::{
     parse_query,
     types::{
@@ -43,6 +42,7 @@ use engine_parser::{
     },
 };
 use engine_value::{ConstValue, Name, Variables};
+use futures_util::Future;
 use http::{header::USER_AGENT, StatusCode};
 use inflector::Inflector;
 use send_wrapper::SendWrapper;
@@ -459,8 +459,8 @@ fn prefix_result_typename(value: &mut serde_json::Value, prefix: &str) {
 
 #[cfg(test)]
 mod tests {
-    use futures_util::join;
     use engine_parser::parse_query;
+    use futures_util::join;
     use indoc::indoc;
     use serde_json::{json, Value};
     use wiremock::{

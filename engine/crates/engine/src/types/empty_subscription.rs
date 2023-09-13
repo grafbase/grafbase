@@ -1,7 +1,7 @@
 use std::{borrow::Cow, pin::Pin};
 
-use futures_util::stream::{self, Stream};
 use engine_parser::types::OperationType;
+use futures_util::stream::{self, Stream};
 
 use crate::{registry, Context, Response, ServerError, SubscriptionType};
 

@@ -1,4 +1,5 @@
 use case::CaseExt;
+use common_types::auth::Operations;
 use engine::{
     registry::{
         self,
@@ -10,7 +11,6 @@ use engine::{
     AuthConfig,
 };
 use engine_parser::types::{BaseType, ObjectType, Type, TypeDefinition, TypeKind};
-use common_types::auth::Operations;
 
 use super::names::{INPUT_FIELD_NUM_OP_DECREMENT, INPUT_FIELD_NUM_OP_INCREMENT, INPUT_FIELD_NUM_OP_SET};
 use crate::{

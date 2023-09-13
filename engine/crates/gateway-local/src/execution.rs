@@ -10,7 +10,7 @@ use runtime_protocol::{
     ExecutionEngine, ExecutionError, ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest,
     ExecutionResult, LocalSpecificConfig, StreamingFormat, VersionedRegistry,
 };
-use worker::{js_sys, Env};
+use worker::Env;
 use worker_env::{EnvExt, VarType};
 
 pub const REGISTRY_ENV_VAR: &str = "REGISTRY";

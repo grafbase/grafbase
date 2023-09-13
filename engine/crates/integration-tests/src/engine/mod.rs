@@ -2,8 +2,8 @@ mod builder;
 
 use std::{collections::HashMap, future::IntoFuture, sync::Arc};
 
-use futures::{future::BoxFuture, Stream, StreamExt};
 use engine::{Request, RequestHeaders, Response, Schema, StreamingPayload, Variables};
+use futures::{future::BoxFuture, Stream, StreamExt};
 
 pub use self::builder::EngineBuilder;
 

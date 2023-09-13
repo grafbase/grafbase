@@ -1,7 +1,7 @@
 use std::{borrow::Cow, pin::Pin};
 
-use futures_util::stream::{Stream, StreamExt};
 use engine_parser::types::OperationType;
+use futures_util::stream::{Stream, StreamExt};
 
 use crate::{
     parser::types::{Selection, TypeCondition},

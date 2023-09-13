@@ -6,6 +6,7 @@ use std::{
     sync::RwLock,
 };
 
+use common_types::UdfKind;
 use engine::{
     indexmap::IndexMap,
     model::{__Schema, __Type},
@@ -19,7 +20,6 @@ use engine_parser::types::{
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
 use engine_value::ConstValue;
-use common_types::UdfKind;
 
 use super::{graphql_directive::GraphqlDirective, neon_directive::NeonDirective, openapi_directive::OpenApiDirective};
 use crate::{
@@ -223,8 +223,7 @@ impl<'a> VisitorContext<'a> {
             .into_iter()
             .map(|udf_name| (UdfKind::Resolver, udf_name))
             .collect::<HashSet<_>>();
-        if let Some(engine::AuthProvider::Authorizer(AuthorizerProvider { ref name })) = registry.auth.provider
-        {
+        if let Some(engine::AuthProvider::Authorizer(AuthorizerProvider { ref name })) = registry.auth.provider {
             required_udfs.insert((UdfKind::Authorizer, name.clone()));
         }
 

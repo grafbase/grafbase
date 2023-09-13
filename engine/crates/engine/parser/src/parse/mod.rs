@@ -21,8 +21,8 @@ mod executable;
 mod service;
 mod utils;
 
-pub use executable::parse_query;
 use engine_value::{ConstValue, Name, Number, Value};
+pub use executable::parse_query;
 pub use service::parse_schema;
 
 #[derive(Parser)]

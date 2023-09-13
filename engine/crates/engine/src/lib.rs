@@ -86,6 +86,10 @@ pub use base::{
 pub use context::ContextSelectionSet;
 pub use context::*;
 pub use custom_directive::{CustomDirective, CustomDirectiveFactory};
+pub use engine_parser as parser;
+pub use engine_value::{
+    from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number, SerializerError, Variables,
+};
 pub use error::{
     Error, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult, ParseRequestError, Result,
     ResultExt, ServerError, ServerResult,
@@ -93,10 +97,6 @@ pub use error::{
 pub use extensions::ResolveFut;
 #[doc(hidden)]
 pub use futures_util;
-pub use engine_parser as parser;
-pub use engine_value::{
-    from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number, SerializerError, Variables,
-};
 #[doc(hidden)]
 pub use graph_entities;
 pub use graph_entities::ResponseNodeId;

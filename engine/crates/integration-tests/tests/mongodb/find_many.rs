@@ -1,8 +1,8 @@
 mod pagination;
 
 use expect_test::expect;
-use integration_tests::{with_mongodb, with_namespaced_mongodb};
 use indoc::indoc;
+use integration_tests::{with_mongodb, with_namespaced_mongodb};
 use serde_json::json;
 
 #[test]

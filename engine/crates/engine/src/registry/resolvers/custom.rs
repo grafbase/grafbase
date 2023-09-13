@@ -1,5 +1,6 @@
 use std::hash::Hash;
 
+use common_types::UdfKind;
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use runtime::{
@@ -9,7 +10,6 @@ use runtime::{
     },
     GraphqlRequestExecutionContext,
 };
-use common_types::UdfKind;
 use send_wrapper::SendWrapper;
 
 use super::ResolvedValue;

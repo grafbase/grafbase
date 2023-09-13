@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
+use common_types::{LogEventType, OperationType};
 use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute, NextPrepareRequest},
     parser::types::OperationDefinition,
     Positioned, Request, Response, ServerResult,
 };
 use runtime::{log::LogEventReceiver, GraphqlRequestExecutionContext};
-use common_types::{LogEventType, OperationType};
 
 pub struct RuntimeLogExtension {
     log_event_receiver: Arc<Box<dyn LogEventReceiver + Send + Sync>>,

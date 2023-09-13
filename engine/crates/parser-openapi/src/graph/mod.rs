@@ -1,8 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use engine::registry::resolvers::http::{
-    ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType,
-};
+use engine::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use petgraph::{

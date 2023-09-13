@@ -1,3 +1,4 @@
+use common_types::auth::Operations;
 use engine::{
     indexmap::IndexMap,
     registry::{
@@ -8,7 +9,6 @@ use engine::{
         Deprecation, MetaField, MetaInputValue,
     },
 };
-use common_types::auth::Operations;
 
 use crate::{
     registry::names::INPUT_ARG_BY,

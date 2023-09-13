@@ -4,6 +4,7 @@ extern crate assert_matches;
 
 use std::collections::{HashMap, HashSet};
 
+use common_types::UdfKind;
 use engine::{
     registry::{
         enums::EngineEnums,
@@ -12,7 +13,6 @@ use engine::{
     Pos,
 };
 use engine_parser::{types::ServiceDocument, Error as ParserError};
-use common_types::UdfKind;
 use rules::{
     auth_directive::AuthDirective,
     basic_type::BasicType,

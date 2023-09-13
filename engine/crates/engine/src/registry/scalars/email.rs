@@ -1,5 +1,5 @@
-use fast_chemail::parse_email;
 use engine_value::ConstValue;
+use fast_chemail::parse_email;
 
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};

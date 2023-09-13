@@ -1,6 +1,6 @@
 use expect_test::expect;
-use integration_tests::{with_mongodb, with_namespaced_mongodb};
 use indoc::{formatdoc, indoc};
+use integration_tests::{with_mongodb, with_namespaced_mongodb};
 use serde_json::json;
 
 #[test]
