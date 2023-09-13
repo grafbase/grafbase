@@ -2,14 +2,8 @@ use async_graphql::Context;
 use engine::registry::CacheTag;
 use send_wrapper::SendWrapper;
 
-#[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
-use crate::cache::CloudflareGlobal;
-#[cfg(any(feature = "local", feature = "sqlite"))]
-use crate::cache::NoopGlobalCache;
-use crate::{
-    admin::{error::AdminError, graphql::cache::mutation::input::CachePurgeTypesInput},
-    cache::GlobalCacheProvider,
-    platform::context::RequestContext,
+use crate::admin::{
+    error::AdminError, graphql::cache::mutation::input::CachePurgeTypesInput, WrappedCache, WrappedContext,
 };
 
 mod input {
@@ -68,11 +62,12 @@ impl CachePurgeMutation {
         ctx: &Context<'_>,
         input: CachePurgeTypesInput,
     ) -> Result<output::CachePurgeTypes, AdminError> {
-        let global_cache_provider =
-            get_cache_provider(ctx).map_err(|_e| AdminError::CachePurgeError("Missing cache provider".to_string()))?;
+        let global_cache_provider = ctx
+            .data::<WrappedCache>()
+            .map_err(|_e| AdminError::CachePurgeError("Missing cache provider".to_string()))?;
 
         let request_context = ctx
-            .data::<SendWrapper<RequestContext>>()
+            .data::<WrappedContext>()
             .map_err(|_e| AdminError::CachePurgeError("Missing request context".to_string()))?;
 
         let cache_tags: Vec<String> = match input {
@@ -98,11 +93,7 @@ impl CachePurgeMutation {
                 .collect(),
         };
 
-        log::info!(
-            request_context.cloudflare_request_context.ray_id,
-            "Purging cache tags: {:?}",
-            cache_tags
-        );
+        log::info!(request_context.ray_id(), "Purging cache tags: {:?}", cache_tags);
 
         let send_purge_future = SendWrapper::new(global_cache_provider.purge_by_tags(cache_tags.clone()));
 
@@ -110,53 +101,37 @@ impl CachePurgeMutation {
             .await
             .map_err(|e| AdminError::CachePurgeError(e.to_string()))?;
 
-        log::info!(
-            request_context.cloudflare_request_context.ray_id,
-            "Successfully purged tags"
-        );
+        log::info!(request_context.ray_id(), "Successfully purged tags");
 
         Ok(output::CachePurgeTypes { tags: cache_tags })
     }
 
     pub async fn cache_purge_all(&self, ctx: &Context<'_>) -> Result<output::CachePurgeDomain, AdminError> {
-        let global_cache_provider =
-            get_cache_provider(ctx).map_err(|_e| AdminError::CachePurgeError("Missing cache provider".to_string()))?;
+        let global_cache_provider = ctx
+            .data::<WrappedCache>()
+            .map_err(|_e| AdminError::CachePurgeError("Missing cache provider".to_string()))?;
 
         let request_context = ctx
-            .data::<SendWrapper<RequestContext>>()
+            .data::<WrappedContext>()
             .map_err(|_e| AdminError::CachePurgeError("Missing request context".to_string()))?;
 
         log::info!(
-            request_context.cloudflare_request_context.ray_id,
+            request_context.ray_id(),
             "Purging cache for host: {:?}",
-            request_context.cloudflare_request_context.host_name
+            request_context.host_name(),
         );
 
-        let send_purge_future = SendWrapper::new(
-            global_cache_provider.purge_by_hostname(request_context.cloudflare_request_context.host_name.clone()),
-        );
+        let send_purge_future =
+            SendWrapper::new(global_cache_provider.purge_by_hostname(request_context.host_name().to_string()));
 
         send_purge_future
             .await
             .map_err(|e| AdminError::CachePurgeError(e.to_string()))?;
 
-        log::info!(
-            request_context.cloudflare_request_context.ray_id,
-            "Successfully purged host"
-        );
+        log::info!(request_context.ray_id(), "Successfully purged host");
 
         Ok(output::CachePurgeDomain {
-            hostname: request_context.cloudflare_request_context.host_name.clone(),
+            hostname: request_context.host_name().to_string(),
         })
     }
-}
-
-#[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
-fn get_cache_provider<'a>(ctx: &'a Context<'_>) -> async_graphql::Result<&'a SendWrapper<CloudflareGlobal>> {
-    ctx.data::<SendWrapper<CloudflareGlobal>>()
-}
-
-#[cfg(any(feature = "local", feature = "sqlite"))]
-fn get_cache_provider<'a>(ctx: &'a Context<'_>) -> async_graphql::Result<&'a SendWrapper<NoopGlobalCache>> {
-    ctx.data::<SendWrapper<NoopGlobalCache>>()
 }

@@ -1,46 +1,31 @@
-mod api_key;
-
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use common_types::{auth::ExecutionAuth, UdfKind};
 use engine::{AuthConfig, AuthorizerProvider};
 use futures_util::TryFutureExt;
 use jwt_verifier::{VerificationError, VerifiedToken};
 use runtime::udf::{AuthorizerRequestPayload, CustomResolverResponse, UdfInvoker};
-use worker::{Env, Request};
-use worker_utils::RequestExt;
+use runtime_ext::kv::KvManager;
 
-pub use self::api_key::*;
-use crate::platform::context::RequestContext;
-
-const AUTHORIZATION_HEADER: &str = "authorization";
-pub const X_API_KEY_HEADER: &str = "x-api-key";
+pub(super) const AUTHORIZATION_HEADER: &str = "authorization";
+const JWKS_CACHE_KV_NAMESPACE: &str = "JWKS_CACHE";
 
 #[derive(Debug, thiserror::Error)]
 #[allow(clippy::enum_variant_names)]
 pub enum AuthError {
-    #[error("invalid api key: {0}")]
-    #[cfg(not(feature = "local"))]
-    APIKeyVerificationError(#[from] APIKeyVerificationError),
     #[error("verification error: {0}")]
     VerificationError(#[from] VerificationError),
-    #[error("bindgen error: {0}")]
-    BindgenError(#[from] worker::Error),
     #[error("authorizer invocation error")]
     UdfError,
     #[error("authorizer returned invalid token claims: {0}")]
     InvalidTokenClaims(String),
+    #[error("{0}")]
+    Internal(String),
 }
 
-#[derive(derive_more::Debug)]
-pub struct AuthResponse {
-    #[debug(skip)]
-    pub gql_request: engine::Request,
-    pub auth: ExecutionAuth,
-}
-
+pub struct AuthResponse;
 impl AuthResponse {
-    fn token_based(verified_token: VerifiedToken, gql_request: engine::Request, auth_config: &AuthConfig) -> Self {
+    pub fn token_based(verified_token: VerifiedToken, auth_config: &AuthConfig) -> ExecutionAuth {
         // Get the global level group and owner based operations that are allowed.
         let private_public_and_group_ops = auth_config.private_public_and_group_based_ops(&verified_token.groups);
         let allowed_owner_ops = auth_config.owner_based_ops();
@@ -55,101 +40,75 @@ impl AuthResponse {
                 Some((subject, allowed_owner_ops))
             }
         });
-        let auth = ExecutionAuth::new_from_token(
+        ExecutionAuth::new_from_token(
             private_public_and_group_ops,
             verified_token.groups,
             subject_and_owner_ops,
             verified_token.token_claims,
-        );
-        Self { gql_request, auth }
+        )
     }
 
-    fn public(gql_request: engine::Request, auth_config: &AuthConfig) -> Self {
-        let auth = ExecutionAuth::Public {
+    pub fn public(auth_config: &AuthConfig) -> ExecutionAuth {
+        ExecutionAuth::Public {
             global_ops: auth_config.allowed_public_ops,
-        };
-        Self { gql_request, auth }
+        }
     }
+}
+
+pub trait AuthContext {
+    fn ray_id(&self) -> &str;
+    fn header_or_query_param(&self, name: &str) -> Option<String>;
+    fn auth_config(&self) -> &AuthConfig;
+    fn headers(&self) -> HashMap<String, String>;
 }
 
 #[allow(clippy::panic)]
 pub async fn authorize_request(
-    req: &Request,
-    gql_request: engine::Request,
-    env: &Env,
-    request_context: &RequestContext,
-) -> Result<AuthResponse, AuthError> {
-    let auth_config = &request_context
-        .config
-        .customer_deployment_config
-        .common_customer_deployment_config()
-        .auth_config;
-    let api_key = req.header_or_query_param(X_API_KEY_HEADER);
-    let id_token = req
-        .header_or_query_param(AUTHORIZATION_HEADER)
-        .and_then(|val| val.strip_prefix("Bearer ").map(str::to_string));
+    kv: &impl KvManager,
+    auth_invoker: &impl UdfInvoker<AuthorizerRequestPayload>,
+    ctx: &impl AuthContext,
+) -> Result<ExecutionAuth, AuthError> {
+    let authorization_header = ctx.header_or_query_param(AUTHORIZATION_HEADER);
+    let auth_config = ctx.auth_config();
+    let id_token = authorization_header.and_then(|val| val.strip_prefix("Bearer ").map(str::to_string));
 
-    let ray_id = &request_context.cloudflare_request_context.ray_id;
-
-    let result = match (api_key, id_token, &auth_config.provider) {
+    let result = match (id_token, &auth_config.provider) {
         // API key has precedence over ID token
-        (Some(api_key), _, _) => {
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "local")] {
-                    // Grant full access if any API key is passed locally
-                    let _ = api_key;
-                    log::warn!(
-                        ray_id,
-                        "Ignoring API key verification locally"
-                    );
-                    AuthResponse{
-                        gql_request,
-                        auth: ExecutionAuth::new_from_api_keys(),
-                    }
-                } else {
-                    use tracing::Instrument;
-                    request_context
-                        .api_key_auth
-                        .verify_api_key(&api_key, env)
-                        .inspect_err(|err| log::warn!(ray_id, "Unauthorized: {err:?}"))
-                        .instrument(tracing::info_span!("authorization"))
-                        .await
-                        .map(|_allowed_ops| AuthResponse {
-                            gql_request,
-                            auth: ExecutionAuth::new_from_api_keys(),
-                        })?
-                }
-            }
-        }
-        (None, Some(token), Some(engine::AuthProvider::Oidc(oidc_provider))) => {
-            log::debug!(
-                ray_id,
-                "Verifying ID token {token} using OIDC provider {oidc_provider:?}"
-            );
+        (Some(token), Some(engine::AuthProvider::Oidc(oidc_provider))) => {
             let client = jwt_verifier::Client {
-                trace_id: ray_id,
-                jwks_cache: get_jwks_cache(env),
+                trace_id: ctx.ray_id(),
+                jwks_cache: kv
+                    .load(JWKS_CACHE_KV_NAMESPACE)
+                    .map_err(|err| {
+                        log::warn!(ctx.ray_id(), "Could not load JWKS cache");
+                        err
+                    })
+                    .ok(),
                 groups_claim: Some(&oidc_provider.groups_claim),
                 client_id: oidc_provider.client_id.as_deref(),
-                ..Default::default()
+                time_opts: Default::default(),
+                http_client: Default::default(),
             };
             client
                 .verify_rs_token_using_oidc_discovery(&token, &oidc_provider.issuer_base_url, &oidc_provider.issuer)
-                .inspect_err(|err| log::warn!(ray_id, "Unauthorized: {err:?}"))
+                .inspect_err(|err| log::warn!(ctx.ray_id(), "Unauthorized: {err:?}"))
                 .await
-                .map(|verified_token| AuthResponse::token_based(verified_token, gql_request, auth_config))?
+                .map(|verified_token| AuthResponse::token_based(verified_token, auth_config))?
         }
-        (None, Some(token), Some(engine::AuthProvider::Jwks(jwks_provider))) => {
-            log::debug!(
-                ray_id,
-                "Verifying ID token {token} using JWKS provider {jwks_provider:?}"
-            );
+        (Some(token), Some(engine::AuthProvider::Jwks(jwks_provider))) => {
             let client = jwt_verifier::Client {
-                trace_id: ray_id,
-                jwks_cache: get_jwks_cache(env),
+                trace_id: ctx.ray_id(),
+                jwks_cache: kv
+                    .load(JWKS_CACHE_KV_NAMESPACE)
+                    .map_err(|err| {
+                        log::warn!(ctx.ray_id(), "Could not load JWKS cache");
+                        err
+                    })
+                    .ok(),
                 groups_claim: Some(&jwks_provider.groups_claim),
                 client_id: jwks_provider.client_id.as_deref(),
-                ..Default::default()
+                time_opts: Default::default(),
+                http_client: Default::default(),
             };
 
             client
@@ -158,65 +117,53 @@ pub async fn authorize_request(
                     &jwks_provider.jwks_endpoint,
                     jwks_provider.issuer.as_deref(),
                 )
-                .inspect_err(|err| log::warn!(ray_id, "Unauthorized: {err:?}"))
+                .inspect_err(|err| log::warn!(ctx.ray_id(), "Unauthorized: {err:?}"))
                 .await
-                .map(|verified_token| AuthResponse::token_based(verified_token, gql_request, auth_config))?
+                .map(|verified_token| AuthResponse::token_based(verified_token, auth_config))?
         }
-        (None, Some(token), Some(engine::AuthProvider::Jwt(jwt_provider))) => {
-            log::debug!(ray_id, "Verifying ID token {token} using JWT provider {jwt_provider:?}");
-
+        (Some(token), Some(engine::AuthProvider::Jwt(jwt_provider))) => {
             let client = jwt_verifier::Client {
-                trace_id: ray_id,
+                trace_id: ctx.ray_id(),
                 groups_claim: Some(&jwt_provider.groups_claim),
                 client_id: jwt_provider.client_id.as_deref(),
-                ..Default::default()
+                jwks_cache: kv
+                    .load(JWKS_CACHE_KV_NAMESPACE)
+                    .map_err(|err| {
+                        log::warn!(ctx.ray_id(), "Could not load JWKS cache");
+                        err
+                    })
+                    .ok(),
+                time_opts: Default::default(),
+                http_client: Default::default(),
             };
 
             client
-                .verify_hs_token(&token, &jwt_provider.issuer, &jwt_provider.secret)
+                .verify_hs_token(token, &jwt_provider.issuer, &jwt_provider.secret)
                 .map_err(|err| {
-                    log::warn!(ray_id, "Unauthorized: {err:?}");
+                    log::warn!(ctx.ray_id(), "Unauthorized: {err:?}");
                     err
                 })
-                .map(|verified_token| AuthResponse::token_based(verified_token, gql_request, auth_config))?
+                .map(|verified_token| AuthResponse::token_based(verified_token, auth_config))?
         }
-        (None, _, Some(engine::AuthProvider::Authorizer(AuthorizerProvider { name }))) => {
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "local")] {
-                    let bridge_port = worker_env::EnvExt::var_get(
-                        env,
-                        worker_env::VarType::Var,
-                        gateway_adapter_local::execution::BRIDGE_PORT_ENV_VAR,
-                    )
-                    .unwrap_or_else(|_| panic!("Missing env var {}",
-                        gateway_adapter_local::execution::BRIDGE_PORT_ENV_VAR));
-                    let invoker = runtime_local::UdfInvokerImpl::new(runtime_local::Bridge::new(bridge_port));
-                    call_authorizer(ray_id, req.headers().entries().collect(), name.clone(), invoker, gql_request, auth_config).await?
-                } else {
-                    let dispatcher = env.dynamic_dispatcher("dispatcher")?;
-                    let udf_workers = request_context.config.customer_deployment_config.common_customer_deployment_config().udf_bindings.clone();
-                    let invoker = grafbase_cloud::udf_invoker::UdfInvokerImpl::new(dispatcher, udf_workers);
-                    call_authorizer(ray_id, req.headers().entries().collect(), name.clone(), invoker, gql_request, auth_config).await?
-                }
-            }
+        (_, Some(engine::AuthProvider::Authorizer(AuthorizerProvider { name }))) => {
+            call_authorizer(ctx.ray_id(), ctx.headers(), name.clone(), auth_invoker, auth_config).await?
         }
-        (None, None, _) | (None, _, None) => AuthResponse::public(gql_request, auth_config),
+        _ => AuthResponse::public(ctx.auth_config()),
     };
-    log::debug!(ray_id, "Authorizing request using {auth_config:?} produces {result:?}");
+    log::debug!(
+        ctx.ray_id(),
+        "Authorizing request using {auth_config:?} produces {result:?}"
+    );
     Ok(result)
 }
 
-async fn call_authorizer<Invoker>(
+async fn call_authorizer(
     ray_id: &str,
-    headers: std::collections::HashMap<String, String>,
+    headers: HashMap<String, String>,
     name: String,
-    invoker: Invoker,
-    gql_request: engine::Request,
+    invoker: &impl UdfInvoker<AuthorizerRequestPayload>,
     auth_config: &AuthConfig,
-) -> Result<AuthResponse, AuthError>
-where
-    Invoker: UdfInvoker<AuthorizerRequestPayload>,
-{
+) -> Result<ExecutionAuth, AuthError> {
     let request = runtime::udf::UdfRequest {
         name: &name,
         request_id: ray_id,
@@ -229,7 +176,8 @@ where
             },
         },
     };
-    let value = UdfInvoker::invoke(&invoker, ray_id, request)
+    let value = invoker
+        .invoke(ray_id, request)
         .map_err(|err| {
             log::warn!(ray_id, "authorizer failed: {err:?}");
             AuthError::VerificationError(VerificationError::Authorizer)
@@ -244,7 +192,7 @@ where
         })
         .await?;
 
-    log::trace!(ray_id, "Authorizer respose: {value:?}");
+    log::trace!(ray_id, "Authorizer response: {value:?}");
     if let Some(identity) = value.get("identity") {
         let sub = match identity.get("sub") {
             Some(serde_json::Value::String(sub)) => Ok(Some(sub.clone())),
@@ -290,21 +238,9 @@ where
             token_claims,
         };
         log::debug!(ray_id, "Authorizer verified {verified_token:?}");
-        Ok(AuthResponse::token_based(verified_token, gql_request, auth_config))
+        Ok(AuthResponse::token_based(verified_token, auth_config))
     } else {
         // no identity returned, public access.
-        Ok(AuthResponse::public(gql_request, auth_config))
+        Ok(AuthResponse::public(auth_config))
     }
-}
-
-#[cfg(feature = "local")]
-fn get_jwks_cache(_env: &Env) -> Option<worker::kv::KvStore> {
-    None
-}
-
-#[cfg(not(feature = "local"))]
-#[allow(clippy::unnecessary_wraps)]
-fn get_jwks_cache(env: &Env) -> Option<worker::kv::KvStore> {
-    const JWKS_CACHE_KV_NAMESPACE: &str = "JWKS_CACHE";
-    Some(env.kv(JWKS_CACHE_KV_NAMESPACE).expect("the KV namespace must exist"))
 }

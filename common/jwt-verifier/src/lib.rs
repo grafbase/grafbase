@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     collections::{BTreeMap, BTreeSet},
+    time::Duration,
 };
 
 use futures_util::TryFutureExt;
@@ -12,12 +13,12 @@ use jwt_compact::{
     TimeOptions,
 };
 use log::warn;
+use runtime_ext::kv::{KvGet, KvPut, KvStore};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, OneOrMany};
 use url::Url;
-use worker::kv::KvError;
 
 mod error;
 #[cfg(test)]
@@ -79,13 +80,13 @@ struct CustomClaims {
 }
 
 #[derive(Default)]
-pub struct Client<'a> {
+pub struct Client<'a, Kv> {
     pub trace_id: &'a str,
     pub http_client: reqwest::Client,
     pub time_opts: TimeOptions,        // used for testing
     pub groups_claim: Option<&'a str>, // The name of the claim (json attribute) that stores groups.
     pub client_id: Option<&'a str>,    // The name of the application that must be present in the "aud" claim.
-    pub jwks_cache: Option<worker::kv::KvStore>,
+    pub jwks_cache: Option<Kv>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -95,7 +96,7 @@ pub struct VerifiedToken {
     pub token_claims: BTreeMap<String, Value>,
 }
 
-impl<'a> Client<'a> {
+impl<'a, Kv: KvStore> Client<'a, Kv> {
     fn joinable_url(&self, url: &url::Url) -> url::Url {
         if url.to_string().ends_with('/') {
             url.clone()
@@ -119,7 +120,7 @@ impl<'a> Client<'a> {
         })?;
         log::trace!(
             self.trace_id,
-            "Untrusted token algorithm {}, header: {:?}",
+            "Untrusted token algorith {}, header: {:?}",
             token.algorithm(),
             token.header()
         );
@@ -454,11 +455,11 @@ impl<'a> Client<'a> {
     async fn get_jwk_from_cache(
         &self,
         caching_key: &CachingKey<'_>,
-    ) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
+    ) -> Result<Option<ExtendedJsonWebKey<'_>>, Kv::Error> {
         if let Some(cache) = &self.jwks_cache {
             cache
                 .get(&caching_key.key())
-                .cache_ttl(JWKS_CACHE_TTL)
+                .cache_ttl(Duration::from_secs(JWKS_CACHE_TTL))
                 .json::<ExtendedJsonWebKey<'_>>()
                 .await
         } else {
@@ -470,15 +471,14 @@ impl<'a> Client<'a> {
         &self,
         caching_key: &CachingKey<'_>,
         jwk: &ExtendedJsonWebKey<'_>,
-    ) -> Result<(), KvError> {
+    ) -> Result<(), Kv::Error> {
         assert_eq!(caching_key.kid(), jwk.id, "key identifier must be the same");
         if let Some(cache) = &self.jwks_cache {
             let key = caching_key.key();
             log::debug!(self.trace_id, "Adding {key} to cache");
             cache
-                .put(&key, jwk)
-                .expect("cannot fail")
-                .expiration_ttl(JWKS_CACHE_TTL)
+                .put(&key, jwk)?
+                .expiration_ttl(Duration::from_secs(JWKS_CACHE_TTL))
                 .execute()
                 .await
         } else {

@@ -1,4 +1,5 @@
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use runtime_ext::noop_kv::NoopKvStore;
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -110,7 +111,7 @@ macro_rules! verify_test {
                 let clock_fn = || {
                     DateTime::<Utc>::from_naive_utc_and_offset(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc)
                 };
-                Client {
+                Client::<runtime_ext::noop_kv::NoopKvStore> {
                     time_opts: TimeOptions::new(leeway, clock_fn),
                     groups_claim: $groups_claim,
                     client_id: $client_id,
@@ -151,7 +152,7 @@ macro_rules! verify_fail {
                 let clock_fn = || {
                     DateTime::<Utc>::from_naive_utc_and_offset(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc)
                 };
-                Client {
+                Client::<runtime_ext::noop_kv::NoopKvStore> {
                     time_opts: TimeOptions::new(leeway, clock_fn),
                     groups_claim: $groups_claim,
                     client_id: $client_id,
@@ -489,7 +490,7 @@ async fn token_signed_with_secret() {
                 Utc,
             )
         };
-        Client {
+        Client::<NoopKvStore> {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
             client_id: Some("app2"),
@@ -526,7 +527,7 @@ async fn token_signed_with_secret() {
         }
     );
 
-    let new_client = Client {
+    let new_client = Client::<NoopKvStore> {
         client_id: Some("app3"),
         ..client
     };
@@ -576,7 +577,7 @@ fn token_with_groups_containing_null_should_be_interpreted_as_empty_groups() {
                 Utc,
             )
         };
-        Client {
+        Client::<NoopKvStore> {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
             client_id: None,
@@ -632,7 +633,7 @@ fn token_with_invalid_groups_set_to_string_should_fail() {
                 Utc,
             )
         };
-        Client {
+        Client::<NoopKvStore> {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
             client_id: None,
@@ -675,7 +676,7 @@ fn token_with_invalid_groups_set_to_array_of_wrong_type_should_fail() {
                 Utc,
             )
         };
-        Client {
+        Client::<NoopKvStore> {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
             client_id: None,
@@ -718,7 +719,7 @@ fn token_with_groups_set_to_null_should_be_interpreted_as_empty_groups() {
                 Utc,
             )
         };
-        Client {
+        Client::<NoopKvStore> {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
             client_id: None,
@@ -773,7 +774,7 @@ async fn jwks_from_hanko_should_verify() {
                 Utc,
             )
         };
-        Client {
+        Client::<NoopKvStore> {
             time_opts: TimeOptions::new(leeway, clock_fn),
             ..Default::default()
         }
@@ -842,7 +843,7 @@ async fn jwt_from_azure_ad_should_verify() {
                 Utc,
             )
         };
-        Client {
+        Client::<NoopKvStore> {
             time_opts: TimeOptions::new(leeway, clock_fn),
             ..Default::default()
         }

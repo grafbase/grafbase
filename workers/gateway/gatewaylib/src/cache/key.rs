@@ -98,13 +98,11 @@ impl<HB: Hasher + Default> Hash for CacheKey<'_, HB> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
-
+    use super::*;
     use common_types::auth::{ExecutionAuth, Operations};
     use engine::indexmap::IndexMap;
     use engine_value::{ConstValue, Name, Variables};
-
-    use crate::cache::{key::CacheKey, CacheAccess};
+    use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 
     #[test]
     fn should_have_equal_cache_key_hashes_when_request_variables_are_equal_with_different_ordering() {

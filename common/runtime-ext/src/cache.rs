@@ -1,91 +1,64 @@
-mod edge;
-mod error;
-mod gcache;
-mod global;
-mod key;
-
-use std::{sync::Arc, time::Duration};
-
-use async_trait::async_trait;
-pub use edge::EdgeCache;
 use engine::parser::types::OperationType;
-pub use error::CacheError;
-pub use gcache::{Cache, CacheResponse};
-#[cfg(any(feature = "local", feature = "sqlite", test))]
-pub use global::noop::NoopGlobalCache;
-#[cfg(all(not(feature = "local"), not(feature = "sqlite")))]
-pub use global::remote::CloudflareGlobal;
-pub use key::{CacheAccess, CacheKey};
 use serde::{de::DeserializeOwned, Serialize};
+use std::sync::Arc;
 
-pub type CacheResult<T> = Result<T, CacheError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum CacheReadStatus {
-    Hit,
-    Bypass,
-    Miss { max_age: Duration },
-    Stale { revalidated: bool },
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("{0}")]
+    CacheGet(String),
+    #[error("{0}")]
+    CachePut(String),
+    #[error("{0}")]
+    CacheDelete(String),
+    #[error("{0}")]
+    CachePurgeByTags(String),
+    #[error("Origin error: {0}")]
+    Origin(String),
+    #[error("Serialization error: {0}")]
+    Serialization(String),
 }
 
-#[derive(Debug, Default, Eq, PartialEq, Hash, strum::Display, strum::EnumString, strum::IntoStaticStr)]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, strum::Display, strum::EnumString, strum::IntoStaticStr)]
 #[strum(serialize_all = "UPPERCASE")]
-pub enum CacheEntryState {
+pub enum EntryState {
     Fresh,
     #[default]
     Stale,
     UpdateInProgress,
 }
 
-impl ToString for CacheReadStatus {
-    fn to_string(&self) -> String {
-        match self {
-            CacheReadStatus::Hit => "HIT".to_string(),
-            CacheReadStatus::Miss { .. } => "MISS".to_string(),
-            CacheReadStatus::Stale { revalidated } => {
-                if *revalidated {
-                    "UPDATING".to_string()
-                } else {
-                    "STALE".to_string()
-                }
-            }
-            CacheReadStatus::Bypass => "BYPASS".to_string(),
-        }
-    }
-}
-
-pub enum CacheProviderResponse<Type> {
-    Hit(Type),
+pub enum Entry<T> {
+    Hit(T),
     Miss,
     Stale {
-        response: Type,
-        state: CacheEntryState,
+        response: T,
+        state: EntryState,
         is_early_stale: bool,
     },
 }
 
 #[async_trait::async_trait(?Send)]
-pub trait CacheProvider {
-    type Value;
+pub trait Cache {
+    type Value: Cacheable + 'static;
 
-    async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
-        unimplemented!()
-    }
+    async fn get(&self, namespace: &str, key: &str) -> Result<Entry<Self::Value>>;
 
     async fn put(
-        _cache_name: &str,
-        _ray_id: &str,
-        _key: &str,
-        _status: CacheEntryState,
-        _value: Arc<Self::Value>,
-        _tags: Vec<String>,
-    ) -> CacheResult<()> {
-        unimplemented!()
-    }
+        &self,
+        namespace: &str,
+        ray_id: &str,
+        key: &str,
+        state: EntryState,
+        value: Arc<Self::Value>,
+        tags: Vec<String>,
+    ) -> Result<()>;
 
-    async fn delete(_cache_name: &str, _ray_id: &str, _key: &str) -> CacheResult<()> {
-        unimplemented!()
-    }
+    async fn delete(&self, namespace: &str, ray_id: &str, key: &str) -> Result<()>;
+
+    async fn purge_by_tags(&self, tags: Vec<String>) -> Result<()>;
+    async fn purge_by_hostname(&self, hostname: String) -> Result<()>;
 }
 
 pub trait Cacheable: DeserializeOwned + Serialize {
@@ -126,16 +99,73 @@ impl Cacheable for engine::Response {
     }
 }
 
-// this trait exists because:
-// - the cache api from workers is specific to colocations
-// - the cache api from workers doesn't support delete by tags
-// - its not meant to be statically dispatched
-#[async_trait(?Send)]
-pub trait GlobalCacheProvider {
-    async fn purge_by_tags(&self, _tags: Vec<String>) -> CacheResult<()> {
-        unimplemented!()
+#[cfg(feature = "test-utils")]
+pub mod test_utils {
+    use super::*;
+
+    #[async_trait::async_trait(?Send)]
+    pub trait FakeCache {
+        type Value: Cacheable + 'static;
+
+        async fn get(&self, _namespace: &str, _key: &str) -> Result<Entry<Self::Value>> {
+            unimplemented!()
+        }
+
+        async fn put(
+            &self,
+            _namespace: &str,
+            _ray_id: &str,
+            _key: &str,
+            _status: EntryState,
+            _value: Arc<Self::Value>,
+            _tags: Vec<String>,
+        ) -> Result<()> {
+            unimplemented!()
+        }
+
+        async fn delete(&self, _namespace: &str, _ray_id: &str, _key: &str) -> Result<()> {
+            unimplemented!()
+        }
+
+        async fn purge_by_tags(&self, _tags: Vec<String>) -> Result<()> {
+            unimplemented!()
+        }
+
+        async fn purge_by_hostname(&self, _hostname: String) -> Result<()> {
+            unimplemented!()
+        }
     }
-    async fn purge_by_hostname(&self, _hostname: String) -> CacheResult<()> {
-        unimplemented!()
+
+    #[async_trait::async_trait(?Send)]
+    impl<T: FakeCache> Cache for T {
+        type Value = <T as FakeCache>::Value;
+
+        async fn get(&self, namespace: &str, key: &str) -> Result<Entry<Self::Value>> {
+            self.get(namespace, key).await
+        }
+
+        async fn put(
+            &self,
+            namespace: &str,
+            ray_id: &str,
+            key: &str,
+            status: EntryState,
+            value: Arc<Self::Value>,
+            tags: Vec<String>,
+        ) -> Result<()> {
+            self.put(namespace, ray_id, key, status, value, tags).await
+        }
+
+        async fn delete(&self, namespace: &str, ray_id: &str, key: &str) -> Result<()> {
+            self.delete(namespace, ray_id, key).await
+        }
+
+        async fn purge_by_tags(&self, tags: Vec<String>) -> Result<()> {
+            self.purge_by_tags(tags).await
+        }
+
+        async fn purge_by_hostname(&self, hostname: String) -> Result<()> {
+            self.purge_by_hostname(hostname).await
+        }
     }
 }
