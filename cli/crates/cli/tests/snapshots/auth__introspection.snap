@@ -1,6 +1,6 @@
 ---
 source: crates/cli/tests/auth.rs
-expression: "client.gql::<Value>(INTROSPECTION_QUERY).send()"
+expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
 ---
 {
   "data": {
@@ -1909,6 +1909,40 @@ expression: "client.gql::<Value>(INTROSPECTION_QUERY).send()"
         }
       ],
       "directives": [
+        {
+          "name": "defer",
+          "description": "De-prioritizes a fragment, causing the fragment to be omitted in the initial response and delivered as a subsequent response afterward.",
+          "locations": [
+            "INLINE_FRAGMENT",
+            "FRAGMENT_SPREAD"
+          ],
+          "args": [
+            {
+              "name": "if",
+              "description": "When true fragment may be deferred",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Boolean",
+                  "ofType": null
+                }
+              },
+              "defaultValue": "true"
+            },
+            {
+              "name": "label",
+              "description": "This label should be used by GraphQL clients to identify the data from patch responses and associate it with the correct fragment.",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            }
+          ]
+        },
         {
           "name": "include",
           "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
