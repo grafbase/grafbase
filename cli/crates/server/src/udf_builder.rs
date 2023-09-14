@@ -16,7 +16,7 @@ async fn run_command<P: AsRef<Path>>(
     current_directory: P,
     tracing: bool,
     environment: &[(&'static str, &str)],
-) -> Result<Vec<u8>, JavascriptPackageManagerComamndError> {
+) -> Result<Option<Vec<u8>>, JavascriptPackageManagerComamndError> {
     let command_string = format!("{command_type} {}", arguments.iter().format(" "));
     let current_directory = current_directory.as_ref();
     match current_directory.try_exists() {
@@ -56,7 +56,7 @@ async fn run_command<P: AsRef<Path>>(
 
     if output.status.success() {
         trace!("'{command_string}' succeeded");
-        Ok(output.stdout)
+        Ok(Some(output.stdout).filter(|output| !output.is_empty()))
     } else {
         trace!("'{command_string}' failed");
         Err(JavascriptPackageManagerComamndError::OutputError(
@@ -335,7 +335,7 @@ async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>
         &[],
     )
     .await
-    .ok()?;
+    .ok()??;
     Some(String::from_utf8(output_bytes).ok()?.trim().to_owned())
 }
 
