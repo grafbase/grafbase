@@ -179,6 +179,7 @@ pub async fn build(
     {
         let wrangler_arguments = &[
             "exec",
+            "--no",
             "--prefix",
             environment.wrangler_installation_path.to_str().expect("must be valid"),
             "--",
@@ -321,6 +322,7 @@ async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>
     let wrangler_installation_path = wrangler_installation_path.as_ref();
     let wrangler_arguments = &[
         "exec",
+        "--no",
         "--prefix",
         wrangler_installation_path.to_str().expect("must be valid"),
         "--",
