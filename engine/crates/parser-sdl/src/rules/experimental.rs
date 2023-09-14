@@ -14,7 +14,7 @@ const EXPERIMENTAL_DIRECTIVE_NAME: &str = "experimental";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExperimentalDirectiveError {
-    #[error("Unable to parse @experiment - {0}")]
+    #[error("Unable to parse @experimental - {0}")]
     Parsing(RuleError),
 }
 
@@ -27,12 +27,11 @@ pub struct ExperimentalDirective {
 pub struct ExperimentalDirectiveVisitor;
 impl<'a> Visitor<'a> for ExperimentalDirectiveVisitor {
     fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a Positioned<SchemaDefinition>) {
-        let directive = doc
+        let Some(experimental_directive) = doc
             .directives
             .iter()
-            .find(|d| d.node.name.node == EXPERIMENTAL_DIRECTIVE_NAME);
-
-        let Some(experimental_directive) = directive else {
+            .find(|d| d.node.name.node == EXPERIMENTAL_DIRECTIVE_NAME)
+        else {
             return;
         };
 
@@ -77,7 +76,7 @@ mod tests {
     #[rstest::rstest]
     #[case::error_parsing_unknown_field(r#"
         extend schema @experimental(random: true)
-    "#, &["@experimental error: Unable to parse - [2:37] unknown field `random`, expected `kv`"], false)]
+    "#, &["Unable to parse @experimental - [2:37] unknown field `random`, expected `kv`"], false)]
     #[case::successful_parsing_kv_enabled(r#"
         extend schema @experimental(kv: true)
     "#, &[], true)]
