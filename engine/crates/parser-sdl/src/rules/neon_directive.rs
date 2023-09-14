@@ -1,12 +1,11 @@
 use engine::Positioned;
 use engine_parser::types::SchemaDefinition;
 
-use crate::directive_de::parse_directive;
-
 use super::{
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
+use crate::directive_de::parse_directive;
 
 const NEON_DIRECTIVE_NAME: &str = "neon";
 

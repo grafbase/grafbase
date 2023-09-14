@@ -1391,6 +1391,8 @@ pub struct Registry {
     pub search_config: runtime::search::Config,
     #[serde(default)]
     pub enable_caching: bool,
+    #[serde(default)]
+    pub enable_kv: bool,
 }
 
 impl Default for Registry {
@@ -1411,6 +1413,7 @@ impl Default for Registry {
             postgres_databases: Default::default(),
             search_config: Default::default(),
             enable_caching: false,
+            enable_kv: false,
         }
     }
 }

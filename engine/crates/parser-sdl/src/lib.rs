@@ -60,6 +60,7 @@ pub use rules::{
 
 use crate::rules::{
     cache_directive::{visitor::CacheVisitor, CacheDirective},
+    experimental::ExperimentalDirectiveVisitor,
     mongodb_directive::MongoDBVisitor,
     scalar_hydratation::ScalarHydratation,
 };
@@ -289,6 +290,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(AuthDirective)
         .with(ResolverDirective)
         .with(CacheVisitor)
+        .with(ExperimentalDirectiveVisitor)
         .with(InputObjectVisitor)
         .with(BasicType)
         .with(ExtendQueryAndMutationTypes)

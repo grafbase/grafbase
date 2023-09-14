@@ -266,7 +266,7 @@ impl Resolver {
                 );
 
                 #[cfg(feature = "tracing_worker")]
-                let future = future.instrument(info_span!("http_resolver", name = resolver.name().as_ref()));
+                let future = future.instrument(info_span!("graphql_resolver", name = resolver.name().as_ref()));
 
                 future.await.map_err(Into::into)
             }
