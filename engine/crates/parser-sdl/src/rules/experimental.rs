@@ -14,7 +14,7 @@ const EXPERIMENTAL_DIRECTIVE_NAME: &str = "experimental";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExperimentalDirectiveError {
-    #[error("@experimental error: Unable to parse - {0}")]
+    #[error("Unable to parse @experiment - {0}")]
     Parsing(RuleError),
 }
 
