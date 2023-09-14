@@ -2,12 +2,11 @@ use case::CaseExt;
 use engine::registry::{InputObjectType, MetaInputValue};
 use engine_parser::types::{BaseType, ObjectType, Type, TypeDefinition};
 
+use super::generic::{self, filter_type_name, MONGO_POP_POSITION};
 use crate::{
     registry::names::MetaNames,
     rules::{mongodb_directive::CreateTypeContext, visitor::VisitorContext},
 };
-
-use super::generic::{self, filter_type_name, MONGO_POP_POSITION};
 
 pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) -> String {
     register_type_input(visitor_ctx, create_ctx.object, create_ctx.r#type)
