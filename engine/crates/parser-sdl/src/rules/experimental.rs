@@ -27,13 +27,12 @@ pub struct ExperimentalDirective {
 pub struct ExperimentalDirectiveVisitor;
 impl<'a> Visitor<'a> for ExperimentalDirectiveVisitor {
     fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a Positioned<SchemaDefinition>) {
-        let directives = doc
+        let directive = doc
             .directives
             .iter()
-            .filter(|d| d.node.name.node == EXPERIMENTAL_DIRECTIVE_NAME)
-            .collect::<Vec<_>>();
+            .find(|d| d.node.name.node == EXPERIMENTAL_DIRECTIVE_NAME);
 
-        let Some(experimental_directive) = directives.first() else {
+        let Some(experimental_directive) = directive else {
             return;
         };
 
