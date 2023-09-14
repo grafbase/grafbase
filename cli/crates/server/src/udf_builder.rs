@@ -317,7 +317,7 @@ async fn symlink_grafbase_wasm_sdk(
     Ok(())
 }
 
-async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>, tracing: bool) -> Option<String> {
+async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>) -> Option<String> {
     let wrangler_installation_path = wrangler_installation_path.as_ref();
     let wrangler_arguments = &[
         "exec",
@@ -331,7 +331,7 @@ async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>
         JavaScriptPackageManager::Npm,
         wrangler_arguments,
         wrangler_installation_path,
-        tracing,
+        false,
         &[],
     )
     .await
@@ -351,8 +351,7 @@ pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Resul
     .await?
     .map_err(ServerError::Lock)?;
 
-    if let Some(installed_wrangler_version) =
-        installed_wrangler_version(&environment.wrangler_installation_path, tracing).await
+    if let Some(installed_wrangler_version) = installed_wrangler_version(&environment.wrangler_installation_path).await
     {
         info!("Installed wrangler version: {installed_wrangler_version}");
         if installed_wrangler_version == WRANGLER_VERSION {
@@ -377,14 +376,6 @@ pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Resul
             "--prefix",
             wrangler_installation_path_str,
         ],
-        wrangler_installation_path_str,
-        tracing,
-        &[],
-    )
-    .await?;
-    run_command(
-        JavaScriptPackageManager::Npm,
-        &["install", "--prefix", wrangler_installation_path_str],
         wrangler_installation_path_str,
         tracing,
         &[],
