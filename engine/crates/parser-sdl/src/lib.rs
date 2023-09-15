@@ -60,7 +60,7 @@ pub use rules::{
 
 use crate::rules::{
     cache_directive::{visitor::CacheVisitor, CacheDirective},
-    experimental::ExperimentalDirectiveVisitor,
+    experimental::{ExperimentalDirective, ExperimentalDirectiveVisitor},
     mongodb_directive::MongoDBVisitor,
     scalar_hydratation::ScalarHydratation,
 };
@@ -131,7 +131,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<GraphqlDirective>()
         .with::<CacheDirective>()
         .with::<MongoDBDirective>()
-        .with::<NeonDirective>();
+        .with::<NeonDirective>()
+        .with::<ExperimentalDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -290,7 +291,6 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(AuthDirective)
         .with(ResolverDirective)
         .with(CacheVisitor)
-        .with(ExperimentalDirectiveVisitor)
         .with(InputObjectVisitor)
         .with(BasicType)
         .with(ExtendQueryAndMutationTypes)
@@ -301,7 +301,8 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(MongoDBModelDirective)
         .with(LengthDirective)
         .with(UniqueObjectFields)
-        .with(CheckAllDirectivesAreKnown::default());
+        .with(CheckAllDirectivesAreKnown::default())
+        .with(ExperimentalDirectiveVisitor);
 
     visit(&mut rules, ctx, schema);
 }

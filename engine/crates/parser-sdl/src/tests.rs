@@ -713,3 +713,24 @@ fn test_missing_model_relation_gb4652() {
         "Non @model type (Post) cannot have a field (space) with a @model type (Space). Consider adding @model directive to Post."
     );
 }
+
+#[test]
+fn test_experimental() {
+    let result = super::parse_registry(
+        r#"
+            extend schema @experimental(kv: true)
+        "#,
+    )
+    .unwrap();
+
+    assert!(result.enable_kv);
+
+    let result = super::parse_registry(
+        r#"
+            extend schema @experimental(kv: false)
+        "#,
+    )
+    .unwrap();
+
+    assert!(!result.enable_kv)
+}
