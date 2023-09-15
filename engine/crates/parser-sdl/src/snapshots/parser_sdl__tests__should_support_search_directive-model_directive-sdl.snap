@@ -1,0 +1,450 @@
+---
+source: crates/parser-sdl/src/tests.rs
+expression: sdl
+---
+input BooleanOrNullSearchFilterInput {
+	eq: Boolean
+	neq: Boolean
+	isNull: Boolean
+}
+"""
+A date string, such as 2007-12-03, is compliant with the full-date format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for the representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of the date, as used for birthdays for example. It cannot represent an instant on the timeline.
+"""
+scalar Date
+input DateListSearchFilterInput {
+	includes: DateSearchFilterInput
+	includesNone: DateSearchFilterInput
+	isEmpty: Boolean
+}
+input DateSearchFilterInput {
+	ALL: [DateSearchFilterInput!]
+	ANY: [DateSearchFilterInput!]
+	NONE: [DateSearchFilterInput!]
+	NOT: DateSearchFilterInput
+	eq: Date
+	neq: Date
+	gt: Date
+	gte: Date
+	lte: Date
+	lt: Date
+	in: [Date!]
+	notIn: [Date!]
+}
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
+profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
+
+# Input Coercion
+
+When expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.
+
+# Result Coercion
+
+Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.
+For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
+"""
+scalar DateTime
+input DateTimeOrNullSearchFilterInput {
+	ALL: [DateTimeOrNullSearchFilterInput!]
+	ANY: [DateTimeOrNullSearchFilterInput!]
+	NONE: [DateTimeOrNullSearchFilterInput!]
+	NOT: DateTimeOrNullSearchFilterInput
+	eq: DateTime
+	neq: DateTime
+	gt: DateTime
+	gte: DateTime
+	lte: DateTime
+	lt: DateTime
+	in: [DateTime!]
+	notIn: [DateTime!]
+	isNull: Boolean
+}
+input DateTimeSearchFilterInput {
+	ALL: [DateTimeSearchFilterInput!]
+	ANY: [DateTimeSearchFilterInput!]
+	NONE: [DateTimeSearchFilterInput!]
+	NOT: DateTimeSearchFilterInput
+	eq: DateTime
+	neq: DateTime
+	gt: DateTime
+	gte: DateTime
+	lte: DateTime
+	lt: DateTime
+	in: [DateTime!]
+	notIn: [DateTime!]
+}
+"""
+A scalar to validate the email as it is defined in the HTML specification.
+"""
+scalar Email
+input EmailListSearchFilterInput {
+	includes: EmailSearchFilterInput
+	includesNone: EmailSearchFilterInput
+	isEmpty: Boolean
+}
+input EmailSearchFilterInput {
+	ALL: [EmailSearchFilterInput!]
+	ANY: [EmailSearchFilterInput!]
+	NONE: [EmailSearchFilterInput!]
+	NOT: EmailSearchFilterInput
+	eq: Email
+	neq: Email
+	gt: String
+	gte: String
+	lte: String
+	lt: String
+	in: [Email!]
+	notIn: [Email!]
+	regex: String
+}
+"""
+Possible operations for a Float field
+"""
+input FloatOperationsInput {
+	set: Float
+	increment: Float
+	decrement: Float
+}
+input FloatOrNullSearchFilterInput {
+	ALL: [FloatOrNullSearchFilterInput!]
+	ANY: [FloatOrNullSearchFilterInput!]
+	NONE: [FloatOrNullSearchFilterInput!]
+	NOT: FloatOrNullSearchFilterInput
+	eq: Float
+	neq: Float
+	gt: Float
+	gte: Float
+	lte: Float
+	lt: Float
+	in: [Float!]
+	notIn: [Float!]
+	isNull: Boolean
+}
+input IDCollectionFilterInput {
+	in: [ID!]
+}
+"""
+A valid IPv4 or IPv6 address. IPv4 addresses are expected in quad-dotted notation `(123.12.34.56)`. IPv6 addresses are expected in non-bracketed, colon-separated format `(1a2b:3c4b::1234:4567)`.
+
+You can include an optional CIDR suffix `(123.45.67.89/16)` to indicate subnet mask.
+"""
+scalar IPAddress
+input IPAddressOrNullSearchFilterInput {
+	ALL: [IPAddressOrNullSearchFilterInput!]
+	ANY: [IPAddressOrNullSearchFilterInput!]
+	NONE: [IPAddressOrNullSearchFilterInput!]
+	NOT: IPAddressOrNullSearchFilterInput
+	eq: IPAddress
+	neq: IPAddress
+	gt: IPAddress
+	gte: IPAddress
+	lte: IPAddress
+	lt: IPAddress
+	in: [IPAddress!]
+	notIn: [IPAddress!]
+	isNull: Boolean
+}
+"""
+Possible operations for an Int field
+"""
+input IntOperationsInput {
+	set: Int
+	increment: Int
+	decrement: Int
+}
+input IntOrNullSearchFilterInput {
+	ALL: [IntOrNullSearchFilterInput!]
+	ANY: [IntOrNullSearchFilterInput!]
+	NONE: [IntOrNullSearchFilterInput!]
+	NOT: IntOrNullSearchFilterInput
+	eq: Int
+	neq: Int
+	gt: Int
+	gte: Int
+	lte: Int
+	lt: Int
+	in: [Int!]
+	notIn: [Int!]
+	isNull: Boolean
+}
+"""
+A JSON Value
+"""
+scalar JSON
+type Mutation {
+	"""
+	Create a Product
+	"""
+	productCreate(input: ProductCreateInput!): ProductCreatePayload
+	"""
+	Create multiple Product
+	"""
+	productCreateMany(input: [ProductCreateManyInput!]!): ProductCreateManyPayload
+	"""
+	Update a Product
+	"""
+	productUpdate(by: ProductByInput!, input: ProductUpdateInput!): ProductUpdatePayload
+	"""
+	Update multiple Product
+	"""
+	productUpdateMany(input: [ProductUpdateManyInput!]!): ProductUpdateManyPayload
+	"""
+	Delete a Product by ID or unique field
+	"""
+	productDelete(by: ProductByInput!): ProductDeletePayload
+	"""
+	Delete multiple Product
+	"""
+	productDeleteMany(input: [ProductDeleteManyInput!]!): ProductDeleteManyPayload
+}
+enum OrderByDirection {
+	ASC
+	DESC
+}
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
+"""
+A phone number. This value is stored as a string. Phone numbers must follow the E.164 format, a general format for international telephone numbers.
+"""
+scalar PhoneNumber
+input PhoneNumberOrNullSearchFilterInput {
+	ALL: [PhoneNumberOrNullSearchFilterInput!]
+	ANY: [PhoneNumberOrNullSearchFilterInput!]
+	NONE: [PhoneNumberOrNullSearchFilterInput!]
+	NOT: PhoneNumberOrNullSearchFilterInput
+	eq: PhoneNumber
+	neq: PhoneNumber
+	gt: String
+	gte: String
+	lte: String
+	lt: String
+	in: [PhoneNumber!]
+	notIn: [PhoneNumber!]
+	regex: String
+	isNull: Boolean
+}
+type Product {
+	ip: IPAddress
+	timestamp: Timestamp!
+	url: URL
+	email: [Email]
+	phone: PhoneNumber
+	date: [Date!]!
+	datetime: DateTime
+	text: [[String]]
+	int: Int
+	float: Float
+	bool: Boolean
+	json: JSON
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input ProductByInput {
+	id: ID
+}
+input ProductCollectionFilterInput {
+	id: IDCollectionFilterInput
+}
+type ProductConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [ProductEdge]
+}
+"""
+Input to create a Product
+"""
+input ProductCreateInput {
+	ip: IPAddress
+	timestamp: Timestamp!
+	url: URL
+	email: [Email]
+	phone: PhoneNumber
+	date: [Date!]!
+	datetime: DateTime
+	text: [[String]]
+	int: Int
+	float: Float
+	bool: Boolean
+	json: JSON
+}
+input ProductCreateManyInput {
+	input: ProductCreateInput!
+}
+type ProductCreateManyPayload {
+	productCollection: [Product!]!
+}
+type ProductCreatePayload {
+	product: Product
+}
+input ProductDeleteManyInput {
+	by: ProductByInput!
+}
+type ProductDeleteManyPayload {
+	deletedIds: [ID!]!
+}
+type ProductDeletePayload {
+	deletedId: ID!
+}
+type ProductEdge {
+	node: Product!
+	cursor: String!
+}
+input ProductOrderByInput {
+	createdAt: OrderByDirection
+}
+type ProductSearchConnection {
+	pageInfo: PageInfo!
+	searchInfo: SearchInfo
+	edges: [ProductSearchEdge!]!
+}
+type ProductSearchEdge {
+	node: Product!
+	cursor: String!
+	score: Float!
+}
+input ProductSearchFilterInput {
+	ALL: [ProductSearchFilterInput!]
+	ANY: [ProductSearchFilterInput!]
+	NONE: [ProductSearchFilterInput!]
+	NOT: ProductSearchFilterInput
+	bool: BooleanOrNullSearchFilterInput
+	createdAt: DateTimeSearchFilterInput
+	date: DateListSearchFilterInput
+	datetime: DateTimeOrNullSearchFilterInput
+	email: EmailListSearchFilterInput
+	float: FloatOrNullSearchFilterInput
+	int: IntOrNullSearchFilterInput
+	ip: IPAddressOrNullSearchFilterInput
+	phone: PhoneNumberOrNullSearchFilterInput
+	text: StringListSearchFilterInput
+	timestamp: TimestampSearchFilterInput
+	updatedAt: DateTimeSearchFilterInput
+	url: URLOrNullSearchFilterInput
+}
+"""
+Input to update a Product
+"""
+input ProductUpdateInput {
+	ip: IPAddress
+	timestamp: Timestamp
+	url: URL
+	email: [Email]
+	phone: PhoneNumber
+	date: [Date!]
+	datetime: DateTime
+	text: [[String]]
+	int: IntOperationsInput
+	float: FloatOperationsInput
+	bool: Boolean
+	json: JSON
+}
+input ProductUpdateManyInput {
+	by: ProductByInput!
+	input: ProductUpdateInput!
+}
+type ProductUpdateManyPayload {
+	productCollection: [Product!]!
+}
+type ProductUpdatePayload {
+	product: Product
+}
+type Query {
+	"""
+	Query a single Product by an ID or a unique field
+	"""
+	product(by: ProductByInput!): Product
+	"""
+	Paginated query to fetch the whole list of `Product`.
+	"""
+	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput, filter: ProductCollectionFilterInput): ProductConnection
+	"""
+	Search `Product`
+	"""
+	productSearch(query: String, fields: [String!], filter: ProductSearchFilterInput, first: Int, after: String, last: Int, before: String): ProductSearchConnection
+}
+type SearchInfo {
+	totalHits: Int!
+}
+input StringListSearchFilterInput {
+	includes: StringSearchFilterInput
+	includesNone: StringSearchFilterInput
+	isEmpty: Boolean
+}
+input StringSearchFilterInput {
+	ALL: [StringSearchFilterInput!]
+	ANY: [StringSearchFilterInput!]
+	NONE: [StringSearchFilterInput!]
+	NOT: StringSearchFilterInput
+	eq: String
+	neq: String
+	gt: String
+	gte: String
+	lte: String
+	lt: String
+	in: [String!]
+	notIn: [String!]
+	regex: String
+}
+"""
+A Unix Timestamp with milliseconds precision.
+"""
+scalar Timestamp
+input TimestampSearchFilterInput {
+	ALL: [TimestampSearchFilterInput!]
+	ANY: [TimestampSearchFilterInput!]
+	NONE: [TimestampSearchFilterInput!]
+	NOT: TimestampSearchFilterInput
+	eq: Timestamp
+	neq: Timestamp
+	gt: Timestamp
+	gte: Timestamp
+	lte: Timestamp
+	lt: Timestamp
+	in: [Timestamp!]
+	notIn: [Timestamp!]
+}
+"""
+An URL as defined by RFC1738. For example, `https://grafbase.com/foo/` or `mailto:example@grafbase.com`.
+"""
+scalar URL
+input URLOrNullSearchFilterInput {
+	ALL: [URLOrNullSearchFilterInput!]
+	ANY: [URLOrNullSearchFilterInput!]
+	NONE: [URLOrNullSearchFilterInput!]
+	NOT: URLOrNullSearchFilterInput
+	eq: URL
+	neq: URL
+	gt: String
+	gte: String
+	lte: String
+	lt: String
+	in: [URL!]
+	notIn: [URL!]
+	regex: String
+	isNull: Boolean
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

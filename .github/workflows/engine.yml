@@ -82,3 +82,33 @@ jobs:
         working-directory: ./engine/crates/integration-tests
         run: |
           cargo nextest run --profile ci
+          exitcode="$?"
+
+  cargo-unit-tests:
+    name: Run Rust unit tests
+    runs-on: buildjet-16vcpu-ubuntu-2204
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+          override: true
+
+      - name: Install cargo-nextest
+        run: |
+          curl \
+            --config ${GITHUB_WORKSPACE}/.github/curl_options \
+            https://get.nexte.st/latest/linux \
+            | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+
+      - name: Unit Tests
+        working-directory: ./engine
+        run: |
+          cargo nextest run \
+            --workspace \
+            --exclude integration-tests \
+            --profile ci
+          exitcode="$?"

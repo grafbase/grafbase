@@ -1,0 +1,9 @@
+---
+source: crates/engine/src/registry/scalars/json.rs
+expression: "JSONScalar::sdl()"
+---
+"""
+A JSON Value
+"""
+scalar JSON 
+

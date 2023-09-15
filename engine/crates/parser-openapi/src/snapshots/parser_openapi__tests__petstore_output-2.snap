@@ -2171,4 +2171,5 @@ Registry {
         indices: {},
     },
     enable_caching: false,
+    enable_kv: false,
 }

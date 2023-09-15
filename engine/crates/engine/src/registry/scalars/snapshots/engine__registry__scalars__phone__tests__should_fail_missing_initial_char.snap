@@ -1,0 +1,10 @@
+---
+source: crates/engine/src/registry/scalars/phone.rs
+expression: scalar
+---
+Err(
+    InputValueError {
+        message: "Failed to parse \"PhoneNumber\": Invalid phone number",
+        phantom: PhantomData<serde_json::value::Value>,
+    },
+)

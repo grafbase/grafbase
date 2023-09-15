@@ -1,0 +1,9 @@
+---
+source: crates/engine/src/registry/scalars/phone.rs
+expression: "PhoneNumberScalar::sdl()"
+---
+"""
+A phone number. This value is stored as a string. Phone numbers must follow the E.164 format, a general format for international telephone numbers.
+"""
+scalar PhoneNumber 
+

@@ -1,0 +1,9 @@
+---
+source: crates/engine/src/registry/scalars/url.rs
+expression: "URLScalar::sdl()"
+---
+"""
+An URL as defined by RFC1738. For example, `https://grafbase.com/foo/` or `mailto:example@grafbase.com`.
+"""
+scalar URL @specifiedBy(url: "http://url.spec.whatwg.org/")
+
