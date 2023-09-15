@@ -221,7 +221,7 @@ const JWT_SECRET: &str = "topsecret";
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_auth_with_multipart() {
-    let mut env = Environment::init();
+    let mut env = Environment::init_async().await;
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(JWT_SCHEMA);
     env.set_variables(HashMap::from([
@@ -256,7 +256,7 @@ async fn test_auth_with_multipart() {
 async fn test_auth_with_sse() {
     // Tests that authentication with the SSE transport works..
 
-    let mut env = Environment::init();
+    let mut env = Environment::init_async().await;
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(JWT_SCHEMA);
     env.set_variables(HashMap::from([
