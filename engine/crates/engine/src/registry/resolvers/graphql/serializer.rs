@@ -254,6 +254,10 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
     fn serialize_directives(&mut self, directives: impl Iterator<Item = Directive>) -> Result<(), Error> {
         for directive in directives {
+            if !should_forward_directive(directive.name.as_str()) {
+                continue;
+            }
+
             self.write_str(" @")?;
             self.write_str(directive.name.as_str())?;
             self.serialize_arguments(&directive.arguments)?;
@@ -501,6 +505,13 @@ impl From<crate::Error> for Error {
     fn from(value: crate::Error) -> Self {
         Error::RegistryError(value)
     }
+}
+
+fn should_forward_directive(name: &str) -> bool {
+    // For now we only support forwarding the skip & defer directives.
+    //
+    // defer would need some implementation work to support forwarding
+    matches!(name, "skip" | "include")
 }
 
 #[cfg(test)]
