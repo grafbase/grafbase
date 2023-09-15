@@ -71,6 +71,7 @@ pub mod validators;
 pub mod graph;
 
 mod deferred;
+mod directive;
 pub mod registry;
 
 #[doc(hidden)]
