@@ -50,6 +50,7 @@ jobs:
           filters: |
             build:
               - 'cli/**/*'
+              - 'engine/**/*'
               - '.github/workflows/cli.yml'
               - '.github/actions/**/*'
 
