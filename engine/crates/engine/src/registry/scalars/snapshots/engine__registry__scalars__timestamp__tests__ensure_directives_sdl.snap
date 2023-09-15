@@ -1,0 +1,9 @@
+---
+source: crates/engine/src/registry/scalars/timestamp.rs
+expression: "TimestampScalar::sdl()"
+---
+"""
+A Unix Timestamp with milliseconds precision.
+"""
+scalar Timestamp @specifiedBy(url: "https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_16")
+

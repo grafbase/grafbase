@@ -1,0 +1,24 @@
+---
+source: crates/engine/src/registry/resolvers/graphql/serializer.rs
+expression: serialize(input)
+---
+query {
+	repository(name: "api", owner: "grafbase") {
+		__typename
+		issueOrPullRequest(number: 2129) {
+			__typename
+			... on Issue {
+				__typename
+				id
+			}
+			... on PullRequest {
+				__typename
+				id
+				changedFiles
+			}
+		}
+
+	}
+
+}
+

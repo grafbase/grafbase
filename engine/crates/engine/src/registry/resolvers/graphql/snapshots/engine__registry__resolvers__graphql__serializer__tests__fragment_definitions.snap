@@ -1,0 +1,20 @@
+---
+source: crates/engine/src/registry/resolvers/graphql/serializer.rs
+expression: serialize(input)
+---
+query {
+	repository(name: "api", owner: "grafbase") {
+		__typename
+		pullRequest(number: 2129) {
+			__typename
+			... fields
+		}
+
+	}
+
+}
+fragment fields on PullRequest {
+	id
+	changedFiles
+}
+

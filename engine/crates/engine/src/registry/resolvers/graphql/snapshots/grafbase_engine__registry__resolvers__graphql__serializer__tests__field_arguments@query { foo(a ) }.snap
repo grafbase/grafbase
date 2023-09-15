@@ -1,8 +1,0 @@
----
-source: common/grafbase_engine/src/registry/resolvers/graphql/serializer.rs
-expression: serialize(input)
----
-query {
-	foo(a: "")
-}
-
