@@ -1,75 +1,24 @@
-use std::{collections::VecDeque, iter::Iterator};
+mod complex;
+mod simple;
 
-use grafbase_sql_ast::ast::Comparable;
-use postgresql_types::database_definition::DatabaseDefinition;
-use serde_json::Value;
+pub(super) use complex::ComplexFilterIterator;
+pub(super) use simple::ByFilterIterator;
 
-use crate::registry::type_kinds::InputType;
+use grafbase_sql_ast::ast::ConditionTree;
 
-/// An iterator for a "simple" filter, e.g. a filter that's defined
-/// as `by` argument from the client, and has at most one unique equality
-/// check.
-#[derive(Debug, Clone)]
-pub struct SimpleFilterIterator<'a> {
-    database_definition: &'a DatabaseDefinition,
-    input_type: InputType<'a>,
-    filter: VecDeque<(String, Value)>,
-    nested: Option<Box<SimpleFilterIterator<'a>>>,
+#[derive(Clone)]
+pub enum FilterIterator<'a> {
+    By(ByFilterIterator<'a>),
+    Complex(ComplexFilterIterator<'a>),
 }
 
-impl<'a> SimpleFilterIterator<'a> {
-    pub fn new(
-        database_definition: &'a DatabaseDefinition,
-        input_type: InputType<'a>,
-        filter: impl IntoIterator<Item = (String, Value)>,
-    ) -> Self {
-        Self {
-            database_definition,
-            input_type,
-            filter: VecDeque::from_iter(filter),
-            nested: None,
-        }
-    }
-}
-
-impl<'a> Iterator for SimpleFilterIterator<'a> {
-    type Item = grafbase_sql_ast::ast::Compare<'a>;
+impl<'a> Iterator for FilterIterator<'a> {
+    type Item = ConditionTree<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // We are having a nested input type, which we iterate over.
-        if let Some(item) = self.nested.as_mut().and_then(Iterator::next) {
-            return Some(item);
-        }
-
-        let (field, value) = self.filter.pop_front()?;
-
-        // If selecting an object, we don't care about the name of the object, but selecting the
-        // fields defined in the input.
-        //
-        // E.g. in `user(by: { nameEmail: { name: "foo", email: "bar" }})`, we do not care about `nameEmail`,
-        // but the nested values `name` and `email` are used in the query filters.
-        if let Value::Object(map) = value {
-            let mut nested = SimpleFilterIterator::new(self.database_definition, self.input_type, map);
-
-            let item = nested.next();
-            self.nested = Some(Box::new(nested));
-
-            return item;
-        };
-
-        let table = self
-            .database_definition
-            .find_table_for_client_type(self.input_type.name())
-            .expect("table for input type not found");
-
-        let column = self
-            .database_definition
-            .find_column_for_client_field(&field, table.id())
-            .expect("column for input field not found");
-
-        match value {
-            Value::Null => Some((table.database_name(), column.database_name()).is_null()),
-            _ => Some((table.database_name(), column.database_name()).equals(value)),
+        match self {
+            FilterIterator::By(iterator) => iterator.next().map(ConditionTree::from),
+            FilterIterator::Complex(iterator) => iterator.next(),
         }
     }
 }

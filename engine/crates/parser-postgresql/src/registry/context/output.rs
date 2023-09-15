@@ -83,6 +83,7 @@ impl OutputContext {
 
         self.type_mapping.extend(builder.type_mapping);
         self.field_mapping.extend(builder.field_mapping);
+        self.relation_mapping.extend(builder.relation_mapping);
 
         self.registry
             .create_type(|_| builder.input_object_type.into(), name, name);

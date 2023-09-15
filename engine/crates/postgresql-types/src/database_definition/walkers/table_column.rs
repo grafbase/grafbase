@@ -30,6 +30,12 @@ impl<'a> TableColumnWalker<'a> {
         }
     }
 
+    /// The base type without possible array notation.
+    pub fn graphql_base_type(self) -> Option<String> {
+        self.graphql_type()
+            .map(|graphql_type| graphql_type.trim_start_matches('[').trim_end_matches(']').to_string())
+    }
+
     /// The type of this column in the GraphQL APIs.
     ///
     /// Returns `None`, if we don't support the database type yet.

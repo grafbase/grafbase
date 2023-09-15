@@ -10,12 +10,14 @@ use std::{future::Future, pin::Pin};
 #[serde(rename_all = "camelCase")]
 pub enum Operation {
     FindOne,
+    FindMany,
 }
 
 impl AsRef<str> for Operation {
     fn as_ref(&self) -> &str {
         match self {
             Self::FindOne => "findOne",
+            Self::FindMany => "findMany",
         }
     }
 }

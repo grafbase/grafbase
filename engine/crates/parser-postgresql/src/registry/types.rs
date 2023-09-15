@@ -1,3 +1,5 @@
+mod scalar;
+
 use std::borrow::Cow;
 
 use super::context::{InputContext, OutputContext};
@@ -14,6 +16,7 @@ pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
         .filter(|table| table.allowed_in_client());
 
     register_page_info(output_ctx);
+    scalar::register(input_ctx, output_ctx);
 
     let direction_type = register_order_direction(input_ctx, output_ctx);
 
@@ -183,13 +186,10 @@ fn register_connection_type(
 ) {
     let connection_type_name = input_ctx.connection_type_name(table.client_name());
 
-    output_ctx.create_object_type(ObjectType::new(
-        connection_type_name,
-        [
-            MetaField::new("edges", format!("[{edge_type_name}]!")),
-            MetaField::new("pageInfo", String::from("PageInfo!")),
-        ],
-    ));
+    output_ctx.with_object_type(&connection_type_name, table.id(), |builder| {
+        builder.push_non_mapped_scalar_field(MetaField::new("edges", format!("[{edge_type_name}]!")));
+        builder.push_non_mapped_scalar_field(MetaField::new("pageInfo", String::from("PageInfo!")));
+    })
 }
 
 fn register_edge_type(

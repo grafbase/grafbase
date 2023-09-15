@@ -1,4 +1,4 @@
-use crate::registry::resolvers::postgresql::context::{CollectionArgs, SelectionIterator, SimpleFilterIterator};
+use crate::registry::resolvers::postgresql::context::{CollectionArgs, FilterIterator, SelectionIterator};
 use postgresql_types::database_definition::{RelationWalker, TableWalker};
 use std::borrow::Cow;
 
@@ -7,7 +7,7 @@ use std::borrow::Cow;
 pub struct SelectBuilder<'a> {
     table: TableWalker<'a>,
     selection: SelectionIterator<'a>,
-    filter: Option<SimpleFilterIterator<'a>>,
+    filter: Option<FilterIterator<'a>>,
     collection_args: Option<CollectionArgs>,
     field_name: Cow<'static, str>,
     relation: Option<RelationWalker<'a>>,
@@ -32,7 +32,7 @@ impl<'a> SelectBuilder<'a> {
     }
 
     /// Adds a `WHERE` clause to the statement.
-    pub fn set_filter(&mut self, filter: SimpleFilterIterator<'a>) {
+    pub fn set_filter(&mut self, filter: FilterIterator<'a>) {
         self.filter = Some(filter);
     }
 
@@ -70,7 +70,7 @@ impl<'a> SelectBuilder<'a> {
     }
 
     /// The `WHERE` statement for this select.
-    pub fn filter(&self) -> Option<SimpleFilterIterator<'a>> {
+    pub fn filter(&self) -> Option<FilterIterator<'a>> {
         self.filter.clone()
     }
 

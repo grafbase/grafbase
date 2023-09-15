@@ -15,11 +15,58 @@ fn table_with_serial_primary_key() {
     });
 
     let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
         type Query {
           """
             Query a single User by a field
           """
           user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
         }
 
         type User {
@@ -28,6 +75,33 @@ fn table_with_serial_primary_key() {
 
         input UserByInput {
           id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
         }
 
         schema {
@@ -67,11 +141,87 @@ fn table_with_enum_field() {
           id: Int
         }
 
+        input ACollection {
+          id: IntSearchFilterInput
+          val: StreetLightSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [ACollection]
+          """
+            None of the filters must match
+          """ NONE: [ACollection]
+          """
+            At least one of the filters must match
+          """ ANY: [ACollection]
+        }
+
+        type AConnection {
+          edges: [AEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type AEdge {
+          node: A!
+          cursor: String!
+        }
+
+        input AOrderByInput {
+          id: OrderByDirection
+          val: OrderByDirection
+        }
+
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
         type Query {
           """
             Query a single A by a field
           """
           a(by: AByInput!): A
+          """
+            Paginated query to fetch the whole list of A
+          """
+          aCollection(filter: ACollection, first: Int, last: Int, before: String, after: String, orderBy: [AOrderByInput]): AConnection
         }
 
         enum StreetLight {
@@ -101,11 +251,58 @@ fn table_with_int_primary_key() {
     });
 
     let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
         type Query {
           """
             Query a single User by a field
           """
           user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
         }
 
         type User {
@@ -114,6 +311,33 @@ fn table_with_int_primary_key() {
 
         input UserByInput {
           id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
         }
 
         schema {
@@ -137,11 +361,58 @@ fn table_with_int_unique() {
     });
 
     let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
         type Query {
           """
             Query a single User by a field
           """
           user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
         }
 
         type User {
@@ -150,6 +421,33 @@ fn table_with_int_unique() {
 
         input UserByInput {
           id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
         }
 
         schema {
@@ -174,11 +472,89 @@ fn table_with_serial_primary_key_string_unique() {
     });
 
     let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
         type Query {
           """
             Query a single User by a field
           """
           user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
+        }
+
+        """
+          Search filter input for String type.
+        """
+        input StringSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: String
+          """
+            The value is not the one given
+          """ ne: String
+          """
+            The value is greater than the one given
+          """ gt: String
+          """
+            The value is less than the one given
+          """ lt: String
+          """
+            The value is greater than, or equal to the one given
+          """ gte: String
+          """
+            The value is less than, or equal to the one given
+          """ lte: String
+          """
+            The value is in the given array of values
+          """ in: [String]
+          """
+            The value is not in the given array of values
+          """ nin: [String]
+          not: StringSearchFilterInput
         }
 
         type User {
@@ -189,6 +565,35 @@ fn table_with_serial_primary_key_string_unique() {
         input UserByInput {
           email: String
           id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          email: StringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
+          email: OrderByDirection
         }
 
         schema {
@@ -214,11 +619,58 @@ fn table_with_composite_primary_key() {
     });
 
     let expected = expect![[r#"
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
         type Query {
           """
             Query a single User by a field
           """
           user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
+        }
+
+        """
+          Search filter input for String type.
+        """
+        input StringSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: String
+          """
+            The value is not the one given
+          """ ne: String
+          """
+            The value is greater than the one given
+          """ gt: String
+          """
+            The value is less than the one given
+          """ lt: String
+          """
+            The value is greater than, or equal to the one given
+          """ gte: String
+          """
+            The value is less than, or equal to the one given
+          """ lte: String
+          """
+            The value is in the given array of values
+          """ in: [String]
+          """
+            The value is not in the given array of values
+          """ nin: [String]
+          not: StringSearchFilterInput
         }
 
         type User {
@@ -230,9 +682,38 @@ fn table_with_composite_primary_key() {
           nameEmail: UserNameEmailInput
         }
 
+        input UserCollection {
+          name: StringSearchFilterInput
+          email: StringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
         input UserNameEmailInput {
           name: String!
           email: String!
+        }
+
+        input UserOrderByInput {
+          name: OrderByDirection
+          email: OrderByDirection
         }
 
         schema {
@@ -266,12 +747,82 @@ fn two_schemas_same_table_name() {
     });
 
     let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
         type PrivateUser {
           id: Int!
         }
 
         input PrivateUserByInput {
           id: Int
+        }
+
+        input PrivateUserCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PrivateUserCollection]
+          """
+            None of the filters must match
+          """ NONE: [PrivateUserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PrivateUserCollection]
+        }
+
+        type PrivateUserConnection {
+          edges: [PrivateUserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type PrivateUserEdge {
+          node: PrivateUser!
+          cursor: String!
+        }
+
+        input PrivateUserOrderByInput {
+          id: OrderByDirection
         }
 
         type PublicUser {
@@ -282,15 +833,50 @@ fn two_schemas_same_table_name() {
           id: Int
         }
 
+        input PublicUserCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PublicUserCollection]
+          """
+            None of the filters must match
+          """ NONE: [PublicUserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PublicUserCollection]
+        }
+
+        type PublicUserConnection {
+          edges: [PublicUserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type PublicUserEdge {
+          node: PublicUser!
+          cursor: String!
+        }
+
+        input PublicUserOrderByInput {
+          id: OrderByDirection
+        }
+
         type Query {
           """
             Query a single PrivateUser by a field
           """
           privateUser(by: PrivateUserByInput!): PrivateUser
           """
+            Paginated query to fetch the whole list of PrivateUser
+          """
+          privateUserCollection(filter: PrivateUserCollection, first: Int, last: Int, before: String, after: String, orderBy: [PrivateUserOrderByInput]): PrivateUserConnection
+          """
             Query a single PublicUser by a field
           """
           publicUser(by: PublicUserByInput!): PublicUser
+          """
+            Paginated query to fetch the whole list of PublicUser
+          """
+          publicUserCollection(filter: PublicUserCollection, first: Int, last: Int, before: String, after: String, orderBy: [PublicUserOrderByInput]): PublicUserConnection
         }
 
         schema {
@@ -314,11 +900,51 @@ fn table_with_serial_primary_key_namespaced() {
     });
 
     let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input NeonIntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: NeonIntSearchFilterInput
+        }
+
+        enum NeonOrderByDirection {
+          ASC
+          DESC
+        }
+
         type NeonQuery {
           """
             Query a single NeonUser by a field
           """
           user(by: NeonUserByInput!): NeonUser
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: NeonUserCollection, first: Int, last: Int, before: String, after: String, orderBy: [NeonUserOrderByInput]): NeonUserConnection
         }
 
         type NeonUser {
@@ -327,6 +953,40 @@ fn table_with_serial_primary_key_namespaced() {
 
         input NeonUserByInput {
           id: Int
+        }
+
+        input NeonUserCollection {
+          id: NeonIntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [NeonUserCollection]
+          """
+            None of the filters must match
+          """ NONE: [NeonUserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [NeonUserCollection]
+        }
+
+        type NeonUserConnection {
+          edges: [NeonUserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type NeonUserEdge {
+          node: NeonUser!
+          cursor: String!
+        }
+
+        input NeonUserOrderByInput {
+          id: NeonOrderByDirection
+        }
+
+        type PageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
         }
 
         type Query {
@@ -379,6 +1039,27 @@ fn two_tables_with_single_column_foreign_key() {
           id: Int
         }
 
+        input BlogCollection {
+          id: IntSearchFilterInput
+          title: StringSearchFilterInput
+          content: StringSearchFilterInput
+          userId: IntSearchFilterInput
+          user: UserCollection
+          """
+            All of the filters must match
+          """ ALL: [BlogCollection]
+          """
+            None of the filters must match
+          """ NONE: [BlogCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [BlogCollection]
+        }
+
+        input BlogCollectionContains {
+          contains: BlogCollection
+        }
+
         type BlogConnection {
           edges: [BlogEdge]!
           pageInfo: PageInfo!
@@ -394,6 +1075,37 @@ fn two_tables_with_single_column_foreign_key() {
           title: OrderByDirection
           content: OrderByDirection
           userId: OrderByDirection
+        }
+
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
         }
 
         enum OrderByDirection {
@@ -414,9 +1126,48 @@ fn two_tables_with_single_column_foreign_key() {
           """
           blog(by: BlogByInput!): Blog
           """
+            Paginated query to fetch the whole list of Blog
+          """
+          blogCollection(filter: BlogCollection, first: Int, last: Int, before: String, after: String, orderBy: [BlogOrderByInput]): BlogConnection
+          """
             Query a single User by a field
           """
           user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
+        }
+
+        """
+          Search filter input for String type.
+        """
+        input StringSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: String
+          """
+            The value is not the one given
+          """ ne: String
+          """
+            The value is greater than the one given
+          """ gt: String
+          """
+            The value is less than the one given
+          """ lt: String
+          """
+            The value is greater than, or equal to the one given
+          """ gte: String
+          """
+            The value is less than, or equal to the one given
+          """ lte: String
+          """
+            The value is in the given array of values
+          """ in: [String]
+          """
+            The value is not in the given array of values
+          """ nin: [String]
+          not: StringSearchFilterInput
         }
 
         type User {
@@ -427,6 +1178,36 @@ fn two_tables_with_single_column_foreign_key() {
 
         input UserByInput {
           id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          name: StringSearchFilterInput
+          blogs: BlogCollectionContains
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
+          name: OrderByDirection
         }
 
         schema {

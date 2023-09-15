@@ -23,6 +23,10 @@ impl ObjectTypeBuilder {
 
     pub(crate) fn push_scalar_field(&mut self, field: MetaField, column_id: TableColumnId) {
         self.field_mapping.push((field.name.to_string(), column_id));
+        self.push_non_mapped_scalar_field(field);
+    }
+
+    pub(crate) fn push_non_mapped_scalar_field(&mut self, field: MetaField) {
         self.object_type.fields.insert(field.name.to_string(), field);
     }
 
@@ -41,6 +45,7 @@ pub struct InputTypeBuilder {
     pub(super) input_object_type: InputObjectType,
     pub(super) type_mapping: Vec<(String, TableId)>,
     pub(super) field_mapping: Vec<(String, TableColumnId)>,
+    pub(super) relation_mapping: Vec<(String, RelationId)>,
     pub(super) nested: Vec<InputObjectType>,
 }
 
@@ -52,12 +57,17 @@ impl InputTypeBuilder {
             input_object_type: InputObjectType::new(name.clone(), []),
             type_mapping: vec![(name, table_id)],
             field_mapping: Vec::new(),
+            relation_mapping: Vec::new(),
             nested: Vec::new(),
         }
     }
 
     pub(crate) fn push_input_column(&mut self, value: MetaInputValue, column_id: TableColumnId) {
         self.field_mapping.push((value.name.to_string(), column_id));
+        self.push_non_mapped_input_column(value);
+    }
+
+    pub(crate) fn push_non_mapped_input_column(&mut self, value: MetaInputValue) {
         self.push_input_value(value);
     }
 
@@ -65,6 +75,11 @@ impl InputTypeBuilder {
         self.input_object_type
             .input_fields
             .insert(value.name.to_string(), value);
+    }
+
+    pub(crate) fn push_input_relation(&mut self, value: MetaInputValue, id: RelationId) {
+        self.relation_mapping.push((value.name.clone(), id));
+        self.push_non_mapped_input_column(value);
     }
 
     pub(crate) fn oneof(&mut self, value: bool) {
