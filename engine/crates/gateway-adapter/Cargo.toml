@@ -7,6 +7,7 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1"
 futures-util = { workspace = true }
+mediatype = "0.19"
 rusoto_core = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_with = { workspace = true }

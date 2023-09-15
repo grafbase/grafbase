@@ -4,8 +4,9 @@ pub use self::{
     customer_deployment_config::{
         local::LocalSpecificConfig, CommonCustomerDeploymentConfig, CustomerDeploymentConfig,
     },
-    execution_engine::{ExecutionEngine, ExecutionError, ExecutionResult, StreamingFormat},
+    execution_engine::{ExecutionEngine, ExecutionError, ExecutionResult},
     registry::{RegistryError, RegistryProvider, RegistryResult},
+    streaming_format::StreamingFormat,
 };
 pub use engine::registry::VersionedRegistry;
 
@@ -16,6 +17,7 @@ use worker::{js_sys::Uint8Array, Headers, Method, RequestInit};
 mod customer_deployment_config;
 mod execution_engine;
 mod registry;
+mod streaming_format;
 
 #[cfg(test)]
 mod tests;

@@ -1384,6 +1384,7 @@ dependencies = [
  "common-types",
  "engine",
  "futures-util",
+ "mediatype",
  "rusoto_core",
  "serde",
  "serde_json",
@@ -2008,6 +2009,12 @@ checksum = "6365506850d44bff6e2fbcb5176cf63650e48bd45ef2fe2665ae1570e0f4b9ca"
 dependencies = [
  "digest",
 ]
+
+[[package]]
+name = "mediatype"
+version = "0.19.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c408dc227d302f1496c84d9dc68c00fec6f56f9228a18f3023f976f3ca7c945"
 
 [[package]]
 name = "memchr"

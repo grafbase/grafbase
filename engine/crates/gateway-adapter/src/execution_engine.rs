@@ -3,6 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 
+use crate::StreamingFormat;
+
 #[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]
 pub enum ExecutionError {
@@ -13,31 +15,6 @@ pub enum ExecutionError {
 }
 
 pub type ExecutionResult<T> = Result<T, ExecutionError>;
-
-/// The format execute_stream should return
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum StreamingFormat {
-    /// Follow the [incremental delivery spec][1]
-    ///
-    /// [1]: https://github.com/graphql/graphql-over-http/blob/main/rfcs/IncrementalDelivery.md
-    IncrementalDelivery,
-    /// Follow the [GraphQL over SSE spec][1]
-    ///
-    /// [1]: https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverSSE.md
-    GraphQLOverSSE,
-}
-
-impl StreamingFormat {
-    pub fn from_accept_header(header: &str) -> Option<Self> {
-        // Note: This is not even close to the correct way to parse the Accept header.
-        // Going to improve apon this in GB-4878
-        match header {
-            "multipart/mixed" => Some(Self::IncrementalDelivery),
-            "text/event-stream" => Some(Self::GraphQLOverSSE),
-            _ => None,
-        }
-    }
-}
 
 /// Owned trait with 'static in mind
 #[async_trait(?Send)]
