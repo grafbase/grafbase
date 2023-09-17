@@ -81,7 +81,7 @@ mod tests {
 
         let schema = parse_schema(schema).expect("");
 
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut ScalarHydratation, &mut ctx, &schema);
 
         assert!(!ctx.errors.is_empty(), "shouldn't be empty");
@@ -106,7 +106,7 @@ mod tests {
 
         let schema = parse_schema(schema).expect("");
 
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut ScalarHydratation, &mut ctx, &schema);
 
         let scalar_ty = ctx.registry.get_mut().types.get("DateTime");

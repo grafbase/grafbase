@@ -155,7 +155,7 @@ mod tests {
               )
             "#;
 
-        block_on(crate::parse(schema, &variables, &connector_parsers)).unwrap();
+        block_on(crate::parse(schema, &variables, false, &connector_parsers)).unwrap();
 
         insta::assert_debug_snapshot!(connector_parsers.graphql_directives.lock().unwrap(), @r###"
         [
@@ -219,7 +219,7 @@ mod tests {
               )
             "#;
 
-        block_on(crate::parse(schema, &variables, &connector_parsers)).unwrap();
+        block_on(crate::parse(schema, &variables, false, &connector_parsers)).unwrap();
 
         insta::assert_debug_snapshot!(connector_parsers.graphql_directives.lock().unwrap(), @r###"
         [
@@ -341,7 +341,7 @@ mod tests {
 
         let connector_parsers = MockConnectorParsers::default();
 
-        block_on(crate::parse(schema, &HashMap::new(), &connector_parsers)).unwrap();
+        block_on(crate::parse(schema, &HashMap::new(), false, &connector_parsers)).unwrap();
 
         assert_eq!(
             connector_parsers.graphql_directives.lock().unwrap()[0].introspection_headers(),
@@ -363,7 +363,7 @@ mod tests {
 
         let connector_parsers = MockConnectorParsers::default();
 
-        block_on(crate::parse(schema, &HashMap::new(), &connector_parsers)).unwrap();
+        block_on(crate::parse(schema, &HashMap::new(), false, &connector_parsers)).unwrap();
 
         assert_eq!(
             connector_parsers.graphql_directives.lock().unwrap()[0].introspection_headers(),

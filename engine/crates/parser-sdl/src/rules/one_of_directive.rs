@@ -96,7 +96,7 @@ fn test_not_usable_on_nullable_fields() {
     "#;
 
     let schema = parse_schema(schema).unwrap();
-    let mut ctx = VisitorContext::new(&schema);
+    let mut ctx = VisitorContext::new_for_tests(&schema);
     visit(&mut OneOfDirective, &mut ctx, &schema);
     assert!(ctx
         .registry

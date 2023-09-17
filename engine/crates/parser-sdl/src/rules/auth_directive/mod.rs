@@ -112,7 +112,7 @@ pub mod tests {
             fn $fn_name() {
                 let variables = $variables;
                 let schema = parse_schema($schema).unwrap();
-                let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+                let mut ctx = VisitorContext::new(&schema, true, &variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
                 visit(&mut ModelDirective, &mut ctx, &schema);
 
@@ -131,7 +131,7 @@ pub mod tests {
             fn $fn_name() {
                 let variables = $variables;
                 let schema = parse_schema($schema).unwrap();
-                let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+                let mut ctx = VisitorContext::new(&schema, true, &variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
                 visit(&mut ModelDirective, &mut ctx, &schema);
 

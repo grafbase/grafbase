@@ -158,7 +158,7 @@ mod tests {
                 headers: [{ name: "authorization", value: "Bearer {{env.STRIPE_API_KEY}}"}],
               )
             "#;
-        futures::executor::block_on(crate::parse(schema, &variables, &connector_parsers)).unwrap();
+        futures::executor::block_on(crate::parse(schema, &variables, false, &connector_parsers)).unwrap();
 
         insta::assert_debug_snapshot!(connector_parsers.openapi_directives.lock().unwrap(), @r###"
         [
@@ -223,7 +223,7 @@ mod tests {
             "#
         );
         let connector_parsers = MockConnectorParsers::default();
-        futures::executor::block_on(crate::parse(&schema, &variables, &connector_parsers)).unwrap();
+        futures::executor::block_on(crate::parse(&schema, &variables, false, &connector_parsers)).unwrap();
 
         assert_eq!(
             connector_parsers

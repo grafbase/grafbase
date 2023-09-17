@@ -98,7 +98,7 @@ mod tests {
 
         let schema = format!("{}\n{schema}", PossibleScalar::sdl());
         let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
 
         visit(&mut rules, &mut ctx, &schema);
         visit(&mut crate::DefaultDirectiveTypes, &mut ctx, &schema);
@@ -161,7 +161,7 @@ mod tests {
     "#, &[])]
     fn test_parse_result(#[case] schema: &str, #[case] expected_messages: &[&str]) {
         let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut DefaultDirectiveTypes, &mut ctx, &schema);
 
         let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();

@@ -380,7 +380,7 @@ mod tests {
     "#, &[])]
     fn test_global_parsing(#[case] schema: &str, #[case] expected_messages: &[&str]) {
         let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut CacheVisitor, &mut ctx, &schema);
 
         let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();

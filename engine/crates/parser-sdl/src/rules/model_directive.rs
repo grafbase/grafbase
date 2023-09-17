@@ -162,6 +162,14 @@ impl<'a> Visitor<'a> for ModelDirective {
         {
             return;
         }
+        if !ctx.database_models_enabled {
+            ctx.report_error(
+                vec![type_definition.node.name.pos],
+                "The connector-less `@model` directive is not supported when no database regions have been specified.",
+            );
+            return;
+        }
+
         if let TypeKind::Object(object) = &type_definition.node.kind {
             let type_name = MetaNames::model(&type_definition.node);
             if type_definition.node.name.node != type_name {
@@ -500,7 +508,7 @@ mod tests {
 
         let schema = parse_schema(schema).expect("");
 
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut ModelDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
@@ -517,7 +525,7 @@ mod tests {
 
         let variables = HashMap::new();
         let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+        let mut ctx = VisitorContext::new(&schema, true, &variables);
         visit(&mut ModelDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
@@ -576,7 +584,7 @@ mod tests {
 
         let variables = HashMap::new();
         let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+        let mut ctx = VisitorContext::new(&schema, true, &variables);
         visit(&mut ModelDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
@@ -614,7 +622,7 @@ mod tests {
 
         let variables = HashMap::new();
         let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+        let mut ctx = VisitorContext::new(&schema, true, &variables);
         visit(&mut ModelDirective, &mut ctx, &schema);
         assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
         let expected_model_auth = AuthConfig {
