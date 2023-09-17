@@ -515,6 +515,24 @@ mod tests {
     }
 
     #[test]
+    fn should_reject_model_when_models_disabled() {
+        let schema = r#"
+            type Product @model {
+                id: ID!
+                test: String!
+            }
+            "#;
+
+        let schema = parse_schema(schema).expect("");
+
+        let variables = Default::default();
+        let mut ctx = VisitorContext::new(&schema, false, &variables);
+        visit(&mut ModelDirective, &mut ctx, &schema);
+
+        assert!(!ctx.errors.is_empty(), "should not be empty");
+    }
+
+    #[test]
     fn should_handle_model_auth() {
         let schema = r#"
             type Todo @model @auth(rules: [ { allow: private } ]) {
