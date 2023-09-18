@@ -122,7 +122,7 @@ mod tests {
 
         let connector_parsers = MockConnectorParsers::default();
 
-        block_on(crate::parse(schema, &variables, &connector_parsers)).unwrap();
+        block_on(crate::parse(schema, &variables, false, &connector_parsers)).unwrap();
 
         insta::assert_debug_snapshot!(connector_parsers.neon_directives.lock().unwrap(), @r###"
         [

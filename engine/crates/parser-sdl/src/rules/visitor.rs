@@ -65,6 +65,8 @@ pub struct VisitorContext<'a> {
     pub(crate) mongodb_directives: Vec<(MongoDBDirective, Pos)>,
     pub(crate) neon_directives: Vec<(NeonDirective, Pos)>,
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
+
+    pub database_models_enabled: bool,
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
@@ -89,12 +91,12 @@ fn add_fake_scalar(types: &mut HashMap<String, Cow<'_, Positioned<TypeDefinition
 }
 
 impl<'a> VisitorContext<'a> {
-    #[allow(dead_code)] // Used in tests.
-    pub(crate) fn new(document: &'a ServiceDocument) -> Self {
+    #[cfg(test)] // Used in tests.
+    pub(crate) fn new_for_tests(document: &'a ServiceDocument) -> Self {
         lazy_static::lazy_static! {
             static ref EMPTY_HASHMAP: HashMap<String, String> = HashMap::new();
         }
-        Self::new_with_variables(document, &EMPTY_HASHMAP)
+        Self::new(document, true, &EMPTY_HASHMAP)
     }
 
     /// Create a new unique [`SchemaID`] for this [`VisitorContext`] if the provided `ty` doesn't
@@ -117,7 +119,11 @@ impl<'a> VisitorContext<'a> {
         new_id
     }
 
-    pub(crate) fn new_with_variables(document: &'a ServiceDocument, variables: &'a HashMap<String, String>) -> Self {
+    pub(crate) fn new(
+        document: &'a ServiceDocument,
+        database_models_enabled: bool,
+        variables: &'a HashMap<String, String>,
+    ) -> Self {
         let mut schema = Vec::new();
         let mut types = HashMap::new();
         let mut directives = HashMap::new();
@@ -163,6 +169,7 @@ impl<'a> VisitorContext<'a> {
             mongodb_directives: Vec::new(),
             neon_directives: Vec::new(),
             global_cache_rules: Default::default(),
+            database_models_enabled,
         }
     }
 

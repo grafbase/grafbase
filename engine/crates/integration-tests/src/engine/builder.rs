@@ -48,7 +48,7 @@ impl EngineBuilder {
     }
 
     pub async fn build(self) -> Engine {
-        let ParseResult { registry, .. } = parser_sdl::parse(&self.schema, &self.environment_variables, &self)
+        let ParseResult { registry, .. } = parser_sdl::parse(&self.schema, &self.environment_variables, true, &self)
             .await
             .unwrap();
 

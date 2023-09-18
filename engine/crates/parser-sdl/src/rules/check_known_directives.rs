@@ -166,7 +166,7 @@ mod tests {
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut rules, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
@@ -192,7 +192,7 @@ mod tests {
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut rules, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
@@ -219,7 +219,7 @@ mod tests {
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut rules, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
@@ -246,7 +246,7 @@ mod tests {
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut rules, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
@@ -272,7 +272,7 @@ mod tests {
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut rules, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
@@ -299,7 +299,7 @@ mod tests {
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut rules, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
@@ -326,7 +326,7 @@ mod tests {
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut rules, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should have no errors: {:?}", ctx.errors);

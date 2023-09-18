@@ -85,7 +85,7 @@ mod tests {
     "#, &[], false)]
     fn test_parsing(#[case] schema: &str, #[case] expected_messages: &[&str], #[case] expected_kv_enabled: bool) {
         let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut ExperimentalDirectiveVisitor, &mut ctx, &schema);
 
         let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();

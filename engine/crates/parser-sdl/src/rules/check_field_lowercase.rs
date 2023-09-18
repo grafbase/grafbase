@@ -55,7 +55,7 @@ mod tests {
 
         let schema = parse_schema(schema).expect("");
 
-        let mut ctx = VisitorContext::new(&schema);
+        let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut CheckFieldCamelCase, &mut ctx, &schema);
 
         assert!(!ctx.errors.is_empty(), "shouldn't be empty");
