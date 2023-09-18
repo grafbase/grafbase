@@ -52,7 +52,12 @@ impl ResolverData {
             .map(ToString::to_string)
             .unwrap_or_else(|| field.name().to_string());
 
-        let resolver = Resolver::Transformer(Transformer::Select { key });
+        let mut resolver = Resolver::Transformer(Transformer::Select { key });
+
+        if let "Timestamp" = field.ty.base.to_base_type_str() {
+            resolver = resolver.and_then(Transformer::MongoTimestamp)
+        }
+
         let field_type = field.ty.node.to_string();
         let cache_control = CacheDirective::parse(&field.directives);
 
