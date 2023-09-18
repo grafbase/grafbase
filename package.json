@@ -16,7 +16,7 @@
     "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
     "@vitejs/plugin-react": "^4.0.0",
-    "monaco-editor": "0.41.0",
+    "monaco-editor": "0.43.0",
     "monaco-graphql": "1.2.4",
     "pathfinder": "workspace:*",
     "ui": "workspace:*",
