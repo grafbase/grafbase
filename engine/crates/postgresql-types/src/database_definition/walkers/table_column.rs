@@ -35,12 +35,8 @@ impl<'a> TableColumnWalker<'a> {
     /// Returns `None`, if we don't support the database type yet.
     pub fn graphql_type(self) -> Option<Cow<'a, str>> {
         match self.database_type() {
-            DatabaseType::Scalar(scalar) if self.nullable() => scalar.client_type().map(Cow::from),
-            DatabaseType::Scalar(scalar) => scalar.client_type().map(|name| Cow::from(format!("{name}!"))),
-            DatabaseType::Enum(r#enum) if self.nullable() && self.is_array() => {
-                Some(Cow::from(format!("[{}]", r#enum.client_name())))
-            }
-            DatabaseType::Enum(r#enum) if self.is_array() => Some(Cow::from(format!("[{}]!", r#enum.client_name()))),
+            DatabaseType::Scalar(scalar) => scalar.client_type().map(Cow::from),
+            DatabaseType::Enum(r#enum) if self.is_array() => Some(Cow::from(format!("[{}]", r#enum.client_name()))),
             DatabaseType::Enum(r#enum) => Some(Cow::from(r#enum.client_name())),
         }
     }

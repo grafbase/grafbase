@@ -1,5 +1,5 @@
 use postgresql_types::{
-    database_definition::{DatabaseDefinition, UniqueConstraint, UniqueConstraintColumn},
+    database_definition::{ConstraintType, DatabaseDefinition, UniqueConstraint, UniqueConstraintColumn},
     transport::Transport,
 };
 use serde::Deserialize;
@@ -10,6 +10,7 @@ struct Row {
     constraint_name: String,
     table_name: String,
     column_name: String,
+    is_primary_key: bool,
 }
 
 pub(super) async fn introspect<T>(transport: &T, database_definition: &mut DatabaseDefinition) -> crate::Result<()>
@@ -30,7 +31,13 @@ where
         let constraint_id = match database_definition.get_unique_constraint_id(table_id, &row.constraint_name) {
             Some(id) => id,
             None => {
-                let constraint = UniqueConstraint::new(table_id, row.constraint_name);
+                let constraint_type = if row.is_primary_key {
+                    ConstraintType::Primary
+                } else {
+                    ConstraintType::Secondary
+                };
+
+                let constraint = UniqueConstraint::new(table_id, row.constraint_name, constraint_type);
                 database_definition.push_unique_constraint(constraint)
             }
         };

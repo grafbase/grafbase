@@ -48,6 +48,10 @@ impl<T> QueryResponse<T> {
     pub fn into_rows(self) -> impl ExactSizeIterator<Item = T> {
         self.rows.into_iter()
     }
+
+    pub fn into_single_row(self) -> Option<T> {
+        self.into_rows().next()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -80,4 +84,6 @@ pub trait Transport {
         T: DeserializeOwned + Send;
 
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<ExecuteResponse>;
+
+    fn connection_string(&self) -> &str;
 }

@@ -1,6 +1,5 @@
-use crate::database_definition::{ids::ForwardRelationId, ForeignKeyId, TableId};
-
 use super::{ForeignKeyWalker, TableColumnWalker, TableWalker, Walker};
+use crate::database_definition::{ids::ForwardRelationId, ForeignKeyId, TableId};
 
 /// A relation from the side of a foreign key. Foreign key
 /// is defined from this table.
@@ -27,19 +26,7 @@ impl<'a> ForwardRelationWalker<'a> {
         self.foreign_key().columns().map(|column| column.referenced_column())
     }
 
-    /// True, if the referenced row is unique, this means there can only be at most one related row.
-    pub fn is_referenced_row_unique(self) -> bool {
-        self.referenced_table()
-            .unique_constraints()
-            .any(|constraint| constraint.contains_exactly_columns(self.referenced_columns()))
-    }
-
-    /// True, if all the columns of the relation are of supported type.
-    pub fn all_columns_use_supported_types(self) -> bool {
-        self.foreign_key().all_columns_use_supported_types()
-    }
-
-    fn foreign_key(self) -> ForeignKeyWalker<'a> {
+    pub(super) fn foreign_key(self) -> ForeignKeyWalker<'a> {
         self.walk(self.get().1)
     }
 

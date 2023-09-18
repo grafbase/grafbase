@@ -174,7 +174,7 @@ fn nested_eq() {
           b: B
           d: String
         }
-
+        
         type User @model(connector: "test", collection: "users") {
           data: A
           other: Int

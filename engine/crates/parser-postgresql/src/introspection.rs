@@ -19,7 +19,7 @@ pub(crate) async fn introspect<T>(transport: &T) -> crate::Result<DatabaseDefini
 where
     T: Transport + Sync,
 {
-    let mut database_definition = DatabaseDefinition::default();
+    let mut database_definition = DatabaseDefinition::new(transport.connection_string());
 
     // order matters
     schemas::introspect(transport, &mut database_definition).await?;

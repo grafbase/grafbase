@@ -103,7 +103,7 @@ impl<'a> CreateTypeContext<'a> {
     }
 
     pub(super) fn query_type_name(&self) -> Option<&str> {
-        dbg!(self.query_type_name.as_deref())
+        self.query_type_name.as_deref()
     }
 
     pub(super) fn mutation_type_name(&self) -> Option<&str> {

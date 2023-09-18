@@ -10,24 +10,25 @@ mod table;
 mod table_column;
 mod unique_constraint;
 mod unique_constraint_column;
+mod vectorize;
 mod walkers;
 
 pub use enum_variant::EnumVariant;
 pub use foreign_key::ForeignKey;
 pub use foreign_key_column::ForeignKeyColumn;
 pub use ids::{
-    EnumId, EnumVariantId, ForeignKeyColumnId, ForeignKeyId, SchemaId, TableColumnId, TableId,
-    UniqueConstraintColumnId, UniqueConstraintId,
+    BackRelationId, EnumId, EnumVariantId, ForeignKeyColumnId, ForeignKeyId, ForwardRelationId, RelationId, SchemaId,
+    TableColumnId, TableId, UniqueConstraintColumnId, UniqueConstraintId,
 };
 pub use postgres_type::{ColumnType, DatabaseType, ScalarType};
 pub use r#enum::Enum;
 pub use table::Table;
 pub use table_column::TableColumn;
-pub use unique_constraint::UniqueConstraint;
+pub use unique_constraint::{ConstraintType, UniqueConstraint};
 pub use unique_constraint_column::UniqueConstraintColumn;
 pub use walkers::{
-    BackRelationWalker, EnumVariantWalker, EnumWalker, ForwardRelationWalker, TableColumnWalker, TableWalker,
-    UniqueConstraintColumnWalker, UniqueConstraintWalker, Walker,
+    EnumVariantWalker, EnumWalker, RelationWalker, TableColumnWalker, TableWalker, UniqueConstraintColumnWalker,
+    UniqueConstraintWalker, Walker,
 };
 
 use inflector::Inflector;
@@ -51,8 +52,10 @@ use std::collections::HashMap;
 /// fast worker startup. Any changes here must be backwards-compatible.
 ///
 /// There will be a test failure if something changes to alert you.
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DatabaseDefinition {
+    /// The database connection string.
+    connection_string: String,
     /// Ordered by name.
     schemas: Vec<String>,
     /// Ordered by schema id, then table name.
@@ -76,6 +79,28 @@ pub struct DatabaseDefinition {
 }
 
 impl DatabaseDefinition {
+    pub fn new(connection_string: &str) -> Self {
+        Self {
+            connection_string: connection_string.to_string(),
+            schemas: Vec::new(),
+            tables: Vec::new(),
+            table_columns: Vec::new(),
+            enums: Vec::new(),
+            enum_variants: Vec::new(),
+            foreign_keys: Vec::new(),
+            foreign_key_columns: Vec::new(),
+            unique_constraints: Vec::new(),
+            unique_constraint_columns: Vec::new(),
+            names: Names::default(),
+            relations: Relations::default(),
+        }
+    }
+
+    /// The connection string this definition is introspected from.
+    pub fn connection_string(&self) -> &str {
+        &self.connection_string
+    }
+
     /// Iterates over all tables of the introspected database.
     pub fn tables(&self) -> impl ExactSizeIterator<Item = TableWalker<'_>> + '_ {
         (0..self.tables.len()).map(move |id| self.walk(TableId(id as u32)))
@@ -98,6 +123,27 @@ impl DatabaseDefinition {
     pub fn find_enum(&self, schema_name: &str, enum_name: &str) -> Option<EnumWalker<'_>> {
         let schema_id = self.get_schema_id(schema_name)?;
         self.get_enum_id(schema_id, enum_name).map(|enum_id| self.walk(enum_id))
+    }
+
+    /// Find a table that represents the given client type.
+    pub fn find_table_for_client_type(&self, client_type: &str) -> Option<TableWalker<'_>> {
+        self.names
+            .get_table_id_for_client_type(client_type)
+            .map(|table_id| self.walk(table_id))
+    }
+
+    /// Find a column that represents the given client field.
+    pub fn find_column_for_client_field(&self, client_field: &str, table_id: TableId) -> Option<TableColumnWalker<'_>> {
+        self.names
+            .get_column_id_for_client_field(client_field, table_id)
+            .map(|table_id| self.walk(table_id))
+    }
+
+    /// Find a relation that represents the given client field.
+    pub fn find_relation_for_client_field(&self, client_field: &str, table_id: TableId) -> Option<RelationWalker<'_>> {
+        self.names
+            .get_relation_id_for_client_field(client_field, table_id)
+            .map(|relation_id| self.walk(relation_id))
     }
 
     /// Adds a schema to the definition.
@@ -204,6 +250,7 @@ impl DatabaseDefinition {
         self.unique_constraints.push(UniqueConstraint {
             table_id: unique_constraint.table_id(),
             constraint_name: self.names.intern_string(unique_constraint.name()),
+            r#type: unique_constraint.r#type,
         });
 
         id
@@ -233,6 +280,11 @@ impl DatabaseDefinition {
     /// Adds an index from client enum name to the corresponding enum id.
     pub fn push_client_enum_mapping(&mut self, enum_name: &str, enum_id: EnumId) {
         self.names.intern_client_enum(enum_name, enum_id);
+    }
+
+    /// Adds an index from client field name to a forward relation.
+    pub fn push_client_relation_mapping(&mut self, field_name: &str, table_id: TableId, relation_id: RelationId) {
+        self.names.intern_client_relation(field_name, table_id, relation_id);
     }
 
     /// Finds the id of a schema with the given name, if existing.

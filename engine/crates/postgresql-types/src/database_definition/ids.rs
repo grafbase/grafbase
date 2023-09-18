@@ -32,3 +32,9 @@ pub struct ForwardRelationId(pub(crate) u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct BackRelationId(pub(crate) u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum RelationId {
+    Forward(ForwardRelationId),
+    Back(BackRelationId),
+}

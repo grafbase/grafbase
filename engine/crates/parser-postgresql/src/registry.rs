@@ -1,12 +1,19 @@
+mod context;
+mod queries;
+mod types;
+
+use context::InputContext;
 use parser_sdl::Registry;
 use postgresql_types::database_definition::DatabaseDefinition;
 
-pub(super) fn generate(database_definition: DatabaseDefinition, name: &str, _namespaced: bool) -> Registry {
-    let mut registry = Registry::default();
+use self::context::OutputContext;
 
-    registry
-        .postgres_databases
-        .insert(name.to_string(), database_definition);
+pub(super) fn generate(database_definition: DatabaseDefinition, name: &str, namespaced: bool) -> Registry {
+    let input_ctx = InputContext::new(database_definition, name, namespaced);
+    let mut output_ctx = OutputContext::new(namespaced.then_some(name));
 
-    registry
+    types::generate(&input_ctx, &mut output_ctx);
+    queries::generate(&input_ctx, &mut output_ctx);
+
+    output_ctx.finalize(input_ctx.finalize(), name)
 }

@@ -2,7 +2,7 @@
 
 mod custom_resolvers;
 mod defer;
-mod errors;
 mod execution;
 mod mongodb;
 mod openapi;
+mod postgresql;

@@ -43,7 +43,8 @@ impl DynamicParse for DecimalScalar {
 
     fn to_value(value: serde_json::Value) -> Result<crate::Value, crate::Error> {
         match value {
-            serde_json::Value::String(phone) => Ok(ConstValue::String(phone)),
+            serde_json::Value::String(number) => Ok(ConstValue::String(number)),
+            serde_json::Value::Number(number) => Ok(ConstValue::String(number.to_string())),
             _ => Err(crate::Error::new(
                 "Data violation: Cannot coerce the initial value into a Decimal",
             )),

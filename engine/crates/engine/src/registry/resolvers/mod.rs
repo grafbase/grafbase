@@ -34,6 +34,7 @@ pub mod dynamo_mutation;
 pub mod dynamo_querying;
 pub mod graphql;
 pub mod http;
+pub mod postgresql;
 pub mod query;
 mod resolved_value;
 pub mod transformer;
@@ -283,6 +284,18 @@ impl Resolver {
 
                 future.await.map_err(Into::into)
             }
+            Resolver::PostgresResolver(resolver) => {
+                let future = resolver.resolve(ctx, resolver_ctx);
+
+                #[cfg(feature = "tracing_worker")]
+                let future = future.instrument(info_span!(
+                    "postgresql_resolver",
+                    operation = resolver.operation.as_ref(),
+                    directive_name = resolver.directive_name
+                ));
+
+                future.await.map_err(Into::into)
+            }
         }
     }
 
@@ -329,6 +342,7 @@ pub enum Resolver {
     Http(http::HttpResolver),
     Graphql(graphql::Resolver),
     MongoResolver(atlas_data_api::AtlasDataApiResolver),
+    PostgresResolver(postgresql::PostgresResolver),
 }
 
 impl Constraint {

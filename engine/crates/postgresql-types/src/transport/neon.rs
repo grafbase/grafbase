@@ -50,6 +50,7 @@ struct NeonResponse<T> {
 pub struct NeonTransport {
     http_client: reqwest::Client,
     http_url: String,
+    connection_string: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -68,7 +69,7 @@ impl NeonTransport {
             None => LOCAL_TEST_HOSTNAME,
         };
 
-        let http_port = if cfg!(test) { 4444 } else { 443 };
+        let http_port = if http_host == LOCAL_TEST_HOSTNAME { 4444 } else { 443 };
         let http_url = format!("https://{http_host}:{http_port}/sql");
 
         let mut headers = HeaderMap::new();
@@ -81,22 +82,35 @@ impl NeonTransport {
 
         headers.insert("Neon-Raw-Text-Output", HeaderValue::from_static("false"));
         headers.insert("Neon-Array-Mode", HeaderValue::from_static("false"));
-        headers.insert("Neon-Pool-Opt-In", HeaderValue::from_static("true"));
+        headers.insert("Neon-Pool-Opt-In", HeaderValue::from_static("false"));
 
-        let http_client = Self::client_builder(headers).build()?;
+        let http_client = Self::client_builder(http_host, headers).build()?;
 
-        Ok(Self { http_client, http_url })
+        Ok(Self {
+            http_client,
+            http_url,
+            connection_string: connection_string.to_string(),
+        })
     }
 
-    #[cfg(any(target_arch = "wasm32", not(test)))]
-    fn client_builder(headers: HeaderMap) -> ClientBuilder {
+    pub fn connection_string(&self) -> &str {
+        &self.connection_string
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn client_builder(_: &str, headers: HeaderMap) -> ClientBuilder {
         reqwest::ClientBuilder::new().default_headers(headers)
     }
 
-    #[cfg(all(not(target_arch = "wasm32"), test))]
-    fn client_builder(headers: HeaderMap) -> ClientBuilder {
+    #[cfg(not(target_arch = "wasm32"))]
+    fn client_builder(http_host: &str, headers: HeaderMap) -> ClientBuilder {
         let builder = reqwest::ClientBuilder::new().default_headers(headers);
-        builder.danger_accept_invalid_certs(true)
+
+        if http_host == LOCAL_TEST_HOSTNAME {
+            builder.danger_accept_invalid_certs(true)
+        } else {
+            builder
+        }
     }
 
     async fn request<T>(&self, request: &NeonRequest<'_>) -> crate::Result<NeonResponse<T>>
@@ -140,5 +154,9 @@ impl Transport for NeonTransport {
         Ok(ExecuteResponse {
             row_count: response.row_count.unwrap_or(0),
         })
+    }
+
+    fn connection_string(&self) -> &str {
+        &self.connection_string
     }
 }

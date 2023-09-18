@@ -224,6 +224,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-once-cell"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9338790e78aa95a416786ec8389546c4b6a1dfc3dc36071ed9518a9413a542eb"
+
+[[package]]
 name = "async-recursion"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1031,6 +1037,7 @@ dependencies = [
  "fnv",
  "futures",
  "futures-util",
+ "grafbase-sql-ast",
  "graph-entities",
  "http",
  "im",
@@ -1062,11 +1069,13 @@ dependencies = [
  "static_assertions",
  "tempfile",
  "thiserror",
+ "time",
  "tokio",
  "tracing",
  "ulid",
  "url",
  "urlencoding",
+ "uuid",
  "wiremock",
 ]
 
@@ -1479,6 +1488,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "grafbase-sql-ast"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e85914cf77b743c12e6eda54c452974f9de60acd818be754e7a63de4942346dd"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "graph-entities"
 version = "0.1.0"
 dependencies = [
@@ -1852,12 +1870,14 @@ dependencies = [
 name = "integration-tests"
 version = "0.1.0"
 dependencies = [
+ "async-once-cell",
  "async-trait",
  "cynic",
  "cynic-introspection",
  "engine",
  "expect-test",
  "futures",
+ "graphql-parser",
  "indoc",
  "insta",
  "names",
@@ -1870,6 +1890,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "url",
  "wiremock",
 ]
 
@@ -2380,6 +2401,10 @@ dependencies = [
 name = "parser-postgresql"
 version = "0.1.0"
 dependencies = [
+ "Inflector",
+ "common-types",
+ "engine",
+ "itertools",
  "parser-sdl",
  "postgresql-types",
  "serde",
@@ -2564,6 +2589,7 @@ dependencies = [
  "Inflector",
  "async-trait",
  "indexmap 1.9.3",
+ "itertools",
  "reqwest",
  "serde",
  "serde_json",

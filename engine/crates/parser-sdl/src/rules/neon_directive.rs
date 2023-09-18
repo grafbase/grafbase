@@ -27,7 +27,7 @@ impl NeonDirective {
         &self.name
     }
 
-    pub fn postgresql_url(&self) -> &str {
+    pub fn connection_string(&self) -> &str {
         &self.url
     }
 

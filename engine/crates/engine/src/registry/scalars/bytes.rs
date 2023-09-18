@@ -39,7 +39,11 @@ impl DynamicParse for BytesScalar {
             Value::String(bytes) => STANDARD_NO_PAD
                 .decode(&bytes)
                 .map(|_| ConstValue::String(bytes))
-                .map_err(|_| crate::Error::new("Data violation:  Cannot coerse the initial value into Bytes")),
+                .map_err(|e| {
+                    crate::Error::new(format!(
+                        "Data violation:  Cannot coerse the initial value into Bytes: {e}"
+                    ))
+                }),
             _ => Err(crate::Error::new(
                 "Data violation: Cannot coerce the initial value into a Bytes",
             )),

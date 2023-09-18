@@ -1,5 +1,6 @@
 WITH rawindex AS (SELECT indrelid,
                          indexrelid,
+                         indisprimary,
                          unnest(indkey)                 AS indkeyid,
                          generate_subscripts(indkey, 1) AS indkeyidx
                   FROM pg_index
@@ -10,7 +11,8 @@ WITH rawindex AS (SELECT indrelid,
 SELECT schemainfo.nspname    AS schema,
        indexinfo.relname     AS constraint_name,
        tableinfo.relname     AS table_name,
-       columninfo.attname    AS column_name
+       columninfo.attname    AS column_name,
+       rawindex.indisprimary AS is_primary_key
 FROM rawindex
 
 INNER JOIN pg_class AS tableinfo ON tableinfo.oid = rawindex.indrelid

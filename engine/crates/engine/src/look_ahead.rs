@@ -56,23 +56,34 @@ impl<'a> Lookahead<'a> {
         !self.fields.is_empty()
     }
 
+    pub fn iter_selection_fields(&self) -> impl ExactSizeIterator<Item = SelectionField<'a>> + '_ {
+        self.fields.iter().map(|field| SelectionField {
+            fragments: self.fragments,
+            field,
+            context: self.context,
+        })
+    }
+
     /// Get the `SelectionField`s for each of the fields covered by this `Lookahead`.
     ///
     /// There will be multiple fields in situations where the same field is queried twice.
     pub fn selection_fields(&self) -> Vec<SelectionField<'a>> {
-        self.fields
-            .iter()
-            .map(|field| SelectionField {
-                fragments: self.fragments,
-                field,
-                context: self.context,
-            })
-            .collect()
+        self.iter_selection_fields().collect()
     }
 }
 
 impl<'a> From<SelectionField<'a>> for Lookahead<'a> {
     fn from(selection_field: SelectionField<'a>) -> Self {
+        Lookahead {
+            fragments: selection_field.fragments,
+            fields: vec![selection_field.field],
+            context: selection_field.context,
+        }
+    }
+}
+
+impl<'a> From<&SelectionField<'a>> for Lookahead<'a> {
+    fn from(selection_field: &SelectionField<'a>) -> Self {
         Lookahead {
             fragments: selection_field.fragments,
             fields: vec![selection_field.field],
