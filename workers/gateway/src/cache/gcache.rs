@@ -369,7 +369,7 @@ mod tests {
             #[cfg(not(feature = "local"))]
             api_key_auth: crate::auth::ApiKeyAuth::default(),
             cloudflare_request_context: CloudflareRequestContext::default(),
-            closest_aws_region: rusoto_core::Region::EuNorth1,
+            closest_aws_region: Some(rusoto_core::Region::EuNorth1),
             config: Arc::new(config),
             wait_until_promises,
         }
