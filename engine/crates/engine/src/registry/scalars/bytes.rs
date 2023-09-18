@@ -36,13 +36,14 @@ impl DynamicParse for BytesScalar {
 
     fn to_value(value: Value) -> Result<ConstValue, crate::Error> {
         match value {
-            Value::String(bytes) => match STANDARD_NO_PAD.decode(&bytes) {
-                Ok(_) => Ok(ConstValue::String(bytes)),
-                Err(_) => {
-                    let bytes = STANDARD_NO_PAD.encode(bytes.as_bytes());
-                    Ok(ConstValue::String(bytes))
-                }
-            },
+            Value::String(bytes) => STANDARD_NO_PAD
+                .decode(&bytes)
+                .map(|_| ConstValue::String(bytes))
+                .map_err(|e| {
+                    crate::Error::new(format!(
+                        "Data violation:  Cannot coerse the initial value into Bytes: {e}"
+                    ))
+                }),
             _ => Err(crate::Error::new(
                 "Data violation: Cannot coerce the initial value into a Bytes",
             )),

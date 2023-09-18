@@ -2,6 +2,7 @@
 
 use std::hash::Hash;
 
+use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use indexmap::IndexMap;
@@ -84,6 +85,10 @@ pub enum Transformer {
     RemoteEnum,
     /// Resolves the __typename of a remote union type
     RemoteUnion,
+    /// Converts bytes to base64
+    BytesToBase64,
+    /// Converts byte array to base64 array
+    ByteArrayToBase64Array,
 }
 
 impl From<Transformer> for Resolver {
@@ -269,6 +274,47 @@ impl Transformer {
                     .as_object_mut()
                     .unwrap()
                     .insert("__typename".into(), serde_json::Value::String(typename.clone()));
+
+                Ok(ResolvedValue::new(new_value))
+            }
+            Transformer::BytesToBase64 => {
+                let resolved_value = last_resolver_value.ok_or_else(|| Error::new("missing value for bytes column"))?;
+
+                let new_value = match resolved_value.data_resolved() {
+                    serde_json::Value::Null => serde_json::Value::Null,
+                    serde_json::Value::String(ref string) => {
+                        serde_json::Value::String(STANDARD_NO_PAD.encode(string.as_bytes()))
+                    }
+                    _ => return Err(Error::new("The resolved value is not a bytes string")),
+                };
+
+                Ok(ResolvedValue::new(new_value))
+            }
+            Transformer::ByteArrayToBase64Array => {
+                let resolved_value = last_resolver_value.ok_or_else(|| Error::new("missing value for bytes column"))?;
+
+                let new_value = match resolved_value.data_resolved() {
+                    serde_json::Value::Null => serde_json::Value::Null,
+                    serde_json::Value::Array(ref values) => {
+                        let mut result = Vec::with_capacity(values.len());
+
+                        for value in values {
+                            match value {
+                                serde_json::Value::Null => result.push(serde_json::Value::Null),
+                                serde_json::Value::String(ref string) => {
+                                    let new_value =
+                                        serde_json::Value::String(STANDARD_NO_PAD.encode(string.as_bytes()));
+
+                                    result.push(new_value)
+                                }
+                                _ => return Err(Error::new("The resolved value is not a bytes string")),
+                            }
+                        }
+
+                        serde_json::Value::Array(result)
+                    }
+                    _ => return Err(Error::new("The resolved value is not a bytes string")),
+                };
 
                 Ok(ResolvedValue::new(new_value))
             }

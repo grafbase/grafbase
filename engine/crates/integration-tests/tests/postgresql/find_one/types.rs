@@ -1976,7 +1976,7 @@ fn bytea() {
         api.execute_sql(schema).await;
 
         let insert = indoc! {r#"
-            INSERT INTO "A" (id, val) VALUES (1, '\xDEADBEEF'::bytea)
+            INSERT INTO "A" (id, val) VALUES (1, 'DEADBEEF'::bytea)
         "#};
 
         api.execute_sql(insert).await;
@@ -1995,7 +1995,7 @@ fn bytea() {
           "data": {
             "a": {
               "id": 1,
-              "val": "XHhkZWFkYmVlZg"
+              "val": "XHg0NDQ1NDE0NDQyNDU0NTQ2"
             }
           }
         }"#]];
@@ -2099,7 +2099,7 @@ fn bytea_array() {
         api.execute_sql(schema).await;
 
         let insert = indoc! {r#"
-            INSERT INTO "A" (id, val) VALUES (1, array['\xDEADBEEF', '\xBEEFDEAD']::bytea[])
+            INSERT INTO "A" (id, val) VALUES (1, array['DEADBEEF'::bytea, 'BEEFDEAD'::bytea]::bytea[])
         "#};
 
         api.execute_sql(insert).await;
@@ -2119,8 +2119,8 @@ fn bytea_array() {
             "a": {
               "id": 1,
               "val": [
-                "XHhkZWFkYmVlZg",
-                "XHhiZWVmZGVhZA"
+                "XHg0NDQ1NDE0NDQyNDU0NTQ2",
+                "XHg0MjQ1NDU0NjQ0NDU0MTQ0"
               ]
             }
           }

@@ -22,7 +22,6 @@ pub enum TableSelection<'a> {
 #[derive(Clone)]
 pub struct SelectionIterator<'a> {
     ctx: &'a PostgresContext<'a>,
-    meta_type: &'a MetaType,
     selection: Vec<SelectionField<'a>>,
     target: SelectionSetTarget<'a>,
     index: usize,
@@ -34,7 +33,6 @@ impl<'a> SelectionIterator<'a> {
 
         Self {
             ctx,
-            meta_type,
             selection,
             target,
             index: 0,
@@ -53,7 +51,7 @@ impl<'a> Iterator for SelectionIterator<'a> {
         let table = self
             .ctx
             .database_definition
-            .find_table_for_client_type(self.meta_type.name())
+            .find_table_for_client_type(self.target.name())
             .expect("table for client type not found");
 
         // Selecting a column.
@@ -66,17 +64,20 @@ impl<'a> Iterator for SelectionIterator<'a> {
         }
 
         // Joining a table with the current one, selecting from the joined table.
-        let relation = self
+        let relation = match self
             .ctx
             .database_definition
             .find_relation_for_client_field(selection_field.name(), table.id())
-            .expect("column or relation not found for the given field");
+        {
+            Some(relation) => relation,
+            None => return self.next(),
+        };
 
         // The type of the relation field.
         let meta_type = self
             .target
             .field(selection_field.name())
-            .and_then(|field| self.ctx.registry().lookup_by_str(field.ty.base_type_name()).ok())
+            .and_then(|field| self.ctx.registry().lookup_expecting(&field.ty).ok())
             .expect("couldn't find a meta type for a selection");
 
         if relation.is_referenced_row_unique() {
@@ -103,7 +104,7 @@ impl<'a> Iterator for SelectionIterator<'a> {
                 .and_then(|field| self.ctx.registry().lookup(&field.ty).ok())
                 .as_ref()
                 .and_then(|output| output.field("node"))
-                .and_then(|field| self.ctx.registry().lookup_by_str(field.ty.base_type_name()).ok())
+                .and_then(|field| self.ctx.registry().lookup_expecting(&field.ty).ok())
                 .expect("couldn't find a meta type for a collection selection");
 
             let iterator = Self::new(self.ctx, meta_type, selection_set);

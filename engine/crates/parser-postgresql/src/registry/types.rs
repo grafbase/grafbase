@@ -5,7 +5,7 @@ use engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     Constraint, EnumType, InputObjectType, MetaEnumValue, MetaField, MetaInputValue, ObjectType,
 };
-use postgresql_types::database_definition::TableWalker;
+use postgresql_types::database_definition::{DatabaseType, ScalarType, TableWalker};
 
 pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputContext) {
     let tables = input_ctx
@@ -66,8 +66,15 @@ fn generate_types(
                 key: column.database_name().to_string(),
             });
 
-            if column.database_type().is_enum() {
-                field.resolver = field.resolver.and_then(Transformer::RemoteEnum);
+            let extra_transformer = match column.database_type() {
+                DatabaseType::Scalar(ScalarType::Bytea) => Some(Transformer::BytesToBase64),
+                DatabaseType::Scalar(ScalarType::ByteaArray) => Some(Transformer::ByteArrayToBase64Array),
+                DatabaseType::Enum(_) => Some(Transformer::RemoteEnum),
+                _ => None,
+            };
+
+            if let Some(transformer) = extra_transformer {
+                field.resolver = field.resolver.and_then(transformer);
             }
 
             builder.push_scalar_field(field, column.id());

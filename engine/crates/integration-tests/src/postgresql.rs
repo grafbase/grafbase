@@ -83,7 +83,7 @@ where
 
         let builder = EngineBuilder::new(&api.inner.schema);
 
-        let result = parser_sdl::parse(&api.inner.schema, &HashMap::new(), &builder)
+        let result = parser_sdl::parse(&api.inner.schema, &HashMap::new(), false, &builder)
             .await
             .expect("error in parsing the schema")
             .registry

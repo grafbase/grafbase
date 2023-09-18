@@ -10,6 +10,13 @@ impl<'a> DatabaseType<'a> {
     pub fn is_enum(self) -> bool {
         matches!(self, DatabaseType::Enum(_))
     }
+
+    pub fn is_binary(&self) -> bool {
+        matches!(
+            self,
+            DatabaseType::Scalar(ScalarType::Bytea) | DatabaseType::Scalar(ScalarType::ByteaArray)
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]

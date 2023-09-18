@@ -41,7 +41,7 @@ impl<'a> Iterator for SimpleFilterIterator<'a> {
             return Some(item);
         }
 
-        let Some((field, value)) = self.filter.pop_front() else { return None };
+        let (field, value) = self.filter.pop_front()?;
 
         // If selecting an object, we don't care about the name of the object, but selecting the
         // fields defined in the input.
