@@ -1,0 +1,10 @@
+---
+source: crates/integration-tests/tests/graphql_connector/basic.rs
+expression: "engine.execute(UNNAMESPACED_QUERY).variables(json!({\n                    \"id\" : \"4\"\n                })).await.into_value()"
+---
+{
+  "data": {
+    "pullRequestOrIssue": null,
+    "serverVersion": "1"
+  }
+}

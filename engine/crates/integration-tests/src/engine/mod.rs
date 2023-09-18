@@ -52,6 +52,13 @@ impl ExecutionRequest<'_> {
         self.headers.insert(name.into(), value.into());
         self
     }
+
+    pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
+        self.graphql.variables = Some(Variables::from_json(
+            serde_json::to_value(variables).expect("variables to be serializable"),
+        ));
+        self
+    }
 }
 
 impl<'a> IntoFuture for ExecutionRequest<'a> {
