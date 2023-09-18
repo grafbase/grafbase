@@ -10,7 +10,6 @@ use runtime::{
     },
     GraphqlRequestExecutionContext,
 };
-use send_wrapper::SendWrapper;
 
 use super::ResolvedValue;
 use crate::{Context, Error, ErrorExtensionValues};
@@ -63,7 +62,7 @@ impl CustomResolver {
             .map(|(name, value)| value.into_json().map(|value| (name.to_string(), value)))
             .collect::<serde_json::Result<_>>()?;
         let ray_id = &ctx.data::<GraphqlRequestExecutionContext>()?.ray_id;
-        let future = SendWrapper::new(custom_resolvers_engine.invoke(
+        let future = custom_resolvers_engine.invoke(
             ray_id,
             UdfRequest {
                 name: &self.resolver_name,
@@ -84,9 +83,9 @@ impl CustomResolver {
                 },
                 udf_kind: UdfKind::Resolver,
             },
-        ));
+        );
 
-        match Box::pin(future).await? {
+        match future.await? {
             CustomResolverResponse::Success(value) => Ok(ResolvedValue::new(value)),
             CustomResolverResponse::GraphQLError { message, extensions } => {
                 let mut error = Error::new(message);

@@ -2,9 +2,8 @@ mod context;
 mod request;
 
 use super::{ResolvedValue, ResolverContext};
-use crate::{Context, Error};
+use crate::{send_wrapper::make_send_on_wasm, Context, Error};
 use context::PostgresContext;
-use send_wrapper::SendWrapper;
 use std::{future::Future, pin::Pin};
 
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq, Hash)]
@@ -41,7 +40,7 @@ impl PostgresResolver {
         ctx: &'a Context<'_>,
         resolver_ctx: &'a ResolverContext<'_>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
-        Box::pin(SendWrapper::new(async move {
+        Box::pin(make_send_on_wasm(async move {
             let context = PostgresContext::new(ctx, resolver_ctx, &self.directive_name)?;
             request::execute(context, self.operation).await
         }))
