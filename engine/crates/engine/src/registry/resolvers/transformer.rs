@@ -89,6 +89,8 @@ pub enum Transformer {
     BytesToBase64,
     /// Converts byte array to base64 array
     ByteArrayToBase64Array,
+    /// Convert MongoDB timestamp as number
+    MongoTimestamp,
 }
 
 impl From<Transformer> for Resolver {
@@ -317,6 +319,22 @@ impl Transformer {
                 };
 
                 Ok(ResolvedValue::new(new_value))
+            }
+            Transformer::MongoTimestamp => {
+                let resolved_value =
+                    last_resolver_value.ok_or_else(|| Error::new("Internal error resolving mongo timestamp"))?;
+
+                let value = match resolved_value.data_resolved() {
+                    serde_json::Value::Null => serde_json::Value::Null,
+                    serde_json::Value::Number(num) => serde_json::Value::Number(num.clone()),
+                    serde_json::Value::Object(object) => match object.get("T") {
+                        Some(serde_json::Value::Number(ms)) if ms.is_u64() => serde_json::Value::Number(ms.clone()),
+                        _ => return Err(Error::new("Cannot coerce the initial value into a valid Timestamp")),
+                    },
+                    _ => return Err(Error::new("Cannot coerce the initial value into a valid Timestamp")),
+                };
+
+                Ok(ResolvedValue::new(value))
             }
         }
     }
