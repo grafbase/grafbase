@@ -1,0 +1,11 @@
+---
+source: crates/engine/src/registry/resolvers/graphql/serializer.rs
+expression: serialize(input)
+---
+query {
+	... on Foo @skip {
+		__typename
+		baz
+	}
+}
+

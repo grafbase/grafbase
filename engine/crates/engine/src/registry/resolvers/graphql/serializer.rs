@@ -555,9 +555,9 @@ mod tests {
     #[rstest]
     #[case::one_bare("query { foo @include }")]
     #[case::one_arguments("query { foo @include(if: true) }")]
-    #[case::many_bare("query { foo @include @deprecated }")]
-    #[case::many_arguments("query { foo @include(if: true) @exclude(if: 42) }")]
-    #[case::many_mixed("query { foo @include(if: true) @deprecated @exclude(if: 42) }")]
+    #[case::many_bare("query { foo @include @skip }")]
+    #[case::many_arguments("query { foo @include(if: true) @skip(if: 42) }")]
+    #[case::many_mixed("query { foo @include(if: true) @skip @skip(if: 42) }")]
     fn field_directives(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
         insta::assert_snapshot!(serialize(input));
@@ -573,7 +573,7 @@ mod tests {
 
     #[rstest]
     #[case::one("query { ... foo }")]
-    #[case::many("query { ... fooBar @deprecated }")]
+    #[case::many("query { ... fooBar @skip }")]
     fn fragment_spread(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
         insta::assert_snapshot!(serialize(input));
@@ -582,7 +582,7 @@ mod tests {
     #[rstest]
     #[case::cond("query { ... on Foo { bar baz } }")]
     #[case::directive("query { ... @include(if: $foo) { bar } }")]
-    #[case::cond_and_directive("query { ... on Foo @deprecated { baz } }")]
+    #[case::cond_and_directive("query { ... on Foo @skip { baz } }")]
     fn inline_fragment(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
         insta::assert_snapshot!(serialize(input));
