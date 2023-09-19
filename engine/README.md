@@ -46,3 +46,7 @@
 | [runtime-local](crates/runtime-local)                 |          An abstraction over the Grafbase local runtime environment           |
 | [search-protocol](crates/search-protocol)             |          Types related to the Grafbase platform search functionality          |
 | [worker-env](crates/worker-env)                       |    A utility crate to extend `worker::Env` with additional functionality.     |
+
+## Development
+
+See [DEVELOPMENT.md](DEVELOPMENT.md)
