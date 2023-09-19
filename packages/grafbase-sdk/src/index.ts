@@ -11,6 +11,7 @@ import { Authorizer, AuthorizerParams } from './auth/authorizer'
 import { MongoDBParams, PartialMongoDBAPI } from './connector/mongodb'
 import path from 'path'
 import { validateIdentifier } from './validation'
+import { NeonParams, PartialNeonAPI } from './connector/neon'
 
 dotenv.config({
   // must exist, defined by "~/.grafbase/parser/parse-config.ts"
@@ -65,6 +66,17 @@ export const connector = {
     validateIdentifier(name)
 
     return new PartialMongoDBAPI(name, params)
+  },
+  /**
+   * Create a new Neon connector object.
+   *
+   * @param name - A unique name for the connector.
+   * @param params - The configuration parameters.
+   */
+  Neon: (name: string, params: NeonParams): PartialNeonAPI => {
+    validateIdentifier(name)
+
+    return new PartialNeonAPI(name, params)
   }
 }
 
