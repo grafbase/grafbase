@@ -3,7 +3,6 @@ mod cache_control;
 mod connector_headers;
 pub mod enums;
 mod export_sdl;
-pub mod introspection;
 pub mod relations;
 pub mod resolvers;
 pub mod scalars;

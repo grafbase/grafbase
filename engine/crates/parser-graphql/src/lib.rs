@@ -12,6 +12,8 @@
 #![deny(rustdoc::all)]
 #![allow(clippy::implicit_hasher)]
 
+mod conversion;
+
 use cynic::{
     http::{CynicReqwestError, ReqwestExt},
     GraphQlError, QueryBuilder,
@@ -149,7 +151,7 @@ impl Parser {
             }
         }
 
-        let mut registry = schema.into();
+        let mut registry = conversion::registry_from_introspection(schema);
 
         if self.namespace {
             self.add_root_query_field(&mut registry, &self.name);

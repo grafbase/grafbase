@@ -1101,7 +1101,6 @@ dependencies = [
  "case",
  "chrono",
  "common-types",
- "cynic-introspection",
  "dataloader",
  "derivative",
  "dynamodb",
