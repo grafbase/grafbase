@@ -67,7 +67,7 @@ where
     T: Future<Output = TestApi>,
 {
     super::runtime().block_on(async {
-        let admin = NeonTransport::new(ADMIN_CONNECTION_STRING).unwrap();
+        let admin = NeonTransport::new("dummy-ray-id", ADMIN_CONNECTION_STRING).unwrap();
 
         admin
             .execute(&format!("DROP DATABASE IF EXISTS {database}"))
@@ -102,7 +102,7 @@ where
     R: Future<Output = TestApi>,
 {
     super::runtime().block_on(async {
-        let admin = NeonTransport::new(ADMIN_CONNECTION_STRING).unwrap();
+        let admin = NeonTransport::new("dummy-ray-id", ADMIN_CONNECTION_STRING).unwrap();
 
         admin
             .execute(&format!("DROP DATABASE IF EXISTS {database}"))
@@ -170,7 +170,7 @@ impl TestApi {
 
     async fn new_inner(schema: String, connection_string: String) -> Self {
         let engine = OnceCell::new();
-        let connection = NeonTransport::new(&connection_string).unwrap();
+        let connection = NeonTransport::new("dummy-ray-id", &connection_string).unwrap();
 
         let inner = Inner {
             engine,
