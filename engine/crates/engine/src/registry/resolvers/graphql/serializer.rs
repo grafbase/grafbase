@@ -508,7 +508,7 @@ impl From<crate::Error> for Error {
 }
 
 fn should_forward_directive(name: &str) -> bool {
-    // For now we only support forwarding the skip & defer directives.
+    // For now we only support forwarding the skip & include directives.
     //
     // defer would need some implementation work to support forwarding
     matches!(name, "skip" | "include")
