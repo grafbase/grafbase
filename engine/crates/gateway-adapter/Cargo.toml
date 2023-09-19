@@ -1,6 +1,6 @@
 [package]
 name = "gateway-adapter"
-description = "A temporary adapter for the gateway"
+description = "An adapter layer between the gateway and its environment"
 version = "0.1.0"
 edition = "2021"
 
