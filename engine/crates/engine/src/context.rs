@@ -3,15 +3,16 @@
 use std::{
     any::{Any, TypeId},
     borrow::Cow,
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{HashMap, HashSet},
     fmt::{self, Debug, Formatter},
     ops::Deref,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, Mutex},
 };
 
-use async_lock::RwLock as AsyncRwLock;
+use async_lock::Mutex as AsyncMutex;
 use derivative::Derivative;
 use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
+use engine_parser::types::OperationType;
 use engine_value::{Value as InputValue, Variables};
 use fnv::FnvHashMap;
 use graph_entities::QueryResponse;
@@ -170,7 +171,7 @@ pub type ContextDirective<'a> = ContextBase<'a, &'a Positioned<Directive>>;
 pub struct ContextBase<'a, T> {
     /// The current path being resolved.
     pub path: QueryPath,
-    /// The current resolver path being resolved.
+    // /// The current resolver path being resolved.
     pub resolver_node: Option<ResolverChainNode<'a>>,
     #[doc(hidden)]
     pub item: T,
@@ -180,18 +181,6 @@ pub struct ContextBase<'a, T> {
     #[doc(hidden)]
     #[derivative(Debug = "ignore")]
     pub query_env: &'a QueryEnv,
-    #[doc(hidden)]
-    /// Every Resolvers are able to store a Value inside this cache
-    pub resolvers_data: Arc<RwLock<FnvHashMap<String, Box<dyn Any + Sync + Send>>>>,
-    #[doc(hidden)]
-    pub response_graph: Arc<AsyncRwLock<QueryResponse>>,
-    /// A sender for deferred workloads (used by @defer & @stream)
-    ///
-    /// This is set to `None` when the user uses a transport that doesn't support
-    /// incremental delivery.  In these circumstances we should not defer any workloads
-    /// and just return the data as part of the main response.
-    #[derivative(Debug = "ignore")]
-    pub deferred_workloads: Option<DeferredWorkloadSender>,
 }
 
 #[doc(hidden)]
@@ -211,6 +200,13 @@ pub struct QueryEnvInner {
     /// datetimes (createdAt/updatedAt typically) across objects
     pub current_datetime: CurrentDateTime,
     pub cache_invalidations: HashSet<CacheInvalidation>,
+    pub response: AsyncMutex<QueryResponse>,
+    /// A sender for deferred workloads (used by @defer & @stream)
+    ///
+    /// This is set to `None` when the user uses a transport that doesn't support
+    /// incremental delivery.  In these circumstances we should not defer any workloads
+    /// and just return the data as part of the main response.
+    pub deferred_workloads: Option<DeferredWorkloadSender>,
 }
 
 #[doc(hidden)]
@@ -237,7 +233,6 @@ impl QueryEnv {
         schema_env: &'a SchemaEnv,
         resolver_node: Option<ResolverChainNode<'a>>,
         item: T,
-        deferred_workloads: Option<DeferredWorkloadSender>,
     ) -> ContextBase<'a, T> {
         ContextBase {
             path: QueryPath::empty(),
@@ -245,31 +240,34 @@ impl QueryEnv {
             item,
             schema_env,
             query_env: self,
-            resolvers_data: Default::default(),
-            response_graph: Arc::new(AsyncRwLock::new(QueryResponse::default())),
-            deferred_workloads,
         }
     }
 }
 
-/// We suppose each time it's a [`crate::Value`] but it could happens it's not.
-/// See specialized behavior of internal cache on documentation.
-pub fn resolver_data_get_opt_ref<'a, D: Any + Send + Sync>(
-    store: &'a FnvHashMap<String, Box<dyn Any + Sync + Send>>,
-    key: &'a str,
-) -> Option<&'a D> {
-    store.get(key).and_then(|d| d.downcast_ref::<D>())
+pub struct QueryEnvBuilder(QueryEnvInner);
+
+impl QueryEnvBuilder {
+    pub fn new(inner: QueryEnvInner) -> Self {
+        Self(inner)
+    }
+
+    pub fn operation_type(&self) -> OperationType {
+        self.0.operation.node.ty
+    }
+
+    pub fn with_deferred_sender(mut self, sender: DeferredWorkloadSender) -> Self {
+        self.0.deferred_workloads = Some(sender);
+        self
+    }
+
+    pub fn build(self) -> QueryEnv {
+        QueryEnv::new(self.0)
+    }
 }
 
 impl<'a, T> ContextBase<'a, T> {
-    /// Only insert a value if a value wasn't there before.
-    pub fn resolver_data_insert<D: Any + Send + Sync>(&'a self, key: String, data: D) {
-        match self.resolvers_data.write().expect("to handle").entry(key) {
-            Entry::Vacant(vac) => {
-                vac.insert(Box::new(data));
-            }
-            Entry::Occupied(_) => {}
-        }
+    pub async fn response(&self) -> async_lock::MutexGuard<'_, QueryResponse> {
+        self.query_env.response.lock().await
     }
 
     /// Find a fragment definition by name.
@@ -338,9 +336,6 @@ impl<'a, T> ContextBase<'a, T> {
             item: field,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            resolvers_data: self.resolvers_data.clone(),
-            response_graph: self.response_graph.clone(),
-            deferred_workloads: self.deferred_workloads.clone(),
         }
     }
 
@@ -355,9 +350,6 @@ impl<'a, T> ContextBase<'a, T> {
             item: selection_set,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            resolvers_data: self.resolvers_data.clone(),
-            response_graph: self.response_graph.clone(),
-            deferred_workloads: self.deferred_workloads.clone(),
         }
     }
 
@@ -589,6 +581,10 @@ impl<'a, T> ContextBase<'a, T> {
 }
 
 impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
+    pub fn deferred_workloads(&self) -> Option<&DeferredWorkloadSender> {
+        self.query_env.deferred_workloads.as_ref()
+    }
+
     #[doc(hidden)]
     #[must_use]
     pub fn with_index(
@@ -613,9 +609,6 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             item: self.item,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            resolvers_data: self.resolvers_data.clone(),
-            response_graph: self.response_graph.clone(),
-            deferred_workloads: self.deferred_workloads.clone(),
         }
     }
 }

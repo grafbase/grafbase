@@ -22,7 +22,7 @@ impl<'a> FragmentDetails<'a> {
             .as_ref()
             .map(|directive| directive.should_defer)
             .unwrap_or_default()
-            && ctx.deferred_workloads.is_some()
+            && ctx.deferred_workloads().is_some()
     }
 
     pub(super) fn from_fragment_selection(

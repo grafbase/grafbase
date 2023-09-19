@@ -40,7 +40,7 @@ pub async fn resolve_list<'a>(
         // (or return null early if we're on a nullable list)
         let items = match (list_kind, value.data_resolved()) {
             (ListKind::NullableList(_), serde_json::Value::Null) => {
-                return Ok(ctx.response_graph.write().await.insert_node(CompactValue::Null));
+                return Ok(ctx.response().await.insert_node(CompactValue::Null));
             }
             (ListKind::NonNullList(_), serde_json::Value::Null) => {
                 return Err(ctx.set_error_path(ServerError::new(
@@ -77,7 +77,7 @@ pub async fn resolve_list<'a>(
             // of each of the list items
             match result {
                 Ok(id) if list_kind.has_non_null_item() => {
-                    let found_null = match ctx.response_graph.read().await.get_node(id) {
+                    let found_null = match ctx.response().await.get_node(id) {
                         Some(QueryResponseNode::Primitive(value)) if value.is_null() => true,
                         None => true,
                         _ => false,
@@ -101,17 +101,13 @@ pub async fn resolve_list<'a>(
                 Ok(id) => children.push(id),
                 Err(error) if list_kind.has_nullable_item() => {
                     ctx.add_error(error);
-                    children.push(ctx.response_graph.write().await.insert_node(CompactValue::Null));
+                    children.push(ctx.response().await.insert_node(CompactValue::Null));
                 }
                 Err(error) => return Err(error),
             }
         }
 
-        Ok(ctx
-            .response_graph
-            .write()
-            .await
-            .insert_node(ResponseList::with_children(children)))
+        Ok(ctx.response().await.insert_node(ResponseList::with_children(children)))
     }
 
     inner(
@@ -191,8 +187,7 @@ async fn resolve_item(
             let item = result.map_err(|error| ctx_idx.set_error_path(error.into_server_error(field.pos)))?;
 
             Ok(ctx_idx
-                .response_graph
-                .write()
+                .response()
                 .await
                 .insert_node(ResponsePrimitive::new(item.into())))
         }
@@ -272,11 +267,7 @@ pub async fn resolve_list_native<'a, T: LegacyOutputType + 'a>(
         }
         let children = futures_util::future::try_join_all(futures).await?;
 
-        let node_id = ctx
-            .response_graph
-            .write()
-            .await
-            .insert_node(ResponseList::with_children(children));
+        let node_id = ctx.response().await.insert_node(ResponseList::with_children(children));
 
         Ok(node_id)
     } else {
@@ -292,11 +283,7 @@ pub async fn resolve_list_native<'a, T: LegacyOutputType + 'a>(
 
         let children = futures_util::future::try_join_all(futures).await?;
 
-        let node_id = ctx
-            .response_graph
-            .write()
-            .await
-            .insert_node(ResponseList::with_children(children));
+        let node_id = ctx.response().await.insert_node(ResponseList::with_children(children));
 
         Ok(node_id)
     }

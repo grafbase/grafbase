@@ -203,7 +203,7 @@ async fn resolve_container_inner<'a>(
                 );
             }
         }
-        Ok(ctx.response_graph.write().await.insert_node(container))
+        Ok(ctx.response().await.insert_node(container))
     } else {
         let mut container = ResponseContainer::new_container();
         for ((alias, name), value) in results {
@@ -230,7 +230,7 @@ async fn resolve_container_inner<'a>(
                 );
             }
         }
-        Ok(ctx.response_graph.write().await.insert_node(container))
+        Ok(ctx.response().await.insert_node(container))
     }
 }
 
@@ -259,7 +259,7 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         )
     }));
 
-    Ok(ctx.response_graph.write().await.insert_node(container))
+    Ok(ctx.response().await.insert_node(container))
 }
 
 /// We take individual selections from our selection set and convert those into futures.
@@ -285,7 +285,7 @@ async fn response_id_unwrap_or_null(ctx: &Context<'_>, opt_id: Option<ResponseNo
     if let Some(id) = opt_id {
         id
     } else {
-        ctx.response_graph.write().await.insert_node(CompactValue::Null)
+        ctx.response().await.insert_node(CompactValue::Null)
     }
 }
 
@@ -338,7 +338,7 @@ impl<'a> FieldExecutionSet<'a> {
                     let node = CompactValue::String(resolve_typename(root, parent_resolver_value.as_ref()).await);
                     Ok(FieldExecutionOutput::Field(
                         (alias, field_name),
-                        ctx.response_graph.write().await.insert_node(node),
+                        ctx.response().await.insert_node(node),
                     ))
                 }
             }));
@@ -430,9 +430,6 @@ impl<'a> FieldExecutionSet<'a> {
                             item: directive,
                             schema_env: ctx_field.schema_env,
                             query_env: ctx_field.query_env,
-                            resolvers_data: ctx_field.resolvers_data.clone(),
-                            response_graph: ctx_field.response_graph.clone(),
-                            deferred_workloads: ctx_field.deferred_workloads.clone(),
                         };
                         let directive_instance = directive_factory.create(&ctx_directive, &directive.node)?;
                         resolve_fut = Box::pin({
@@ -508,7 +505,7 @@ fn defer_fragment(
     root: &MetaType,
     parent_resolver_value: &Option<ResolvedValue>,
 ) -> Result<(), ()> {
-    let deferred_sender = ctx.deferred_workloads.as_ref().ok_or(())?;
+    let deferred_sender = ctx.deferred_workloads().ok_or(())?;
     let Some(directive) = fragment_details.defer.as_ref() else {
         return Err(());
     };
@@ -578,9 +575,10 @@ impl<'a> Fields<'a> {
                         let field_name = ctx_field.item.node.response_key().node.clone();
                         let typename = root.introspection_type_name().into_owned();
 
+                        let ctx = ctx.clone();
                         self.0.push(Box::pin(async move {
                             let node = CompactValue::String(typename);
-                            Ok((field_name, ctx_field.response_graph.write().await.insert_node(node)))
+                            Ok((field_name, ctx.response().await.insert_node(node)))
                         }));
                         continue;
                     }
@@ -661,9 +659,6 @@ impl<'a> Fields<'a> {
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,
-                                                resolvers_data: ctx_field.resolvers_data.clone(),
-                                                response_graph: ctx_field.response_graph.clone(),
-                                                deferred_workloads: ctx_field.deferred_workloads.clone(),
                                             };
                                             let directive_instance =
                                                 directive_factory.create(&ctx_directive, &directive.node)?;

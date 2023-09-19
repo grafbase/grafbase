@@ -73,7 +73,7 @@ impl LegacyOutputType for str {
     }
 
     async fn resolve(&self, ctx: &ContextSelectionSet<'_>, _field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
-        let mut graph = ctx.response_graph.write().await;
+        let mut graph = ctx.response().await;
         Ok(graph.insert_node(CompactValue::String(self.to_string())))
     }
 }

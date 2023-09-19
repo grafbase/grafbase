@@ -13,10 +13,7 @@ use runtime::search::GraphqlCursor;
 use serde::{de::DeserializeOwned, Serialize};
 
 use self::oneof::OneOf;
-use crate::{
-    context::resolver_data_get_opt_ref, resolver_utils::InputResolveMode, Context, Error, ServerError, ServerResult,
-    Value,
-};
+use crate::{resolver_utils::InputResolveMode, Context, Error, ServerError, ServerResult, Value};
 
 pub mod id;
 pub mod oneof;
@@ -37,7 +34,6 @@ pub enum VariableResolveDefinition {
     /// Resolve a Value by querying the ResolverContextData with a key_id.
     /// What is store in the ResolverContextData is described on each Resolver
     /// implementation.
-    ///
     #[deprecated = "Should not use Context anymore in SDL def"]
     ResolverData(Cow<'static, str>),
     /// Resolve a Value by querying the most recent ancestor resolver property.
@@ -57,10 +53,6 @@ impl VariableResolveDefinition {
         Self::ConnectorInputTypeName(value.into())
     }
 
-    pub fn resolver_data(value: impl Into<Cow<'static, str>>) -> Self {
-        Self::ResolverData(value.into())
-    }
-
     pub fn local_data(value: impl Into<Cow<'static, str>>) -> Self {
         Self::LocalData(value.into())
     }
@@ -77,11 +69,7 @@ impl VariableResolveDefinition {
                 ctx.param_value_dynamic(name.as_ref(), InputResolveMode::ApplyConnectorTransforms)
             }
             #[allow(deprecated)]
-            Self::ResolverData(key) => Ok(resolver_data_get_opt_ref::<Value>(
-                &ctx.resolvers_data.read().expect("handle"),
-                key.as_ref(),
-            )
-            .map(std::clone::Clone::clone)),
+            Self::ResolverData(_) => Err(ServerError::new("Please reploy", None)),
             Self::DebugString(inner) => Ok(Some(Value::String(inner.to_string()))),
             Self::LocalData(inner) => {
                 let result = last_resolver_value

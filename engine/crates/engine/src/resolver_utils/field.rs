@@ -61,7 +61,7 @@ pub async fn resolve_field(
         Ok(result) => Ok(Some(result)),
         Err(e) if field.ty.is_nullable() => {
             ctx.add_error(e);
-            Ok(Some(ctx.response_graph.write().await.insert_node(CompactValue::Null)))
+            Ok(Some(ctx.response().await.insert_node(CompactValue::Null)))
         }
         Err(error) => {
             // Propagate the error to parents who can add it to the response and null things out
@@ -154,11 +154,7 @@ async fn resolve_primitive_field(
         }
     };
 
-    Ok(ctx
-        .response_graph
-        .write()
-        .await
-        .insert_node(ResponsePrimitive::new(result.into())))
+    Ok(ctx.response().await.insert_node(ResponsePrimitive::new(result.into())))
 }
 
 async fn resolve_container_field(
@@ -184,8 +180,7 @@ async fn resolve_container_field(
                     ));
             } else {
                 return Ok(ctx
-                    .response_graph
-                    .write()
+                    .response()
                     .await
                     .insert_node(ResponsePrimitive::new(CompactValue::Null)));
             }
@@ -238,8 +233,7 @@ async fn resolve_container_field(
             } else {
                 ctx.add_error(err);
                 Ok(ctx
-                    .response_graph
-                    .write()
+                    .response()
                     .await
                     .insert_node(ResponsePrimitive::new(CompactValue::Null)))
             }

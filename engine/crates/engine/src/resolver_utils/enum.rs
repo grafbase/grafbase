@@ -45,6 +45,6 @@ pub fn enum_value<T: LegacyEnumType>(value: T) -> Value {
 pub async fn enum_value_node<'a, T: LegacyEnumType>(ctx: &ContextSelectionSet<'a>, value: T) -> ResponseNodeId {
     let item = T::items().iter().find(|item| item.value == value).unwrap();
 
-    let mut response_graph = ctx.response_graph.write().await;
+    let mut response_graph = ctx.response().await;
     response_graph.insert_node(CompactValue::Enum(ArcIntern::new(item.name.to_string())))
 }

@@ -499,7 +499,7 @@ impl MetaField {
                 CacheInvalidationPolicy::Type => vec![CacheTag::Type { type_name: cache_type }],
             };
 
-            ctx.response_graph.write().await.add_cache_tags(cache_tags);
+            ctx.response().await.add_cache_tags(cache_tags);
         }
     }
 }
