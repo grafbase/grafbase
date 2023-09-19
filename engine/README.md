@@ -31,7 +31,7 @@
 | [dynamodb](crates/dynamodb)                           | An implementation of the built-in Grafbase database using DynamoDB and SQLite |
 | [dynamodb-utils](crates/dynamodb-utils)               |                    Various utilities for use with DynamoDB                    |
 | [engine](crates/engine)                               |                   A dynamic GraphQL engine written in Rust                    |
-| [gateway-adapter](crates/gateway-adapter)             |              An adapter layer between the gateway and its environment         |
+| [gateway-adapter](crates/gateway-adapter)             |           An adapter layer between the gateway and its environment            |
 | [gateway-adapter-local](crates/gateway-adapter-local) |                 Local gateway execution engine implementation                 |
 | [graph-entities](crates/graph-entities)               |          Various types for use with GraphQL on the Grafbase platform          |
 | [graphql-extensions](crates/graphql-extensions)       |                            Extensions for `engine`                            |
