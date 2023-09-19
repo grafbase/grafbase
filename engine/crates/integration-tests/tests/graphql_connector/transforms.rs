@@ -34,9 +34,14 @@ fn graphql_test_with_transforms() {
           title: String!
         }
 
+        input PullRequestsAndIssuesFilters {
+          search: String!
+        }
+
         type Query {
           headers: [Header!]!
           pullRequestOrIssue(id: ID!): PullRequestOrIssue
+          pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
           serverVersion: String!
         }
 

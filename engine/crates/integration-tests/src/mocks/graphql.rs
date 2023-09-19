@@ -2,7 +2,9 @@
 
 use std::{net::TcpListener, time::Duration};
 
-use async_graphql::{EmptyMutation, EmptySubscription, Interface, Object, Schema, SimpleObject, Union, ID};
+use async_graphql::{
+    EmptyMutation, EmptySubscription, InputObject, Interface, Object, Schema, SimpleObject, Union, ID,
+};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{http::HeaderMap, routing::post, Router};
 
@@ -77,6 +79,32 @@ impl Query {
     // A top level scalar field for testing
     async fn server_version(&self) -> &str {
         "1"
+    }
+
+    async fn pull_requests_and_issues(&self, _filter: PullRequestsAndIssuesFilters) -> Vec<PullRequestOrIssue> {
+        // This doesn't actually filter anything because I don't need that for my test.
+        vec![
+            PullRequestOrIssue::PullRequest(PullRequest {
+                title: "Creating the thing".into(),
+                checks: vec!["Success!".into()],
+                author: UserOrBot::User(User {
+                    name: "Jim".into(),
+                    email: "jim@example.com".into(),
+                }),
+            }),
+            PullRequestOrIssue::PullRequest(PullRequest {
+                title: "Some bot PR".into(),
+                checks: vec!["Success!".into()],
+                author: UserOrBot::Bot(Bot { id: "123".into() }),
+            }),
+            PullRequestOrIssue::Issue(Issue {
+                title: "Everythings fucked".into(),
+                author: UserOrBot::User(User {
+                    name: "The Pessimist".into(),
+                    email: "pessimist@example.com".into(),
+                }),
+            }),
+        ]
     }
 
     async fn pull_request_or_issue(&self, id: ID) -> Option<PullRequestOrIssue> {
@@ -163,4 +191,9 @@ impl From<&UserOrBot> for UserOrBot {
     fn from(value: &UserOrBot) -> Self {
         value.clone()
     }
+}
+
+#[derive(Debug, InputObject)]
+struct PullRequestsAndIssuesFilters {
+    search: String,
 }
