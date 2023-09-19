@@ -97,8 +97,17 @@ impl ConnectorParsers for EngineBuilder {
         Ok(registry)
     }
 
-    async fn fetch_and_parse_graphql(&self, _directive: GraphqlDirective) -> Result<Registry, Vec<String>> {
-        todo!("someone should implement this sometime, similar to the above")
+    async fn fetch_and_parse_graphql(&self, directive: GraphqlDirective) -> Result<Registry, Vec<String>> {
+        parser_graphql::parse_schema(
+            reqwest::Client::new(),
+            &directive.name,
+            directive.namespace,
+            &directive.url,
+            directive.headers(),
+            directive.introspection_headers(),
+        )
+        .await
+        .map_err(|errors| errors.into_iter().map(|error| error.to_string()).collect::<Vec<_>>())
     }
 
     async fn fetch_and_parse_neon(&self, directive: &NeonDirective) -> Result<Registry, Vec<String>> {
