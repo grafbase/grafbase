@@ -23,12 +23,15 @@ import { Input, InputFields } from './input_type'
 import { InputDefinition } from './typedefs/input'
 import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
 import { DynamoDBModel, ModelFields } from './connector/dynamodb/model'
+import { NeonAPI, PartialNeonAPI } from './connector/neon'
 
 export type PartialDatasource =
   | PartialOpenAPI
   | PartialGraphQLAPI
   | PartialMongoDBAPI
-export type Datasource = OpenAPI | GraphQLAPI | MongoDBAPI
+  | PartialNeonAPI
+
+export type Datasource = OpenAPI | GraphQLAPI | MongoDBAPI | NeonAPI
 
 export class Datasources {
   inner: Datasource[]
