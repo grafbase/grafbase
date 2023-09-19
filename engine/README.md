@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  This workspace houses the Grafbase Engine, the core of the Grafbase platform and user generated APIs.
+  This workspace houses the Grafbase Engine, the core of the Grafbase platform and user generated APIs
 </p>
 
 <p align="center">
