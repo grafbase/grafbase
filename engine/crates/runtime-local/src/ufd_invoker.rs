@@ -21,8 +21,8 @@ impl UdfInvokerImpl {
     }
 }
 
-#[async_trait::async_trait(?Send)]
-impl<Payload: Serialize> UdfInvoker<Payload> for UdfInvokerImpl {
+#[async_trait::async_trait]
+impl<Payload: Serialize + Send> UdfInvoker<Payload> for UdfInvokerImpl {
     async fn invoke(
         &self,
         ray_id: &str,
