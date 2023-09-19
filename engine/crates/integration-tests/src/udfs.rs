@@ -30,7 +30,7 @@ impl RustUdfs {
     }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl runtime::udf::UdfInvoker<CustomResolverRequestPayload> for RustUdfs {
     async fn invoke(
         &self,

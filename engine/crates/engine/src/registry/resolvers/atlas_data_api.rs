@@ -9,10 +9,9 @@ mod request;
 mod value;
 
 use super::{ResolvedValue, ResolverContext};
-use crate::{Context, Error};
+use crate::{send_wrapper::make_send_on_wasm, Context, Error};
 use futures_util::Future;
 pub use operation::OperationType;
-use send_wrapper::SendWrapper;
 use std::pin::Pin;
 
 type JsonMap = serde_json::Map<String, serde_json::Value>;
@@ -41,7 +40,7 @@ impl AtlasDataApiResolver {
             .get_mongodb_config(&self.directive_name)
             .expect("directive must exist");
 
-        Box::pin(SendWrapper::new(async move {
+        Box::pin(make_send_on_wasm(async move {
             request::execute(ctx, resolver_ctx, &config, &self.collection, self.operation_type).await
         }))
     }

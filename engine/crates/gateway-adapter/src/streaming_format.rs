@@ -13,9 +13,10 @@ pub enum StreamingFormat {
     GraphQLOverSSE,
 }
 
-const INCREMENTAL_MEDIA_TYPE: MediaType =
+const INCREMENTAL_MEDIA_TYPE: MediaType<'static> =
     MediaType::new(Name::new_unchecked("multipart"), Name::new_unchecked("mixed"));
-const SSE_MEDIA_TYPE: MediaType = MediaType::new(Name::new_unchecked("text"), Name::new_unchecked("event-stream"));
+const SSE_MEDIA_TYPE: MediaType<'static> =
+    MediaType::new(Name::new_unchecked("text"), Name::new_unchecked("event-stream"));
 
 impl StreamingFormat {
     pub fn from_accept_header(header: &str) -> Option<Self> {

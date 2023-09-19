@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-graphql = "6"
+async-graphql-axum = "6"
 async-once-cell = "0.5.3"
 async-trait = "0.1"
+axum = "0.6"
 cynic = "3"
 cynic-introspection = "3"
 expect-test = "1.4"
@@ -31,6 +34,9 @@ features = ["json"]
 path = "../engine"
 default-features = false
 features = ["tracing_worker"]
+
+[dependencies.parser-graphql]
+path = "../parser-graphql"
 
 [dependencies.parser-sdl]
 path = "../parser-sdl"

@@ -45,13 +45,13 @@ use engine_value::{ConstValue, Name, Variables};
 use futures_util::Future;
 use http::{header::USER_AGENT, StatusCode};
 use inflector::Inflector;
-use send_wrapper::SendWrapper;
 use url::Url;
 
 use self::serializer::Serializer;
 use super::ResolvedValue;
 use crate::{
     registry::{resolvers::graphql::response::UpstreamResponse, type_kinds::SelectionSetTarget, MetaField, Registry},
+    send_wrapper::make_send_on_wasm,
     ServerError,
 };
 
@@ -179,7 +179,7 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
 
     let mut results: HashMap<QueryData, (UpstreamResponse, StatusCode)> = HashMap::default();
 
-    Box::pin(SendWrapper::new(async move {
+    Box::pin(make_send_on_wasm(async move {
         for (resolver, queries) in resolver_queries {
             let mut request_builder = reqwest::Client::new()
                 .post(resolver.url.clone())
@@ -326,7 +326,7 @@ impl Resolver {
         fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
         target: Target,
         current_type: Option<SelectionSetTarget<'a>>,
-        mut error_handler: impl FnMut(ServerError) + 'a,
+        mut error_handler: impl FnMut(ServerError) + Send + 'a,
         variables: Variables,
         variable_definitions: HashMap<&'a Name, &'a VariableDefinition>,
         registry: &'a Registry,
@@ -340,7 +340,7 @@ impl Resolver {
             Target::Field(field, _) => Some(field.name.node.to_string()),
         };
 
-        Box::pin(SendWrapper::new(async move {
+        Box::pin(make_send_on_wasm(async move {
             let mut serializer = Serializer::new(
                 prefix.as_deref(),
                 fragment_definitions,

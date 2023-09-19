@@ -73,6 +73,7 @@ pub mod graph;
 mod deferred;
 mod directive;
 pub mod registry;
+mod send_wrapper;
 
 #[doc(hidden)]
 pub use async_stream;

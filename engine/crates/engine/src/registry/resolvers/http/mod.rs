@@ -2,11 +2,12 @@ use std::{collections::BTreeMap, pin::Pin};
 
 use futures_util::Future;
 use reqwest::Url;
-use send_wrapper::SendWrapper;
 
 use self::parameters::ParamApply;
 use super::{ResolvedValue, ResolverContext};
-use crate::{registry::variables::VariableResolveDefinition, Context, Error, RequestHeaders};
+use crate::{
+    registry::variables::VariableResolveDefinition, send_wrapper::make_send_on_wasm, Context, Error, RequestHeaders,
+};
 
 mod parameters;
 
@@ -79,7 +80,7 @@ impl HttpResolver {
             .map(|(connector_headers, request_headers)| connector_headers.build_header_vec(request_headers))
             .unwrap_or_default();
 
-        Box::pin(SendWrapper::new(async move {
+        Box::pin(make_send_on_wasm(async move {
             let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
             let url = self.build_url(ctx, last_resolver_value)?;
             let mut request_builder = reqwest::Client::new()

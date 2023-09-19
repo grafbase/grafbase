@@ -32,7 +32,7 @@ pub enum CustomResolverResponse {
     },
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 pub trait UdfInvoker<Payload: Serialize> {
     async fn invoke(
         &self,
