@@ -542,6 +542,11 @@ impl Value {
             _ => None,
         }
     }
+
+    /// Returns an iterator over the variables that are used in this Value
+    pub fn variables_used(&self) -> VariableIterator<'_> {
+        VariableIterator::new(self)
+    }
 }
 
 impl Default for Value {
@@ -642,4 +647,35 @@ fn write_object<K: Display, V: Display>(
         write!(f, "{name}: {value}")?;
     }
     f.write_char('}')
+}
+
+/// Iterator over the variables that are used inside a Value
+pub struct VariableIterator<'a> {
+    values: Vec<&'a Value>,
+}
+
+impl<'a> VariableIterator<'a> {
+    fn new(value: &'a Value) -> Self {
+        VariableIterator { values: vec![value] }
+    }
+}
+
+impl<'a> Iterator for VariableIterator<'a> {
+    type Item = &'a Name;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.values.pop()? {
+                Value::Variable(name) => return Some(name),
+                Value::Null
+                | Value::Number(_)
+                | Value::String(_)
+                | Value::Boolean(_)
+                | Value::Binary(_)
+                | Value::Enum(_) => {}
+                Value::List(values) => self.values.extend(values.iter()),
+                Value::Object(obj) => self.values.extend(obj.values()),
+            }
+        }
+    }
 }

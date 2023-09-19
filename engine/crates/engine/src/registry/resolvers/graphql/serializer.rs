@@ -211,11 +211,9 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
             .peekable();
 
         while let Some((name, value)) = arguments.next() {
-            // If the argument references a variable, we track it so that the caller knows which
+            // If the argument references variables, we track them so that the caller knows which
             // variable values are needed to execute the document.
-            if let Value::Variable(name) = value.clone() {
-                self.variable_references.insert(name);
-            }
+            self.variable_references.extend(value.variables_used().cloned());
 
             self.write_str(name)?;
             self.write_str(": ")?;

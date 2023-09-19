@@ -153,6 +153,29 @@ fn graphql_test_without_namespace() {
     });
 }
 
+#[test]
+fn test_nested_variable_forwarding() {
+    runtime().block_on(async {
+        let graphql_mock = MockGraphQlServer::new().await;
+
+        let engine = EngineBuilder::new(schema(graphql_mock.port(), false)).build().await;
+
+        engine
+            .execute(
+                r#"
+                    query ($search: String!) {
+                        pullRequestsAndIssues(filter: {search: $search}) {
+                            __typename
+                        }
+                    }
+                "#,
+            )
+            .variables(json!({"search": "1"}))
+            .await
+            .assert_success();
+    });
+}
+
 fn schema(port: u16, namespace: bool) -> String {
     format!(
         r#"
