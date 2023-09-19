@@ -35,7 +35,8 @@ impl<'a> PostgresContext<'a> {
             .get_postgresql_definition(directive_name)
             .expect("directive must exist");
 
-        let transport = NeonTransport::new(database_definition.connection_string())
+        let ray_id = &context.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
+        let transport = NeonTransport::new(ray_id, database_definition.connection_string())
             .map_err(|error| Error::new(error.to_string()))?;
 
         Ok(Self {

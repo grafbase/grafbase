@@ -61,7 +61,7 @@ pub struct NeonError {
 }
 
 impl NeonTransport {
-    pub fn new(connection_string: &str) -> crate::Result<Self> {
+    pub fn new(ray_id: &str, connection_string: &str) -> crate::Result<Self> {
         let url = Url::parse(connection_string)?;
 
         let http_host = match url.host_str() {
@@ -79,7 +79,10 @@ impl NeonTransport {
             HeaderValue::from_str(connection_string)
                 .map_err(|_| Error::InvalidConnectionString("the URL must only use ASCII characeters".to_string()))?,
         );
-
+        headers.insert(
+            "x-grafbase-fetch-trace-id",
+            HeaderValue::from_str(ray_id).expect("must be valid"),
+        );
         headers.insert("Neon-Raw-Text-Output", HeaderValue::from_static("false"));
         headers.insert("Neon-Array-Mode", HeaderValue::from_static("false"));
         headers.insert("Neon-Pool-Opt-In", HeaderValue::from_static("false"));
