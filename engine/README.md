@@ -32,7 +32,7 @@
 | [`dynamodb-utils`](crates/dynamodb-utils)               | Various utilities for use with DynamoDB                                       |
 | [`engine`](crates/engine)                               | A dynamic GraphQL engine written in Rust                                      |
 | [`gateway-adapter`](crates/gateway-adapter)             | An adapter layer between the gateway and its environment                      |
-| [`gateway-adapter-local`](crates/gateway-adapter-local) | The local implementation of `gateway-adapter`                                       |
+| [`gateway-adapter-local`](crates/gateway-adapter-local) | A local implementation of `gateway-adapter`                                   |
 | [`graph-entities`](crates/graph-entities)               | Various types for use with GraphQL on the Grafbase platform                   |
 | [`graphql-extensions`](crates/graphql-extensions)       | Extensions for `engine`                                                       |
 | [`integration-tests`](crates/integration-tests)         | Integration tests                                                             |
@@ -43,7 +43,7 @@
 | [`parser-sdl`](crates/parser-sdl)                       | A parser that transforms GraphQL SDL into the Grafbase registry format        |
 | [`postgresql-types`](crates/postgresql-types)           | Shared types for PostgreSQL connector                                         |
 | [`runtime`](crates/runtime)                             | An abstraction over the various Grafbase runtime environments                 |
-| [`runtime-local`](crates/runtime-local)                 | Implementation of the Grafbase runtime for the local environment              |
+| [`runtime-local`](crates/runtime-local)                 | An implementation of the Grafbase runtime for local use                       |
 | [`search-protocol`](crates/search-protocol)             | Types related to the Grafbase platform search functionality                   |
 | [`worker-env`](crates/worker-env)                       | A utility crate to extend `worker::Env` with additional functionality         |
 
