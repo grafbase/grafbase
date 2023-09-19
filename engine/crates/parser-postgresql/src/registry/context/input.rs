@@ -29,6 +29,15 @@ impl<'a> InputContext<'a> {
         }
     }
 
+    pub(crate) fn filter_type_name(&self, scalar: &str) -> String {
+        let base = format!("{scalar}_search_filter_input");
+
+        match self.namespace {
+            Some(namespace) => format!("{namespace}_{base}").to_pascal_case(),
+            None => base.to_pascal_case(),
+        }
+    }
+
     pub(crate) fn connection_type_name(&self, name: &str) -> String {
         let base_name = format!("{name}Connection");
 
@@ -36,6 +45,10 @@ impl<'a> InputContext<'a> {
             Some(namespace) => format!("{namespace}_{base_name}").to_pascal_case(),
             None => base_name,
         }
+    }
+
+    pub(crate) fn collection_query_name(&self, type_name: &str) -> String {
+        format!("{type_name}_Collection").to_camel_case()
     }
 
     pub(crate) fn edge_type_name(&self, name: &str) -> String {

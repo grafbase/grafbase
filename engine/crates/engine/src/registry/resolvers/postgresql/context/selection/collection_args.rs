@@ -17,7 +17,7 @@ pub struct CollectionArgs {
 }
 
 impl CollectionArgs {
-    pub(super) fn new(ctx: &PostgresContext<'_>, table: TableWalker<'_>, value: &SelectionField<'_>) -> Self {
+    pub(crate) fn new(ctx: &PostgresContext<'_>, table: TableWalker<'_>, value: &SelectionField<'_>) -> Self {
         let first = value.field.get_argument("first").and_then(|value| value.as_u64());
         let last = value.field.get_argument("last").and_then(|value| value.as_u64());
         let before = value.field.get_argument("before").and_then(|value| value.as_string());

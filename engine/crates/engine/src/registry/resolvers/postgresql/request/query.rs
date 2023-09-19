@@ -20,7 +20,7 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
     let mut inner_nested = Select::from_table(sql_table);
 
     if let Some(filters) = builder.filter() {
-        for filter in filters.clone() {
+        for filter in filters {
             inner_nested.and_where(filter);
         }
     }
@@ -108,14 +108,12 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
     let mut json_select = Select::from_table(Table::from(collecting_select).alias(builder.table().database_name()));
     json_select.value(row_to_json(builder.table().database_name(), false).alias(builder.field_name().to_string()));
 
-    if let Some(args) = builder.collection_args() {
-        for column in args.extra_columns() {
-            json_select.column(column.clone());
-        }
-    }
-
     match builder.collection_args() {
         Some(args) => {
+            for column in args.extra_columns() {
+                json_select.column(column.clone());
+            }
+
             // SQL doesn't guarantee ordering if it's not defined in the query.
             // we'll reuse the nested ordering here.
             if let Some((_, order_by)) = args.order_by() {
