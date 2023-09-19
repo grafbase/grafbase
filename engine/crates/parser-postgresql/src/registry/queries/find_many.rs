@@ -35,6 +35,7 @@ pub(crate) fn register(
     ]);
 
     let order_by_type = input_ctx.orderby_input_type_name(type_name);
+
     let order_by_value = MetaInputValue::new("orderBy", format!("[{order_by_type}]"));
     field.args.insert("orderBy".to_string(), order_by_value);
 

@@ -5,7 +5,10 @@ use std::hash::Hash;
 use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
+use grafbase_sql_ast::ast::Order;
 use indexmap::IndexMap;
+use postgresql_types::{cursor::SQLCursor, database_definition::TableId};
+use runtime::search::GraphqlCursor;
 
 use super::{
     dynamo_querying::{DynamoResolver, IdCursor},
@@ -13,7 +16,9 @@ use super::{
 };
 use crate::{
     registry::{
-        resolvers::ResolverContext, variables::VariableResolveDefinition, MetaEnumValue, MetaType, UnionDiscriminator,
+        resolvers::{postgresql::CollectionArgs, resolved_value::SelectionData, ResolverContext},
+        variables::VariableResolveDefinition,
+        MetaEnumValue, MetaType, UnionDiscriminator,
     },
     Context, Error,
 };
@@ -91,6 +96,15 @@ pub enum Transformer {
     ByteArrayToBase64Array,
     /// Convert MongoDB timestamp as number
     MongoTimestamp,
+    /// A special transformer to fetch PostgreSQL page info for the current results.
+    PostgresPageInfo,
+    /// Calculate cursor value for a PostgreSQL row.
+    PostgresCursor,
+    /// Set PostgreSQL selection data.
+    PostgresSelectionData {
+        directive_name: String,
+        table_id: TableId,
+    },
 }
 
 impl From<Transformer> for Resolver {
@@ -132,7 +146,11 @@ impl Transformer {
                     .unwrap_or_default();
                 Ok(ResolvedValue::new(result))
             }
-            Transformer::Select { key } => Ok(last_resolver_value.and_then(|x| x.get_field(key)).unwrap_or_default()),
+            Transformer::Select { key } => {
+                let new_value = last_resolver_value.and_then(|x| x.get_field(key)).unwrap_or_default();
+
+                Ok(new_value)
+            }
             Transformer::RemoteEnum => {
                 let enum_values = ctx
                     .current_enum_values()
@@ -141,10 +159,12 @@ impl Transformer {
                 let resolved_value =
                     last_resolver_value.ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
 
-                Ok(ResolvedValue::new(resolve_enum_value(
-                    resolved_value.data_resolved(),
-                    enum_values,
-                )?))
+                let mut new_value =
+                    ResolvedValue::new(resolve_enum_value(resolved_value.data_resolved(), enum_values)?);
+
+                new_value.selection_data = resolved_value.selection_data.clone();
+
+                Ok(new_value)
             }
             Transformer::PaginationData => {
                 let pagination = last_resolver_value
@@ -290,7 +310,10 @@ impl Transformer {
                     _ => return Err(Error::new("The resolved value is not a bytes string")),
                 };
 
-                Ok(ResolvedValue::new(new_value))
+                let mut new_value = ResolvedValue::new(new_value);
+                new_value.selection_data = resolved_value.selection_data.clone();
+
+                Ok(new_value)
             }
             Transformer::ByteArrayToBase64Array => {
                 let resolved_value = last_resolver_value.ok_or_else(|| Error::new("missing value for bytes column"))?;
@@ -318,7 +341,10 @@ impl Transformer {
                     _ => return Err(Error::new("The resolved value is not a bytes string")),
                 };
 
-                Ok(ResolvedValue::new(new_value))
+                let mut new_value = ResolvedValue::new(new_value);
+                new_value.selection_data = resolved_value.selection_data.clone();
+
+                Ok(new_value)
             }
             Transformer::MongoTimestamp => {
                 let resolved_value =
@@ -334,7 +360,103 @@ impl Transformer {
                     _ => return Err(Error::new("Cannot coerce the initial value into a valid Timestamp")),
                 };
 
-                Ok(ResolvedValue::new(value))
+                let mut new_value = ResolvedValue::new(value);
+                new_value.selection_data = resolved_value.selection_data.clone();
+
+                Ok(new_value)
+            }
+            Transformer::PostgresPageInfo => {
+                let resolved_value =
+                    last_resolver_value.ok_or_else(|| Error::new("Internal error resolving postgres page info"))?;
+
+                let page_info = ResolvedPaginationInfo {
+                    start_cursor: None,
+                    end_cursor: None,
+                    has_next_page: false,
+                    has_previous_page: false,
+                };
+
+                let mut new_value = ResolvedValue::new(page_info.output());
+                new_value.selection_data = resolved_value.selection_data.clone();
+
+                Ok(new_value)
+            }
+            Transformer::PostgresSelectionData {
+                directive_name,
+                table_id,
+            } => {
+                let database_definition = ctx
+                    .get_postgresql_definition(&directive_name)
+                    .expect("we must have an introspected database");
+
+                let table = database_definition.walk(*table_id);
+
+                let root_field = ctx
+                    .look_ahead()
+                    .iter_selection_fields()
+                    .next()
+                    .expect("we always have at least one field in the query");
+
+                let args = CollectionArgs::new(database_definition, table, &root_field);
+
+                let mut selection_data = SelectionData::default();
+
+                if let Some(first) = args.first() {
+                    selection_data.set_first(first);
+                }
+
+                if let Some(last) = args.last() {
+                    selection_data.set_last(last);
+                }
+
+                let explicit_order = args
+                    .order_by()
+                    .raw_order()
+                    .map(|(column, order)| {
+                        let order = order.map(|order| match order {
+                            Order::Desc => "DESC",
+                            _ => "ASC",
+                        });
+
+                        (column.to_string(), order)
+                    })
+                    .collect();
+
+                selection_data.set_order_by(explicit_order);
+
+                let mut resolved_value = last_resolver_value
+                    .ok_or_else(|| Error::new("Internal error resolving postgres selection data"))?
+                    .clone();
+
+                resolved_value.selection_data = Some(selection_data);
+
+                Ok(resolved_value)
+            }
+            Transformer::PostgresCursor => {
+                let resolved_value =
+                    last_resolver_value.ok_or_else(|| Error::new("Internal error resolving postgres cursor"))?;
+
+                let selection_data = resolved_value
+                    .selection_data
+                    .as_ref()
+                    .expect("we must set selection data for cursors to work");
+
+                let cursor = match resolved_value.data_resolved() {
+                    serde_json::Value::Object(ref obj) => {
+                        let cursor = SQLCursor::new(obj.clone(), selection_data.order_by());
+
+                        GraphqlCursor::try_from(cursor)
+                            .ok()
+                            .and_then(|cursor| serde_json::to_value(cursor).ok())
+                            .unwrap_or_default()
+                    }
+                    _ => Default::default(),
+                };
+
+                let mut new_value = ResolvedValue::new(cursor);
+                new_value.selection_data = Some(selection_data.clone());
+
+                Ok(new_value)
             }
         }
     }

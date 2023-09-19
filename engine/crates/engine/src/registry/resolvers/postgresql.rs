@@ -1,6 +1,8 @@
 mod context;
 mod request;
 
+pub use context::CollectionArgs;
+
 use super::{ResolvedValue, ResolverContext};
 use crate::{send_wrapper::make_send_on_wasm, Context, Error};
 use context::PostgresContext;

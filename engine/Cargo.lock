@@ -2879,9 +2879,11 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "async-trait",
+ "flexbuffers",
  "indexmap 1.9.3",
  "itertools",
  "reqwest",
+ "search-protocol",
  "serde",
  "serde_json",
  "thiserror",

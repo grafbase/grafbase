@@ -17,6 +17,8 @@ pub(super) struct Names {
     #[serde(with = "super::vectorize")]
     table_columns: HashMap<(TableId, StringId), TableColumnId>,
     #[serde(with = "super::vectorize")]
+    client_columns: HashMap<(TableId, StringId), TableColumnId>,
+    #[serde(with = "super::vectorize")]
     enums: HashMap<(SchemaId, StringId), EnumId>,
     #[serde(with = "super::vectorize")]
     enum_variants: HashMap<(EnumId, StringId), EnumVariantId>,
@@ -43,6 +45,9 @@ impl Names {
     pub(super) fn intern_table_column(&mut self, column: &TableColumn<String>, column_id: TableColumnId) {
         let string_id = self.interner.intern(column.database_name());
         self.table_columns.insert((column.table_id(), string_id), column_id);
+
+        let string_id = self.interner.intern(column.client_name());
+        self.client_columns.insert((column.table_id(), string_id), column_id);
     }
 
     pub(super) fn intern_enum(&mut self, r#enum: &Enum<String>, enum_id: EnumId) {
@@ -127,6 +132,12 @@ impl Names {
     pub(super) fn get_table_column_id(&self, table_id: TableId, column_name: &str) -> Option<TableColumnId> {
         self.lookup_name(column_name)
             .and_then(|string_id| self.table_columns.get(&(table_id, string_id)))
+            .copied()
+    }
+
+    pub(super) fn get_table_client_column_id(&self, table_id: TableId, column_name: &str) -> Option<TableColumnId> {
+        self.lookup_name(column_name)
+            .and_then(|string_id| self.client_columns.get(&(table_id, string_id)))
             .copied()
     }
 

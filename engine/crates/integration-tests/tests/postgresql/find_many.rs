@@ -1,3 +1,5 @@
+mod pagination;
+
 use expect_test::expect;
 use indoc::indoc;
 use integration_tests::postgresql::{query_namespaced_neon, query_neon};
