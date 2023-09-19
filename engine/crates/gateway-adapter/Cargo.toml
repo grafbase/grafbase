@@ -1,6 +1,6 @@
 [package]
 name = "gateway-adapter"
-description = "Partial gateway, until it's fully open sourced"
+description = "A temporary adapter for the gateway"
 version = "0.1.0"
 edition = "2021"
 
