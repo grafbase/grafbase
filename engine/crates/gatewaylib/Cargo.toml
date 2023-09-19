@@ -30,7 +30,6 @@ worker = { workspace = true }
 
 [dev-dependencies]
 runtime-ext = { workspace = true, features = ["test-utils"] }
-anyhow = { workspace = true }
+anyhow = "1"
 serde = { workspace = true }
-gateway-adapter-platform = { workspace = true }
 tokio = { workspace = true, features = ["full"] }

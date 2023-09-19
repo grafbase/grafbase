@@ -422,8 +422,6 @@ mod tests {
     use super::*;
     use engine::parser::types::OperationType;
     use engine::registry::{CacheAccessScope, MetaField, MetaFieldType, MetaType, ObjectType, Registry};
-    use gateway_adapter_platform as _;
-    use serde as _;
     use tokio::sync::RwLock;
 
     use std::cell::RefCell;
