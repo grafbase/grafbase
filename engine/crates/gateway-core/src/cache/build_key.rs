@@ -1,11 +1,12 @@
 use std::collections::{hash_map::DefaultHasher, BTreeSet};
 
+use crate::RequestContext;
 use common_types::auth::ExecutionAuth;
 use engine::registry::CacheAccessScope;
 
 use super::{
     key::{CacheAccess, CacheKey},
-    CacheContext,
+    CacheConfig,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -17,12 +18,13 @@ pub enum BuildKeyError {
 }
 
 pub fn build_cache_key(
-    ctx: &impl CacheContext,
+    config: &CacheConfig<'_>,
+    ctx: &impl RequestContext,
     request: &engine::Request,
     auth: &ExecutionAuth,
 ) -> Result<String, BuildKeyError> {
-    let request_cache_control = ctx
-        .cache_config()
+    let request_cache_control = config
+        .partial_registry
         .get_cache_control(request)
         .map_err(|err| BuildKeyError::CouldNotDetermineCacheControl(err.to_string()))?;
 
@@ -67,7 +69,8 @@ pub fn build_cache_key(
     // additionally, each combination of <project>-<branch> gets their own cache in order to reduce the number keys directed to a particular cache
     // note: I'm also using DefaultHasher and not SipHash24 because SipHash direct usage is deprecated.
     // But beware that the default hash implementation can change across rust releases so pay attention to that when bumping
-    let cache_key = CacheKey::<DefaultHasher>::new(cache_access, request, ctx.subdomain());
+    let subdomain = &config.subdomain;
+    let cache_key = CacheKey::<DefaultHasher>::new(cache_access, request, subdomain);
 
-    Ok(format!("https://{}/{}", ctx.subdomain(), cache_key.to_hash_string()))
+    Ok(format!("https://{}/{}", subdomain, cache_key.to_hash_string()))
 }

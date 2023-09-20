@@ -139,12 +139,12 @@ pub enum CacheControlError {
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-pub struct CacheConfig {
+pub struct CachePartialRegistry {
     pub enable_caching: bool,
     pub types: BTreeMap<String, MetaType>,
 }
 
-impl CacheConfig {
+impl CachePartialRegistry {
     pub fn get_cache_control(&self, request: &crate::Request) -> Result<CacheControl, CacheControlError> {
         let document = engine_parser::parse_query(&request.query).map_err(CacheControlError::Parse)?;
 
@@ -165,7 +165,7 @@ impl CacheConfig {
     }
 }
 
-impl<T: Borrow<Registry>> From<T> for CacheConfig {
+impl<T: Borrow<Registry>> From<T> for CachePartialRegistry {
     fn from(registry: T) -> Self {
         let registry: &Registry = registry.borrow();
 
@@ -215,7 +215,8 @@ mod tests {
 
     use crate::{
         registry::{
-            CacheConfig, EnumType, InterfaceType, MetaField, MetaFieldType, MetaType, ObjectType, Registry, ScalarType,
+            CachePartialRegistry, EnumType, InterfaceType, MetaField, MetaFieldType, MetaType, ObjectType, Registry,
+            ScalarType,
         },
         validation::check_rules,
         CacheControl, ValidationMode,
@@ -267,7 +268,7 @@ mod tests {
         registry.insert_type(meta_enum);
 
         // act
-        let caching_config: CacheConfig = registry.into();
+        let caching_config: CachePartialRegistry = registry.into();
 
         // assert
         assert!(caching_config.enable_caching);

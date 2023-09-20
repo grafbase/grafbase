@@ -1,9 +1,6 @@
-use std::borrow::Cow;
-
-use engine::registry::{Registry, VersionedRegistry};
+use super::*;
 use sha2::{Digest, Sha256};
-
-use crate::customer_deployment_config::{CommonCustomerDeploymentConfig, CustomerDeploymentConfig};
+use std::borrow::Cow;
 
 const EXPECTED_SHA: &str = "dc8e4d84699ebc2a4742c068d4157d0e79cfcbe3826eca2e3996756d1fefb5c1";
 
@@ -34,19 +31,4 @@ fn test_serde_roundtrip() {
     let serialized_sha = Sha256::digest(serialized_versioned_registry);
 
     assert_eq!(&format!("{serialized_sha:x}"), EXPECTED_SHA);
-}
-
-#[test]
-fn serialize_customer_deployment_config() {
-    use std::collections::HashMap;
-
-    use common_types::UdfKind;
-    let customer_gateway_config: CustomerDeploymentConfig<crate::LocalSpecificConfig> = CustomerDeploymentConfig {
-        common: CommonCustomerDeploymentConfig {
-            udf_bindings: HashMap::from([((UdfKind::Authorizer, "name".to_string()), "value".to_string())]),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-    serde_json::to_string(&customer_gateway_config).unwrap();
 }

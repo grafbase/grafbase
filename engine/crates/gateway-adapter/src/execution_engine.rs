@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
-
-use crate::StreamingFormat;
+use gateway_core::StreamingFormat;
 
 #[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]
@@ -19,12 +18,11 @@ pub type ExecutionResult<T> = Result<T, ExecutionError>;
 /// Owned trait with 'static in mind
 #[async_trait(?Send)]
 pub trait ExecutionEngine {
-    type ConfigType;
     type ExecutionResponse; // This is always grafbase_engine::Response (but is needed for tests)
 
     async fn execute(
         self: Arc<Self>,
-        execution_request: crate::ExecutionRequest<Self::ConfigType>,
+        execution_request: crate::ExecutionRequest,
     ) -> ExecutionResult<Self::ExecutionResponse>;
 
     /// Executes a streaming request from the engine.
@@ -37,12 +35,7 @@ pub trait ExecutionEngine {
     /// be polled within a request context.
     async fn execute_stream(
         self: Arc<Self>,
-        execution_request: crate::ExecutionRequest<Self::ConfigType>,
+        execution_request: crate::ExecutionRequest,
         streaming_format: StreamingFormat,
     ) -> ExecutionResult<(worker::Response, Option<BoxFuture<'static, ()>>)>;
-
-    async fn health(
-        self: Arc<Self>,
-        health_request: crate::ExecutionHealthRequest<Self::ConfigType>,
-    ) -> ExecutionResult<crate::ExecutionHealthResponse>;
 }

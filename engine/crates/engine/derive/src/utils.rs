@@ -36,7 +36,7 @@ pub fn get_crate_name(internal: bool) -> TokenStream {
     if internal {
         quote! { crate }
     } else {
-        let name = match crate_name("async-graphql") {
+        let name = match crate_name("engine") {
             Ok(FoundCrate::Name(name)) => name,
             Ok(FoundCrate::Itself) | Err(_) => "engine".to_string(),
         };

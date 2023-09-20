@@ -18,7 +18,7 @@ pub trait KvStore {
     fn put<T: Serialize>(&self, name: &str, value: T) -> Result<Self::Put, Self::Error>;
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 pub trait KvGet {
     type Error;
 
@@ -27,7 +27,7 @@ pub trait KvGet {
     async fn json<T: DeserializeOwned>(self) -> Result<Option<T>, Self::Error>;
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 pub trait KvPut {
     type Error;
 

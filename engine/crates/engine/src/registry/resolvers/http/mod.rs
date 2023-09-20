@@ -1,14 +1,12 @@
 use std::{collections::BTreeMap, pin::Pin};
 
+use async_runtime::make_send_on_wasm;
 use futures_util::Future;
 use reqwest::Url;
 
 use self::parameters::ParamApply;
 use super::{ResolvedValue, ResolverContext};
-use crate::{
-    registry::variables::VariableResolveDefinition, send_wrapper::make_send_on_wasm, Context, ContextExt, ContextField,
-    Error, RequestHeaders,
-};
+use crate::{registry::variables::VariableResolveDefinition, Context, ContextExt, ContextField, Error, RequestHeaders};
 
 mod parameters;
 

@@ -206,6 +206,35 @@ impl serde::Serialize for GraphQlResponse<'_> {
     }
 }
 
+impl runtime::cache::Cacheable for Response {
+    fn max_age_seconds(&self) -> usize {
+        self.cache_control.max_age
+    }
+
+    fn stale_seconds(&self) -> usize {
+        self.cache_control.stale_while_revalidate
+    }
+
+    fn ttl_seconds(&self) -> usize {
+        self.cache_control.max_age + self.cache_control.stale_while_revalidate
+    }
+
+    fn cache_tags(&self, mut priority_tags: Vec<String>) -> Vec<String> {
+        let response_tags = self.data.cache_tags().iter().cloned().collect::<Vec<_>>();
+        priority_tags.extend(response_tags);
+
+        priority_tags
+    }
+
+    fn should_purge_related(&self) -> bool {
+        self.operation_type == OperationType::Mutation && !self.data.cache_tags().is_empty()
+    }
+
+    fn should_cache(&self) -> bool {
+        self.operation_type != OperationType::Mutation && self.errors.is_empty() && self.cache_control.max_age != 0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

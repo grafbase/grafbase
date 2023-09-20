@@ -5,10 +5,8 @@ use bytes::Bytes;
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
 use engine::{registry::resolvers::graphql, registry::VersionedRegistry, RequestHeaders, Response, StreamingPayload};
 use futures_util::{future::BoxFuture, stream::BoxStream, AsyncBufReadExt, SinkExt, Stream, StreamExt};
-use gateway_adapter::{
-    ExecutionEngine, ExecutionError, ExecutionHealthRequest, ExecutionHealthResponse, ExecutionRequest,
-    ExecutionResult, LocalSpecificConfig, StreamingFormat,
-};
+use gateway_adapter::{ExecutionEngine, ExecutionError, ExecutionRequest, ExecutionResult};
+use gateway_core::StreamingFormat;
 use runtime_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
 use worker::{js_sys, Env};
 use worker_env::{EnvExt, VarType};
@@ -32,10 +30,7 @@ pub struct LocalExecution {
 }
 
 #[allow(unused_variables, clippy::expect_fun_call)]
-fn get_db_context(
-    execution_request: &ExecutionRequest<gateway_adapter::LocalSpecificConfig>,
-    env: &HashMap<String, String>,
-) -> DynamoDBContext {
+fn get_db_context(execution_request: &ExecutionRequest, env: &HashMap<String, String>) -> DynamoDBContext {
     #[cfg(not(feature = "sqlite"))]
     {
         return DynamoDBContext::new(
@@ -119,10 +114,7 @@ impl LocalExecution {
     }
 
     #[allow(clippy::expect_fun_call)]
-    pub fn build_schema(
-        &self,
-        execution_request: &ExecutionRequest<gateway_adapter::LocalSpecificConfig>,
-    ) -> ExecutionResult<engine::Schema> {
+    pub fn build_schema(&self, execution_request: &ExecutionRequest) -> ExecutionResult<engine::Schema> {
         let db_context = get_db_context(execution_request, &self.env);
 
         let dynamodb_batchers_data = DynamoDBBatchersData::new(
@@ -177,13 +169,9 @@ impl LocalExecution {
 
 #[async_trait(? Send)]
 impl ExecutionEngine for LocalExecution {
-    type ConfigType = LocalSpecificConfig;
     type ExecutionResponse = Response;
 
-    async fn execute(
-        self: Arc<Self>,
-        mut execution_request: ExecutionRequest<gateway_adapter::LocalSpecificConfig>,
-    ) -> ExecutionResult<Response> {
+    async fn execute(self: Arc<Self>, mut execution_request: ExecutionRequest) -> ExecutionResult<Response> {
         let schema = self.build_schema(&execution_request)?;
 
         // decorate the graphql request context with auth data for extension
@@ -194,7 +182,7 @@ impl ExecutionEngine for LocalExecution {
 
     async fn execute_stream(
         self: Arc<Self>,
-        mut execution_request: ExecutionRequest<Self::ConfigType>,
+        mut execution_request: ExecutionRequest,
         streaming_format: StreamingFormat,
     ) -> ExecutionResult<(worker::Response, Option<BoxFuture<'static, ()>>)> {
         let schema = self.build_schema(&execution_request)?;
@@ -219,17 +207,6 @@ impl ExecutionEngine for LocalExecution {
         )?;
 
         return Ok((response, Some(process_future)));
-    }
-
-    async fn health(
-        self: Arc<Self>,
-        _req: ExecutionHealthRequest<gateway_adapter::LocalSpecificConfig>,
-    ) -> ExecutionResult<ExecutionHealthResponse> {
-        Ok(ExecutionHealthResponse {
-            deployment_id: "local".to_string(),
-            ready: true,
-            udf_results: vec![],
-        })
     }
 }
 

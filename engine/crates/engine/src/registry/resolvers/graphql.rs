@@ -34,6 +34,7 @@ use std::{
     pin::Pin,
 };
 
+use async_runtime::make_send_on_wasm;
 use dataloader::{DataLoader, Loader, NoCache};
 use engine_parser::{
     parse_query,
@@ -51,7 +52,6 @@ use self::serializer::Serializer;
 use super::ResolvedValue;
 use crate::{
     registry::{resolvers::graphql::response::UpstreamResponse, type_kinds::SelectionSetTarget, MetaField, Registry},
-    send_wrapper::make_send_on_wasm,
     ServerError,
 };
 

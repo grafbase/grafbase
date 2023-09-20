@@ -7,18 +7,11 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1"
 futures-util = { workspace = true }
-mediatype = "0.19"
 rusoto_core = { workspace = true }
 serde = { version = "1", features = ["derive"] }
-serde_with = { workspace = true }
-strum = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
-ulid = { workspace = true }
 worker = { workspace = true }
 
 engine = { workspace = true }
+gateway-core = { workspace = true }
 common-types = { workspace = true }
-
-[dev-dependencies]
-serde_json = { version = "1", default-features = false }
-sha2 = { version = "0.10", default-features = false }
