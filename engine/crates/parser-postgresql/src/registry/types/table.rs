@@ -52,6 +52,7 @@ pub(super) fn generate(
         }
 
         for relation in table.relations() {
+            #[allow(clippy::if_not_else)]
             let field = if !relation.is_referenced_row_unique() {
                 let connection_type_name = input_ctx.connection_type_name(relation.referenced_table().client_name());
 
@@ -140,7 +141,7 @@ fn register_connection_type(
         let page_info = MetaField::new("pageInfo", format!("{type_name}!"));
 
         builder.push_non_mapped_scalar_field(page_info);
-    })
+    });
 }
 
 fn register_edge_type(
@@ -155,9 +156,9 @@ fn register_edge_type(
     let mut cursor = MetaField::new("cursor", String::from("String!"));
     cursor.resolver = Resolver::Transformer(Transformer::PostgresCursor);
 
-    output_ctx.create_object_type(ObjectType::new(edge_type_name.to_owned(), [node, cursor]));
+    output_ctx.create_object_type(ObjectType::new(edge_type_name.clone(), [node, cursor]));
 
-    edge_type_name.to_owned()
+    edge_type_name.clone()
 }
 
 fn register_orderby_input(

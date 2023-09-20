@@ -57,7 +57,7 @@ pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, out
         builder.with_input_type(&contains_type_name, table.id(), |builder| {
             let value = MetaInputValue::new("contains", input_type_name.as_ref());
             builder.push_non_mapped_input_column(value);
-        })
+        });
     });
 
     input_type_name

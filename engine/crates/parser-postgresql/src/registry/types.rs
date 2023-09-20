@@ -31,6 +31,6 @@ pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
 
                 builder.push_variant(meta_value);
             }
-        })
+        });
     }
 }

@@ -75,7 +75,7 @@ fn graphql_test_with_namespace() {
                 .await
                 .into_value()
         );
-    })
+    });
 }
 
 const UNNAMESPACED_QUERY: &str = "

@@ -93,7 +93,7 @@ impl<'a> Iterator for ComplexFilterIterator<'a> {
             Value::Array(values) => {
                 let mut operations = Vec::with_capacity(values.len());
 
-                for operation in values.into_iter().flat_map(|operation| match operation {
+                for operation in values.into_iter().filter_map(|operation| match operation {
                     Value::Object(obj) => Some(obj),
                     _ => None,
                 }) {
@@ -129,7 +129,7 @@ impl<'a> Iterator for ComplexFilterIterator<'a> {
 fn generate_conditions(operations: Map<String, Value>, column: TableColumnWalker<'_>) -> ConditionTree<'_> {
     let mut compares = Vec::with_capacity(operations.len());
 
-    for (key, value) in operations.into_iter() {
+    for (key, value) in operations {
         let table_column = (column.table().database_name(), column.database_name());
 
         let compare = match key.as_str() {

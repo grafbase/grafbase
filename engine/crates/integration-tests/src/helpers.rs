@@ -71,6 +71,7 @@ impl GetPath for Response {
 
 pub trait ResponseExt: Sized {
     /// Asserts that there are no errors in this Response
+    #[allow(clippy::return_self_not_must_use)]
     fn assert_success(self) -> Self;
 
     /// Converts the response into a serde_json Value

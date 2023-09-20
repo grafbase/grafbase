@@ -732,5 +732,5 @@ fn test_experimental() {
     )
     .unwrap();
 
-    assert!(!result.enable_kv)
+    assert!(!result.enable_kv);
 }

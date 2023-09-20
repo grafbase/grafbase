@@ -55,7 +55,7 @@ impl ResolverData {
         let mut resolver = Resolver::Transformer(Transformer::Select { key });
 
         if let "Timestamp" = field.ty.base.to_base_type_str() {
-            resolver = resolver.and_then(Transformer::MongoTimestamp)
+            resolver = resolver.and_then(Transformer::MongoTimestamp);
         }
 
         let field_type = field.ty.node.to_string();

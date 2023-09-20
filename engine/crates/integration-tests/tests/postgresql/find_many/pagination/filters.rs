@@ -98,7 +98,7 @@ fn id_pk_implicit_order_with_after() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn id_pk_implicit_order_with_before() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -238,7 +238,7 @@ fn id_pk_explicit_order_with_after() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -308,7 +308,7 @@ fn id_pk_explicit_order_with_before() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -383,7 +383,7 @@ fn compound_pk_implicit_order_with_after() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -457,7 +457,7 @@ fn compound_pk_implicit_order_with_before() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -532,7 +532,7 @@ fn compound_pk_explicit_order_with_after() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -607,7 +607,7 @@ fn compound_pk_explicit_order_with_before() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -682,7 +682,7 @@ fn compound_pk_implicit_order_with_nulls_and_after() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
@@ -757,7 +757,7 @@ fn compound_pk_implicit_order_with_nulls_and_before() {
           }
         }"#]];
 
-    expected.assert_eq(&response)
+    expected.assert_eq(&response);
 }
 
 #[test]
