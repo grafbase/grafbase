@@ -86,7 +86,8 @@ pub(super) fn generate(
                 .and_then(Transformer::PostgresSelectionData {
                     directive_name: input_ctx.directive_name().to_string(),
                     table_id: relation.referenced_table().id(),
-                });
+                })
+                .and_then(Transformer::PostgresPageInfo);
 
                 field
             } else {
@@ -131,10 +132,12 @@ fn register_connection_type(
     let connection_type_name = input_ctx.connection_type_name(table.client_name());
 
     output_ctx.with_object_type(&connection_type_name, table.id(), |builder| {
-        builder.push_non_mapped_scalar_field(MetaField::new("edges", format!("[{edge_type_name}]!")));
+        let field = MetaField::new("edges", format!("[{edge_type_name}]!"));
 
-        let mut page_info = MetaField::new("pageInfo", String::from("PageInfo!"));
-        page_info.resolver = Resolver::Transformer(Transformer::PostgresPageInfo);
+        builder.push_non_mapped_scalar_field(field);
+
+        let type_name = input_ctx.type_name("PageInfo");
+        let page_info = MetaField::new("pageInfo", format!("{type_name}!"));
 
         builder.push_non_mapped_scalar_field(page_info);
     })

@@ -936,6 +936,13 @@ fn table_with_serial_primary_key_namespaced() {
           DESC
         }
 
+        type NeonPageInfo {
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
         type NeonQuery {
           """
             Query a single NeonUser by a field
@@ -970,7 +977,7 @@ fn table_with_serial_primary_key_namespaced() {
 
         type NeonUserConnection {
           edges: [NeonUserEdge]!
-          pageInfo: PageInfo!
+          pageInfo: NeonPageInfo!
         }
 
         type NeonUserEdge {
@@ -980,13 +987,6 @@ fn table_with_serial_primary_key_namespaced() {
 
         input NeonUserOrderByInput {
           id: NeonOrderByDirection
-        }
-
-        type PageInfo {
-          hasNextPage: Boolean!
-          hasPreviousPage: Boolean!
-          startCursor: String
-          endCursor: String
         }
 
         type Query {

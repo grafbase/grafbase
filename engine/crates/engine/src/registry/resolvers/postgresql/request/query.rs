@@ -31,13 +31,13 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
         }
 
         if let Some(limit) = args.first() {
-            inner_nested.limit(limit as u32);
+            inner_nested.limit(limit as u32 + 1); // we load one extra for pagination
         }
 
         // There's no `LAST` in PostgreSQL, so we limit the inner selection which is ordered in an opposite way,
         // and re-order it in the outer query.
         if let Some(limit) = args.last() {
-            inner_nested.limit(limit as u32);
+            inner_nested.limit(limit as u32 + 1); // we load one extra for pagination
         }
 
         if args.before().is_some() {

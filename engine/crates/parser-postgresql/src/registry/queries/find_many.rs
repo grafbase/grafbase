@@ -4,6 +4,7 @@ use engine::{
     registry::{
         resolvers::{
             postgresql::{Operation, PostgresResolver},
+            transformer::Transformer,
             Resolver,
         },
         MetaField, MetaInputValue,
@@ -39,7 +40,9 @@ pub(crate) fn register(
     let order_by_value = MetaInputValue::new("orderBy", format!("[{order_by_type}]"));
     field.args.insert("orderBy".to_string(), order_by_value);
 
-    field.resolver = Resolver::PostgresResolver(PostgresResolver::new(Operation::FindMany, input_ctx.directive_name()));
+    field.resolver = Resolver::PostgresResolver(PostgresResolver::new(Operation::FindMany, input_ctx.directive_name()))
+        .and_then(Transformer::PostgresPageInfo);
+
     field.required_operation = Some(Operations::LIST);
 
     output_ctx.push_query(field);
