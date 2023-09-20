@@ -49,8 +49,8 @@ use crate::{
     model,
     parser::types::{BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition},
     validation::dynamic_validators::DynValidator,
-    Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerResult, SubscriptionType, Value,
-    VisitorContext,
+    Any, Context, ContextExt, Error, LegacyInputType, LegacyOutputType, Positioned, ServerResult, SubscriptionType,
+    Value, VisitorContext,
 };
 
 fn strip_brackets(type_name: &str) -> Option<&str> {

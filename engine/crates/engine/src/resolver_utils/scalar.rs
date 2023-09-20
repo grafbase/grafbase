@@ -1,6 +1,6 @@
 use graph_entities::{ResponseNodeId, ResponsePrimitive};
 
-use crate::{ContextSelectionSet, InputValueResult, ServerResult, Value};
+use crate::{ContextExt, ContextSelectionSet, InputValueResult, ServerResult, Value};
 
 /// A GraphQL scalar.
 ///

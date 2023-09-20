@@ -1,7 +1,9 @@
 use graph_entities::{CompactValue, ResponseNodeId};
 use internment::ArcIntern;
 
-use crate::{context::ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, Name, Value};
+use crate::{
+    context::ContextSelectionSet, ContextExt, InputValueError, InputValueResult, LegacyInputType, Name, Value,
+};
 
 /// A variant of an enum.
 pub struct EnumItem<T> {

@@ -8,7 +8,7 @@ use crate::{
         resolvers::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue},
         ModelName,
     },
-    Context, Error,
+    Context, ContextExt, Error,
 };
 
 pub(super) async fn by_ids(ctx: &Context<'_>, ids: &[String], ty: &ModelName) -> Result<ResolvedValue, Error> {

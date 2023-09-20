@@ -13,7 +13,7 @@ use crate::{
         },
         type_kinds::{OutputType, SelectionSetTarget},
     },
-    Context, Error,
+    Context, ContextExt, Error,
 };
 use indexmap::IndexMap;
 use runtime::search::GraphqlCursor;

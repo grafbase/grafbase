@@ -1,7 +1,7 @@
 use engine_value::ConstValue;
 use graph_entities::{ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive};
 
-use crate::{registry::MetaType, relations_edges, Context, ContextSelectionSet};
+use crate::{registry::MetaType, relations_edges, Context, ContextExt, ContextSelectionSet};
 
 #[async_recursion::async_recursion]
 pub async fn selection_set_into_node<'a>(

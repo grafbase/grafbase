@@ -6,7 +6,7 @@ use crate::{
         resolvers::{ResolvedValue, ResolverContext},
         MongoDBConfiguration,
     },
-    Context, Error,
+    Context, ContextExt, Error,
 };
 use http::{
     header::{ACCEPT, CONTENT_TYPE, USER_AGENT},

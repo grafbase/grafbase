@@ -12,7 +12,7 @@ use crate::{
         MetaFieldType, MetaType, WrappingType, WrappingTypeIter,
     },
     resolver_utils::resolve_container,
-    ContextSelectionSet, Error, LegacyOutputType, Positioned, ServerError, ServerResult, Value,
+    ContextExt, ContextSelectionSet, Error, LegacyOutputType, Positioned, ServerError, ServerResult, Value,
 };
 
 /// Resolve a list by executing each of the items concurrently.

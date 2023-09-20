@@ -43,7 +43,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod base;
-mod custom_directive;
 mod error;
 mod guard;
 mod headers;
@@ -87,7 +86,6 @@ pub use base::{
 #[doc(hidden)]
 pub use context::ContextSelectionSet;
 pub use context::*;
-pub use custom_directive::{CustomDirective, CustomDirectiveFactory};
 pub use engine_parser as parser;
 pub use engine_value::{
     from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number, SerializerError, Variables,
@@ -133,6 +131,6 @@ pub type FieldError = Error;
 pub type FieldResult<T> = Result<T>;
 
 pub use engine_derive::{
-    ComplexObject, Description, Directive, Enum, InputObject, Interface, MergedObject, MergedSubscription, NewType,
-    Object, Scalar, SimpleObject, Union,
+    ComplexObject, Description, Enum, InputObject, Interface, MergedObject, MergedSubscription, NewType, Object,
+    Scalar, SimpleObject, Union,
 };

@@ -9,7 +9,7 @@ use crate::{
         type_kinds::OutputType,
         MetaField, MetaType, ScalarParser, TypeReference,
     },
-    ContextField, Error, QueryPathSegment, ServerError,
+    ContextExt, ContextField, Error, QueryPathSegment, ServerError,
 };
 
 use super::{introspection, resolve_container, resolve_list};

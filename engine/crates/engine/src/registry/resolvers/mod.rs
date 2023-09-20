@@ -26,7 +26,7 @@ use self::{
     transformer::Transformer,
 };
 use super::{Constraint, MetaField, MetaType};
-use crate::{Context, Error, RequestHeaders};
+use crate::{Context, ContextExt, Error, RequestHeaders};
 
 pub mod atlas_data_api;
 pub mod custom;

@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, ops::Deref, sync::Arc};
+use std::{any::Any, ops::Deref, sync::Arc};
 
 use dynamodb::CurrentDateTime;
 
@@ -8,7 +8,6 @@ use indexmap::map::IndexMap;
 
 use crate::{
     context::{Data, QueryEnvInner},
-    custom_directive::CustomDirectiveFactory,
     deferred,
     extensions::{ExtensionFactory, Extensions},
     model::__DirectiveLocation,
@@ -23,8 +22,8 @@ use crate::{
     subscription::collect_subscription_streams,
     types::QueryRoot,
     validation::{check_rules, ValidationMode},
-    BatchRequest, BatchResponse, CacheControl, ContextBase, LegacyInputType, LegacyOutputType, ObjectType, QueryEnv,
-    QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
+    BatchRequest, BatchResponse, CacheControl, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType,
+    ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
 
 /// Schema builder
@@ -35,7 +34,6 @@ pub struct SchemaBuilder {
     complexity: Option<usize>,
     depth: Option<usize>,
     extensions: Vec<Box<dyn ExtensionFactory>>,
-    custom_directives: HashMap<&'static str, Box<dyn CustomDirectiveFactory>>,
 }
 
 impl SchemaBuilder {
@@ -148,25 +146,6 @@ impl SchemaBuilder {
         self
     }
 
-    /// Register a custom directive.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the directive with the same name is already registered.
-    #[must_use]
-    pub fn directive<T: CustomDirectiveFactory>(mut self, directive: T) -> Self {
-        let name = directive.name();
-        let instance = Box::new(directive);
-
-        instance.register(&mut self.registry);
-
-        if name == "skip" || name == "include" || self.custom_directives.insert(name, instance).is_some() {
-            panic!("Directive `{name}` already exists");
-        }
-
-        self
-    }
-
     /// Build schema.
     pub fn finish(mut self) -> Schema {
         // federation
@@ -182,7 +161,6 @@ impl SchemaBuilder {
             env: SchemaEnv(Arc::new(SchemaEnvInner {
                 registry: self.registry,
                 data: self.data,
-                custom_directives: self.custom_directives,
             })),
         }))
     }
@@ -192,7 +170,6 @@ impl SchemaBuilder {
 pub struct SchemaEnvInner {
     pub registry: Registry,
     pub data: Data,
-    pub custom_directives: HashMap<&'static str, Box<dyn CustomDirectiveFactory>>,
 }
 
 #[doc(hidden)]
@@ -255,7 +232,6 @@ impl Schema {
             complexity: None,
             depth: None,
             extensions: Default::default(),
-            custom_directives: Default::default(),
         }
     }
 
@@ -543,7 +519,7 @@ impl Schema {
 
     async fn execute_once(&self, env: QueryEnv) -> Response {
         // execute
-        let ctx = ContextBase {
+        let ctx = ContextSelectionSet {
             path: QueryPath::empty(),
             resolver_node: None,
             item: &env.operation.node.selection_set,
@@ -551,11 +527,11 @@ impl Schema {
             query_env: &env,
         };
 
-        let query = ctx.registry().query_root();
+        let query = self.env.registry.query_root();
 
         let res = match &env.operation.node.ty {
             OperationType::Query => resolve_root_container(&ctx, query).await,
-            OperationType::Mutation => resolve_root_container_serial(&ctx, ctx.registry().mutation_root()).await,
+            OperationType::Mutation => resolve_root_container_serial(&ctx, self.env.registry.mutation_root()).await,
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
                 None,

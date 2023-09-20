@@ -220,6 +220,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                         #(#cfg_attrs)*
                         if typename == &<#entity_type as #crate_name::LegacyOutputType>::type_name() {
                             if let (#(#key_pat),*) = (#(#key_getter),*) {
+                                use #crate_name::context::ContextExt;
                                 let f = async move {
                                     #(#requires_getter)*
                                     #do_find
@@ -502,6 +503,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                 resolvers.push(quote! {
                     #(#cfg_attrs)*
                     if ctx.item.node.name.node == #field_name {
+                        use #crate_name::context::ContextExt;
                         let f = async move {
                             #(#get_params)*
                             #guard

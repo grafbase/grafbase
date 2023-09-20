@@ -12,7 +12,7 @@ use runtime::{
 };
 
 use super::ResolvedValue;
-use crate::{Context, Error, ErrorExtensionValues};
+use crate::{Context, ContextExt, Error, ErrorExtensionValues};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct CustomResolver {

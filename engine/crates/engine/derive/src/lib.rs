@@ -10,7 +10,6 @@
 mod args;
 mod complex_object;
 mod description;
-mod directive;
 mod r#enum;
 mod input_object;
 mod interface;
@@ -27,7 +26,7 @@ mod validators;
 
 use darling::{FromDeriveInput, FromMeta};
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, DeriveInput, ItemFn, ItemImpl};
+use syn::{parse_macro_input, DeriveInput, ItemImpl};
 
 struct AttributeArgs(Vec<darling::ast::NestedMeta>);
 
@@ -193,20 +192,6 @@ pub fn derive_newtype(input: TokenStream) -> TokenStream {
         Err(err) => return TokenStream::from(err.write_errors()),
     };
     match newtype::generate(&newtype_args) {
-        Ok(expanded) => expanded,
-        Err(err) => err.write_errors().into(),
-    }
-}
-
-#[proc_macro_attribute]
-#[allow(non_snake_case)]
-pub fn Directive(args: TokenStream, input: TokenStream) -> TokenStream {
-    let directive_args = match args::Directive::from_list(&parse_macro_input!(args as AttributeArgs).0) {
-        Ok(directive_args) => directive_args,
-        Err(err) => return TokenStream::from(err.write_errors()),
-    };
-    let mut item_fn = parse_macro_input!(input as ItemFn);
-    match directive::generate(&directive_args, &mut item_fn) {
         Ok(expanded) => expanded,
         Err(err) => err.write_errors().into(),
     }

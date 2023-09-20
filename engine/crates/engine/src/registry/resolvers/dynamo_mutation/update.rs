@@ -12,7 +12,7 @@ use crate::{
         variables::{id::ObfuscatedID, oneof::OneOf},
         ModelName, ObjectType,
     },
-    Context, Error, ServerError,
+    Context, ContextExt, Error, ServerError,
 };
 
 #[derive(serde::Deserialize)]

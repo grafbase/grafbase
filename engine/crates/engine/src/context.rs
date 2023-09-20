@@ -2,7 +2,6 @@
 
 use std::{
     any::{Any, TypeId},
-    borrow::Cow,
     collections::{HashMap, HashSet},
     fmt::{self, Debug, Formatter},
     ops::Deref,
@@ -10,38 +9,30 @@ use std::{
 };
 
 use async_lock::Mutex as AsyncMutex;
-use derivative::Derivative;
-use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
+use dynamodb::CurrentDateTime;
 use engine_parser::types::OperationType;
-use engine_value::{Value as InputValue, Variables};
+use engine_value::{ConstValue as Value, Variables};
 use fnv::FnvHashMap;
 use graph_entities::QueryResponse;
-use http::{
-    header::{AsHeaderName, HeaderMap, IntoHeaderName},
-    HeaderValue,
-};
-use postgresql_types::database_definition::DatabaseDefinition;
-use serde::de::DeserializeOwned;
-use ulid::Ulid;
+use http::header::HeaderMap;
 
 use crate::{
     deferred::DeferredWorkloadSender,
     extensions::Extensions,
-    parser::types::{Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
-    query_path::{QueryPath, QueryPathSegment},
-    registry::{
-        relations::MetaRelation, type_kinds::InputType, variables::VariableResolveDefinition, MetaType,
-        MongoDBConfiguration, Registry, TypeReference,
-    },
-    resolver_utils::{resolve_input, InputResolveMode},
+    parser::types::{Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
+    query_path::QueryPath,
+    registry::{relations::MetaRelation, MetaType},
     schema::SchemaEnv,
-    CacheInvalidation, Error, LegacyInputType, Lookahead, Name, Pos, Positioned, Result, ServerError, ServerResult,
-    UploadValue, Value,
+    CacheInvalidation, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
 
-pub(crate) use self::resolver_chain::ResolverChainNode;
+pub use self::selection_set::ContextSelectionSet;
+pub(crate) use self::{ext::ContextExt, field::ContextField, resolver_chain::ResolverChainNode};
 
+mod ext;
+mod field;
 mod resolver_chain;
+mod selection_set;
 
 /// Data related functions of the context.
 pub trait DataContext<'a> {
@@ -98,10 +89,7 @@ impl Debug for Data {
 }
 
 /// Context when we're resolving a `SelectionSet`
-pub type ContextSelectionSet<'a> = ContextBase<'a, &'a Positioned<SelectionSet>>;
-
-/// Context when we're resolving a `Field`
-pub type ContextField<'a> = ContextBase<'a, &'a Positioned<Field>>;
+// pub type ContextSelectionSet<'a> = ContextBase<'a, &'a Positioned<SelectionSet>>;
 
 /// When inside a Connection, we get the subfields asked by alias which are a relation
 /// (response_key, relation)
@@ -158,30 +146,7 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
 }
 
 /// Context object for resolve field
-pub type Context<'a> = ContextBase<'a, &'a Positioned<Field>>;
-
-/// Context object for execute directive.
-pub type ContextDirective<'a> = ContextBase<'a, &'a Positioned<Directive>>;
-
-/// Query context.
-///
-/// **This type is not stable and should not be used directly.**
-#[derive(Derivative, Clone)]
-#[derivative(Debug)]
-pub struct ContextBase<'a, T> {
-    /// The current path being resolved.
-    pub path: QueryPath,
-    // /// The current resolver path being resolved.
-    pub resolver_node: Option<ResolverChainNode<'a>>,
-    #[doc(hidden)]
-    pub item: T,
-    #[doc(hidden)]
-    #[derivative(Debug = "ignore")]
-    pub schema_env: &'a SchemaEnv,
-    #[doc(hidden)]
-    #[derivative(Debug = "ignore")]
-    pub query_env: &'a QueryEnv,
-}
+pub type Context<'a> = field::ContextField<'a>;
 
 #[doc(hidden)]
 pub struct QueryEnvInner {
@@ -228,13 +193,13 @@ impl QueryEnv {
     }
 
     #[doc(hidden)]
-    pub fn create_context<'a, T>(
+    pub fn create_context<'a>(
         &'a self,
         schema_env: &'a SchemaEnv,
         resolver_node: Option<ResolverChainNode<'a>>,
-        item: T,
-    ) -> ContextBase<'a, T> {
-        ContextBase {
+        item: &'a Positioned<SelectionSet>,
+    ) -> ContextSelectionSet<'a> {
+        ContextSelectionSet {
             path: QueryPath::empty(),
             resolver_node,
             item,
@@ -265,31 +230,7 @@ impl QueryEnvBuilder {
     }
 }
 
-impl<'a, T> ContextBase<'a, T> {
-    pub async fn response(&self) -> async_lock::MutexGuard<'_, QueryResponse> {
-        self.query_env.response.lock().await
-    }
-
-    /// Find a fragment definition by name.
-    pub fn get_fragment(&self, name: &str) -> Option<&FragmentDefinition> {
-        self.query_env.fragments.get(name).map(|fragment| &fragment.node)
-    }
-
-    /// Find a type definition by name.
-    pub fn get_type(&self, name: &str) -> Option<&MetaType> {
-        self.schema_env.registry.types.get(name)
-    }
-
-    /// Find a mongodb configuration with name.
-    pub fn get_mongodb_config(&self, name: &str) -> Option<&MongoDBConfiguration> {
-        self.schema_env.registry.mongodb_configurations.get(name)
-    }
-
-    pub fn get_postgresql_definition(&self, name: &str) -> Option<&DatabaseDefinition> {
-        self.schema_env.registry.postgres_databases.get(name)
-    }
-}
-
+#[cfg(nope)]
 impl<'a, T> DataContext<'a> for ContextBase<'a, T> {
     fn data<D: Any + Send + Sync>(&self) -> Result<&'a D> {
         ContextBase::data::<D>(self)
@@ -304,503 +245,9 @@ impl<'a, T> DataContext<'a> for ContextBase<'a, T> {
     }
 }
 
-impl<'a, T> ContextBase<'a, T> {
-    /// We add a new field with the Context with the proper execution_id generated.
-    pub fn with_field(
-        &'a self,
-        field: &'a Positioned<Field>,
-        ty: Option<&'a MetaType>,
-        selections: Option<&'a SelectionSet>,
-    ) -> ContextBase<'a, &'a Positioned<Field>> {
-        let registry = &self.schema_env.registry;
-
-        let meta_field = ty.and_then(|ty| ty.field_by_name(&field.node.name.node));
-
-        let meta = meta_field.and_then(|field| registry.types.get(field.ty.named_type().as_str()));
-
-        let mut path = self.path.clone();
-        path.push(field.node.response_key().node.as_str());
-
-        ContextBase {
-            resolver_node: Some(ResolverChainNode {
-                parent: self.resolver_node.as_ref(),
-                segment: path.last().unwrap().clone(),
-                ty: meta,
-                field: meta_field,
-                executable_field: Some(field),
-                resolver: meta_field.map(|x| &x.resolver),
-                execution_id: Ulid::from_datetime(self.query_env.current_datetime.clone().into()),
-                selections,
-            }),
-            path,
-            item: field,
-            schema_env: self.schema_env,
-            query_env: self.query_env,
-        }
-    }
-
-    #[doc(hidden)]
-    pub fn with_selection_set(
-        &self,
-        selection_set: &'a Positioned<SelectionSet>,
-    ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
-        ContextBase {
-            path: self.path.clone(),
-            resolver_node: self.resolver_node.clone(),
-            item: selection_set,
-            schema_env: self.schema_env,
-            query_env: self.query_env,
-        }
-    }
-
-    #[doc(hidden)]
-    pub fn set_error_path(&self, error: ServerError) -> ServerError {
-        if !error.path.is_empty() {
-            // If the error already has a path we don't want to overwrite it.
-            return error;
-        }
-
-        ServerError {
-            path: self.path.iter().cloned().collect(),
-            ..error
-        }
-    }
-
-    /// Report a resolver error.
-    ///
-    /// When implementing `OutputType`, if an error occurs, call this function to report this error and return `Value::Null`.
-    pub fn add_error(&self, error: ServerError) {
-        self.query_env.errors.lock().unwrap().push(error);
-    }
-
-    /// Gets the global data defined in the `Context` or `Schema`.
-    ///
-    /// If both `Schema` and `Query` have the same data type, the data in the `Query` is obtained.
-    ///
-    /// # Errors
-    ///
-    /// Returns a `Error` if the specified type data does not exist.
-    pub fn data<D: Any + Send + Sync>(&self) -> Result<&'a D> {
-        self.data_opt::<D>()
-            .ok_or_else(|| Error::new(format!("Data `{}` does not exist.", std::any::type_name::<D>())))
-    }
-
-    /// Gets the global data defined in the `Context` or `Schema`.
-    ///
-    /// # Panics
-    ///
-    /// It will panic if the specified data type does not exist.
-    pub fn data_unchecked<D: Any + Send + Sync>(&self) -> &'a D {
-        self.data_opt::<D>()
-            .unwrap_or_else(|| panic!("Data `{}` does not exist.", std::any::type_name::<D>()))
-    }
-
-    /// Gets the global data defined in the `Context` or `Schema` or `None` if the specified type data does not exist.
-    pub fn data_opt<D: Any + Send + Sync>(&self) -> Option<&'a D> {
-        self.query_env
-            .ctx_data
-            .0
-            .get(&TypeId::of::<D>())
-            .or_else(|| self.query_env.session_data.0.get(&TypeId::of::<D>()))
-            .or_else(|| self.schema_env.data.0.get(&TypeId::of::<D>()))
-            .and_then(|d| d.downcast_ref::<D>())
-    }
-
-    /// Returns whether the HTTP header `key` is currently set on the response
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use engine::*;
-    /// use ::http::header::ACCESS_CONTROL_ALLOW_ORIGIN;
-    ///
-    /// struct Query;
-    ///
-    /// #[Object]
-    /// impl Query {
-    ///     async fn greet(&self, ctx: &Context<'_>) -> String {
-    ///
-    ///         let header_exists = ctx.http_header_contains("Access-Control-Allow-Origin");
-    ///         assert!(!header_exists);
-    ///
-    ///         ctx.insert_http_header(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-    ///
-    ///         let header_exists = ctx.http_header_contains("Access-Control-Allow-Origin");
-    ///         assert!(header_exists);
-    ///
-    ///         String::from("Hello world")
-    ///     }
-    /// }
-    /// ```
-    pub fn http_header_contains(&self, key: impl AsHeaderName) -> bool {
-        self.query_env.response_http_headers.lock().unwrap().contains_key(key)
-    }
-
-    /// Sets a HTTP header to response.
-    ///
-    /// If the header was not currently set on the response, then `None` is returned.
-    ///
-    /// If the response already contained this header then the new value is associated with this key
-    /// and __all the previous values are removed__, however only a the first previous
-    /// value is returned.
-    ///
-    /// See [`http::HeaderMap`] for more details on the underlying implementation
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use engine::*;
-    /// use ::http::header::ACCESS_CONTROL_ALLOW_ORIGIN;
-    /// use ::http::HeaderValue;
-    ///
-    /// struct Query;
-    ///
-    /// #[Object]
-    /// impl Query {
-    ///     async fn greet(&self, ctx: &Context<'_>) -> String {
-    ///
-    ///         // Headers can be inserted using the `http` constants
-    ///         let was_in_headers = ctx.insert_http_header(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-    ///         assert_eq!(was_in_headers, None);
-    ///
-    ///         // They can also be inserted using &str
-    ///         let was_in_headers = ctx.insert_http_header("Custom-Header", "1234");
-    ///         assert_eq!(was_in_headers, None);
-    ///
-    ///         // If multiple headers with the same key are `inserted` then the most recent
-    ///         // one overwrites the previous. If you want multiple headers for the same key, use
-    ///         // `append_http_header` for subsequent headers
-    ///         let was_in_headers = ctx.insert_http_header("Custom-Header", "Hello World");
-    ///         assert_eq!(was_in_headers, Some(HeaderValue::from_static("1234")));
-    ///
-    ///         String::from("Hello world")
-    ///     }
-    /// }
-    /// ```
-    pub fn insert_http_header(
-        &self,
-        name: impl IntoHeaderName,
-        value: impl TryInto<HeaderValue>,
-    ) -> Option<HeaderValue> {
-        if let Ok(value) = value.try_into() {
-            self.query_env.response_http_headers.lock().unwrap().insert(name, value)
-        } else {
-            None
-        }
-    }
-
-    /// Sets a HTTP header to response.
-    ///
-    /// If the header was not currently set on the response, then `false` is returned.
-    ///
-    /// If the response did have this header then the new value is appended to the end of the
-    /// list of values currently associated with the key, however the key is not updated
-    /// _(which is important for types that can be `==` without being identical)_.
-    ///
-    /// See [`http::HeaderMap`] for more details on the underlying implementation
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use engine::*;
-    /// use ::http::header::SET_COOKIE;
-    ///
-    /// struct Query;
-    ///
-    /// #[Object]
-    /// impl Query {
-    ///     async fn greet(&self, ctx: &Context<'_>) -> String {
-    ///         // Insert the first instance of the header
-    ///         ctx.insert_http_header(SET_COOKIE, "Chocolate Chip");
-    ///
-    ///         // Subsequent values should be appended
-    ///         let header_already_exists = ctx.append_http_header("Set-Cookie", "Macadamia");
-    ///         assert!(header_already_exists);
-    ///
-    ///         String::from("Hello world")
-    ///     }
-    /// }
-    /// ```
-    pub fn append_http_header(&self, name: impl IntoHeaderName, value: impl TryInto<HeaderValue>) -> bool {
-        if let Ok(value) = value.try_into() {
-            self.query_env.response_http_headers.lock().unwrap().append(name, value)
-        } else {
-            false
-        }
-    }
-
-    fn var_value(&self, name: &str, pos: Pos) -> ServerResult<Value> {
-        self.query_env
-            .operation
-            .node
-            .variable_definitions
-            .iter()
-            .find(|def| def.node.name.node == name)
-            .and_then(|def| {
-                self.query_env
-                    .variables
-                    .get(&def.node.name.node)
-                    .or_else(|| def.node.default_value())
-            })
-            .cloned()
-            .ok_or_else(|| ServerError::new(format!("Variable {name} is not defined."), Some(pos)))
-    }
-
-    pub fn resolve_input_value(&self, value: Positioned<InputValue>) -> ServerResult<Value> {
-        let pos = value.pos;
-        value.node.into_const_with(|name| self.var_value(&name, pos))
-    }
-
-    #[doc(hidden)]
-    fn get_param_value<Q: LegacyInputType>(
-        &self,
-        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
-        name: &str,
-        default: Option<fn() -> Q>,
-    ) -> ServerResult<(Pos, Q)> {
-        let value = arguments
-            .iter()
-            .find(|(n, _)| n.node.as_str() == name)
-            .map(|(_, value)| value)
-            .cloned();
-
-        if value.is_none() {
-            if let Some(default) = default {
-                return Ok((Pos::default(), default()));
-            }
-        }
-        let (pos, value) = match value {
-            Some(value) => (value.pos, Some(self.resolve_input_value(value)?)),
-            None => (Pos::default(), None),
-        };
-
-        LegacyInputType::parse(value)
-            .map(|value| (pos, value))
-            .map_err(|e| e.into_server_error(pos))
-    }
-}
-
-impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
-    pub fn deferred_workloads(&self) -> Option<&DeferredWorkloadSender> {
-        self.query_env.deferred_workloads.as_ref()
-    }
-
-    #[doc(hidden)]
-    #[must_use]
-    pub fn with_index(
-        &'a self,
-        idx: usize,
-        selections: Option<&'a SelectionSet>,
-    ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
-        let mut path = self.path.clone();
-        path.push(QueryPathSegment::Index(idx));
-        ContextBase {
-            resolver_node: Some(ResolverChainNode {
-                parent: self.resolver_node.as_ref(),
-                segment: path.last().cloned().unwrap(),
-                field: self.resolver_node.as_ref().and_then(|x| x.field),
-                executable_field: self.resolver_node.as_ref().and_then(|x| x.executable_field),
-                ty: self.resolver_node.as_ref().and_then(|x| x.ty),
-                resolver: self.resolver_node.as_ref().and_then(|x| x.resolver),
-                execution_id: Ulid::from_datetime(self.query_env.current_datetime.clone().into()),
-                selections,
-            }),
-            path,
-            item: self.item,
-            schema_env: self.schema_env,
-            query_env: self.query_env,
-        }
-    }
-}
-
-impl<'a, T> ContextBase<'a, T> {
-    /// Get the registry
-    pub fn registry(&'a self) -> &'a Registry {
-        &self.schema_env.registry
-    }
-}
-
 pub enum QueryByVariables {
     ID(String),
     Constraint { key: String, value: Value },
-}
-
-impl<'a, T> ContextBase<'a, T> {
-    pub fn trace_id(&self) -> String {
-        self.data::<Arc<DynamoDBBatchersData>>()
-            .map(|x| x.ctx.trace_id.clone())
-            .ok()
-            .unwrap_or_default()
-    }
-}
-
-impl<'a> ContextBase<'a, &'a Positioned<Field>> {
-    #[doc(hidden)]
-    pub fn param_value<T: LegacyInputType>(&self, name: &str, default: Option<fn() -> T>) -> ServerResult<(Pos, T)> {
-        self.get_param_value(&self.item.node.arguments, name, default)
-    }
-
-    pub fn find_argument_type(&self, name: &str) -> ServerResult<InputType<'_>> {
-        let meta = self
-            .resolver_node
-            .as_ref()
-            .and_then(|r| r.field)
-            .ok_or_else(|| ServerError::new("Context does not have any field associated.", Some(self.item.pos)))?;
-
-        meta.args
-            .get(name)
-            .ok_or_else(|| {
-                ServerError::new(
-                    &format!("Internal Error: Unknown argument '{name}'"),
-                    Some(self.item.pos),
-                )
-            })
-            .and_then(|input| {
-                self.schema_env
-                    .registry
-                    .lookup(&input.ty)
-                    .map_err(|error| error.into_server_error(self.item.pos))
-            })
-    }
-
-    pub fn param_value_dynamic(&self, name: &str, mode: InputResolveMode) -> ServerResult<Option<Value>> {
-        let meta = self
-            .resolver_node
-            .as_ref()
-            .and_then(|r| r.field)
-            .ok_or_else(|| ServerError::new("Context does not have any field associated.", Some(self.item.pos)))?;
-        if let Some(meta_input_value) = meta.args.get(name) {
-            let maybe_value = self
-                .item
-                .node
-                .arguments
-                .iter()
-                .find(|(n, _)| n.node.as_str() == name)
-                .map(|(_, value)| value)
-                .cloned()
-                .map(|value| self.resolve_input_value(value))
-                .transpose()?;
-
-            resolve_input(self, name, meta_input_value, maybe_value, mode)
-        } else {
-            Err(ServerError::new(
-                &format!("Internal Error: Unknown argument '{name}'"),
-                Some(self.item.pos),
-            ))
-        }
-    }
-
-    /// When inside a Connection, we get the subfields asked
-    pub fn relations_edges(&self) -> HashSet<String> {
-        if let Some(iter) = self
-            .field()
-            .selection_set()
-            .find(|field| field.name() == "edges")
-            .and_then(|field| {
-                field
-                    .selection_set()
-                    .find(|inner_field| inner_field.name() == "node")
-                    .map(|inner_field| inner_field.selection_set())
-            })
-        {
-            iter.map(|field| field.name().to_string()).collect()
-        } else {
-            HashSet::new()
-        }
-    }
-
-    /// Creates a uniform interface to inspect the forthcoming selections.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use engine::*;
-    ///
-    /// #[derive(SimpleObject)]
-    /// struct Detail {
-    ///     c: i32,
-    ///     d: i32,
-    /// }
-    ///
-    /// #[derive(SimpleObject)]
-    /// struct MyObj {
-    ///     a: i32,
-    ///     b: i32,
-    ///     detail: Detail,
-    /// }
-    ///
-    /// struct Query;
-    ///
-    /// #[Object]
-    /// impl Query {
-    ///     async fn obj(&self, ctx: &Context<'_>) -> MyObj {
-    ///         if ctx.look_ahead().field("a").exists() {
-    ///             // This is a query like `obj { a }`
-    ///         } else if ctx.look_ahead().field("detail").field("c").exists() {
-    ///             // This is a query like `obj { detail { c } }`
-    ///         } else {
-    ///             // This query doesn't have `a`
-    ///         }
-    ///         unimplemented!()
-    ///     }
-    /// }
-    /// ```
-    pub fn look_ahead(&self) -> Lookahead {
-        Lookahead::new(&self.query_env.fragments, &self.item.node, self)
-    }
-
-    /// Get the current field.
-    ///
-    /// # Examples
-    ///
-    /// ```rust, ignore
-    /// use engine::*;
-    ///
-    /// #[derive(SimpleObject)]
-    /// struct MyObj {
-    ///     a: i32,
-    ///     b: i32,
-    ///     c: i32,
-    /// }
-    ///
-    /// pub struct Query;
-    ///
-    /// #[Object]
-    /// impl Query {
-    ///     async fn obj(&self, ctx: &Context<'_>) -> MyObj {
-    ///         let fields = ctx.field().selection_set().map(|field| field.name()).collect::<Vec<_>>();
-    ///         assert_eq!(fields, vec!["a", "b", "c"]);
-    ///         MyObj { a: 1, b: 2, c: 3 }
-    ///     }
-    /// }
-    ///
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(async move {
-    /// let schema = Schema::new(Query, EmptyMutation, EmptySubscription);
-    /// assert!(schema.execute("{ obj { a b c }}").await.is_ok());
-    /// assert!(schema.execute("{ obj { a ... { b c } }}").await.is_ok());
-    /// assert!(schema.execute("{ obj { a ... BC }} fragment BC on MyObj { b c }").await.is_ok());
-    /// # });
-    ///
-    /// ```
-    pub fn field(&self) -> SelectionField {
-        SelectionField {
-            fragments: &self.query_env.fragments,
-            field: &self.item.node,
-            context: self,
-        }
-    }
-
-    pub fn input_by_name<T: DeserializeOwned>(&self, name: impl Into<Cow<'static, str>>) -> ServerResult<T> {
-        let resolve_definition = VariableResolveDefinition::input_type_name(name);
-        resolve_definition.resolve(self, Option::<serde_json::Value>::None)
-    }
-}
-
-impl<'a> ContextBase<'a, &'a Positioned<Directive>> {
-    #[doc(hidden)]
-    pub fn param_value<T: LegacyInputType>(&self, name: &str, default: Option<fn() -> T>) -> ServerResult<(Pos, T)> {
-        self.get_param_value(&self.item.node.arguments, name, default)
-    }
 }
 
 /// Selection field.

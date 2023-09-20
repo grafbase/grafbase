@@ -9,7 +9,7 @@ mod request;
 mod value;
 
 use super::{ResolvedValue, ResolverContext};
-use crate::{send_wrapper::make_send_on_wasm, Context, Error};
+use crate::{send_wrapper::make_send_on_wasm, Context, ContextExt, Error};
 use futures_util::Future;
 pub use operation::OperationType;
 use std::pin::Pin;

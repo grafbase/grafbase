@@ -9,7 +9,7 @@ use crate::{
     extensions::ResolveInfo,
     parser::types::Selection,
     registry::{resolvers::ResolvedValue, MetaType},
-    relations_edges, Context, ContextBase, ContextSelectionSet, Error, LegacyOutputType, Name, ServerError,
+    relations_edges, Context, ContextExt, ContextSelectionSet, Error, LegacyOutputType, Name, ServerError,
     ServerResult, Value,
 };
 
@@ -420,25 +420,6 @@ impl<'a> FieldExecutionSet<'a> {
 
                 let mut resolve_fut = resolve_fut.boxed();
 
-                for directive in &field.node.directives {
-                    if let Some(directive_factory) =
-                        ctx.schema_env.custom_directives.get(directive.node.name.node.as_str())
-                    {
-                        let ctx_directive = ContextBase {
-                            path: ctx_field.path.clone(),
-                            resolver_node: ctx_field.resolver_node.clone(),
-                            item: directive,
-                            schema_env: ctx_field.schema_env,
-                            query_env: ctx_field.query_env,
-                        };
-                        let directive_instance = directive_factory.create(&ctx_directive, &directive.node)?;
-                        resolve_fut = Box::pin({
-                            let ctx_field = ctx_field.clone();
-                            async move { directive_instance.resolve_field(&ctx_field, &mut resolve_fut).await }
-                        });
-                    }
-                }
-
                 Ok(FieldExecutionOutput::Field(
                     (alias, field_name),
                     response_id_unwrap_or_null(&ctx_field, extensions.resolve(resolve_info, &mut resolve_fut).await?)
@@ -648,28 +629,6 @@ impl<'a> Fields<'a> {
                                     ))
                                 } else {
                                     let mut resolve_fut = resolve_fut.boxed();
-
-                                    for directive in &field.node.directives {
-                                        if let Some(directive_factory) =
-                                            ctx.schema_env.custom_directives.get(directive.node.name.node.as_str())
-                                        {
-                                            let ctx_directive = ContextBase {
-                                                path: ctx_field.path.clone(),
-                                                resolver_node: ctx_field.resolver_node.clone(),
-                                                item: directive,
-                                                schema_env: ctx_field.schema_env,
-                                                query_env: ctx_field.query_env,
-                                            };
-                                            let directive_instance =
-                                                directive_factory.create(&ctx_directive, &directive.node)?;
-                                            resolve_fut = Box::pin({
-                                                let ctx_field = ctx_field.clone();
-                                                async move {
-                                                    directive_instance.resolve_field(&ctx_field, &mut resolve_fut).await
-                                                }
-                                            });
-                                        }
-                                    }
 
                                     Ok((
                                         field_name,

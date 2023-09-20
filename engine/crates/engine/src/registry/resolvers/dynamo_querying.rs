@@ -21,7 +21,7 @@ use crate::{
         variables::{oneof::OneOf, VariableResolveDefinition},
         MetaType, ModelName, SchemaID,
     },
-    Context, Error, Value,
+    Context, ContextExt, Error, Value,
 };
 
 mod get;

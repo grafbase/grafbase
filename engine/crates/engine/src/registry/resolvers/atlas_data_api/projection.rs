@@ -5,7 +5,7 @@ use super::{normalize, JsonMap};
 use crate::{
     names::MONGODB_OUTPUT_FIELD_ID,
     registry::{MetaField, MetaType},
-    Context, Error, SelectionField,
+    Context, ContextExt, Error, SelectionField,
 };
 
 pub(super) fn project<'a>(

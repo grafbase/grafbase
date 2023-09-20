@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// At one point this was just a reverse linked-list of references, but that was a
 /// real pain to integrate with defer & stream as the lifetimes wouldn't last long
 /// enough.
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub struct QueryPath(im::Vector<QueryPathSegment>);
 
 impl QueryPath {
@@ -45,6 +45,12 @@ impl IntoIterator for QueryPath {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
+    }
+}
+
+impl std::fmt::Debug for QueryPath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\"{self}\"")
     }
 }
 
