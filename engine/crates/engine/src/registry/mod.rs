@@ -457,8 +457,7 @@ impl MetaField {
                     || (target_field == OUTPUT_FIELD_ID && resolved_field_name == OUTPUT_FIELD_DELETED_ID)
                     {
                         let Some(resolved_field_value) = resolved_field_value else {
-                            #[cfg(feature = "tracing_worker")]
-                            logworker::warn!(
+                            log::warn!(
                                 ctx.trace_id(),
                                 "missing field valued for resolved {}#{} and cache type {}",
                                 resolved_field_type,

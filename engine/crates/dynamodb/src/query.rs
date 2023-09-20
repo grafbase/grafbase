@@ -7,7 +7,6 @@ use graph_entities::{NodeID, ID};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rusoto_dynamodb::QueryInput;
-#[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
 use crate::{
@@ -126,8 +125,7 @@ impl Loader<QueryKey> for QueryLoader {
                 ..Default::default()
             };
             let future_get = || async move {
-                let req = self
-                    .ctx
+                self.ctx
                     .dynamodb_client
                     .clone()
                     .query_pages(input)
@@ -169,21 +167,20 @@ impl Loader<QueryKey> for QueryLoader {
 
                             Ok((query_key, acc))
                         },
-                    );
-                #[cfg(feature = "tracing")]
-                let req = req.instrument(info_span!("fetch query"));
-                req.await
+                    )
+                    .instrument(info_span!("fetch query"))
+                    .await
             };
             concurrent_f.push(future_get());
         }
 
-        let b = futures_util::future::try_join_all(concurrent_f);
-        #[cfg(feature = "tracing")]
-        let b = b.instrument(info_span!("fetch query concurrent"));
-        let b = b.await.map_err(|err| {
-            log::error!(self.ctx.trace_id, "Error while querying: {:?}", err);
-            QueryLoaderError::QueryError
-        })?;
+        let b = futures_util::future::try_join_all(concurrent_f)
+            .instrument(info_span!("fetch query concurrent"))
+            .await
+            .map_err(|err| {
+                log::error!(self.ctx.trace_id, "Error while querying: {:?}", err);
+                QueryLoaderError::QueryError
+            })?;
 
         for (q, r) in b {
             h.insert(q, r);

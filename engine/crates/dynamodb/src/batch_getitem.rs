@@ -4,7 +4,6 @@ use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use quick_error::quick_error;
 use rusoto_dynamodb::{BatchGetItemInput, DynamoDb, KeysAndAttributes};
-#[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
 use crate::{
@@ -82,7 +81,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             _ => None,
         };
 
-        let request_fut = crate::retry::rusoto_retry(|| {
+        let get_items = crate::retry::rusoto_retry(|| {
             self.ctx
                 .dynamodb_client
                 .batch_get_item(BatchGetItemInput {
@@ -90,34 +89,32 @@ impl Loader<(String, String)> for BatchGetItemLoader {
                     return_consumed_capacity: None,
                 })
                 .inspect_err(|err| log::error!(self.ctx.trace_id, "Error while getting items: {:?}", err))
+        })
+        .instrument(info_span!("fetch batch_get_item"))
+        .await
+        .map_err(|_| BatchGetItemLoaderError::DynamoError)?
+        .responses
+        .ok_or(BatchGetItemLoaderError::UnknownError)?
+        .remove(&self.ctx.dynamodb_table_name)
+        .ok_or(BatchGetItemLoaderError::UnknownError)?
+        .into_iter()
+        .filter(|item| {
+            // BatchGetItem doesn't support filtering, so do it manually
+            if let Some(user_id) = owned_by {
+                item.get(OWNED_BY)
+                    .and_then(|av| av.ss.as_ref())
+                    .map(|owners| owners.iter().any(|it| it == user_id))
+                    .unwrap_or(false)
+            } else {
+                true
+            }
+        })
+        .fold(HashMap::new(), |mut acc, cur| {
+            let pk = cur.get(PK).and_then(|x| x.s.clone()).unwrap();
+            let sk = cur.get(SK).and_then(|x| x.s.clone()).unwrap();
+            acc.insert((pk, sk), cur);
+            acc
         });
-        #[cfg(feature = "tracing")]
-        let request_fut = request_fut.instrument(info_span!("fetch batch_get_item"));
-        let get_items = request_fut
-            .await
-            .map_err(|_| BatchGetItemLoaderError::DynamoError)?
-            .responses
-            .ok_or(BatchGetItemLoaderError::UnknownError)?
-            .remove(&self.ctx.dynamodb_table_name)
-            .ok_or(BatchGetItemLoaderError::UnknownError)?
-            .into_iter()
-            .filter(|item| {
-                // BatchGetItem doesn't support filtering, so do it manually
-                if let Some(user_id) = owned_by {
-                    item.get(OWNED_BY)
-                        .and_then(|av| av.ss.as_ref())
-                        .map(|owners| owners.iter().any(|it| it == user_id))
-                        .unwrap_or(false)
-                } else {
-                    true
-                }
-            })
-            .fold(HashMap::new(), |mut acc, cur| {
-                let pk = cur.get(PK).and_then(|x| x.s.clone()).unwrap();
-                let sk = cur.get(SK).and_then(|x| x.s.clone()).unwrap();
-                acc.insert((pk, sk), cur);
-                acc
-            });
 
         log::debug!(self.ctx.trace_id, "Loader Dataloader finished {:?}", keys);
         Ok(get_items)

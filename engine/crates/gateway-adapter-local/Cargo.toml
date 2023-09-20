@@ -10,8 +10,8 @@ repository = "https://github.com/grafbase/grafbase"
 keywords = ["grafbase"]
 
 [dependencies]
-dynamodb = { workspace = true, features = ["tracing"] }
-engine = { workspace = true, features = ["tracing_worker"] }
+dynamodb = { workspace = true }
+engine = { workspace = true }
 graphql-extensions = { workspace = true }
 runtime-local = { workspace = true }
 runtime = { workspace = true }

@@ -69,12 +69,9 @@ fn handle_error_after_response(
     #[allow(unused)] response_body: Option<&str>,
 ) -> Error {
     let error = error.into();
-    #[cfg(feature = "tracing_worker")]
-    {
-        tracing::debug!("Error in GraphQL connector: {error}");
-        if let Some(text) = response_body {
-            tracing::debug!("Response Body: {text}");
-        }
+    tracing::debug!("Error in GraphQL connector: {error}");
+    if let Some(text) = response_body {
+        tracing::debug!("Response Body: {text}");
     }
 
     if !status.is_success() {
