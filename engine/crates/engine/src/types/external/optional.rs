@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use graph_entities::{CompactValue, ResponseNodeId};
 
 use crate::{
-    parser::types::Field, registry, ContextExt, ContextSelectionSet, InputValueError, InputValueResult,
+    parser::types::Field, registry, ContextExt, ContextSelectionSetLegacy, InputValueError, InputValueResult,
     LegacyInputType, LegacyOutputType, Positioned, ServerResult, Value,
 };
 
@@ -60,7 +60,11 @@ impl<T: LegacyOutputType + Sync> LegacyOutputType for Option<T> {
         T::type_name().as_ref().into()
     }
 
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         if let Some(inner) = self {
             match LegacyOutputType::resolve(inner, ctx, field).await {
                 Ok(value) => Ok(value),

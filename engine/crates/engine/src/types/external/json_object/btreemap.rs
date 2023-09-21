@@ -9,8 +9,8 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::{
     graph::selection_set_into_node,
     registry::{self, MetaType, Registry, ScalarType},
-    ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Name, ServerResult,
-    Value,
+    ContextSelectionSetLegacy, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Name,
+    ServerResult, Value,
 };
 
 impl<K, V> LegacyInputType for BTreeMap<K, V>
@@ -92,19 +92,16 @@ where
         })
     }
 
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        _field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         let mut map = IndexMap::new();
         for (name, value) in self {
             map.insert(Name::new(name.to_string()), to_value(value).unwrap_or_default());
         }
-        let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
-        let ty = ctx_field
-            .schema_env
-            .registry
-            .types
-            .get(Self::type_name().as_ref())
-            .expect("If this type is used it should be in the registry");
 
-        Ok(selection_set_into_node(Value::Object(map), ctx, ty).await)
+        Ok(selection_set_into_node(Value::Object(map), ctx).await)
     }
 }

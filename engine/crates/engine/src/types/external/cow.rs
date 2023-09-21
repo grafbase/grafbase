@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use engine_parser::types::Field;
 use graph_entities::ResponseNodeId;
 
-use crate::{registry, ContextSelectionSet, LegacyOutputType, Positioned, ServerResult};
+use crate::{registry, ContextSelectionSetLegacy, LegacyOutputType, Positioned, ServerResult};
 
 #[async_trait::async_trait]
 impl<'a, T> LegacyOutputType for Cow<'a, T>
@@ -19,7 +19,11 @@ where
         <T as LegacyOutputType>::create_type_info(registry)
     }
 
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         self.as_ref().resolve(ctx, field).await
     }
 }

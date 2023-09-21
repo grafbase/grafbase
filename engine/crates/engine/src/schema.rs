@@ -520,18 +520,16 @@ impl Schema {
     async fn execute_once(&self, env: QueryEnv) -> Response {
         // execute
         let ctx = ContextSelectionSet {
+            ty: self.registry().root_type(env.operation.node.ty),
             path: QueryPath::empty(),
-            resolver_node: None,
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
             query_env: &env,
         };
 
-        let query = self.env.registry.query_root();
-
         let res = match &env.operation.node.ty {
-            OperationType::Query => resolve_root_container(&ctx, query).await,
-            OperationType::Mutation => resolve_root_container_serial(&ctx, self.env.registry.mutation_root()).await,
+            OperationType::Query => resolve_root_container(&ctx).await,
+            OperationType::Mutation => resolve_root_container_serial(&ctx).await,
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
                 None,
@@ -643,8 +641,8 @@ impl Schema {
 
                 let ctx = env.create_context(
                     &schema.env,
-                    None,
                     &env.operation.node.selection_set,
+                    schema.registry().root_type(env.operation.node.ty),
                 );
 
                 let mut streams = Vec::new();
@@ -679,15 +677,7 @@ async fn process_deferred_workload(
     env: &QueryEnv,
 ) -> IncrementalPayload {
     let context = workload.to_context(&schema.env, env);
-    let result = resolver_utils::resolve_deferred_container(
-        &context,
-        context
-            .registry()
-            .lookup(&workload.current_type_name)
-            .expect("the current type name to exist"),
-        workload.parent_resolver_value.clone(),
-    )
-    .await;
+    let result = resolver_utils::resolve_deferred_container(&context, workload.parent_resolver_value.clone()).await;
 
     let mut data = std::mem::take(&mut *context.response().await);
     let mut errors = std::mem::take(&mut *context.query_env.errors.lock().expect("to be able to lock this mutex"));

@@ -4,7 +4,7 @@ use crate::{
     model::{__EnumValue, __Field, __InputValue, __TypeKind},
     registry,
     registry::{is_visible, ObjectType},
-    Context, Object,
+    ContextField, Object,
 };
 
 enum TypeDetail<'a> {
@@ -108,7 +108,7 @@ impl<'a> __Type<'a> {
 
     async fn fields(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         #[graphql(default = false)] include_deprecated: bool,
     ) -> Option<Vec<__Field<'a>>> {
         if let TypeDetail::Named(ty) = &self.detail {
@@ -168,7 +168,7 @@ impl<'a> __Type<'a> {
 
     async fn enum_values(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         #[graphql(default = false)] include_deprecated: bool,
     ) -> Option<Vec<__EnumValue<'a>>> {
         if let TypeDetail::Named(registry::MetaType::Enum(enum_type)) = &self.detail {
@@ -189,7 +189,7 @@ impl<'a> __Type<'a> {
         }
     }
 
-    async fn input_fields(&self, ctx: &Context<'_>) -> Option<Vec<__InputValue<'a>>> {
+    async fn input_fields(&self, ctx: &ContextField<'_>) -> Option<Vec<__InputValue<'a>>> {
         if let TypeDetail::Named(registry::MetaType::InputObject(input_object)) = &self.detail {
             Some(
                 input_object

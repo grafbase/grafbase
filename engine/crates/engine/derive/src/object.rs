@@ -69,7 +69,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             if let FnArg::Typed(pat) = x {
                                 if let Type::Reference(TypeReference { elem, .. }) = &*pat.ty {
                                     if let Type::Path(path) = elem.as_ref() {
-                                        return path.path.segments.last().unwrap().ident != "Context";
+                                        return path.path.segments.last().unwrap().ident != "ContextField";
                                     }
                                 }
                             };
@@ -78,7 +78,8 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                         .unwrap_or(true);
 
                     if should_create_context {
-                        let arg_ctx = syn::parse2::<FnArg>(quote! { ctx: &Context<'_> }).expect("invalid arg type");
+                        let arg_ctx =
+                            syn::parse2::<FnArg>(quote! { ctx: &ContextField<'_> }).expect("invalid arg type");
                         new_impl.sig.inputs.insert(1, arg_ctx);
                     }
 
@@ -226,7 +227,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                                     #do_find
                                 };
                                 let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                                let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
                                 return #crate_name::LegacyOutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                             }
                         }
@@ -510,7 +511,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             #resolve_obj
                         };
                         let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                        let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                        let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
                         return #crate_name::LegacyOutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                     }
                 });
@@ -558,12 +559,12 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
             #[allow(unused_braces, unused_variables, unused_parens, unused_mut)]
             #[#crate_name::async_trait::async_trait]
             impl #impl_generics #crate_name::resolver_utils::ContainerType for #self_ty #where_clause {
-                async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
+                async fn resolve_field(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                     #(#resolvers)*
                     ::std::result::Result::Ok(::std::option::Option::None)
                 }
 
-                async fn find_entity(&self, ctx: &#crate_name::Context<'_>, params: &#crate_name::Value) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
+                async fn find_entity(&self, ctx: &#crate_name::ContextField<'_>, params: &#crate_name::Value) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
                     let params = match params {
                         #crate_name::Value::Object(params) => params,
                         _ => return ::std::result::Result::Ok(::std::option::Option::None),
@@ -614,7 +615,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
 
                 async fn resolve(
                     &self,
-                    ctx: &#crate_name::ContextSelectionSet<'_>,
+                    ctx: &#crate_name::ContextSelectionSetLegacy<'_>,
                     _field: &#crate_name::Positioned<#crate_name::parser::types::Field>
                 ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                     #resolve_container
@@ -655,12 +656,12 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                     ty
                 }
 
-                async fn __internal_resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> where Self: #crate_name::ContainerType {
+                async fn __internal_resolve_field(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> where Self: #crate_name::ContainerType {
                     #(#resolvers)*
                     ::std::result::Result::Ok(::std::option::Option::None)
                 }
 
-                async fn __internal_find_entity(&self, ctx: &#crate_name::Context<'_>, params: &#crate_name::Value) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
+                async fn __internal_find_entity(&self, ctx: &#crate_name::ContextField<'_>, params: &#crate_name::Value) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
                     let params = match params {
                         #crate_name::Value::Object(params) => params,
                         _ => return ::std::result::Result::Ok(::std::option::Option::None),
@@ -693,11 +694,11 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
             codes.push(quote! {
                 #[#crate_name::async_trait::async_trait]
                 impl #crate_name::resolver_utils::ContainerType for #concrete_type {
-                    async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
+                    async fn resolve_field(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                         self.__internal_resolve_field(ctx).await
                     }
 
-                    async fn find_entity(&self, ctx: &#crate_name::Context<'_>, params: &#crate_name::Value) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
+                    async fn find_entity(&self, ctx: &#crate_name::ContextField<'_>, params: &#crate_name::Value) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
                         self.__internal_find_entity(ctx, params).await
                     }
                 }
@@ -714,7 +715,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
 
                     async fn resolve(
                         &self,
-                        ctx: &#crate_name::ContextSelectionSet<'_>,
+                        ctx: &#crate_name::ContextSelectionSetLegacy<'_>,
                         _field: &#crate_name::Positioned<#crate_name::parser::types::Field>
                     ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                         #resolve_container

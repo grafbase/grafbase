@@ -2,7 +2,7 @@ pub mod collection_args;
 
 use super::PostgresContext;
 use crate::{
-    registry::{type_kinds::SelectionSetTarget, MetaType},
+    registry::type_kinds::{OutputType, SelectionSetTarget},
     Error, Lookahead, SelectionField,
 };
 pub use collection_args::CollectionArgs;
@@ -33,7 +33,7 @@ pub struct SelectionIterator<'a> {
 impl<'a> SelectionIterator<'a> {
     pub fn new(
         ctx: &'a PostgresContext<'a>,
-        meta_type: &'a MetaType,
+        meta_type: OutputType<'a>,
         selection_field: &SelectionField<'_>,
         selection: Vec<SelectionField<'a>>,
     ) -> Self {
@@ -160,7 +160,7 @@ impl<'a> Iterator for SelectionIterator<'a> {
 
             // `userCollection { edges { node { field } } }`, the type part.
             let meta_type = meta_type
-                .field_by_name("edges")
+                .field("edges")
                 .and_then(|field| self.ctx.registry().lookup(&field.ty).ok())
                 .as_ref()
                 .and_then(|output| output.field("node"))

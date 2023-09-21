@@ -17,10 +17,11 @@ use super::{
 use crate::{
     registry::{
         resolvers::{postgresql::CollectionArgs, resolved_value::SelectionData, ResolverContext},
+        type_kinds::OutputType,
         variables::VariableResolveDefinition,
-        MetaEnumValue, MetaType, UnionDiscriminator,
+        MetaEnumValue, UnionDiscriminator,
     },
-    Context, ContextExt, Error,
+    ContextExt, ContextField, Error,
 };
 
 #[non_exhaustive]
@@ -124,7 +125,7 @@ impl Transformer {
 
     pub(super) async fn resolve(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
@@ -483,17 +484,17 @@ impl Transformer {
     }
 }
 
-impl Context<'_> {
+impl ContextField<'_> {
     fn current_enum_values(&self) -> Option<&IndexMap<String, MetaEnumValue>> {
-        match self.resolver_node.as_ref()?.ty? {
-            MetaType::Enum(enum_type) => Some(&enum_type.enum_values),
+        match self.field_base_type() {
+            OutputType::Enum(enum_type) => Some(&enum_type.enum_values),
             _ => None,
         }
     }
 
     fn current_discriminators(&self) -> Option<&Vec<(String, UnionDiscriminator)>> {
-        match self.resolver_node.as_ref()?.ty? {
-            MetaType::Union(union_type) => union_type.discriminators.as_ref(),
+        match self.field_base_type() {
+            OutputType::Union(union_type) => union_type.discriminators.as_ref(),
             _ => None,
         }
     }

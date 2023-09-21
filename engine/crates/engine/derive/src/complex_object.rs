@@ -54,7 +54,7 @@ pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> 
                             if let FnArg::Typed(pat) = x {
                                 if let Type::Reference(TypeReference { elem, .. }) = &*pat.ty {
                                     if let Type::Path(path) = elem.as_ref() {
-                                        return path.path.segments.last().unwrap().ident != "Context";
+                                        return path.path.segments.last().unwrap().ident != "ContextField";
                                     }
                                 }
                             };
@@ -63,7 +63,8 @@ pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> 
                         .unwrap_or(true);
 
                     if should_create_context {
-                        let arg_ctx = syn::parse2::<FnArg>(quote! { ctx: &Context<'_> }).expect("invalid arg type");
+                        let arg_ctx =
+                            syn::parse2::<FnArg>(quote! { ctx: &ContextField<'_> }).expect("invalid arg type");
                         new_impl.sig.inputs.insert(1, arg_ctx);
                     }
 
@@ -398,7 +399,7 @@ pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> 
                 fields
             }
 
-            async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
+            async fn resolve_field(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                 #(#resolvers)*
                 ::std::result::Result::Ok(::std::option::Option::None)
             }

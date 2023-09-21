@@ -9,7 +9,7 @@ use crate::{
     parser::types::Field,
     registry,
     resolver_utils::ContainerType,
-    Any, Context, ContextSelectionSet, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
+    Any, ContextField, ContextSelectionSetLegacy, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
     SimpleObject, Value,
 };
 
@@ -26,13 +26,13 @@ pub(crate) struct QueryRoot<T> {
 
 #[async_trait::async_trait]
 impl<T: ObjectType> ContainerType for QueryRoot<T> {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
+    async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<ResponseNodeId>> {
         let introspection_enabled =
             !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection;
 
         if ctx.item.node.name.node == "__schema" {
             if introspection_enabled {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
 
                 return LegacyOutputType::resolve(
@@ -51,7 +51,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
         } else if ctx.item.node.name.node == "__type" {
             if introspection_enabled {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
                 return LegacyOutputType::resolve(
                     &ctx.schema_env
@@ -86,7 +86,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
 
                 return Ok(Some(field_into_node(Value::List(values), ctx).await));
             } else if ctx.item.node.name.node == "_service" {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
                 return LegacyOutputType::resolve(
                     &Service {
                         sdl: Some(ctx.schema_env.registry.export_sdl(true)),
@@ -108,7 +108,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
 
     fn collect_all_fields_native<'a>(
         &'a self,
-        ctx: &ContextSelectionSet<'a>,
+        ctx: &ContextSelectionSetLegacy<'a>,
         fields: &mut crate::resolver_utils::Fields<'a>,
     ) -> ServerResult<()>
     where
@@ -117,7 +117,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
         fields.add_set_native(ctx, self)
     }
 
-    async fn find_entity(&self, _: &Context<'_>, _params: &Value) -> ServerResult<Option<Value>> {
+    async fn find_entity(&self, _: &ContextField<'_>, _params: &Value) -> ServerResult<Option<Value>> {
         Ok(None)
     }
 }
@@ -168,7 +168,7 @@ impl<T: ObjectType> LegacyOutputType for QueryRoot<T> {
 
     async fn resolve(
         &self,
-        _ctx: &ContextSelectionSet<'_>,
+        _ctx: &ContextSelectionSetLegacy<'_>,
         _field: &Positioned<Field>,
     ) -> ServerResult<ResponseNodeId> {
         todo!("node_step");

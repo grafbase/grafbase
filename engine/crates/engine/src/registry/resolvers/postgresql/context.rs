@@ -8,7 +8,7 @@ pub(super) use selection::{SelectionIterator, TableSelection};
 
 use crate::{
     registry::{resolvers::ResolverContext, type_kinds::SelectionSetTarget, Registry},
-    Context, ContextExt, Error, SelectionField, ServerResult,
+    Context, ContextExt, ContextField, Error, SelectionField, ServerResult,
 };
 use postgresql_types::{
     database_definition::{DatabaseDefinition, TableWalker},
@@ -21,7 +21,7 @@ use self::filter::{ByFilterIterator, ComplexFilterIterator};
 /// The API to access the request parameters, such as filters and selection, and map that together with
 /// the database types.
 pub struct PostgresContext<'a> {
-    context: &'a Context<'a>,
+    context: &'a ContextField<'a>,
     resolver_context: &'a ResolverContext<'a>,
     database_definition: &'a DatabaseDefinition,
     transport: NeonTransport,
@@ -29,7 +29,7 @@ pub struct PostgresContext<'a> {
 
 impl<'a> PostgresContext<'a> {
     pub fn new(
-        context: &'a Context<'a>,
+        context: &'a ContextField<'a>,
         resolver_context: &'a ResolverContext<'a>,
         directive_name: &str,
     ) -> Result<Self, Error> {
@@ -55,9 +55,8 @@ impl<'a> PostgresContext<'a> {
 
     /// The main table accessed by this request.
     pub fn table(&self) -> TableWalker<'a> {
-        self.resolver_context
-            .ty
-            .and_then(|meta_type| self.database_definition.find_table_for_client_type(meta_type.name()))
+        self.database_definition
+            .find_table_for_client_type(self.resolver_context.ty.name())
             .expect("could not find table for client type")
     }
 
@@ -79,8 +78,7 @@ impl<'a> PostgresContext<'a> {
             .flat_map(|selection| selection.selection_set())
             .collect();
 
-        let meta_type = self.resolver_context.ty.unwrap();
-        SelectionIterator::new(self, meta_type, &self.root_field(), selection)
+        SelectionIterator::new(self, self.resolver_context.ty, &self.root_field(), selection)
     }
 
     pub fn collection_selection(&'a self) -> SelectionIterator<'a> {
@@ -93,17 +91,17 @@ impl<'a> PostgresContext<'a> {
             .flat_map(|selection| selection.selection_set())
             .collect();
 
-        let target: SelectionSetTarget = self.resolver_context.ty.unwrap().try_into().unwrap();
+        let target: SelectionSetTarget = self.resolver_context.ty.try_into().unwrap();
 
-        let meta_type = target
+        let output_type = target
             .field("edges")
             .and_then(|field| self.registry().lookup(&field.ty).ok())
             .as_ref()
             .and_then(|output| output.field("node"))
-            .and_then(|field| self.registry().lookup_by_str(field.ty.base_type_name()).ok())
-            .expect("couldn't fiind a meta type for a collection selection");
+            .and_then(|field| self.registry().lookup(&field.ty).ok())
+            .expect("couldn't find a meta type for a collection selection");
 
-        SelectionIterator::new(self, meta_type, &self.root_field(), selection)
+        SelectionIterator::new(self, output_type, &self.root_field(), selection)
     }
 
     /// Access to the schema registry.

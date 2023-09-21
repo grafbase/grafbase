@@ -25,7 +25,7 @@ use crate::{
         variables::{id::ObfuscatedID, VariableResolveDefinition},
         ConstraintType, MetaFieldType, ModelName, ObjectType, TypeReference,
     },
-    Context, ContextExt, Error, ServerError, Value,
+    Context, ContextExt, ContextField, Error, ServerError, Value,
 };
 
 mod create;
@@ -265,7 +265,7 @@ impl<'a> Add<RecursiveCreation<'a>> for RecursiveCreation<'a> {
 /// Return a flattened version of Vec<Future> for every transactions which will
 /// need to be run.
 fn node_create<'a>(
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     node_ty: &'a ObjectType,
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
@@ -386,7 +386,7 @@ fn node_create<'a>(
 /// So we get, the first relation & the second one
 /// Then we remove those
 async fn relation_remove<'a>(
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     from: SharedSelectionType<'a>,
     to: String,
     relation_name: &'a str,
@@ -443,7 +443,7 @@ pub const NUMERICAL_TYPES: &[&str] = &["Int", "Int!", "Float", "Float!"];
 ///   - Create new linked entity if needed
 ///   - Remove old entity linked if needed
 fn node_update<'a>(
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     node_ty: &'a ObjectType,
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
@@ -654,7 +654,7 @@ fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
 
 /// Create a relation node only if needed
 async fn create_relation_node<'a>(
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     to_ty: &ObjectType,
     parent_value: SharedSelectionType<'a>,
     selected_value: SharedSelectionType<'a>,
@@ -714,7 +714,7 @@ async fn create_relation_node<'a>(
 }
 
 fn internal_node_linking<'a>(
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     parent_ty: &'a ObjectType,
     child_ty: &'a ObjectType,
     parent_value: SharedSelectionType<'a>,
@@ -769,7 +769,7 @@ fn internal_node_linking<'a>(
 }
 
 fn internal_node_unlinking<'a>(
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     parent_value: SharedSelectionType<'a>,
     relation_name: &'a str,
     unlinking_input: &Value,
@@ -854,7 +854,7 @@ fn internal_node_unlinking<'a>(
 ///
 #[allow(clippy::too_many_arguments)]
 fn relation_handle<'a>(
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     parent_ty: &'a ObjectType,
     parent_value: SharedSelectionType<'a>,
     relation_field: &'a str,
@@ -969,7 +969,7 @@ fn relation_handle<'a>(
 impl DynamoMutationResolver {
     pub(super) async fn resolve(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {

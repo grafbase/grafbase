@@ -6,7 +6,7 @@ use crate::{
         type_kinds::{OutputType, SelectionSetTarget},
         MetaField, MetaType, TypeReference,
     },
-    Context, ContextExt, ServerError, ServerResult,
+    Context, ContextExt, ContextField, ServerError, ServerResult,
 };
 use indexmap::IndexMap;
 use runtime::search::GraphqlCursor;
@@ -47,7 +47,7 @@ pub(super) struct AtlasCursor {
 
 impl AtlasCursor {
     pub(super) fn new(
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         order_by: Option<&[JsonMap]>,
         document: &JsonMap,
@@ -68,14 +68,14 @@ impl AtlasCursor {
     }
 
     fn from_ordering(
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         order_by: &[JsonMap],
         document: &JsonMap,
     ) -> ServerResult<Self> {
         let mut fields = Vec::new();
 
-        let selection_target: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
+        let selection_target: SelectionSetTarget<'_> = resolver_ctx.ty.try_into().unwrap();
 
         let selection_edges = selection_target
             .field("edges")
@@ -162,7 +162,7 @@ impl TryFrom<GraphqlCursor> for AtlasCursor {
     }
 }
 
-fn embed_type_info(ctx: &Context<'_>, map: &JsonMap, type_info: &IndexMap<String, MetaField>) -> JsonMap {
+fn embed_type_info(ctx: &ContextField<'_>, map: &JsonMap, type_info: &IndexMap<String, MetaField>) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {

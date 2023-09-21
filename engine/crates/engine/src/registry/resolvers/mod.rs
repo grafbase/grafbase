@@ -25,8 +25,8 @@ use self::{
     graphql::{QueryBatcher, Target},
     transformer::Transformer,
 };
-use super::{Constraint, MetaField, MetaType};
-use crate::{Context, ContextExt, Error, RequestHeaders};
+use super::{type_kinds::OutputType, Constraint, MetaField};
+use crate::{Context, ContextExt, ContextField, Error, RequestHeaders};
 
 pub mod atlas_data_api;
 pub mod custom;
@@ -56,36 +56,21 @@ pub struct ResolverContext<'a> {
     /// execution, this ID is used for internal cache strategy
     pub execution_id: &'a Ulid,
     /// The current Type being resolved if we know it. It's the type linked to the resolver.
-    pub ty: Option<&'a MetaType>,
+    pub ty: OutputType<'a>,
     /// The current SelectionSet.
-    pub selections: Option<&'a SelectionSet>,
+    pub selections: &'a SelectionSet,
     /// The current field being resolved if we know it.
-    pub field: Option<&'a MetaField>,
+    pub field: &'a MetaField,
 }
 
 impl<'a> ResolverContext<'a> {
-    pub fn new(id: &'a Ulid) -> Self {
+    pub fn new(field_context: &'a ContextField<'a>) -> Self {
         Self {
-            execution_id: id,
-            ty: None,
-            selections: None,
-            field: None,
+            execution_id: &field_context.execution_id,
+            ty: field_context.field_base_type(),
+            selections: &field_context.item.selection_set.node,
+            field: field_context.field,
         }
-    }
-
-    pub fn with_ty(mut self, ty: Option<&'a MetaType>) -> Self {
-        self.ty = ty;
-        self
-    }
-
-    pub fn with_field(mut self, field: Option<&'a MetaField>) -> Self {
-        self.field = field;
-        self
-    }
-
-    pub fn with_selection_set(mut self, selections: Option<&'a SelectionSet>) -> Self {
-        self.selections = selections;
-        self
     }
 }
 
@@ -141,7 +126,7 @@ impl Resolver {
     #[async_recursion::async_recursion]
     pub(crate) async fn resolve(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&'async_recursion ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
@@ -214,11 +199,7 @@ impl Resolver {
                     .map(|variable_definition| (&variable_definition.node.name.node, &variable_definition.node))
                     .collect();
 
-                let current_object = resolver_ctx
-                    .ty
-                    .ok_or_else(|| Error::new("Internal error"))?
-                    .try_into()
-                    .ok();
+                let current_object = resolver_ctx.ty.try_into().ok();
 
                 let target = match resolver.namespace {
                     Some(_) => Target::SelectionSet(Box::new(
@@ -231,10 +212,7 @@ impl Resolver {
                             .into_iter()
                             .map(|v| v.node),
                     )),
-                    None => Target::Field(
-                        ctx.item.clone().into_inner(),
-                        resolver_ctx.field.ok_or_else(|| Error::new("Internal error"))?.clone(),
-                    ),
+                    None => Target::Field(ctx.item.clone().into_inner(), resolver_ctx.field.clone()),
                 };
 
                 let operation = ctx.query_env.operation.node.ty;

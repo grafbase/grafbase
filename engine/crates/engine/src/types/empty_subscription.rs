@@ -3,7 +3,7 @@ use std::{borrow::Cow, pin::Pin};
 use engine_parser::types::OperationType;
 use futures_util::stream::{self, Stream};
 
-use crate::{registry, Context, Response, ServerError, SubscriptionType};
+use crate::{registry, ContextField, Response, ServerError, SubscriptionType};
 
 /// Empty subscription
 ///
@@ -28,7 +28,7 @@ impl SubscriptionType for EmptySubscription {
 
     fn create_field_stream<'a>(
         &'a self,
-        _ctx: &'a Context<'_>,
+        _ctx: &'a ContextField<'_>,
     ) -> Option<Pin<Box<dyn Stream<Item = Response> + Send + 'a>>>
     where
         Self: Send + Sync + 'static + Sized,

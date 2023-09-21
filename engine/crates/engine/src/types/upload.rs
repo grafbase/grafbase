@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fs::File, io::Read};
 
-use crate::{registry, Context, InputValueError, InputValueResult, LegacyInputType, Value};
+use crate::{registry, ContextField, InputValueError, InputValueResult, LegacyInputType, Value};
 
 /// A file upload value.
 pub struct UploadValue {
@@ -83,7 +83,7 @@ pub struct Upload(usize);
 
 impl Upload {
     /// Get the upload value.
-    pub fn value(&self, ctx: &Context<'_>) -> std::io::Result<UploadValue> {
+    pub fn value(&self, ctx: &ContextField<'_>) -> std::io::Result<UploadValue> {
         ctx.query_env.uploads[self.0].try_clone()
     }
 }

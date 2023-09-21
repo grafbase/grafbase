@@ -5,11 +5,11 @@ use super::{normalize, JsonMap};
 use crate::{
     names::MONGODB_OUTPUT_FIELD_ID,
     registry::{MetaField, MetaType},
-    Context, ContextExt, Error, SelectionField,
+    ContextExt, ContextField, Error, SelectionField,
 };
 
 pub(super) fn project<'a>(
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     selection: impl Iterator<Item = SelectionField<'a>> + 'a,
     target: &IndexMap<String, MetaField>,
 ) -> Result<JsonMap, Error> {
@@ -26,7 +26,7 @@ pub(super) fn project<'a>(
 }
 
 fn recurse<'a>(
-    ctx: &Context<'a>,
+    ctx: &ContextField<'a>,
     selection: impl Iterator<Item = SelectionField<'a>> + 'a,
     target: &IndexMap<String, MetaField>,
     output: &mut JsonMap,

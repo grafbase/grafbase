@@ -93,7 +93,7 @@ pub fn generate(scalar_args: &args::Scalar, item_impl: &mut ItemImpl) -> Generat
 
             async fn resolve(
                 &self,
-                ctx: &#crate_name::ContextSelectionSet<'_>,
+                ctx: &#crate_name::ContextSelectionSetLegacy<'_>,
                 _field: &#crate_name::Positioned<#crate_name::parser::types::Field>
             ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                 #crate_name::resolver_utils::resolve_scalar_native(

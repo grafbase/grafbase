@@ -9,7 +9,7 @@ mod request;
 mod value;
 
 use super::{ResolvedValue, ResolverContext};
-use crate::{send_wrapper::make_send_on_wasm, Context, ContextExt, Error};
+use crate::{send_wrapper::make_send_on_wasm, ContextExt, ContextField, Error};
 use futures_util::Future;
 pub use operation::OperationType;
 use std::pin::Pin;
@@ -33,7 +33,7 @@ pub struct AtlasDataApiResolver {
 impl AtlasDataApiResolver {
     pub fn resolve<'a>(
         &'a self,
-        ctx: &'a Context<'_>,
+        ctx: &'a ContextField<'_>,
         resolver_ctx: &'a ResolverContext<'_>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         let config = ctx

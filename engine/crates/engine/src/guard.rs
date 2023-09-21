@@ -1,6 +1,6 @@
 //! Field guards
 
-use crate::{Context, Result};
+use crate::{ContextField, Result};
 
 /// Field guard
 ///
@@ -8,7 +8,7 @@ use crate::{Context, Result};
 #[async_trait::async_trait]
 pub trait Guard {
     /// Check whether the guard will allow access to the field.
-    async fn check(&self, ctx: &Context<'_>) -> Result<()>;
+    async fn check(&self, ctx: &ContextField<'_>) -> Result<()>;
 }
 
 /// An extension trait for `Guard`.
@@ -31,7 +31,7 @@ pub struct And<A: Guard, B: Guard>(A, B);
 
 #[async_trait::async_trait]
 impl<A: Guard + Send + Sync, B: Guard + Send + Sync> Guard for And<A, B> {
-    async fn check(&self, ctx: &Context<'_>) -> Result<()> {
+    async fn check(&self, ctx: &ContextField<'_>) -> Result<()> {
         self.0.check(ctx).await?;
         self.1.check(ctx).await
     }
@@ -42,7 +42,7 @@ pub struct Or<A: Guard, B: Guard>(A, B);
 
 #[async_trait::async_trait]
 impl<A: Guard + Send + Sync, B: Guard + Send + Sync> Guard for Or<A, B> {
-    async fn check(&self, ctx: &Context<'_>) -> Result<()> {
+    async fn check(&self, ctx: &ContextField<'_>) -> Result<()> {
         if self.0.check(ctx).await.is_ok() {
             return Ok(());
         }

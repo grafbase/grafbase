@@ -1,7 +1,7 @@
 use super::AtlasQuery;
 use crate::{
     registry::resolvers::atlas_data_api::{input, JsonMap},
-    Context, Error,
+    ContextField, Error,
 };
 use serde::Serialize;
 
@@ -12,7 +12,7 @@ pub struct InsertMany {
 }
 
 impl InsertMany {
-    pub fn new(ctx: &Context<'_>) -> Result<Self, Error> {
+    pub fn new(ctx: &ContextField<'_>) -> Result<Self, Error> {
         let documents = input::input_many(ctx)?;
 
         Ok(Self { documents })

@@ -133,11 +133,11 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
         #[#crate_name::async_trait::async_trait]
 
         impl #impl_generics #crate_name::resolver_utils::ContainerType for #ident #ty_generics #where_clause {
-            async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
+            async fn resolve_field(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                 ::std::result::Result::Ok(::std::option::Option::None)
             }
 
-            fn collect_all_fields_native<'__life>(&'__life self, ctx: &#crate_name::ContextSelectionSet<'__life>, fields: &mut #crate_name::resolver_utils::Fields<'__life>) -> #crate_name::ServerResult<()> {
+            fn collect_all_fields_native<'__life>(&'__life self, ctx: &#crate_name::ContextSelectionSetLegacy<'__life>, fields: &mut #crate_name::resolver_utils::Fields<'__life>) -> #crate_name::ServerResult<()> {
                 match self {
                     #(#collect_all_fields),*
                 }
@@ -176,7 +176,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                 })
             }
 
-            async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
+            async fn resolve(&self, ctx: &#crate_name::ContextSelectionSetLegacy<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                 #crate_name::resolver_utils::resolve_container_native(ctx, self).await
             }
         }

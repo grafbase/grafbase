@@ -6,8 +6,8 @@ use reqwest::Url;
 use self::parameters::ParamApply;
 use super::{ResolvedValue, ResolverContext};
 use crate::{
-    registry::variables::VariableResolveDefinition, send_wrapper::make_send_on_wasm, Context, ContextExt, Error,
-    RequestHeaders,
+    registry::variables::VariableResolveDefinition, send_wrapper::make_send_on_wasm, Context, ContextExt, ContextField,
+    Error, RequestHeaders,
 };
 
 mod parameters;
@@ -65,7 +65,7 @@ pub enum ExpectedStatusCode {
 impl HttpResolver {
     pub fn resolve<'a>(
         &'a self,
-        ctx: &'a Context<'_>,
+        ctx: &'a ContextField<'_>,
         _resolver_ctx: &ResolverContext<'a>,
         last_resolver_value: Option<&'a ResolvedValue>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
@@ -135,7 +135,11 @@ impl HttpResolver {
         }))
     }
 
-    fn build_url(&self, ctx: &Context<'_>, last_resolver_value: Option<&serde_json::Value>) -> Result<String, Error> {
+    fn build_url(
+        &self,
+        ctx: &ContextField<'_>,
+        last_resolver_value: Option<&serde_json::Value>,
+    ) -> Result<String, Error> {
         let mut url = self.url.clone();
 
         for param in &self.path_parameters {

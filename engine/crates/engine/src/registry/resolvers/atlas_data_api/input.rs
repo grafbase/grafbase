@@ -10,12 +10,12 @@ use crate::{
         consts::{TYPE, TYPE_DATE, TYPE_TIMESTAMP},
         normalize,
     },
-    Context, ServerResult,
+    ContextField, ServerResult,
 };
 use indexmap::IndexMap;
 use serde_json::{json, Value};
 
-pub(super) fn by(ctx: &Context<'_>) -> ServerResult<JsonMap> {
+pub(super) fn by(ctx: &ContextField<'_>) -> ServerResult<JsonMap> {
     let map = ctx.input_by_name("by")?;
     let input_type = ctx.find_argument_type("by")?;
     let map = normalize::keys_and_values(ctx, map, input_type);
@@ -23,7 +23,7 @@ pub(super) fn by(ctx: &Context<'_>) -> ServerResult<JsonMap> {
     Ok(map)
 }
 
-pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<JsonMap> {
+pub(super) fn filter(ctx: &ContextField<'_>) -> ServerResult<JsonMap> {
     let map = ctx.input_by_name("filter")?;
     let input_type = ctx.find_argument_type("filter")?;
     let map = normalize::flatten_keys(normalize::keys_and_values(ctx, map, input_type));
@@ -55,7 +55,7 @@ pub(super) fn filter(ctx: &Context<'_>) -> ServerResult<JsonMap> {
     Ok(map)
 }
 
-pub(super) fn input(ctx: &Context<'_>) -> ServerResult<JsonMap> {
+pub(super) fn input(ctx: &ContextField<'_>) -> ServerResult<JsonMap> {
     let map = ctx.input_by_name("input")?;
     let input_type = ctx.find_argument_type("input")?;
     let map = normalize::keys_and_values(ctx, map, input_type);
@@ -63,7 +63,7 @@ pub(super) fn input(ctx: &Context<'_>) -> ServerResult<JsonMap> {
     Ok(map)
 }
 
-pub(super) fn input_many(ctx: &Context<'_>) -> ServerResult<Vec<JsonMap>> {
+pub(super) fn input_many(ctx: &ContextField<'_>) -> ServerResult<Vec<JsonMap>> {
     let maps: Vec<JsonMap> = ctx.input_by_name("input")?;
     let input_type = ctx.find_argument_type("input")?;
 
@@ -75,11 +75,14 @@ pub(super) fn input_many(ctx: &Context<'_>) -> ServerResult<Vec<JsonMap>> {
     Ok(result)
 }
 
-pub(super) fn order_by(ctx: &Context<'_>) -> Option<Vec<JsonMap>> {
+pub(super) fn order_by(ctx: &ContextField<'_>) -> Option<Vec<JsonMap>> {
     ctx.input_by_name("orderBy").ok()
 }
 
-pub(super) fn sort(ctx: &Context<'_>, definition: Option<&[JsonMap]>) -> ServerResult<Option<IndexMap<String, Value>>> {
+pub(super) fn sort(
+    ctx: &ContextField<'_>,
+    definition: Option<&[JsonMap]>,
+) -> ServerResult<Option<IndexMap<String, Value>>> {
     let last = last(ctx);
 
     match definition {
@@ -129,15 +132,15 @@ pub(super) fn sort(ctx: &Context<'_>, definition: Option<&[JsonMap]>) -> ServerR
     }
 }
 
-pub(super) fn first(ctx: &Context<'_>) -> Option<usize> {
+pub(super) fn first(ctx: &ContextField<'_>) -> Option<usize> {
     ctx.input_by_name("first").ok()
 }
 
-pub(super) fn last(ctx: &Context<'_>) -> Option<usize> {
+pub(super) fn last(ctx: &ContextField<'_>) -> Option<usize> {
     ctx.input_by_name("last").ok()
 }
 
-pub(super) fn update(ctx: &Context<'_>) -> ServerResult<JsonMap> {
+pub(super) fn update(ctx: &ContextField<'_>) -> ServerResult<JsonMap> {
     let input: JsonMap = ctx.input_by_name("input")?;
     let input_type = ctx.find_argument_type("input")?;
     let input = normalize::keys_and_values(ctx, input, input_type);

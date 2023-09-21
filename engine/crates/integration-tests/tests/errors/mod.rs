@@ -73,6 +73,47 @@ fn error_propagation_openapi() {
 }
 
 #[test]
+fn querying_unknown_field() {
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_petstore_engine(petstore_schema(mock_server.address())).await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(
+                r#"
+                    query {
+                        petstore {
+                          someNonsenseField {
+                            id
+                          }
+                        }
+                    }
+                "#,
+                )
+                .await
+                .into_value(),
+            @r###"
+        {
+          "data": null,
+          "errors": [
+            {
+              "locations": [
+                {
+                  "column": 27,
+                  "line": 4
+                }
+              ],
+              "message": "Unknown field \"someNonsenseField\" on type \"PetstoreQuery\"."
+            }
+          ]
+        }
+        "###
+        );
+    });
+}
+
+#[test]
 fn error_handling_scalar_custom_resolver() {
     runtime().block_on(async {
         let schema = r#"

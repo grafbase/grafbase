@@ -8,10 +8,10 @@ use crate::{
         resolvers::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue},
         ModelName,
     },
-    Context, ContextExt, Error,
+    ContextExt, ContextField, Error,
 };
 
-pub(super) async fn by_ids(ctx: &Context<'_>, ids: &[String], ty: &ModelName) -> Result<ResolvedValue, Error> {
+pub(super) async fn by_ids(ctx: &ContextField<'_>, ids: &[String], ty: &ModelName) -> Result<ResolvedValue, Error> {
     let keys = ids.iter().map(|id| (id.clone(), id.clone())).collect::<Vec<_>>();
     let mut db_result = ctx
         .data::<Arc<DynamoDBBatchersData>>()?
@@ -33,7 +33,7 @@ pub(super) async fn by_ids(ctx: &Context<'_>, ids: &[String], ty: &ModelName) ->
 }
 
 pub(super) async fn paginated_by_ids(
-    ctx: &Context<'_>,
+    ctx: &ContextField<'_>,
     ids: HashSet<String>,
     cursor: PaginatedCursor,
     ordering: PaginationOrdering,

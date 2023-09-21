@@ -13,7 +13,7 @@ use crate::{
         },
         type_kinds::{OutputType, SelectionSetTarget},
     },
-    Context, ContextExt, Error,
+    Context, ContextField, Error,
 };
 use indexmap::IndexMap;
 use runtime::search::GraphqlCursor;
@@ -38,7 +38,7 @@ pub struct FindMany {
 }
 
 impl FindMany {
-    pub fn new(ctx: &Context<'_>, resolver_ctx: &ResolverContext<'_>) -> Result<Self, Error> {
+    pub fn new(ctx: &ContextField<'_>, resolver_ctx: &ResolverContext<'_>) -> Result<Self, Error> {
         match (input::first(ctx), input::last(ctx)) {
             (Some(_), Some(_)) => {
                 return Err(Error::new("first and last parameters can't be both defined"));
@@ -51,7 +51,7 @@ impl FindMany {
             _ => (),
         }
 
-        let selection_target: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
+        let selection_target: SelectionSetTarget<'_> = resolver_ctx.ty.try_into().unwrap();
 
         let selection_type = selection_target
             .field("edges")
@@ -83,7 +83,7 @@ impl FindMany {
 
     pub fn convert_result(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         result: &mut serde_json::Value,
     ) -> Result<ResolvedValue, Error> {

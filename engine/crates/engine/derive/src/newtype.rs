@@ -119,7 +119,7 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
 
             async fn resolve(
                 &self,
-                _: &#crate_name::ContextSelectionSet<'_>,
+                _: &#crate_name::ContextSelectionSetLegacy<'_>,
                 _field: &#crate_name::Positioned<#crate_name::parser::types::Field>
             ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                 Ok(#crate_name::LegacyScalarType::to_value(self))

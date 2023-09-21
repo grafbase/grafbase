@@ -19,9 +19,9 @@ use crate::{
         relations::{MetaRelation, MetaRelationKind},
         resolvers::ResolverContext,
         variables::{oneof::OneOf, VariableResolveDefinition},
-        MetaType, ModelName, SchemaID,
+        ModelName, SchemaID,
     },
-    Context, ContextExt, Error, Value,
+    ContextExt, ContextField, Error, Value,
 };
 
 mod get;
@@ -208,7 +208,7 @@ struct IdScalarFilter {
 impl DynamoResolver {
     pub(super) async fn resolve(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
@@ -220,7 +220,7 @@ impl DynamoResolver {
 
         let ctx_ty = resolver_ctx
             .ty
-            .and_then(MetaType::object)
+            .object()
             .ok_or_else(|| Error::new("Internal Error: Failed process the associated schema."))?;
         let current_ty = ctx_ty.name.as_str();
 

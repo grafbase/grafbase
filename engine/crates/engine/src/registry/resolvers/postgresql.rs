@@ -4,7 +4,7 @@ mod request;
 pub use context::CollectionArgs;
 
 use super::{ResolvedValue, ResolverContext};
-use crate::{send_wrapper::make_send_on_wasm, Context, Error};
+use crate::{send_wrapper::make_send_on_wasm, ContextField, Error};
 use context::PostgresContext;
 use std::{future::Future, pin::Pin};
 
@@ -41,7 +41,7 @@ impl PostgresResolver {
 
     pub fn resolve<'a>(
         &'a self,
-        ctx: &'a Context<'_>,
+        ctx: &'a ContextField<'_>,
         resolver_ctx: &'a ResolverContext<'_>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         Box::pin(make_send_on_wasm(async move {

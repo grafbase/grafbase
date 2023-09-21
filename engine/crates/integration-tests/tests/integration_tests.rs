@@ -2,6 +2,7 @@
 
 mod custom_resolvers;
 mod defer;
+mod errors;
 mod execution;
 mod graphql_connector;
 mod mongodb;

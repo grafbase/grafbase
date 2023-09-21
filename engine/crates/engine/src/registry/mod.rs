@@ -23,7 +23,7 @@ use std::{
 };
 
 use common_types::auth::Operations;
-use engine_parser::types::OperationType::Query;
+use engine_parser::types::OperationType::{self, Query};
 use engine_value::ConstValue;
 use graph_entities::NodeID;
 use indexmap::{map::IndexMap, set::IndexSet};
@@ -42,15 +42,19 @@ pub use self::{
     },
     union_discriminator::UnionDiscriminator,
 };
-use self::{relations::MetaRelation, resolvers::Resolver, type_kinds::TypeKind};
+use self::{
+    relations::MetaRelation,
+    resolvers::Resolver,
+    type_kinds::{SelectionSetTarget, TypeKind},
+};
 pub use crate::model::__DirectiveLocation;
 use crate::{
     auth::AuthConfig,
     model,
     parser::types::{BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition},
     validation::dynamic_validators::DynValidator,
-    Any, Context, ContextExt, Error, LegacyInputType, LegacyOutputType, Positioned, ServerResult, SubscriptionType,
-    Value, VisitorContext,
+    Any, ContextExt, ContextField, Error, LegacyInputType, LegacyOutputType, Positioned, ServerResult,
+    SubscriptionType, Value, VisitorContext,
 };
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
@@ -425,7 +429,7 @@ impl Display for CacheTag {
 impl MetaField {
     pub async fn check_cache_tag(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolved_field_type: &str,
         resolved_field_name: &str,
         resolved_field_value: Option<&ConstValue>,
@@ -537,7 +541,7 @@ impl MetaEnumValue {
 
 impl Eq for MetaEnumValue {}
 
-type MetaVisibleFn = fn(&Context<'_>) -> bool;
+type MetaVisibleFn = fn(&ContextField<'_>) -> bool;
 
 /// Define an Edge for a Node.
 #[derive(Debug)]
@@ -700,7 +704,7 @@ impl<'a> TryFrom<&'a MetaType> for &'a ObjectType {
     fn try_from(value: &'a MetaType) -> Result<Self, Self::Error> {
         match value {
             MetaType::Object(inner) => Ok(inner),
-            _ => Err(Error::unexpected_kind(value, TypeKind::Object)),
+            _ => Err(Error::unexpected_kind(value.name(), value.kind(), TypeKind::Object)),
         }
     }
 }
@@ -861,11 +865,9 @@ impl From<InputObjectType> for MetaType {
 }
 
 impl Error {
-    fn unexpected_kind(actual: &MetaType, expected: TypeKind) -> Self {
+    fn unexpected_kind(name: &str, kind: TypeKind, expected: TypeKind) -> Self {
         Error::new(format!(
-            "Type {} appeared in a position where we expected a {expected:?} but it is a {:?}",
-            actual.name(),
-            actual.kind()
+            "Type {name} appeared in a position where we expected a {expected:?} but it is a {kind:?}",
         ))
     }
 }
@@ -1185,7 +1187,7 @@ impl MetaType {
     }
 
     #[inline]
-    pub fn is_visible(&self, ctx: &Context<'_>) -> bool {
+    pub fn is_visible(&self, ctx: &ContextField<'_>) -> bool {
         let visible = match self {
             MetaType::Scalar(inner) => &inner.visible,
             MetaType::Object(inner) => &inner.visible,
@@ -1448,6 +1450,24 @@ impl Registry {
         self.types
             .get(name)
             .ok_or_else(|| Error::new(format!("Couldn't find a type named {name}")))
+    }
+
+    pub fn root_type(&self, operation_type: OperationType) -> SelectionSetTarget<'_> {
+        match operation_type {
+            OperationType::Query => self.query_root(),
+            OperationType::Mutation => self.mutation_root(),
+            OperationType::Subscription => {
+                // We don't do subscriptions but may as well implement anyway.
+                self.concrete_type_by_name(
+                    self.subscription_type
+                        .as_deref()
+                        .expect("we shouldnt get here if theres no subscription type"),
+                )
+                .expect("the registry to be valid")
+            }
+        }
+        .try_into()
+        .expect("root type should always be a composite type")
     }
 }
 
@@ -1926,11 +1946,11 @@ impl Registry {
         }
     }
 
-    pub fn find_visible_types(&self, ctx: &Context<'_>) -> HashSet<&str> {
+    pub fn find_visible_types(&self, ctx: &ContextField<'_>) -> HashSet<&str> {
         let mut visible_types = HashSet::new();
 
         fn traverse_field<'a>(
-            ctx: &Context<'_>,
+            ctx: &ContextField<'_>,
             types: &'a BTreeMap<String, MetaType>,
             visible_types: &mut HashSet<&'a str>,
             field: &'a MetaField,
@@ -1946,7 +1966,7 @@ impl Registry {
         }
 
         fn traverse_input_value<'a>(
-            ctx: &Context<'_>,
+            ctx: &ContextField<'_>,
             types: &'a BTreeMap<String, MetaType>,
             visible_types: &mut HashSet<&'a str>,
             input_value: &'a MetaInputValue,
@@ -1959,7 +1979,7 @@ impl Registry {
         }
 
         fn traverse_type<'a>(
-            ctx: &Context<'_>,
+            ctx: &ContextField<'_>,
             types: &'a BTreeMap<String, MetaType>,
             visible_types: &mut HashSet<&'a str>,
             type_name: &str,
@@ -2054,7 +2074,7 @@ impl Registry {
     }
 }
 
-pub(crate) fn is_visible(ctx: &Context<'_>, visible: &Option<MetaVisibleFn>) -> bool {
+pub(crate) fn is_visible(ctx: &ContextField<'_>, visible: &Option<MetaVisibleFn>) -> bool {
     match visible {
         Some(f) => f(ctx),
         None => true,
