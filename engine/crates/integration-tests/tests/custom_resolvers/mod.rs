@@ -32,7 +32,7 @@ fn simple_custom_resolver() {
 
 #[test]
 fn nested_custom_resolver() {
-    // Tests that errors inside list items propagate to the list item and not the list
+    // Tests that you can nest a custom resolver inside a custom resolver
     runtime().block_on(async {
         let schema = r#"
             type Query {

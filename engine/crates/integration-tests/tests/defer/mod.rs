@@ -2,7 +2,8 @@ mod type_conditions;
 
 use std::net::SocketAddr;
 
-use integration_tests::{runtime, Engine, EngineBuilder, ResponseExt};
+use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
+use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -681,6 +682,170 @@ fn test_invalid_defer_parameters() {
                 ],
                 "message": "Invalid value for argument \"if\", expected type \"Boolean\""
               }
+            ]
+          }
+        ]
+        "###
+        );
+    });
+}
+
+#[test]
+fn defer_a_custom_resolver() {
+    // Tests that custom resolvers can live inside custom resolvers
+    runtime().block_on(async {
+        let schema = r#"
+            type Query {
+                list: [ListItem]! @resolver(name: "list")
+            }
+
+            type ListItem {
+                item: Int! @resolver(name: "item")
+            }
+        "#;
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver("list", CustomResolverResponse::Success(json!([{"id": 1}, {"id": 2}])))
+                    .resolver("item", |payload: CustomResolverRequestPayload| {
+                        Ok(CustomResolverResponse::Success(payload.parent.unwrap()["id"].clone()))
+                    }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine.execute_stream("query { list { ... @defer { item } } }")
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": {
+              "list": [
+                {},
+                {}
+              ]
+            }
+          },
+          {
+            "data": {
+              "item": 1
+            },
+            "hasNext": true,
+            "path": [
+              "list",
+              0
+            ]
+          },
+          {
+            "data": {
+              "item": 2
+            },
+            "hasNext": false,
+            "path": [
+              "list",
+              1
+            ]
+          }
+        ]
+        "###
+        );
+    });
+}
+
+#[test]
+fn defer_a_custom_resolver_that_errors() {
+    // Tests that custom resolvers can live inside custom resolvers
+    runtime().block_on(async {
+        let schema = r#"
+            type Query {
+                list: [ObjectWithErrors]! @resolver(name: "list")
+            }
+
+            type ObjectWithErrors {
+                item: Int! @resolver(name: "item")
+            }
+        "#;
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver("list", CustomResolverResponse::Success(json!([{"id": 1}, {"id": 2}])))
+                    .resolver(
+                        "item",
+                        CustomResolverResponse::GraphQLError {
+                            message: "I'm afraid I can't do that Dave".into(),
+                            extensions: None,
+                        },
+                    ),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine.execute_stream("query { list { ... @defer { item } } }")
+                .into_iter()
+                .await
+                .map(ResponseExt::into_value)
+                .collect::<Vec<_>>(),
+            @r###"
+        [
+          {
+            "data": {
+              "list": [
+                {},
+                {}
+              ]
+            }
+          },
+          {
+            "data": null,
+            "errors": [
+              {
+                "locations": [
+                  {
+                    "column": 29,
+                    "line": 1
+                  }
+                ],
+                "message": "I'm afraid I can't do that Dave",
+                "path": [
+                  "list",
+                  0,
+                  "item"
+                ]
+              }
+            ],
+            "hasNext": true,
+            "path": [
+              "list",
+              0
+            ]
+          },
+          {
+            "data": null,
+            "errors": [
+              {
+                "locations": [
+                  {
+                    "column": 29,
+                    "line": 1
+                  }
+                ],
+                "message": "I'm afraid I can't do that Dave",
+                "path": [
+                  "list",
+                  1,
+                  "item"
+                ]
+              }
+            ],
+            "hasNext": false,
+            "path": [
+              "list",
+              1
             ]
           }
         ]
