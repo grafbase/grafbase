@@ -60,6 +60,12 @@ impl SQLCursor {
 
         Self { fields }
     }
+
+    pub fn fields(&self) -> impl ExactSizeIterator<Item = (&str, &Value, OrderDirection)> + '_ {
+        self.fields
+            .iter()
+            .map(|field| (field.name.as_str(), &field.value, field.direction))
+    }
 }
 
 impl TryFrom<SQLCursor> for GraphqlCursor {

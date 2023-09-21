@@ -12,7 +12,7 @@ use crate::registry::resolvers::postgresql::context::TableSelection;
 /// queries into a JSON array, which is serialized in the database.
 ///
 /// [example query](https://gist.github.com/pimeys/a7535acb0922fa432562539f5d8123c3)
-pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
+pub fn build<'a>(builder: SelectBuilder<'a>) -> Result<Select<'a>, crate::Error> {
     // The innermost query of the select. All filters, ordering, limits etc. are defined here.
     let sql_table =
         Table::from((builder.table().schema(), builder.table().database_name())).alias(builder.table().database_name());
@@ -40,12 +40,8 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
             inner_nested.limit(limit as u32 + 1); // we load one extra for pagination
         }
 
-        if args.before().is_some() {
-            todo!("not yet done");
-        }
-
-        if args.after().is_some() {
-            todo!("not yet done");
+        if let Some(filter) = args.pagination_filter() {
+            inner_nested.and_where(filter);
         }
     }
 
@@ -63,7 +59,7 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
     let mut collecting_select = Select::from_table(Table::from(inner_nested).alias(builder.table().client_name()));
 
     for selection in builder.selection() {
-        match selection {
+        match selection? {
             TableSelection::Column(column) => {
                 collecting_select.column((builder.table().client_name(), column.database_name()));
             }
@@ -76,7 +72,7 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
                 builder.set_relation(relation);
 
                 // recurse
-                let mut join_data = Table::from(build(builder))
+                let mut join_data = Table::from(build(builder)?)
                     .alias(client_field_name)
                     .on(ConditionTree::single(raw("true")));
 
@@ -93,7 +89,7 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
                 builder.set_relation(relation);
 
                 // recurse
-                let mut join_data = Table::from(build(builder))
+                let mut join_data = Table::from(build(builder)?)
                     .alias(client_field_name)
                     .on(ConditionTree::single(raw("true")));
 
@@ -135,8 +131,8 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
             let json_value = coalesce([Expression::from(json_agg), raw("'[]'")]);
 
             json_aggregation.value(json_value.alias(builder.field_name().to_string()));
-            json_aggregation
+            Ok(json_aggregation)
         }
-        None => json_select,
+        None => Ok(json_select),
     }
 }

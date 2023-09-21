@@ -52,8 +52,8 @@ fn table_with_serial_primary_key() {
         }
 
         type PageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }
@@ -207,8 +207,8 @@ fn table_with_enum_field() {
         }
 
         type PageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }
@@ -288,8 +288,8 @@ fn table_with_int_primary_key() {
         }
 
         type PageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }
@@ -398,8 +398,8 @@ fn table_with_int_unique() {
         }
 
         type PageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }
@@ -509,8 +509,8 @@ fn table_with_serial_primary_key_string_unique() {
         }
 
         type PageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }
@@ -625,8 +625,8 @@ fn table_with_composite_primary_key() {
         }
 
         type PageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }
@@ -784,8 +784,8 @@ fn two_schemas_same_table_name() {
         }
 
         type PageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }
@@ -937,8 +937,8 @@ fn table_with_serial_primary_key_namespaced() {
         }
 
         type NeonPageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }
@@ -1114,8 +1114,8 @@ fn two_tables_with_single_column_foreign_key() {
         }
 
         type PageInfo {
-          hasNextPage: Boolean!
           hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
           startCursor: String
           endCursor: String
         }

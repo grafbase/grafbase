@@ -1,4 +1,5 @@
 mod cursors;
+mod filters;
 
 use expect_test::expect;
 use indoc::indoc;
@@ -24,7 +25,7 @@ fn page_info_no_nesting() {
 
         let query = indoc! {r#"
             query {
-              userCollection {
+              userCollection(first: 10) {
                 edges { node { name } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
@@ -217,10 +218,10 @@ fn nested_page_info_no_limit() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { id: { eq: 1 } }) {
+              userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges {
                   node {
-                    blogs {
+                    blogs(first: 10) {
                       edges { node { id title } cursor }
                       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
                     }
@@ -325,7 +326,7 @@ fn nested_page_info_with_first() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { id: { eq: 1 } }) {
+              userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges {
                   node {
                     blogs(first: 1) {
@@ -426,7 +427,7 @@ fn nested_page_info_with_last() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { id: { eq: 1 } }) {
+              userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges {
                   node {
                     blogs(last: 1) {

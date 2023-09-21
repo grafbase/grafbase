@@ -3,7 +3,7 @@ pub mod collection_args;
 use super::PostgresContext;
 use crate::{
     registry::{type_kinds::SelectionSetTarget, MetaType},
-    Lookahead, SelectionField,
+    Error, Lookahead, SelectionField,
 };
 pub use collection_args::CollectionArgs;
 use postgresql_types::database_definition::{RelationWalker, TableColumnWalker, TableWalker};
@@ -102,14 +102,14 @@ impl<'a> SelectionIterator<'a> {
 }
 
 impl<'a> Iterator for SelectionIterator<'a> {
-    type Item = TableSelection<'a>;
+    type Item = Result<TableSelection<'a>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let Some(selection_field) = self.selection.get(self.index) else {
             let extra = self.extra_columns.get(self.extra_column_index);
             self.extra_column_index += 1;
 
-            return extra.map(|column| TableSelection::Column(*column));
+            return extra.map(|column| Ok(TableSelection::Column(*column)));
         };
 
         self.index += 1;
@@ -120,7 +120,7 @@ impl<'a> Iterator for SelectionIterator<'a> {
             .database_definition
             .find_column_for_client_field(selection_field.name(), self.table.id())
         {
-            return Some(TableSelection::Column(column));
+            return Some(Ok(TableSelection::Column(column)));
         }
 
         // Joining a table with the current one, selecting from the joined table.
@@ -145,7 +145,7 @@ impl<'a> Iterator for SelectionIterator<'a> {
             let selection_set = selection_field.selection_set().collect();
             let iterator = Self::new(self.ctx, meta_type, selection_field, selection_set);
 
-            Some(TableSelection::JoinUnique(relation, iterator))
+            Some(Ok(TableSelection::JoinUnique(relation, iterator)))
         } else {
             // The other side has not a unique constraint that matches with the foreign key,
             // meaning the resulting set is a collection.
@@ -176,7 +176,10 @@ impl<'a> Iterator for SelectionIterator<'a> {
                 selection_field,
             );
 
-            Some(TableSelection::JoinMany(relation, iterator, args))
+            match args {
+                Ok(args) => Some(Ok(TableSelection::JoinMany(relation, iterator, args))),
+                Err(error) => Some(Err(error)),
+            }
         }
     }
 }

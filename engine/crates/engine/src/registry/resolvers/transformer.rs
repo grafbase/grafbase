@@ -167,7 +167,7 @@ impl Transformer {
                 Ok(new_value)
             }
             Transformer::PaginationData => {
-                let pagination = dbg!(last_resolver_value)
+                let pagination = last_resolver_value
                     .and_then(|x| x.pagination.as_ref())
                     .map(ResolvedPaginationInfo::output);
                 Ok(ResolvedValue::new(serde_json::to_value(pagination)?))
@@ -428,7 +428,7 @@ impl Transformer {
                     .next()
                     .expect("we always have at least one field in the query");
 
-                let args = CollectionArgs::new(database_definition, table, &root_field);
+                let args = CollectionArgs::new(database_definition, table, &root_field)?;
                 let mut selection_data = SelectionData::default();
 
                 if let Some(first) = args.first() {
@@ -444,7 +444,7 @@ impl Transformer {
                     .raw_order()
                     .map(|(column, order)| {
                         let order = order.map(|order| match order {
-                            Order::Desc => "DESC",
+                            Order::DescNullsFirst => "DESC",
                             _ => "ASC",
                         });
 

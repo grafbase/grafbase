@@ -22,7 +22,7 @@ struct Response {
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, Error> {
     let mut builder = SelectBuilder::new(ctx.table(), ctx.collection_selection(), "root");
 
-    let args = CollectionArgs::new(&ctx.database_definition(), ctx.table(), &ctx.root_field());
+    let args = CollectionArgs::new(&ctx.database_definition(), ctx.table(), &ctx.root_field())?;
     let mut selection_data = SelectionData::default();
 
     if let Some(first) = args.first() {
@@ -38,7 +38,7 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
         .raw_order()
         .map(|(column, order)| {
             let order = order.map(|order| match order {
-                Order::Desc => "DESC",
+                Order::DescNullsFirst => "DESC",
                 _ => "ASC",
             });
 
@@ -53,7 +53,7 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
         builder.set_filter(filter);
     }
 
-    let (sql, params) = renderer::Postgres::build(query::build(builder));
+    let (sql, params) = renderer::Postgres::build(query::build(builder)?);
 
     let response = ctx
         .transport()

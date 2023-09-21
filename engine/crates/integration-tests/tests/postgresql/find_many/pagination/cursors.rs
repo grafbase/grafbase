@@ -316,7 +316,7 @@ fn nested_ordering_cursors_implicit_order() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { id: { eq: 1 } }) {
+              userCollection(first: 1000, filter: { id: { eq: 1 } }) {
                 edges {
                   node {
                     blogs(first: 2) { edges { node { id title } cursor } }
@@ -408,7 +408,7 @@ fn nested_ordering_cursors_explicit_order() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { id: { eq: 1 } }) {
+              userCollection(first: 1000, filter: { id: { eq: 1 } }) {
                 edges {
                   node {
                     blogs(first: 2, orderBy: [{ title: DESC }]) { edges { node { id title } cursor } }

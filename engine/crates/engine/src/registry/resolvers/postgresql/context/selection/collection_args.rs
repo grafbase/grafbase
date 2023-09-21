@@ -1,8 +1,13 @@
-use crate::SelectionField;
+use crate::{Error, SelectionField};
 use engine_value::{Name, Value};
-use grafbase_sql_ast::ast::{Aliasable, Column, Order, OrderDefinition};
+use grafbase_sql_ast::ast::{Aliasable, Column, Comparable, ConditionTree, Expression, Order, OrderDefinition};
 use indexmap::IndexMap;
-use postgresql_types::database_definition::{DatabaseDefinition, TableWalker};
+use postgresql_types::{
+    cursor::{OrderDirection, SQLCursor},
+    database_definition::{DatabaseDefinition, TableWalker},
+};
+use runtime::search::GraphqlCursor;
+use serde::Deserialize;
 
 #[derive(Debug, Clone, Default)]
 pub struct CollectionOrdering {
@@ -36,8 +41,8 @@ pub struct CollectionArgs {
     last: Option<u64>,
     order_by: CollectionOrdering,
     extra_columns: Vec<Column<'static>>,
-    before: Option<String>,
-    after: Option<String>,
+    before: Option<SQLCursor>,
+    after: Option<SQLCursor>,
 }
 
 impl CollectionArgs {
@@ -45,11 +50,53 @@ impl CollectionArgs {
         database_definition: &DatabaseDefinition,
         table: TableWalker<'_>,
         value: &SelectionField<'_>,
-    ) -> Self {
+    ) -> Result<Self, Error> {
         let first = value.field.get_argument("first").and_then(|value| value.as_u64());
         let last = value.field.get_argument("last").and_then(|value| value.as_u64());
-        let before = value.field.get_argument("before").and_then(|value| value.as_string());
-        let after = value.field.get_argument("after").and_then(|value| value.as_string());
+
+        match (first, last) {
+            (Some(_), Some(_)) => {
+                return Err(Error::new("first and last parameters can't be both defined"));
+            }
+            (None, None) => {
+                return Err(Error::new(
+                    "please limit your selection by setting either the first or last parameter",
+                ));
+            }
+            _ => (),
+        }
+
+        let before = value
+            .field
+            .get_argument("before")
+            .and_then(|value| value.node.clone().into_const());
+
+        let before = match before {
+            Some(before) => {
+                let cursor = GraphqlCursor::deserialize(before)
+                    .map_err(|error| Error::new(format!("invalid cursor: {error}")))
+                    .and_then(|cursor| SQLCursor::try_from(cursor).map_err(|error| Error::new(error.to_string())))?;
+
+                Some(cursor)
+            }
+            None => None,
+        };
+
+        let after = value
+            .field
+            .get_argument("after")
+            .and_then(|value| value.node.clone().into_const());
+
+        let after = match after {
+            Some(after) => {
+                let cursor = GraphqlCursor::deserialize(after)
+                    .map_err(|error| Error::new(format!("invalid cursor: {error}")))
+                    .and_then(|cursor| SQLCursor::try_from(cursor).map_err(|error| Error::new(error.to_string())))?;
+
+                Some(cursor)
+            }
+            None => None,
+        };
 
         let mut order_by_argument = value
             .field
@@ -92,16 +139,16 @@ impl CollectionArgs {
 
             // For `last` to work, we must reverse the order of the inner query.
             let inner_direction = match direction {
-                "DESC" if last.is_some() => Order::Asc,
-                "DESC" => Order::Desc,
-                _ if last.is_some() => Order::Desc,
-                _ => Order::Asc,
+                "DESC" if last.is_some() => Order::AscNullsFirst,
+                "DESC" => Order::DescNullsFirst,
+                _ if last.is_some() => Order::DescNullsFirst,
+                _ => Order::AscNullsFirst,
             };
 
             // and then reverse the order again for the outer query.
             let outer_direction = match inner_direction {
-                Order::Desc if last.is_some() => Order::Asc,
-                Order::Asc if last.is_some() => Order::Desc,
+                Order::DescNullsFirst if last.is_some() => Order::AscNullsFirst,
+                Order::AscNullsFirst if last.is_some() => Order::DescNullsFirst,
                 _ => inner_direction,
             };
 
@@ -124,14 +171,41 @@ impl CollectionArgs {
             order_by.outer.push((alias, Some(outer_direction)));
         }
 
-        Self {
+        Ok(Self {
             first,
             last,
             order_by,
             extra_columns,
             before,
             after,
+        })
+    }
+
+    /// A filter that allows before/after arguments to work correspondingly.
+    pub(crate) fn pagination_filter(&self) -> Option<ConditionTree<'static>> {
+        let cursor = match (self.before(), self.after()) {
+            (Some(cursor), _) | (_, Some(cursor)) => cursor,
+            _ => return None,
+        };
+
+        let mut fields = cursor.fields().collect::<Vec<_>>();
+        let mut filters = Vec::new();
+
+        while !fields.is_empty() {
+            if let Some(filter) = generate_filter(&fields) {
+                filters.push(filter);
+            }
+
+            fields.pop();
         }
+
+        let filter = if filters.len() == 1 {
+            ConditionTree::single(filters.pop().unwrap())
+        } else {
+            ConditionTree::Or(filters)
+        };
+
+        Some(filter)
     }
 
     /// Select the first N items. An example GraphQL definition: `userCollection(first: N)`.
@@ -146,14 +220,14 @@ impl CollectionArgs {
 
     /// Select the items before the given cursor. An example GraphQL definition:
     /// `userCollection(before: "asdf")`.
-    pub(crate) fn before(&self) -> Option<&str> {
-        self.before.as_deref()
+    fn before(&self) -> Option<&SQLCursor> {
+        self.before.as_ref()
     }
 
     /// Select the items after the given cursor. An example GraphQL definition:
     /// `userCollection(after: "asdf")`.
-    pub(crate) fn after(&self) -> Option<&str> {
-        self.after.as_deref()
+    fn after(&self) -> Option<&SQLCursor> {
+        self.after.as_ref()
     }
 
     /// Defines the ordering of the collection. The first item in a tuple is the ordering for the innermost
@@ -167,5 +241,46 @@ impl CollectionArgs {
     /// layers.
     pub(crate) fn extra_columns(&self) -> impl ExactSizeIterator<Item = Column<'static>> + '_ {
         self.extra_columns.clone().into_iter()
+    }
+}
+
+fn generate_filter(fields: &[(&str, &serde_json::Value, OrderDirection)]) -> Option<Expression<'static>> {
+    let mut filters: Vec<Expression<'static>> = Vec::new();
+    let max_id = fields.len() - 1;
+
+    for (i, (column, value, direction)) in fields.iter().enumerate() {
+        let column = Column::from((*column).to_string());
+
+        if i == max_id {
+            if value.is_null() {
+                if let OrderDirection::Ascending = direction {
+                    filters.push(column.is_not_null().into())
+                }
+            } else {
+                match direction {
+                    OrderDirection::Ascending => {
+                        filters.push(column.greater_than((*value).clone()).into());
+                    }
+                    OrderDirection::Descending => {
+                        let tree = ConditionTree::Or(vec![
+                            column.clone().less_than((*value).clone()).into(),
+                            column.is_null().into(),
+                        ]);
+
+                        filters.push(tree.into());
+                    }
+                }
+            }
+        } else {
+            filters.push(column.equals((*value).clone()).into());
+        }
+    }
+
+    if filters.is_empty() {
+        None
+    } else if filters.len() == 1 {
+        Some(filters.pop().unwrap())
+    } else {
+        Some(ConditionTree::And(filters).into())
     }
 }

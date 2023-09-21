@@ -70,14 +70,6 @@ impl<'a> TableWalker<'a> {
             .map(|id| self.walk(id))
     }
 
-    /// Find a column by client name.
-    pub fn find_client_column(self, name: &str) -> Option<TableColumnWalker<'a>> {
-        self.database_definition
-            .names
-            .get_table_client_column_id(self.id, name)
-            .map(|id| self.walk(id))
-    }
-
     /// Find a unique constraint by name.
     pub fn find_unique_constraint(self, constraint_name: &str) -> Option<UniqueConstraintWalker<'a>> {
         self.database_definition
