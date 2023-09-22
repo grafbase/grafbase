@@ -7,8 +7,8 @@ use crate::{
     context::ContextExt,
     parser::types::Field,
     registry::{self, InputValueType, Registry},
-    ContainerType, Context, ContextSelectionSet, Error, InputValueError, InputValueResult, Positioned, Result,
-    ServerResult, Value,
+    ContainerType, ContextField, ContextSelectionSetLegacy, Error, InputValueError, InputValueResult, Positioned,
+    Result, ServerResult, Value,
 };
 
 #[doc(hidden)]
@@ -81,7 +81,11 @@ pub trait LegacyOutputType: Send + Sync {
     fn create_type_info(registry: &mut registry::Registry) -> crate::registry::MetaFieldType;
 
     /// Resolve an output value to `engine::Value`.
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId>;
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId>;
 }
 
 #[async_trait::async_trait]
@@ -95,7 +99,11 @@ impl<T: LegacyOutputType + ?Sized> LegacyOutputType for &T {
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         T::resolve(*self, ctx, field).await
     }
 }
@@ -110,7 +118,11 @@ impl<T: LegacyOutputType + Sync, E: Into<Error> + Send + Sync + Clone> LegacyOut
         T::create_type_info(registry)
     }
 
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         match self {
             Ok(value) => value.resolve(ctx, field).await,
             Err(err) => return Err(ctx.set_error_path(err.clone().into().into_server_error(field.pos))),
@@ -162,7 +174,11 @@ impl<T: LegacyOutputType + ?Sized> LegacyOutputType for Box<T> {
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         T::resolve(&**self, ctx, field).await
     }
 }
@@ -203,7 +219,11 @@ impl<T: LegacyOutputType + ?Sized> LegacyOutputType for Arc<T> {
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         T::resolve(&**self, ctx, field).await
     }
 }
@@ -237,5 +257,5 @@ impl<T: LegacyInputType> LegacyInputType for Arc<T> {
 pub trait ComplexObject {
     fn fields(registry: &mut registry::Registry) -> Vec<(String, registry::MetaField)>;
 
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>>;
+    async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<Value>>;
 }

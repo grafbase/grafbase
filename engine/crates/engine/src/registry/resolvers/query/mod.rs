@@ -9,7 +9,7 @@ use super::{
 use crate::{
     names::OUTPUT_EDGE_CURSOR,
     registry::{variables::VariableResolveDefinition, ModelName},
-    Context, ContextExt, Error,
+    Context, ContextExt, ContextField, Error,
 };
 
 mod search_parser;
@@ -36,7 +36,7 @@ pub enum QueryResolver {
 impl QueryResolver {
     pub async fn resolve(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {

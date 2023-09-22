@@ -11,7 +11,7 @@ use crate::{
 /// remove sometime.
 pub async fn resolve_type_field(ctx: &ContextField<'_>) -> Result<Option<ResponseNodeId>, ServerError> {
     let (_, type_name) = ctx.param_value::<String>("name", None)?;
-    let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+    let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
     let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
     let resolved = LegacyOutputType::resolve(
         &ctx.schema_env
@@ -33,7 +33,7 @@ pub async fn resolve_type_field(ctx: &ContextField<'_>) -> Result<Option<Respons
 /// This calls into some legacy resolution stuff that we should definitely
 /// remove sometime.
 pub async fn resolve_schema_field(ctx: &ContextField<'_>) -> Result<Option<ResponseNodeId>, ServerError> {
-    let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+    let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
     let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
     let resolved = LegacyOutputType::resolve(
         &__Schema::new(&ctx.schema_env.registry, &visible_types),

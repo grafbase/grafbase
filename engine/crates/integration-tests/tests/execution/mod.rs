@@ -109,7 +109,7 @@ fn test_nullable_list_validation() {
             {
               "locations": [
                 {
-                  "column": 14,
+                  "column": 9,
                   "line": 1
                 }
               ],

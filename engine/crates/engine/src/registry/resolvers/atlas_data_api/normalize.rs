@@ -3,14 +3,14 @@ use crate::{
     registry::{
         resolvers::atlas_data_api::consts::OP_ELEM_MATCH, type_kinds::InputType, MetaInputValue, TypeReference,
     },
-    Context,
+    ContextField,
 };
 use serde_json::Value;
 
 /// Given the input keys, converts them to the names on MongoDB.
 ///
 /// Has any effect if a field in the data model is having a `@map` directive.
-pub(super) fn keys(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
+pub(super) fn keys(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {
@@ -26,7 +26,7 @@ pub(super) fn keys(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>) -
 
 /// Given the input values, converts them to the extended JSON format
 /// on MongoDB.
-pub(super) fn values(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
+pub(super) fn values(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {
@@ -43,7 +43,7 @@ pub(super) fn values(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>)
 
 /// Given the input, converts the keys to the mapped variants in MongoDB,
 /// and values to the extended JSON format.
-pub(super) fn keys_and_values(ctx: &Context<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
+pub(super) fn keys_and_values(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
     let map = values(ctx, map, input_type);
     keys(ctx, map, input_type)
 }
@@ -114,9 +114,9 @@ pub(super) fn flatten_keys(input: JsonMap) -> JsonMap {
     result
 }
 
-fn normalize<F>(normalize: F, ctx: &Context<'_>, value: Value, input_meta: &MetaInputValue) -> Value
+fn normalize<F>(normalize: F, ctx: &ContextField<'_>, value: Value, input_meta: &MetaInputValue) -> Value
 where
-    F: Fn(&Context<'_>, JsonMap, InputType<'_>) -> JsonMap,
+    F: Fn(&ContextField<'_>, JsonMap, InputType<'_>) -> JsonMap,
 {
     let nested_type = ctx
         .schema_env

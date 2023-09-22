@@ -8,9 +8,12 @@ use crate::{
     deferred::DeferredWorkload,
     extensions::ResolveInfo,
     parser::types::Selection,
-    registry::{resolvers::ResolvedValue, MetaType},
-    relations_edges, Context, ContextExt, ContextSelectionSet, Error, LegacyOutputType, Name, ServerError,
-    ServerResult, Value,
+    registry::{
+        resolvers::ResolvedValue,
+        type_kinds::{OutputType, SelectionSetTarget},
+    },
+    relations_edges, Context, ContextExt, ContextField, ContextSelectionSet, ContextSelectionSetLegacy, Error,
+    LegacyOutputType, Name, ServerError, ServerResult, Value,
 };
 
 use super::{field::resolve_field, fragment::FragmentDetails};
@@ -30,7 +33,7 @@ pub trait ContainerType: LegacyOutputType {
     /// Resolves a field value and outputs it as a json value `engine::Value`.
     ///
     /// If the field was not found returns None.
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>>;
+    async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<ResponseNodeId>>;
 
     /// Collect all the fields of the container that are queried in the selection set.
     ///
@@ -38,7 +41,7 @@ pub trait ContainerType: LegacyOutputType {
     /// internal type.
     fn collect_all_fields_native<'a>(
         &'a self,
-        ctx: &ContextSelectionSet<'a>,
+        ctx: &ContextSelectionSetLegacy<'a>,
         fields: &mut Fields<'a>,
     ) -> ServerResult<()>
     where
@@ -50,54 +53,54 @@ pub trait ContainerType: LegacyOutputType {
     /// Find the GraphQL entity with the given name from the parameter.
     ///
     /// Objects should override this in case they are the query root.
-    async fn find_entity(&self, _: &Context<'_>, _params: &Value) -> ServerResult<Option<Value>> {
+    async fn find_entity(&self, _: &ContextField<'_>, _params: &Value) -> ServerResult<Option<Value>> {
         Ok(None)
     }
 }
 
 #[async_trait::async_trait]
 impl<T: ContainerType + ?Sized> ContainerType for &T {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
+    async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<ResponseNodeId>> {
         T::resolve_field(*self, ctx).await
     }
 
-    async fn find_entity(&self, ctx: &Context<'_>, params: &Value) -> ServerResult<Option<Value>> {
+    async fn find_entity(&self, ctx: &ContextField<'_>, params: &Value) -> ServerResult<Option<Value>> {
         T::find_entity(*self, ctx, params).await
     }
 }
 
 #[async_trait::async_trait]
 impl<T: ContainerType + ?Sized> ContainerType for Arc<T> {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
+    async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<ResponseNodeId>> {
         T::resolve_field(self, ctx).await
     }
 
-    async fn find_entity(&self, ctx: &Context<'_>, params: &Value) -> ServerResult<Option<Value>> {
+    async fn find_entity(&self, ctx: &ContextField<'_>, params: &Value) -> ServerResult<Option<Value>> {
         T::find_entity(self, ctx, params).await
     }
 }
 
 #[async_trait::async_trait]
 impl<T: ContainerType + ?Sized> ContainerType for Box<T> {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
+    async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<ResponseNodeId>> {
         T::resolve_field(self, ctx).await
     }
 
-    async fn find_entity(&self, ctx: &Context<'_>, params: &Value) -> ServerResult<Option<Value>> {
+    async fn find_entity(&self, ctx: &ContextField<'_>, params: &Value) -> ServerResult<Option<Value>> {
         T::find_entity(self, ctx, params).await
     }
 }
 
 #[async_trait::async_trait]
 impl<T: ContainerType, E: Into<Error> + Send + Sync + Clone> ContainerType for Result<T, E> {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
+    async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<ResponseNodeId>> {
         match self {
             Ok(value) => T::resolve_field(value, ctx).await,
             Err(err) => Err(ctx.set_error_path(err.clone().into().into_server_error(ctx.item.pos))),
         }
     }
 
-    async fn find_entity(&self, ctx: &Context<'_>, params: &Value) -> ServerResult<Option<Value>> {
+    async fn find_entity(&self, ctx: &ContextField<'_>, params: &Value) -> ServerResult<Option<Value>> {
         match self {
             Ok(value) => T::find_entity(value, ctx, params).await,
             Err(err) => Err(ctx.set_error_path(err.clone().into().into_server_error(ctx.item.pos))),
@@ -106,32 +109,25 @@ impl<T: ContainerType, E: Into<Error> + Send + Sync + Clone> ContainerType for R
 }
 
 /// Resolve an container by executing each of the fields concurrently.
-pub async fn resolve_root_container<'a>(
-    ctx: &ContextSelectionSet<'a>,
-    root: &'a MetaType,
-) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, true, root, None, None).await
+pub async fn resolve_root_container<'a>(ctx: &ContextSelectionSet<'a>) -> ServerResult<ResponseNodeId> {
+    resolve_container_inner(ctx, true, None, None).await
 }
 
 /// Resolve an container by executing each of the fields serially.
-pub async fn resolve_root_container_serial<'a>(
-    ctx: &ContextSelectionSet<'a>,
-    root: &'a MetaType,
-) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, false, root, None, None).await
+pub async fn resolve_root_container_serial<'a>(ctx: &ContextSelectionSet<'a>) -> ServerResult<ResponseNodeId> {
+    resolve_container_inner(ctx, false, None, None).await
 }
 
 pub async fn resolve_deferred_container<'a>(
     ctx: &ContextSelectionSet<'a>,
-    root: &'a MetaType,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, true, root, None, parent_resolver_value).await
+    resolve_container_inner(ctx, true, None, parent_resolver_value).await
 }
 
 /// Resolve an container by executing each of the fields concurrently.
 pub async fn resolve_container_native<'a, T: ContainerType + ?Sized>(
-    ctx: &ContextSelectionSet<'a>,
+    ctx: &ContextSelectionSetLegacy<'a>,
     root: &'a T,
 ) -> ServerResult<ResponseNodeId> {
     resolve_container_inner_native(ctx, root, true).await
@@ -139,25 +135,23 @@ pub async fn resolve_container_native<'a, T: ContainerType + ?Sized>(
 
 pub(super) async fn resolve_container<'a>(
     ctx: &ContextSelectionSet<'a>,
-    root: &MetaType,
     node_id: Option<NodeID<'a>>,
-    parent_resolver_value: Option<ResolvedValue>,
+    parent_resolver_value: ResolvedValue,
 ) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, true, root, node_id, parent_resolver_value).await
+    resolve_container_inner(ctx, true, node_id, Some(parent_resolver_value)).await
 }
 
 async fn resolve_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
     parallel: bool,
-    root: &MetaType,
     node_id: Option<NodeID<'a>>,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
-    log::trace!(ctx.trace_id(), "Where: {}", root.name());
+    log::trace!(ctx.trace_id(), "Where: {}", ctx.ty.name());
     log::trace!(ctx.trace_id(), "Id: {:?}", node_id);
 
     let mut fields = FieldExecutionSet(Vec::new());
-    fields.add_selection_set(ctx, root, node_id.clone(), parent_resolver_value)?;
+    fields.add_selection_set(ctx, node_id.clone(), parent_resolver_value)?;
 
     let results = if parallel {
         futures_util::future::try_join_all(fields.0).await?
@@ -171,7 +165,7 @@ async fn resolve_container_inner<'a>(
 
     let results = results.flatten();
 
-    let relations = relations_edges(ctx, root);
+    let relations = relations_edges(ctx, ctx.ty);
 
     if let Some(node_id) = node_id {
         let mut container = ResponseContainer::new_node(node_id);
@@ -232,7 +226,7 @@ async fn resolve_container_inner<'a>(
 }
 
 async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
-    ctx: &ContextSelectionSet<'a>,
+    ctx: &ContextSelectionSetLegacy<'a>,
     root: &'a T,
     parallel: bool,
 ) -> ServerResult<ResponseNodeId> {
@@ -278,7 +272,7 @@ type FieldExecutionFuture<'a> = Pin<Box<dyn Future<Output = ServerResult<FieldEx
 /// Running these futures should populate the response_graph with the results of the selection set
 pub struct FieldExecutionSet<'a>(Vec<FieldExecutionFuture<'a>>);
 
-async fn response_id_unwrap_or_null(ctx: &Context<'_>, opt_id: Option<ResponseNodeId>) -> ResponseNodeId {
+async fn response_id_unwrap_or_null(ctx: &ContextField<'_>, opt_id: Option<ResponseNodeId>) -> ResponseNodeId {
     if let Some(id) = opt_id {
         id
     } else {
@@ -292,7 +286,6 @@ impl<'a> FieldExecutionSet<'a> {
     pub fn add_selection_set(
         &mut self,
         ctx: &ContextSelectionSet<'a>,
-        root: &'a MetaType,
         current_node_id: Option<NodeID<'a>>,
         parent_resolver_value: Option<ResolvedValue>,
     ) -> ServerResult<()> {
@@ -301,12 +294,11 @@ impl<'a> FieldExecutionSet<'a> {
             let current_node_id = current_node_id.clone();
             match &selection.node {
                 Selection::Field(field) => {
-                    self.add_field(ctx, root, field, parent_resolver_value);
+                    self.add_field(ctx, field, parent_resolver_value);
                 }
                 Selection::FragmentSpread(_) | Selection::InlineFragment(_) => {
                     self.add_spread(
                         ctx,
-                        root,
                         FragmentDetails::from_fragment_selection(ctx, &selection.node)?,
                         current_node_id,
                         parent_resolver_value,
@@ -321,7 +313,6 @@ impl<'a> FieldExecutionSet<'a> {
     fn add_field(
         &mut self,
         ctx: &ContextSelectionSet<'a>,
-        root: &'a MetaType,
         field: &'a Positioned<engine_parser::types::Field>,
         parent_resolver_value: Option<ResolvedValue>,
     ) {
@@ -332,7 +323,7 @@ impl<'a> FieldExecutionSet<'a> {
 
             self.0.push(Box::pin({
                 async move {
-                    let node = CompactValue::String(resolve_typename(root, parent_resolver_value.as_ref()).await);
+                    let node = CompactValue::String(resolve_typename(ctx.ty, parent_resolver_value.as_ref()).await);
                     Ok(FieldExecutionOutput::Field(
                         (alias, field_name),
                         ctx.response().await.insert_node(node),
@@ -344,27 +335,28 @@ impl<'a> FieldExecutionSet<'a> {
         self.0.push(Box::pin({
             let ctx = ctx.clone();
             async move {
-                let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
+                let ctx_field = ctx.with_field(field);
                 let field_name = ctx_field.item.node.name.node.clone();
                 let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
                 let extensions = &ctx.query_env.extensions;
 
-                let resolve_fut = resolve_field(&ctx_field, root, parent_resolver_value);
+                let resolve_fut = resolve_field(&ctx_field, parent_resolver_value);
 
                 if extensions.is_empty() && field.node.directives.is_empty() {
                     // If we've no extensions or directives, just return the data
-                    return Ok(FieldExecutionOutput::Field(
-                        (alias, field_name),
-                        response_id_unwrap_or_null(&ctx_field, resolve_fut.await?).await,
-                    ));
+                    return Ok(FieldExecutionOutput::Field((alias, field_name), resolve_fut.await?));
                 }
 
-                let type_name = root.name();
+                // Convert resolve_fut to a Result<Option<_>> for some reason
+                let resolve_fut = resolve_fut.map(|result| result.map(Some));
+
+                let type_name = ctx.ty.name();
                 log::trace!(
                     ctx.trace_id(),
                     "Resolving {field} on {type_name}",
                     field = field.node.name.node.as_str()
                 );
+
                 let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
                     .item
                     .node
@@ -427,7 +419,6 @@ impl<'a> FieldExecutionSet<'a> {
     fn add_spread(
         &mut self,
         ctx: &ContextSelectionSet<'a>,
-        root: &'a MetaType,
         fragment_details: FragmentDetails<'a>,
         current_node_id: Option<NodeID<'a>>,
         parent_resolver_value: Option<ResolvedValue>,
@@ -436,7 +427,7 @@ impl<'a> FieldExecutionSet<'a> {
         self.0.push(Box::pin({
             async move {
                 let registry = ctx.registry();
-                let typename = resolve_typename(root, parent_resolver_value.as_ref()).await;
+                let typename = resolve_typename(ctx.ty, parent_resolver_value.as_ref()).await;
                 if !fragment_details.type_condition_matches(&ctx, &typename) {
                     return Ok(FieldExecutionOutput::MultipleFields(vec![]));
                 }
@@ -444,7 +435,9 @@ impl<'a> FieldExecutionSet<'a> {
                 let subtype = registry
                     .types
                     .get(&typename)
-                    .ok_or_else(|| ServerError::new(format!(r#"Found an unknown typename: "{typename}"."#,), None))?;
+                    .ok_or_else(|| ServerError::new(format!(r#"Found an unknown typename: "{typename}"."#,), None))?
+                    .try_into()
+                    .map_err(|_| ServerError::new(format!("Tried to spread on a leaf type: {typename}"), None))?;
 
                 if fragment_details.should_defer(&ctx)
                     && defer_fragment(&ctx, &fragment_details, subtype, &parent_resolver_value).is_ok()
@@ -456,8 +449,7 @@ impl<'a> FieldExecutionSet<'a> {
 
                 let mut subfields = FieldExecutionSet(Vec::new());
                 subfields.add_selection_set(
-                    &ctx.with_selection_set(fragment_details.selection_set),
-                    subtype,
+                    &ctx.with_selection_set(fragment_details.selection_set, subtype),
                     current_node_id,
                     parent_resolver_value,
                 )?;
@@ -477,7 +469,7 @@ impl<'a> FieldExecutionSet<'a> {
 fn defer_fragment(
     ctx: &ContextSelectionSet<'_>,
     fragment_details: &FragmentDetails<'_>,
-    root: &MetaType,
+    target_ty: SelectionSetTarget,
     parent_resolver_value: &Option<ResolvedValue>,
 ) -> Result<(), ()> {
     let deferred_sender = ctx.deferred_workloads().ok_or(())?;
@@ -489,7 +481,7 @@ fn defer_fragment(
         directive.label.clone(),
         fragment_details.selection_set.clone(),
         ctx.path.clone(),
-        root.name().to_string().into(),
+        target_ty.name().to_string().into(),
         parent_resolver_value.clone(),
     );
 
@@ -500,14 +492,14 @@ fn defer_fragment(
     Ok(())
 }
 
-async fn resolve_typename<'a>(root: &'a MetaType, parent_resolver_value: Option<&ResolvedValue>) -> String {
+async fn resolve_typename<'a>(root: SelectionSetTarget<'a>, parent_resolver_value: Option<&ResolvedValue>) -> String {
     match root {
-        MetaType::Union(_) | MetaType::Interface(_) => {
+        SelectionSetTarget::Union(_) | SelectionSetTarget::Interface(_) => {
             if let Some(typename) = resolve_remote_typename(parent_resolver_value).await {
                 return typename;
             }
         }
-        _ => {}
+        SelectionSetTarget::Object(_) => {}
     }
 
     root.name().to_string()
@@ -538,7 +530,7 @@ impl<'a> Fields<'a> {
     /// Native way of resolving
     pub fn add_set_native<T: ContainerType + ?Sized>(
         &mut self,
-        ctx: &ContextSelectionSet<'a>,
+        ctx: &ContextSelectionSetLegacy<'a>,
         root: &'a T,
     ) -> ServerResult<()> {
         for selection in &ctx.item.node.items {
@@ -546,8 +538,7 @@ impl<'a> Fields<'a> {
                 Selection::Field(field) => {
                     if field.node.name.node == "__typename" {
                         // Get the typename
-                        let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
-                        let field_name = ctx_field.item.node.response_key().node.clone();
+                        let field_name = field.node.response_key().node.clone();
                         let typename = root.introspection_type_name().into_owned();
 
                         let ctx = ctx.clone();
@@ -561,7 +552,7 @@ impl<'a> Fields<'a> {
                     let resolve_fut = Box::pin({
                         let ctx = ctx.clone();
                         async move {
-                            let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
+                            let ctx_field = ctx.with_field(field);
                             let field_name = ctx_field.item.node.response_key().node.clone();
                             let extensions = &ctx.query_env.extensions;
                             let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
@@ -660,11 +651,20 @@ impl<'a> Fields<'a> {
                                 .get(&*introspection_type_name)
                                 .map_or(false, |interfaces| interfaces.contains(condition))
                     });
+                    let new_target = type_condition
+                        .and_then(|name| {
+                            ctx.registry()
+                                .types
+                                .get(name)
+                                .and_then(|ty| OutputType::try_from(ty).ok())
+                        })
+                        .unwrap_or(ctx.ty);
+
                     if applies_concrete_object {
-                        root.collect_all_fields_native(&ctx.with_selection_set(selection_set), self)?;
+                        root.collect_all_fields_native(&ctx.with_selection_set(selection_set, new_target), self)?;
                     } else if type_condition.map_or(true, |condition| T::type_name() == condition) {
                         // The fragment applies to an interface type.
-                        self.add_set_native(&ctx.with_selection_set(selection_set), root)?;
+                        self.add_set_native(&ctx.with_selection_set(selection_set, new_target), root)?;
                     }
                 }
             }

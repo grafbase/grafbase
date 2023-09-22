@@ -73,3 +73,78 @@ fn nested_custom_resolver() {
         );
     });
 }
+
+#[test]
+fn custom_resolver_context() {
+    runtime().block_on(async {
+        let schema = r#"
+            type Query {
+                list: [Object]! @resolver(name: "list")
+            }
+
+            type Object {
+                item: JSON! @resolver(name: "item")
+            }
+        "#;
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver("list", CustomResolverResponse::Success(json!([{"id": 1}, {"id": 2}])))
+                    .resolver("item", |payload: CustomResolverRequestPayload| {
+                        Ok(CustomResolverResponse::Success(payload.info.unwrap()))
+                    }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine.execute("query { list { item }}",).await.into_value(),
+            @r###"
+        {
+          "data": {
+            "list": [
+              {
+                "item": {
+                  "fieldName": "item",
+                  "path": {
+                    "key": "item",
+                    "prev": {
+                      "key": 0,
+                      "prev": {
+                        "key": "list",
+                        "prev": null,
+                        "typename": "[Object]!"
+                      },
+                      "typename": "Object"
+                    },
+                    "typename": "JSON!"
+                  },
+                  "variableValues": {}
+                }
+              },
+              {
+                "item": {
+                  "fieldName": "item",
+                  "path": {
+                    "key": "item",
+                    "prev": {
+                      "key": 1,
+                      "prev": {
+                        "key": "list",
+                        "prev": null,
+                        "typename": "[Object]!"
+                      },
+                      "typename": "Object"
+                    },
+                    "typename": "JSON!"
+                  },
+                  "variableValues": {}
+                }
+              }
+            ]
+          }
+        }
+        "###
+        );
+    });
+}

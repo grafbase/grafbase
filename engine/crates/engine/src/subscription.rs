@@ -7,7 +7,7 @@ use crate::{
     parser::types::{Selection, TypeCondition},
     registry,
     registry::Registry,
-    Context, ContextSelectionSet, Response, ServerError, ServerResult,
+    ContextField, ContextSelectionSet, Response, ServerError, ServerResult,
 };
 
 /// A GraphQL subscription object
@@ -32,7 +32,7 @@ pub trait SubscriptionType: Send + Sync {
     #[doc(hidden)]
     fn create_field_stream<'a>(
         &'a self,
-        ctx: &'a Context<'_>,
+        ctx: &'a ContextField<'_>,
     ) -> Option<Pin<Box<dyn Stream<Item = Response> + Send + 'a>>>;
 }
 
@@ -48,7 +48,7 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
             Selection::Field(field) => streams.push(Box::pin({
                 let ctx = ctx.clone();
                 async_stream::stream! {
-                    let ctx = ctx.with_field(field, None, Some(&ctx.item.node));
+                    let ctx = ctx.with_field(field);
                     let field_name = ctx.item.node.response_key().node.clone();
                     let stream = root.create_field_stream(&ctx);
                     if let Some(mut stream) = stream {
@@ -69,7 +69,7 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
                     .get(&fragment_spread.node.fragment_name.node)
                 {
                     collect_subscription_streams(
-                        &ctx.with_selection_set(&fragment.node.selection_set),
+                        &ctx.with_selection_set(&fragment.node.selection_set, ctx.ty),
                         root,
                         streams,
                     )?;
@@ -84,14 +84,14 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
                 {
                     if name.node.as_str() == T::type_name() {
                         collect_subscription_streams(
-                            &ctx.with_selection_set(&inline_fragment.node.selection_set),
+                            &ctx.with_selection_set(&inline_fragment.node.selection_set, ctx.ty),
                             root,
                             streams,
                         )?;
                     }
                 } else {
                     collect_subscription_streams(
-                        &ctx.with_selection_set(&inline_fragment.node.selection_set),
+                        &ctx.with_selection_set(&inline_fragment.node.selection_set, ctx.ty),
                         root,
                         streams,
                     )?;
@@ -113,7 +113,7 @@ impl<T: SubscriptionType> SubscriptionType for &T {
 
     fn create_field_stream<'a>(
         &'a self,
-        ctx: &'a Context<'_>,
+        ctx: &'a ContextField<'_>,
     ) -> Option<Pin<Box<dyn Stream<Item = Response> + Send + 'a>>> {
         T::create_field_stream(*self, ctx)
     }

@@ -50,7 +50,7 @@ impl MetaType {
 }
 
 /// A type in output position - i.e. the type of a field in an Object/Interface/selection set.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum OutputType<'a> {
     Scalar(&'a ScalarType),
     Object(&'a ObjectType),
@@ -59,7 +59,7 @@ pub enum OutputType<'a> {
     Enum(&'a EnumType),
 }
 
-impl OutputType<'_> {
+impl<'a> OutputType<'a> {
     pub fn name(&self) -> &str {
         match self {
             OutputType::Scalar(scalar) => &scalar.name,
@@ -98,6 +98,23 @@ impl OutputType<'_> {
             }
         }
     }
+
+    pub fn object(&self) -> Option<&'a ObjectType> {
+        match self {
+            OutputType::Object(obj) => Some(*obj),
+            _ => None,
+        }
+    }
+
+    pub fn kind(&self) -> TypeKind {
+        match self {
+            OutputType::Object(_) => TypeKind::Object,
+            OutputType::Interface(_) => TypeKind::Interface,
+            OutputType::Union(_) => TypeKind::Union,
+            OutputType::Scalar(_) => TypeKind::Scalar,
+            OutputType::Enum(_) => TypeKind::Enum,
+        }
+    }
 }
 
 impl<'a> TryFrom<&'a MetaType> for OutputType<'a> {
@@ -110,7 +127,7 @@ impl<'a> TryFrom<&'a MetaType> for OutputType<'a> {
             MetaType::Interface(interface) => Ok(OutputType::Interface(interface)),
             MetaType::Union(union) => Ok(OutputType::Union(union)),
             MetaType::Enum(en) => Ok(OutputType::Enum(en)),
-            MetaType::InputObject(_) => Err(Error::unexpected_kind(value, TypeKind::OutputType)),
+            MetaType::InputObject(_) => Err(Error::unexpected_kind(value.name(), value.kind(), TypeKind::OutputType)),
         }
     }
 }
@@ -159,7 +176,7 @@ impl<'a> TryFrom<&'a MetaType> for InputType<'a> {
             MetaType::Scalar(scalar) => Ok(InputType::Scalar(scalar)),
             MetaType::Enum(en) => Ok(InputType::Enum(en)),
             MetaType::InputObject(object) => Ok(InputType::InputObject(object)),
-            _ => Err(Error::unexpected_kind(value, TypeKind::InputType)),
+            _ => Err(Error::unexpected_kind(value.name(), value.kind(), TypeKind::InputType)),
         }
     }
 }
@@ -215,7 +232,28 @@ impl<'a> TryFrom<&'a MetaType> for SelectionSetTarget<'a> {
             MetaType::Object(object) => Ok(SelectionSetTarget::Object(object)),
             MetaType::Interface(interface) => Ok(SelectionSetTarget::Interface(interface)),
             MetaType::Union(union) => Ok(SelectionSetTarget::Union(union)),
-            _ => Err(Error::unexpected_kind(value, TypeKind::SelectionSetTarget)),
+            _ => Err(Error::unexpected_kind(
+                value.name(),
+                value.kind(),
+                TypeKind::SelectionSetTarget,
+            )),
+        }
+    }
+}
+
+impl<'a> TryFrom<OutputType<'a>> for SelectionSetTarget<'a> {
+    type Error = Error;
+
+    fn try_from(value: OutputType<'a>) -> Result<Self, Self::Error> {
+        match value {
+            OutputType::Object(object) => Ok(SelectionSetTarget::Object(object)),
+            OutputType::Interface(interface) => Ok(SelectionSetTarget::Interface(interface)),
+            OutputType::Union(union) => Ok(SelectionSetTarget::Union(union)),
+            _ => Err(Error::unexpected_kind(
+                value.name(),
+                value.kind(),
+                TypeKind::SelectionSetTarget,
+            )),
         }
     }
 }

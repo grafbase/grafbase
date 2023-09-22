@@ -12,7 +12,7 @@ use runtime::{
 };
 
 use super::ResolvedValue;
-use crate::{Context, ContextExt, Error, ErrorExtensionValues};
+use crate::{ContextExt, ContextField, Error, ErrorExtensionValues};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct CustomResolver {
@@ -22,11 +22,9 @@ pub struct CustomResolver {
 impl CustomResolver {
     pub(super) async fn resolve(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
-        use crate::context::ResolverChainNode;
-
         // Little hack while QP is not live
         //
         // We know the format of the parent value, we then apply some little magic to adapt it to
@@ -39,14 +37,8 @@ impl CustomResolver {
         // - If our parent was a connector type we just want to pass it in unchanged.
         //
         // We use the presence of the type key to try and differentiate these two
-        let parent = ctx
-            .resolver_node
-            .as_ref()
-            .and_then(|node| {
-                // We find the current type name by looking up the resolver chain
-                Some(node.parent?.ty?.name())
-            })
-            .and_then(|current_type_name| parent.get_field(current_type_name))
+        let parent = parent
+            .get_field(ctx.parent_type.name())
             .map(|model_data| dynamodb_to_json(model_data.take()))
             .map(ResolvedValue::new)
             .unwrap_or(parent);
@@ -77,7 +69,7 @@ impl CustomResolver {
                     },
                     info: Some(serde_json::json!({
                         "fieldName": ctx.item.name.node.as_str(),
-                        "path": ctx.resolver_node.as_ref().map(ResolverChainNode::to_response_path),
+                        "path": ctx.response_path(),
                         "variableValues": &ctx.query_env.variables,
                     })),
                 },

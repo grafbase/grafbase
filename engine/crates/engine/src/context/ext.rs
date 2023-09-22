@@ -21,40 +21,45 @@ use crate::{
     Error, LegacyInputType, Name, Pos, Positioned, QueryEnv, Result, ServerError, ServerResult,
 };
 
-/// Extension trait that defines shared behaviour for ContextSelectionSet & ContextField
-pub trait ContextExt {
+pub trait Context<'a> {
     fn path(&self) -> &QueryPath;
-    fn query_env(&self) -> &QueryEnv;
-    fn schema_env(&self) -> &SchemaEnv;
+    fn query_env(&self) -> &'a QueryEnv;
+    fn schema_env(&self) -> &'a SchemaEnv;
 
-    fn registry(&self) -> &Registry {
+    fn registry(&self) -> &'a Registry {
         &self.schema_env().registry
     }
+}
 
-    fn response(&self) -> async_lock::futures::Lock<'_, QueryResponse> {
+/// Extension trait that defines shared behaviour for ContextSelectionSet & ContextField
+pub trait ContextExt<'a>: Context<'a> {
+    fn response<'b>(&'b self) -> async_lock::futures::Lock<'b, QueryResponse>
+    where
+        'a: 'b,
+    {
         self.query_env().response.lock()
     }
 
-    fn deferred_workloads(&self) -> Option<&DeferredWorkloadSender> {
+    fn deferred_workloads(&self) -> Option<&'a DeferredWorkloadSender> {
         self.query_env().deferred_workloads.as_ref()
     }
 
     /// Find a fragment definition by name.
-    fn get_fragment(&self, name: &str) -> Option<&FragmentDefinition> {
+    fn get_fragment(&self, name: &str) -> Option<&'a FragmentDefinition> {
         self.query_env().fragments.get(name).map(|fragment| &fragment.node)
     }
 
     /// Find a type definition by name.
-    fn get_type(&self, name: &str) -> Option<&MetaType> {
+    fn get_type(&self, name: &str) -> Option<&'a MetaType> {
         self.schema_env().registry.types.get(name)
     }
 
     /// Find a mongodb configuration with name.
-    fn get_mongodb_config(&self, name: &str) -> Option<&MongoDBConfiguration> {
+    fn get_mongodb_config(&self, name: &str) -> Option<&'a MongoDBConfiguration> {
         self.schema_env().registry.mongodb_configurations.get(name)
     }
 
-    fn get_postgresql_definition(&self, name: &str) -> Option<&DatabaseDefinition> {
+    fn get_postgresql_definition(&self, name: &str) -> Option<&'a DatabaseDefinition> {
         self.schema_env().registry.postgres_databases.get(name)
     }
 
@@ -91,7 +96,7 @@ pub trait ContextExt {
     /// # Errors
     ///
     /// Returns a `Error` if the specified type data does not exist.
-    fn data<D: Any + Send + Sync>(&self) -> Result<&D> {
+    fn data<D: Any + Send + Sync + 'a>(&self) -> Result<&'a D> {
         self.data_opt::<D>()
             .ok_or_else(|| Error::new(format!("Data `{}` does not exist.", std::any::type_name::<D>())))
     }
@@ -101,13 +106,13 @@ pub trait ContextExt {
     /// # Panics
     ///
     /// It will panic if the specified data type does not exist.
-    fn data_unchecked<D: Any + Send + Sync>(&self) -> &D {
+    fn data_unchecked<D: Any + Send + Sync + 'a>(&self) -> &'a D {
         self.data_opt::<D>()
             .unwrap_or_else(|| panic!("Data `{}` does not exist.", std::any::type_name::<D>()))
     }
 
     /// Gets the global data defined in the `Context` or `Schema` or `None` if the specified type data does not exist.
-    fn data_opt<D: Any + Send + Sync>(&self) -> Option<&D> {
+    fn data_opt<D: Any + Send + Sync + 'a>(&self) -> Option<&'a D> {
         self.query_env()
             .ctx_data
             .0
@@ -294,3 +299,5 @@ pub trait ContextExt {
             .map_err(|e| e.into_server_error(pos))
     }
 }
+
+impl<'a, T> ContextExt<'a> for T where T: Context<'a> {}

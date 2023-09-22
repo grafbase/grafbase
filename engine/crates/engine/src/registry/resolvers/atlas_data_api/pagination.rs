@@ -1,19 +1,19 @@
 use super::{cursor::AtlasCursor, input::first, JsonMap};
 use crate::{
     registry::resolvers::{ResolvedPaginationInfo, ResolverContext},
-    Context, Error,
+    ContextField, Error,
 };
 use runtime::search::GraphqlCursor;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct PaginationContext<'a> {
-    context: &'a Context<'a>,
+    context: &'a ContextField<'a>,
     resolver_context: &'a ResolverContext<'a>,
     forward: bool,
 }
 
 impl<'a> PaginationContext<'a> {
-    pub(super) fn new(context: &'a Context<'a>, resolver_context: &'a ResolverContext<'a>) -> Self {
+    pub(super) fn new(context: &'a ContextField<'a>, resolver_context: &'a ResolverContext<'a>) -> Self {
         let forward = first(context).is_some();
 
         Self {

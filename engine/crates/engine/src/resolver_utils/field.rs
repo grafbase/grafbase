@@ -2,14 +2,13 @@ use engine_value::ConstValue;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 
 use crate::{
-    context::ResolverChainNode,
     registry::{
         resolvers::{ResolvedValue, ResolverContext},
         scalars::{DynamicScalar, PossibleScalar},
         type_kinds::OutputType,
         MetaField, MetaType, ScalarParser, TypeReference,
     },
-    ContextExt, ContextField, Error, QueryPathSegment, ServerError,
+    Context, ContextExt, ContextField, Error, QueryPathSegment, ServerError,
 };
 
 use super::{introspection, resolve_container, resolve_list};
@@ -17,15 +16,15 @@ use super::{introspection, resolve_container, resolve_list};
 /// Resolves the field inside `ctx` within the type `root`
 pub async fn resolve_field(
     ctx: &ContextField<'_>,
-    parent_type: &MetaType,
     parent_resolver_value: Option<ResolvedValue>,
-) -> Result<Option<ResponseNodeId>, ServerError> {
+) -> Result<ResponseNodeId, ServerError> {
     let introspection_enabled = !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection;
 
     if ctx.item.node.name.node == "__schema" {
         if introspection_enabled {
             return introspection::resolve_schema_field(ctx)
                 .await
+                .and_then(|opt| opt.ok_or_else(|| ServerError::new("Unknown internal introspection error", None)))
                 .map_err(|error| ctx.set_error_path(error));
         } else {
             return Err(ServerError::new(
@@ -37,6 +36,7 @@ pub async fn resolve_field(
         if introspection_enabled {
             return introspection::resolve_type_field(ctx)
                 .await
+                .and_then(|opt| opt.ok_or_else(|| ServerError::new("Unknown internal introspection error", None)))
                 .map_err(|error| ctx.set_error_path(error));
         } else {
             return Err(ServerError::new(
@@ -46,22 +46,29 @@ pub async fn resolve_field(
         }
     }
 
-    let Some(field) = parent_type.field_by_name(ctx.item.node.name.node.as_str()) else {
-        return Ok(None);
+    let Some(field) = ctx.parent_type.field(ctx.item.node.name.node.as_str()) else {
+            return Err(ServerError::new(
+                format!(
+                "Could not find a field named {} on {}",
+                ctx.item.node.name.node,
+                ctx.parent_type.name()
+                ),
+                Some(ctx.item.node.name.pos),
+            ));
     };
 
     let result = match CurrentResolverType::new(&field, ctx) {
-        CurrentResolverType::PRIMITIVE => resolve_primitive_field(ctx, parent_type, field, parent_resolver_value).await,
+        CurrentResolverType::PRIMITIVE => resolve_primitive_field(ctx, field, parent_resolver_value).await,
         CurrentResolverType::CONTAINER => resolve_container_field(ctx, field, parent_resolver_value).await,
         CurrentResolverType::ARRAY => resolve_array_field(ctx, field, parent_resolver_value).await,
     }
     .map_err(|error| ctx.set_error_path(error));
 
     match result {
-        Ok(result) => Ok(Some(result)),
+        Ok(result) => Ok(result),
         Err(e) if field.ty.is_nullable() => {
             ctx.add_error(e);
-            Ok(Some(ctx.response().await.insert_node(CompactValue::Null)))
+            Ok(ctx.response().await.insert_node(CompactValue::Null))
         }
         Err(error) => {
             // Propagate the error to parents who can add it to the response and null things out
@@ -72,12 +79,10 @@ pub async fn resolve_field(
 
 async fn resolve_primitive_field(
     ctx: &ContextField<'_>,
-    parent_type: &MetaType,
     field: &MetaField,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> Result<ResponseNodeId, ServerError> {
-    let resolver_node = ctx.resolver_node.as_ref().expect("shouldn't be null");
-    let resolved_value = run_field_resolver(&ctx, resolver_node, parent_resolver_value)
+    let resolved_value = run_field_resolver(&ctx, parent_resolver_value)
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos));
 
@@ -113,7 +118,7 @@ async fn resolve_primitive_field(
         .lookup(&field.ty)
         .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
-    let parent_type_name = parent_type.name();
+    let parent_type_name = ctx.parent_type.name();
 
     let result = match field_type {
         OutputType::Scalar(scalar) => match scalar.parser {
@@ -163,31 +168,26 @@ async fn resolve_container_field(
 ) -> Result<ResponseNodeId, ServerError> {
     // If there is a resolver associated to the container we execute it before
     // asking to resolve the other fields
-    let resolved_value = if let Some(resolver_node) = &ctx.resolver_node {
-        let resolved_value = run_field_resolver(&ctx, resolver_node, parent_resolver_value)
-            .await
-            .map_err(|err| err.into_server_error(ctx.item.pos))?;
+    let resolved_value = run_field_resolver(&ctx, parent_resolver_value)
+        .await
+        .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-        if resolved_value.is_early_returned() {
-            if field.ty.is_non_null() {
-                return Err(ServerError::new(
-                        format!(
-                            "An error occured while fetching `{}`, a non-nullable value was expected but no value was found.",
-                            ctx.item.node.name.node
-                        ),
-                        Some(ctx.item.pos),
-                    ));
-            } else {
-                return Ok(ctx
-                    .response()
-                    .await
-                    .insert_node(ResponsePrimitive::new(CompactValue::Null)));
-            }
+    if resolved_value.is_early_returned() {
+        if field.ty.is_non_null() {
+            return Err(ServerError::new(
+                format!(
+                    "An error occured while fetching `{}`, a non-nullable value was expected but no value was found.",
+                    ctx.item.node.name.node
+                ),
+                Some(ctx.item.pos),
+            ));
+        } else {
+            return Ok(ctx
+                .response()
+                .await
+                .insert_node(ResponsePrimitive::new(CompactValue::Null)));
         }
-        Some(resolved_value)
-    } else {
-        None
-    };
+    }
 
     let field_type = ctx
         .registry()
@@ -213,15 +213,14 @@ async fn resolve_container_field(
     // This have to be removed when we rework registry & engine to have a proper query
     // planning.
     let node_id: Option<NodeID<'_>> = resolved_value
-        .as_ref()
-        .and_then(|x| x.node_id(field_type.name()))
+        .node_id(field_type.name())
         .and_then(|x| NodeID::from_owned(x).ok());
 
     let type_name = field_type.name().to_string();
 
     let selection_ctx = ctx.with_selection_set(&ctx.item.node.selection_set);
 
-    match resolve_container(&selection_ctx, field_type, node_id, resolved_value).await {
+    match resolve_container(&selection_ctx, node_id, resolved_value).await {
         result @ Ok(_) => {
             field.check_cache_tag(ctx, &type_name, &field.name, None).await;
             result
@@ -250,23 +249,20 @@ async fn resolve_array_field(
         .lookup_expecting::<&MetaType>(&field.ty)
         .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
-    let resolver_node = ctx.resolver_node.as_ref().expect("shouldn't be null");
-    let resolved_value = run_field_resolver(&ctx, resolver_node, parent_resolver_value)
+    let resolved_value = run_field_resolver(&ctx, parent_resolver_value)
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos))?;
-
-    let selection_ctx = ctx.with_selection_set(&ctx.item.node.selection_set);
 
     field
         .check_cache_tag(ctx, container_type.name(), &field.name, None)
         .await;
 
-    resolve_list(selection_ctx, ctx.item, &field.ty, container_type, resolved_value).await
+    let list_ctx = ctx.to_list_context();
+    resolve_list(list_ctx, ctx.item, container_type, resolved_value).await
 }
 
 async fn run_field_resolver(
     ctx: &ContextField<'_>,
-    resolver_node: &ResolverChainNode<'_>,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> Result<ResolvedValue, Error> {
     let mut final_result = parent_resolver_value.unwrap_or_default();
@@ -274,16 +270,14 @@ async fn run_field_resolver(
     if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
         // If we are in an index segment, it means we do not have a current resolver (YET).
         final_result = final_result.get_index(*idx).unwrap_or_default();
-    } else if let Some(resolver) = resolver_node.resolver {
+    } else {
+        let resolver = &ctx.field.resolver;
         // Avoiding the early return when we're just propagating downwards data. Container
         // fields used as namespaces have no value (so Null) but their fields have resolvers.
         if !resolver.is_parent() {
-            let current_ctx = ResolverContext::new(&resolver_node.execution_id)
-                .with_ty(resolver_node.ty)
-                .with_selection_set(resolver_node.selections)
-                .with_field(resolver_node.field);
+            let resolver_context = ResolverContext::new(ctx);
 
-            final_result = resolver.resolve(ctx, &current_ctx, Some(&final_result)).await?;
+            final_result = resolver.resolve(ctx, &resolver_context, Some(&final_result)).await?;
 
             if final_result.data_resolved().is_null() {
                 final_result = final_result.with_early_return();

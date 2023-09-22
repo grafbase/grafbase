@@ -6,7 +6,7 @@ use crate::{
         resolvers::{ResolvedValue, ResolverContext},
         MongoDBConfiguration,
     },
-    Context, ContextExt, Error,
+    ContextExt, ContextField, Error,
 };
 use http::{
     header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
@@ -23,7 +23,7 @@ mod headers {
 }
 
 pub(super) async fn execute(
-    ctx: &Context<'_>,
+    ctx: &ContextField<'_>,
     resolver_ctx: &ResolverContext<'_>,
     config: &MongoDBConfiguration,
     collection: &str,
@@ -96,7 +96,7 @@ struct AtlasRequest<'a> {
 impl<'a> AtlasRequest<'a> {
     fn convert_result(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
         mut value: Value,
     ) -> Result<ResolvedValue, Error> {

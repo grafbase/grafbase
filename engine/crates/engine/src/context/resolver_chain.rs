@@ -5,8 +5,8 @@ use engine_parser::{
 use ulid::Ulid;
 
 use crate::{
-    registry::{resolvers::Resolver, MetaField, MetaType},
-    QueryPathSegment,
+    registry::{resolvers::Resolver, type_kinds::OutputType, MetaField, MetaType, NamedType},
+    ContextExt, QueryPathSegment,
 };
 
 /// Holds some metadata about the current node in the query.
@@ -42,13 +42,6 @@ pub struct ResolverChainNode<'a> {
     /// The current resolver to apply, if it exists.
     /// There is no resolvers on QueryPathSegment::Index for instance.
     pub resolver: Option<&'a Resolver>,
-}
-
-#[derive(serde::Serialize)]
-pub struct ResponsePath<'a> {
-    key: &'a str,
-    prev: Option<Box<ResponsePath<'a>>>,
-    typename: Option<&'a str>,
 }
 
 impl<'a> ResolverChainNode<'a> {

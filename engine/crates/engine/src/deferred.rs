@@ -1,10 +1,9 @@
 use engine_parser::{types::SelectionSet, Positioned};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use ulid::Ulid;
 
 use crate::{
     registry::{resolvers::ResolvedValue, NamedType},
-    ContextSelectionSet, Error, QueryEnv, QueryPath, ResolverChainNode, SchemaEnv,
+    ContextSelectionSet, Error, QueryEnv, QueryPath, SchemaEnv,
 };
 
 #[derive(Debug)]
@@ -36,21 +35,10 @@ impl DeferredWorkload {
     pub fn to_context<'a>(&'a self, schema_env: &'a SchemaEnv, query_env: &'a QueryEnv) -> ContextSelectionSet<'a> {
         ContextSelectionSet {
             path: self.path.clone(),
-            resolver_node: self.path.last().cloned().map(|segment| ResolverChainNode {
-                segment,
-                parent: None,
-                field: None,
-                executable_field: None,
-                ty: Some(
-                    schema_env
-                        .registry
-                        .lookup(&self.current_type_name)
-                        .expect("current type name to exist"),
-                ),
-                selections: Some(&self.selection_set),
-                execution_id: Ulid::new(),
-                resolver: None,
-            }),
+            ty: schema_env
+                .registry
+                .lookup_expecting(&self.current_type_name)
+                .expect("current type name to exist"),
             item: &self.selection_set,
             schema_env,
             query_env,

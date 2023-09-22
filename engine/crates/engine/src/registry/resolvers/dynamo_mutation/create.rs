@@ -9,7 +9,7 @@ use crate::{
         variables::VariableResolveDefinition,
         ModelName,
     },
-    Context, ContextExt, Error,
+    Context, ContextField, Error,
 };
 
 #[derive(serde::Deserialize)]
@@ -18,7 +18,7 @@ struct CreateInput {
 }
 
 pub(super) async fn batch(
-    ctx: &Context<'_>,
+    ctx: &ContextField<'_>,
     resolver_ctx: &ResolverContext<'_>,
     last_resolver_value: Option<&ResolvedValue>,
     input: &VariableResolveDefinition,

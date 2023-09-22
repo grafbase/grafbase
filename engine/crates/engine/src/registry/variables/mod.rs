@@ -13,7 +13,7 @@ use runtime::search::GraphqlCursor;
 use serde::{de::DeserializeOwned, Serialize};
 
 use self::oneof::OneOf;
-use crate::{resolver_utils::InputResolveMode, Context, Error, ServerError, ServerResult, Value};
+use crate::{resolver_utils::InputResolveMode, ContextField, Error, ServerError, ServerResult, Value};
 
 pub mod id;
 pub mod oneof;
@@ -60,7 +60,7 @@ impl VariableResolveDefinition {
     /// Resolve the first variable with this definition
     pub fn param<'a>(
         &self,
-        ctx: &'a Context<'a>,
+        ctx: &'a ContextField<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<Value>, ServerError> {
         match self {
@@ -84,7 +84,7 @@ impl VariableResolveDefinition {
 
     pub fn resolve<T: DeserializeOwned>(
         &self,
-        ctx: &Context<'_>,
+        ctx: &ContextField<'_>,
         last_resolver_value: Option<impl Borrow<serde_json::Value>>,
     ) -> ServerResult<T> {
         let param = match last_resolver_value {
@@ -97,7 +97,7 @@ impl VariableResolveDefinition {
 
     pub fn expect_string<'a>(
         &self,
-        ctx: &'a Context<'a>,
+        ctx: &'a ContextField<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<String, ServerError> {
         match self.param(ctx, last_resolver_value)? {
@@ -108,7 +108,7 @@ impl VariableResolveDefinition {
 
     pub fn expect_obj<'a>(
         &self,
-        ctx: &'a Context<'a>,
+        ctx: &'a ContextField<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<IndexMap<Name, Value>, ServerError> {
         match self.param(ctx, last_resolver_value)? {
@@ -119,7 +119,7 @@ impl VariableResolveDefinition {
 
     pub fn expect_op_obj<'a>(
         &self,
-        ctx: &'a Context<'a>,
+        ctx: &'a ContextField<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<IndexMap<Name, Value>>, ServerError> {
         match self.param(ctx, last_resolver_value)? {
@@ -131,7 +131,7 @@ impl VariableResolveDefinition {
 
     pub fn expect_opt_string<'a>(
         &self,
-        ctx: &'a Context<'a>,
+        ctx: &'a ContextField<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<String>, ServerError> {
         match self.param(ctx, last_resolver_value)? {
@@ -144,7 +144,7 @@ impl VariableResolveDefinition {
 
     pub fn expect_opt_int<'a>(
         &self,
-        ctx: &'a Context<'a>,
+        ctx: &'a ContextField<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
         limit: Option<usize>,
     ) -> Result<Option<usize>, ServerError> {
@@ -167,7 +167,7 @@ impl VariableResolveDefinition {
 
     pub fn expect_opt_cursor<'a>(
         &self,
-        ctx: &'a Context<'a>,
+        ctx: &'a ContextField<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<String>, ServerError> {
         match self.expect_opt_string(ctx, last_resolver_value)? {
@@ -181,7 +181,7 @@ impl VariableResolveDefinition {
 
     pub fn expect_oneof<'a, T>(
         &self,
-        ctx: &'a Context<'a>,
+        ctx: &'a ContextField<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<OneOf<T>>, ServerError>
     where

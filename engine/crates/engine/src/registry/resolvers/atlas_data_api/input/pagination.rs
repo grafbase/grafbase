@@ -7,7 +7,7 @@ use crate::{
         cursor::{AtlasCursor, CursorField, OrderByDirection},
         JsonMap,
     },
-    Context, ServerResult,
+    ContextField, ServerResult,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -28,15 +28,15 @@ impl ValueIncrement {
     }
 }
 
-pub(crate) fn before_definition(ctx: &Context) -> Option<GraphqlCursor> {
+pub(crate) fn before_definition(ctx: &ContextField) -> Option<GraphqlCursor> {
     ctx.input_by_name("before").ok()
 }
 
-pub(crate) fn after_definition(ctx: &Context) -> Option<GraphqlCursor> {
+pub(crate) fn after_definition(ctx: &ContextField) -> Option<GraphqlCursor> {
     ctx.input_by_name("after").ok()
 }
 
-pub(super) fn before(ctx: &Context<'_>) -> ServerResult<Option<JsonMap>> {
+pub(super) fn before(ctx: &ContextField<'_>) -> ServerResult<Option<JsonMap>> {
     let cursor = before_definition(ctx);
 
     let mut before = match cursor {
@@ -70,7 +70,7 @@ pub(super) fn before(ctx: &Context<'_>) -> ServerResult<Option<JsonMap>> {
     Ok(Some(filter))
 }
 
-pub(super) fn after(ctx: &Context<'_>) -> ServerResult<Option<JsonMap>> {
+pub(super) fn after(ctx: &ContextField<'_>) -> ServerResult<Option<JsonMap>> {
     let cursor = after_definition(ctx);
 
     let mut after = match cursor {

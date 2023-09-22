@@ -4,7 +4,7 @@ use crate::{
     model::{__InputValue, __Type},
     registry,
     registry::is_visible,
-    Context, Object,
+    ContextField, Object,
 };
 
 pub struct __Field<'a> {
@@ -26,7 +26,7 @@ impl<'a> __Field<'a> {
         self.field.description.as_deref()
     }
 
-    async fn args(&self, ctx: &Context<'_>) -> Vec<__InputValue<'a>> {
+    async fn args(&self, ctx: &ContextField<'_>) -> Vec<__InputValue<'a>> {
         self.field
             .args
             .values()

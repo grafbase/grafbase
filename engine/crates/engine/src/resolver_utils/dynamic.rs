@@ -6,7 +6,7 @@ use crate::{
         scalars::{DynamicScalar, PossibleScalar},
         MetaEnumValue, MetaInputValue, MetaType, MetaTypeName,
     },
-    Context, Error, ServerResult,
+    ContextField, Error, ServerResult,
 };
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
@@ -17,7 +17,7 @@ pub enum InputResolveMode {
 }
 
 pub fn resolve_input(
-    ctx_field: &Context<'_>,
+    ctx_field: &ContextField<'_>,
     arg_name: &str,
     meta_input_value: &MetaInputValue,
     value: Option<ConstValue>,
@@ -64,7 +64,7 @@ impl<'a> PathNode<'a> {
 }
 
 struct ResolveContext<'a> {
-    ctx: &'a Context<'a>,
+    ctx: &'a ContextField<'a>,
     path: PathNode<'a>,
     /// Expected GraphQL type
     ty: &'a str,

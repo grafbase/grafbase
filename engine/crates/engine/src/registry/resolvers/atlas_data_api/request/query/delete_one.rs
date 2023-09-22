@@ -1,7 +1,7 @@
 use super::AtlasQuery;
 use crate::{
     registry::resolvers::atlas_data_api::{input, JsonMap},
-    Context, Error,
+    ContextField, Error,
 };
 use serde::Serialize;
 
@@ -12,7 +12,7 @@ pub struct DeleteOne {
 }
 
 impl DeleteOne {
-    pub fn new(ctx: &Context<'_>) -> Result<Self, Error> {
+    pub fn new(ctx: &ContextField<'_>) -> Result<Self, Error> {
         let filter = input::by(ctx)?;
 
         Ok(Self { filter })

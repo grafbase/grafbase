@@ -9,7 +9,7 @@ use crate::{
         variables::{id::ObfuscatedID, oneof::OneOf, VariableResolveDefinition},
         ModelName,
     },
-    Context, ContextExt, Error,
+    Context, ContextExt, ContextField, Error,
 };
 
 #[derive(serde::Deserialize)]
@@ -18,7 +18,7 @@ struct PostDeleteManyInput {
 }
 
 pub(super) async fn resolve_delete_nodes(
-    ctx: &Context<'_>,
+    ctx: &ContextField<'_>,
     last_resolver_value: Option<&ResolvedValue>,
     input: &VariableResolveDefinition,
     ty: &ModelName,
@@ -39,7 +39,11 @@ struct Parsed {
     deleted_ids: HashSet<String>,
 }
 
-async fn generate_changes(ctx: &Context<'_>, input: Vec<PostDeleteManyInput>, ty: &ModelName) -> Result<Parsed, Error> {
+async fn generate_changes(
+    ctx: &ContextField<'_>,
+    input: Vec<PostDeleteManyInput>,
+    ty: &ModelName,
+) -> Result<Parsed, Error> {
     let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
     let meta_type = ctx.registry().lookup(ty)?;
 

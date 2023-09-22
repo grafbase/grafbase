@@ -21,17 +21,23 @@ use crate::{
     extensions::Extensions,
     parser::types::{Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
     query_path::QueryPath,
-    registry::{relations::MetaRelation, MetaType},
+    registry::{relations::MetaRelation, type_kinds::SelectionSetTarget},
     schema::SchemaEnv,
     CacheInvalidation, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
 
 pub use self::selection_set::ContextSelectionSet;
-pub(crate) use self::{ext::ContextExt, field::ContextField, resolver_chain::ResolverChainNode};
+pub(crate) use self::{
+    ext::{Context, ContextExt},
+    field::ContextField,
+    legacy::ContextSelectionSetLegacy,
+    list::{ContextList, ContextWithIndex},
+};
 
 mod ext;
 mod field;
-mod resolver_chain;
+mod legacy;
+mod list;
 mod selection_set;
 
 /// Data related functions of the context.
@@ -93,7 +99,10 @@ impl Debug for Data {
 
 /// When inside a Connection, we get the subfields asked by alias which are a relation
 /// (response_key, relation)
-pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) -> HashMap<String, &'a MetaRelation> {
+pub fn relations_edges<'a>(
+    ctx: &ContextSelectionSet<'a>,
+    root: SelectionSetTarget<'a>,
+) -> HashMap<String, &'a MetaRelation> {
     let mut result = HashMap::new();
     for selection in &ctx.item.node.items {
         match &selection.node {
@@ -101,7 +110,7 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
                 // We do take the name and not the alias
                 let field_name = field.node.name.node.as_str();
                 let field_response_key = field.node.response_key().node.as_str();
-                if let Some(relation) = root.field_by_name(field_name).and_then(|x| x.relation.as_ref()) {
+                if let Some(relation) = root.field(field_name).and_then(|x| x.relation.as_ref()) {
                     result.insert(field_response_key.to_string(), relation);
                 }
             }
@@ -136,7 +145,16 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
                             .map_or(false, |interfaces| interfaces.contains(condition))
                 });
                 if typename_matches {
-                    let tailed = relations_edges(&ctx.with_selection_set(selection_set), root);
+                    let new_target = type_condition
+                        .and_then(|name| {
+                            ctx.registry()
+                                .types
+                                .get(name)
+                                .and_then(|ty| SelectionSetTarget::try_from(ty).ok())
+                        })
+                        .unwrap_or(ctx.ty);
+
+                    let tailed = relations_edges(&ctx.with_selection_set(selection_set, new_target), root);
                     result.extend(tailed);
                 }
             }
@@ -144,9 +162,6 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &'a MetaType) ->
     }
     result
 }
-
-/// Context object for resolve field
-pub type Context<'a> = field::ContextField<'a>;
 
 #[doc(hidden)]
 pub struct QueryEnvInner {
@@ -196,12 +211,12 @@ impl QueryEnv {
     pub fn create_context<'a>(
         &'a self,
         schema_env: &'a SchemaEnv,
-        resolver_node: Option<ResolverChainNode<'a>>,
         item: &'a Positioned<SelectionSet>,
+        root_type: SelectionSetTarget<'a>,
     ) -> ContextSelectionSet<'a> {
         ContextSelectionSet {
+            ty: root_type,
             path: QueryPath::empty(),
-            resolver_node,
             item,
             schema_env,
             query_env: self,
@@ -255,7 +270,7 @@ pub enum QueryByVariables {
 pub struct SelectionField<'a> {
     pub(crate) fragments: &'a HashMap<Name, Positioned<FragmentDefinition>>,
     pub(crate) field: &'a Field,
-    pub(crate) context: &'a Context<'a>,
+    pub(crate) context: &'a ContextField<'a>,
 }
 
 impl<'a> SelectionField<'a> {
@@ -322,7 +337,7 @@ impl<'a> Debug for SelectionField<'a> {
 struct SelectionFieldsIter<'a> {
     fragments: &'a HashMap<Name, Positioned<FragmentDefinition>>,
     iter: Vec<std::slice::Iter<'a, Positioned<Selection>>>,
-    context: &'a Context<'a>,
+    context: &'a ContextField<'a>,
 }
 
 impl<'a> Iterator for SelectionFieldsIter<'a> {

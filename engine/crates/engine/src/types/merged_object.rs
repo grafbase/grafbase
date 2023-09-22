@@ -7,8 +7,8 @@ use crate::{
     futures_util::Stream,
     parser::types::Field,
     registry::{MetaType, ObjectType, Registry},
-    CacheControl, ContainerType, Context, ContextSelectionSet, LegacyOutputType, Positioned, Response, ServerResult,
-    SimpleObject, SubscriptionType, Value,
+    CacheControl, ContainerType, ContextField, ContextSelectionSetLegacy, LegacyOutputType, Positioned, Response,
+    ServerResult, SimpleObject, SubscriptionType, Value,
 };
 
 #[doc(hidden)]
@@ -20,7 +20,7 @@ where
     A: ContainerType,
     B: ContainerType,
 {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
+    async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<ResponseNodeId>> {
         match self.0.resolve_field(ctx).await {
             Ok(Some(value)) => Ok(Some(value)),
             Ok(None) => self.1.resolve_field(ctx).await,
@@ -28,7 +28,7 @@ where
         }
     }
 
-    async fn find_entity(&self, ctx: &Context<'_>, params: &Value) -> ServerResult<Option<Value>> {
+    async fn find_entity(&self, ctx: &ContextField<'_>, params: &Value) -> ServerResult<Option<Value>> {
         match self.0.find_entity(ctx, params).await {
             Ok(Some(value)) => Ok(Some(value)),
             Ok(None) => self.1.find_entity(ctx, params).await,
@@ -81,7 +81,7 @@ where
 
     async fn resolve(
         &self,
-        _ctx: &ContextSelectionSet<'_>,
+        _ctx: &ContextSelectionSetLegacy<'_>,
         _field: &Positioned<Field>,
     ) -> ServerResult<ResponseNodeId> {
         unreachable!()
@@ -134,7 +134,7 @@ where
 
     fn create_field_stream<'a>(
         &'a self,
-        _ctx: &'a Context<'_>,
+        _ctx: &'a ContextField<'_>,
     ) -> Option<Pin<Box<dyn Stream<Item = Response> + Send + 'a>>> {
         unreachable!()
     }
@@ -162,7 +162,7 @@ impl SubscriptionType for MergedObjectTail {
 
     fn create_field_stream<'a>(
         &'a self,
-        _ctx: &'a Context<'_>,
+        _ctx: &'a ContextField<'_>,
     ) -> Option<Pin<Box<dyn Stream<Item = Response> + Send + 'a>>> {
         unreachable!()
     }

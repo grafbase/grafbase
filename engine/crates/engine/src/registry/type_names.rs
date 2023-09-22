@@ -2,6 +2,8 @@
 
 use std::borrow::{Borrow, Cow};
 
+use engine_value::Name;
+
 use super::{
     type_kinds::{InputType, OutputType, SelectionSetTarget},
     MetaType, ObjectType,
@@ -208,6 +210,12 @@ impl<'a> From<&'a String> for NamedType<'a> {
 impl std::fmt::Display for NamedType<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl<'a> From<&'a Name> for NamedType<'a> {
+    fn from(value: &'a Name) -> Self {
+        NamedType(Cow::Borrowed(value.as_str()))
     }
 }
 

@@ -1,7 +1,7 @@
 use super::AtlasQuery;
 use crate::{
     registry::resolvers::atlas_data_api::{input, JsonMap},
-    Context, Error,
+    ContextField, Error,
 };
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -14,7 +14,7 @@ pub struct UpdateOne {
 }
 
 impl UpdateOne {
-    pub fn new(ctx: &Context<'_>) -> Result<Self, Error> {
+    pub fn new(ctx: &ContextField<'_>) -> Result<Self, Error> {
         let filter = input::by(ctx)?;
         let update = input::update(ctx)?;
 

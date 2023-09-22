@@ -5,7 +5,10 @@ use engine_parser::{
 use engine_value::Variables;
 use serde::Deserialize;
 
-use crate::{directive::DirectiveDeserializer, registry::MetaType, ContextExt, ContextSelectionSet, ServerError};
+use crate::{
+    directive::DirectiveDeserializer, registry::type_kinds::SelectionSetTarget, Context, ContextExt,
+    ContextSelectionSet, ServerError,
+};
 
 /// The details of a fragment spread/inline fragment.
 ///
@@ -26,14 +29,14 @@ impl<'a> FragmentDetails<'a> {
     }
 
     pub(super) fn from_fragment_selection(
-        ctx: &ContextSelectionSet<'a>,
+        ctx: &dyn Context<'a>,
         selection: &'a Selection,
     ) -> Result<FragmentDetails<'a>, ServerError> {
         match selection {
             Selection::Field(_) => unreachable!("this should have been validated before calling this function"),
             Selection::FragmentSpread(spread) => {
-                let defer = DeferDirective::parse(&spread.directives, &ctx.query_env.variables)?;
-                let fragment = ctx.query_env.fragments.get(&spread.node.fragment_name.node);
+                let defer = DeferDirective::parse(&spread.directives, &ctx.query_env().variables)?;
+                let fragment = ctx.query_env().fragments.get(&spread.node.fragment_name.node);
                 let fragment = match fragment {
                     Some(fragment) => fragment,
                     None => {
@@ -56,7 +59,7 @@ impl<'a> FragmentDetails<'a> {
                     .as_ref()
                     .map(|positioned| positioned.node.on.node.as_str()),
                 selection_set: &fragment.node.selection_set,
-                defer: DeferDirective::parse(&fragment.directives, &ctx.query_env.variables)?,
+                defer: DeferDirective::parse(&fragment.directives, &ctx.query_env().variables)?,
             }),
         }
     }
@@ -66,12 +69,9 @@ impl<'a> FragmentDetails<'a> {
             // If we've no type condition then we always match
             return true;
         };
-        let Some(current_type) = ctx.resolver_node.as_ref().and_then(|node| node.ty) else {
-            return true;
-        };
 
-        match current_type {
-            MetaType::Union(union) => typename == type_condition || type_condition == union.rust_typename,
+        match ctx.ty {
+            SelectionSetTarget::Union(union) => typename == type_condition || type_condition == union.rust_typename,
             _ => {
                 typename == type_condition
                     || ctx

@@ -224,7 +224,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
             getters.push(quote! {
                  #[inline]
                  #[allow(missing_docs)]
-                 #vis async fn #ident(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::Result<#ty> {
+                 #vis async fn #ident(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::Result<#ty> {
                      ::std::result::Result::Ok(#block)
                  }
             });
@@ -236,7 +236,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         self.#ident(ctx).await.map_err(|err| err.into_server_error(ctx.item.pos))
                     };
                     let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                    let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                    let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
                     return #crate_name::LegacyOutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                 }
             });
@@ -295,7 +295,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
             #[#crate_name::async_trait::async_trait]
 
             impl #impl_generics #crate_name::resolver_utils::ContainerType for #ident #ty_generics #where_clause {
-                async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
+                async fn resolve_field(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                     #(#resolvers)*
                     #complex_resolver
                     ::std::result::Result::Ok(::std::option::Option::None)
@@ -332,7 +332,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     )
                 }
 
-                async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
+                async fn resolve(&self, ctx: &#crate_name::ContextSelectionSetLegacy<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                     #resolve_container
                 }
             }
@@ -403,7 +403,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     )
                 }
 
-                async fn __internal_resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> where Self: #crate_name::ContainerType {
+                async fn __internal_resolve_field(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> where Self: #crate_name::ContainerType {
                     #(#resolvers)*
                     ::std::result::Result::Ok(::std::option::Option::None)
                 }
@@ -419,7 +419,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 #[allow(clippy::all, clippy::pedantic)]
                 #[#crate_name::async_trait::async_trait]
                 impl #def_lifetimes #crate_name::resolver_utils::ContainerType for #concrete_type {
-                    async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
+                    async fn resolve_field(&self, ctx: &#crate_name::ContextField<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                         #complex_resolver
                         self.__internal_resolve_field(ctx).await
                     }
@@ -438,7 +438,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         Self::__internal_create_type_info(registry, #gql_typename, fields)
                     }
 
-                    async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
+                    async fn resolve(&self, ctx: &#crate_name::ContextSelectionSetLegacy<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                         #resolve_container
                     }
                 }

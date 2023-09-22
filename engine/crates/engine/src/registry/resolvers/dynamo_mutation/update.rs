@@ -12,7 +12,7 @@ use crate::{
         variables::{id::ObfuscatedID, oneof::OneOf},
         ModelName, ObjectType,
     },
-    Context, ContextExt, Error, ServerError,
+    Context, ContextExt, ContextField, Error, ServerError,
 };
 
 #[derive(serde::Deserialize)]
@@ -49,7 +49,7 @@ struct Update {
 }
 
 pub(super) async fn batch(
-    ctx: &Context<'_>,
+    ctx: &ContextField<'_>,
     resolver_ctx: &ResolverContext<'_>,
     input: Vec<ParsedUpdateInput>,
     ty: &ModelName,
@@ -93,7 +93,7 @@ pub(super) async fn batch(
 }
 
 fn partition_by_identifier(
-    ctx: &Context<'_>,
+    ctx: &ContextField<'_>,
     meta_type: &ObjectType,
     input: Vec<ParsedUpdateInput>,
 ) -> Result<(Vec<ById>, Vec<ByConstraint>), ServerError> {
@@ -141,7 +141,7 @@ fn partition_by_identifier(
 }
 
 async fn generate_updates(
-    ctx: &Context<'_>,
+    ctx: &ContextField<'_>,
     by_ids: Vec<ById>,
     by_constraints: Vec<ByConstraint>,
 ) -> Result<Vec<Update>, Error> {

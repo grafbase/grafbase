@@ -6,15 +6,20 @@ use std::{
 
 use engine_value::ConstValue;
 use serde::de::DeserializeOwned;
+use ulid::Ulid;
 
 use crate::{
     parser::types::{Field, SelectionSet},
     query_path::QueryPath,
-    registry::{type_kinds::InputType, variables::VariableResolveDefinition},
+    registry::{
+        type_kinds::{InputType, OutputType, SelectionSetTarget},
+        variables::VariableResolveDefinition,
+        MetaField, NamedType,
+    },
     resolver_utils::{resolve_input, InputResolveMode},
     schema::SchemaEnv,
-    ContextSelectionSet, LegacyInputType, Lookahead, Pos, Positioned, QueryEnv, ResolverChainNode, SelectionField,
-    ServerError, ServerResult,
+    Context, ContextSelectionSet, LegacyInputType, Lookahead, Pos, Positioned, QueryEnv, QueryPathSegment,
+    SelectionField, ServerError, ServerResult,
 };
 
 use super::ContextExt;
@@ -22,28 +27,36 @@ use super::ContextExt;
 /// Context when we're resolving a `Field`
 #[derive(Clone)]
 pub struct ContextField<'a> {
-    /// The current path being resolved.
-    pub path: QueryPath,
-    /// The current resolver path being resolved.
-    pub resolver_node: Option<ResolverChainNode<'a>>,
-    /// The selection set being resolved
+    /// The field in the schema
+    pub field: &'a MetaField,
+    /// The field in the query
     pub item: &'a Positioned<Field>,
+    /// The type that contains ths field
+    pub parent_type: SelectionSetTarget<'a>,
+
+    /// The execution_id for resolving this field
+    /// This is currently used for caching and feeds into NodeId in some way
+    /// I don't quite understand
+    pub execution_id: Ulid,
+
+    /// The current path within query
+    pub path: QueryPath,
     /// Context scoped to the current schema
     pub schema_env: &'a SchemaEnv,
     /// Context scoped to the current query
     pub query_env: &'a QueryEnv,
 }
 
-impl ContextExt for ContextField<'_> {
+impl<'a> Context<'a> for ContextField<'a> {
     fn path(&self) -> &QueryPath {
         &self.path
     }
 
-    fn query_env(&self) -> &QueryEnv {
+    fn query_env(&self) -> &'a QueryEnv {
         self.query_env
     }
 
-    fn schema_env(&self) -> &SchemaEnv {
+    fn schema_env(&self) -> &'a SchemaEnv {
         self.schema_env
     }
 }
@@ -60,12 +73,19 @@ impl std::fmt::Debug for ContextField<'_> {
 impl<'a> ContextField<'a> {
     pub fn with_selection_set(&self, selection_set: &'a Positioned<SelectionSet>) -> ContextSelectionSet<'a> {
         ContextSelectionSet {
+            ty: self.field_base_type().try_into().expect("this should work"),
             path: self.path.clone(),
-            resolver_node: self.resolver_node.clone(),
             item: selection_set,
             schema_env: self.schema_env,
             query_env: self.query_env,
         }
+    }
+
+    /// Returns the base type for the currently resolving field
+    pub fn field_base_type(&self) -> OutputType<'a> {
+        self.registry()
+            .lookup(&self.field.ty)
+            .expect("a field type was missing in the registry, eek")
     }
 
     #[doc(hidden)]
@@ -74,13 +94,8 @@ impl<'a> ContextField<'a> {
     }
 
     pub fn find_argument_type(&self, name: &str) -> ServerResult<InputType<'_>> {
-        let meta = self
-            .resolver_node
-            .as_ref()
-            .and_then(|r| r.field)
-            .ok_or_else(|| ServerError::new("Context does not have any field associated.", Some(self.item.pos)))?;
-
-        meta.args
+        self.field
+            .args
             .get(name)
             .ok_or_else(|| {
                 ServerError::new(
@@ -97,12 +112,7 @@ impl<'a> ContextField<'a> {
     }
 
     pub fn param_value_dynamic(&self, name: &str, mode: InputResolveMode) -> ServerResult<Option<ConstValue>> {
-        let meta = self
-            .resolver_node
-            .as_ref()
-            .and_then(|r| r.field)
-            .ok_or_else(|| ServerError::new("Context does not have any field associated.", Some(self.item.pos)))?;
-        if let Some(meta_input_value) = meta.args.get(name) {
+        if let Some(meta_input_value) = self.field.args.get(name) {
             let maybe_value = self
                 .item
                 .node
@@ -227,4 +237,52 @@ impl<'a> ContextField<'a> {
         let resolve_definition = VariableResolveDefinition::input_type_name(name);
         resolve_definition.resolve(self, Option::<serde_json::Value>::None)
     }
+
+    pub fn response_path(&self) -> Option<ResponsePath<'_>> {
+        use engine_parser::types::{BaseType, Type};
+
+        let mut keys_and_typenames = vec![];
+        let mut current_type =
+            engine_parser::types::Type::new(self.registry().root_type(self.query_env.0.operation.ty).name())
+                .expect("the root type name should not be malformed");
+
+        for key in self.path.iter() {
+            match (key, current_type.base) {
+                (QueryPathSegment::Index(_), BaseType::List(inner)) => {
+                    keys_and_typenames.push((key, inner.to_string()));
+                    current_type = *inner;
+                }
+                (QueryPathSegment::Field(field_name), BaseType::Named(name)) => {
+                    let output_type = &self
+                        .registry()
+                        .lookup_expecting::<OutputType<'_>>(&NamedType::from(&name))
+                        .ok()?;
+
+                    let field_type = output_type.field(field_name)?.ty.as_str();
+
+                    keys_and_typenames.push((key, field_type.to_string()));
+
+                    current_type = Type::new(field_type)?;
+                }
+                _ => {
+                    return None;
+                }
+            }
+        }
+
+        keys_and_typenames.into_iter().fold(None, |prev, (key, typename)| {
+            Some(ResponsePath {
+                key,
+                prev: prev.map(Box::new),
+                typename,
+            })
+        })
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct ResponsePath<'a> {
+    key: &'a QueryPathSegment,
+    prev: Option<Box<ResponsePath<'a>>>,
+    typename: String,
 }

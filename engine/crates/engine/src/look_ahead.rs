@@ -2,21 +2,21 @@ use std::collections::HashMap;
 
 use crate::{
     parser::types::{Field, FragmentDefinition, Selection, SelectionSet},
-    Context, Name, Positioned, SelectionField,
+    ContextField, Name, Positioned, SelectionField,
 };
 
 /// A selection performed by a query.
 pub struct Lookahead<'a> {
     fragments: &'a HashMap<Name, Positioned<FragmentDefinition>>,
     fields: Vec<&'a Field>,
-    context: &'a Context<'a>,
+    context: &'a ContextField<'a>,
 }
 
 impl<'a> Lookahead<'a> {
     pub(crate) fn new(
         fragments: &'a HashMap<Name, Positioned<FragmentDefinition>>,
         field: &'a Field,
-        context: &'a Context<'a>,
+        context: &'a ContextField<'a>,
     ) -> Self {
         Self {
             fragments,
@@ -121,7 +121,7 @@ fn filter<'a>(
     fragments: &'a HashMap<Name, Positioned<FragmentDefinition>>,
     selection_set: &'a SelectionSet,
     name: &str,
-    _context: &'a Context<'a>,
+    _context: &'a ContextField<'a>,
 ) {
     for item in &selection_set.items {
         match &item.node {

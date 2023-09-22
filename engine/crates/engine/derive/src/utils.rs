@@ -241,7 +241,7 @@ pub fn extract_input_args(
             match (&*pat.pat, &*pat.ty) {
                 (Pat::Ident(arg_ident), Type::Reference(TypeReference { elem, .. })) => {
                     if let Type::Path(path) = elem.as_ref() {
-                        if idx != 1 || path.path.segments.last().unwrap().ident != "Context" {
+                        if idx != 1 || path.path.segments.last().unwrap().ident != "ContextField" {
                             args.push((
                                 arg_ident.clone(),
                                 pat.ty.as_ref().clone(),
@@ -268,7 +268,7 @@ pub fn extract_input_args(
     }
 
     if create_ctx {
-        let arg = syn::parse2::<FnArg>(quote! { _: &#crate_name::Context<'_> }).unwrap();
+        let arg = syn::parse2::<FnArg>(quote! { _: &#crate_name::ContextField<'_> }).unwrap();
         method.sig.inputs.insert(1, arg);
     }
 

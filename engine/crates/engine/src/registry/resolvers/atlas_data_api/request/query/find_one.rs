@@ -8,7 +8,7 @@ use crate::{
         },
         type_kinds::SelectionSetTarget,
     },
-    Context, Error,
+    ContextField, Error,
 };
 
 use super::AtlasQuery;
@@ -21,8 +21,8 @@ pub struct FindOne {
 }
 
 impl FindOne {
-    pub fn new(ctx: &Context<'_>, resolver_ctx: &ResolverContext<'_>) -> Result<Self, Error> {
-        let selection_set: SelectionSetTarget<'_> = resolver_ctx.ty.unwrap().try_into().unwrap();
+    pub fn new(ctx: &ContextField<'_>, resolver_ctx: &ResolverContext<'_>) -> Result<Self, Error> {
+        let selection_set: SelectionSetTarget<'_> = resolver_ctx.ty.try_into().unwrap();
         let available_fields = selection_set.field_map().unwrap();
         let selection = ctx.look_ahead().selection_fields();
 

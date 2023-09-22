@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use graph_entities::{CompactValue, ResponseNodeId};
 
 use crate::{
-    parser::types::Field, registry, registry::Registry, ContextExt, ContextSelectionSet, InputValueError,
+    parser::types::Field, registry, registry::Registry, ContextExt, ContextSelectionSetLegacy, InputValueError,
     InputValueResult, LegacyInputType, LegacyOutputType, LegacyScalarType, Positioned, Scalar, ServerResult, Value,
 };
 
@@ -72,7 +72,11 @@ impl LegacyOutputType for str {
         <String as LegacyOutputType>::create_type_info(registry)
     }
 
-    async fn resolve(&self, ctx: &ContextSelectionSet<'_>, _field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
+    async fn resolve(
+        &self,
+        ctx: &ContextSelectionSetLegacy<'_>,
+        _field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         let mut graph = ctx.response().await;
         Ok(graph.insert_node(CompactValue::String(self.to_string())))
     }

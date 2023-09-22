@@ -1,9 +1,7 @@
 use graph_entities::{CompactValue, ResponseNodeId};
 use internment::ArcIntern;
 
-use crate::{
-    context::ContextSelectionSet, ContextExt, InputValueError, InputValueResult, LegacyInputType, Name, Value,
-};
+use crate::{ContextExt, ContextSelectionSetLegacy, InputValueError, InputValueResult, LegacyInputType, Name, Value};
 
 /// A variant of an enum.
 pub struct EnumItem<T> {
@@ -44,7 +42,7 @@ pub fn enum_value<T: LegacyEnumType>(value: T) -> Value {
     Value::Enum(Name::new(item.name))
 }
 
-pub async fn enum_value_node<'a, T: LegacyEnumType>(ctx: &ContextSelectionSet<'a>, value: T) -> ResponseNodeId {
+pub async fn enum_value_node<'a, T: LegacyEnumType>(ctx: &ContextSelectionSetLegacy<'a>, value: T) -> ResponseNodeId {
     let item = T::items().iter().find(|item| item.value == value).unwrap();
 
     let mut response_graph = ctx.response().await;
