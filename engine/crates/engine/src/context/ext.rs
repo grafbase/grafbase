@@ -300,4 +300,4 @@ pub trait ContextExt<'a>: Context<'a> {
     }
 }
 
-impl<'a, T> ContextExt<'a> for T where T: Context<'a> {}
+impl<'a, T> ContextExt<'a> for T where T: Context<'a> + ?Sized {}
