@@ -10,7 +10,6 @@ use itertools::Itertools;
 use quick_error::quick_error;
 use rusoto_core::RusotoError;
 use rusoto_dynamodb::{AttributeValue, DynamoDb, QueryError, QueryInput};
-#[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
 use crate::{
@@ -389,15 +388,13 @@ where
                 ..input
             };
             log::debug!(trace_id, "QueryPaginated Input {:?}", input);
-            let request_fut = crate::retry::rusoto_retry(|| {
+            let resp = crate::retry::rusoto_retry(|| {
                 self.query(input.clone()).inspect_err(|err| {
                     log::error!(trace_id, "Query Paginated Error {:?}", err);
                 })
-            });
-
-            #[cfg(feature = "tracing")]
-            let request_fut = request_fut.instrument(info_span!("fetch paginated"));
-            let resp = request_fut.await?;
+            })
+            .instrument(info_span!("fetch paginated"))
+            .await?;
 
             // For each items in the result, we'll group them by pk.
             // As soon as we have more than limit items, we return.

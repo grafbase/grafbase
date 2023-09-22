@@ -84,8 +84,7 @@ async fn resolve_primitive_field(
     let result = match resolved_value {
         Ok(result) => {
             if field.ty.is_non_null() && *result.data_resolved() == serde_json::Value::Null {
-                #[cfg(feature = "tracing_worker")]
-                logworker::warn!(
+                log::warn!(
                     ctx.trace_id(),
                     "{}",
                     serde_json::to_string_pretty(&serde_json::json!({

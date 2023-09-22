@@ -10,10 +10,6 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
 
-[features]
-default = []
-tracing_worker = ["logworker", "dynamodb/tracing", "tracing"]
-
 [dependencies]
 async-lock = "2"
 async-recursion = "1"
@@ -68,13 +64,11 @@ engine-value = { path = "value", version = "3" }
 engine-parser = { path = "parser", version = "3" }
 runtime = { workspace = true }
 graph-entities = { workspace = true }
-logworker = { path = "../log", package = "log", features = [
-  "with-worker",
-], optional = true }
+log = { path = "../log", features = ["with-worker"] }
 
 # Feature optional dependencies
 rust_decimal = { version = "1" }
-tracing = { workspace = true, optional = true }
+tracing = { workspace = true }
 async-runtime = { workspace = true }
 
 # Non-feature optional dependencies

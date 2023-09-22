@@ -33,7 +33,6 @@ features = ["json"]
 [dependencies.engine]
 path = "../engine"
 default-features = false
-features = ["tracing_worker"]
 
 [dependencies.parser-graphql]
 path = "../parser-graphql"

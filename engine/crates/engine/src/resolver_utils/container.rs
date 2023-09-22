@@ -153,11 +153,8 @@ async fn resolve_container_inner<'a>(
     node_id: Option<NodeID<'a>>,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
-    #[cfg(feature = "tracing_worker")]
-    {
-        logworker::trace!(ctx.trace_id(), "Where: {}", root.name());
-        logworker::trace!(ctx.trace_id(), "Id: {:?}", node_id);
-    }
+    log::trace!(ctx.trace_id(), "Where: {}", root.name());
+    log::trace!(ctx.trace_id(), "Id: {:?}", node_id);
 
     let mut fields = FieldExecutionSet(Vec::new());
     fields.add_selection_set(ctx, root, node_id.clone(), parent_resolver_value)?;
@@ -363,14 +360,11 @@ impl<'a> FieldExecutionSet<'a> {
                 }
 
                 let type_name = root.name();
-                #[cfg(feature = "tracing_worker")]
-                {
-                    logworker::trace!(
-                        ctx.trace_id(),
-                        "Resolving {field} on {type_name}",
-                        field = field.node.name.node.as_str()
-                    );
-                }
+                log::trace!(
+                    ctx.trace_id(),
+                    "Resolving {field} on {type_name}",
+                    field = field.node.name.node.as_str()
+                );
                 let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
                     .item
                     .node

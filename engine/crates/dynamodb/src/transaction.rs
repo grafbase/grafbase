@@ -5,7 +5,6 @@ use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
 use log::debug;
 use rusoto_dynamodb::{DynamoDb, TransactWriteItem, TransactWriteItemsInput};
-#[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
 use crate::DynamoDBContext;
@@ -88,10 +87,9 @@ async fn transaction_by_pk(
         .with_max_delay(Duration::from_millis(100))
         .with_max_retries(5);
 
-    let item_collections = again.retry(|| async { ctx.dynamodb_client.transact_write_items(input.clone()).await });
-    #[cfg(feature = "tracing")]
-    let item_collections = item_collections.instrument(info_span!("fetch transaction"));
-    let item_collections = item_collections
+    let item_collections = again
+        .retry(|| async { ctx.dynamodb_client.transact_write_items(input.clone()).await })
+        .instrument(info_span!("fetch transaction"))
         .inspect_err(|err| match err {
             rusoto_core::RusotoError::Service(rusoto_dynamodb::TransactWriteItemsError::TransactionCanceled(msg))
                 if msg.contains("ConditionalCheckFailed") =>

@@ -837,7 +837,6 @@ impl ExecuteChangesOnDatabase for Vec<InternalChanges> {
             Some(Ok(first)) => first.to_transaction(batchers, ctx, pk, sk),
             #[allow(unused_variables)]
             other => {
-                #[cfg(feautre = "tracing")]
                 tracing::warn!("Failed to merge vector of internal changes: {other:?}");
                 Box::pin(async { Err(ToTransactionError::Unknown) })
             }

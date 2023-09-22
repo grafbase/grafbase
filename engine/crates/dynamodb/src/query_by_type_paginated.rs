@@ -3,7 +3,6 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use quick_error::quick_error;
-#[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
 use crate::{
@@ -145,27 +144,30 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         };
         for query_key in keys {
             let future_get = || async move {
-                let req = self.ctx.dynamodb_client.clone().query_node_edges(
-                    &self.ctx.trace_id,
-                    query_key.clone(),
-                    self.ctx.dynamodb_table_name.clone(),
-                    self.index.clone(),
-                    owned_by,
-                );
-                #[cfg(feature = "tracing")]
-                let req = req.instrument(info_span!("fetch query by type paginated"));
-                req.await.map(|r| (query_key.clone(), Arc::new(r)))
+                self.ctx
+                    .dynamodb_client
+                    .clone()
+                    .query_node_edges(
+                        &self.ctx.trace_id,
+                        query_key.clone(),
+                        self.ctx.dynamodb_table_name.clone(),
+                        self.index.clone(),
+                        owned_by,
+                    )
+                    .instrument(info_span!("fetch query by type paginated"))
+                    .await
+                    .map(|r| (query_key.clone(), Arc::new(r)))
             };
             concurrent_f.push(future_get());
         }
 
-        let b = futures_util::future::try_join_all(concurrent_f);
-        #[cfg(feature = "tracing")]
-        let b = b.instrument(info_span!("fetch query by type paginated concurrent"));
-        let b = b.await.map_err(|err| {
-            log::error!(self.ctx.trace_id, "Error while querying: {:?}", err);
-            QueryTypePaginatedLoaderError::QueryError
-        })?;
+        let b = futures_util::future::try_join_all(concurrent_f)
+            .instrument(info_span!("fetch query by type paginated concurrent"))
+            .await
+            .map_err(|err| {
+                log::error!(self.ctx.trace_id, "Error while querying: {:?}", err);
+                QueryTypePaginatedLoaderError::QueryError
+            })?;
 
         for (q, r) in b {
             h.insert(q, r);

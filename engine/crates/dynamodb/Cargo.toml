@@ -40,7 +40,7 @@ dataloader = { workspace = true }
 async-runtime = { workspace = true }
 graph-entities = { workspace = true }
 
-tracing = { workspace = true, optional = true }
+tracing = { workspace = true }
 
 # feature="sqlite"
 cfg-if = "1"
@@ -65,4 +65,3 @@ reqwest = { version = "0.11", default-features = false, optional = true, feature
 default = []
 local = []
 sqlite = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper"]
-tracing = ["dep:tracing"]
