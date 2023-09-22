@@ -159,10 +159,7 @@ impl Transformer {
                 let resolved_value =
                     last_resolver_value.ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
 
-                let mut new_value =
-                    ResolvedValue::new(resolve_enum_value(resolved_value.data_resolved(), enum_values)?);
-
-                new_value.selection_data = resolved_value.selection_data.clone();
+                let new_value = ResolvedValue::new(resolve_enum_value(resolved_value.data_resolved(), enum_values)?);
 
                 Ok(new_value)
             }
@@ -334,10 +331,7 @@ impl Transformer {
                     _ => return Err(Error::new("The resolved value is not a bytes string")),
                 };
 
-                let mut new_value = ResolvedValue::new(new_value);
-                new_value.selection_data = resolved_value.selection_data.clone();
-
-                Ok(new_value)
+                Ok(ResolvedValue::new(new_value))
             }
             Transformer::MongoTimestamp => {
                 let resolved_value =
@@ -353,10 +347,7 @@ impl Transformer {
                     _ => return Err(Error::new("Cannot coerce the initial value into a valid Timestamp")),
                 };
 
-                let mut new_value = ResolvedValue::new(value);
-                new_value.selection_data = resolved_value.selection_data.clone();
-
-                Ok(new_value)
+                Ok(ResolvedValue::new(value))
             }
             Transformer::PostgresPageInfo => {
                 let resolved_value =
