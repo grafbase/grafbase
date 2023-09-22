@@ -200,6 +200,18 @@ impl TestApi {
             .await
     }
 
+    pub async fn execute_as<T>(&self, operation: impl AsRef<str>) -> T
+    where
+        T: DeserializeOwned + Send,
+    {
+        let result = self.execute(operation).await;
+        let response = serde_json::to_string(&result.to_graphql_response()).unwrap();
+
+        println!("{response}");
+
+        serde_json::from_str(&response).unwrap()
+    }
+
     pub async fn query_sql<T>(&self, query: &str) -> QueryResponse<T>
     where
         T: DeserializeOwned + Send,

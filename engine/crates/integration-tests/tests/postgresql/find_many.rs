@@ -1,3 +1,5 @@
+mod pagination;
+
 use expect_test::expect;
 use indoc::indoc;
 use integration_tests::postgresql::{query_namespaced_neon, query_neon};
@@ -22,7 +24,7 @@ fn eq_pk() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { id: { eq: 1 } }) {
+              userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges { node { id name } }  
               }
             }
@@ -166,7 +168,7 @@ fn order_by() {
 
         let query = indoc! {r#"
             query {
-              userCollection(orderBy: [{ name: DESC }]) {
+              userCollection(first: 10, orderBy: [{ name: DESC }]) {
                 edges { node { id name } }  
               }
             }
@@ -221,7 +223,7 @@ fn namespaced() {
         let query = indoc! {r#"
             query {
               pg {
-                userCollection(filter: { id: { eq: 1 } }) {
+                userCollection(first: 10, filter: { id: { eq: 1 } }) {
                   edges { node { id name } }  
                 }
               }
@@ -272,7 +274,7 @@ fn eq_pk_rename() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { idField: { eq: 1 } }) {
+              userCollection(first: 10, filter: { idField: { eq: 1 } }) {
                 edges { node { idField nameField } }  
               }
             }
@@ -320,7 +322,7 @@ fn string_eq() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { eq: "Musti" } }) {
+              userCollection(first: 10, filter: { name: { eq: "Musti" } }) {
                 edges { node { id name } }  
               }
             }
@@ -368,7 +370,7 @@ fn array_eq() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { numbers: { eq: [3, 4] } }) {
+              userCollection(first: 10, filter: { numbers: { eq: [3, 4] } }) {
                 edges { node { id numbers } }  
               }
             }
@@ -419,7 +421,7 @@ fn array_ne() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { numbers: { ne: [3, 4] } }) {
+              userCollection(first: 10, filter: { numbers: { ne: [3, 4] } }) {
                 edges { node { id numbers } }  
               }
             }
@@ -470,7 +472,7 @@ fn array_gt() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { numbers: { gt: [1, 2] } }) {
+              userCollection(first: 10, filter: { numbers: { gt: [1, 2] } }) {
                 edges { node { id numbers } }  
               }
             }
@@ -521,7 +523,7 @@ fn array_contains() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { numbers: { contains: [1, 2, 2, 1] } }) {
+              userCollection(first: 10, filter: { numbers: { contains: [1, 2, 2, 1] } }) {
                 edges { node { id numbers } }  
               }
             }
@@ -572,7 +574,7 @@ fn array_contained() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { numbers: { contained: [3, 6, 4, 7] } }) {
+              userCollection(first: 10, filter: { numbers: { contained: [3, 6, 4, 7] } }) {
                 edges { node { id numbers } }  
               }
             }
@@ -623,7 +625,7 @@ fn array_overlaps() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { numbers: { overlaps: [1, 5, 5, 6] } }) {
+              userCollection(first: 10, filter: { numbers: { overlaps: [1, 5, 5, 6] } }) {
                 edges { node { id numbers } }  
               }
             }
@@ -675,7 +677,7 @@ fn two_field_eq() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { eq: "Musti" }, age: { eq: 11 } }) {
+              userCollection(first: 10, filter: { name: { eq: "Musti" }, age: { eq: 11 } }) {
                 edges { node { id name age } }  
               }
             }
@@ -724,7 +726,7 @@ fn string_ne() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { ne: "Musti" } }) {
+              userCollection(first: 10, filter: { name: { ne: "Musti" } }) {
                 edges { node { id name } }  
               }
             }
@@ -772,7 +774,7 @@ fn string_gt() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { gt: "Musti" } }) {
+              userCollection(first: 10, filter: { name: { gt: "Musti" } }) {
                 edges { node { id name } }  
               }
             }
@@ -820,7 +822,7 @@ fn string_lt() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { lt: "Naukio" } }) {
+              userCollection(first: 10, filter: { name: { lt: "Naukio" } }) {
                 edges { node { id name } }  
               }
             }
@@ -868,7 +870,7 @@ fn string_gte() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { gte: "Musti" } }) {
+              userCollection(first: 10, filter: { name: { gte: "Musti" } }) {
                 edges { node { id name } }  
               }
             }
@@ -922,7 +924,7 @@ fn string_lte() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { lte: "Naukio" } }) {
+              userCollection(first: 10, filter: { name: { lte: "Naukio" } }) {
                 edges { node { id name } }  
               }
             }
@@ -976,7 +978,7 @@ fn string_in() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { in: ["Musti", "Naukio"] } }) {
+              userCollection(first: 10, filter: { name: { in: ["Musti", "Naukio"] } }) {
                 edges { node { id name } }  
               }
             }
@@ -1030,7 +1032,7 @@ fn string_nin() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { nin: ["Musti", "Naukio"] } }) {
+              userCollection(first: 10, filter: { name: { nin: ["Musti", "Naukio"] } }) {
                 edges { node { id name } }  
               }
             }
@@ -1072,7 +1074,7 @@ fn all() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { ALL: [
+              userCollection(first: 10, filter: { ALL: [
                 { name: { eq: "Musti" } },
                 { age: { eq: 11 } }
               ]}) {
@@ -1125,7 +1127,7 @@ fn any() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { ANY: [
+              userCollection(first: 10, filter: { ANY: [
                 { name: { eq: "Musti" } },
                 { age: { eq: 11 } }
               ]}) {
@@ -1188,7 +1190,7 @@ fn none() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { NONE: [
+              userCollection(first: 10, filter: { NONE: [
                 { name: { eq: "Musti" } },
                 { age: { eq: 13 } }
               ]}) {
@@ -1244,7 +1246,7 @@ fn not() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { name: { not: { eq: "Pentti" } } }) {
+              userCollection(first: 10, filter: { name: { not: { eq: "Pentti" } } }) {
                 edges { node { id name age } }  
               }
             }
@@ -1321,7 +1323,7 @@ fn one_to_one_relation_filter() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { profile: { description: { eq: "purrpurrpurr" } } }) {
+              userCollection(first: 10, filter: { profile: { description: { eq: "purrpurrpurr" } } }) {
                 edges {
                   node {
                     id
@@ -1400,7 +1402,7 @@ fn one_to_many_relation_filter_child_side() {
 
         let query = indoc! {r#"
             query {
-              blogCollection(filter: { user: { id: { eq: 1 } } }) {
+              blogCollection(first: 10, filter: { user: { id: { eq: 1 } } }) {
                 edges {
                   node {
                     id
@@ -1490,12 +1492,12 @@ fn one_to_many_relation_filter_parent_side() {
 
         let query = indoc! {r#"
             query {
-              userCollection(filter: { blogs: { contains: { id: { eq: 1 } } } }) {
+              userCollection(first: 10, filter: { blogs: { contains: { id: { eq: 1 } } } }) {
                 edges {
                   node {
                     id
                     name
-                    blogs { edges { node { id title } } }
+                    blogs(first: 10) { edges { node { id title } } }
                   }
                 }
               }

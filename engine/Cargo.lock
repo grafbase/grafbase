@@ -1616,9 +1616,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sql-ast"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29aa39c93553fc933094f7b15d92a6a96956e944760f5c061e527482e7ac24e3"
+checksum = "d051b841d94e5716c3fdf21eed72031010958a8bf57c07149c0519d42cc7a9b2"
 dependencies = [
  "serde_json",
 ]
@@ -2879,9 +2879,11 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "async-trait",
+ "flexbuffers",
  "indexmap 1.9.3",
  "itertools",
  "reqwest",
+ "search-protocol",
  "serde",
  "serde_json",
  "thiserror",

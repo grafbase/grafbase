@@ -1,11 +1,14 @@
 #![allow(deprecated)]
 
-use std::hash::Hash;
-
 use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
+use grafbase_sql_ast::ast::Order;
 use indexmap::IndexMap;
+use postgresql_types::{cursor::SQLCursor, database_definition::TableId};
+use runtime::search::GraphqlCursor;
+use serde_json::Value;
+use std::hash::Hash;
 
 use super::{
     dynamo_querying::{DynamoResolver, IdCursor},
@@ -13,7 +16,9 @@ use super::{
 };
 use crate::{
     registry::{
-        resolvers::ResolverContext, variables::VariableResolveDefinition, MetaEnumValue, MetaType, UnionDiscriminator,
+        resolvers::{postgresql::CollectionArgs, resolved_value::SelectionData, ResolverContext},
+        variables::VariableResolveDefinition,
+        MetaEnumValue, MetaType, UnionDiscriminator,
     },
     Context, ContextExt, Error,
 };
@@ -91,6 +96,15 @@ pub enum Transformer {
     ByteArrayToBase64Array,
     /// Convert MongoDB timestamp as number
     MongoTimestamp,
+    /// A special transformer to fetch PostgreSQL page info for the current results.
+    PostgresPageInfo,
+    /// Calculate cursor value for a PostgreSQL row.
+    PostgresCursor,
+    /// Set PostgreSQL selection data.
+    PostgresSelectionData {
+        directive_name: String,
+        table_id: TableId,
+    },
 }
 
 impl From<Transformer> for Resolver {
@@ -132,7 +146,11 @@ impl Transformer {
                     .unwrap_or_default();
                 Ok(ResolvedValue::new(result))
             }
-            Transformer::Select { key } => Ok(last_resolver_value.and_then(|x| x.get_field(key)).unwrap_or_default()),
+            Transformer::Select { key } => {
+                let new_value = last_resolver_value.and_then(|x| x.get_field(key)).unwrap_or_default();
+
+                Ok(new_value)
+            }
             Transformer::RemoteEnum => {
                 let enum_values = ctx
                     .current_enum_values()
@@ -141,10 +159,9 @@ impl Transformer {
                 let resolved_value =
                     last_resolver_value.ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
 
-                Ok(ResolvedValue::new(resolve_enum_value(
-                    resolved_value.data_resolved(),
-                    enum_values,
-                )?))
+                let new_value = ResolvedValue::new(resolve_enum_value(resolved_value.data_resolved(), enum_values)?);
+
+                Ok(new_value)
             }
             Transformer::PaginationData => {
                 let pagination = last_resolver_value
@@ -158,7 +175,7 @@ impl Transformer {
             // TODO: look into optimizing nested single edges
             Transformer::SingleEdge { key, relation_name } => {
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved().get(key)) {
-                    Some(serde_json::Value::Array(arr)) => {
+                    Some(Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
                         if arr.len() > 1 {
                             ctx.add_error(
@@ -167,9 +184,7 @@ impl Transformer {
                             );
                         }
 
-                        arr.first()
-                            .map(std::clone::Clone::clone)
-                            .unwrap_or(serde_json::Value::Null)
+                        arr.first().map(std::clone::Clone::clone).unwrap_or(Value::Null)
                     }
                     // happens in nested relations
                     Some(val) => val.clone(),
@@ -202,7 +217,7 @@ impl Transformer {
                 expected_ty,
             } => {
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved().get(key)) {
-                    Some(serde_json::Value::Array(arr)) => {
+                    Some(Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
                         if arr.len() > 1 {
                             ctx.add_error(
@@ -211,9 +226,7 @@ impl Transformer {
                             );
                         }
 
-                        arr.first()
-                            .map(std::clone::Clone::clone)
-                            .unwrap_or(serde_json::Value::Null)
+                        arr.first().map(std::clone::Clone::clone).unwrap_or(Value::Null)
                     }
                     // happens in nested relations
                     Some(val) => val.clone(),
@@ -275,7 +288,7 @@ impl Transformer {
                 new_value
                     .as_object_mut()
                     .unwrap()
-                    .insert("__typename".into(), serde_json::Value::String(typename.clone()));
+                    .insert("__typename".into(), Value::String(typename.clone()));
 
                 Ok(ResolvedValue::new(new_value))
             }
@@ -283,29 +296,29 @@ impl Transformer {
                 let resolved_value = last_resolver_value.ok_or_else(|| Error::new("missing value for bytes column"))?;
 
                 let new_value = match resolved_value.data_resolved() {
-                    serde_json::Value::Null => serde_json::Value::Null,
-                    serde_json::Value::String(ref string) => {
-                        serde_json::Value::String(STANDARD_NO_PAD.encode(string.as_bytes()))
-                    }
+                    Value::Null => Value::Null,
+                    Value::String(ref string) => Value::String(STANDARD_NO_PAD.encode(string.as_bytes())),
                     _ => return Err(Error::new("The resolved value is not a bytes string")),
                 };
 
-                Ok(ResolvedValue::new(new_value))
+                let mut new_value = ResolvedValue::new(new_value);
+                new_value.selection_data = resolved_value.selection_data.clone();
+
+                Ok(new_value)
             }
             Transformer::ByteArrayToBase64Array => {
                 let resolved_value = last_resolver_value.ok_or_else(|| Error::new("missing value for bytes column"))?;
 
                 let new_value = match resolved_value.data_resolved() {
-                    serde_json::Value::Null => serde_json::Value::Null,
-                    serde_json::Value::Array(ref values) => {
+                    Value::Null => Value::Null,
+                    Value::Array(ref values) => {
                         let mut result = Vec::with_capacity(values.len());
 
                         for value in values {
                             match value {
-                                serde_json::Value::Null => result.push(serde_json::Value::Null),
-                                serde_json::Value::String(ref string) => {
-                                    let new_value =
-                                        serde_json::Value::String(STANDARD_NO_PAD.encode(string.as_bytes()));
+                                Value::Null => result.push(Value::Null),
+                                Value::String(ref string) => {
+                                    let new_value = Value::String(STANDARD_NO_PAD.encode(string.as_bytes()));
 
                                     result.push(new_value)
                                 }
@@ -313,7 +326,7 @@ impl Transformer {
                             }
                         }
 
-                        serde_json::Value::Array(result)
+                        Value::Array(result)
                     }
                     _ => return Err(Error::new("The resolved value is not a bytes string")),
                 };
@@ -325,16 +338,146 @@ impl Transformer {
                     last_resolver_value.ok_or_else(|| Error::new("Internal error resolving mongo timestamp"))?;
 
                 let value = match resolved_value.data_resolved() {
-                    serde_json::Value::Null => serde_json::Value::Null,
-                    serde_json::Value::Number(num) => serde_json::Value::Number(num.clone()),
-                    serde_json::Value::Object(object) => match object.get("T") {
-                        Some(serde_json::Value::Number(ms)) if ms.is_u64() => serde_json::Value::Number(ms.clone()),
+                    Value::Null => Value::Null,
+                    Value::Number(num) => Value::Number(num.clone()),
+                    Value::Object(object) => match object.get("T") {
+                        Some(Value::Number(ms)) if ms.is_u64() => Value::Number(ms.clone()),
                         _ => return Err(Error::new("Cannot coerce the initial value into a valid Timestamp")),
                     },
                     _ => return Err(Error::new("Cannot coerce the initial value into a valid Timestamp")),
                 };
 
                 Ok(ResolvedValue::new(value))
+            }
+            Transformer::PostgresPageInfo => {
+                let resolved_value =
+                    last_resolver_value.ok_or_else(|| Error::new("Internal error resolving postgres page info"))?;
+
+                let mut rows: Vec<Value> = match resolved_value.data_resolved() {
+                    Value::Array(rows) => rows.clone(),
+                    _ => return Ok(resolved_value.clone()),
+                };
+
+                let selection_data = resolved_value
+                    .selection_data
+                    .as_ref()
+                    .expect("we must have selection data set before this");
+
+                let mut has_next_page = false;
+                let mut has_previous_page = false;
+
+                if let Some(first) = selection_data.first() {
+                    if (rows.len() as u64) > first {
+                        has_next_page = true;
+                        rows.pop();
+                    }
+                }
+
+                if let Some(last) = selection_data.last() {
+                    if (rows.len() as u64) > last {
+                        has_previous_page = true;
+                        rows.remove(0);
+                    }
+                }
+
+                let start_cursor = rows.first().and_then(Value::as_object).map(|row| {
+                    let cursor = SQLCursor::new(row.clone(), selection_data.order_by());
+                    GraphqlCursor::try_from(cursor).unwrap()
+                });
+
+                let end_cursor = rows.last().and_then(Value::as_object).map(|row| {
+                    let cursor = SQLCursor::new(row.clone(), selection_data.order_by());
+                    GraphqlCursor::try_from(cursor).unwrap()
+                });
+
+                let page_info = ResolvedPaginationInfo {
+                    start_cursor,
+                    end_cursor,
+                    has_next_page,
+                    has_previous_page,
+                };
+
+                let mut new_value = ResolvedValue::new(Value::Array(rows));
+                new_value.selection_data = Some(selection_data.clone());
+                new_value.pagination = Some(page_info);
+
+                Ok(new_value)
+            }
+            Transformer::PostgresSelectionData {
+                directive_name,
+                table_id,
+            } => {
+                let database_definition = ctx
+                    .get_postgresql_definition(&directive_name)
+                    .expect("we must have an introspected database");
+
+                let table = database_definition.walk(*table_id);
+
+                let root_field = ctx
+                    .look_ahead()
+                    .iter_selection_fields()
+                    .next()
+                    .expect("we always have at least one field in the query");
+
+                let args = CollectionArgs::new(database_definition, table, &root_field)?;
+                let mut selection_data = SelectionData::default();
+
+                if let Some(first) = args.first() {
+                    selection_data.set_first(first);
+                }
+
+                if let Some(last) = args.last() {
+                    selection_data.set_last(last);
+                }
+
+                let explicit_order = args
+                    .order_by()
+                    .raw_order()
+                    .map(|(column, order)| {
+                        let order = order.map(|order| match order {
+                            Order::DescNullsFirst => "DESC",
+                            _ => "ASC",
+                        });
+
+                        (column.to_string(), order)
+                    })
+                    .collect();
+
+                selection_data.set_order_by(explicit_order);
+
+                let mut resolved_value = last_resolver_value
+                    .ok_or_else(|| Error::new("Internal error resolving postgres selection data"))?
+                    .clone();
+
+                resolved_value.selection_data = Some(selection_data);
+
+                Ok(resolved_value)
+            }
+            Transformer::PostgresCursor => {
+                let resolved_value =
+                    last_resolver_value.ok_or_else(|| Error::new("Internal error resolving postgres cursor"))?;
+
+                let selection_data = resolved_value
+                    .selection_data
+                    .as_ref()
+                    .expect("we must set selection data for cursors to work");
+
+                let cursor = match resolved_value.data_resolved() {
+                    Value::Object(ref row) => {
+                        let cursor = SQLCursor::new(row.clone(), selection_data.order_by());
+
+                        GraphqlCursor::try_from(cursor)
+                            .ok()
+                            .and_then(|cursor| serde_json::to_value(cursor).ok())
+                            .unwrap_or_default()
+                    }
+                    _ => Default::default(),
+                };
+
+                let mut new_value = ResolvedValue::new(cursor);
+                new_value.selection_data = Some(selection_data.clone());
+
+                Ok(new_value)
             }
         }
     }
@@ -358,12 +501,7 @@ impl Context<'_> {
 
 /// Resolves an Enum value from a remote server where the actual value of each enum doesn't
 /// match that presented by our API.
-fn resolve_enum_value(
-    remote_value: &serde_json::Value,
-    enum_values: &IndexMap<String, MetaEnumValue>,
-) -> Result<serde_json::Value, Error> {
-    use serde_json::Value;
-
+fn resolve_enum_value(remote_value: &Value, enum_values: &IndexMap<String, MetaEnumValue>) -> Result<Value, Error> {
     match remote_value {
         Value::String(remote_string) => Ok(Value::String(
             enum_values

@@ -270,7 +270,7 @@ fn one_to_many_join_between_schemas() {
               publicUser(by: { id: 1 }) {
                 id
                 name
-                privateUsers { edges { node { secretName } } }
+                privateUsers(first: 1000) { edges { node { secretName } } }
               }
             }
         "#};
@@ -644,7 +644,7 @@ fn one_to_many_join_parent_side() {
             query {
               user(by: { id: 1 }) {
                 name
-                blogs { edges { node { id title } } }
+                blogs(first: 10000) { edges { node { id title } } }
               }
             }
         "#};
@@ -744,12 +744,12 @@ fn nested_one_to_many_joins_parent_side() {
             query {
               user(by: { id: 1 }) {
                 name
-                blogs { 
+                blogs(first: 1000) { 
                   edges {
                     node {
                       id
                       title
-                      posts {
+                      posts(first: 1000) {
                         edges {
                           node {
                             id
@@ -1007,7 +1007,7 @@ fn one_to_many_join_parent_side_with_single_column_descending_order() {
             query {
               user(by: { id: 1 }) {
                 name
-                blogs(orderBy: [{ id: DESC }]) { edges { node { id title } } }
+                blogs(first: 10, orderBy: [{ id: DESC }]) { edges { node { id title } } }
               }
             }
         "#};
@@ -1275,8 +1275,8 @@ fn two_one_to_many_joins_parent_side() {
             query {
               user(by: { id: 1 }) {
                 name
-                blogs { edges { node { id title } } }
-                cats { edges { node { id name } } }
+                blogs(first: 1000) { edges { node { id title } } }
+                cats(first: 100) { edges { node { id name } } }
               }
             }
         "#};
@@ -1391,7 +1391,7 @@ fn one_to_one_with_one_to_many_joins_parent_side() {
             query {
               user(by: { id: 1 }) {
                 name
-                blogs { edges { node { id title } } }
+                blogs(first: 10) { edges { node { id title } } }
                 profile { description }
               }
             }

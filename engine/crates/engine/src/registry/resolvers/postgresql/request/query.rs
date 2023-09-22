@@ -12,7 +12,7 @@ use crate::registry::resolvers::postgresql::context::TableSelection;
 /// queries into a JSON array, which is serialized in the database.
 ///
 /// [example query](https://gist.github.com/pimeys/a7535acb0922fa432562539f5d8123c3)
-pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
+pub fn build<'a>(builder: SelectBuilder<'a>) -> Result<Select<'a>, crate::Error> {
     // The innermost query of the select. All filters, ordering, limits etc. are defined here.
     let sql_table =
         Table::from((builder.table().schema(), builder.table().database_name())).alias(builder.table().database_name());
@@ -26,28 +26,22 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
     }
 
     if let Some(ref args) = builder.collection_args() {
-        if let Some((order_by, _)) = args.order_by() {
-            for ordering in order_by {
-                inner_nested.order_by(ordering.clone());
-            }
+        for ordering in args.order_by().inner() {
+            inner_nested.order_by(ordering.clone());
         }
 
         if let Some(limit) = args.first() {
-            inner_nested.limit(limit as u32);
+            inner_nested.limit(limit as u32 + 1); // we load one extra for pagination
         }
 
         // There's no `LAST` in PostgreSQL, so we limit the inner selection which is ordered in an opposite way,
         // and re-order it in the outer query.
         if let Some(limit) = args.last() {
-            inner_nested.limit(limit as u32);
+            inner_nested.limit(limit as u32 + 1); // we load one extra for pagination
         }
 
-        if args.before().is_some() {
-            todo!("not yet done");
-        }
-
-        if args.after().is_some() {
-            todo!("not yet done");
+        if let Some(filter) = args.pagination_filter() {
+            inner_nested.and_where(filter);
         }
     }
 
@@ -65,7 +59,7 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
     let mut collecting_select = Select::from_table(Table::from(inner_nested).alias(builder.table().client_name()));
 
     for selection in builder.selection() {
-        match selection {
+        match selection? {
             TableSelection::Column(column) => {
                 collecting_select.column((builder.table().client_name(), column.database_name()));
             }
@@ -78,7 +72,7 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
                 builder.set_relation(relation);
 
                 // recurse
-                let mut join_data = Table::from(build(builder))
+                let mut join_data = Table::from(build(builder)?)
                     .alias(client_field_name)
                     .on(ConditionTree::single(raw("true")));
 
@@ -95,7 +89,7 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
                 builder.set_relation(relation);
 
                 // recurse
-                let mut join_data = Table::from(build(builder))
+                let mut join_data = Table::from(build(builder)?)
                     .alias(client_field_name)
                     .on(ConditionTree::single(raw("true")));
 
@@ -111,15 +105,13 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
     match builder.collection_args() {
         Some(args) => {
             for column in args.extra_columns() {
-                json_select.column(column.clone());
+                json_select.column(column);
             }
 
             // SQL doesn't guarantee ordering if it's not defined in the query.
             // we'll reuse the nested ordering here.
-            if let Some((_, order_by)) = args.order_by() {
-                for ordering in order_by {
-                    json_select.order_by(ordering.clone());
-                }
+            for ordering in args.order_by().outer() {
+                json_select.order_by(ordering);
             }
 
             let mut json_aggregation =
@@ -129,24 +121,18 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Select<'a> {
 
             // SQL doesn't guarantee ordering if it's not defined in the query.
             // we'll reuse the nested ordering here.
-            let json_agg = match args.order_by() {
-                Some((_, order_by)) => {
-                    let mut ordering = Ordering::default();
+            let mut ordering = Ordering::default();
 
-                    for order in order_by {
-                        ordering.append(order.clone());
-                    }
+            for order in args.order_by().outer() {
+                ordering.append(order.clone());
+            }
 
-                    json_agg(column, Some(ordering), false)
-                }
-                None => json_agg(column, None, false),
-            };
-
+            let json_agg = json_agg(column, Some(ordering), false);
             let json_value = coalesce([Expression::from(json_agg), raw("'[]'")]);
-            json_aggregation.value(json_value.alias(builder.field_name().to_string()));
 
-            json_aggregation
+            json_aggregation.value(json_value.alias(builder.field_name().to_string()));
+            Ok(json_aggregation)
         }
-        None => json_select,
+        None => Ok(json_select),
     }
 }

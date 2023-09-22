@@ -41,8 +41,14 @@ impl<'a> TableWalker<'a> {
         self.columns().next().is_some() && self.unique_constraints().next().is_some()
     }
 
+    /// A special unique index that acts as the primary key of the column.
     pub fn primary_key(self) -> Option<UniqueConstraintWalker<'a>> {
         self.unique_constraints().find(|constraint| constraint.is_primary())
+    }
+
+    /// The key used to implicitly order a result set if no order defined by the user.
+    pub fn implicit_ordering_key(self) -> Option<UniqueConstraintWalker<'a>> {
+        self.primary_key().or_else(|| self.unique_constraints().next())
     }
 
     /// An iterator over all the unqiue constraints, including the primary key.
@@ -56,8 +62,8 @@ impl<'a> TableWalker<'a> {
             .filter(|constraint| constraint.all_columns_use_supported_types())
     }
 
-    /// Find a column by name.
-    pub fn find_column(self, name: &str) -> Option<TableColumnWalker<'a>> {
+    /// Find a column by database name.
+    pub fn find_database_column(self, name: &str) -> Option<TableColumnWalker<'a>> {
         self.database_definition
             .names
             .get_table_column_id(self.id, name)

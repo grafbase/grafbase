@@ -12,8 +12,10 @@ keywords = ["graphql", "postgresql", "grafbase"]
 [dependencies]
 Inflector = "0.11.4"
 async-trait = "0.1.73"
+flexbuffers.workspace = true
 indexmap = { version = "1", features = ["serde"] }
 itertools.workspace = true
+search-protocol.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

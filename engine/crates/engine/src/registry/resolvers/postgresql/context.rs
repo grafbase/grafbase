@@ -1,8 +1,10 @@
 mod filter;
-mod selection;
+pub mod selection;
+
+pub use selection::CollectionArgs;
 
 pub(super) use filter::FilterIterator;
-pub(super) use selection::{CollectionArgs, SelectionIterator, TableSelection};
+pub(super) use selection::{SelectionIterator, TableSelection};
 
 use crate::{
     registry::{resolvers::ResolverContext, type_kinds::SelectionSetTarget, Registry},
@@ -47,6 +49,10 @@ impl<'a> PostgresContext<'a> {
         })
     }
 
+    pub fn database_definition(&self) -> &DatabaseDefinition {
+        self.database_definition
+    }
+
     /// The main table accessed by this request.
     pub fn table(&self) -> TableWalker<'a> {
         self.resolver_context
@@ -74,7 +80,7 @@ impl<'a> PostgresContext<'a> {
             .collect();
 
         let meta_type = self.resolver_context.ty.unwrap();
-        SelectionIterator::new(self, meta_type, selection)
+        SelectionIterator::new(self, meta_type, &self.root_field(), selection)
     }
 
     pub fn collection_selection(&'a self) -> SelectionIterator<'a> {
@@ -97,7 +103,7 @@ impl<'a> PostgresContext<'a> {
             .and_then(|field| self.registry().lookup_by_str(field.ty.base_type_name()).ok())
             .expect("couldn't fiind a meta type for a collection selection");
 
-        SelectionIterator::new(self, meta_type, selection)
+        SelectionIterator::new(self, meta_type, &self.root_field(), selection)
     }
 
     /// Access to the schema registry.

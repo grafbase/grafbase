@@ -1,11 +1,8 @@
-use std::{borrow::Borrow, sync::Arc};
-
+use super::ResolvedPaginationInfo;
+use crate::QueryPathSegment;
 use internment::ArcIntern;
 use serde_json::Value;
-
-use crate::QueryPathSegment;
-
-use super::ResolvedPaginationInfo;
+use std::{borrow::Borrow, sync::Arc};
 
 /// ResolvedValue are values passed arround between resolvers, it contains the actual Resolver data
 /// but will also contain other informations wich may be use later by custom resolvers, like for
@@ -35,6 +32,41 @@ pub struct ResolvedValue {
     /// Resolvers can set this value when resolving so the engine will know it's
     /// not usefull to continue iterating over the ResolverChain.
     pub early_return_null: bool,
+    /// Selection-specific data for resolvers to use.
+    pub selection_data: Option<SelectionData>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SelectionData {
+    first: Option<u64>,
+    last: Option<u64>,
+    order_by: Option<Vec<(String, Option<&'static str>)>>,
+}
+
+impl SelectionData {
+    pub fn set_first(&mut self, first: u64) {
+        self.first = Some(first);
+    }
+
+    pub fn set_last(&mut self, last: u64) {
+        self.last = Some(last);
+    }
+
+    pub fn set_order_by(&mut self, order_by: Vec<(String, Option<&'static str>)>) {
+        self.order_by = Some(order_by);
+    }
+
+    pub fn first(&self) -> Option<u64> {
+        self.first
+    }
+
+    pub fn last(&self) -> Option<u64> {
+        self.last
+    }
+
+    pub fn order_by(&self) -> Option<&[(String, Option<&'static str>)]> {
+        self.order_by.as_deref()
+    }
 }
 
 impl Borrow<Value> for &ResolvedValue {
@@ -50,6 +82,7 @@ impl ResolvedValue {
             data_path: vec![],
             pagination: None,
             early_return_null: false,
+            selection_data: None,
         }
     }
 
@@ -64,6 +97,11 @@ impl ResolvedValue {
 
     pub fn with_early_return(mut self) -> Self {
         self.early_return_null = true;
+        self
+    }
+
+    pub fn with_selection_data(mut self, connector_data: SelectionData) -> Self {
+        self.selection_data = Some(connector_data);
         self
     }
 
@@ -125,11 +163,13 @@ impl ResolvedValue {
 
         let mut data_path = self.data_path.clone();
         data_path.push(QueryPathSegment::Index(index));
+
         Some(ResolvedValue {
             data_root: Arc::clone(&self.data_root),
             data_path,
             early_return_null: false,
             pagination: None,
+            selection_data: self.selection_data.clone(),
         })
     }
 
@@ -139,11 +179,13 @@ impl ResolvedValue {
 
         let mut data_path = self.data_path.clone();
         data_path.push(QueryPathSegment::Field(ArcIntern::from_ref(name)));
+
         Some(ResolvedValue {
             data_root: Arc::clone(&self.data_root),
             data_path,
             early_return_null: false,
             pagination: None,
+            selection_data: self.selection_data.clone(),
         })
     }
 
@@ -174,11 +216,13 @@ impl ResolvedValue {
                     // that'd be inefficient.
                     let mut data_path = self.data_path.clone();
                     data_path.push(QueryPathSegment::Index(index));
+
                     ResolvedValue {
                         data_root: Arc::clone(&self.data_root),
                         data_path,
                         early_return_null: false,
                         pagination: None,
+                        selection_data: self.selection_data.clone(),
                     }
                 }))
             }
