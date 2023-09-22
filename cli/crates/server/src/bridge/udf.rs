@@ -4,8 +4,10 @@ use std::sync::Arc;
 use crate::errors::UdfBuildError;
 use crate::types::ServerMessage;
 
+use crate::bridge::api_counterfeit::registry::VersionedRegistry;
 use axum::extract::State;
 use axum::Json;
+use common::environment::Project;
 use common::types::UdfKind;
 use common::{environment::Environment, types::LogLevel};
 use futures_util::{pin_mut, TryFutureExt, TryStreamExt};
@@ -116,12 +118,33 @@ pub async fn invoke_udf_endpoint(
 
         let tracing = handler_state.tracing;
 
+        let enable_kv = tokio::task::spawn_blocking::<_, Result<bool, ApiError>>(move || {
+            let project = Project::get();
+
+            let registry = {
+                let json = project.registry().map_err(|err| {
+                    error!("Failed to read registry: {err:?}");
+                    ApiError::ServerError
+                })?;
+
+                serde_json::from_value::<VersionedRegistry>(json).map_err(|err| {
+                    error!("Failed to deserialize registry: {err:?}");
+                    ApiError::ServerError
+                })?
+            };
+
+            Ok(registry.registry.enable_kv)
+        })
+        .await
+        .map_err(|_| ApiError::ServerError)??;
+
         match crate::udf_builder::build(
             environment,
             &handler_state.environment_variables,
             udf_kind,
             &udf_name,
             tracing,
+            enable_kv,
         )
         .and_then(|(package_json_path, wrangler_toml_path)| {
             super::udf::spawn_miniflare(udf_kind, &udf_name, package_json_path, wrangler_toml_path, tracing)

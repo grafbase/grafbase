@@ -10,8 +10,6 @@ use tantivy::schema::Field;
 use tantivy::Document;
 use ulid::Ulid;
 
-use std::fs::File;
-use std::io::BufReader;
 use std::net::{IpAddr, Ipv6Addr};
 use std::sync::Arc;
 
@@ -318,16 +316,23 @@ pub async fn search_endpoint(
     let project = Project::get();
 
     let registry: Registry = {
-        let path = &project.registry_path;
-        let file = File::open(path).map_err(|err| {
-            error!("Failed to open {path:?}: {err:?}");
+        let versioned = tokio::task::spawn_blocking::<_, Result<VersionedRegistry, ApiError>>(|| {
+            let registry_value = project.registry().map_err(|err| {
+                error!("Failed to read registry: {err:?}");
+                ApiError::ServerError
+            })?;
+
+            serde_json::from_value::<VersionedRegistry>(registry_value).map_err(|err| {
+                error!("Failed to deserialize registry: {err:?}");
+                ApiError::ServerError
+            })
+        })
+        .await
+        .map_err(|e| {
+            error!("Failed do read json registry: {e:?}");
             ApiError::ServerError
-        })?;
-        let reader = BufReader::new(file);
-        let versioned: VersionedRegistry = serde_json::from_reader(reader).map_err(|err| {
-            error!("Failed to deserialize registry: {err:?}");
-            ApiError::ServerError
-        })?;
+        })??;
+
         versioned.registry
     };
 
