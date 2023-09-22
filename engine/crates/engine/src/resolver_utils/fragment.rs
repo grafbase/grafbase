@@ -5,7 +5,7 @@ use engine_parser::{
 use engine_value::Variables;
 use serde::Deserialize;
 
-use crate::{directive::DirectiveDeserializer, registry::MetaType, ContextBase, ContextSelectionSet, ServerError};
+use crate::{directive::DirectiveDeserializer, registry::MetaType, ContextExt, ContextSelectionSet, ServerError};
 
 /// The details of a fragment spread/inline fragment.
 ///
@@ -17,16 +17,16 @@ pub(super) struct FragmentDetails<'a> {
 }
 
 impl<'a> FragmentDetails<'a> {
-    pub(super) fn should_defer(&self, ctx: &ContextBase<'a, &Positioned<SelectionSet>>) -> bool {
+    pub(super) fn should_defer(&self, ctx: &ContextSelectionSet<'a>) -> bool {
         self.defer
             .as_ref()
             .map(|directive| directive.should_defer)
             .unwrap_or_default()
-            && ctx.deferred_workloads.is_some()
+            && ctx.deferred_workloads().is_some()
     }
 
     pub(super) fn from_fragment_selection(
-        ctx: &ContextBase<'a, &Positioned<SelectionSet>>,
+        ctx: &ContextSelectionSet<'a>,
         selection: &'a Selection,
     ) -> Result<FragmentDetails<'a>, ServerError> {
         match selection {

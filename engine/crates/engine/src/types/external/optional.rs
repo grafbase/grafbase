@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use graph_entities::{CompactValue, ResponseNodeId};
 
 use crate::{
-    parser::types::Field, registry, ContextSelectionSet, InputValueError, InputValueResult, LegacyInputType,
-    LegacyOutputType, Positioned, ServerResult, Value,
+    parser::types::Field, registry, ContextExt, ContextSelectionSet, InputValueError, InputValueResult,
+    LegacyInputType, LegacyOutputType, Positioned, ServerResult, Value,
 };
 
 impl<T: LegacyInputType> LegacyInputType for Option<T> {
@@ -66,12 +66,12 @@ impl<T: LegacyOutputType + Sync> LegacyOutputType for Option<T> {
                 Ok(value) => Ok(value),
                 Err(err) => {
                     ctx.add_error(err);
-                    let mut graph = ctx.response_graph.write().await;
+                    let mut graph = ctx.response().await;
                     Ok(graph.insert_node(CompactValue::Null))
                 }
             }
         } else {
-            let mut graph = ctx.response_graph.write().await;
+            let mut graph = ctx.response().await;
             Ok(graph.insert_node(CompactValue::Null))
         }
     }

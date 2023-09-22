@@ -25,7 +25,7 @@ use crate::{
         variables::{id::ObfuscatedID, VariableResolveDefinition},
         ConstraintType, MetaFieldType, ModelName, ObjectType, TypeReference,
     },
-    Context, Error, ServerError, Value,
+    Context, ContextExt, Error, ServerError, Value,
 };
 
 mod create;

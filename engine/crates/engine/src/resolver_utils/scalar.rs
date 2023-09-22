@@ -1,6 +1,6 @@
 use graph_entities::{ResponseNodeId, ResponsePrimitive};
 
-use crate::{ContextSelectionSet, InputValueResult, ServerResult, Value};
+use crate::{ContextExt, ContextSelectionSet, InputValueResult, ServerResult, Value};
 
 /// A GraphQL scalar.
 ///
@@ -217,6 +217,6 @@ macro_rules! scalar_internal {
 }
 
 pub async fn resolve_scalar_native<'a>(ctx: &ContextSelectionSet<'a>, value: Value) -> ServerResult<ResponseNodeId> {
-    let mut response_graph = ctx.response_graph.write().await;
+    let mut response_graph = ctx.response().await;
     Ok(response_graph.insert_node(ResponsePrimitive::new(value.into())))
 }

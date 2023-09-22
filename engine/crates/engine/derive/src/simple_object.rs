@@ -230,6 +230,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
             });
             resolvers.push(quote! {
                 if ctx.item.node.name.node == #field_name {
+                    use #crate_name::context::ContextExt;
                     let f = async move {
                         #guard
                         self.#ident(ctx).await.map_err(|err| err.into_server_error(ctx.item.pos))

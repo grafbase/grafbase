@@ -4,6 +4,7 @@ use engine_value::ConstValue;
 use graph_entities::ResponseNodeId;
 
 use crate::{
+    context::ContextExt,
     parser::types::Field,
     registry::{self, InputValueType, Registry},
     ContainerType, Context, ContextSelectionSet, Error, InputValueError, InputValueResult, Positioned, Result,

@@ -9,7 +9,7 @@ use crate::{
         variables::VariableResolveDefinition,
         ModelName,
     },
-    Context, Error,
+    Context, ContextExt, Error,
 };
 
 #[derive(serde::Deserialize)]

@@ -15,7 +15,7 @@ use crate::{
     registry::{
         resolvers::ResolverContext, variables::VariableResolveDefinition, MetaEnumValue, MetaType, UnionDiscriminator,
     },
-    Context, Error,
+    Context, ContextExt, Error,
 };
 
 #[non_exhaustive]

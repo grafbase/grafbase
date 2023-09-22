@@ -9,7 +9,7 @@ use super::{
 use crate::{
     names::OUTPUT_EDGE_CURSOR,
     registry::{variables::VariableResolveDefinition, ModelName},
-    Context, Error,
+    Context, ContextExt, Error,
 };
 
 mod search_parser;

@@ -49,8 +49,8 @@ use crate::{
     model,
     parser::types::{BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition},
     validation::dynamic_validators::DynValidator,
-    Any, Context, Error, LegacyInputType, LegacyOutputType, Positioned, ServerResult, SubscriptionType, Value,
-    VisitorContext,
+    Any, Context, ContextExt, Error, LegacyInputType, LegacyOutputType, Positioned, ServerResult, SubscriptionType,
+    Value, VisitorContext,
 };
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
@@ -499,7 +499,7 @@ impl MetaField {
                 CacheInvalidationPolicy::Type => vec![CacheTag::Type { type_name: cache_type }],
             };
 
-            ctx.response_graph.write().await.add_cache_tags(cache_tags);
+            ctx.response().await.add_cache_tags(cache_tags);
         }
     }
 }

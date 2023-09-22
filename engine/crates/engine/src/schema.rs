@@ -1,16 +1,14 @@
-use std::{any::Any, collections::HashMap, ops::Deref, sync::Arc};
+use std::{any::Any, ops::Deref, sync::Arc};
 
-use async_lock::RwLock;
 use dynamodb::CurrentDateTime;
 
 use futures_util::stream::{self, Stream, StreamExt};
-use graph_entities::{CompactValue, QueryResponse};
+use graph_entities::CompactValue;
 use indexmap::map::IndexMap;
 
 use crate::{
     context::{Data, QueryEnvInner},
-    custom_directive::CustomDirectiveFactory,
-    deferred::{self, DeferredWorkloadSender},
+    deferred,
     extensions::{ExtensionFactory, Extensions},
     model::__DirectiveLocation,
     parser::{
@@ -24,8 +22,8 @@ use crate::{
     subscription::collect_subscription_streams,
     types::QueryRoot,
     validation::{check_rules, ValidationMode},
-    BatchRequest, BatchResponse, CacheControl, ContextBase, LegacyInputType, LegacyOutputType, ObjectType, QueryEnv,
-    QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
+    BatchRequest, BatchResponse, CacheControl, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType,
+    ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
 
 /// Schema builder
@@ -36,7 +34,6 @@ pub struct SchemaBuilder {
     complexity: Option<usize>,
     depth: Option<usize>,
     extensions: Vec<Box<dyn ExtensionFactory>>,
-    custom_directives: HashMap<&'static str, Box<dyn CustomDirectiveFactory>>,
 }
 
 impl SchemaBuilder {
@@ -149,25 +146,6 @@ impl SchemaBuilder {
         self
     }
 
-    /// Register a custom directive.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the directive with the same name is already registered.
-    #[must_use]
-    pub fn directive<T: CustomDirectiveFactory>(mut self, directive: T) -> Self {
-        let name = directive.name();
-        let instance = Box::new(directive);
-
-        instance.register(&mut self.registry);
-
-        if name == "skip" || name == "include" || self.custom_directives.insert(name, instance).is_some() {
-            panic!("Directive `{name}` already exists");
-        }
-
-        self
-    }
-
     /// Build schema.
     pub fn finish(mut self) -> Schema {
         // federation
@@ -183,7 +161,6 @@ impl SchemaBuilder {
             env: SchemaEnv(Arc::new(SchemaEnvInner {
                 registry: self.registry,
                 data: self.data,
-                custom_directives: self.custom_directives,
             })),
         }))
     }
@@ -193,7 +170,6 @@ impl SchemaBuilder {
 pub struct SchemaEnvInner {
     pub registry: Registry,
     pub data: Data,
-    pub custom_directives: HashMap<&'static str, Box<dyn CustomDirectiveFactory>>,
 }
 
 #[doc(hidden)]
@@ -256,7 +232,6 @@ impl Schema {
             complexity: None,
             depth: None,
             extensions: Default::default(),
-            custom_directives: Default::default(),
         }
     }
 
@@ -446,7 +421,7 @@ impl Schema {
         mut extensions: Extensions,
         request: Request,
         session_data: Arc<Data>,
-    ) -> Result<(QueryEnv, CacheControl), Vec<ServerError>> {
+    ) -> Result<(QueryEnvBuilder, CacheControl), Vec<ServerError>> {
         let mut request = request;
         let query_data = Arc::new(std::mem::take(&mut request.data));
         extensions.attach_query_data(query_data.clone());
@@ -536,28 +511,27 @@ impl Schema {
             errors: Default::default(),
             current_datetime: CurrentDateTime::new(),
             cache_invalidations: validation_result.cache_invalidation_policies,
+            response: Default::default(),
+            deferred_workloads: None,
         };
-        Ok((QueryEnv::new(env), validation_result.cache_control))
+        Ok((QueryEnvBuilder::new(env), validation_result.cache_control))
     }
 
-    async fn execute_once(&self, env: QueryEnv, deferred_workloads: Option<DeferredWorkloadSender>) -> Response {
+    async fn execute_once(&self, env: QueryEnv) -> Response {
         // execute
-        let ctx = ContextBase {
+        let ctx = ContextSelectionSet {
             path: QueryPath::empty(),
             resolver_node: None,
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
             query_env: &env,
-            resolvers_data: Default::default(),
-            response_graph: Arc::new(RwLock::new(QueryResponse::default())),
-            deferred_workloads,
         };
 
-        let query = ctx.registry().query_root();
+        let query = self.env.registry.query_root();
 
         let res = match &env.operation.node.ty {
             OperationType::Query => resolve_root_container(&ctx, query).await,
-            OperationType::Mutation => resolve_root_container_serial(&ctx, ctx.registry().mutation_root()).await,
+            OperationType::Mutation => resolve_root_container_serial(&ctx, self.env.registry.mutation_root()).await,
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
                 None,
@@ -566,7 +540,7 @@ impl Schema {
 
         let mut resp = match res {
             Ok(value) => {
-                let response = &mut *ctx.response_graph.write().await;
+                let response = &mut *ctx.response().await;
                 response.set_root_unchecked(value);
                 Response::new(std::mem::take(response), env.operation.node.ty)
             }
@@ -586,8 +560,9 @@ impl Schema {
             let extensions = extensions.clone();
             async move {
                 match self.prepare_request(extensions, request, Default::default()).await {
-                    Ok((env, cache_control)) => {
-                        let fut = async { self.execute_once(env.clone(), None).await.cache_control(cache_control) };
+                    Ok((env_builder, cache_control)) => {
+                        let env = env_builder.build();
+                        let fut = async { self.execute_once(env.clone()).await.cache_control(cache_control) };
                         futures_util::pin_mut!(fut);
                         env.extensions
                             .execute(env.operation_name.as_deref(), &env.operation, &mut fut)
@@ -634,7 +609,7 @@ impl Schema {
         futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
             async_stream::stream! {
-                let (env, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
+                let (env_builder, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
                         yield Response::from_errors(errors, OperationType::Subscription).into();
@@ -642,10 +617,12 @@ impl Schema {
                     }
                 };
 
-                if env.operation.node.ty != OperationType::Subscription {
+                if env_builder.operation_type() != OperationType::Subscription {
                     let (sender, mut receiver) = deferred::workload_channel();
+                    let env = env_builder.with_deferred_sender(sender).build();
+
                     yield schema
-                        .execute_once(env.clone(), Some(sender.clone()))
+                        .execute_once(env.clone())
                         .await
                         .cache_control(cache_control)
                         .into();
@@ -654,7 +631,7 @@ impl Schema {
                     // workloads serially. We can look into doing something smarter later.
                     let mut next_workload = receiver.receive();
                     while let Some(workload) = next_workload {
-                        let mut next_response = process_deferred_workload(workload, &schema, &env, &sender).await;
+                        let mut next_response = process_deferred_workload(workload, &schema, &env).await;
                         next_workload = receiver.receive();
                         next_response.has_next = next_workload.is_some();
                         yield next_response.into()
@@ -662,11 +639,12 @@ impl Schema {
                     return;
                 }
 
+                let env = env_builder.build();
+
                 let ctx = env.create_context(
                     &schema.env,
                     None,
                     &env.operation.node.selection_set,
-                    None, // We don't support deferring in subscriptions
                 );
 
                 let mut streams = Vec::new();
@@ -699,9 +677,8 @@ async fn process_deferred_workload(
     workload: deferred::DeferredWorkload,
     schema: &Schema,
     env: &QueryEnv,
-    sender: &DeferredWorkloadSender,
 ) -> IncrementalPayload {
-    let context = workload.to_context(&schema.env, env, sender.clone());
+    let context = workload.to_context(&schema.env, env);
     let result = resolver_utils::resolve_deferred_container(
         &context,
         context
@@ -712,7 +689,7 @@ async fn process_deferred_workload(
     )
     .await;
 
-    let mut data = std::mem::take(&mut *context.response_graph.write().await);
+    let mut data = std::mem::take(&mut *context.response().await);
     let mut errors = std::mem::take(&mut *context.query_env.errors.lock().expect("to be able to lock this mutex"));
 
     let root_node = match result {

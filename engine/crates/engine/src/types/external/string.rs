@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use graph_entities::{CompactValue, ResponseNodeId};
 
 use crate::{
-    parser::types::Field, registry, registry::Registry, ContextSelectionSet, InputValueError, InputValueResult,
-    LegacyInputType, LegacyOutputType, LegacyScalarType, Positioned, Scalar, ServerResult, Value,
+    parser::types::Field, registry, registry::Registry, ContextExt, ContextSelectionSet, InputValueError,
+    InputValueResult, LegacyInputType, LegacyOutputType, LegacyScalarType, Positioned, Scalar, ServerResult, Value,
 };
 
 /// The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -73,7 +73,7 @@ impl LegacyOutputType for str {
     }
 
     async fn resolve(&self, ctx: &ContextSelectionSet<'_>, _field: &Positioned<Field>) -> ServerResult<ResponseNodeId> {
-        let mut graph = ctx.response_graph.write().await;
+        let mut graph = ctx.response().await;
         Ok(graph.insert_node(CompactValue::String(self.to_string())))
     }
 }

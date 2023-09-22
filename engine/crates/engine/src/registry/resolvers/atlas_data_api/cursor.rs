@@ -6,7 +6,7 @@ use crate::{
         type_kinds::{OutputType, SelectionSetTarget},
         MetaField, MetaType, TypeReference,
     },
-    Context, ServerError, ServerResult,
+    Context, ContextExt, ServerError, ServerResult,
 };
 use indexmap::IndexMap;
 use runtime::search::GraphqlCursor;

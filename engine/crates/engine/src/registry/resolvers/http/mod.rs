@@ -6,7 +6,8 @@ use reqwest::Url;
 use self::parameters::ParamApply;
 use super::{ResolvedValue, ResolverContext};
 use crate::{
-    registry::variables::VariableResolveDefinition, send_wrapper::make_send_on_wasm, Context, Error, RequestHeaders,
+    registry::variables::VariableResolveDefinition, send_wrapper::make_send_on_wasm, Context, ContextExt, Error,
+    RequestHeaders,
 };
 
 mod parameters;

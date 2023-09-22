@@ -6,7 +6,7 @@ pub(super) use selection::{CollectionArgs, SelectionIterator, TableSelection};
 
 use crate::{
     registry::{resolvers::ResolverContext, type_kinds::SelectionSetTarget, Registry},
-    Context, Error, SelectionField, ServerResult,
+    Context, ContextExt, Error, SelectionField, ServerResult,
 };
 use postgresql_types::{
     database_definition::{DatabaseDefinition, TableWalker},

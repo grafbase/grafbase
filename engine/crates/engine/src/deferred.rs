@@ -1,9 +1,5 @@
-use std::sync::Arc;
-
-use async_lock::RwLock;
 use engine_parser::{types::SelectionSet, Positioned};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use graph_entities::QueryResponse;
 use ulid::Ulid;
 
 use crate::{
@@ -37,12 +33,7 @@ impl DeferredWorkload {
         }
     }
 
-    pub fn to_context<'a>(
-        &'a self,
-        schema_env: &'a SchemaEnv,
-        query_env: &'a QueryEnv,
-        deferred_workloads: DeferredWorkloadSender,
-    ) -> ContextSelectionSet<'a> {
+    pub fn to_context<'a>(&'a self, schema_env: &'a SchemaEnv, query_env: &'a QueryEnv) -> ContextSelectionSet<'a> {
         ContextSelectionSet {
             path: self.path.clone(),
             resolver_node: self.path.last().cloned().map(|segment| ResolverChainNode {
@@ -63,9 +54,6 @@ impl DeferredWorkload {
             item: &self.selection_set,
             schema_env,
             query_env,
-            resolvers_data: Default::default(),
-            response_graph: Arc::new(RwLock::new(QueryResponse::default())),
-            deferred_workloads: Some(deferred_workloads),
         }
     }
 }

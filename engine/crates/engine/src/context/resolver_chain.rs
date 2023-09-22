@@ -44,24 +44,6 @@ pub struct ResolverChainNode<'a> {
     pub resolver: Option<&'a Resolver>,
 }
 
-#[cfg(isthisneeded)]
-impl<'a> Display for ResolverChainNode<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut first = true;
-        self.try_for_each(|segment| {
-            if !first {
-                write!(f, ".")?;
-            }
-            first = false;
-
-            match segment {
-                QueryPathSegment::Index(idx) => write!(f, "{}", *idx),
-                QueryPathSegment::Field(name) => write!(f, "{name}"),
-            }
-        })
-    }
-}
-
 #[derive(serde::Serialize)]
 pub struct ResponsePath<'a> {
     key: &'a str,
