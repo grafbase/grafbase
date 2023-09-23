@@ -11,5 +11,6 @@ pub mod udf;
 pub struct GraphqlRequestExecutionContext {
     /// Used to track request across services.
     pub ray_id: String,
+    pub fetch_log_endpoint_url: Option<String>,
     pub headers: HashMap<String, String>,
 }

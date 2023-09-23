@@ -8,7 +8,7 @@ use futures_util::{future::BoxFuture, stream::BoxStream, AsyncBufReadExt, SinkEx
 use gateway_adapter::{ExecutionEngine, ExecutionError, ExecutionRequest, ExecutionResult};
 use gateway_core::StreamingFormat;
 use runtime_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
-use worker::{js_sys, Env};
+use worker::Env;
 use worker_env::{EnvExt, VarType};
 
 pub const REGISTRY_ENV_VAR: &str = "REGISTRY";
@@ -125,10 +125,7 @@ impl LocalExecution {
             }),
         );
 
-        let fetch_log_endpoint = format!("http://{}:{}", std::net::Ipv4Addr::LOCALHOST, self.bridge_port);
-        let global: worker::wasm_bindgen::JsValue = js_sys::global().into();
-        js_sys::Reflect::set(&global, &"fetchLogEndpoint".into(), &fetch_log_endpoint.into()).unwrap();
-
+        let fetch_log_endpoint_url = Some(format!("http://{}:{}", std::net::Ipv4Addr::LOCALHOST, self.bridge_port));
         let search_engine = LocalSearchEngine::new(self.bridge_port);
         let versioned_registry: VersionedRegistry<'_> = serde_json::from_str(
             self.env
@@ -149,6 +146,7 @@ impl LocalExecution {
         let resolver_engine = UdfInvokerImpl::create_engine(bridge.clone());
         let gql_request_exec_context = runtime::GraphqlRequestExecutionContext {
             ray_id: ray_id.clone(),
+            fetch_log_endpoint_url,
             headers: execution_request.execution_headers.clone(),
         };
 

@@ -4,6 +4,8 @@ use async_runtime::make_send_on_wasm;
 use futures_util::Future;
 use reqwest::Url;
 
+use crate::registry::resolvers::response_ext::ResponseExt;
+
 use self::parameters::ParamApply;
 use super::{ResolvedValue, ResolverContext};
 use crate::{registry::variables::VariableResolveDefinition, Context, ContextExt, ContextField, Error, RequestHeaders};
@@ -80,11 +82,11 @@ impl HttpResolver {
             .unwrap_or_default();
 
         Box::pin(make_send_on_wasm(async move {
-            let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
+            let graphql = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
+            let fetch_log_endpoint_url = graphql.fetch_log_endpoint_url.as_deref();
+            let ray_id = &graphql.ray_id;
             let url = self.build_url(ctx, last_resolver_value)?;
-            let mut request_builder = reqwest::Client::new()
-                .request(self.method.parse()?, Url::parse(&url)?)
-                .header("x-grafbase-fetch-trace-id", ray_id);
+            let mut request_builder = reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
 
             for (name, value) in headers {
                 request_builder = request_builder.header(name, value);
@@ -108,7 +110,9 @@ impl HttpResolver {
                 }
             }
 
-            let response = request_builder.send().await.map_err(|e| Error::new(e.to_string()))?;
+            let response = super::logged_fetch::send_logged_request(ray_id, fetch_log_endpoint_url, request_builder)
+                .await
+                .map_err(|e| Error::new(e.to_string()))?;
 
             if !self.expected_status.contains(response.status()) {
                 return Err(Error::new(format!(
@@ -118,8 +122,7 @@ impl HttpResolver {
             }
 
             let data = response
-                .json::<serde_json::Value>()
-                .await
+                .into_json::<serde_json::Value>()
                 .map_err(|e| Error::new(e.to_string()))?;
 
             let is_null = data.is_null();

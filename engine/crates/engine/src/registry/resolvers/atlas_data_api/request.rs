@@ -3,7 +3,7 @@ mod query;
 use super::OperationType;
 use crate::{
     registry::{
-        resolvers::{ResolvedValue, ResolverContext},
+        resolvers::{response_ext::ErrorWithStatus, ResolvedValue, ResolverContext},
         MongoDBConfiguration,
     },
     ContextExt, ContextField, Error,
@@ -29,6 +29,8 @@ pub(super) async fn execute(
     collection: &str,
     operation_type: OperationType,
 ) -> Result<ResolvedValue, Error> {
+    use crate::registry::resolvers::response_ext::ResponseExt;
+
     let query: AtlasQuery = match operation_type {
         OperationType::FindOne => FindOne::new(ctx, resolver_ctx)?.into(),
         OperationType::FindMany => FindMany::new(ctx, resolver_ctx)?.into(),
@@ -58,26 +60,25 @@ pub(super) async fn execute(
     };
 
     let url = format!("{}/action/{}", config.url, operation_type);
-    let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
+    let graphql_request_execution_context = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
+    let ray_id = &graphql_request_execution_context.ray_id;
+    let fetch_log_endpoint_url = graphql_request_execution_context.fetch_log_endpoint_url.as_deref();
 
     let request_builder = reqwest::Client::new()
         .post(url)
-        .header("x-grafbase-fetch-trace-id", ray_id)
         .header(CONTENT_TYPE, headers::APPLICATION_EJSON_CONTENT_TYPE)
         .header(ACCEPT, headers::APPLICATION_JSON_CONTENT_TYPE)
         .header(headers::API_KEY_HEADER_NAME, &config.api_key)
-        .header(USER_AGENT, "Grafbase");
+        .header(USER_AGENT, "Grafbase")
+        .json(&request);
 
-    let value = request_builder
-        .json(&request)
-        .send()
+    let value = super::super::logged_fetch::send_logged_request(ray_id, fetch_log_endpoint_url, request_builder)
         .await
-        .map_err(map_err)?
+        .map_err(|err| Error::new(err.to_string()))?
         .error_for_status()
-        .map_err(map_err)?
-        .json::<serde_json::Value>()
-        .await
-        .map_err(map_err)?
+        .map_err(map_status_code_to_error)?
+        .into_json::<serde_json::Value>()
+        .map_err(|err| Error::new(err.to_string()))?
         .take();
 
     request.convert_result(ctx, resolver_ctx, value)
@@ -110,18 +111,18 @@ impl<'a> AtlasRequest<'a> {
     }
 }
 
-fn map_err(error: reqwest::Error) -> Error {
-    match error.status() {
-        Some(StatusCode::BAD_REQUEST) => Error::new(format!("the request was malformed: {error}")),
-        Some(StatusCode::NOT_FOUND) => Error::new(
+fn map_status_code_to_error(error: ErrorWithStatus) -> Error {
+    match error.status_code {
+        StatusCode::BAD_REQUEST => Error::new(format!("the request was malformed")),
+        StatusCode::NOT_FOUND => Error::new(
             "the request was sent to an endpoint that does not exist, please check the connector configuration",
         ),
-        Some(StatusCode::UNAUTHORIZED) => {
+        StatusCode::UNAUTHORIZED => {
             Error::new("the request did not include an authorized and enabled Atlas Data API Key")
         }
-        Some(StatusCode::INTERNAL_SERVER_ERROR) => {
+        StatusCode::INTERNAL_SERVER_ERROR => {
             Error::new("the Atlas Data API encountered an internal error and could not complete the request")
         }
-        _ => Error::new(error.to_string()),
+        other => Error::new(format!("error code: {}", other.as_u16())),
     }
 }
