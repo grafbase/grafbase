@@ -38,7 +38,6 @@ mod logged_fetch;
 pub mod postgresql;
 pub mod query;
 mod resolved_value;
-mod response_ext;
 pub mod transformer;
 
 use tracing::{info_span, Instrument};

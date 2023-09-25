@@ -4,8 +4,6 @@ use async_runtime::make_send_on_wasm;
 use futures_util::Future;
 use reqwest::Url;
 
-use crate::registry::resolvers::response_ext::ResponseExt;
-
 use self::parameters::ParamApply;
 use super::{ResolvedValue, ResolverContext};
 use crate::{registry::variables::VariableResolveDefinition, Context, ContextExt, ContextField, Error, RequestHeaders};
@@ -122,7 +120,8 @@ impl HttpResolver {
             }
 
             let data = response
-                .into_json::<serde_json::Value>()
+                .json::<serde_json::Value>()
+                .await
                 .map_err(|e| Error::new(e.to_string()))?;
 
             let is_null = data.is_null();

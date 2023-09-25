@@ -3,7 +3,7 @@ mod query;
 use super::OperationType;
 use crate::{
     registry::{
-        resolvers::{response_ext::ErrorWithStatus, ResolvedValue, ResolverContext},
+        resolvers::{ResolvedValue, ResolverContext},
         MongoDBConfiguration,
     },
     ContextExt, ContextField, Error,
@@ -29,8 +29,6 @@ pub(super) async fn execute(
     collection: &str,
     operation_type: OperationType,
 ) -> Result<ResolvedValue, Error> {
-    use crate::registry::resolvers::response_ext::ResponseExt;
-
     let query: AtlasQuery = match operation_type {
         OperationType::FindOne => FindOne::new(ctx, resolver_ctx)?.into(),
         OperationType::FindMany => FindMany::new(ctx, resolver_ctx)?.into(),
@@ -74,11 +72,12 @@ pub(super) async fn execute(
 
     let value = super::super::logged_fetch::send_logged_request(ray_id, fetch_log_endpoint_url, request_builder)
         .await
-        .map_err(|err| Error::new(err.to_string()))?
+        .map_err(map_err)?
         .error_for_status()
-        .map_err(map_status_code_to_error)?
-        .into_json::<serde_json::Value>()
-        .map_err(|err| Error::new(err.to_string()))?
+        .map_err(map_err)?
+        .json::<serde_json::Value>()
+        .await
+        .map_err(map_err)?
         .take();
 
     request.convert_result(ctx, resolver_ctx, value)
@@ -111,18 +110,18 @@ impl<'a> AtlasRequest<'a> {
     }
 }
 
-fn map_status_code_to_error(error: ErrorWithStatus) -> Error {
-    match error.status_code {
-        StatusCode::BAD_REQUEST => Error::new(format!("the request was malformed")),
-        StatusCode::NOT_FOUND => Error::new(
+fn map_err(error: reqwest::Error) -> Error {
+    match error.status() {
+        Some(StatusCode::BAD_REQUEST) => Error::new(format!("the request was malformed: {error}")),
+        Some(StatusCode::NOT_FOUND) => Error::new(
             "the request was sent to an endpoint that does not exist, please check the connector configuration",
         ),
-        StatusCode::UNAUTHORIZED => {
+        Some(StatusCode::UNAUTHORIZED) => {
             Error::new("the request did not include an authorized and enabled Atlas Data API Key")
         }
-        StatusCode::INTERNAL_SERVER_ERROR => {
+        Some(StatusCode::INTERNAL_SERVER_ERROR) => {
             Error::new("the Atlas Data API encountered an internal error and could not complete the request")
         }
-        other => Error::new(format!("error code: {}", other.as_u16())),
+        _ => Error::new(error.to_string()),
     }
 }
