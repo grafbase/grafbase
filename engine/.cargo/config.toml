@@ -1,0 +1,44 @@
+[target.'cfg(all())']
+rustflags = [
+  "--cfg=web_sys_unstable_apis",
+  "-Dclippy::all",
+  "-Dclippy::panic",
+  "-Dclippy::pedantic",
+  "-Dnonstandard-style",
+  "-Drust-2018-idioms",
+  "-Dunused-crate-dependencies",
+  # Opt out of lints that have too many false positives or are yet to be addressed.
+  "-Alet-underscore-drop",
+  "-Aclippy::bool-to-int-with-if",
+  "-Aclippy::cast-possible-truncation",
+  "-Aclippy::default-trait-access",
+  "-Aclippy::derive-partial-eq-without-eq",
+  "-Aclippy::doc-markdown",
+  "-Aclippy::enum-glob-use",
+  "-Aclippy::implicit-hasher",
+  "-Aclippy::items-after-statements",
+  "-Aclippy::large-digit-groups",
+  "-Aclippy::let-underscore-untyped",
+  "-Aclippy::let-with-type-underscore",
+  "-Aclippy::manual-assert",
+  "-Aclippy::map-unwrap-or",
+  "-Aclippy::match-wildcard-for-single-variants",
+  "-Aclippy::missing-errors-doc",
+  "-Aclippy::missing-panics-doc",
+  "-Aclippy::module-name-repetitions",
+  "-Aclippy::must-use-candidate",
+  "-Aclippy::needless-pass-by-value",
+  "-Aclippy::redundant-closure-for-method-calls",
+  "-Aclippy::single-match-else",
+  "-Aclippy::struct-excessive-bools",
+  "-Aclippy::too-many-lines",
+  "-Aclippy::unused-async",
+  "-Aclippy::unused-self",
+  "-Aclippy::wildcard-imports",
+]
+
+[net]
+git-fetch-with-cli = true
+
+[registries.crates-io]
+protocol = "sparse"

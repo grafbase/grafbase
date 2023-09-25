@@ -12,10 +12,7 @@ impl<'a> DatabaseType<'a> {
     }
 
     pub fn is_binary(&self) -> bool {
-        matches!(
-            self,
-            DatabaseType::Scalar(ScalarType::Bytea) | DatabaseType::Scalar(ScalarType::ByteaArray)
-        )
+        matches!(self, DatabaseType::Scalar(ScalarType::Bytea | ScalarType::ByteaArray))
     }
 }
 

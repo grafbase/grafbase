@@ -133,7 +133,7 @@ impl CollectionArgs {
         // extra columns we have to select (based on ordering)
         let mut extra_columns = Vec::new();
 
-        for value in order_by_argument.into_iter() {
+        for value in order_by_argument {
             let Some((field, value)) = value.as_object().and_then(IndexMap::first) else { continue };
             let Some(direction) = value.as_str() else { continue };
 
