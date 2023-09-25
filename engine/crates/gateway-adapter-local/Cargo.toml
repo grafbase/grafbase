@@ -27,7 +27,8 @@ bytes = "1"
 cfg-if = "1"
 futures-channel = "0.3"
 futures-util = { workspace = true }
-multipart-stream = "0.1"
+http = "0.2"
+multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs.git", branch = "fix-multipart-mixed" }
 serde_json = "1"
 tracing = { workspace = true }
 ulid = "1"

@@ -216,8 +216,10 @@ fn into_byte_stream_and_future(
         StreamingFormat::IncrementalDelivery => {
             let mut byte_stream = Box::pin(multipart_stream::serialize(
                 payload_stream.map(|payload| {
+                    let mut headers = http::HeaderMap::new();
+                    headers.insert("content-type", http::HeaderValue::from_str("application/json").unwrap());
                     Ok(multipart_stream::Part {
-                        headers: Default::default(),
+                        headers,
                         body: Bytes::from(serde_json::to_vec(&payload).map_err(|e| e.to_string())?),
                     })
                 }),

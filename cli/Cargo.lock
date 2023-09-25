@@ -2943,8 +2943,7 @@ dependencies = [
 [[package]]
 name = "multipart-stream"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70b4619423c3ca07881bd4d62bb853d447a63253901bee471e0b832c3e37e505"
+source = "git+https://github.com/grafbase/multipart-stream-rs.git?branch=fix-multipart-mixed#96eaebfcd0f8101bc834ddc405f69f28dbf1e559"
 dependencies = [
  "bytes",
  "futures",

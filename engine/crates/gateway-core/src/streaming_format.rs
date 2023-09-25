@@ -20,10 +20,6 @@ const SSE_MEDIA_TYPE: MediaType<'static> =
 
 impl StreamingFormat {
     pub fn from_accept_header(header: &str) -> Option<Self> {
-        if header.contains("application/graphql-response+json") {
-            // Temporarily default to graphql JSON if its present in the headers
-            return None;
-        }
         let (mediatype, _) = MediaTypeList::new(header)
             .filter_map(Result::ok)
             .filter(|mediatype| {
