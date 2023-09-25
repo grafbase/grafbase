@@ -1,4 +1,3 @@
-use engine::parser::types::OperationType;
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
 
@@ -39,29 +38,18 @@ pub enum Entry<T> {
     },
 }
 
-#[async_trait::async_trait(?Send)]
-pub trait Cache {
+#[async_trait::async_trait]
+pub trait Cache: Send + Sync {
     type Value: Cacheable + 'static;
 
-    async fn get(&self, namespace: &str, key: &str) -> Result<Entry<Self::Value>>;
-
-    async fn put(
-        &self,
-        namespace: &str,
-        ray_id: &str,
-        key: &str,
-        state: EntryState,
-        value: Arc<Self::Value>,
-        tags: Vec<String>,
-    ) -> Result<()>;
-
-    async fn delete(&self, namespace: &str, ray_id: &str, key: &str) -> Result<()>;
-
+    async fn get(&self, key: &str) -> Result<Entry<Self::Value>>;
+    async fn put(&self, key: &str, state: EntryState, value: Arc<Self::Value>, tags: Vec<String>) -> Result<()>;
+    async fn delete(&self, key: &str) -> Result<()>;
     async fn purge_by_tags(&self, tags: Vec<String>) -> Result<()>;
     async fn purge_by_hostname(&self, hostname: String) -> Result<()>;
 }
 
-pub trait Cacheable: DeserializeOwned + Serialize {
+pub trait Cacheable: DeserializeOwned + Serialize + Send + Sync {
     fn max_age_seconds(&self) -> usize;
     fn stale_seconds(&self) -> usize;
     fn ttl_seconds(&self) -> usize;
@@ -70,51 +58,20 @@ pub trait Cacheable: DeserializeOwned + Serialize {
     fn should_cache(&self) -> bool;
 }
 
-impl Cacheable for engine::Response {
-    fn max_age_seconds(&self) -> usize {
-        self.cache_control.max_age
-    }
-
-    fn stale_seconds(&self) -> usize {
-        self.cache_control.stale_while_revalidate
-    }
-
-    fn ttl_seconds(&self) -> usize {
-        self.cache_control.max_age + self.cache_control.stale_while_revalidate
-    }
-
-    fn cache_tags(&self, mut priority_tags: Vec<String>) -> Vec<String> {
-        let response_tags = self.data.cache_tags().iter().cloned().collect::<Vec<_>>();
-        priority_tags.extend(response_tags);
-
-        priority_tags
-    }
-
-    fn should_purge_related(&self) -> bool {
-        self.operation_type == OperationType::Mutation && !self.data.cache_tags().is_empty()
-    }
-
-    fn should_cache(&self) -> bool {
-        self.operation_type != OperationType::Mutation && self.errors.is_empty() && self.cache_control.max_age != 0
-    }
-}
-
 #[cfg(feature = "test-utils")]
 pub mod test_utils {
     use super::*;
 
-    #[async_trait::async_trait(?Send)]
-    pub trait FakeCache {
+    #[async_trait::async_trait]
+    pub trait FakeCache: Send + Sync {
         type Value: Cacheable + 'static;
 
-        async fn get(&self, _namespace: &str, _key: &str) -> Result<Entry<Self::Value>> {
+        async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
             unimplemented!()
         }
 
         async fn put(
             &self,
-            _namespace: &str,
-            _ray_id: &str,
             _key: &str,
             _status: EntryState,
             _value: Arc<Self::Value>,
@@ -123,7 +80,7 @@ pub mod test_utils {
             unimplemented!()
         }
 
-        async fn delete(&self, _namespace: &str, _ray_id: &str, _key: &str) -> Result<()> {
+        async fn delete(&self, _key: &str) -> Result<()> {
             unimplemented!()
         }
 
@@ -136,28 +93,20 @@ pub mod test_utils {
         }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl<T: FakeCache> Cache for T {
         type Value = <T as FakeCache>::Value;
 
-        async fn get(&self, namespace: &str, key: &str) -> Result<Entry<Self::Value>> {
-            self.get(namespace, key).await
+        async fn get(&self, key: &str) -> Result<Entry<Self::Value>> {
+            self.get(key).await
         }
 
-        async fn put(
-            &self,
-            namespace: &str,
-            ray_id: &str,
-            key: &str,
-            status: EntryState,
-            value: Arc<Self::Value>,
-            tags: Vec<String>,
-        ) -> Result<()> {
-            self.put(namespace, ray_id, key, status, value, tags).await
+        async fn put(&self, key: &str, status: EntryState, value: Arc<Self::Value>, tags: Vec<String>) -> Result<()> {
+            self.put(key, status, value, tags).await
         }
 
-        async fn delete(&self, namespace: &str, ray_id: &str, key: &str) -> Result<()> {
-            self.delete(namespace, ray_id, key).await
+        async fn delete(&self, key: &str) -> Result<()> {
+            self.delete(key).await
         }
 
         async fn purge_by_tags(&self, tags: Vec<String>) -> Result<()> {

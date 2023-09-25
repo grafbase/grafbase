@@ -1,10 +1,8 @@
 use async_graphql::Context;
+use async_runtime::make_send_on_wasm;
 use engine::registry::CacheTag;
-use send_wrapper::SendWrapper;
 
-use crate::admin::{
-    error::AdminError, graphql::cache::mutation::input::CachePurgeTypesInput, WrappedCache, WrappedContext,
-};
+use super::super::super::{error::AdminError, graphql::cache::mutation::input::CachePurgeTypesInput, AdminContext};
 
 mod input {
     #[derive(Debug, async_graphql::InputObject)]
@@ -62,13 +60,10 @@ impl CachePurgeMutation {
         ctx: &Context<'_>,
         input: CachePurgeTypesInput,
     ) -> Result<output::CachePurgeTypes, AdminError> {
-        let global_cache_provider = ctx
-            .data::<WrappedCache>()
-            .map_err(|_e| AdminError::CachePurgeError("Missing cache provider".to_string()))?;
-
-        let request_context = ctx
-            .data::<WrappedContext>()
-            .map_err(|_e| AdminError::CachePurgeError("Missing request context".to_string()))?;
+        let ctx = ctx
+            .data::<AdminContext>()
+            .map_err(|_| AdminError::CachePurgeError("Missing context".to_string()))?;
+        let global_cache_provider = &ctx.cache;
 
         let cache_tags: Vec<String> = match input {
             CachePurgeTypesInput::Type(type_purge) => vec![CacheTag::Type {
@@ -93,45 +88,37 @@ impl CachePurgeMutation {
                 .collect(),
         };
 
-        log::info!(request_context.ray_id(), "Purging cache tags: {:?}", cache_tags);
+        log::info!(ctx.ray_id, "Purging cache tags: {:?}", cache_tags);
 
-        let send_purge_future = SendWrapper::new(global_cache_provider.purge_by_tags(cache_tags.clone()));
+        let send_purge_future = make_send_on_wasm(global_cache_provider.purge_by_tags(cache_tags.clone()));
 
         send_purge_future
             .await
             .map_err(|e| AdminError::CachePurgeError(e.to_string()))?;
 
-        log::info!(request_context.ray_id(), "Successfully purged tags");
+        log::info!(ctx.ray_id, "Successfully purged tags");
 
         Ok(output::CachePurgeTypes { tags: cache_tags })
     }
 
     pub async fn cache_purge_all(&self, ctx: &Context<'_>) -> Result<output::CachePurgeDomain, AdminError> {
-        let global_cache_provider = ctx
-            .data::<WrappedCache>()
-            .map_err(|_e| AdminError::CachePurgeError("Missing cache provider".to_string()))?;
+        let ctx = ctx
+            .data::<AdminContext>()
+            .map_err(|_| AdminError::CachePurgeError("Missing context".to_string()))?;
+        let global_cache_provider = &ctx.cache;
 
-        let request_context = ctx
-            .data::<WrappedContext>()
-            .map_err(|_e| AdminError::CachePurgeError("Missing request context".to_string()))?;
+        log::info!(ctx.ray_id, "Purging cache for host: {:?}", ctx.host_name);
 
-        log::info!(
-            request_context.ray_id(),
-            "Purging cache for host: {:?}",
-            request_context.host_name(),
-        );
-
-        let send_purge_future =
-            SendWrapper::new(global_cache_provider.purge_by_hostname(request_context.host_name().to_string()));
+        let send_purge_future = make_send_on_wasm(global_cache_provider.purge_by_hostname(ctx.host_name.clone()));
 
         send_purge_future
             .await
             .map_err(|e| AdminError::CachePurgeError(e.to_string()))?;
 
-        log::info!(request_context.ray_id(), "Successfully purged host");
+        log::info!(ctx.ray_id, "Successfully purged host");
 
         Ok(output::CachePurgeDomain {
-            hostname: request_context.host_name().to_string(),
+            hostname: ctx.host_name.clone(),
         })
     }
 }

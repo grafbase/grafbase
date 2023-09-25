@@ -14,6 +14,9 @@ pub mod union_discriminator;
 pub mod utils;
 pub mod variables;
 
+#[cfg(test)]
+mod tests;
+
 use std::{
     borrow::Cow,
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
@@ -33,7 +36,8 @@ use serde::{Deserialize, Serialize};
 
 pub use self::{
     cache_control::{
-        CacheAccessScope, CacheConfig, CacheControl, CacheControlError, CacheInvalidation, CacheInvalidationPolicy,
+        CacheAccessScope, CacheControl, CacheControlError, CacheInvalidation, CacheInvalidationPolicy,
+        CachePartialRegistry,
     },
     connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
     type_names::{

@@ -12,6 +12,7 @@ keywords = ["grafbase"]
 [dependencies]
 dynamodb = { workspace = true }
 engine = { workspace = true }
+gateway-core = { workspace = true }
 graphql-extensions = { workspace = true }
 runtime-local = { workspace = true }
 runtime = { workspace = true }

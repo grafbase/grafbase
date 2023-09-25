@@ -1,5 +1,5 @@
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
-use runtime_ext::noop_kv::NoopKvStore;
+use runtime_noop::kv::NoopKvStore;
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -111,7 +111,7 @@ macro_rules! verify_test {
                 let clock_fn = || {
                     DateTime::<Utc>::from_naive_utc_and_offset(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc)
                 };
-                Client::<runtime_ext::noop_kv::NoopKvStore> {
+                Client::<runtime_noop::kv::NoopKvStore> {
                     time_opts: TimeOptions::new(leeway, clock_fn),
                     groups_claim: $groups_claim,
                     client_id: $client_id,
@@ -152,7 +152,7 @@ macro_rules! verify_fail {
                 let clock_fn = || {
                     DateTime::<Utc>::from_naive_utc_and_offset(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc)
                 };
-                Client::<runtime_ext::noop_kv::NoopKvStore> {
+                Client::<runtime_noop::kv::NoopKvStore> {
                     time_opts: TimeOptions::new(leeway, clock_fn),
                     groups_claim: $groups_claim,
                     client_id: $client_id,

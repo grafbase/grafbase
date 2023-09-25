@@ -14,7 +14,7 @@ serde_json = { workspace = true }
 serde_with = { workspace = true }
 thiserror = "1"
 url = { workspace = true, features = ["serde"] }
-runtime-ext = { workspace = true }
+runtime = { workspace = true }
 log = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -31,3 +31,4 @@ chrono = "0.4"
 serde_json = { workspace = true }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 wiremock = "0.5"
+runtime-noop = { workspace = true }

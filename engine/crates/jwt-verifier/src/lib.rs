@@ -13,7 +13,7 @@ use jwt_compact::{
     TimeOptions,
 };
 use log::warn;
-use runtime_ext::kv::{KvGet, KvPut, KvStore};
+use runtime::kv::{KvGet, KvPut, KvStore};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

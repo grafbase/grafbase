@@ -1,10 +1,11 @@
 mod context;
 mod request;
 
+use async_runtime::make_send_on_wasm;
 pub use context::CollectionArgs;
 
 use super::{ResolvedValue, ResolverContext};
-use crate::{send_wrapper::make_send_on_wasm, ContextField, Error};
+use crate::{ContextField, Error};
 use context::PostgresContext;
 use std::{future::Future, pin::Pin};
 

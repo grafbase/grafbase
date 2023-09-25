@@ -1,7 +1,7 @@
 /// FIXME: Only here because of jwt-verifier, to be refactored with auth
 use std::time::Duration;
 
-use crate::kv::{KvGet, KvManager, KvPut, KvStore};
+use runtime::kv::{KvGet, KvManager, KvPut, KvStore};
 use serde::de::DeserializeOwned;
 
 #[derive(thiserror::Error, Debug)]
@@ -41,7 +41,7 @@ impl KvStore for NoopKvStore {
 
 pub struct NoopKvGet;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl KvGet for NoopKvGet {
     type Error = NoopError;
 
@@ -56,7 +56,7 @@ impl KvGet for NoopKvGet {
 
 pub struct NoopKvPut;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl KvPut for NoopKvPut {
     type Error = NoopError;
 

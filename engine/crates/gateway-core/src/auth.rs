@@ -1,13 +1,15 @@
 use std::collections::{BTreeMap, HashMap};
 
 use common_types::{auth::ExecutionAuth, UdfKind};
-use engine::{AuthConfig, AuthorizerProvider};
+use engine::{AuthConfig, AuthProvider, AuthorizerProvider};
 use futures_util::TryFutureExt;
 use jwt_verifier::{VerificationError, VerifiedToken};
-use runtime::udf::{AuthorizerRequestPayload, CustomResolverResponse, UdfInvoker};
-use runtime_ext::kv::KvManager;
 
-pub(super) const AUTHORIZATION_HEADER: &str = "authorization";
+use runtime::kv::KvManager;
+use runtime::udf::{AuthorizerRequestPayload, CustomResolverResponse, UdfInvoker};
+
+use super::RequestContext;
+
 const JWKS_CACHE_KV_NAMESPACE: &str = "JWKS_CACHE";
 
 #[derive(Debug, thiserror::Error)]
@@ -23,58 +25,49 @@ pub enum AuthError {
     Internal(String),
 }
 
-pub struct AuthResponse;
-impl AuthResponse {
-    pub fn token_based(verified_token: VerifiedToken, auth_config: &AuthConfig) -> ExecutionAuth {
-        // Get the global level group and owner based operations that are allowed.
-        let private_public_and_group_ops = auth_config.private_public_and_group_based_ops(&verified_token.groups);
-        let allowed_owner_ops = auth_config.owner_based_ops();
+pub fn build_token_based_auth(verified_token: VerifiedToken, auth_config: &AuthConfig) -> ExecutionAuth {
+    // Get the global level group and owner based operations that are allowed.
+    let private_public_and_group_ops = auth_config.private_public_and_group_based_ops(&verified_token.groups);
+    let allowed_owner_ops = auth_config.owner_based_ops();
 
-        // It's fine for ops and groups to be empty as there might
-        // be some model-level auth rule evaluated later
-        let subject_and_owner_ops = verified_token.identity.and_then(|subject| {
-            // Turn off owner-based auth if no operations are allowed.
-            if allowed_owner_ops.is_empty() {
-                None
-            } else {
-                Some((subject, allowed_owner_ops))
-            }
-        });
-        ExecutionAuth::new_from_token(
-            private_public_and_group_ops,
-            verified_token.groups,
-            subject_and_owner_ops,
-            verified_token.token_claims,
-        )
-    }
-
-    pub fn public(auth_config: &AuthConfig) -> ExecutionAuth {
-        ExecutionAuth::Public {
-            global_ops: auth_config.allowed_public_ops,
+    // It's fine for ops and groups to be empty as there might
+    // be some model-level auth rule evaluated later
+    let subject_and_owner_ops = verified_token.identity.and_then(|subject| {
+        // Turn off owner-based auth if no operations are allowed.
+        if allowed_owner_ops.is_empty() {
+            None
+        } else {
+            Some((subject, allowed_owner_ops))
         }
-    }
+    });
+    ExecutionAuth::new_from_token(
+        private_public_and_group_ops,
+        verified_token.groups,
+        subject_and_owner_ops,
+        verified_token.token_claims,
+    )
 }
 
-pub trait AuthContext {
-    fn ray_id(&self) -> &str;
-    fn header_or_query_param(&self, name: &str) -> Option<String>;
-    fn auth_config(&self) -> &AuthConfig;
-    fn headers(&self) -> HashMap<String, String>;
+pub fn build_public_auth(auth_config: &AuthConfig) -> ExecutionAuth {
+    ExecutionAuth::Public {
+        global_ops: auth_config.allowed_public_ops,
+    }
 }
 
 #[allow(clippy::panic)]
 pub async fn authorize_request(
     kv: &impl KvManager,
     auth_invoker: &impl UdfInvoker<AuthorizerRequestPayload>,
-    ctx: &impl AuthContext,
+    auth_config: &AuthConfig,
+    ctx: &impl RequestContext,
 ) -> Result<ExecutionAuth, AuthError> {
-    let authorization_header = ctx.header_or_query_param(AUTHORIZATION_HEADER);
-    let auth_config = ctx.auth_config();
-    let id_token = authorization_header.and_then(|val| val.strip_prefix("Bearer ").map(str::to_string));
+    let id_token = ctx
+        .authorization_header()
+        .and_then(|val| val.strip_prefix("Bearer ").map(str::to_string));
 
     let result = match (id_token, &auth_config.provider) {
         // API key has precedence over ID token
-        (Some(token), Some(engine::AuthProvider::Oidc(oidc_provider))) => {
+        (Some(token), Some(AuthProvider::Oidc(oidc_provider))) => {
             let client = jwt_verifier::Client {
                 trace_id: ctx.ray_id(),
                 jwks_cache: kv
@@ -93,9 +86,9 @@ pub async fn authorize_request(
                 .verify_rs_token_using_oidc_discovery(&token, &oidc_provider.issuer_base_url, &oidc_provider.issuer)
                 .inspect_err(|err| log::warn!(ctx.ray_id(), "Unauthorized: {err:?}"))
                 .await
-                .map(|verified_token| AuthResponse::token_based(verified_token, auth_config))?
+                .map(|verified_token| build_token_based_auth(verified_token, auth_config))?
         }
-        (Some(token), Some(engine::AuthProvider::Jwks(jwks_provider))) => {
+        (Some(token), Some(AuthProvider::Jwks(jwks_provider))) => {
             let client = jwt_verifier::Client {
                 trace_id: ctx.ray_id(),
                 jwks_cache: kv
@@ -119,9 +112,9 @@ pub async fn authorize_request(
                 )
                 .inspect_err(|err| log::warn!(ctx.ray_id(), "Unauthorized: {err:?}"))
                 .await
-                .map(|verified_token| AuthResponse::token_based(verified_token, auth_config))?
+                .map(|verified_token| build_token_based_auth(verified_token, auth_config))?
         }
-        (Some(token), Some(engine::AuthProvider::Jwt(jwt_provider))) => {
+        (Some(token), Some(AuthProvider::Jwt(jwt_provider))) => {
             let client = jwt_verifier::Client {
                 trace_id: ctx.ray_id(),
                 groups_claim: Some(&jwt_provider.groups_claim),
@@ -143,12 +136,12 @@ pub async fn authorize_request(
                     log::warn!(ctx.ray_id(), "Unauthorized: {err:?}");
                     err
                 })
-                .map(|verified_token| AuthResponse::token_based(verified_token, auth_config))?
+                .map(|verified_token| build_token_based_auth(verified_token, auth_config))?
         }
-        (_, Some(engine::AuthProvider::Authorizer(AuthorizerProvider { name }))) => {
+        (_, Some(AuthProvider::Authorizer(AuthorizerProvider { name }))) => {
             call_authorizer(ctx.ray_id(), ctx.headers(), name.clone(), auth_invoker, auth_config).await?
         }
-        _ => AuthResponse::public(ctx.auth_config()),
+        _ => build_public_auth(auth_config),
     };
     log::debug!(
         ctx.ray_id(),
@@ -238,9 +231,9 @@ async fn call_authorizer(
             token_claims,
         };
         log::debug!(ray_id, "Authorizer verified {verified_token:?}");
-        Ok(AuthResponse::token_based(verified_token, auth_config))
+        Ok(build_token_based_auth(verified_token, auth_config))
     } else {
         // no identity returned, public access.
-        Ok(AuthResponse::public(auth_config))
+        Ok(build_public_auth(auth_config))
     }
 }

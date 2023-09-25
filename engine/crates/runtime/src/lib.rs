@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub mod cache;
+pub mod kv;
 pub mod log;
 pub mod search;
 pub mod udf;
@@ -10,8 +12,4 @@ pub struct GraphqlRequestExecutionContext {
     /// Used to track request across services.
     pub ray_id: String,
     pub headers: HashMap<String, String>,
-}
-
-pub mod reexport {
-    pub use async_trait;
 }

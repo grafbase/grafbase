@@ -15,7 +15,7 @@ async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
-common-types = { path = "../common-types" }
+common-types = { workspace = true }
 grafbase-sql-ast = "0.1.2"
 postgresql-types = { path = "../postgresql-types" }
 bytes = { version = "1", features = ["serde"] }
@@ -64,7 +64,7 @@ engine-value = { path = "value", version = "3" }
 engine-parser = { path = "parser", version = "3" }
 runtime = { workspace = true }
 graph-entities = { workspace = true }
-log = { path = "../log", features = ["with-worker"] }
+log = { path = "../log" }
 
 # Feature optional dependencies
 rust_decimal = { version = "1" }
@@ -88,9 +88,11 @@ reqwest = { version = "0.11", default-features = false, features = [
 
 [dev-dependencies]
 indoc = "2"
+sha2 = { version = "0.10", default-features = false }
 insta = { version = "1", features = ["json"] }
 rstest = { workspace = true }
 sanitize-filename = "0.5"
 tokio = { workspace = true, features = ["macros"] }
 urlencoding = "2.1"
 wiremock = "0.5"
+runtime = { workspace = true, features = ["test-utils"] }

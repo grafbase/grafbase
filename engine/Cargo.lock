@@ -171,7 +171,6 @@ dependencies = [
  "static_assertions",
  "tempfile",
  "thiserror",
- "url",
 ]
 
 [[package]]
@@ -263,7 +262,7 @@ dependencies = [
 name = "async-runtime"
 version = "0.1.0"
 dependencies = [
- "futures",
+ "send_wrapper 0.6.0",
  "tokio",
  "wasm-bindgen-futures",
 ]
@@ -1166,6 +1165,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "sha2",
  "static_assertions",
  "tempfile",
  "thiserror",
@@ -1493,15 +1493,10 @@ dependencies = [
  "common-types",
  "engine",
  "futures-util",
- "mediatype",
+ "gateway-core",
  "rusoto_core",
  "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "strum",
  "thiserror",
- "ulid",
  "worker",
 ]
 
@@ -1518,6 +1513,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "gateway-adapter",
+ "gateway-core",
  "graphql-extensions",
  "multipart-stream",
  "runtime",
@@ -1530,30 +1526,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "gatewaylib"
-version = "0.1.0"
+name = "gateway-core"
+version = "3.0.31"
 dependencies = [
- "anyhow",
  "async-graphql",
+ "async-runtime",
  "async-trait",
  "common-types",
  "engine",
  "engine-value",
  "futures-util",
- "gateway-adapter",
  "http",
  "jwt-verifier",
  "log 0.1.0",
+ "mediatype",
  "runtime",
- "runtime-ext",
- "rusoto_core",
- "send_wrapper 0.6.0",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
  "tracing",
- "worker",
 ]
 
 [[package]]
@@ -2142,7 +2134,8 @@ dependencies = [
  "jwt-compact",
  "log 0.1.0",
  "reqwest",
- "runtime-ext",
+ "runtime",
+ "runtime-noop",
  "secrecy",
  "serde",
  "serde_json",
@@ -3337,16 +3330,6 @@ dependencies = [
  "search-protocol",
  "serde",
  "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "runtime-ext"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "engine",
- "serde",
  "strum",
  "thiserror",
 ]
@@ -3363,6 +3346,16 @@ dependencies = [
  "search-protocol",
  "send_wrapper 0.6.0",
  "serde",
+]
+
+[[package]]
+name = "runtime-noop"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "runtime",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -3868,15 +3861,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7cee0529a6d40f580e7a5e6c495c8fbfe21b7b52795ed4bb5e62cdf92bc6380"
 
 [[package]]
-name = "signal-hook-registry"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "signature"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4169,9 +4153,7 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
- "parking_lot",
  "pin-project-lite",
- "signal-hook-registry",
  "socket2 0.5.3",
  "tokio-macros",
  "windows-sys 0.48.0",

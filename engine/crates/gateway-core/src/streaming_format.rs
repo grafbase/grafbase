@@ -58,7 +58,7 @@ impl StreamingFormat {
 
 #[cfg(test)]
 mod tests {
-    use crate::StreamingFormat;
+    use super::*;
 
     #[test]
     fn test_accept_header_parsing() {
