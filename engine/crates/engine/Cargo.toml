@@ -55,6 +55,7 @@ tempfile = "3"
 thiserror = { workspace = true }
 ulid = { workspace = true, features = ["wasm"] }
 url = { workspace = true, features = ["serde"] }
+web-time = { workspace = true }
 
 # API dependencies
 dataloader = { workspace = true }

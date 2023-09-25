@@ -60,6 +60,7 @@ impl EngineBuilder {
                 .data(GraphqlRequestExecutionContext {
                     ray_id: String::new(),
                     headers: Default::default(),
+                    fetch_log_endpoint_url: None,
                 });
 
         if let Some(custom_resolvers) = self.custom_resolvers {

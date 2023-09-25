@@ -34,6 +34,7 @@ pub mod dynamo_mutation;
 pub mod dynamo_querying;
 pub mod graphql;
 pub mod http;
+mod logged_fetch;
 pub mod postgresql;
 pub mod query;
 mod resolved_value;
@@ -171,17 +172,18 @@ impl Resolver {
                     .await
             }
             Resolver::Graphql(resolver) => {
-                let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
+                let graphql_context = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
+                let ray_id = &graphql_context.ray_id;
+                let fetch_log_endpoint_url = graphql_context.fetch_log_endpoint_url.as_deref();
 
                 let registry = ctx.registry();
                 let request_headers = ctx.data::<RequestHeaders>().ok();
-                let mut headers = registry
+                let headers = registry
                     .http_headers
                     .get(&format!("GraphQLConnector{}", resolver.name()))
                     .zip(request_headers)
                     .map(|(connector_headers, request_headers)| connector_headers.build_header_vec(request_headers))
                     .unwrap_or_default();
-                headers.push(("x-grafbase-fetch-trace-id", ray_id.as_str()));
 
                 let fragment_definitions = ctx
                     .query_env
@@ -225,6 +227,8 @@ impl Resolver {
                     .resolve(
                         // Be a lot easier to just pass the context in here...
                         operation,
+                        &ray_id,
+                        fetch_log_endpoint_url,
                         &headers,
                         fragment_definitions,
                         target,

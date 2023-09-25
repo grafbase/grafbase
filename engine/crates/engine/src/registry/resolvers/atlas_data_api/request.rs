@@ -58,19 +58,19 @@ pub(super) async fn execute(
     };
 
     let url = format!("{}/action/{}", config.url, operation_type);
-    let ray_id = &ctx.data::<runtime::GraphqlRequestExecutionContext>()?.ray_id;
+    let graphql_request_execution_context = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
+    let ray_id = &graphql_request_execution_context.ray_id;
+    let fetch_log_endpoint_url = graphql_request_execution_context.fetch_log_endpoint_url.as_deref();
 
     let request_builder = reqwest::Client::new()
         .post(url)
-        .header("x-grafbase-fetch-trace-id", ray_id)
         .header(CONTENT_TYPE, headers::APPLICATION_EJSON_CONTENT_TYPE)
         .header(ACCEPT, headers::APPLICATION_JSON_CONTENT_TYPE)
         .header(headers::API_KEY_HEADER_NAME, &config.api_key)
-        .header(USER_AGENT, "Grafbase");
+        .header(USER_AGENT, "Grafbase")
+        .json(&request);
 
-    let value = request_builder
-        .json(&request)
-        .send()
+    let value = super::super::logged_fetch::send_logged_request(ray_id, fetch_log_endpoint_url, request_builder)
         .await
         .map_err(map_err)?
         .error_for_status()

@@ -51,7 +51,11 @@ use url::Url;
 use self::serializer::Serializer;
 use super::ResolvedValue;
 use crate::{
-    registry::{resolvers::graphql::response::UpstreamResponse, type_kinds::SelectionSetTarget, MetaField, Registry},
+    registry::{
+        resolvers::{graphql::response::UpstreamResponse, logged_fetch::send_logged_request},
+        type_kinds::SelectionSetTarget,
+        MetaField, Registry,
+    },
     ServerError,
 };
 
@@ -163,6 +167,8 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
         name: String,
         url: String,
         headers: Vec<(String, String)>,
+        ray_id: String,
+        fetch_log_endpoint_url: Option<String>,
     }
 
     let mut resolver_queries: BTreeMap<_, Vec<Query>> = BTreeMap::default();
@@ -172,6 +178,8 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
             name: data.resolver_name,
             url: data.url,
             headers: data.headers,
+            ray_id: data.ray_id,
+            fetch_log_endpoint_url: data.fetch_log_endpoint_url,
         };
 
         resolver_queries.entry(id).or_default().push(data.query.clone());
@@ -181,26 +189,28 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
 
     Box::pin(make_send_on_wasm(async move {
         for (resolver, queries) in resolver_queries {
-            let mut request_builder = reqwest::Client::new()
-                .post(resolver.url.clone())
-                .header(USER_AGENT, "Grafbase"); /* Some APIs (such a GitHub's) require a User-Agent
-                                                 header */
-
-            for (name, value) in resolver.headers.clone() {
-                request_builder = request_builder.header(name, value);
-            }
-
             let query = if queries.len() == 1 {
                 queries[0].clone()
             } else {
                 group_queries(queries.clone())
             };
 
-            let response = request_builder
-                .json(&query)
-                .send()
-                .await
-                .map_err(|e| Error::RequestError(e.to_string()))?;
+            let mut request_builder = reqwest::Client::new()
+                .post(resolver.url.clone())
+                .header(USER_AGENT, "Grafbase") // Some APIs (such a GitHub's) require a User-Agent.
+                .json(&query);
+
+            for (name, value) in resolver.headers.clone() {
+                request_builder = request_builder.header(name, value);
+            }
+
+            let response = send_logged_request(
+                &resolver.ray_id,
+                resolver.fetch_log_endpoint_url.as_deref(),
+                request_builder,
+            )
+            .await
+            .map_err(|e| Error::RequestError(e.to_string()))?;
 
             let http_status = response.status();
 
@@ -215,6 +225,8 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
                     headers: resolver.headers.clone(),
                     url: resolver.url.clone(),
                     resolver_name: resolver.name.clone(),
+                    ray_id: resolver.ray_id.clone(),
+                    fetch_log_endpoint_url: resolver.fetch_log_endpoint_url.clone(),
                 };
 
                 results.insert(key, (upstream_response.clone(), http_status));
@@ -298,6 +310,12 @@ struct QueryData {
     /// alone, as two resolvers might have the same URL, but other properties (such as headers)
     /// might differ.
     resolver_name: String,
+
+    /// Used internally in dev mode.
+    ray_id: String,
+
+    /// Used internally in dev mode.
+    fetch_log_endpoint_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
@@ -322,6 +340,8 @@ impl Resolver {
     pub(super) fn resolve<'a>(
         &'a self,
         operation: OperationType,
+        ray_id: &'a str,
+        fetch_log_endpoint_url: Option<&'a str>,
         headers: &'a [(&'a str, &'a str)],
         fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
         target: Target,
@@ -369,6 +389,8 @@ impl Resolver {
                     .collect(),
                 resolver_name: self.name().to_string(),
                 url: self.url.to_string(),
+                ray_id: ray_id.to_owned(),
+                fetch_log_endpoint_url: fetch_log_endpoint_url.map(str::to_owned),
             };
 
             let value = match (batcher, operation) {
@@ -811,6 +833,8 @@ mod tests {
         let data = resolver
             .resolve(
                 operation_type,
+                "",
+                None,
                 &headers,
                 fragment_definitions,
                 target,
