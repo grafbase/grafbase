@@ -12,17 +12,15 @@ fn test_kv_integration(#[case] enabled: bool) {
     // prepare
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
-    env.write_schema(
-        format!(
-            r#"
+    env.write_schema(format!(
+        r#"
                 extend schema @experimental(kv: {enabled})
 
                 extend type Query {{
                     hello: String! @resolver(name: "test")
                 }}
             "#
-        ),
-    );
+    ));
     env.write_resolver(
         "test.js",
         r#"

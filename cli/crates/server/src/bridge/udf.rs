@@ -137,7 +137,7 @@ pub async fn invoke_udf_endpoint(
         })
         .await
         .map_err(|err| {
-            error!("Failed do read json registry: {e:?}");
+            error!("Failed do read json registry: {err:?}");
 
             ApiError::ServerError
         })??;
