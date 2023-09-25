@@ -78,8 +78,7 @@ fn test_header_passthrough() {
             "accept": "[\"*/*\"]",
             "another-one": "[\"yes\"]",
             "authorization": "[\"Bearer BLAH\"]",
-            "wow-what-a-header": "[\"isn't it the best\"]",
-            "x-grafbase-fetch-trace-id": "[\"\"]"
+            "wow-what-a-header": "[\"isn't it the best\"]"
           }
         ]
         "###);

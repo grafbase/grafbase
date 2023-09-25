@@ -65,10 +65,6 @@ fn test_header_forwarding() {
                 "value": "yes"
               },
               {
-                "name": "x-grafbase-fetch-trace-id",
-                "value": ""
-              },
-              {
                 "name": "content-type",
                 "value": "application/json"
               },
