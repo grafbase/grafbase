@@ -11,6 +11,8 @@ use crate::{
     errors::CommonError,
 };
 use serde_json::{Map, Value};
+use std::fs::File;
+use std::io::BufReader;
 use std::{
     borrow::Cow,
     env, fs, io,
@@ -136,6 +138,15 @@ impl Project {
             UdfKind::Authorizer => AUTHORIZERS_DIRECTORY_NAME,
         };
         self.dot_grafbase_directory_path.join(subdirectory_name)
+    }
+
+    // reads and deserializes to json the contents of `&self.registry_path` in a blocking fashion
+    pub fn registry(&self) -> Result<Value, CommonError> {
+        let file = File::open(&self.registry_path)
+            .map_err(|err| CommonError::RegistryRead(self.registry_path.clone(), err))?;
+        let reader = BufReader::new(file);
+        serde_json::from_reader(reader)
+            .map_err(|err| CommonError::RegistryDeserialization(self.registry_path.clone(), err))
     }
 }
 

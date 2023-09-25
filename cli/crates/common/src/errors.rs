@@ -31,4 +31,8 @@ pub enum CommonError {
     SerializePackageJson(serde_json::Error),
     #[error("could not execute 'npm init':\nCaused by: {0}")]
     NpmInitError(std::io::Error),
+    #[error("could not open file '{0}':\nCaused by: {1}")]
+    RegistryRead(std::path::PathBuf, std::io::Error),
+    #[error("could not deserialize to json the contents of '{0}':\nCaused by: {1}")]
+    RegistryDeserialization(std::path::PathBuf, serde_json::Error),
 }

@@ -101,6 +101,7 @@ pub async fn build(
     udf_kind: UdfKind,
     udf_name: &str,
     tracing: bool,
+    enable_kv: bool,
 ) -> Result<(PathBuf, PathBuf), UdfBuildError> {
     use path_slash::PathBufExt as _;
 
@@ -264,6 +265,7 @@ pub async fn build(
                 ]
 
                 [vars]
+                KV_ENABLED = "{enable_kv}"
                 KV_BASE_PREFIX = "/"
                 KV_ID = "LOCAL"
 

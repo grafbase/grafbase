@@ -10,4 +10,6 @@ pub struct VersionedRegistry {
 pub struct Registry {
     #[serde(default)]
     pub search_config: super::search::runtime::Config,
+    #[serde(default)]
+    pub enable_kv: bool,
 }
