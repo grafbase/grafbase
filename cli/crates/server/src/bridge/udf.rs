@@ -136,7 +136,11 @@ pub async fn invoke_udf_endpoint(
             Ok(registry.registry.enable_kv)
         })
         .await
-        .map_err(|_| ApiError::ServerError)??;
+        .map_err(|err| {
+            error!("Failed do read json registry: {e:?}");
+
+            ApiError::ServerError
+        })??;
 
         match crate::udf_builder::build(
             environment,
