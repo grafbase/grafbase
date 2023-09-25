@@ -53,6 +53,10 @@ fn test_header_forwarding() {
                 "value": "Grafbase"
               },
               {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
                 "name": "authorization",
                 "value": "Bearer BLAH"
               },
@@ -63,10 +67,6 @@ fn test_header_forwarding() {
               {
                 "name": "another-one",
                 "value": "yes"
-              },
-              {
-                "name": "content-type",
-                "value": "application/json"
               },
               {
                 "name": "accept",
