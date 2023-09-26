@@ -79,8 +79,8 @@ pub trait Gateway: Send {
         streaming_format: Option<StreamingFormat>,
     ) -> Result<Self::Response, Self::Error> {
         let Ok(auth) = self.authorize_request(&request)
-                           .instrument(info_span!("authorize_request"))
-                           .await else {
+            .instrument(info_span!("authorize_request"))
+            .await else {
             return Self::Response::engine(self.context(), Arc::new(engine::Response::from_errors(
                 vec![engine::ServerError::new("Unauthorized", None)],
                 // doesn't really matter, this is not client facing

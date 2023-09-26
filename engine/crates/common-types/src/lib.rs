@@ -16,6 +16,15 @@ pub enum OperationType {
     Subscription,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LogLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+}
+
 #[serde_with::serde_as]
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub enum LogEventType<'a> {
@@ -33,6 +42,14 @@ pub enum LogEventType<'a> {
         #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
         duration: std::time::Duration,
     },
+    GatewayRequest {
+        url: String,
+        method: String,
+        #[serde(rename = "statusCode")]
+        status_code: u16,
+        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+        duration: std::time::Duration,
+    },
     NestedRequest {
         url: String,
         method: String,
@@ -44,4 +61,24 @@ pub enum LogEventType<'a> {
         #[serde(rename = "contentType")]
         content_type: Option<String>,
     },
+    UdfMessage {
+        level: LogLevel,
+        message: String,
+    },
+}
+
+impl LogEventType<'_> {
+    pub fn log_level(&self) -> LogLevel {
+        match self {
+            LogEventType::OperationStarted { .. }
+            | LogEventType::OperationCompleted { .. }
+            | LogEventType::NestedRequest { .. } => LogLevel::Info,
+            LogEventType::GatewayRequest { status_code, .. } => match *status_code {
+                200..=299 => LogLevel::Info,
+                _other => LogLevel::Error,
+            },
+            LogEventType::BadRequest { .. } => LogLevel::Error,
+            LogEventType::UdfMessage { level, .. } => *level,
+        }
+    }
 }
