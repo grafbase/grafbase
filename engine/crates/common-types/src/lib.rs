@@ -73,6 +73,10 @@ impl LogEventType<'_> {
             LogEventType::OperationStarted { .. }
             | LogEventType::OperationCompleted { .. }
             | LogEventType::NestedRequest { .. } => LogLevel::Info,
+            LogEventType::GatewayRequest { status_code, .. } => match *status_code {
+                200..=299 => LogLevel::Info,
+                _other => LogLevel::Error,
+            },
             LogEventType::BadRequest { .. } => LogLevel::Error,
             LogEventType::UdfMessage { level, .. } => *level,
         }
