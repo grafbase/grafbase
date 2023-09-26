@@ -16,6 +16,15 @@ pub enum OperationType {
     Subscription,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LogLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+}
+
 #[serde_with::serde_as]
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub enum LogEventType<'a> {
@@ -52,4 +61,20 @@ pub enum LogEventType<'a> {
         #[serde(rename = "contentType")]
         content_type: Option<String>,
     },
+    UdfMessage {
+        level: LogLevel,
+        message: String,
+    },
+}
+
+impl LogEventType<'_> {
+    pub fn log_level(&self) -> LogLevel {
+        match self {
+            LogEventType::OperationStarted { .. }
+            | LogEventType::OperationCompleted { .. }
+            | LogEventType::NestedRequest { .. } => LogLevel::Info,
+            LogEventType::BadRequest { .. } => LogLevel::Error,
+            LogEventType::UdfMessage { level, .. } => *level,
+        }
+    }
 }
