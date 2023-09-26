@@ -45,8 +45,6 @@ pub trait Gateway: Send {
     fn executor(&self) -> &Arc<Self::Executor>;
     fn cache_config(&self) -> Cow<'_, CacheConfig<'_>>;
 
-    fn post_request(&self, _url: &str, _method: http::Method, _status_code: u16, _duration: std::time::Duration) {}
-
     async fn authorize_admin_request(&self, _request: &async_graphql::Request) -> Result<(), AdminAuthError>;
 
     async fn authorize_request(&self, _request: &engine::Request) -> Result<ExecutionAuth, AuthError>;
