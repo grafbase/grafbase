@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://grafbase.com">
-    <img src="https://grafbase.com/images/other/grafbase-logo-circle.png" height="96">
+    <img alt="Grafbase logo" src="https://github.com/grafbase/grafbase/assets/14347895/9580d0f7-d50f-4d30-8dd0-dcea1a83409e" width="1000">
     <h3 align="center">Grafbase</h3>
   </a>
 </p>
