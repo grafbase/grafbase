@@ -45,6 +45,8 @@ pub trait Gateway: Send {
     fn executor(&self) -> &Arc<Self::Executor>;
     fn cache_config(&self) -> Cow<'_, CacheConfig<'_>>;
 
+    fn post_request(&self, _url: &str, _method: http::Method, _status_code: u16, _duration: std::time::Duration) {}
+
     async fn authorize_admin_request(&self, _request: &async_graphql::Request) -> Result<(), AdminAuthError>;
 
     async fn authorize_request(&self, _request: &engine::Request) -> Result<ExecutionAuth, AuthError>;
@@ -79,8 +81,8 @@ pub trait Gateway: Send {
         streaming_format: Option<StreamingFormat>,
     ) -> Result<Self::Response, Self::Error> {
         let Ok(auth) = self.authorize_request(&request)
-                           .instrument(info_span!("authorize_request"))
-                           .await else {
+            .instrument(info_span!("authorize_request"))
+            .await else {
             return Self::Response::engine(self.context(), Arc::new(engine::Response::from_errors(
                 vec![engine::ServerError::new("Unauthorized", None)],
                 // doesn't really matter, this is not client facing
