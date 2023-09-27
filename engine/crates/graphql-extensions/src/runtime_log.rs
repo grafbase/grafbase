@@ -45,14 +45,12 @@ impl Extension for RuntimeLogExtension {
         let duration: std::time::Duration = end.duration_since(start).unwrap();
 
         if prepare_result.is_err() {
-            let request_id = &ctx
-                .data::<GraphqlRequestExecutionContext>()
-                .expect("must be set")
-                .ray_id;
+            let graphql_request_execution_context = ctx.data::<GraphqlRequestExecutionContext>().expect("must be set");
 
             self.log_event_receiver
                 .invoke(
-                    request_id,
+                    &graphql_request_execution_context.ray_id,
+                    graphql_request_execution_context.request_log_event_id,
                     LogEventType::BadRequest {
                         name: operation_name.as_deref().map(From::from),
                         duration,
@@ -74,14 +72,11 @@ impl Extension for RuntimeLogExtension {
     ) -> Response {
         use engine::parser::types::{OperationType as ParserOperationType, Selection};
 
-        let request_id = &ctx
-            .data::<GraphqlRequestExecutionContext>()
-            .expect("must be set")
-            .ray_id;
-
+        let graphql_request_execution_context = ctx.data::<GraphqlRequestExecutionContext>().expect("must be set");
         self.log_event_receiver
             .invoke(
-                request_id,
+                &graphql_request_execution_context.ray_id,
+                graphql_request_execution_context.request_log_event_id,
                 LogEventType::OperationStarted {
                     name: operation_name.map(From::from),
                 },
@@ -103,7 +98,8 @@ impl Extension for RuntimeLogExtension {
 
         self.log_event_receiver
             .invoke(
-                request_id,
+                &graphql_request_execution_context.ray_id,
+                graphql_request_execution_context.request_log_event_id,
                 LogEventType::OperationCompleted {
                     name: operation_name.map(From::from),
                     duration,

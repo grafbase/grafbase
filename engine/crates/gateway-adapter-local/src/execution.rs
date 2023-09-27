@@ -148,6 +148,10 @@ impl LocalExecution {
             ray_id: ray_id.clone(),
             fetch_log_endpoint_url,
             headers: execution_request.execution_headers.clone(),
+            request_log_event_id: execution_request
+                .execution_headers
+                .get("x-grafbase-request-log-event-id")
+                .map(|value| value.parse().expect("must parse to an ULID")),
         };
 
         Ok(engine::Schema::build(registry)
