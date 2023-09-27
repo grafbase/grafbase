@@ -2,7 +2,7 @@ use std::ops::{Bound, Not};
 
 use serde::{Deserialize, Serialize};
 
-use super::runtime::ScalarValue;
+use runtime::search::ScalarValue;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Query {

@@ -58,9 +58,9 @@ pub(super) async fn execute(
     };
 
     let url = format!("{}/action/{}", config.url, operation_type);
-    let graphql_request_execution_context = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
-    let ray_id = &graphql_request_execution_context.ray_id;
-    let fetch_log_endpoint_url = graphql_request_execution_context.fetch_log_endpoint_url.as_deref();
+    let runtime_ctx = ctx.data::<runtime::Context>()?;
+    let ray_id = runtime_ctx.ray_id();
+    let fetch_log_endpoint_url = runtime_ctx.log.fetch_log_endpoint_url.as_deref();
 
     let request_builder = reqwest::Client::new()
         .post(url)

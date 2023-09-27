@@ -1,7 +1,6 @@
 use axum::extract::State;
 use axum::Json;
 use chrono::{DateTime, NaiveDate, NaiveTime, TimeZone, Utc};
-use common::environment::Project;
 use futures_util::TryStreamExt;
 use serde_json::Value;
 use sqlx::SqlitePool;
@@ -13,7 +12,6 @@ use ulid::Ulid;
 use std::net::{IpAddr, Ipv6Addr};
 use std::sync::Arc;
 
-use super::api_counterfeit::registry::{Registry, VersionedRegistry};
 use super::api_counterfeit::search::{
     self, PaginatedHits, Pagination, Query, QueryError, QueryRequest, QueryResponse, TantivyQueryBuilder,
     TopDocsPaginatedSearcher,
@@ -28,7 +26,7 @@ const DOCUMENT_FIELD_UPDATED_AT: &str = "__updated_at";
 
 pub struct Index<'a> {
     inner: tantivy::Index,
-    schema: &'a search::Schema,
+    schema: &'a runtime::search::Schema,
     id_field: Field,
 }
 
@@ -66,7 +64,7 @@ impl<'a> Index<'a> {
     pub async fn build(
         pool: &SqlitePool,
         entity_type: &str,
-        config: &'a search::Config,
+        config: &'a runtime::search::Config,
     ) -> Result<Index<'a>, QueryError> {
         let schema = &config
             .indices
@@ -136,7 +134,7 @@ fn add_field(
         name => name,
     };
     if let Some(value) = document.get(document_field_name) {
-        use search::FieldType::{
+        use runtime::search::FieldType::{
             Boolean, Date, DateTime, Email, Float, IPAddress, Int, PhoneNumber, String, Timestamp, URL,
         };
         let field = *doc_key;
@@ -313,32 +311,13 @@ pub async fn search_endpoint(
     State(handler_state): State<Arc<HandlerState>>,
     Json(request): Json<QueryRequest>,
 ) -> Result<Json<QueryResponse>, ApiError> {
-    let project = Project::get();
-
-    let registry: Registry = {
-        let versioned = tokio::task::spawn_blocking::<_, Result<VersionedRegistry, ApiError>>(|| {
-            let registry_value = project.registry().map_err(|err| {
-                error!("Failed to read registry: {err:?}");
-                ApiError::ServerError
-            })?;
-
-            serde_json::from_value::<VersionedRegistry>(registry_value).map_err(|err| {
-                error!("Failed to deserialize registry: {err:?}");
-                ApiError::ServerError
-            })
-        })
-        .await
-        .map_err(|e| {
-            error!("Failed do read json registry: {e:?}");
-            ApiError::ServerError
-        })??;
-
-        versioned.registry
-    };
-
-    let result = Index::build(&handler_state.pool, &request.index, &registry.search_config)
-        .await
-        .and_then(|index| index.search(request.query, request.pagination));
+    let result = Index::build(
+        &handler_state.pool,
+        &request.index,
+        &handler_state.registry.search_config,
+    )
+    .await
+    .and_then(|index| index.search(request.query, request.pagination));
     Ok(Json(QueryResponse::V1(result)))
 }
 

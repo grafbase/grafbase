@@ -49,11 +49,10 @@ regex = { workspace = true }
 secrecy = { version = "0.8", features = ["serde"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_with = { workspace = true }
+serde_with = { workspace = true, features = ["base64"] }
 static_assertions = "1"
 tempfile = "3"
 thiserror = { workspace = true }
-ulid = { workspace = true, features = ["wasm"] }
 url = { workspace = true, features = ["serde"] }
 web-time = { workspace = true }
 
@@ -78,9 +77,12 @@ time = { version = "0.3.28", features = ["parsing"] }
 uuid.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+ulid = { workspace = true, features = ["wasm"] }
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
+getrandom = { version = "0.2", features = ["js"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ulid = { workspace = true }
 reqwest = { version = "0.11", default-features = false, features = [
   "json",
   "rustls-tls",

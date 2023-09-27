@@ -4,10 +4,8 @@ use std::sync::Arc;
 use crate::errors::UdfBuildError;
 use crate::types::ServerMessage;
 
-use crate::bridge::api_counterfeit::registry::VersionedRegistry;
 use axum::extract::State;
 use axum::Json;
-use common::environment::Project;
 use common::types::UdfKind;
 use common::{environment::Environment, types::LogLevel};
 use futures_util::{pin_mut, TryFutureExt, TryStreamExt};
@@ -117,30 +115,7 @@ pub async fn invoke_udf_endpoint(
             .unwrap();
 
         let tracing = handler_state.tracing;
-
-        let enable_kv = tokio::task::spawn_blocking::<_, Result<bool, ApiError>>(move || {
-            let project = Project::get();
-
-            let registry = {
-                let json = project.registry().map_err(|err| {
-                    error!("Failed to read registry: {err:?}");
-                    ApiError::ServerError
-                })?;
-
-                serde_json::from_value::<VersionedRegistry>(json).map_err(|err| {
-                    error!("Failed to deserialize registry: {err:?}");
-                    ApiError::ServerError
-                })?
-            };
-
-            Ok(registry.registry.enable_kv)
-        })
-        .await
-        .map_err(|err| {
-            error!("Failed do read json registry: {err:?}");
-
-            ApiError::ServerError
-        })??;
+        let enable_kv = handler_state.registry.enable_kv;
 
         match crate::udf_builder::build(
             environment,

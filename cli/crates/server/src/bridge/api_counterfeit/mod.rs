@@ -1,3 +1,2 @@
 // Rough copy paste of the real stuff...
-pub mod registry;
 pub mod search;

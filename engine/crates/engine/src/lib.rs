@@ -43,6 +43,9 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+#[cfg(target_arch = "wasm")]
+use getrandom as _;
+
 mod base;
 mod error;
 mod guard;
@@ -108,7 +111,7 @@ pub use look_ahead::Lookahead;
 #[doc(no_inline)]
 pub use parser::{Pos, Positioned};
 pub use query_path::{QueryPath, QueryPathSegment};
-pub use registry::{CacheControl, CacheInvalidation};
+pub use registry::{CacheControl, CacheInvalidation, Registry};
 pub use request::{BatchRequest, Request};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};

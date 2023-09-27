@@ -49,22 +49,18 @@ async fn test_header_forwarding() {
     ---
     data:
       headers:
-        - name: connection
-          value: keep-alive
-        - name: another-one
-          value: "yes"
-        - name: authorization
-          value: Bearer BLAH
-        - name: content-type
-          value: application/json
         - name: user-agent
           value: Grafbase
+        - name: content-type
+          value: application/json
+        - name: authorization
+          value: Bearer BLAH
         - name: wow-what-a-header
           value: "isn't it the best"
-        - name: mf-loop
-          value: "1"
-        - name: accept-encoding
-          value: "gzip, deflate"
+        - name: another-one
+          value: "yes"
+        - name: accept
+          value: "*/*"
         - name: content-length
           value: "96"
     "###);

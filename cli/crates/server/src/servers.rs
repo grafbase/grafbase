@@ -1,7 +1,7 @@
-use crate::atomics::WORKER_PORT;
+use crate::atomics::{REGISTRY_PARSED_EPOCH_OFFSET_MILLIS, WORKER_PORT};
 use crate::consts::{
     ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
-    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT_PATH,
+    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, TS_NODE_SCRIPT_PATH,
 };
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
@@ -16,17 +16,19 @@ use common::types::UdfKind;
 use flate2::read::GzDecoder;
 use futures_util::FutureExt;
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::env;
 use std::net::Ipv4Addr;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 use std::{
     fs,
     process::Stdio,
     thread::{self, JoinHandle},
 };
-use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::process::Command;
 use tokio::runtime::Builder;
@@ -153,13 +155,16 @@ async fn spawn_servers(
 
     validate_dependencies().await?;
 
-    let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
+    let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
 
     let worker_port = get_random_port_unchecked().await?;
 
     WORKER_PORT.store(worker_port, Ordering::Relaxed);
 
-    let ParsingResponse { mut detected_udfs } = match run_schema_parser(&environment_variables).await {
+    let ParsingResponse {
+        registry,
+        mut detected_udfs,
+    } = match run_schema_parser(&environment_variables).await {
         Ok(parsing_response) => parsing_response,
         Err(error) => {
             let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
@@ -168,7 +173,7 @@ async fn spawn_servers(
             return Ok(());
         }
     };
-
+    let registry = Arc::new(registry);
     // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
     // determined by inspecting the modified time of final artifacts of detected resolvers compared to the modified time
     // of the generated schema registry file.
@@ -188,7 +193,6 @@ async fn spawn_servers(
     }
 
     let environment = Environment::get();
-    let project = Project::get();
 
     if detected_udfs.is_empty() {
         trace!("Skipping wrangler installation");
@@ -207,8 +211,17 @@ async fn spawn_servers(
 
     let (bridge_listener, bridge_port) = get_listener_for_random_port().await?;
 
+    let bridge_registry = Arc::clone(&registry);
     let mut bridge_handle = tokio::spawn(async move {
-        bridge::start(bridge_listener, bridge_port, bridge_sender, bridge_event_bus, tracing).await
+        bridge::start(
+            bridge_listener,
+            bridge_port,
+            bridge_sender,
+            bridge_event_bus,
+            bridge_registry,
+            tracing,
+        )
+        .await
     })
     .fuse();
 
@@ -219,6 +232,15 @@ async fn spawn_servers(
         }
     });
 
+    let gateway = {
+        let app =
+            gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry).into_router();
+        // run it with hyper on localhost:3000
+        let server = axum::Server::bind(&"0.0.0.0:0".parse().unwrap()).serve(app.into_make_service());
+        WORKER_PORT.store(server.local_addr().port(), Ordering::Relaxed);
+        server
+    };
+
     trace!("waiting for bridge ready");
     tokio::select! {
         _ = wait_for_event(receiver, |event| *event == Event::BridgeReady) => (),
@@ -226,89 +248,12 @@ async fn spawn_servers(
     };
     trace!("bridge ready");
 
-    let registry_path = project.registry_path.to_str().ok_or(ServerError::ProjectPath)?;
-
-    trace!("spawning miniflare for the main worker");
-
-    let worker_port_string = worker_port.to_string();
-    let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
-    // TODO remove
-    let pathfinder_port_binding_string = "PATHFINDER_PORT=0".to_owned();
-    let registry_text_blob_string = format!("REGISTRY={registry_path}");
-
-    #[allow(unused_mut)]
-    let mut miniflare_arguments = Vec::from(
-        [
-            // used by miniflare when running normally as well
-            "--experimental-vm-modules",
-            crate::consts::MINIFLARE_CLI_JS_PATH,
-            "--modules",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            &worker_port_string,
-            "--no-update-check",
-            "--no-cf-fetch",
-            "--do-persist",
-            "--wrangler-config",
-            "./wrangler.toml",
-            "--binding",
-            &bridge_port_binding_string,
-            "--binding",
-            &pathfinder_port_binding_string,
-            "--text-blob",
-            &registry_text_blob_string,
-        ]
-        .map(Cow::Borrowed),
-    );
-
-    #[cfg(feature = "dynamodb")]
-    {
-        #[allow(clippy::panic)]
-        fn get_env(key: &str) -> String {
-            let val = std::env::var(key).unwrap_or_else(|_| panic!("Environment variable not found:{key}"));
-            format!("{key}={val}")
-        }
-
-        miniflare_arguments.extend(
-            vec![
-                "AWS_ACCESS_KEY_ID",
-                "AWS_SECRET_ACCESS_KEY",
-                "DYNAMODB_REGION",
-                "DYNAMODB_TABLE_NAME",
-            ]
-            .iter()
-            .map(|key| get_env(key))
-            .flat_map(|env| ["--binding".into(), env.into()]),
-        );
-    }
-
-    let mut miniflare = Command::new("node");
-    miniflare
-        // Unbounded worker limit
-        .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-        .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
-        .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
-        .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
-        .current_dir(&environment.user_dot_grafbase_path)
-        .kill_on_drop(true);
-    trace!("Spawning {miniflare:?}");
-    let miniflare = miniflare.spawn().map_err(ServerError::MiniflareCommandError)?;
-
     let _: Result<_, _> = sender.send(ServerMessage::Ready(proxy_port));
 
-    let miniflare_output_result = miniflare.wait_with_output();
-
     tokio::select! {
-        result = miniflare_output_result => {
-            let output = result.map_err(ServerError::MiniflareCommandError)?;
-
-            output
-                .status
-                .success()
-                .then_some(())
-                .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
-        }
+        result = gateway => {
+            result.map_err(|err| ServerError::MiniflareError(err.to_string()))?;
+        },
         bridge_handle_result = bridge_handle => { bridge_handle_result??; }
     }
 
@@ -374,12 +319,6 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     Ok(())
 }
 
-#[derive(serde::Deserialize)]
-struct SchemaParserResult {
-    versioned_registry: serde_json::Value,
-    required_udfs: Vec<(UdfKind, String)>,
-}
-
 pub struct DetectedUdf {
     pub udf_name: String,
     pub udf_kind: UdfKind,
@@ -387,85 +326,33 @@ pub struct DetectedUdf {
 }
 
 pub struct ParsingResponse {
+    registry: engine::registry::Registry,
     detected_udfs: Vec<DetectedUdf>,
 }
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environment
 // and due to schema-parser not being open source
-async fn run_schema_parser(
-    environment_variables: &std::collections::HashMap<String, String>,
-) -> Result<ParsingResponse, ServerError> {
+async fn run_schema_parser(environment_variables: &HashMap<String, String>) -> Result<ParsingResponse, ServerError> {
     trace!("parsing schema");
-    let environment = Environment::get();
     let project = Project::get();
 
-    let parser_path = environment
-        .user_dot_grafbase_path
-        .join(SCHEMA_PARSER_DIR)
-        .join(SCHEMA_PARSER_INDEX);
-
-    let parser_result_path = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
-        .await?
-        .map_err(ServerError::CreateTemporaryFile)?
-        .into_temp_path();
-
-    trace!(
-        "using a temporary file for the parser output: {parser_result_path}",
-        parser_result_path = parser_result_path.display()
-    );
-
-    let output = {
-        let schema_path = match project.schema_path.location() {
-            SchemaLocation::TsConfig(ref ts_config_path) => {
-                Cow::Owned(parse_and_generate_config_from_ts(ts_config_path).await?)
-            }
-            SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
-        };
-
-        let mut node_command = Command::new("node")
-            .args([
-                parser_path.to_str().ok_or(ServerError::CachePath)?,
-                &schema_path,
-                parser_result_path.to_str().expect("must be a valid path"),
-            ])
-            .stdin(Stdio::piped())
-            .stderr(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .map_err(ServerError::SchemaParserError)?;
-
-        let node_command_stdin = node_command.stdin.as_mut().expect("stdin must be available");
-        node_command_stdin
-            .write_all(&serde_json::to_vec(environment_variables).expect("must serialise to JSON just fine"))
-            .await
-            .map_err(ServerError::SchemaParserError)?;
-
-        node_command
-            .wait_with_output()
-            .await
-            .map_err(ServerError::SchemaParserError)?
+    let schema_path = match project.schema_path.location() {
+        SchemaLocation::TsConfig(ref ts_config_path) => {
+            Cow::Owned(parse_and_generate_config_from_ts(ts_config_path).await?)
+        }
+        SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
     };
-
-    if !output.status.success() {
-        return Err(ServerError::ParseSchema(
-            String::from_utf8_lossy(&output.stderr).into_owned(),
-        ));
-    }
-
-    let parser_result_string = tokio::fs::read_to_string(&parser_result_path)
+    let schema = tokio::fs::read_to_string(Path::new(schema_path.as_ref()))
         .await
-        .map_err(ServerError::SchemaParserResultRead)?;
+        .map_err(ServerError::SchemaParserError)?;
 
-    let SchemaParserResult {
-        versioned_registry,
+    let crate::parser::ParserResult {
+        registry,
         required_udfs,
-    } = serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
+    } = crate::parser::parse_schema(&schema, environment_variables).await?;
 
-    let registry_mtime = tokio::fs::metadata(&project.registry_path)
-        .await
-        .ok()
-        .map(|metadata| metadata.modified().expect("must be supported"));
-
+    let offset = REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.load(Ordering::Acquire);
+    let registry_mtime = SystemTime::UNIX_EPOCH.checked_add(Duration::from_millis(offset));
     let detected_resolvers = futures_util::future::join_all(required_udfs.into_iter().map(|(udf_kind, udf_name)| {
         // Last file to be written to in the build process.
         let wrangler_toml_path = project
@@ -490,13 +377,19 @@ async fn run_schema_parser(
     }))
     .await;
 
-    tokio::fs::write(
-        &project.registry_path,
-        serde_json::to_string(&versioned_registry).expect("serde_json::Value serialises just fine for sure"),
-    )
-    .await
-    .map_err(ServerError::SchemaRegistryWrite)?;
+    REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.store(
+        u64::try_from(
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+        )
+        .unwrap(),
+        Ordering::Release,
+    );
+
     Ok(ParsingResponse {
+        registry,
         detected_udfs: detected_resolvers,
     })
 }

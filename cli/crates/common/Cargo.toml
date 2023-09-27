@@ -14,10 +14,12 @@ chrono = "0.4.31"
 derivative = "2.2.0"
 dirs = "5"
 rudderanalytics = { version = "1", features = [
-    "rustls-tls",
+  "rustls-tls",
 ], default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 strum = { version = "0.25", features = ["derive"] }
 thiserror = "1"
 ulid = { version = "1", features = ["serde"] }
+
+common-types = { path = "../../../engine/crates/common-types" }

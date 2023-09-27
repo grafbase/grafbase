@@ -4,7 +4,6 @@ pub mod paginated_searcher;
 pub mod protocol;
 pub mod query;
 pub mod query_builder;
-pub mod runtime;
 mod tokenizer;
 pub mod utils;
 
@@ -13,7 +12,7 @@ pub use paginated_searcher::TopDocsPaginatedSearcher;
 pub use protocol::{Hit, Info, PaginatedHits, Pagination, QueryRequest, QueryResponse};
 pub use query::Query;
 pub use query_builder::TantivyQueryBuilder;
-pub use runtime::{Config, FieldType, Schema};
+pub use runtime::search::{Config, FieldType, Schema};
 use tantivy::{directory::RamDirectory, Index};
 use tantivy::{store::Compressor, tokenizer::TokenizerManager, IndexSettings};
 pub use utils::ID_FIELD;

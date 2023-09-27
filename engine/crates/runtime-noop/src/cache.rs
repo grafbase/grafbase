@@ -7,6 +7,12 @@ pub struct NoopCache<T> {
     _marker: PhantomData<T>,
 }
 
+impl<T> NoopCache<T> {
+    pub fn new() -> Self {
+        Self { _marker: PhantomData }
+    }
+}
+
 #[async_trait::async_trait]
 impl<T: Send + Sync + Cacheable + 'static> Cache for NoopCache<T> {
     type Value = T;

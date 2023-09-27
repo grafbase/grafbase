@@ -1,3 +1,4 @@
+pub use common_types::UdfKind;
 use std::net::Ipv4Addr;
 
 #[derive(Clone, Copy)]
@@ -25,13 +26,6 @@ impl LocalAddressType {
             Self::Unspecified => Ipv4Addr::UNSPECIFIED,
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Deserialize, strum::Display)]
-#[strum(serialize_all = "lowercase")]
-pub enum UdfKind {
-    Resolver,
-    Authorizer,
 }
 
 #[derive(serde::Deserialize, Clone, Copy, Debug, strum::Display)]

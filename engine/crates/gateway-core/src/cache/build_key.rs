@@ -18,7 +18,7 @@ pub enum BuildKeyError {
 }
 
 pub fn build_cache_key(
-    config: &CacheConfig<'_>,
+    config: &CacheConfig,
     ctx: &impl RequestContext,
     request: &engine::Request,
     auth: &ExecutionAuth,
@@ -44,8 +44,8 @@ pub fn build_cache_key(
                         }
                     }
                     CacheAccessScope::Header { header: name } => {
-                        if let Some(header_value) = ctx.header(name) {
-                            current_scopes.insert(header_value);
+                        if let Some(header_value) = ctx.headers().get(name).and_then(|header| header.to_str().ok()) {
+                            current_scopes.insert(header_value.to_string());
                         }
                     }
                 };

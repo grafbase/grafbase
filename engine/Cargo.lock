@@ -1136,6 +1136,7 @@ dependencies = [
  "fnv",
  "futures",
  "futures-util",
+ "getrandom 0.2.10",
  "grafbase-sql-ast",
  "graph-entities",
  "http",
@@ -1486,61 +1487,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "gateway-adapter"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "common-types",
- "engine",
- "futures-util",
- "gateway-core",
- "rusoto_core",
- "serde",
- "thiserror",
- "worker",
-]
-
-[[package]]
-name = "gateway-adapter-local"
-version = "0.1.0"
-dependencies = [
- "async-sse",
- "async-trait",
- "bytes",
- "cfg-if",
- "dynamodb",
- "engine",
- "futures-channel",
- "futures-util",
- "gateway-adapter",
- "gateway-core",
- "graphql-extensions",
- "http",
- "multipart-stream",
- "runtime",
- "runtime-local",
- "serde_json",
- "tracing",
- "ulid",
- "worker",
- "worker-env",
-]
-
-[[package]]
 name = "gateway-core"
 version = "3.0.31"
 dependencies = [
  "async-graphql",
  "async-runtime",
+ "async-sse",
  "async-trait",
+ "bytes",
  "common-types",
  "engine",
  "engine-value",
  "futures-util",
+ "headers",
  "http",
  "jwt-verifier",
  "log 0.1.0",
  "mediatype",
+ "mime",
+ "multipart-stream",
  "runtime",
  "serde",
  "serde_json",
@@ -2031,6 +1996,7 @@ dependencies = [
  "expect-test",
  "futures",
  "graphql-parser",
+ "http",
  "indoc",
  "insta",
  "names",
@@ -3327,6 +3293,9 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "common-types",
+ "futures-util",
+ "headers",
+ "http",
  "search-protocol",
  "serde",
  "serde_json",
@@ -3339,13 +3308,13 @@ dependencies = [
 name = "runtime-local"
 version = "0.1.0"
 dependencies = [
+ "async-runtime",
  "async-trait",
  "graph-entities",
  "log 0.1.0",
  "reqwest",
  "runtime",
  "search-protocol",
- "send_wrapper 0.6.0",
  "serde",
  "ulid",
 ]
