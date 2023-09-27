@@ -60,6 +60,7 @@ impl EngineBuilder {
                 .data(GraphqlRequestExecutionContext {
                     ray_id: String::new(),
                     headers: Default::default(),
+                    request_log_event_id: None,
                     fetch_log_endpoint_url: None,
                 });
 

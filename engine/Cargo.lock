@@ -3332,6 +3332,7 @@ dependencies = [
  "serde_json",
  "strum",
  "thiserror",
+ "ulid",
 ]
 
 [[package]]
@@ -3346,6 +3347,7 @@ dependencies = [
  "search-protocol",
  "send_wrapper 0.6.0",
  "serde",
+ "ulid",
 ]
 
 [[package]]

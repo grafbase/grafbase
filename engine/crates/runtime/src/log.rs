@@ -9,5 +9,5 @@ pub struct LogEvent<'a> {
 
 #[async_trait::async_trait]
 pub trait LogEventReceiver {
-    async fn invoke<'a>(&self, request_id: &str, request: LogEventType<'a>);
+    async fn invoke<'a>(&self, request_id: &str, log_event_id: Option<ulid::Ulid>, request: LogEventType<'a>);
 }
