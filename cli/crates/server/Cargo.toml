@@ -62,7 +62,7 @@ cfg-if = "1"
 # Same version as Tantivy
 tantivy-fst = "0.4.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.36.0-rc.3" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.36.0" }
 
 [dev-dependencies]
 serde_json = "1"
