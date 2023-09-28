@@ -52,7 +52,8 @@ fn test_defer_on_matching_typecondition() {
                   }
                 ]
               }
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -116,7 +117,8 @@ fn test_defer_on_unmatching_typecondition() {
                   }
                 ]
               }
-            }
+            },
+            "hasNext": false
           }
         ]
         "###);
@@ -171,7 +173,8 @@ fn test_defer_on_multiple_fragments_with_one_match() {
                   }
                 ]
               }
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -222,7 +225,8 @@ fn test_defer_with_typecondition_on_concrete_type() {
           {
             "data": {
               "petstore": {}
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {

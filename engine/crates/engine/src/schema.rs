@@ -610,7 +610,7 @@ impl Schema {
                 let (env_builder, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
-                        yield Response::from_errors(errors, OperationType::Subscription).into();
+                        yield Response::from_errors(errors, OperationType::Subscription).into_streaming_payload(false);
                         return;
                     }
                 };
@@ -619,15 +619,17 @@ impl Schema {
                     let (sender, mut receiver) = deferred::workload_channel();
                     let env = env_builder.with_deferred_sender(sender).build();
 
-                    yield schema
+                    let initial_response = schema
                         .execute_once(env.clone())
                         .await
-                        .cache_control(cache_control)
-                        .into();
+                        .cache_control(cache_control);
+
+                    let mut next_workload = receiver.receive();
+
+                    yield initial_response.into_streaming_payload(next_workload.is_some());
 
                     // For now we're taking the simple approach and running all the deferred
                     // workloads serially. We can look into doing something smarter later.
-                    let mut next_workload = receiver.receive();
                     while let Some(workload) = next_workload {
                         let mut next_response = process_deferred_workload(workload, &schema, &env).await;
                         next_workload = receiver.receive();
@@ -647,12 +649,13 @@ impl Schema {
 
                 let mut streams = Vec::new();
                 if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
-                    yield Response::from_errors(vec![err], OperationType::Subscription).into();
+                    // This hasNext: false is probably not correct, but we dont' support subscriptios atm so whatever
+                    yield Response::from_errors(vec![err], OperationType::Subscription).into_streaming_payload(false);
                 }
 
                 let mut stream = stream::select_all(streams);
                 while let Some(resp) = stream.next().await {
-                    yield resp.into();
+                    yield resp.into_streaming_payload(false);
                 }
             }
         })
