@@ -9,7 +9,7 @@ pub enum UdfKind {
     Authorizer,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Copy, Debug)]
 pub enum OperationType {
     Query { is_introspection: bool },
     Mutation,
