@@ -27,13 +27,15 @@ fn test_kv_integration(#[case] enabled: bool) {
         export default async function Resolver(_, __, { kv }) {
             const kvKey = "test";
 
-            let existingKey = await kv.get(kvKey);
-            if (!existingKey) {
+            let { value } = await kv.get(kvKey);
+            if (value === null) {
                 console.info(`Key ${kvKey} doesn't exist in KV. Creating ...`);
-                await kv.put(kvKey, "hello kv!");
+                await kv.set(kvKey, "hello kv!");
             }
 
-            return await kv.get(kvKey);
+            let { value: kv_value } = await kv.get(kvKey);
+
+            return kv_value;
         }
     "#,
     );
