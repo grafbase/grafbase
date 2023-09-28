@@ -8,10 +8,10 @@
 2. Change directory into the new folder `cd grafbase-with-react-apollo`
 3. Run `cp .env.example .env`
 4. Open `.env` in your code editor and provide your Grafbase API endpoint, API key, a issuer URL, and JWT secret.
-5. Run `cp grafbase/.env.example grafbase.env` and provide the same issuer and secret you have in your root `.env`
+5. Run `cp grafbase/.env.example grafbase/.env` and provide the same issuer and secret you have in your root `.env`
 6. Run `npm install` or `yarn install` to install dependencies
 7. Run `npx grafbase@latest dev` in your terminal
-8. In another terminal, run `npm run dev` or `yarn dev` and visit [`http://localhost:3000`](http://localhost:3000)
+8. In another terminal, run `npm start` or `yarn start` and visit [`http://localhost:3000`](http://localhost:3000)
 
 ## Learn More About Grafbase
 
