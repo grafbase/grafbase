@@ -90,7 +90,8 @@ async fn defer_multipart_test() {
               }
             ]
           }
-        }
+        },
+        "hasNext": true
       },
       {
         "data": {
@@ -184,7 +185,7 @@ async fn defer_sse_test() {
         Message(
             Event {
                 event: "next",
-                data: "{\"data\":{\"todoCollection\":{\"__typename\":\"TodoConnection\",\"edges\":[{\"node\":{\"title\":\"Defer Things\"}}]}}}",
+                data: "{\"data\":{\"todoCollection\":{\"__typename\":\"TodoConnection\",\"edges\":[{\"node\":{\"title\":\"Defer Things\"}}]}},\"hasNext\":true}",
                 id: "",
                 retry: None,
             },

@@ -115,7 +115,7 @@ pub use registry::{CacheControl, CacheInvalidation, Registry};
 pub use request::{BatchRequest, Request};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
-pub use response::{BatchResponse, GraphQlResponse, IncrementalPayload, Response, StreamingPayload};
+pub use response::{BatchResponse, GraphQlResponse, IncrementalPayload, InitialResponse, Response, StreamingPayload};
 pub use schema::{Schema, SchemaBuilder, SchemaEnv};
 #[doc(hidden)]
 pub use static_assertions;

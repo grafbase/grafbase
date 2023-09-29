@@ -53,7 +53,8 @@ fn simple_defer_test() {
                   "name": "Immediate Doggo"
                 }
               }
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -207,7 +208,8 @@ fn test_defer_on_named_fragment() {
                   "name": "Immediate Doggo"
                 }
               }
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -266,7 +268,8 @@ fn test_nested_defers() {
           {
             "data": {
               "petstore": {}
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -353,7 +356,8 @@ fn test_defer_with_errors() {
                   "pet"
                 ]
               }
-            ]
+            ],
+            "hasNext": true
           },
           {
             "data": {
@@ -430,7 +434,8 @@ fn test_defer_at_root() {
                   "name": "Immediate Doggo"
                 }
               }
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -490,7 +495,8 @@ fn test_defer_with_labels() {
           {
             "data": {
               "petstore": {}
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -567,7 +573,8 @@ fn test_defer_with_if_true() {
                   "name": "Immediate Doggo"
                 }
               }
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -634,7 +641,8 @@ fn test_defer_with_if_false() {
                   "name": "Immediate Doggo"
                 }
               }
-            }
+            },
+            "hasNext": false
           }
         ]
         "###
@@ -682,7 +690,8 @@ fn test_invalid_defer_parameters() {
                 ],
                 "message": "Invalid value for argument \"if\", expected type \"Boolean\""
               }
-            ]
+            ],
+            "hasNext": false
           }
         ]
         "###
@@ -728,7 +737,8 @@ fn defer_a_custom_resolver() {
                 {},
                 {}
               ]
-            }
+            },
+            "hasNext": true
           },
           {
             "data": {
@@ -798,7 +808,8 @@ fn defer_a_custom_resolver_that_errors() {
                 {},
                 {}
               ]
-            }
+            },
+            "hasNext": true
           },
           {
             "data": null,
