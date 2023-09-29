@@ -28,6 +28,7 @@ mod environment;
 mod error_server;
 mod event;
 mod file_watcher;
+mod parser;
 mod proxy;
 mod servers;
 mod udf_builder;

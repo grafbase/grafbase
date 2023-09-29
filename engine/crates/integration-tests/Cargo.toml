@@ -14,6 +14,7 @@ cynic-introspection = "3"
 expect-test = "1.4"
 futures = "0.3"
 graphql-parser = "0.4.0"
+http = { workspace = true }
 indoc = "2"
 names = "0.14"
 reqwest = "0.11"

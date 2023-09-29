@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use common_types::auth::ExecutionAuth;
 
-use super::StreamingFormat;
-
 #[async_trait::async_trait]
 pub trait Executor: Send + Sync {
     type Error;
@@ -25,6 +23,6 @@ pub trait Executor: Send + Sync {
         ctx: Arc<Self::Context>,
         auth: ExecutionAuth,
         request: engine::Request,
-        streaming_format: StreamingFormat,
+        streaming_format: crate::StreamingFormat,
     ) -> Result<Self::Response, Self::Error>;
 }

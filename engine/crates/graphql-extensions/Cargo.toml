@@ -16,7 +16,7 @@ web-time = { workspace = true }
 
 engine = { path = "../engine", default-features = false }
 engine-value = { workspace = true }
-log = { path = "../log", features = ["with-worker"] }
+log = { path = "../log" }
 runtime = { workspace = true }
 common-types = { workspace = true }
 

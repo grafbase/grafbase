@@ -3,6 +3,17 @@ members = ["crates/*"]
 
 resolver = "2"
 
+[patch.crates-io]
+again = { git = "https://github.com/grafbase/again", branch = "cloudflare-workers-compatibility" }
+# Use our fork of dynomite that uses the 0.48 version of rusoto.
+dynomite = { git = "https://github.com/grafbase/dynomite", branch = "rusoto-0_48" }
+rusoto_core = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+rusoto_dynamodb = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+# FIXME: Drop on next release.
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "00b1e328bf4ce750e01ea2450dcfe83e4955f2af" }
+ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db3216f058cbfadd4923df2c7" }
+
+
 [workspace.package]
 version = "0.36.0"
 edition = "2021"
@@ -10,6 +21,12 @@ license = "Apache-2.0"
 homepage = "https://grafbase.com"
 keywords = ["grafbase"]
 repository = "https://github.com/grafbase/grafbase"
+
+[workspace.dependencies]
+futures-util = "0.3"
+axum = "0.6"
+ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db3216f058cbfadd4923df2c7" }
+tokio = "1"
 
 [profile.release]
 strip = "symbols"

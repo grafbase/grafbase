@@ -74,7 +74,8 @@ async fn test_header_passthrough() {
 
     insta::assert_yaml_snapshot!(headers, @r###"
     ---
-    - another-one: "[\"yes\"]"
+    - accept: "[\"*/*\"]"
+      another-one: "[\"yes\"]"
       authorization: "[\"Bearer BLAH\"]"
       wow-what-a-header: "[\"isn't it the best\"]"
     "###);

@@ -3,12 +3,9 @@ use std::hash::Hash;
 use common_types::UdfKind;
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
-use runtime::{
-    udf::{
-        CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
-        UdfRequestContext, UdfRequestContextRequest,
-    },
-    GraphqlRequestExecutionContext,
+use runtime::udf::{
+    CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
+    UdfRequestContext, UdfRequestContextRequest,
 };
 
 use super::ResolvedValue;
@@ -45,7 +42,7 @@ impl CustomResolver {
 
         // -- End of hack
 
-        let graphql = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
+        let runtime_ctx = ctx.data::<runtime::Context>()?;
         let custom_resolvers_engine = ctx.data::<CustomResolversEngine>()?;
         let arguments = ctx
             .field()
@@ -53,7 +50,7 @@ impl CustomResolver {
             .into_iter()
             .map(|(name, value)| value.into_json().map(|value| (name.to_string(), value)))
             .collect::<serde_json::Result<_>>()?;
-        let ray_id = &ctx.data::<GraphqlRequestExecutionContext>()?.ray_id;
+        let ray_id = runtime_ctx.ray_id();
         let future = custom_resolvers_engine.invoke(
             ray_id,
             UdfRequest {
@@ -64,7 +61,7 @@ impl CustomResolver {
                     parent: Some(parent.data_resolved().clone()),
                     context: UdfRequestContext {
                         request: UdfRequestContextRequest {
-                            headers: serde_json::to_value(&graphql.headers).expect("must be valid"),
+                            headers: serde_json::to_value(&runtime_ctx.headers_as_map()).expect("must be valid"),
                         },
                     },
                     info: Some(serde_json::json!({

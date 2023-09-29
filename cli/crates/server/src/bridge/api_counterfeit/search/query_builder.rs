@@ -17,9 +17,9 @@ use tantivy::{
 use combine::Parser;
 
 use super::query::{Query, Range};
-use super::runtime::{FieldType, ScalarValue, Schema};
 use super::utils::tokenized_field_name;
 use super::{BadRequestError, SearchResult};
+use runtime::search::{FieldType, ScalarValue, Schema};
 
 pub struct TantivyQueryBuilder<'a> {
     index: &'a Index,

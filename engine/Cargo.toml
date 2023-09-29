@@ -22,11 +22,12 @@ ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db32
 async-trait = "0.1"
 again = "0.1"
 base64 = "0.21"
+bytes = "1"
 bitflags = "2"
 chrono = { version = "0.4", default-features = false }
 flexbuffers = "2"
 futures = { version = "0.3" }
-futures-util = { version = "0.3", default-features = false }
+futures-util = "0.3"
 itertools = "0.11"
 lazy_static = "1"
 num-traits = "0.2"
@@ -43,6 +44,8 @@ uuid = "1"
 wasm-bindgen = "0.2"
 web-time = "0.2"
 worker = "0.0.18"
+http = "0.2"
+headers = "0.3"
 
 # AWS Rusoto SDK
 rusoto_core = "0.48"
@@ -80,6 +83,9 @@ runtime-noop = { path = "crates/runtime-noop" }
 worker-env = { path = "crates/worker-env" }
 search-protocol = { path = "crates/search-protocol" }
 jwt-verifier = { path = "crates/jwt-verifier" }
+parser-openapi = { path = "crates/parser-openapi" }
+parser-graphql = { path = "crates/parser-graphql" }
+parser-postgresql = { path = "crates/parser-postgresql" }
 
 [profile.bench]
 debug = true

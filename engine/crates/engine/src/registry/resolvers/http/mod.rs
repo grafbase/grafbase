@@ -80,9 +80,9 @@ impl HttpResolver {
             .unwrap_or_default();
 
         Box::pin(make_send_on_wasm(async move {
-            let graphql = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
-            let fetch_log_endpoint_url = graphql.fetch_log_endpoint_url.as_deref();
-            let ray_id = &graphql.ray_id;
+            let runtime_ctx = ctx.data::<runtime::Context>()?;
+            let fetch_log_endpoint_url = runtime_ctx.log.fetch_log_endpoint_url.as_deref();
+            let ray_id = &runtime_ctx.ray_id();
             let url = self.build_url(ctx, last_resolver_value)?;
             let mut request_builder = reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
 

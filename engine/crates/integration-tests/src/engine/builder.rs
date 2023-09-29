@@ -1,12 +1,10 @@
 use super::Inner;
 use crate::Engine;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
+use futures::future::BoxFuture;
 use parser_sdl::{ConnectorParsers, GraphqlDirective, NeonDirective, OpenApiDirective, ParseResult, Registry};
 use postgresql_types::transport::NeonTransport;
-use runtime::{
-    udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker},
-    GraphqlRequestExecutionContext,
-};
+use runtime::udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker};
 use std::{collections::HashMap, sync::Arc};
 
 #[must_use]
@@ -15,6 +13,26 @@ pub struct EngineBuilder {
     openapi_specs: HashMap<String, String>,
     environment_variables: HashMap<String, String>,
     custom_resolvers: Option<CustomResolversEngine>,
+}
+
+struct RequestContext {
+    ray_id: String,
+    headers: http::HeaderMap,
+}
+
+#[async_trait::async_trait]
+impl runtime::context::RequestContext for RequestContext {
+    fn ray_id(&self) -> &str {
+        &self.ray_id
+    }
+
+    async fn wait_until(&self, _fut: BoxFuture<'static, ()>) {
+        unimplemented!("wait_until not implemented for integration tests yet...");
+    }
+
+    fn headers(&self) -> &http::HeaderMap {
+        &self.headers
+    }
 }
 
 impl EngineBuilder {
@@ -54,15 +72,18 @@ impl EngineBuilder {
 
         let registry = serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap();
 
-        let mut schema_builder =
-            Schema::build(registry)
-                .data(QueryBatcher::new())
-                .data(GraphqlRequestExecutionContext {
+        let mut schema_builder = Schema::build(registry)
+            .data(QueryBatcher::new())
+            .data(runtime::Context::new(
+                &Arc::new(RequestContext {
                     ray_id: String::new(),
                     headers: Default::default(),
-                    request_log_event_id: None,
+                }),
+                runtime::context::LogContext {
                     fetch_log_endpoint_url: None,
-                });
+                    request_log_event_id: None,
+                },
+            ));
 
         if let Some(custom_resolvers) = self.custom_resolvers {
             schema_builder = schema_builder.data(custom_resolvers);

@@ -6,7 +6,7 @@ use engine::{
     parser::types::OperationDefinition,
     Positioned, Request, Response, ServerResult,
 };
-use runtime::{log::LogEventReceiver, GraphqlRequestExecutionContext};
+use runtime::log::LogEventReceiver;
 
 pub struct RuntimeLogExtension {
     log_event_receiver: Arc<Box<dyn LogEventReceiver + Send + Sync>>,
@@ -45,12 +45,12 @@ impl Extension for RuntimeLogExtension {
         let duration: std::time::Duration = end.duration_since(start).unwrap();
 
         if prepare_result.is_err() {
-            let graphql_request_execution_context = ctx.data::<GraphqlRequestExecutionContext>().expect("must be set");
+            let runtime_ctx = ctx.data::<runtime::Context>().expect("must be set");
 
             self.log_event_receiver
                 .invoke(
-                    &graphql_request_execution_context.ray_id,
-                    graphql_request_execution_context.request_log_event_id,
+                    runtime_ctx.ray_id(),
+                    runtime_ctx.log.request_log_event_id,
                     LogEventType::BadRequest {
                         name: operation_name.as_deref().map(From::from),
                         duration,
@@ -72,11 +72,12 @@ impl Extension for RuntimeLogExtension {
     ) -> Response {
         use engine::parser::types::{OperationType as ParserOperationType, Selection};
 
-        let graphql_request_execution_context = ctx.data::<GraphqlRequestExecutionContext>().expect("must be set");
+        let runtime_ctx = ctx.data::<runtime::Context>().expect("must be set");
+
         self.log_event_receiver
             .invoke(
-                &graphql_request_execution_context.ray_id,
-                graphql_request_execution_context.request_log_event_id,
+                runtime_ctx.ray_id(),
+                runtime_ctx.log.request_log_event_id,
                 LogEventType::OperationStarted {
                     name: operation_name.map(From::from),
                 },
@@ -98,8 +99,8 @@ impl Extension for RuntimeLogExtension {
 
         self.log_event_receiver
             .invoke(
-                &graphql_request_execution_context.ray_id,
-                graphql_request_execution_context.request_log_event_id,
+                runtime_ctx.ray_id(),
+                runtime_ctx.log.request_log_event_id,
                 LogEventType::OperationCompleted {
                     name: operation_name.map(From::from),
                     duration,

@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use common_types::{auth::ExecutionAuth, UdfKind};
 use engine::{AuthConfig, AuthProvider, AuthorizerProvider};
@@ -23,6 +24,30 @@ pub enum AuthError {
     InvalidTokenClaims(String),
     #[error("{0}")]
     Internal(String),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum AdminAuthError {
+    #[error("Bad request: {0}")]
+    BadRequest(String),
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+}
+
+#[async_trait::async_trait]
+pub trait Authorizer: Send + Sync {
+    type Context;
+    async fn authorize_admin_request(
+        &self,
+        ctx: &Arc<Self::Context>,
+        _request: &async_graphql::Request,
+    ) -> Result<(), AdminAuthError>;
+
+    async fn authorize_request(
+        &self,
+        ctx: &Arc<Self::Context>,
+        _request: &engine::Request,
+    ) -> Result<ExecutionAuth, AuthError>;
 }
 
 pub fn build_token_based_auth(verified_token: VerifiedToken, auth_config: &AuthConfig) -> ExecutionAuth {
@@ -60,11 +85,10 @@ pub async fn authorize_request(
     auth_invoker: &impl UdfInvoker<AuthorizerRequestPayload>,
     auth_config: &AuthConfig,
     ctx: &impl RequestContext,
+    // Should be retrieved from both header AND query param for backwards compatibility...
+    authorization_header: Option<String>,
 ) -> Result<ExecutionAuth, AuthError> {
-    let id_token = ctx
-        .authorization_header()
-        .and_then(|val| val.strip_prefix("Bearer ").map(str::to_string));
-
+    let id_token = authorization_header.and_then(|val| val.strip_prefix("Bearer ").map(str::to_string));
     let result = match (id_token, &auth_config.provider) {
         // API key has precedence over ID token
         (Some(token), Some(AuthProvider::Oidc(oidc_provider))) => {
@@ -139,7 +163,7 @@ pub async fn authorize_request(
                 .map(|verified_token| build_token_based_auth(verified_token, auth_config))?
         }
         (_, Some(AuthProvider::Authorizer(AuthorizerProvider { name }))) => {
-            call_authorizer(ctx.ray_id(), ctx.headers(), name.clone(), auth_invoker, auth_config).await?
+            call_authorizer(ctx, name.clone(), auth_invoker, auth_config).await?
         }
         _ => build_public_auth(auth_config),
     };
@@ -151,12 +175,12 @@ pub async fn authorize_request(
 }
 
 async fn call_authorizer(
-    ray_id: &str,
-    headers: HashMap<String, String>,
+    ctx: &impl RequestContext,
     name: String,
     invoker: &impl UdfInvoker<AuthorizerRequestPayload>,
     auth_config: &AuthConfig,
 ) -> Result<ExecutionAuth, AuthError> {
+    let ray_id = ctx.ray_id();
     let request = runtime::udf::UdfRequest {
         name: &name,
         request_id: ray_id,
@@ -164,7 +188,7 @@ async fn call_authorizer(
         payload: runtime::udf::AuthorizerRequestPayload {
             context: runtime::udf::UdfRequestContext {
                 request: runtime::udf::UdfRequestContextRequest {
-                    headers: serde_json::to_value(&headers).expect("must be valid"),
+                    headers: serde_json::to_value(ctx.headers_as_map()).expect("must be valid"),
                 },
             },
         },

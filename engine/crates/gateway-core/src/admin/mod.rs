@@ -18,7 +18,7 @@ struct AdminContext {
 pub async fn handle_graphql_request(
     ctx: &impl RequestContext,
     cache: &Arc<impl Cache<Value = engine::Response> + 'static>,
-    cache_config: &CacheConfig<'_>,
+    cache_config: &CacheConfig,
     request: async_graphql::Request,
 ) -> async_graphql::Response {
     let schema = Schema::build(graphql::Query, graphql::Mutation::default(), EmptySubscription)

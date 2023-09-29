@@ -1,8 +1,9 @@
-use std::{borrow::Cow, future::Future, sync::Arc, time::Duration};
+use std::{future::Future, sync::Arc, time::Duration};
 
 use async_runtime::make_send_on_wasm;
 use common_types::auth::ExecutionAuth;
 use futures_util::{FutureExt, TryFutureExt};
+use headers::HeaderMapExt;
 use http::status::StatusCode;
 
 use runtime::cache::{Cache, Cacheable, Entry, EntryState};
@@ -26,31 +27,26 @@ pub enum CacheReadStatus {
     Stale { revalidated: bool },
 }
 
-impl ToString for CacheReadStatus {
-    fn to_string(&self) -> String {
-        match self {
-            CacheReadStatus::Hit => "HIT".to_string(),
-            CacheReadStatus::Miss { .. } => "MISS".to_string(),
-            CacheReadStatus::Stale { revalidated } => {
-                if *revalidated {
-                    "UPDATING".to_string()
-                } else {
-                    "STALE".to_string()
-                }
-            }
-            CacheReadStatus::Bypass => "BYPASS".to_string(),
-        }
-    }
-}
-
 impl CacheReadStatus {
-    fn into_headers(self) -> Vec<(String, String)> {
-        let mut headers = vec![(X_GRAFBASE_CACHE.to_string(), self.to_string())];
+    fn into_headers(self) -> http::HeaderMap {
+        let mut headers = http::HeaderMap::new();
+        headers.insert(
+            http::HeaderName::from_static(X_GRAFBASE_CACHE),
+            http::HeaderValue::from_static(match self {
+                CacheReadStatus::Hit => "HIT",
+                CacheReadStatus::Miss { .. } => "MISS",
+                CacheReadStatus::Stale { revalidated } => {
+                    if revalidated {
+                        "UPDATING"
+                    } else {
+                        "STALE"
+                    }
+                }
+                CacheReadStatus::Bypass => "BYPASS",
+            }),
+        );
         if let CacheReadStatus::Miss { max_age } = self {
-            headers.push((
-                http::header::CACHE_CONTROL.to_string(),
-                format!("public, max-age: {}", max_age.as_secs()),
-            ));
+            headers.typed_insert(headers::CacheControl::new().with_public().with_max_age(max_age));
         }
         headers
     }
@@ -115,24 +111,23 @@ pub struct CacheControl {
     pub no_store: bool,
 }
 
-#[derive(Clone)]
-pub struct CacheConfig<'a> {
+#[derive(Clone, Default)]
+pub struct CacheConfig {
     pub global_enabled: bool,
     pub subdomain: String,
     pub host_name: String,
     pub cache_control: CacheControl,
-    pub partial_registry: Cow<'a, CachePartialRegistry>,
+    pub partial_registry: CachePartialRegistry,
     pub common_cache_tags: Vec<String>,
 }
 
-pub fn process_execution_response<Context, Error, Response>(
-    ctx: &Context,
+pub fn process_execution_response<Error, Response>(
+    ctx: &impl RequestContext,
     response: Result<ExecutionResponse<Arc<engine::Response>>, Error>,
 ) -> Result<Response, Error>
 where
-    Context: RequestContext,
     Error: std::fmt::Display,
-    Response: super::Response<Context = Context, Error = Error>,
+    Response: super::Response<Error = Error>,
 {
     let (response, headers) = match response {
         Ok(execution_response) => match execution_response {
@@ -148,15 +143,15 @@ where
         },
         Err(e) => {
             log::error!(ctx.ray_id(), "Execution error: {}", e);
-            return Response::error(ctx, "Execution error", StatusCode::INTERNAL_SERVER_ERROR);
+            return Ok(Response::error(StatusCode::INTERNAL_SERVER_ERROR, "Execution error"));
         }
     };
-    Response::engine(ctx, response).and_then(|resp| resp.with_headers(headers))
+    Response::engine(response).map(|resp| resp.with_additional_headers(headers))
 }
 
 pub async fn execute_with_cache<Value, Error, ValueFut, ValueFutBuilder>(
     cache: &Arc<impl Cache<Value = Value> + 'static>,
-    config: &CacheConfig<'_>,
+    config: &CacheConfig,
     ctx: &impl RequestContext,
     request: engine::Request,
     auth: ExecutionAuth,
@@ -196,7 +191,7 @@ where
 
 pub(super) async fn cached<Value, Error, ValueFut>(
     cache: &Arc<impl Cache<Value = Value> + 'static>,
-    config: &CacheConfig<'_>,
+    config: &CacheConfig,
     ctx: &impl RequestContext,
     key: String,
     value_fut: ValueFut,
@@ -402,7 +397,7 @@ mod tests {
     use tokio::sync::{Mutex, RwLock};
 
     use std::collections::hash_map::DefaultHasher;
-    use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+    use std::collections::{BTreeMap, BTreeSet, HashSet};
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::Arc;
 
@@ -483,7 +478,7 @@ mod tests {
 
     #[derive(Default)]
     struct FakeRequestContext {
-        headers: Vec<(&'static str, &'static str)>,
+        headers: http::HeaderMap,
         futures: Mutex<Vec<BoxFuture<'static, ()>>>,
     }
 
@@ -497,6 +492,11 @@ mod tests {
                 .collect::<Vec<BoxFuture<'static, ()>>>();
             futures_util::future::join_all(futures).await;
         }
+
+        fn with_header(mut self, name: &'static str, value: &'static str) -> Self {
+            self.headers.insert(name, http::HeaderValue::from_static(value));
+            self
+        }
     }
 
     #[async_trait::async_trait]
@@ -509,19 +509,8 @@ mod tests {
             self.futures.lock().await.push(fut);
         }
 
-        fn header(&self, name: &str) -> Option<String> {
-            self.headers
-                .iter()
-                .find(|(k, _)| *k == name)
-                .map(|(_, v)| (*v).to_string())
-        }
-
-        fn authorization_header(&self) -> Option<String> {
-            unimplemented!()
-        }
-
-        fn headers(&self) -> HashMap<String, String> {
-            unimplemented!()
+        fn headers(&self) -> &http::HeaderMap {
+            &self.headers
         }
     }
 
@@ -717,10 +706,7 @@ mod tests {
                     ..Default::default()
                 }))
             },
-            FakeRequestContext {
-                headers: vec![(TEST, TEST)],
-                ..Default::default()
-            },
+            FakeRequestContext::default().with_header(TEST, TEST),
             ExecutionAuth::ApiKey,
             expected_cache_key,
         )
@@ -801,7 +787,7 @@ mod tests {
         );
     }
 
-    async fn expect_cache_key(config: CacheConfig<'_>, ctx: FakeRequestContext, auth: ExecutionAuth, expected: String) {
+    async fn expect_cache_key(config: CacheConfig, ctx: FakeRequestContext, auth: ExecutionAuth, expected: String) {
         #[derive(Default)]
         struct TestCache(tokio::sync::Mutex<Vec<String>>);
 
@@ -836,7 +822,7 @@ mod tests {
         assert_eq!(Arc::into_inner(cache).unwrap().0.into_inner(), vec![expected]);
     }
 
-    fn config(cache_control: Option<engine::CacheControl>) -> CacheConfig<'static> {
+    fn config(cache_control: Option<engine::CacheControl>) -> CacheConfig {
         let mut registry = Registry::new();
         registry.create_type(
             |_| {
@@ -863,7 +849,7 @@ mod tests {
             cache_control: Default::default(),
             common_cache_tags: vec![],
             subdomain: String::new(),
-            partial_registry: Cow::Owned(registry.into()),
+            partial_registry: registry.into(),
             host_name: String::new(),
         }
     }

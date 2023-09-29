@@ -11,8 +11,9 @@ keywords = ["local", "runtime", "grafbase"]
 
 [dependencies]
 async-trait = "0.1"
+async-runtime = { workspace = true }
 ulid = { workspace = true }
-send_wrapper = "0.6"
+
 serde = { workspace = true }
 
 runtime = { workspace = true }

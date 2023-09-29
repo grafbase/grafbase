@@ -32,6 +32,7 @@ pub struct HandlerState {
     pub udf_builds: Mutex<std::collections::HashMap<(String, UdfKind), UdfBuild>>,
     pub environment_variables: HashMap<String, String>,
     pub tracing: bool,
+    pub registry: Arc<engine::Registry>,
 }
 
 async fn query_endpoint(
@@ -102,6 +103,7 @@ pub async fn start(
     port: u16,
     bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
     event_bus: tokio::sync::broadcast::Sender<Event>,
+    registry: Arc<engine::Registry>,
     tracing: bool,
 ) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
@@ -140,6 +142,7 @@ pub async fn start(
         udf_builds: Mutex::default(),
         environment_variables,
         tracing,
+        registry,
     });
 
     let router = Router::new()

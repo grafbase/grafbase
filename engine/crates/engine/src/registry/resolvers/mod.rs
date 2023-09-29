@@ -172,9 +172,9 @@ impl Resolver {
                     .await
             }
             Resolver::Graphql(resolver) => {
-                let graphql_context = ctx.data::<runtime::GraphqlRequestExecutionContext>()?;
-                let ray_id = &graphql_context.ray_id;
-                let fetch_log_endpoint_url = graphql_context.fetch_log_endpoint_url.as_deref();
+                let runtime_ctx = ctx.data::<runtime::Context>()?;
+                let ray_id = runtime_ctx.ray_id();
+                let fetch_log_endpoint_url = runtime_ctx.log.fetch_log_endpoint_url.as_deref();
 
                 let registry = ctx.registry();
                 let request_headers = ctx.data::<RequestHeaders>().ok();

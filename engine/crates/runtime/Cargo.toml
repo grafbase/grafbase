@@ -14,8 +14,12 @@ async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 strum = { workspace = true }
+futures-util = { workspace = true }
 thiserror = { workspace = true }
 ulid = { workspace = true }
+http = { workspace = true }
+headers = { workspace = true }
+
 
 search-protocol = { path = "../search-protocol" }
 common-types = { workspace = true }

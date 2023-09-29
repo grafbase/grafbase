@@ -26,7 +26,11 @@ futures-util = { workspace = true }
 common-types = { workspace = true }
 serde_json = { workspace = true }
 log = { path = "../log" }
-
+bytes = { workspace = true }
+multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs.git", branch = "fix-multipart-mixed" }
+async-sse = "5"
+headers = "0.3"
+mime = "0.3"
 
 [dev-dependencies]
 serde = { workspace = true }

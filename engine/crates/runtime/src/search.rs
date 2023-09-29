@@ -7,8 +7,6 @@ pub use search_protocol::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::GraphqlRequestExecutionContext;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Request {
     pub query: GraphqlQuery,
@@ -20,7 +18,7 @@ pub type Response = Result<PaginatedHits<String>, QueryError>;
 
 #[async_trait::async_trait]
 pub trait SearchEngineInner {
-    async fn query(&self, ctx: &GraphqlRequestExecutionContext, request: Request) -> Response;
+    async fn query(&self, ctx: &crate::Context, request: Request) -> Response;
 }
 
 type BoxedSearchEngineImpl = Box<dyn SearchEngineInner + Send + Sync>;
