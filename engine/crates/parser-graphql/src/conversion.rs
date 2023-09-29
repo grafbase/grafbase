@@ -192,7 +192,6 @@ fn interface_from_introspection(interface: cynic_introspection::InterfaceType) -
             .collect(),
         possible_types: interface.possible_types.into_iter().collect(),
         extends: false,
-        keys: None,
         visible: None,
         rust_typename: interface.name,
     })

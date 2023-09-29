@@ -1,4 +1,4 @@
-use super::Inner;
+use super::{dynamo::enable_local_dynamo, Inner};
 use crate::Engine;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::BoxFuture;
@@ -13,6 +13,7 @@ pub struct EngineBuilder {
     openapi_specs: HashMap<String, String>,
     environment_variables: HashMap<String, String>,
     custom_resolvers: Option<CustomResolversEngine>,
+    local_dynamo: bool,
 }
 
 struct RequestContext {
@@ -42,6 +43,7 @@ impl EngineBuilder {
             openapi_specs: HashMap::new(),
             environment_variables: HashMap::new(),
             custom_resolvers: None,
+            local_dynamo: false,
         }
     }
 
@@ -52,6 +54,11 @@ impl EngineBuilder {
 
     pub fn with_env_var(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.environment_variables.insert(name.into(), value.into());
+        self
+    }
+
+    pub fn with_local_dynamo(mut self) -> Self {
+        self.local_dynamo = true;
         self
     }
 
@@ -84,6 +91,10 @@ impl EngineBuilder {
                     request_log_event_id: None,
                 },
             ));
+
+        if self.local_dynamo {
+            schema_builder = enable_local_dynamo(schema_builder).await;
+        }
 
         if let Some(custom_resolvers) = self.custom_resolvers {
             schema_builder = schema_builder.data(custom_resolvers);

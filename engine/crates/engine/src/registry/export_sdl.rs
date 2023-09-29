@@ -100,7 +100,6 @@ impl Registry {
                 name,
                 fields,
                 extends,
-                keys,
                 description,
                 ..
             }) => {
@@ -136,8 +135,8 @@ impl Registry {
                 self.write_implements(sdl, name);
 
                 if federation {
-                    if let Some(keys) = keys {
-                        for key in keys {
+                    if let Some(entity) = self.federation_entities.get(name) {
+                        for key in entity.key_strings() {
                             write!(sdl, "@key(fields: \"{key}\") ").ok();
                         }
                     }
@@ -151,7 +150,6 @@ impl Registry {
                 name,
                 fields,
                 extends,
-                keys,
                 description,
                 ..
             }) => {
@@ -163,8 +161,8 @@ impl Registry {
                 }
                 write!(sdl, "interface {name} ").ok();
                 if federation {
-                    if let Some(keys) = keys {
-                        for key in keys {
+                    if let Some(entity) = self.federation_entities.get(name) {
+                        for key in entity.key_strings() {
                             write!(sdl, "@key(fields: \"{key}\") ").ok();
                         }
                     }

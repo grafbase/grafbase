@@ -38,9 +38,6 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
 
     let mut resolvers = Vec::new();
     let mut schema_fields = Vec::new();
-    let mut find_entities = Vec::new();
-    let mut add_keys = Vec::new();
-    let mut create_entity_types = Vec::new();
 
     // Computation of the derivated fields
     let mut derived_impls = vec![];
@@ -122,118 +119,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
         if let ImplItem::Fn(method) = item {
             let method_args: args::ObjectField = parse_graphql_attrs(&method.attrs)?.unwrap_or_default();
 
-            if method_args.entity {
-                let cfg_attrs = get_cfg_attrs(&method.attrs);
-
-                if method.sig.asyncness.is_none() {
-                    return Err(Error::new_spanned(&method, "Must be asynchronous").into());
-                }
-
-                let args = extract_input_args(&crate_name, method)?;
-
-                let ty = match &method.sig.output {
-                    ReturnType::Type(_, ty) => OutputType::parse(ty)?,
-                    ReturnType::Default => {
-                        return Err(Error::new_spanned(&method.sig.output, "Resolver must have a return type").into())
-                    }
-                };
-
-                let entity_type = ty.value_type();
-                let mut key_pat = Vec::new();
-                let mut key_getter = Vec::new();
-                let mut use_keys = Vec::new();
-                let mut get_federation_key = Vec::new();
-                let mut requires_getter = Vec::new();
-                let all_key = args.iter().all(|(_, _, arg)| !arg.key);
-
-                if args.is_empty() {
-                    return Err(Error::new_spanned(method, "Entity need to have at least one key.").into());
-                }
-
-                for (ident, ty, args::Argument { name, key, .. }) in &args {
-                    let is_key = all_key || *key;
-                    let name = name.clone().unwrap_or_else(|| {
-                        object_args
-                            .rename_args
-                            .rename(ident.ident.unraw().to_string(), RenameTarget::Argument)
-                    });
-
-                    if is_key {
-                        get_federation_key.push(quote! {
-                            if let Some(fields) = <#ty as #crate_name::LegacyInputType>::federation_fields() {
-                                key_str.push(format!("{} {}", #name, fields));
-                            } else {
-                                key_str.push(#name.to_string());
-                            }
-                        });
-
-                        key_pat.push(quote! {
-                            ::std::option::Option::Some(#ident)
-                        });
-                        key_getter.push(quote! {
-                            params.get(#name).and_then(|value| {
-                                let value: ::std::option::Option<#ty> = #crate_name::LegacyInputType::parse(::std::option::Option::Some(::std::clone::Clone::clone(&value))).ok();
-                                value
-                            })
-                        });
-                    } else {
-                        // requires
-                        requires_getter.push(quote! {
-                            let #ident: #ty = #crate_name::LegacyInputType::parse(params.get(#name).cloned()).
-                                map_err(|err| err.into_server_error(ctx.item.pos))?;
-                        });
-                    }
-                    use_keys.push(ident);
-                }
-
-                add_keys.push(quote! {
-                    {
-                        let mut key_str = Vec::new();
-                        #(#get_federation_key)*
-                        registry.add_keys(&<#entity_type as #crate_name::LegacyOutputType>::type_name(), &key_str.join(" "));
-                    }
-                });
-                create_entity_types
-                    .push(quote! { <#entity_type as #crate_name::LegacyOutputType>::create_type_info(registry); });
-
-                let field_ident = &method.sig.ident;
-                if let OutputType::Value(inner_ty) = &ty {
-                    let block = &method.block;
-                    let new_block = quote!({
-                        {
-                            let value:#inner_ty = async move #block.await;
-                            ::std::result::Result::Ok(value)
-                        }
-                    });
-                    method.block = syn::parse2::<Block>(new_block).expect("invalid block");
-                    method.sig.output = syn::parse2::<ReturnType>(quote! { -> #crate_name::Result<#inner_ty> })
-                        .expect("invalid result type");
-                }
-                let do_find = quote! {
-                    self.#field_ident(ctx, #(#use_keys),*)
-                        .await.map_err(|err| ::std::convert::Into::<#crate_name::Error>::into(err)
-                        .into_server_error(ctx.item.pos))
-                };
-
-                find_entities.push((
-                    args.len(),
-                    quote! {
-                        #(#cfg_attrs)*
-                        if typename == &<#entity_type as #crate_name::LegacyOutputType>::type_name() {
-                            if let (#(#key_pat),*) = (#(#key_getter),*) {
-                                use #crate_name::context::ContextExt;
-                                let f = async move {
-                                    #(#requires_getter)*
-                                    #do_find
-                                };
-                                let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                                let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
-                                return #crate_name::LegacyOutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
-                            }
-                        }
-                    },
-                ));
-            } else if !method_args.skip {
+            if !method_args.skip {
                 if method.sig.asyncness.is_none() {
                     return Err(Error::new_spanned(&method, "Must be asynchronous").into());
                 }
@@ -536,10 +422,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
         }
     };
 
-    find_entities.sort_by(|(a, _), (b, _)| b.cmp(a));
-    let find_entities_iter = find_entities.iter().map(|(_, code)| code);
-
-    if resolvers.is_empty() && create_entity_types.is_empty() {
+    if resolvers.is_empty() {
         return Err(Error::new_spanned(self_ty, "A GraphQL Object type must define one or more fields.").into());
     }
 
@@ -576,7 +459,6 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             #crate_name::ServerError::new(r#""__typename" must be an existing string."#, ::std::option::Option::Some(ctx.item.pos))
                         );
                     };
-                    #(#find_entities_iter)*
                     ::std::result::Result::Ok(::std::option::Option::None)
                 }
             }
@@ -600,7 +482,6 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             },
                             cache_control: #cache_control,
                             extends: #extends,
-                            keys: ::std::option::Option::None,
                             is_node: false,
                             visible: #visible,
                             is_subscription: false,
@@ -608,8 +489,6 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             constraints: vec![],
                         })
                     );
-                    #(#create_entity_types)*
-                    #(#add_keys)*
                     ty
                 }
 
@@ -643,7 +522,6 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             },
                             cache_control: #cache_control,
                             extends: #extends,
-                            keys: ::std::option::Option::None,
                             visible: #visible,
                             is_node: false,
                             is_subscription: false,
@@ -651,8 +529,6 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             constraints: vec![],
                         })
                     );
-                    #(#create_entity_types)*
-                    #(#add_keys)*
                     ty
                 }
 
@@ -673,7 +549,6 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             #crate_name::ServerError::new(r#""__typename" must be an existing string."#, ::std::option::Option::Some(ctx.item.pos))
                         );
                     };
-                    #(#find_entities_iter)*
                     ::std::result::Result::Ok(::std::option::Option::None)
                 }
             }

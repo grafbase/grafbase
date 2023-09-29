@@ -48,5 +48,14 @@ services:
     networks:
       - databases
 
+  dynamodb:
+    image: amazon/dynamodb-local
+    restart: always
+    command: -jar DynamoDBLocal.jar -inMemory -sharedDb
+    ports:
+      - '8000:8000'
+    networks:
+      - databases
+
 networks:
   databases: null

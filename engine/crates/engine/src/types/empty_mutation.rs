@@ -56,7 +56,6 @@ impl LegacyOutputType for EmptyMutation {
                 fields: Default::default(),
                 cache_control: Default::default(),
                 extends: false,
-                keys: None,
                 visible: None,
                 is_subscription: false,
                 is_node: false,

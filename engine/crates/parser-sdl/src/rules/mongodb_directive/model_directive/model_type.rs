@@ -74,7 +74,6 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
         fields,
         cache_control,
         extends: false,
-        keys: None,
         visible: None,
         is_subscription: false,
         is_node: true,

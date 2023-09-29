@@ -21,7 +21,10 @@ use engine_parser::types::{
 };
 use engine_value::ConstValue;
 
-use super::{graphql_directive::GraphqlDirective, neon_directive::NeonDirective, openapi_directive::OpenApiDirective};
+use super::{
+    federation_directive::FederationVersion, graphql_directive::GraphqlDirective, neon_directive::NeonDirective,
+    openapi_directive::OpenApiDirective,
+};
 use crate::{
     rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
     MongoDBDirective, ParseResult,
@@ -67,6 +70,7 @@ pub struct VisitorContext<'a> {
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
 
     pub database_models_enabled: bool,
+    pub federation: Option<FederationVersion>,
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
@@ -170,12 +174,18 @@ impl<'a> VisitorContext<'a> {
             neon_directives: Vec::new(),
             global_cache_rules: Default::default(),
             database_models_enabled,
+            federation: None,
         }
     }
 
     /// Finish the Registry
     pub(crate) fn finish(self) -> ParseResult<'static> {
         let mut registry = self.registry.take();
+        if self.federation.is_some() {
+            // TODO: do somethig with the version
+            registry.enable_federation = true;
+        }
+
         if !self.mutations.is_empty() {
             registry.mutation_type = Some(MUTATION_TYPE.to_string());
         }

@@ -15,6 +15,7 @@ pub mod enum_type;
 pub mod experimental;
 pub mod extend_connector_types;
 pub mod extend_query_and_mutation_types;
+pub mod federation_directive;
 pub mod graphql_directive;
 pub mod input_object;
 pub mod length_directive;
