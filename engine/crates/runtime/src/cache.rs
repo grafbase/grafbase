@@ -1,5 +1,5 @@
 use serde::{de::DeserializeOwned, Serialize};
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -28,6 +28,7 @@ pub enum EntryState {
     UpdateInProgress,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Entry<T> {
     Hit(T),
     Miss,
@@ -50,12 +51,17 @@ pub trait Cache: Send + Sync {
 }
 
 pub trait Cacheable: DeserializeOwned + Serialize + Send + Sync {
-    fn max_age_seconds(&self) -> usize;
-    fn stale_seconds(&self) -> usize;
-    fn ttl_seconds(&self) -> usize;
-    fn cache_tags(&self, priority_tags: Vec<String>) -> Vec<String>;
+    // Also retrieved during cache.get(), so needs to be included in the value.
+    fn max_age(&self) -> Duration;
+    fn stale_while_revalidate(&self) -> Duration;
+    fn cache_tags(&self) -> Vec<String>;
     fn should_purge_related(&self) -> bool;
     fn should_cache(&self) -> bool;
+
+    fn cache_tags_with_priority_tags(&self, mut tags: Vec<String>) -> Vec<String> {
+        tags.extend(self.cache_tags());
+        tags
+    }
 }
 
 #[cfg(feature = "test-utils")]

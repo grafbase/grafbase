@@ -82,6 +82,7 @@ rusoto_dynamodb = "0.48"
 strum = { version = "0.25", features = ["derive"] }
 which = "4"
 wiremock = "0.5"
+headers = "0.3"
 
 [[bin]]
 name = "grafbase"

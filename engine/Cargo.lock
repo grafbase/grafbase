@@ -3310,12 +3310,14 @@ version = "0.1.0"
 dependencies = [
  "async-runtime",
  "async-trait",
+ "futures-util",
  "graph-entities",
  "log 0.1.0",
  "reqwest",
  "runtime",
  "search-protocol",
  "serde",
+ "tokio",
  "ulid",
 ]
 

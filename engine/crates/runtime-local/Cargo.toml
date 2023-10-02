@@ -13,6 +13,7 @@ keywords = ["local", "runtime", "grafbase"]
 async-trait = "0.1"
 async-runtime = { workspace = true }
 ulid = { workspace = true }
+futures-util = { workspace = true }
 
 serde = { workspace = true }
 
@@ -29,3 +30,6 @@ reqwest = { version = "0.11", default-features = false, features = [
   "json",
   "rustls-tls",
 ] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros"] }

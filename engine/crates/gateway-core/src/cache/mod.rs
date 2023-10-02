@@ -85,12 +85,10 @@ impl<T: Cacheable> From<CacheResponse<Arc<T>>> for ExecutionResponse<Arc<T>> {
                 cache_revalidation: revalidated,
             },
             CacheResponse::Miss(response) => {
-                let max_age = response.max_age_seconds() as u64;
+                let max_age = response.max_age();
                 ExecutionResponse::Origin {
                     response,
-                    cache_read: Some(CacheReadStatus::Miss {
-                        max_age: Duration::from_secs(max_age),
-                    }),
+                    cache_read: Some(CacheReadStatus::Miss { max_age }),
                 }
             }
             CacheResponse::Bypass(response) => ExecutionResponse::Origin {
@@ -221,7 +219,7 @@ where
             state,
             is_early_stale,
         } => {
-            let response_arc = Arc::new(response);
+            let response = Arc::new(response);
             let mut revalidated = false;
 
             // we only want to issue a revalidation if one is not already in progress
@@ -232,7 +230,7 @@ where
                     cache,
                     ctx,
                     key.clone(),
-                    response_arc.clone(),
+                    response.clone(),
                     value_fut,
                     config.common_cache_tags.clone(),
                 )
@@ -245,11 +243,11 @@ where
             // they shouldn't be considered as stale from a client perspective
             if is_early_stale {
                 log::info!(ctx.ray_id(), "Cache HIT - {key}");
-                return Ok(CacheResponse::Hit(response_arc));
+                return Ok(CacheResponse::Hit(response));
             }
 
             Ok(CacheResponse::Stale {
-                response: response_arc,
+                response,
                 updating: revalidated,
             })
         }
@@ -261,7 +259,7 @@ where
         Entry::Miss => {
             log::info!(ctx.ray_id(), "Cache MISS - {key}");
             let origin_result = value_fut.await?;
-            let origin_tags = origin_result.cache_tags(config.common_cache_tags.clone());
+            let origin_tags = origin_result.cache_tags_with_priority_tags(config.common_cache_tags.clone());
 
             if origin_result.should_purge_related() {
                 let ray_id = ctx.ray_id().to_string();
@@ -325,7 +323,7 @@ async fn update_stale<Value, Error, ValueFut>(
     ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
 {
     let ray_id = ctx.ray_id().to_string();
-    let existing_tags = existing_value.cache_tags(priority_tags.clone());
+    let existing_tags = existing_value.cache_tags_with_priority_tags(priority_tags.clone());
 
     // refresh the cache async and update the existing entry state
     let cache = Arc::clone(cache);
@@ -352,7 +350,7 @@ async fn update_stale<Value, Error, ValueFut>(
             match source_result {
                 Ok(fresh_value) => {
                     log::info!(ray_id, "Successfully fetched new value for cache from origin");
-                    let fresh_cache_tags = fresh_value.cache_tags(priority_tags);
+                    let fresh_cache_tags = fresh_value.cache_tags_with_priority_tags(priority_tags);
 
                     let _ = cache
                         .put(&key, EntryState::Fresh, fresh_value, fresh_cache_tags)
@@ -451,20 +449,16 @@ mod tests {
     }
 
     impl Cacheable for Dummy {
-        fn max_age_seconds(&self) -> usize {
-            self.max_age_seconds
+        fn max_age(&self) -> Duration {
+            Duration::from_secs(self.max_age_seconds as u64)
         }
 
-        fn stale_seconds(&self) -> usize {
-            self.stale_seconds
+        fn stale_while_revalidate(&self) -> Duration {
+            Duration::from_secs(self.stale_seconds as u64)
         }
 
-        fn ttl_seconds(&self) -> usize {
-            self.max_age_seconds + self.stale_seconds
-        }
-
-        fn cache_tags(&self, priority_tags: Vec<String>) -> Vec<String> {
-            [priority_tags, self.tags.clone()].into_iter().flatten().collect()
+        fn cache_tags(&self) -> Vec<String> {
+            self.tags.clone()
         }
 
         fn should_purge_related(&self) -> bool {

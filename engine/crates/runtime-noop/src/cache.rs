@@ -14,7 +14,7 @@ impl<T> NoopCache<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: Send + Sync + Cacheable + 'static> Cache for NoopCache<T> {
+impl<T: Cacheable + 'static> Cache for NoopCache<T> {
     type Value = T;
 
     async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
