@@ -25,7 +25,7 @@ futures = "0.3"
 futures-util = { workspace = true, features = ["std", "async-await"] }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = { workspace = true }
-log = { path = "../log", features = ["with-worker"] }
+log = { path = "../log" }
 quick-error = "2"
 rusoto_core = { workspace = true }
 rusoto_dynamodb = { workspace = true }

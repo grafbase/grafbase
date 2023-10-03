@@ -11,10 +11,7 @@ keywords = ["log", "logging", "grafbase"]
 
 [dependencies]
 bitflags = { workspace = true }
-futures-util = { workspace = true, features = [
-    "std",
-    "async-await",
-] }
+futures-util = { workspace = true, features = ["std", "async-await"] }
 log_ = { package = "log", version = "0.4" }
 maplit = "1"
 secrecy = { workspace = true, features = ["alloc"] }
@@ -22,14 +19,17 @@ serde = { workspace = true }
 strum = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 web-time = { workspace = true }
-worker = { workspace = true, optional = true }
+web-sys = { version = "0.3", optional = true }
 
 [features]
-with-worker = ["worker"]
-local = []
+console-log = ["dep:web-sys"]
+with-worker = ["console-log"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }

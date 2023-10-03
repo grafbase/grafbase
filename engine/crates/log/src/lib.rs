@@ -11,8 +11,6 @@ pub use log_;
 // Re-export.
 pub use types::*;
 pub use web_time;
-#[cfg(feature = "with-worker")]
-pub use worker;
 
 pub static LOG_CONFIG: AtomicU8 = AtomicU8::new(Config::STDLOG.bits());
 
@@ -27,24 +25,20 @@ thread_local! {
         std::cell::RefCell::new(Vec::new());
 }
 
-#[cfg(feature = "with-worker")]
-pub fn print_with_worker(config: &Config, status: LogSeverity, message: &str) {
+#[cfg(feature = "console-log")]
+pub fn console_log(config: &Config, status: LogSeverity, message: &str) {
     if config.contains(Config::WORKER) {
         match status {
-            LogSeverity::Trace | LogSeverity::Debug => {
-                #[cfg(feature = "local")]
-                worker::console_debug!("{}", message);
-                // Intentionally ignored otherwise.
-            }
-            LogSeverity::Info => worker::console_log!("{}", message),
-            LogSeverity::Warn => worker::console_warn!("{}", message),
-            LogSeverity::Error => worker::console_error!("{}", message),
+            LogSeverity::Trace | LogSeverity::Debug => {}
+            LogSeverity::Info => web_sys::console::log_1(&(message.into())),
+            LogSeverity::Warn => web_sys::console::warn_1(&(message.into())),
+            LogSeverity::Error => web_sys::console::error_1(&(message.into())),
         }
     }
 }
 
-#[cfg(not(feature = "with-worker"))]
-pub fn print_with_worker(_config: &Config, _status: LogSeverity, _message: &str) {}
+#[cfg(not(feature = "console-log"))]
+pub fn console_log(_config: &Config, _status: LogSeverity, _message: &str) {}
 
 #[macro_export]
 macro_rules! log {
@@ -56,7 +50,7 @@ macro_rules! log {
 
         let config = $crate::Config::from_bits_truncate($crate::LOG_CONFIG.load(std::sync::atomic::Ordering::SeqCst));
 
-        $crate::print_with_worker(&config, $status, &message);
+        $crate::console_log(&config, $status, &message);
 
         if config.contains($crate::Config::STDLOG) {
             match $status {
@@ -232,7 +226,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
     }
 }
 
-/// [`std::dbg`] modified to use [`worker::console_debug`]
+/// [`std::dbg`] modified to use [`web_sys::console::debug_1`]
 #[macro_export]
 macro_rules! dbg {
     // NOTE: We cannot use `concat!` to make a static string as a format argument
@@ -240,17 +234,23 @@ macro_rules! dbg {
     // `$val` expression could be a block (`{ .. }`), in which case the `eprintln!`
     // will be malformed.
     () => {
-        #[cfg(feature = "with-worker")]
-        worker::console_debug!("[{}:{}]", std::file!(), std::line!())
+        #[cfg(feature = "console-log")]
+        web_sys::console::debug_1(&(format!("[{}:{}]", std::file!(), std::line!()).into()))
     };
     ($val:expr $(,)?) => {
         // Use of `match` here is intentional because it affects the lifetimes
         // of temporaries - https://stackoverflow.com/a/48732525/1063961
         match $val {
             tmp => {
-                #[cfg(feature = "with-worker")]
-                worker::console_debug!("[{}:{}] {} = {:#?}",
-                    std::file!(), std::line!(), std::stringify!($val), &tmp);
+                #[cfg(feature = "console-log")]
+                web_sys::console::debug_1!(
+                    &(format!("[{}:{}] {} = {:#?}",
+                            std::file!(),
+                            std::line!(),
+                            std::stringify!($val),
+                            &tmp)
+                        .into())
+                );
                 tmp
             }
         }

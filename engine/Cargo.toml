@@ -43,7 +43,6 @@ url = "2"
 uuid = "1"
 wasm-bindgen = "0.2"
 web-time = "0.2"
-worker = "0.0.18"
 http = "0.2"
 headers = "0.3"
 

@@ -1,7 +1,5 @@
 use engine::registry::CachePartialRegistry;
 use gateway_core::{CacheConfig, CacheControl};
-// Only included to force log/local feature
-use log as _;
 use runtime_local::InMemoryCache;
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 

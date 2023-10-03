@@ -14,18 +14,11 @@ async-trait = "0.1"
 async-runtime = { workspace = true }
 ulid = { workspace = true }
 futures-util = { workspace = true }
-
 serde = { workspace = true }
-
 runtime = { workspace = true }
 graph-entities = { workspace = true }
-log = { workspace = true, features = ["with-worker"] }
+log = { workspace = true }
 search-protocol = { workspace = true }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json"] }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = [
   "json",
   "rustls-tls",
