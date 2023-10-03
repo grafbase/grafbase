@@ -63,7 +63,7 @@ cfg-if = "1"
 # Same version as Tantivy
 tantivy-fst = "0.4.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.36.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.37.0" }
 gateway = { path = "../gateway" }
 engine = { path = "../../../engine/crates/engine" }
 runtime = { path = "../../../engine/crates/runtime" }
