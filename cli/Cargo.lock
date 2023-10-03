@@ -2333,6 +2333,7 @@ dependencies = [
  "futures-util",
  "grafbase-local-backend",
  "grafbase-local-common",
+ "headers",
  "hex-literal",
  "indicatif",
  "indoc",
@@ -4761,6 +4762,7 @@ version = "0.1.0"
 dependencies = [
  "async-runtime",
  "async-trait",
+ "futures-util",
  "graph-entities",
  "log 0.1.0",
  "reqwest",

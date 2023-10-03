@@ -6,7 +6,9 @@ use http::{
     header::{HeaderMap, HeaderName},
     HeaderValue,
 };
+use runtime::cache::Cacheable;
 use serde::{ser::SerializeMap, Deserialize, Serialize};
+use std::time::Duration;
 
 use crate::{CacheControl, Result, ServerError, Value};
 
@@ -15,7 +17,7 @@ pub use streaming::*;
 mod streaming;
 
 /// Query response
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Response {
     /// Data of query result
     #[serde(default)]
@@ -206,24 +208,17 @@ impl serde::Serialize for GraphQlResponse<'_> {
     }
 }
 
-impl runtime::cache::Cacheable for Response {
-    fn max_age_seconds(&self) -> usize {
-        self.cache_control.max_age
+impl Cacheable for Response {
+    fn max_age(&self) -> Duration {
+        Duration::from_secs(self.cache_control.max_age as u64)
     }
 
-    fn stale_seconds(&self) -> usize {
-        self.cache_control.stale_while_revalidate
+    fn stale_while_revalidate(&self) -> Duration {
+        Duration::from_secs(self.cache_control.stale_while_revalidate as u64)
     }
 
-    fn ttl_seconds(&self) -> usize {
-        self.cache_control.max_age + self.cache_control.stale_while_revalidate
-    }
-
-    fn cache_tags(&self, mut priority_tags: Vec<String>) -> Vec<String> {
-        let response_tags = self.data.cache_tags().iter().cloned().collect::<Vec<_>>();
-        priority_tags.extend(response_tags);
-
-        priority_tags
+    fn cache_tags(&self) -> Vec<String> {
+        self.data.cache_tags().iter().cloned().collect::<Vec<_>>()
     }
 
     fn should_purge_related(&self) -> bool {

@@ -1,7 +1,8 @@
-use gateway_core::CacheConfig;
-// Only included to force local feature
+use engine::registry::CachePartialRegistry;
+use gateway_core::{CacheConfig, CacheControl};
+// Only included to force log/local feature
 use log as _;
-use runtime_noop::cache::NoopCache;
+use runtime_local::InMemoryCache;
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 
 use self::executor::Executor;
@@ -18,7 +19,7 @@ pub(crate) use error::Error;
 pub(crate) use response::Response;
 pub use runtime_local::Bridge;
 
-pub type GatewayInner = gateway_core::Gateway<Executor, NoopCache<engine::Response>>;
+pub type GatewayInner = gateway_core::Gateway<Executor, InMemoryCache<engine::Response>>;
 
 #[derive(Clone)]
 pub struct Gateway {
@@ -28,7 +29,14 @@ pub struct Gateway {
 impl Gateway {
     #[must_use]
     pub fn new(env_vars: HashMap<String, String>, bridge: Bridge, registry: Arc<engine::Registry>) -> Self {
-        let cache_config: CacheConfig = CacheConfig::default();
+        let cache_config = CacheConfig {
+            global_enabled: true,
+            subdomain: "localhost".to_string(),
+            host_name: "localhost".to_string(),
+            cache_control: CacheControl::default(),
+            partial_registry: CachePartialRegistry::from(registry.as_ref()),
+            common_cache_tags: vec![],
+        };
         let authorizer = Box::new(auth::Authorizer {
             auth_config: registry.auth.clone(),
             bridge: bridge.clone(),
@@ -37,7 +45,7 @@ impl Gateway {
         Gateway {
             inner: Arc::new(gateway_core::Gateway::new(
                 executor,
-                Arc::new(NoopCache::new()),
+                Arc::new(InMemoryCache::<engine::Response>::new()),
                 cache_config,
                 authorizer,
             )),
