@@ -11,8 +11,6 @@ pub use log_;
 // Re-export.
 pub use types::*;
 pub use web_time;
-#[cfg(feature = "with-worker")]
-pub use worker;
 
 pub static LOG_CONFIG: AtomicU8 = AtomicU8::new(Config::STDLOG.bits());
 
@@ -31,11 +29,7 @@ thread_local! {
 pub fn print_with_worker(config: &Config, status: LogSeverity, message: &str) {
     if config.contains(Config::WORKER) {
         match status {
-            LogSeverity::Trace | LogSeverity::Debug => {
-                #[cfg(feature = "local")]
-                worker::console_debug!("{}", message);
-                // Intentionally ignored otherwise.
-            }
+            LogSeverity::Trace | LogSeverity::Debug => {}
             LogSeverity::Info => worker::console_log!("{}", message),
             LogSeverity::Warn => worker::console_warn!("{}", message),
             LogSeverity::Error => worker::console_error!("{}", message),
