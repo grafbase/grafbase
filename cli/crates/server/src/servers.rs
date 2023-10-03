@@ -236,7 +236,7 @@ async fn spawn_servers(
         let app =
             gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry).into_router();
         // run it with hyper on localhost:3000
-        let server = axum::Server::bind(&"0.0.0.0:0".parse().unwrap()).serve(app.into_make_service());
+        let server = axum::Server::bind(&"127.0.0.1:0".parse().unwrap()).serve(app.into_make_service());
         WORKER_PORT.store(server.local_addr().port(), Ordering::Relaxed);
         server
     };
