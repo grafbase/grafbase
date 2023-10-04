@@ -15,17 +15,17 @@ pub struct QueryParameter(pub(super) EdgeIndex);
 pub struct RequestBody(pub(super) EdgeIndex);
 
 impl PathParameter {
-    pub fn openapi_name(self, graph: &super::OpenApiGraph) -> Option<&str> {
-        match graph.graph.edge_weight(self.0)? {
-            Edge::HasPathParameter { name, .. } => Some(name),
-            _ => None,
+    pub fn openapi_name(self, graph: &super::OpenApiGraph) -> &str {
+        match graph.graph.edge_weight(self.0) {
+            Some(Edge::HasPathParameter { name, .. }) => name,
+            _ => unreachable!(),
         }
     }
 
-    pub fn graphql_name(self, graph: &super::OpenApiGraph) -> Option<FieldName<'_>> {
-        match graph.graph.edge_weight(self.0)? {
-            Edge::HasPathParameter { name, .. } => Some(FieldName(Cow::Borrowed(name))),
-            _ => None,
+    pub fn graphql_name(self, graph: &super::OpenApiGraph) -> FieldName<'_> {
+        match graph.graph.edge_weight(self.0) {
+            Some(Edge::HasPathParameter { name, .. }) => FieldName(Cow::Borrowed(name)),
+            _ => unreachable!(),
         }
     }
 
@@ -39,17 +39,17 @@ impl PathParameter {
 }
 
 impl QueryParameter {
-    pub fn openapi_name(self, graph: &super::OpenApiGraph) -> Option<&str> {
-        match graph.graph.edge_weight(self.0)? {
-            Edge::HasQueryParameter { name, .. } => Some(name),
-            _ => None,
+    pub fn openapi_name(self, graph: &super::OpenApiGraph) -> &str {
+        match graph.graph.edge_weight(self.0) {
+            Some(Edge::HasQueryParameter { name, .. }) => name,
+            _ => unreachable!(),
         }
     }
 
-    pub fn graphql_name(self, graph: &super::OpenApiGraph) -> Option<FieldName<'_>> {
-        match graph.graph.edge_weight(self.0)? {
-            Edge::HasQueryParameter { name, .. } => Some(FieldName(Cow::Borrowed(name))),
-            _ => None,
+    pub fn graphql_name(self, graph: &super::OpenApiGraph) -> FieldName<'_> {
+        match graph.graph.edge_weight(self.0) {
+            Some(Edge::HasQueryParameter { name, .. }) => FieldName(Cow::Borrowed(name)),
+            _ => unreachable!(),
         }
     }
 

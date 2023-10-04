@@ -175,7 +175,7 @@ impl Resolver {
             }
             Resolver::Http(resolver) => {
                 resolver
-                    .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
                     .instrument(info_span!("http_resolver", api_name = resolver.api_name))
                     .await
             }

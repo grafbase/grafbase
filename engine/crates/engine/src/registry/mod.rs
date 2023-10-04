@@ -1385,8 +1385,8 @@ pub struct Registry {
     pub enable_caching: bool,
     #[serde(default)]
     pub enable_kv: bool,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub federation_entities: HashMap<String, FederationEntity>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub federation_entities: BTreeMap<String, FederationEntity>,
 }
 
 impl Default for Registry {
@@ -1669,20 +1669,6 @@ impl Registry {
                 interfaces.insert(interface.to_string());
                 interfaces
             });
-    }
-
-    #[cfg(deleteme)]
-    pub fn add_keys(&mut self, ty: &str, keys: &str) {
-        let all_keys = match self.types.get_mut(ty) {
-            Some(MetaType::Object(inner)) => &mut inner.keys,
-            Some(MetaType::Interface(inner)) => &mut inner.keys,
-            _ => return,
-        };
-        if let Some(all_keys) = all_keys {
-            all_keys.push(keys.to_string());
-        } else {
-            *all_keys = Some(vec![keys.to_string()]);
-        }
     }
 
     pub fn concrete_type_by_name(&self, type_name: &str) -> Option<&MetaType> {

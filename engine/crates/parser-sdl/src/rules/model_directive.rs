@@ -445,8 +445,6 @@ impl<'a> Visitor<'a> for ModelDirective {
             entity.add_key(FederationKey::single("id", FederationResolver::DynamoUnique));
 
             for directive in unique_directives {
-                // TODO: Add a test of the schema when uniques are present
-                // also need to add a test of the resolver itself.
                 entity.add_key(directive.to_federation_key(FederationResolver::DynamoUnique));
             }
 
