@@ -44,6 +44,8 @@ mod naive_datetime;
 pub use naive_datetime::NaiveDateTimeScalar;
 mod uuid;
 pub use self::uuid::UuidScalar;
+mod federation;
+pub use self::federation::*;
 
 /// ` SDLDefinitionScalar` trait is to be implemented for every custom scalar we add into `engine`
 ///
@@ -277,5 +279,6 @@ pub type PossibleScalar = merge_scalar!(
     UnsignedBigIntScalar,
     TimeScalar,
     NaiveDateTimeScalar,
-    UuidScalar
+    UuidScalar,
+    FederationAnyScalar
 );

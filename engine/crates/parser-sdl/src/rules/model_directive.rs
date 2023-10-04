@@ -26,7 +26,9 @@ use engine::{
     indexmap::IndexMap,
     names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT},
     registry::{
-        self, is_array_basic_type,
+        self,
+        federation::{FederationEntity, FederationKey, FederationResolver},
+        is_array_basic_type,
         resolvers::{custom::CustomResolver, dynamo_querying::DynamoResolver, transformer::Transformer, Resolver},
         scalars::{DateTimeScalar, IDScalar, SDLDefinitionScalar},
         variables::VariableResolveDefinition,
@@ -391,7 +393,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                         fields,
                         cache_control: model_cache.clone(),
                         extends: false,
-                        keys: None,
                         visible: None,
                         is_subscription: false,
                         is_node: true,
@@ -439,6 +440,20 @@ impl<'a> Visitor<'a> for ModelDirective {
                 auth: model_auth.clone(),
                 ..Default::default()
             });
+
+            let mut entity = FederationEntity::builder();
+            entity.add_key(FederationKey::single("id", FederationResolver::DynamoUnique));
+
+            for directive in unique_directives {
+                // TODO: Add a test of the schema when uniques are present
+                // also need to add a test of the resolver itself.
+                entity.add_key(directive.to_federation_key(FederationResolver::DynamoUnique));
+            }
+
+            ctx.registry
+                .borrow_mut()
+                .federation_entities
+                .insert(type_name, entity.build());
 
             //
             // ADD FURTHER QUERIES/MUTATIONS

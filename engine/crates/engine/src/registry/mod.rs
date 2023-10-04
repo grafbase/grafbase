@@ -3,6 +3,7 @@ mod cache_control;
 mod connector_headers;
 pub mod enums;
 mod export_sdl;
+pub mod federation;
 pub mod relations;
 pub mod resolvers;
 pub mod scalars;
@@ -47,6 +48,7 @@ pub use self::{
     union_discriminator::UnionDiscriminator,
 };
 use self::{
+    federation::FederationEntity,
     relations::MetaRelation,
     resolvers::Resolver,
     type_kinds::{SelectionSetTarget, TypeKind},
@@ -650,7 +652,6 @@ pub struct ObjectType {
     pub fields: IndexMap<String, MetaField>,
     pub cache_control: CacheControl,
     pub extends: bool,
-    pub keys: Option<Vec<String>>,
     #[derivative(Debug = "ignore")]
     #[serde(skip)]
     pub visible: Option<MetaVisibleFn>,
@@ -671,7 +672,6 @@ impl ObjectType {
             description: None,
             cache_control: Default::default(),
             extends: false,
-            keys: None,
             visible: None,
             is_subscription: false,
             is_node: false,
@@ -723,7 +723,6 @@ pub struct InterfaceType {
     pub fields: IndexMap<String, MetaField>,
     pub possible_types: IndexSet<String>,
     pub extends: bool,
-    pub keys: Option<Vec<String>>,
     #[derivative(Debug = "ignore")]
     #[serde(skip)]
     pub visible: Option<MetaVisibleFn>,
@@ -738,7 +737,6 @@ impl InterfaceType {
             fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
             possible_types: Default::default(),
             extends: false,
-            keys: None,
             visible: None,
             rust_typename: String::new(),
         }
@@ -911,7 +909,6 @@ impl Hash for MetaType {
                 fields,
                 cache_control,
                 extends,
-                keys,
                 visible: _,
                 is_subscription,
                 is_node,
@@ -923,7 +920,6 @@ impl Hash for MetaType {
                 fields.as_slice().hash(state);
                 cache_control.hash(state);
                 extends.hash(state);
-                keys.hash(state);
                 is_subscription.hash(state);
                 is_node.hash(state);
                 rust_typename.hash(state);
@@ -935,7 +931,6 @@ impl Hash for MetaType {
                 fields,
                 possible_types,
                 extends,
-                keys,
                 visible: _,
                 rust_typename,
             }) => {
@@ -944,7 +939,6 @@ impl Hash for MetaType {
                 fields.as_slice().hash(state);
                 possible_types.as_slice().hash(state);
                 extends.hash(state);
-                keys.hash(state);
                 rust_typename.hash(state);
             }
             Self::Enum(EnumType {
@@ -1016,7 +1010,6 @@ impl PartialEq for MetaType {
                     fields,
                     cache_control,
                     extends,
-                    keys,
                     visible: _,
                     is_subscription,
                     is_node,
@@ -1029,7 +1022,6 @@ impl PartialEq for MetaType {
                     fields: o_fields,
                     cache_control: o_cache_control,
                     extends: o_extends,
-                    keys: o_keys,
                     visible: _,
                     is_subscription: o_is_subscription,
                     is_node: o_is_node,
@@ -1042,7 +1034,6 @@ impl PartialEq for MetaType {
                     && fields.as_slice().eq(o_fields.as_slice())
                     && cache_control.eq(o_cache_control)
                     && extends.eq(o_extends)
-                    && keys.eq(o_keys)
                     && is_subscription.eq(o_is_subscription)
                     && is_node.eq(o_is_node)
                     && rust_typename.eq(o_rust_typename)
@@ -1055,7 +1046,6 @@ impl PartialEq for MetaType {
                     fields,
                     possible_types,
                     extends,
-                    keys,
                     visible: _,
                     rust_typename,
                 }),
@@ -1065,7 +1055,6 @@ impl PartialEq for MetaType {
                     fields: o_fields,
                     possible_types: o_possible_types,
                     extends: o_extends,
-                    keys: o_keys,
                     visible: _,
                     rust_typename: o_rust_typename,
                 }),
@@ -1075,7 +1064,6 @@ impl PartialEq for MetaType {
                     && fields.as_slice().eq(o_fields.as_slice())
                     && possible_types.as_slice().eq(o_possible_types.as_slice())
                     && extends.eq(o_extends)
-                    && keys.eq(o_keys)
                     && rust_typename.eq(o_rust_typename)
             }
             (
@@ -1397,6 +1385,8 @@ pub struct Registry {
     pub enable_caching: bool,
     #[serde(default)]
     pub enable_kv: bool,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub federation_entities: HashMap<String, FederationEntity>,
 }
 
 impl Default for Registry {
@@ -1418,6 +1408,7 @@ impl Default for Registry {
             search_config: Default::default(),
             enable_caching: false,
             enable_kv: false,
+            federation_entities: Default::default(),
         }
     }
 }
@@ -1680,6 +1671,7 @@ impl Registry {
             });
     }
 
+    #[cfg(deleteme)]
     pub fn add_keys(&mut self, ty: &str, keys: &str) {
         let all_keys = match self.types.get_mut(ty) {
             Some(MetaType::Object(inner)) => &mut inner.keys,
@@ -1705,11 +1697,7 @@ impl Registry {
     }
 
     pub(crate) fn has_entities(&self) -> bool {
-        self.types.values().any(|ty| match ty {
-            MetaType::Object(ObjectType { keys: Some(keys), .. })
-            | MetaType::Interface(InterfaceType { keys: Some(keys), .. }) => !keys.is_empty(),
-            _ => false,
-        })
+        !self.federation_entities.is_empty()
     }
 
     /// Each type annotated with @key should be added to the _Entity union.
@@ -1718,19 +1706,7 @@ impl Registry {
     ///
     /// [Reference](https://www.apollographql.com/docs/federation/federation-spec/#resolve-requests-for-entities).
     fn create_entity_type_and_root_field(&mut self) {
-        let possible_types: IndexSet<String> = self
-            .types
-            .values()
-            .filter_map(|ty| match ty {
-                MetaType::Object(ObjectType {
-                    name, keys: Some(keys), ..
-                }) if !keys.is_empty() => Some(name.clone()),
-                MetaType::Interface(InterfaceType {
-                    name, keys: Some(keys), ..
-                }) if !keys.is_empty() => Some(name.clone()),
-                _ => None,
-            })
-            .collect();
+        let possible_types: IndexSet<_> = self.federation_entities.keys().cloned().collect();
 
         if !possible_types.is_empty() {
             self.types.insert(
@@ -1770,6 +1746,7 @@ impl Registry {
                             args
                         },
                         ty: "[_Entity]!".into(),
+                        resolver: Resolver::FederationEntitiesResolver,
                         ..Default::default()
                     },
                 );
@@ -1930,12 +1907,8 @@ impl Registry {
             traverse_type(&self.types, &mut used_types, type_name);
         }
 
-        for ty in self.types.values().filter(|ty| match ty {
-            MetaType::Object(ObjectType { keys: Some(keys), .. })
-            | MetaType::Interface(InterfaceType { keys: Some(keys), .. }) => !keys.is_empty(),
-            _ => false,
-        }) {
-            traverse_type(&self.types, &mut used_types, ty.name());
+        for ty in self.federation_entities.keys() {
+            traverse_type(&self.types, &mut used_types, ty);
         }
 
         for ty in self.types.values() {
@@ -2043,12 +2016,8 @@ impl Registry {
             traverse_type(ctx, &self.types, &mut visible_types, type_name);
         }
 
-        for ty in self.types.values().filter(|ty| match ty {
-            MetaType::Object(ObjectType { keys: Some(keys), .. })
-            | MetaType::Interface(InterfaceType { keys: Some(keys), .. }) => !keys.is_empty(),
-            _ => false,
-        }) {
-            traverse_type(ctx, &self.types, &mut visible_types, ty.name());
+        for ty in self.federation_entities.keys() {
+            traverse_type(ctx, &self.types, &mut visible_types, ty);
         }
 
         for ty in self.types.values() {

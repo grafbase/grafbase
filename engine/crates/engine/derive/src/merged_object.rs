@@ -99,7 +99,6 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
                         fields,
                         cache_control,
                         extends: #extends,
-                        keys: ::std::option::Option::None,
                         visible: #visible,
                         is_subscription: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),

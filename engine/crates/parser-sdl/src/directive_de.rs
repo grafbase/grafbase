@@ -149,8 +149,12 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match self.value {
-            ConstValue::Enum(en) => {
-                visitor.visit_enum::<serde::de::value::StrDeserializer<'_, Error>>(en.as_str().into_deserializer())
+            ConstValue::Enum(en) => visitor.visit_enum(en.as_str().into_deserializer()),
+            ConstValue::String(str) => {
+                // Technically we're not meant to deserialize strings as enums in GraphQL.
+                // But some values we use as enum keys (e.g. "2.3") aren't valid as GraphQL enums
+                // so I'm going to ignore that rule and just go for it here.
+                visitor.visit_enum(str.as_str().into_deserializer())
             }
             _ => Err(Error::custom(format!(
                 "attempted to deserialize {:?} as enum '{name}'",

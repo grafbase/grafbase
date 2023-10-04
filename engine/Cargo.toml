@@ -13,8 +13,6 @@ again = { git = "https://github.com/grafbase/again", branch = "cloudflare-worker
 dynomite = { git = "https://github.com/grafbase/dynomite", branch = "rusoto-0_48" }
 # FIXME: Drop on next release.
 reqwest = { git = "https://github.com/seanmonstar/reqwest.git", rev = "839623312f8359b173437fb01b1932f204449cca" }
-rusoto_core = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
-rusoto_dynamodb = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "00b1e328bf4ce750e01ea2450dcfe83e4955f2af" }
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db3216f058cbfadd4923df2c7" }
 

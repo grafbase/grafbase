@@ -181,6 +181,11 @@ impl ConstValue {
         matches!(self, ConstValue::List(_))
     }
 
+    /// Check the [`ConstValue`] is an object
+    pub fn is_object(&self) -> bool {
+        matches!(self, ConstValue::Object(_))
+    }
+
     /// If the `ConstValue` is a String, returns the associated str. Returns None
     /// otherwise.
     pub fn as_str(&self) -> Option<&str> {

@@ -22,6 +22,7 @@ use ulid::Ulid;
 pub use self::resolved_value::ResolvedValue;
 use self::{
     custom::CustomResolver,
+    federation::resolve_federation_entities,
     graphql::{QueryBatcher, Target},
     transformer::Transformer,
 };
@@ -32,6 +33,7 @@ pub mod atlas_data_api;
 pub mod custom;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
+mod federation;
 pub mod graphql;
 pub mod http;
 mod logged_fetch;
@@ -56,11 +58,11 @@ pub struct ResolverContext<'a> {
     /// When a resolver is executed, it gains a Resolver unique ID for his
     /// execution, this ID is used for internal cache strategy
     pub execution_id: &'a Ulid,
-    /// The current Type being resolved if we know it. It's the type linked to the resolver.
+    /// The current Type being resolved. It's the type linked to the resolver.
     pub ty: OutputType<'a>,
     /// The current SelectionSet.
     pub selections: &'a SelectionSet,
-    /// The current field being resolved if we know it.
+    /// The current field being resolved
     pub field: &'a MetaField,
 }
 
@@ -72,6 +74,14 @@ impl<'a> ResolverContext<'a> {
             selections: &field_context.item.selection_set.node,
             field: field_context.field,
         }
+    }
+
+    /// Can be used to update the type in this ResolverContext.
+    ///
+    /// Useful in cases where the original ty is an interface/union and we
+    /// know specifically which underlying type we're working with
+    pub fn with_ty(self, ty: OutputType<'a>) -> Self {
+        Self { ty, ..self }
     }
 }
 
@@ -260,6 +270,10 @@ impl Resolver {
                 ))
                 .await
                 .map_err(Into::into),
+            Resolver::FederationEntitiesResolver => resolve_federation_entities(ctx)
+                .instrument(info_span!("federation_resolver"))
+                .await
+                .map_err(Into::into),
         }
     }
 
@@ -307,6 +321,7 @@ pub enum Resolver {
     Graphql(graphql::Resolver),
     MongoResolver(atlas_data_api::AtlasDataApiResolver),
     PostgresResolver(postgresql::PostgresResolver),
+    FederationEntitiesResolver,
 }
 
 impl Constraint {

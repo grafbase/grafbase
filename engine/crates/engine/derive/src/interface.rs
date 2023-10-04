@@ -343,7 +343,6 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                             possible_types
                         },
                         extends: #extends,
-                        keys: ::std::option::Option::None,
                         visible: #visible,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     })

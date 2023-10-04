@@ -54,6 +54,12 @@ pub async fn resolve_list<'a>(
         };
 
         let futures = items.into_iter().enumerate().map(|(idx, item)| -> BoxFuture<'_, _> {
+            if item.data_resolved().is_null() {
+                // If the current item is null we should just stop executing here and return null
+                let ctx = ctx.clone();
+                return Box::pin(async move { Ok(ctx.response().await.insert_node(CompactValue::Null)) });
+            }
+
             match ctx.with_index(idx) {
                 ContextWithIndex::Field(field_ctx) => {
                     Box::pin(async move { resolve_leaf_field(field_ctx, item).await })

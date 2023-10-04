@@ -1,0 +1,145 @@
+---
+source: crates/parser-sdl/src/rules/federation_directive.rs
+expression: registry.export_sdl(true)
+---
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
+profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
+
+# Input Coercion
+
+When expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.
+
+# Result Coercion
+
+Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.
+For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
+"""
+scalar DateTime
+input IDCollectionFilterInput {
+	in: [ID!]
+}
+type Mutation {
+	"""
+	Create a User
+	"""
+	userCreate(input: UserCreateInput!): UserCreatePayload
+	"""
+	Create multiple User
+	"""
+	userCreateMany(input: [UserCreateManyInput!]!): UserCreateManyPayload
+	"""
+	Update a User
+	"""
+	userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
+	"""
+	Update multiple User
+	"""
+	userUpdateMany(input: [UserUpdateManyInput!]!): UserUpdateManyPayload
+	"""
+	Delete a User by ID or unique field
+	"""
+	userDelete(by: UserByInput!): UserDeletePayload
+	"""
+	Delete multiple User
+	"""
+	userDeleteMany(input: [UserDeleteManyInput!]!): UserDeleteManyPayload
+}
+enum OrderByDirection {
+	ASC
+	DESC
+}
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
+type Query {
+	"""
+	Query a single User by an ID or a unique field
+	"""
+	user(by: UserByInput!): User
+	"""
+	Paginated query to fetch the whole list of `User`.
+	"""
+	userCollection(after: String, before: String, first: Int, last: Int, orderBy: UserOrderByInput, filter: UserCollectionFilterInput): UserConnection
+}
+type User @key(fields: "id") {
+	firstName: String!
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input UserByInput {
+	id: ID
+}
+input UserCollectionFilterInput {
+	id: IDCollectionFilterInput
+}
+type UserConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [UserEdge]
+}
+"""
+Input to create a User
+"""
+input UserCreateInput {
+	firstName: String!
+}
+input UserCreateManyInput {
+	input: UserCreateInput!
+}
+type UserCreateManyPayload {
+	userCollection: [User!]!
+}
+type UserCreatePayload {
+	user: User
+}
+input UserDeleteManyInput {
+	by: UserByInput!
+}
+type UserDeleteManyPayload {
+	deletedIds: [ID!]!
+}
+type UserDeletePayload {
+	deletedId: ID!
+}
+type UserEdge {
+	node: User!
+	cursor: String!
+}
+input UserOrderByInput {
+	createdAt: OrderByDirection
+}
+"""
+Input to update a User
+"""
+input UserUpdateInput {
+	firstName: String
+}
+input UserUpdateManyInput {
+	by: UserByInput!
+	input: UserUpdateInput!
+}
+type UserUpdateManyPayload {
+	userCollection: [User!]!
+}
+type UserUpdatePayload {
+	user: User
+}
+

@@ -1,6 +1,9 @@
 use case::CaseExt;
 use engine::{
-    registry::{Constraint, InputObjectType, MetaInputValue, Registry},
+    registry::{
+        federation::{FederationKey, FederationResolver},
+        Constraint, InputObjectType, MetaInputValue, Registry,
+    },
     Pos, Positioned,
 };
 use engine_parser::types::{BaseType, FieldDefinition, ObjectType};
@@ -150,6 +153,10 @@ impl UniqueDirective {
         write!(&mut description, "and {}", self.fields.last().unwrap().name).unwrap();
 
         description
+    }
+
+    pub fn to_federation_key(&self, resolver: FederationResolver) -> FederationKey {
+        FederationKey::multiple(self.fields.iter().map(|field| field.name.clone()).collect(), resolver)
     }
 }
 

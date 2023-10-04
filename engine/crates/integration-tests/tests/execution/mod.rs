@@ -144,10 +144,7 @@ fn test_nullable_list_item_validation() {
                 RustUdfs::new()
                     .resolver(
                         "list",
-                        // Note the null below on a type that's non-nullable in the response.
-                        // I _think_ this should be allowed because that null doesn't make it into
-                        // the response
-                        CustomResolverResponse::Success(json!([[["hello", null]], [["world"]]])),
+                        CustomResolverResponse::Success(json!([[["hello", ""]], [["world"]]])),
                     )
                     .resolver("name", |payload: CustomResolverRequestPayload| {
                         if payload.parent == Some(json!("world")) {

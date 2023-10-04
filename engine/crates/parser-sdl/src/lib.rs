@@ -28,6 +28,7 @@ use rules::{
     enum_type::EnumType,
     extend_connector_types::ExtendConnectorTypes,
     extend_query_and_mutation_types::ExtendQueryAndMutationTypes,
+    federation_directive::{FederationDirective, FederationDirectiveVisitor},
     graphql_directive::GraphqlVisitor,
     input_object::InputObjectVisitor,
     length_directive::LengthDirective,
@@ -132,7 +133,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<CacheDirective>()
         .with::<MongoDBDirective>()
         .with::<NeonDirective>()
-        .with::<ExperimentalDirective>();
+        .with::<ExperimentalDirective>()
+        .with::<FederationDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -303,7 +305,8 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(LengthDirective)
         .with(UniqueObjectFields)
         .with(CheckAllDirectivesAreKnown::default())
-        .with(ExperimentalDirectiveVisitor);
+        .with(ExperimentalDirectiveVisitor)
+        .with(FederationDirectiveVisitor); // This will likely need moved.  Here'll do for now though
 
     visit(&mut rules, ctx, schema);
 }
