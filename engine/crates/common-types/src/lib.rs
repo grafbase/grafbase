@@ -75,6 +75,7 @@ pub enum LogEventType<'a> {
     UdfMessage {
         level: LogLevel,
         message: String,
+        url: String,
     },
 }
 
