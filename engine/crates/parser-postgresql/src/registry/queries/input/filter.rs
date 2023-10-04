@@ -50,13 +50,13 @@ pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, out
             let r#type = format!("[{input_type_name}]");
             let input = MetaInputValue::new(*name, r#type).with_description(*description);
 
-            builder.push_non_mapped_input_column(input);
+            builder.push_input_value(input);
         }
 
         let contains_type_name = format!("{input_type_name}Contains");
         builder.with_input_type(&contains_type_name, table.id(), |builder| {
             let value = MetaInputValue::new("contains", input_type_name.as_ref());
-            builder.push_non_mapped_input_column(value);
+            builder.push_input_value(value);
         });
     });
 

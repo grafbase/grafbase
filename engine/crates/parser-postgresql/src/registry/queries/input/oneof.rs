@@ -30,6 +30,7 @@ pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, out
 
                 let query_name = type_prefix.to_camel_case();
 
+                builder.map_unique_constraint(&query_name, constraint.id());
                 builder.push_input_value(MetaInputValue::new(query_name, input_type_name));
             } else if let Some(column) = constraint.columns().next() {
                 let input_value = super::input_value_from_column(column.table_column(), true);

@@ -223,6 +223,53 @@ fn by_compound_unique_with_nullable_column() {
 }
 
 #[test]
+fn by_compound_unique_with_nullable_column_emitting_field() {
+    let response = query_neon(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NULL,
+                CONSTRAINT "User_pkey" UNIQUE (name, email)
+            )    
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (name, email) VALUES
+              ('Musti', 'meow@meow.com'),
+              ('Naukio', NULL),
+              ('Naukio', 'purr@meow.com')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let query = indoc! {r#"
+            query {
+              user(by: { nameEmail: { name: "Naukio" } }) {
+                name
+                email
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "user": {
+              "name": "Naukio",
+              "email": null
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn by_unique() {
     let response = query_neon(|api| async move {
         let schema = indoc! {r#"

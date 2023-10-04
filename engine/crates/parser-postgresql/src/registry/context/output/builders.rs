@@ -1,5 +1,5 @@
 use engine::registry::{Constraint, EnumType, InputObjectType, MetaEnumValue, MetaField, MetaInputValue, ObjectType};
-use postgresql_types::database_definition::{RelationId, TableColumnId, TableId};
+use postgresql_types::database_definition::{RelationId, TableColumnId, TableId, UniqueConstraintId};
 
 #[derive(Debug)]
 pub struct ObjectTypeBuilder {
@@ -45,6 +45,7 @@ pub struct InputTypeBuilder {
     pub(super) input_object_type: InputObjectType,
     pub(super) type_mapping: Vec<(String, TableId)>,
     pub(super) field_mapping: Vec<(String, TableColumnId)>,
+    pub(super) unique_constraint_mapping: Vec<(String, UniqueConstraintId)>,
     pub(super) relation_mapping: Vec<(String, RelationId)>,
     pub(super) nested: Vec<InputObjectType>,
 }
@@ -55,19 +56,20 @@ impl InputTypeBuilder {
 
         Self {
             input_object_type: InputObjectType::new(name.clone(), []),
-            type_mapping: vec![(name, table_id)],
+            type_mapping: vec![(name.clone(), table_id)],
             field_mapping: Vec::new(),
+            unique_constraint_mapping: Vec::new(),
             relation_mapping: Vec::new(),
             nested: Vec::new(),
         }
     }
 
-    pub(crate) fn push_input_column(&mut self, value: MetaInputValue, column_id: TableColumnId) {
-        self.field_mapping.push((value.name.to_string(), column_id));
-        self.push_non_mapped_input_column(value);
+    pub(crate) fn map_unique_constraint(&mut self, field: &str, constraint_id: UniqueConstraintId) {
+        self.unique_constraint_mapping.push((field.to_string(), constraint_id));
     }
 
-    pub(crate) fn push_non_mapped_input_column(&mut self, value: MetaInputValue) {
+    pub(crate) fn push_input_column(&mut self, value: MetaInputValue, column_id: TableColumnId) {
+        self.field_mapping.push((value.name.to_string(), column_id));
         self.push_input_value(value);
     }
 
@@ -79,7 +81,7 @@ impl InputTypeBuilder {
 
     pub(crate) fn push_input_relation(&mut self, value: MetaInputValue, id: RelationId) {
         self.relation_mapping.push((value.name.clone(), id));
-        self.push_non_mapped_input_column(value);
+        self.push_input_value(value);
     }
 
     pub(crate) fn oneof(&mut self, value: bool) {
@@ -96,6 +98,7 @@ impl InputTypeBuilder {
 
         self.type_mapping.extend(builder.type_mapping);
         self.field_mapping.extend(builder.field_mapping);
+        self.unique_constraint_mapping.extend(builder.unique_constraint_mapping);
         self.nested.push(builder.input_object_type);
     }
 }

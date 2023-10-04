@@ -146,6 +146,17 @@ impl DatabaseDefinition {
             .map(|relation_id| self.walk(relation_id))
     }
 
+    /// Find a unique constraint that represents the given client field.
+    pub fn find_unique_constraint_for_client_field(
+        &self,
+        client_field: &str,
+        table_id: TableId,
+    ) -> Option<UniqueConstraintWalker<'_>> {
+        self.names
+            .get_unique_constraint_id_for_client_field(client_field, table_id)
+            .map(|constraint_id| self.walk(constraint_id))
+    }
+
     /// Adds a schema to the definition.
     pub fn push_schema(&mut self, schema: String) -> SchemaId {
         let id = self.next_schema_id();
@@ -275,6 +286,17 @@ impl DatabaseDefinition {
     /// Adds an index from client field name and table id to table column id.
     pub fn push_client_field_mapping(&mut self, field_name: &str, table_id: TableId, column_id: TableColumnId) {
         self.names.intern_client_field(field_name, table_id, column_id);
+    }
+
+    /// Adds an index from client field name and table id to unique constraint id.
+    pub fn push_client_field_unique_constraint_mapping(
+        &mut self,
+        field_name: &str,
+        table_id: TableId,
+        constraint_id: UniqueConstraintId,
+    ) {
+        self.names
+            .intern_client_unique_constraint(field_name, table_id, constraint_id);
     }
 
     /// Adds an index from client enum name to the corresponding enum id.
