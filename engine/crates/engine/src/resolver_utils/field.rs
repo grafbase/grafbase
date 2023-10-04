@@ -277,7 +277,7 @@ async fn run_field_resolver(
         if !resolver.is_parent() {
             let resolver_context = ResolverContext::new(ctx);
 
-            final_result = resolver.resolve(ctx, &resolver_context, Some(&final_result)).await?;
+            final_result = resolver.resolve(ctx, &resolver_context, Some(final_result)).await?;
 
             if final_result.data_resolved().is_null() {
                 final_result = final_result.with_early_return();

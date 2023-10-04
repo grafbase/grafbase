@@ -127,11 +127,12 @@ impl Transformer {
         &self,
         ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&ResolvedValue>,
+        last_resolver_value: Option<ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
         match self {
             Self::ConvertSkToCursor => {
                 let result = last_resolver_value
+                    .as_ref()
                     .and_then(|r| r.data_resolved().as_str())
                     .map(|sk| serde_json::to_value(IdCursor { id: sk.to_string() }))
                     .transpose()?
@@ -140,6 +141,7 @@ impl Transformer {
             }
             Self::DynamoSelect { key } => {
                 let result = last_resolver_value
+                    .as_ref()
                     .and_then(|r| r.data_resolved().get(key))
                     .map(|field| serde_json::from_value(field.clone()))
                     .transpose()?
@@ -166,6 +168,7 @@ impl Transformer {
             }
             Transformer::PaginationData => {
                 let pagination = last_resolver_value
+                    .as_ref()
                     .and_then(|x| x.pagination.as_ref())
                     .map(ResolvedPaginationInfo::output);
                 Ok(ResolvedValue::new(serde_json::to_value(pagination)?))
@@ -175,7 +178,7 @@ impl Transformer {
             // also
             // TODO: look into optimizing nested single edges
             Transformer::SingleEdge { key, relation_name } => {
-                let old_val = match last_resolver_value.and_then(|x| x.data_resolved().get(key)) {
+                let old_val = match last_resolver_value.as_ref().and_then(|x| x.data_resolved().get(key)) {
                     Some(Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
                         if arr.len() > 1 {
@@ -207,7 +210,7 @@ impl Transformer {
                     parent_pk: sk.clone(),
                     relation_name: relation_name.clone(),
                 }
-                .resolve(ctx, resolver_ctx, last_resolver_value)
+                .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
                 .await?;
 
                 Ok(result)
@@ -217,7 +220,7 @@ impl Transformer {
                 relation_name,
                 expected_ty,
             } => {
-                let old_val = match last_resolver_value.and_then(|x| x.data_resolved().get(key)) {
+                let old_val = match last_resolver_value.as_ref().and_then(|x| x.data_resolved().get(key)) {
                     Some(Value::Array(arr)) => {
                         // Check than the old_val is an array with only 1 element.
                         if arr.len() > 1 {
@@ -258,7 +261,7 @@ impl Transformer {
                     filter: None,
                     nested: Box::new(Some((relation_name.clone(), sk.clone()))),
                 }
-                .resolve(ctx, resolver_ctx, last_resolver_value)
+                .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
                 .await?;
 
                 Ok(result)
@@ -351,18 +354,18 @@ impl Transformer {
                 Ok(ResolvedValue::new(value))
             }
             Transformer::PostgresPageInfo => {
-                let resolved_value =
+                let mut resolved_value =
                     last_resolver_value.ok_or_else(|| Error::new("Internal error resolving postgres page info"))?;
-
-                let mut rows: Vec<Value> = match resolved_value.data_resolved() {
-                    Value::Array(rows) => rows.clone(),
-                    _ => return Ok(resolved_value.clone()),
-                };
 
                 let selection_data = resolved_value
                     .selection_data
-                    .as_ref()
+                    .take()
                     .expect("we must have selection data set before this");
+
+                let mut rows = match resolved_value.take() {
+                    Value::Array(rows) => rows,
+                    _ => return Err(Error::new("cannot calculate page info for non-array data")),
+                };
 
                 let mut has_next_page = false;
                 let mut has_previous_page = false;
@@ -455,17 +458,17 @@ impl Transformer {
                 Ok(resolved_value)
             }
             Transformer::PostgresCursor => {
-                let resolved_value =
+                let mut resolved_value =
                     last_resolver_value.ok_or_else(|| Error::new("Internal error resolving postgres cursor"))?;
 
                 let selection_data = resolved_value
                     .selection_data
-                    .as_ref()
+                    .take()
                     .expect("we must set selection data for cursors to work");
 
-                let cursor = match resolved_value.data_resolved() {
-                    Value::Object(ref row) => {
-                        let cursor = SQLCursor::new(row.clone(), selection_data.order_by());
+                let cursor = match resolved_value.take() {
+                    Value::Object(row) => {
+                        let cursor = SQLCursor::new(row, selection_data.order_by());
 
                         GraphqlCursor::try_from(cursor)
                             .ok()
