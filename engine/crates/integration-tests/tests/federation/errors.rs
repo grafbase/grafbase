@@ -200,7 +200,7 @@ fn totally_malformed_representation() {
                   "line": 3
                 }
               ],
-              "message": "Invalid value for argument \"representations.1\", expected type \"_Any\""
+              "message": "Invalid value for argument \"representations.0\", expected type \"_Any\""
             }
           ]
         }

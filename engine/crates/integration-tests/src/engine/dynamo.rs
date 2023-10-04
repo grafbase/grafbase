@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
 use engine::SchemaBuilder;
 
-use rusoto_core::RusotoError;
+use rusoto_core::{credential::StaticProvider, HttpClient, RusotoError};
 use rusoto_dynamodb::{
     AttributeDefinition, CreateTableError, CreateTableInput, DynamoDb, DynamoDbClient, GlobalSecondaryIndex,
     KeySchemaElement, Projection, ProvisionedThroughput,
@@ -18,7 +18,11 @@ pub async fn enable_local_dynamo(schema_builder: SchemaBuilder) -> SchemaBuilder
 }
 
 async fn create_table_if_not_exists(dynamo_context: &Arc<DynamoDBContext>) {
-    let client = DynamoDbClient::new(dynamo_context.closest_region.clone());
+    let client = DynamoDbClient::new_with(
+        HttpClient::new().unwrap(),
+        StaticProvider::new_minimal("anaccesskeyid".into(), "asecretaccesskey".into()),
+        dynamo_context.closest_region.clone(),
+    );
 
     let result = client
         .create_table(CreateTableInput {
