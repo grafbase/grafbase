@@ -129,45 +129,43 @@ impl Resolver {
         &self,
         ctx: &ContextField<'_>,
         resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&'async_recursion ResolvedValue>,
+        last_resolver_value: Option<ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
         match self {
-            Resolver::Parent => last_resolver_value
-                .cloned()
-                .ok_or_else(|| Error::new("No data to propagate!")),
+            Resolver::Parent => last_resolver_value.ok_or_else(|| Error::new("No data to propagate!")),
             Resolver::DynamoResolver(dynamodb) => {
                 dynamodb
-                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
                     .instrument(info_span!("dynamo_resolver"))
                     .await
             }
             Resolver::DynamoMutationResolver(dynamodb) => {
                 dynamodb
-                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
                     .instrument(info_span!("dynamo_mutation_resolver"))
                     .await
             }
             Resolver::Transformer(ctx_data) => ctx_data.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::CustomResolver(resolver) => {
                 resolver
-                    .resolve(ctx, last_resolver_value)
+                    .resolve(ctx, last_resolver_value.as_ref())
                     .instrument(info_span!("custom_resolver", resolver_name = resolver.resolver_name))
                     .await
             }
-            Resolver::Query(query) => query.resolve(ctx, resolver_ctx, last_resolver_value).await,
+            Resolver::Query(query) => query.resolve(ctx, resolver_ctx, last_resolver_value.as_ref()).await,
             Resolver::Composition(resolvers) => {
                 let [head, tail @ ..] = &resolvers[..] else {
                     unreachable!("Composition of resolvers always have at least one element")
                 };
                 let mut current = head.resolve(ctx, resolver_ctx, last_resolver_value).await?;
                 for resolver in tail {
-                    current = resolver.resolve(ctx, resolver_ctx, Some(&current)).await?;
+                    current = resolver.resolve(ctx, resolver_ctx, Some(current)).await?;
                 }
                 Ok(current)
             }
             Resolver::Http(resolver) => {
                 resolver
-                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
                     .instrument(info_span!("http_resolver", api_name = resolver.api_name))
                     .await
             }
