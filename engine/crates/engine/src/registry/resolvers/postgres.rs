@@ -14,6 +14,7 @@ use std::{future::Future, pin::Pin};
 pub enum Operation {
     FindOne,
     FindMany,
+    DeleteOne,
 }
 
 impl AsRef<str> for Operation {
@@ -21,6 +22,7 @@ impl AsRef<str> for Operation {
         match self {
             Self::FindOne => "findOne",
             Self::FindMany => "findMany",
+            Self::DeleteOne => "deleteOne",
         }
     }
 }

@@ -1,3 +1,4 @@
+mod delete_one;
 mod find_many;
 mod find_one;
 mod input;
@@ -16,5 +17,6 @@ pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
 
         find_one::register(input_ctx, table, &filter_oneof_type, output_ctx);
         find_many::register(input_ctx, table, &filter_type, output_ctx);
+        delete_one::register(input_ctx, table, &filter_oneof_type, output_ctx);
     }
 }

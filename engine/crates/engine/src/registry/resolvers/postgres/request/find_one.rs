@@ -24,7 +24,7 @@ pub(super) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
         builder.set_filter(filter);
     }
 
-    let (sql, params) = renderer::Postgres::build(query::build(builder)?);
+    let (sql, params) = renderer::Postgres::build(query::select::build(builder)?);
 
     let response = ctx
         .transport()

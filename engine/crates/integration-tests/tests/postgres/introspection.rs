@@ -46,6 +46,13 @@ fn table_with_serial_primary_key() {
           not: IntSearchFilterInput
         }
 
+        type Mutation {
+          """
+            Delete a unique User by a field
+          """
+          userDelete(by: UserByInput!): UserDelete
+        }
+
         enum OrderByDirection {
           ASC
           DESC
@@ -95,6 +102,10 @@ fn table_with_serial_primary_key() {
           pageInfo: PageInfo!
         }
 
+        type UserDelete {
+          id: Int!
+        }
+
         type UserEdge {
           node: User!
           cursor: String!
@@ -106,6 +117,7 @@ fn table_with_serial_primary_key() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 
@@ -160,6 +172,11 @@ fn table_with_enum_field() {
           pageInfo: PageInfo!
         }
 
+        type ADelete {
+          id: Int!
+          val: StreetLight!
+        }
+
         type AEdge {
           node: A!
           cursor: String!
@@ -201,6 +218,13 @@ fn table_with_enum_field() {
           not: IntSearchFilterInput
         }
 
+        type Mutation {
+          """
+            Delete a unique A by a field
+          """
+          aDelete(by: AByInput!): ADelete
+        }
+
         enum OrderByDirection {
           ASC
           DESC
@@ -232,6 +256,7 @@ fn table_with_enum_field() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 
@@ -282,6 +307,13 @@ fn table_with_int_primary_key() {
           not: IntSearchFilterInput
         }
 
+        type Mutation {
+          """
+            Delete a unique User by a field
+          """
+          userDelete(by: UserByInput!): UserDelete
+        }
+
         enum OrderByDirection {
           ASC
           DESC
@@ -331,6 +363,10 @@ fn table_with_int_primary_key() {
           pageInfo: PageInfo!
         }
 
+        type UserDelete {
+          id: Int!
+        }
+
         type UserEdge {
           node: User!
           cursor: String!
@@ -342,6 +378,7 @@ fn table_with_int_primary_key() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 
@@ -392,6 +429,13 @@ fn table_with_int_unique() {
           not: IntSearchFilterInput
         }
 
+        type Mutation {
+          """
+            Delete a unique User by a field
+          """
+          userDelete(by: UserByInput!): UserDelete
+        }
+
         enum OrderByDirection {
           ASC
           DESC
@@ -441,6 +485,10 @@ fn table_with_int_unique() {
           pageInfo: PageInfo!
         }
 
+        type UserDelete {
+          id: Int!
+        }
+
         type UserEdge {
           node: User!
           cursor: String!
@@ -452,6 +500,7 @@ fn table_with_int_unique() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 
@@ -501,6 +550,13 @@ fn table_with_serial_primary_key_string_unique() {
             The value is not in the given array of values
           """ nin: [Int]
           not: IntSearchFilterInput
+        }
+
+        type Mutation {
+          """
+            Delete a unique User by a field
+          """
+          userDelete(by: UserByInput!): UserDelete
         }
 
         enum OrderByDirection {
@@ -586,6 +642,11 @@ fn table_with_serial_primary_key_string_unique() {
           pageInfo: PageInfo!
         }
 
+        type UserDelete {
+          id: Int!
+          email: String!
+        }
+
         type UserEdge {
           node: User!
           cursor: String!
@@ -598,6 +659,7 @@ fn table_with_serial_primary_key_string_unique() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 
@@ -619,6 +681,13 @@ fn table_with_composite_primary_key() {
     });
 
     let expected = expect![[r#"
+        type Mutation {
+          """
+            Delete a unique User by a field
+          """
+          userDelete(by: UserByInput!): UserDelete
+        }
+
         enum OrderByDirection {
           ASC
           DESC
@@ -701,6 +770,11 @@ fn table_with_composite_primary_key() {
           pageInfo: PageInfo!
         }
 
+        type UserDelete {
+          name: String!
+          email: String!
+        }
+
         type UserEdge {
           node: User!
           cursor: String!
@@ -718,6 +792,7 @@ fn table_with_composite_primary_key() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 
@@ -778,6 +853,17 @@ fn two_schemas_same_table_name() {
           not: IntSearchFilterInput
         }
 
+        type Mutation {
+          """
+            Delete a unique PrivateUser by a field
+          """
+          privateUserDelete(by: PrivateUserByInput!): PrivateUserDelete
+          """
+            Delete a unique PublicUser by a field
+          """
+          publicUserDelete(by: PublicUserByInput!): PublicUserDelete
+        }
+
         enum OrderByDirection {
           ASC
           DESC
@@ -816,6 +902,10 @@ fn two_schemas_same_table_name() {
           pageInfo: PageInfo!
         }
 
+        type PrivateUserDelete {
+          id: Int!
+        }
+
         type PrivateUserEdge {
           node: PrivateUser!
           cursor: String!
@@ -851,6 +941,10 @@ fn two_schemas_same_table_name() {
           pageInfo: PageInfo!
         }
 
+        type PublicUserDelete {
+          id: Int!
+        }
+
         type PublicUserEdge {
           node: PublicUser!
           cursor: String!
@@ -881,6 +975,7 @@ fn two_schemas_same_table_name() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 
@@ -900,6 +995,10 @@ fn table_with_serial_primary_key_namespaced() {
     });
 
     let expected = expect![[r#"
+        type Mutation {
+          neon: NeonMutation
+        }
+
         """
           Search filter input for Int type.
         """
@@ -995,6 +1094,7 @@ fn table_with_serial_primary_key_namespaced() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 
@@ -1065,6 +1165,13 @@ fn two_tables_with_single_column_foreign_key() {
           pageInfo: PageInfo!
         }
 
+        type BlogDelete {
+          id: Int!
+          title: String!
+          content: String
+          userId: Int!
+        }
+
         type BlogEdge {
           node: Blog!
           cursor: String!
@@ -1106,6 +1213,17 @@ fn two_tables_with_single_column_foreign_key() {
             The value is not in the given array of values
           """ nin: [Int]
           not: IntSearchFilterInput
+        }
+
+        type Mutation {
+          """
+            Delete a unique Blog by a field
+          """
+          blogDelete(by: BlogByInput!): BlogDelete
+          """
+            Delete a unique User by a field
+          """
+          userDelete(by: UserByInput!): UserDelete
         }
 
         enum OrderByDirection {
@@ -1200,6 +1318,11 @@ fn two_tables_with_single_column_foreign_key() {
           pageInfo: PageInfo!
         }
 
+        type UserDelete {
+          id: Int!
+          name: String!
+        }
+
         type UserEdge {
           node: User!
           cursor: String!
@@ -1212,6 +1335,7 @@ fn two_tables_with_single_column_foreign_key() {
 
         schema {
           query: Query
+          mutation: Mutation
         }
     "#]];
 

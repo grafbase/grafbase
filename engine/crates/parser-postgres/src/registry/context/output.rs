@@ -7,7 +7,7 @@ use postgres_types::database_definition::{
     DatabaseDefinition, EnumId, RelationId, TableColumnId, TableId, UniqueConstraintId,
 };
 
-use self::builders::{EnumBuilder, InputTypeBuilder, ObjectTypeBuilder};
+pub use self::builders::{EnumBuilder, InputTypeBuilder, ObjectTypeBuilder};
 
 #[derive(Debug)]
 pub struct OutputContext {
@@ -44,6 +44,8 @@ impl OutputContext {
             &mutation_type_name,
             &mutation_type_name,
         );
+
+        registry.mutation_type = Some(mutation_type_name.clone());
 
         if let Some(namespace) = namespace {
             let mut query_type = ObjectType::new("Query", []);
@@ -153,7 +155,6 @@ impl OutputContext {
         fields.insert(query.name.to_string(), query);
     }
 
-    #[allow(unused)] // TODO: we'll need this very soon
     pub fn push_mutation(&mut self, mutation: MetaField) {
         let fields = self
             .registry

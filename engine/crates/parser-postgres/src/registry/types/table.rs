@@ -1,9 +1,9 @@
-use crate::registry::context::{InputContext, OutputContext};
+use crate::registry::context::{InputContext, ObjectTypeBuilder, OutputContext};
 use engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     Constraint, InputObjectType, MetaField, MetaInputValue, ObjectType,
 };
-use postgres_types::database_definition::{DatabaseType, ScalarType, TableWalker};
+use postgres_types::database_definition::{DatabaseType, RelationWalker, ScalarType, TableColumnWalker, TableWalker};
 use std::borrow::Cow;
 
 pub(super) fn generate(
@@ -18,99 +18,14 @@ pub(super) fn generate(
     register_orderby_input(input_ctx, direction_type, table, output_ctx);
     register_connection_type(input_ctx, table, &edge_type_name, output_ctx);
 
+    // The full type with relations
     output_ctx.with_object_type(&type_name, table.id(), |builder| {
         for column in table.columns() {
-            let client_type = column
-                .graphql_type()
-                .expect("forgot to filter unsupported types before generating");
-
-            let client_type = if column.nullable() {
-                client_type.to_string()
-            } else {
-                format!("{client_type}!")
-            };
-
-            let mut field = MetaField::new(column.client_name(), client_type.as_ref());
-            field.mapped_name = Some(column.database_name().to_string());
-
-            field.resolver = Resolver::Transformer(Transformer::Select {
-                key: column.database_name().to_string(),
-            });
-
-            let extra_transformer = match column.database_type() {
-                DatabaseType::Scalar(ScalarType::Bytea) => Some(Transformer::BytesToBase64),
-                DatabaseType::Scalar(ScalarType::ByteaArray) => Some(Transformer::ByteArrayToBase64Array),
-                DatabaseType::Enum(_) => Some(Transformer::RemoteEnum),
-                _ => None,
-            };
-
-            if let Some(transformer) = extra_transformer {
-                field.resolver = field.resolver.and_then(transformer);
-            }
-
-            builder.push_scalar_field(field, column.id());
+            add_column(column, builder);
         }
 
         for relation in table.relations() {
-            #[allow(clippy::if_not_else)]
-            let field = if !relation.is_referenced_row_unique() {
-                let connection_type_name = input_ctx.connection_type_name(relation.referenced_table().client_name());
-
-                let mut field = MetaField::new(relation.client_field_name(), connection_type_name);
-
-                field
-                    .args
-                    .insert(String::from("first"), MetaInputValue::new("first", "Int"));
-
-                field
-                    .args
-                    .insert(String::from("last"), MetaInputValue::new("last", "Int"));
-
-                field
-                    .args
-                    .insert(String::from("before"), MetaInputValue::new("before", "String"));
-
-                field
-                    .args
-                    .insert(String::from("after"), MetaInputValue::new("after", "String"));
-
-                let order_by_type = input_ctx.orderby_input_type_name(relation.referenced_table().client_name());
-
-                field.args.insert(
-                    String::from("orderBy"),
-                    MetaInputValue::new("orderBy", format!("[{order_by_type}!]")),
-                );
-
-                field.resolver = Resolver::Transformer(Transformer::Select {
-                    key: relation.client_field_name(),
-                })
-                .and_then(Transformer::PostgresSelectionData {
-                    directive_name: input_ctx.directive_name().to_string(),
-                    table_id: relation.referenced_table().id(),
-                })
-                .and_then(Transformer::PostgresPageInfo);
-
-                field
-            } else {
-                let client_type = relation.client_type();
-                let client_type = input_ctx.type_name(&client_type);
-
-                let client_type = if relation.nullable() {
-                    client_type
-                } else {
-                    Cow::Owned(format!("{client_type}!"))
-                };
-
-                let mut field = MetaField::new(relation.client_field_name(), client_type.as_ref());
-
-                field.resolver = Resolver::Transformer(Transformer::Select {
-                    key: relation.client_field_name(),
-                });
-
-                field
-            };
-
-            builder.push_relation_field(field, relation.id());
+            add_relation(input_ctx, relation, builder);
         }
 
         for constraint in table.unique_constraints() {
@@ -122,6 +37,109 @@ pub(super) fn generate(
             builder.push_constraint(Constraint::unique(constraint.name().to_string(), fields));
         }
     });
+
+    let type_name = input_ctx.delete_type_name(table.client_name());
+
+    // a simple type, which does not have relations in it (e.g. for deletions)
+    output_ctx.with_object_type(&type_name, table.id(), |builder| {
+        for column in table.columns() {
+            add_column(column, builder);
+        }
+    });
+}
+
+fn add_column(column: TableColumnWalker<'_>, builder: &mut ObjectTypeBuilder) {
+    let client_type = column
+        .graphql_type()
+        .expect("forgot to filter unsupported types before generating");
+
+    let client_type = if column.nullable() {
+        client_type.to_string()
+    } else {
+        format!("{client_type}!")
+    };
+
+    let mut field = MetaField::new(column.client_name(), client_type.as_ref());
+    field.mapped_name = Some(column.database_name().to_string());
+
+    field.resolver = Resolver::Transformer(Transformer::Select {
+        key: column.database_name().to_string(),
+    });
+
+    let extra_transformer = match column.database_type() {
+        DatabaseType::Scalar(ScalarType::Bytea) => Some(Transformer::BytesToBase64),
+        DatabaseType::Scalar(ScalarType::ByteaArray) => Some(Transformer::ByteArrayToBase64Array),
+        DatabaseType::Enum(_) => Some(Transformer::RemoteEnum),
+        _ => None,
+    };
+
+    if let Some(transformer) = extra_transformer {
+        field.resolver = field.resolver.and_then(transformer);
+    }
+
+    builder.push_scalar_field(field, column.id());
+}
+
+fn add_relation(input_ctx: &InputContext<'_>, relation: RelationWalker<'_>, builder: &mut ObjectTypeBuilder) {
+    #[allow(clippy::if_not_else)]
+    let field = if !relation.is_referenced_row_unique() {
+        let connection_type_name = input_ctx.connection_type_name(relation.referenced_table().client_name());
+
+        let mut field = MetaField::new(relation.client_field_name(), connection_type_name);
+
+        field
+            .args
+            .insert(String::from("first"), MetaInputValue::new("first", "Int"));
+
+        field
+            .args
+            .insert(String::from("last"), MetaInputValue::new("last", "Int"));
+
+        field
+            .args
+            .insert(String::from("before"), MetaInputValue::new("before", "String"));
+
+        field
+            .args
+            .insert(String::from("after"), MetaInputValue::new("after", "String"));
+
+        let order_by_type = input_ctx.orderby_input_type_name(relation.referenced_table().client_name());
+
+        field.args.insert(
+            String::from("orderBy"),
+            MetaInputValue::new("orderBy", format!("[{order_by_type}!]")),
+        );
+
+        field.resolver = Resolver::Transformer(Transformer::Select {
+            key: relation.client_field_name(),
+        })
+        .and_then(Transformer::PostgresSelectionData {
+            directive_name: input_ctx.directive_name().to_string(),
+            table_id: relation.referenced_table().id(),
+        })
+        .and_then(Transformer::PostgresPageInfo);
+
+        field
+    } else {
+        let client_type = relation.client_type();
+        let client_type = input_ctx.type_name(&client_type);
+
+        let client_type = if relation.nullable() {
+            client_type
+        } else {
+            Cow::Owned(format!("{client_type}!"))
+        };
+
+        let mut field = MetaField::new(relation.client_field_name(), client_type.as_ref());
+
+        field.resolver = Resolver::Transformer(Transformer::Select {
+            key: relation.client_field_name(),
+        });
+
+        field
+    };
+
+    builder.push_relation_field(field, relation.id());
 }
 
 fn register_connection_type(
