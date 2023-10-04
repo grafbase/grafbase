@@ -3,7 +3,9 @@ mod builders;
 use engine::registry::{EnumType, InputObjectType, MetaField, ObjectType};
 use inflector::Inflector;
 use parser_sdl::Registry;
-use postgresql_types::database_definition::{DatabaseDefinition, EnumId, RelationId, TableColumnId, TableId};
+use postgresql_types::database_definition::{
+    DatabaseDefinition, EnumId, RelationId, TableColumnId, TableId, UniqueConstraintId,
+};
 
 use self::builders::{EnumBuilder, InputTypeBuilder, ObjectTypeBuilder};
 
@@ -13,6 +15,7 @@ pub struct OutputContext {
     mutation_type_name: String,
     registry: Registry,
     type_mapping: Vec<(String, TableId)>,
+    unique_constraint_mapping: Vec<(String, UniqueConstraintId)>,
     field_mapping: Vec<(String, TableColumnId)>,
     enum_mapping: Vec<(String, EnumId)>,
     relation_mapping: Vec<(String, RelationId)>,
@@ -67,6 +70,7 @@ impl OutputContext {
             mutation_type_name,
             registry,
             type_mapping: Vec::new(),
+            unique_constraint_mapping: Vec::new(),
             field_mapping: Vec::new(),
             enum_mapping: Vec::new(),
             relation_mapping: Vec::new(),
@@ -82,6 +86,7 @@ impl OutputContext {
         f(&mut builder);
 
         self.type_mapping.extend(builder.type_mapping);
+        self.unique_constraint_mapping.extend(builder.unique_constraint_mapping);
         self.field_mapping.extend(builder.field_mapping);
         self.relation_mapping.extend(builder.relation_mapping);
 
@@ -178,6 +183,11 @@ impl OutputContext {
         for (field_name, relation_id) in self.relation_mapping {
             let table_id = database_definition.walk(relation_id).referencing_table().id();
             database_definition.push_client_relation_mapping(&field_name, table_id, relation_id);
+        }
+
+        for (field_name, constraint_id) in self.unique_constraint_mapping {
+            let table_id = database_definition.walk(constraint_id).table().id();
+            database_definition.push_client_field_unique_constraint_mapping(&field_name, table_id, constraint_id);
         }
 
         self.registry

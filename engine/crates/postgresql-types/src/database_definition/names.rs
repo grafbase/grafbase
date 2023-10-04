@@ -28,6 +28,8 @@ pub(super) struct Names {
     client_types: HashMap<StringId, TableId>,
     #[serde(with = "super::vectorize")]
     client_fields: HashMap<(TableId, StringId), TableColumnId>,
+    #[serde(with = "super::vectorize", default)]
+    client_unique_constraints: HashMap<(TableId, StringId), UniqueConstraintId>,
     #[serde(with = "super::vectorize")]
     client_enums: HashMap<StringId, EnumId>,
     #[serde(with = "super::vectorize")]
@@ -83,6 +85,18 @@ impl Names {
         self.client_fields.insert((table_id, string_id), column_id);
     }
 
+    pub(super) fn intern_client_unique_constraint(
+        &mut self,
+        field_name: &str,
+        table_id: TableId,
+        constraint_id: UniqueConstraintId,
+    ) {
+        let string_id = self.interner.intern(field_name);
+
+        self.client_unique_constraints
+            .insert((table_id, string_id), constraint_id);
+    }
+
     pub(super) fn intern_client_enum(&mut self, enum_name: &str, enum_id: EnumId) {
         let string_id = self.interner.intern(enum_name);
         self.client_enums.insert(string_id, enum_id);
@@ -115,6 +129,17 @@ impl Names {
         self.interner
             .lookup(field_name)
             .and_then(|string_id| self.client_relations.get(&(table_id, string_id)))
+            .copied()
+    }
+
+    pub(super) fn get_unique_constraint_id_for_client_field(
+        &self,
+        field_name: &str,
+        table_id: TableId,
+    ) -> Option<UniqueConstraintId> {
+        self.interner
+            .lookup(field_name)
+            .and_then(|string_id| self.client_unique_constraints.get(&(table_id, string_id)))
             .copied()
     }
 
