@@ -1385,6 +1385,7 @@ pub struct Registry {
     pub enable_caching: bool,
     #[serde(default)]
     pub enable_kv: bool,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub federation_entities: HashMap<String, FederationEntity>,
 }
 

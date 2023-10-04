@@ -149,7 +149,7 @@ impl SchemaBuilder {
     /// Build schema.
     pub fn finish(mut self) -> Schema {
         // federation
-        if self.registry.enable_federation || self.registry.has_entities() {
+        if self.registry.enable_federation && self.registry.has_entities() {
             self.registry.create_federation_types();
         }
 

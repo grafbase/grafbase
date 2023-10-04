@@ -182,8 +182,10 @@ impl<'a> VisitorContext<'a> {
     pub(crate) fn finish(self) -> ParseResult<'static> {
         let mut registry = self.registry.take();
         if self.federation.is_some() {
-            // TODO: do somethig with the version
             registry.enable_federation = true;
+        } else {
+            // Clear out the federation entities if federation isn't enabled
+            registry.federation_entities.clear();
         }
 
         if !self.mutations.is_empty() {
