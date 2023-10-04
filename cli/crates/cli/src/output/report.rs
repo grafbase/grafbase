@@ -1,6 +1,7 @@
 use crate::{
     cli_input::LogLevelFilters,
     errors::CliError,
+    logs::LogEvent,
     watercolor::{self, watercolor},
 };
 use backend::{
@@ -342,4 +343,27 @@ pub fn create_success(name: &str, urls: &[String]) {
     for url in urls {
         watercolor::output!("- https://{url}", @BrightBlue);
     }
+}
+
+pub fn print_log_entry(
+    LogEvent {
+        created_at,
+        message,
+        log_event_type,
+        ..
+    }: LogEvent,
+) {
+    let extra_properties = match log_event_type {
+        crate::logs::LogEventType::Request {
+            http_method,
+            path,
+            http_status,
+        } => format!("{http_method} {path} {http_status}"),
+        crate::logs::LogEventType::FunctionMessage {
+            log_level,
+            function_kind,
+            function_name,
+        } => format!("[{log_level}] {function_kind} {function_name}"),
+    };
+    println!("{} {extra_properties} | {message}", created_at.to_rfc3339());
 }

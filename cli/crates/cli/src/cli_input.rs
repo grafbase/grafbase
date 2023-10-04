@@ -5,7 +5,7 @@ use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
     types::LogLevel,
 };
-use std::{fmt, path::PathBuf};
+use std::path::PathBuf;
 use ulid::Ulid;
 
 const DEFAULT_PORT: u16 = 4000;
@@ -199,7 +199,22 @@ pub struct LinkCommand {
     pub project: Option<Ulid>,
 }
 
-#[derive(Debug, Parser)]
+const DEFAULT_LOGS_LIMIT: u16 = 100;
+
+#[derive(Debug, clap::Args)]
+pub struct LogsCommand {
+    /// The reference of a project
+    pub project_branch_reference: String,
+    /// How many last entries to retrive
+    #[arg(short, long, default_value_t = DEFAULT_LOGS_LIMIT)]
+    pub limit: u16,
+    /// Whether to disable polling for new log entries
+    #[arg(long)]
+    pub no_follow: bool,
+}
+
+#[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum SubCommand {
     /// Run your Grafbase project locally
     Dev(DevCommand),
@@ -222,6 +237,8 @@ pub enum SubCommand {
     Link(LinkCommand),
     /// Disconnect a local project from a remote project
     Unlink,
+    /// Tails logs from a remote project
+    Logs(LogsCommand),
 }
 
 // TODO see if there's a way to do this automatically (https://github.com/clap-rs/clap/discussions/4921)
@@ -286,7 +303,8 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Deploy
             | SubCommand::Link(_)
             | SubCommand::Unlink
-            | SubCommand::Completions(_) => None,
+            | SubCommand::Completions(_)
+            | SubCommand::Logs(_) => None,
         }
     }
 }
@@ -297,29 +315,6 @@ impl SubCommand {
             self,
             Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link(_) | Self::Unlink | Self::Reset
         )
-    }
-}
-
-impl AsRef<str> for SubCommand {
-    fn as_ref(&self) -> &str {
-        match self {
-            SubCommand::Dev(_) => "dev",
-            SubCommand::Completions(_) => "completions",
-            SubCommand::Init(_) => "init",
-            SubCommand::Reset => "reset",
-            SubCommand::Login => "login",
-            SubCommand::Logout => "logout",
-            SubCommand::Create(_) => "create",
-            SubCommand::Deploy => "deploy",
-            SubCommand::Link(_) => "link",
-            SubCommand::Unlink => "unlink",
-        }
-    }
-}
-
-impl fmt::Display for SubCommand {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
     }
 }
 
