@@ -15,7 +15,7 @@ use common::{
     consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
     environment::Warning,
 };
-use std::path::Path;
+use std::{net::IpAddr, path::Path};
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
@@ -24,8 +24,11 @@ pub fn cli_header() {
     println!("{}", format!("Grafbase CLI {version}\n").dimmed());
 }
 
+pub fn start_prod_server(ip: IpAddr, port: u16) {
+    println!("📡 Listening on {}\n", watercolor!("{ip}:{port}", @BrightBlue));
+}
 /// reports to stdout that the server has started
-pub fn start_server(resolvers_reported: bool, port: u16, start_port: u16) {
+pub fn start_dev_server(resolvers_reported: bool, port: u16, start_port: u16) {
     if resolvers_reported {
         println!();
     }

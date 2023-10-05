@@ -1,7 +1,6 @@
 use std::{future::Future, pin::Pin};
 
 use reqwest::StatusCode;
-use send_wrapper::SendWrapper;
 use serde::Deserialize;
 
 use super::types::{BridgeUrl, Constraint, Mutation, Operation, Record};
@@ -53,7 +52,7 @@ pub fn query(
     let request = reqwest::Client::new()
         .post(BridgeUrl::Query(port).to_string())
         .json(&operaton);
-    Box::pin(SendWrapper::new(async move {
+    Box::pin(async_runtime::make_send_on_wasm(async move {
         let response = request.send().await?;
 
         if response.status() == StatusCode::INTERNAL_SERVER_ERROR {
@@ -72,7 +71,7 @@ pub fn mutation(
     let request = client
         .post(BridgeUrl::Mutation(port).to_string())
         .json(&Mutation { mutations });
-    Box::pin(SendWrapper::new(async move {
+    Box::pin(async_runtime::make_send_on_wasm(async move {
         let response = request.send().await?;
         match response.status() {
             StatusCode::CONFLICT => {

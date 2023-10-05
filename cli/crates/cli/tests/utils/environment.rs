@@ -310,6 +310,23 @@ impl Environment {
         self.commands.push(command);
     }
 
+    pub fn grafbase_start(&mut self) {
+        let command = cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "start",
+            "--port",
+            self.port.to_string()
+        )
+        .dir(&self.directory);
+        #[cfg(feature = "dynamodb")]
+        let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
+        let command = command.start().unwrap();
+
+        self.commands.push(command);
+    }
+
     pub fn grafbase_dev_with_home_flag(&mut self) {
         let command = cmd!(
             cargo_bin("grafbase"),

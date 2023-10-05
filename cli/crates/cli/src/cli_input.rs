@@ -5,7 +5,10 @@ use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
     types::LogLevel,
 };
-use std::path::PathBuf;
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    path::PathBuf,
+};
 use ulid::Ulid;
 
 const DEFAULT_PORT: u16 = 4000;
@@ -213,6 +216,51 @@ pub struct LogsCommand {
     pub no_follow: bool,
 }
 
+#[derive(Debug, clap::Args)]
+pub struct StartCommand {
+    /// Use a specific port
+    #[arg(short, long, default_value_t = DEFAULT_PORT)]
+    pub port: u16,
+    /// Log level to print from function invocations, defaults to 'log-level'
+    #[arg(long, value_name = "FUNCTION_LOG_LEVEL")]
+    pub log_level_functions: Option<LogLevelFilter>,
+    /// Log level to print for GraphQL operations, defaults to 'log-level'
+    #[arg(long, value_name = "GRAPHQL_OPERATION_LOG_LEVEL")]
+    pub log_level_graphql_operations: Option<LogLevelFilter>,
+    /// Log level to print for fetch requests, defaults to 'log-level'
+    #[arg(long, value_name = "FETCH_REQUEST_LOG_LEVEL")]
+    pub log_level_fetch_requests: Option<LogLevelFilter>,
+    /// Default log level to print
+    #[arg(long)]
+    pub log_level: Option<LogLevelFilter>,
+    /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1.
+    #[arg(long)]
+    pub listen_address: Option<IpAddr>,
+}
+
+impl StartCommand {
+    pub fn log_levels(&self) -> LogLevelFilters {
+        let default_log_levels = LogLevelFilters {
+            functions: self.log_level.unwrap_or(LogLevelFilter::Info),
+            graphql_operations: self.log_level.unwrap_or(LogLevelFilter::Info),
+            fetch_requests: self.log_level.unwrap_or(LogLevelFilter::Info),
+        };
+        LogLevelFilters {
+            functions: self.log_level_functions.unwrap_or(default_log_levels.functions),
+            graphql_operations: self
+                .log_level_graphql_operations
+                .unwrap_or(default_log_levels.graphql_operations),
+            fetch_requests: self
+                .log_level_fetch_requests
+                .unwrap_or(default_log_levels.fetch_requests),
+        }
+    }
+
+    pub fn listen_address(&self) -> IpAddr {
+        self.listen_address.unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST))
+    }
+}
+
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum SubCommand {
@@ -239,6 +287,8 @@ pub enum SubCommand {
     Unlink,
     /// Tails logs from a remote project
     Logs(LogsCommand),
+    /// Run your Grafbase project locally in production mode
+    Start(StartCommand),
 }
 
 // TODO see if there's a way to do this automatically (https://github.com/clap-rs/clap/discussions/4921)
@@ -303,6 +353,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Deploy
             | SubCommand::Link(_)
             | SubCommand::Unlink
+            | SubCommand::Start(_)
             | SubCommand::Completions(_)
             | SubCommand::Logs(_) => None,
         }
@@ -313,7 +364,7 @@ impl SubCommand {
     pub(crate) fn in_project_context(&self) -> bool {
         matches!(
             self,
-            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link(_) | Self::Unlink | Self::Reset
+            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link(_) | Self::Unlink | Self::Reset | Self::Start(_)
         )
     }
 }

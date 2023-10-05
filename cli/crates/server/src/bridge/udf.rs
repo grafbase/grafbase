@@ -65,7 +65,6 @@ pub async fn invoke_udf_endpoint(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     trace!("UDF invocation\n\n{:#?}\n", payload);
 
-    let environment = Environment::get();
     let UdfInvocation {
         request_id,
         name: udf_name,
@@ -73,6 +72,22 @@ pub async fn invoke_udf_endpoint(
         udf_kind,
     } = payload;
 
+    let udf_worker_port = build_udf(&handler_state, udf_name.clone(), udf_kind).await?;
+
+    super::udf::invoke(
+        &handler_state.message_sender,
+        &request_id,
+        udf_worker_port,
+        udf_kind,
+        &udf_name,
+        &payload,
+    )
+    .await
+    .map(Json)
+}
+
+pub async fn build_udf(handler_state: &HandlerState, udf_name: String, udf_kind: UdfKind) -> Result<u16, ApiError> {
+    let environment = Environment::get();
     let udf_worker_port = loop {
         let notify = {
             let mut udf_builds: tokio::sync::MutexGuard<'_, _> = handler_state.udf_builds.lock().await;
@@ -106,12 +121,11 @@ pub async fn invoke_udf_endpoint(
 
         let start = std::time::Instant::now();
         handler_state
-            .bridge_sender
+            .message_sender
             .send(ServerMessage::StartUdfBuild {
                 udf_kind,
                 udf_name: udf_name.clone(),
             })
-            .await
             .unwrap();
 
         let tracing = handler_state.tracing;
@@ -141,13 +155,12 @@ pub async fn invoke_udf_endpoint(
                 notify.notify_waiters();
 
                 handler_state
-                    .bridge_sender
+                    .message_sender
                     .send(ServerMessage::CompleteUdfBuild {
                         udf_kind,
                         udf_name: udf_name.clone(),
                         duration: start.elapsed(),
                     })
-                    .await
                     .unwrap();
 
                 break worker_port;
@@ -155,11 +168,10 @@ pub async fn invoke_udf_endpoint(
             Err(err) => {
                 error!("Build of {udf_kind} '{udf_name}' failed: {err:?}");
                 handler_state
-                    .bridge_sender
+                    .message_sender
                     .send(ServerMessage::CompilationError(format!(
                         "{udf_kind} '{udf_name}' failed to build: {err}"
                     )))
-                    .await
                     .unwrap();
             }
         };
@@ -172,17 +184,7 @@ pub async fn invoke_udf_endpoint(
         notify.notify_waiters();
         return Err(ApiError::UdfInvocation);
     };
-
-    super::udf::invoke(
-        &handler_state.bridge_sender,
-        &request_id,
-        udf_worker_port,
-        udf_kind,
-        &udf_name,
-        &payload,
-    )
-    .await
-    .map(Json)
+    Ok(udf_worker_port)
 }
 
 async fn wait_until_udf_ready(worker_port: u16, udf_kind: UdfKind, udf_name: &str) -> Result<bool, reqwest::Error> {
@@ -313,7 +315,7 @@ pub async fn spawn_miniflare(
 }
 
 pub async fn invoke(
-    bridge_sender: &tokio::sync::mpsc::Sender<ServerMessage>,
+    bridge_sender: &tokio::sync::mpsc::UnboundedSender<ServerMessage>,
     request_id: &str,
     udf_worker_port: u16,
     udf_kind: UdfKind,
@@ -396,7 +398,7 @@ pub async fn invoke(
 
     messages.sort_by_key(|(logged_time, _)| *logged_time);
     for (_, message) in messages {
-        bridge_sender.send(message).await.unwrap();
+        bridge_sender.send(message).expect("receiver is not never closed");
     }
 
     Ok(value)

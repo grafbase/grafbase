@@ -38,7 +38,9 @@ ulid = "1"
 uuid = { version = "1", features = ["v4"] }
 url = "2"
 webbrowser = "0.8"
+lru = "0.12"
 
+server = { package = "grafbase-local-server", path = "../server", version = "0.38.0" }
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.38.0" }
 common = { package = "grafbase-local-common", path = "../common", version = "0.38.0" }
 
@@ -79,6 +81,7 @@ url = "2"
 regex = "1"
 reqwest-eventsource = "0.4"
 rstest = "0.18"
+rstest_reuse = "0.6"
 rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
 strum = { version = "0.25", features = ["derive"] }

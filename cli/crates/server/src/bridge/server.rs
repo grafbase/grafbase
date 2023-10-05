@@ -1,6 +1,6 @@
 use super::consts::{DATABASE_FILE, DATABASE_URL_PREFIX, PREPARE};
 use super::types::{Mutation, Operation, Record};
-use super::udf::UdfBuild;
+use super::udf::{build_udf, UdfBuild};
 use crate::bridge::errors::ApiError;
 use crate::bridge::log::log_event_endpoint;
 use crate::bridge::search::search_endpoint;
@@ -8,6 +8,7 @@ use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
 use crate::bridge::udf::invoke_udf_endpoint;
 use crate::errors::ServerError;
 use crate::event::{wait_for_event, Event};
+use crate::servers::DetectedUdf;
 use crate::types::ServerMessage;
 use axum::extract::State;
 use axum::Json;
@@ -28,7 +29,7 @@ use tower_http::trace::TraceLayer;
 
 pub struct HandlerState {
     pub pool: SqlitePool,
-    pub bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
+    pub message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
     pub udf_builds: Mutex<std::collections::HashMap<(String, UdfKind), UdfBuild>>,
     pub environment_variables: HashMap<String, String>,
     pub tracing: bool,
@@ -98,16 +99,34 @@ async fn mutation_endpoint(
     Ok(StatusCode::OK)
 }
 
-pub async fn start(
-    tcp_listener: TcpListener,
-    port: u16,
-    bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
-    event_bus: tokio::sync::broadcast::Sender<Event>,
+// Not great, but I don't want to expose HandlerState and nor do I want to change everything now...
+#[async_trait::async_trait]
+pub trait BridgeState {
+    async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>) -> Result<(), ServerError>;
+    async fn close(&self) -> ();
+}
+
+#[async_trait::async_trait]
+impl BridgeState for Arc<HandlerState> {
+    async fn close(&self) -> () {
+        self.pool.close().await;
+    }
+
+    async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>) -> Result<(), ServerError> {
+        for DetectedUdf { udf_name, udf_kind, .. } in udfs {
+            build_udf(self, udf_name.clone(), udf_kind)
+                .await
+                .map_err(|err| ServerError::ResolverBuild(udf_name, err.to_string()))?;
+        }
+        Ok(())
+    }
+}
+
+pub async fn build_router(
+    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
     registry: Arc<engine::Registry>,
     tracing: bool,
-) -> Result<(), ServerError> {
-    trace!("starting bridge at port {port}");
-
+) -> Result<(Router, impl BridgeState), ServerError> {
     let project = Project::get();
 
     let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
@@ -138,7 +157,7 @@ pub async fn start(
 
     let handler_state = Arc::new(HandlerState {
         pool,
-        bridge_sender,
+        message_sender,
         udf_builds: Mutex::default(),
         environment_variables,
         tracing,
@@ -153,6 +172,19 @@ pub async fn start(
         .route("/log-event", post(log_event_endpoint))
         .with_state(handler_state.clone())
         .layer(TraceLayer::new_for_http());
+    Ok((router, handler_state))
+}
+
+pub async fn start(
+    tcp_listener: TcpListener,
+    port: u16,
+    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+    event_bus: tokio::sync::broadcast::Sender<Event>,
+    registry: Arc<engine::Registry>,
+    tracing: bool,
+) -> Result<(), ServerError> {
+    trace!("starting bridge at port {port}");
+    let (router, handler_state) = build_router(message_sender, registry, tracing).await?;
 
     let server = axum::Server::from_tcp(tcp_listener)?
         .serve(router.into_make_service())
@@ -163,6 +195,6 @@ pub async fn start(
     event_bus.send(Event::BridgeReady).expect("cannot fail");
     server.await?;
 
-    handler_state.pool.close().await;
+    handler_state.close().await;
     Ok(())
 }

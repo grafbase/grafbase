@@ -1073,7 +1073,6 @@ dependencies = [
  "reqwest",
  "rusoto_core",
  "rusoto_dynamodb",
- "send_wrapper 0.6.0",
  "serde",
  "serde_json",
  "thiserror",

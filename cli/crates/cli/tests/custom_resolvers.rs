@@ -3,6 +3,7 @@
 mod utils;
 
 use backend::project::ConfigType;
+use rstest_reuse::{self, apply, template};
 use serde_json::Value;
 use utils::environment::Environment;
 
@@ -335,6 +336,7 @@ fn test_field_resolver(
     }
 }
 
+#[template]
 #[rstest::rstest]
 #[case(
     1,
@@ -465,6 +467,15 @@ fn test_query_mutation_resolver(
     #[case] resolver_files: &[(&str, &str)],
     #[case] queries: &[(&str, &str)],
 ) {
+}
+
+#[apply(test_query_mutation_resolver)]
+fn test_query_mutation_resolver_dev(
+    case_index: usize,
+    schema: &str,
+    resolver_files: &[(&str, &str)],
+    queries: &[(&str, &str)],
+) {
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(schema);
@@ -483,6 +494,39 @@ fn test_query_mutation_resolver(
         assert!(errors.is_empty(), "Error response: {errors:?}");
         let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
         let snapshot_name = format!("query_mutation_resolver_{case_index}_{index}", index = index + 1);
+        if let Some(value) = value.as_str() {
+            insta::assert_snapshot!(snapshot_name, value);
+        } else {
+            insta::assert_json_snapshot!(snapshot_name, value);
+        }
+    }
+}
+
+#[apply(test_query_mutation_resolver)]
+fn test_query_mutation_resolver_start(
+    case_index: usize,
+    schema: &str,
+    resolver_files: &[(&str, &str)],
+    queries: &[(&str, &str)],
+) {
+    let mut env = Environment::init();
+    env.grafbase_init(ConfigType::GraphQL);
+    env.write_schema(schema);
+    for (file_name, file_contents) in resolver_files {
+        env.write_resolver(file_name, file_contents);
+    }
+
+    env.grafbase_start();
+    let client = env.create_client().with_api_key();
+    client.poll_endpoint(60, 300);
+
+    // Run queries.
+    for (index, (query_contents, path)) in queries.iter().enumerate() {
+        let response = client.gql::<Value>(query_contents.to_owned()).send();
+        let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
+        assert!(errors.is_empty(), "Error response: {errors:?}");
+        let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
+        let snapshot_name = format!("query_mutation_resolver_start_{case_index}_{index}", index = index + 1);
         if let Some(value) = value.as_str() {
             insta::assert_snapshot!(snapshot_name, value);
         } else {
