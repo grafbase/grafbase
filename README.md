@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  Your data, globally fast.
+  The unified data layer
 </p>
 
 <p align="center">
@@ -23,6 +23,6 @@
 
 ## Welcome to Grafbase!
 
-Combine your data sources into a centralized GraphQL endpoint. 
+Connect your APIs, databases and microservices to a unified API.
 
 Deploy globally fast GraphQL APIs with a top-notch developer experience.
