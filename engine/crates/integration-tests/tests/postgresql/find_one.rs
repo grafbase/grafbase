@@ -3,11 +3,11 @@ mod types;
 
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::postgresql::{query_namespaced_neon, query_neon};
+use integration_tests::postgresql::{query_namespaced_postgresql, query_postgresql};
 
 #[test]
 fn by_pk_no_rename() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -47,7 +47,7 @@ fn by_pk_no_rename() {
 
 #[test]
 fn namespaced() {
-    let response = query_namespaced_neon("postgres", |api| async move {
+    let response = query_namespaced_postgresql("postgres", |api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -91,7 +91,7 @@ fn namespaced() {
 
 #[test]
 fn by_pk_with_rename() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id_field INT PRIMARY KEY,
@@ -131,7 +131,7 @@ fn by_pk_with_rename() {
 
 #[test]
 fn by_compound_pk() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -177,7 +177,7 @@ fn by_compound_pk() {
 
 #[test]
 fn by_compound_unique_with_nullable_column() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -224,7 +224,7 @@ fn by_compound_unique_with_nullable_column() {
 
 #[test]
 fn by_compound_unique_with_nullable_column_emitting_field() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -271,7 +271,7 @@ fn by_compound_unique_with_nullable_column_emitting_field() {
 
 #[test]
 fn by_unique() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -316,7 +316,7 @@ fn by_unique() {
 
 #[test]
 fn by_id_when_having_another_unique() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -361,7 +361,7 @@ fn by_id_when_having_another_unique() {
 
 #[test]
 fn by_compound_unique() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,

@@ -1,10 +1,10 @@
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::postgresql::query_neon;
+use integration_tests::postgresql::query_postgresql;
 
 #[test]
 fn one_to_one_join_parent_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -72,7 +72,7 @@ fn one_to_one_join_parent_side() {
 
 #[test]
 fn one_to_one_join_between_schemas() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let private_schema = indoc! {r#"
             CREATE SCHEMA "private";
         "#};
@@ -146,7 +146,7 @@ fn one_to_one_join_between_schemas() {
 
 #[test]
 fn one_to_one_join_between_schemas_using_duplicate_table_names() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let private_schema = indoc! {r#"
             CREATE SCHEMA "private";
         "#};
@@ -220,7 +220,7 @@ fn one_to_one_join_between_schemas_using_duplicate_table_names() {
 
 #[test]
 fn one_to_many_join_between_schemas() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let private_schema = indoc! {r#"
             CREATE SCHEMA "private";
         "#};
@@ -307,7 +307,7 @@ fn one_to_many_join_between_schemas() {
 
 #[test]
 fn one_to_one_join_parent_side_compound_fk() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -377,7 +377,7 @@ fn one_to_one_join_parent_side_compound_fk() {
 
 #[test]
 fn one_to_one_join_child_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -444,7 +444,7 @@ fn one_to_one_join_child_side() {
 
 #[test]
 fn one_to_one_to_one_join() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -534,7 +534,7 @@ fn one_to_one_to_one_join() {
 
 #[test]
 fn one_to_many_join_child_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -602,7 +602,7 @@ fn one_to_many_join_child_side() {
 
 #[test]
 fn one_to_many_join_parent_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -682,7 +682,7 @@ fn one_to_many_join_parent_side() {
 
 #[test]
 fn nested_one_to_many_joins_parent_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -817,7 +817,7 @@ fn nested_one_to_many_joins_parent_side() {
 
 #[test]
 fn one_to_many_join_parent_side_with_first() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -891,7 +891,7 @@ fn one_to_many_join_parent_side_with_first() {
 
 #[test]
 fn one_to_many_join_parent_side_with_last() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -965,7 +965,7 @@ fn one_to_many_join_parent_side_with_last() {
 
 #[test]
 fn one_to_many_join_parent_side_with_single_column_descending_order() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1045,7 +1045,7 @@ fn one_to_many_join_parent_side_with_single_column_descending_order() {
 
 #[test]
 fn one_to_many_join_parent_side_with_compound_column_ordering_with_last() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1139,7 +1139,7 @@ fn one_to_many_join_parent_side_with_compound_column_ordering_with_last() {
 
 #[test]
 fn one_to_many_join_parent_side_with_single_column_descending_order_with_last() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1213,7 +1213,7 @@ fn one_to_many_join_parent_side_with_single_column_descending_order_with_last() 
 
 #[test]
 fn two_one_to_many_joins_parent_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1330,7 +1330,7 @@ fn two_one_to_many_joins_parent_side() {
 
 #[test]
 fn one_to_one_with_one_to_many_joins_parent_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,

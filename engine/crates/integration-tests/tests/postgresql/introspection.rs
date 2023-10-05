@@ -1,10 +1,10 @@
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::postgresql::{introspect_namespaced_neon, introspect_neon};
+use integration_tests::postgresql::{introspect_namespaced_postgresql, introspect_postgresql};
 
 #[test]
 fn table_with_serial_primary_key() {
-    let response = introspect_neon(|api| async move {
+    let response = introspect_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id SERIAL PRIMARY KEY
@@ -114,7 +114,7 @@ fn table_with_serial_primary_key() {
 
 #[test]
 fn table_with_enum_field() {
-    let response = introspect_neon(|api| async move {
+    let response = introspect_postgresql(|api| async move {
         let r#type = indoc! {r#"
             CREATE TYPE street_light AS ENUM ('red', 'yellow', 'green');
         "#};
@@ -240,7 +240,7 @@ fn table_with_enum_field() {
 
 #[test]
 fn table_with_int_primary_key() {
-    let response = introspect_neon(|api| async move {
+    let response = introspect_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY
@@ -350,7 +350,7 @@ fn table_with_int_primary_key() {
 
 #[test]
 fn table_with_int_unique() {
-    let response = introspect_neon(|api| async move {
+    let response = introspect_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY
@@ -460,7 +460,7 @@ fn table_with_int_unique() {
 
 #[test]
 fn table_with_serial_primary_key_string_unique() {
-    let response = introspect_neon(|api| async move {
+    let response = introspect_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id SERIAL PRIMARY KEY,
@@ -606,7 +606,7 @@ fn table_with_serial_primary_key_string_unique() {
 
 #[test]
 fn table_with_composite_primary_key() {
-    let response = introspect_neon(|api| async move {
+    let response = introspect_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -726,7 +726,7 @@ fn table_with_composite_primary_key() {
 
 #[test]
 fn two_schemas_same_table_name() {
-    let response = introspect_neon(|api| async move {
+    let response = introspect_postgresql(|api| async move {
         api.execute_sql(r#"CREATE SCHEMA private"#).await;
 
         let schema = indoc! {r#"
@@ -889,7 +889,7 @@ fn two_schemas_same_table_name() {
 
 #[test]
 fn table_with_serial_primary_key_namespaced() {
-    let response = introspect_namespaced_neon("Neon", |api| async move {
+    let response = introspect_namespaced_postgresql("Neon", |api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id SERIAL PRIMARY KEY
@@ -1003,7 +1003,7 @@ fn table_with_serial_primary_key_namespaced() {
 
 #[test]
 fn two_tables_with_single_column_foreign_key() {
-    let response = introspect_neon(|api| async move {
+    let response = introspect_postgresql(|api| async move {
         let create_user = indoc! {r#"
            CREATE TABLE "User" (
                id SERIAL PRIMARY KEY,

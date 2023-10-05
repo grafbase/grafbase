@@ -5,8 +5,8 @@ import { renderGraphQL } from '../utils'
 describe('OpenAPI generator', () => {
   beforeEach(() => g.clear())
 
-  it('generates the minimum possible Neon datasource', () => {
-    const postgres = connector.Neon('Postgres', {
+  it('generates the minimum possible PostgreSQL datasource', () => {
+    const postgres = connector.PostgreSQL('Postgres', {
       url: 'postgres://postgres:grafbase@localhost:5432/postgres'
     })
 
@@ -14,7 +14,7 @@ describe('OpenAPI generator', () => {
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
-        @neon(
+        @postgresql(
           name: "Postgres"
           url: "postgres://postgres:grafbase@localhost:5432/postgres"
           namespace: true
@@ -22,8 +22,8 @@ describe('OpenAPI generator', () => {
     `)
   })
 
-  it('generates a Neon datasource with negative namespace', () => {
-    const postgres = connector.Neon('Postgres', {
+  it('generates a PostgreSQL datasource with negative namespace', () => {
+    const postgres = connector.PostgreSQL('Postgres', {
       url: 'postgres://postgres:grafbase@localhost:5432/postgres'
     })
 
@@ -31,7 +31,7 @@ describe('OpenAPI generator', () => {
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
-        @neon(
+        @postgresql(
           name: "Postgres"
           url: "postgres://postgres:grafbase@localhost:5432/postgres"
           namespace: false
@@ -39,8 +39,8 @@ describe('OpenAPI generator', () => {
     `)
   })
 
-  it('generates a Neon datasource with positive namespace', () => {
-    const postgres = connector.Neon('Postgres', {
+  it('generates a PostgreSQL datasource with positive namespace', () => {
+    const postgres = connector.PostgreSQL('Postgres', {
       url: 'postgres://postgres:grafbase@localhost:5432/postgres'
     })
 
@@ -48,7 +48,7 @@ describe('OpenAPI generator', () => {
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
-        @neon(
+        @postgresql(
           name: "Postgres"
           url: "postgres://postgres:grafbase@localhost:5432/postgres"
           namespace: true
