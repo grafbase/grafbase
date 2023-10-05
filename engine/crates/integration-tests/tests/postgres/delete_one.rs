@@ -1,6 +1,81 @@
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::postgresql::query_postgres;
+use integration_tests::postgres::{query_namespaced_postgres, query_postgres};
+
+#[test]
+fn namespaced() {
+    let response = query_namespaced_postgres("neon", |api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti'), (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              neon {
+                userDelete(by: { id: 1 }) { id name }
+              }
+            }
+        "#};
+
+        let mutation_result = api.execute(mutation).await;
+
+        let query = indoc! {r#"
+            query {
+              neon {
+                userCollection(first: 10) { edges { node { id name } } }
+              }
+            }
+        "#};
+
+        let expected = expect![[r#"
+            {
+              "data": {
+                "neon": {
+                  "userCollection": {
+                    "edges": [
+                      {
+                        "node": {
+                          "id": 2,
+                          "name": "Naukio"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }"#]];
+
+        let query_result = serde_json::to_string_pretty(&api.execute(query).await.to_graphql_response()).unwrap();
+        expected.assert_eq(&query_result);
+
+        mutation_result
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "neon": {
+              "userDelete": {
+                "id": 1,
+                "name": "Musti"
+              }
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
 
 #[test]
 fn single_pk() {
@@ -63,6 +138,76 @@ fn single_pk() {
               "id": 1,
               "name": "Musti"
             }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn missing() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti'), (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userDelete(by: { id: 3 }) { id name }
+            }
+        "#};
+
+        let mutation_result = api.execute(mutation).await;
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) { edges { node { id name } } }
+            }
+        "#};
+
+        let expected = expect![[r#"
+            {
+              "data": {
+                "userCollection": {
+                  "edges": [
+                    {
+                      "node": {
+                        "id": 1,
+                        "name": "Musti"
+                      }
+                    },
+                    {
+                      "node": {
+                        "id": 2,
+                        "name": "Naukio"
+                      }
+                    }
+                  ]
+                }
+              }
+            }"#]];
+
+        let query_result = serde_json::to_string_pretty(&api.execute(query).await.to_graphql_response()).unwrap();
+        expected.assert_eq(&query_result);
+
+        mutation_result
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userDelete": null
           }
         }"#]];
 

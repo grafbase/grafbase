@@ -48,9 +48,13 @@ fn table_with_serial_primary_key() {
 
         type Mutation {
           """
-            Delete a unique User by a field
+            Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserDelete
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserDeleteCollection!): [UserDelete]!
         }
 
         enum OrderByDirection {
@@ -104,6 +108,19 @@ fn table_with_serial_primary_key() {
 
         type UserDelete {
           id: Int!
+        }
+
+        input UserDeleteCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserDeleteCollection]
         }
 
         type UserEdge {
@@ -177,6 +194,20 @@ fn table_with_enum_field() {
           val: StreetLight!
         }
 
+        input ADeleteCollection {
+          id: IntSearchFilterInput
+          val: StreetLightSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [ADeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [ADeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [ADeleteCollection]
+        }
+
         type AEdge {
           node: A!
           cursor: String!
@@ -220,9 +251,13 @@ fn table_with_enum_field() {
 
         type Mutation {
           """
-            Delete a unique A by a field
+            Delete a unique A by a field or combination of fields
           """
           aDelete(by: AByInput!): ADelete
+          """
+            Delete multiple rows of A by a filter
+          """
+          aDeleteMany(filter: ADeleteCollection!): [ADelete]!
         }
 
         enum OrderByDirection {
@@ -309,9 +344,13 @@ fn table_with_int_primary_key() {
 
         type Mutation {
           """
-            Delete a unique User by a field
+            Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserDelete
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserDeleteCollection!): [UserDelete]!
         }
 
         enum OrderByDirection {
@@ -365,6 +404,19 @@ fn table_with_int_primary_key() {
 
         type UserDelete {
           id: Int!
+        }
+
+        input UserDeleteCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserDeleteCollection]
         }
 
         type UserEdge {
@@ -431,9 +483,13 @@ fn table_with_int_unique() {
 
         type Mutation {
           """
-            Delete a unique User by a field
+            Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserDelete
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserDeleteCollection!): [UserDelete]!
         }
 
         enum OrderByDirection {
@@ -487,6 +543,19 @@ fn table_with_int_unique() {
 
         type UserDelete {
           id: Int!
+        }
+
+        input UserDeleteCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserDeleteCollection]
         }
 
         type UserEdge {
@@ -554,9 +623,13 @@ fn table_with_serial_primary_key_string_unique() {
 
         type Mutation {
           """
-            Delete a unique User by a field
+            Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserDelete
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserDeleteCollection!): [UserDelete]!
         }
 
         enum OrderByDirection {
@@ -647,6 +720,20 @@ fn table_with_serial_primary_key_string_unique() {
           email: String!
         }
 
+        input UserDeleteCollection {
+          id: IntSearchFilterInput
+          email: StringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserDeleteCollection]
+        }
+
         type UserEdge {
           node: User!
           cursor: String!
@@ -683,9 +770,13 @@ fn table_with_composite_primary_key() {
     let expected = expect![[r#"
         type Mutation {
           """
-            Delete a unique User by a field
+            Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserDelete
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserDeleteCollection!): [UserDelete]!
         }
 
         enum OrderByDirection {
@@ -775,6 +866,20 @@ fn table_with_composite_primary_key() {
           email: String!
         }
 
+        input UserDeleteCollection {
+          name: StringSearchFilterInput
+          email: StringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserDeleteCollection]
+        }
+
         type UserEdge {
           node: User!
           cursor: String!
@@ -855,13 +960,21 @@ fn two_schemas_same_table_name() {
 
         type Mutation {
           """
-            Delete a unique PrivateUser by a field
+            Delete a unique PrivateUser by a field or combination of fields
           """
           privateUserDelete(by: PrivateUserByInput!): PrivateUserDelete
           """
-            Delete a unique PublicUser by a field
+            Delete multiple rows of PrivateUser by a filter
+          """
+          privateUserDeleteMany(filter: PrivateUserDeleteCollection!): [PrivateUserDelete]!
+          """
+            Delete a unique PublicUser by a field or combination of fields
           """
           publicUserDelete(by: PublicUserByInput!): PublicUserDelete
+          """
+            Delete multiple rows of PublicUser by a filter
+          """
+          publicUserDeleteMany(filter: PublicUserDeleteCollection!): [PublicUserDelete]!
         }
 
         enum OrderByDirection {
@@ -906,6 +1019,19 @@ fn two_schemas_same_table_name() {
           id: Int!
         }
 
+        input PrivateUserDeleteCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PrivateUserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [PrivateUserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PrivateUserDeleteCollection]
+        }
+
         type PrivateUserEdge {
           node: PrivateUser!
           cursor: String!
@@ -943,6 +1069,19 @@ fn two_schemas_same_table_name() {
 
         type PublicUserDelete {
           id: Int!
+        }
+
+        input PublicUserDeleteCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PublicUserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [PublicUserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PublicUserDeleteCollection]
         }
 
         type PublicUserEdge {
@@ -1030,6 +1169,17 @@ fn table_with_serial_primary_key_namespaced() {
           not: NeonIntSearchFilterInput
         }
 
+        type NeonMutation {
+          """
+            Delete a unique User by a field or combination of fields
+          """
+          userDelete(by: NeonUserByInput!): NeonUserDelete
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: NeonUserDeleteCollection!): [NeonUserDelete]!
+        }
+
         enum NeonOrderByDirection {
           ASC
           DESC
@@ -1077,6 +1227,23 @@ fn table_with_serial_primary_key_namespaced() {
         type NeonUserConnection {
           edges: [NeonUserEdge]!
           pageInfo: NeonPageInfo!
+        }
+
+        type NeonUserDelete {
+          id: Int!
+        }
+
+        input NeonUserDeleteCollection {
+          id: NeonIntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [NeonUserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [NeonUserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [NeonUserDeleteCollection]
         }
 
         type NeonUserEdge {
@@ -1172,6 +1339,22 @@ fn two_tables_with_single_column_foreign_key() {
           userId: Int!
         }
 
+        input BlogDeleteCollection {
+          id: IntSearchFilterInput
+          title: StringSearchFilterInput
+          content: StringSearchFilterInput
+          userId: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [BlogDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [BlogDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [BlogDeleteCollection]
+        }
+
         type BlogEdge {
           node: Blog!
           cursor: String!
@@ -1217,13 +1400,21 @@ fn two_tables_with_single_column_foreign_key() {
 
         type Mutation {
           """
-            Delete a unique Blog by a field
+            Delete a unique Blog by a field or combination of fields
           """
           blogDelete(by: BlogByInput!): BlogDelete
           """
-            Delete a unique User by a field
+            Delete multiple rows of Blog by a filter
+          """
+          blogDeleteMany(filter: BlogDeleteCollection!): [BlogDelete]!
+          """
+            Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserDelete
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserDeleteCollection!): [UserDelete]!
         }
 
         enum OrderByDirection {
@@ -1321,6 +1512,20 @@ fn two_tables_with_single_column_foreign_key() {
         type UserDelete {
           id: Int!
           name: String!
+        }
+
+        input UserDeleteCollection {
+          id: IntSearchFilterInput
+          name: StringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserDeleteCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserDeleteCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserDeleteCollection]
         }
 
         type UserEdge {

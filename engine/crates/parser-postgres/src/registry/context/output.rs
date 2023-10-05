@@ -45,7 +45,7 @@ impl OutputContext {
             &mutation_type_name,
         );
 
-        registry.mutation_type = Some(mutation_type_name.clone());
+        registry.mutation_type = Some(String::from("Mutation"));
 
         if let Some(namespace) = namespace {
             let mut query_type = ObjectType::new("Query", []);

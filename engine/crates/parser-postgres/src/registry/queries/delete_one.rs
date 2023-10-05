@@ -1,7 +1,7 @@
 use common_types::auth::Operations;
 use engine::registry::{
     resolvers::{
-        postgresql::{Operation, PostgresResolver},
+        postgres::{Operation, PostgresResolver},
         Resolver,
     },
     MetaField, MetaInputValue,
@@ -24,7 +24,10 @@ pub(crate) fn register(
     let filter_input = MetaInputValue::new("by", format!("{filter_oneof_type}!")).with_description(filter_description);
 
     let mut meta_field = MetaField::new(query_name, type_name.to_string());
-    meta_field.description = Some(format!("Delete a unique {} by a field", table.client_name()));
+    meta_field.description = Some(format!(
+        "Delete a unique {} by a field or combination of fields",
+        table.client_name()
+    ));
     meta_field.args = [("by".to_string(), filter_input)].into();
     meta_field.resolver =
         Resolver::PostgresResolver(PostgresResolver::new(Operation::DeleteOne, input_ctx.directive_name()));
