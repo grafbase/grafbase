@@ -1,10 +1,10 @@
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::postgresql::query_neon;
+use integration_tests::postgresql::query_postgresql;
 
 #[test]
 fn char() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -44,7 +44,7 @@ fn char() {
 
 #[test]
 fn name() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -84,7 +84,7 @@ fn name() {
 
 #[test]
 fn text() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -124,7 +124,7 @@ fn text() {
 
 #[test]
 fn xml() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -164,7 +164,7 @@ fn xml() {
 
 #[test]
 fn cidr() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -204,7 +204,7 @@ fn cidr() {
 
 #[test]
 fn macaddr8() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -244,7 +244,7 @@ fn macaddr8() {
 
 #[test]
 fn macaddr() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -284,7 +284,7 @@ fn macaddr() {
 
 #[test]
 fn bpchar() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -324,7 +324,7 @@ fn bpchar() {
 
 #[test]
 fn varchar() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -364,7 +364,7 @@ fn varchar() {
 
 #[test]
 fn bit() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -404,7 +404,7 @@ fn bit() {
 
 #[test]
 fn varbit() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -444,7 +444,7 @@ fn varbit() {
 
 #[test]
 fn xml_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -487,7 +487,7 @@ fn xml_array() {
 
 #[test]
 fn cidr_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -530,7 +530,7 @@ fn cidr_array() {
 
 #[test]
 fn macaddr8_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -573,7 +573,7 @@ fn macaddr8_array() {
 
 #[test]
 fn macaddr_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -616,7 +616,7 @@ fn macaddr_array() {
 
 #[test]
 fn char_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -659,7 +659,7 @@ fn char_array() {
 
 #[test]
 fn name_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -702,7 +702,7 @@ fn name_array() {
 
 #[test]
 fn text_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -745,7 +745,7 @@ fn text_array() {
 
 #[test]
 fn bpchar_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -788,7 +788,7 @@ fn bpchar_array() {
 
 #[test]
 fn varchar_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -831,7 +831,7 @@ fn varchar_array() {
 
 #[test]
 fn bit_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -874,7 +874,7 @@ fn bit_array() {
 
 #[test]
 fn varbit_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -917,7 +917,7 @@ fn varbit_array() {
 
 #[test]
 fn int8() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -957,7 +957,7 @@ fn int8() {
 
 #[test]
 fn oid() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -997,7 +997,7 @@ fn oid() {
 
 #[test]
 fn int2() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1037,7 +1037,7 @@ fn int2() {
 
 #[test]
 fn int4() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1077,7 +1077,7 @@ fn int4() {
 
 #[test]
 fn json() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1119,7 +1119,7 @@ fn json() {
 
 #[test]
 fn jsonb() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1161,7 +1161,7 @@ fn jsonb() {
 
 #[test]
 fn json_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1208,7 +1208,7 @@ fn json_array() {
 
 #[test]
 fn jsonb_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1255,7 +1255,7 @@ fn jsonb_array() {
 
 #[test]
 fn money() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1295,7 +1295,7 @@ fn money() {
 
 #[test]
 fn numeric() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1335,7 +1335,7 @@ fn numeric() {
 
 #[test]
 fn money_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1378,7 +1378,7 @@ fn money_array() {
 
 #[test]
 fn numeric_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1421,7 +1421,7 @@ fn numeric_array() {
 
 #[test]
 fn int2_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1464,7 +1464,7 @@ fn int2_array() {
 
 #[test]
 fn int4_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1507,7 +1507,7 @@ fn int4_array() {
 
 #[test]
 fn float4_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1550,7 +1550,7 @@ fn float4_array() {
 
 #[test]
 fn float8_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1593,7 +1593,7 @@ fn float8_array() {
 
 #[test]
 fn time() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1633,7 +1633,7 @@ fn time() {
 
 #[test]
 fn timetz() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1673,7 +1673,7 @@ fn timetz() {
 
 #[test]
 fn int8_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1716,7 +1716,7 @@ fn int8_array() {
 
 #[test]
 fn oid_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1759,7 +1759,7 @@ fn oid_array() {
 
 #[test]
 fn float4() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1799,7 +1799,7 @@ fn float4() {
 
 #[test]
 fn float8() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1839,7 +1839,7 @@ fn float8() {
 
 #[test]
 fn time_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1882,7 +1882,7 @@ fn time_array() {
 
 #[test]
 fn timetz_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1925,7 +1925,7 @@ fn timetz_array() {
 
 #[test]
 fn bool() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -1965,7 +1965,7 @@ fn bool() {
 
 #[test]
 fn bytea() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2005,7 +2005,7 @@ fn bytea() {
 
 #[test]
 fn inet() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2045,7 +2045,7 @@ fn inet() {
 
 #[test]
 fn bool_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2088,7 +2088,7 @@ fn bool_array() {
 
 #[test]
 fn bytea_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2131,7 +2131,7 @@ fn bytea_array() {
 
 #[test]
 fn inet_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2174,7 +2174,7 @@ fn inet_array() {
 
 #[test]
 fn date() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2214,7 +2214,7 @@ fn date() {
 
 #[test]
 fn timestamp() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2254,7 +2254,7 @@ fn timestamp() {
 
 #[test]
 fn timestamp_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2297,7 +2297,7 @@ fn timestamp_array() {
 
 #[test]
 fn date_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2340,7 +2340,7 @@ fn date_array() {
 
 #[test]
 fn timestamptz() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2380,7 +2380,7 @@ fn timestamptz() {
 
 #[test]
 fn timestamptz_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2423,7 +2423,7 @@ fn timestamptz_array() {
 
 #[test]
 fn uuid() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2463,7 +2463,7 @@ fn uuid() {
 
 #[test]
 fn uuid_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "A" (
                 id INT PRIMARY KEY,
@@ -2505,7 +2505,7 @@ fn uuid_array() {
 
 #[test]
 fn r#enum() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let r#type = indoc! {r#"
             CREATE TYPE street_light AS ENUM ('red', 'yellow', 'green');
         "#};
@@ -2551,7 +2551,7 @@ fn r#enum() {
 
 #[test]
 fn enum_array() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let r#type = indoc! {r#"
             CREATE TYPE street_light AS ENUM ('red', 'yellow', 'green');
         "#};

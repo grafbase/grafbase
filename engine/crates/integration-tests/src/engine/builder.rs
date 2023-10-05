@@ -2,7 +2,7 @@ use super::{dynamo::enable_local_dynamo, Inner};
 use crate::Engine;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::BoxFuture;
-use parser_sdl::{ConnectorParsers, GraphqlDirective, NeonDirective, OpenApiDirective, ParseResult, Registry};
+use parser_sdl::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective, Registry};
 use postgresql_types::transport::NeonTransport;
 use runtime::udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker};
 use std::{collections::HashMap, sync::Arc};
@@ -144,7 +144,7 @@ impl ConnectorParsers for EngineBuilder {
         .map_err(|errors| errors.into_iter().map(|error| error.to_string()).collect::<Vec<_>>())
     }
 
-    async fn fetch_and_parse_neon(&self, directive: &NeonDirective) -> Result<Registry, Vec<String>> {
+    async fn fetch_and_parse_postgresql(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>> {
         let transport = NeonTransport::new("dummy-ray-id", directive.connection_string())
             .map_err(|error| vec![error.to_string()])?;
 

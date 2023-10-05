@@ -2,7 +2,7 @@ mod nested;
 
 use expect_test::expect;
 use indoc::{formatdoc, indoc};
-use integration_tests::postgresql::query_neon;
+use integration_tests::postgresql::query_postgresql;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,7 +33,7 @@ struct Response {
 
 #[test]
 fn id_pk_implicit_order_with_after() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -103,7 +103,7 @@ fn id_pk_implicit_order_with_after() {
 
 #[test]
 fn id_pk_implicit_order_with_before() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -173,7 +173,7 @@ fn id_pk_implicit_order_with_before() {
 
 #[test]
 fn id_pk_explicit_order_with_after() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -243,7 +243,7 @@ fn id_pk_explicit_order_with_after() {
 
 #[test]
 fn id_pk_explicit_order_with_before() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -313,7 +313,7 @@ fn id_pk_explicit_order_with_before() {
 
 #[test]
 fn compound_pk_implicit_order_with_after() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -388,7 +388,7 @@ fn compound_pk_implicit_order_with_after() {
 
 #[test]
 fn compound_pk_implicit_order_with_before() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -462,7 +462,7 @@ fn compound_pk_implicit_order_with_before() {
 
 #[test]
 fn compound_pk_explicit_order_with_after() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -537,7 +537,7 @@ fn compound_pk_explicit_order_with_after() {
 
 #[test]
 fn compound_pk_explicit_order_with_before() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -612,7 +612,7 @@ fn compound_pk_explicit_order_with_before() {
 
 #[test]
 fn compound_pk_implicit_order_with_nulls_and_after() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -687,7 +687,7 @@ fn compound_pk_implicit_order_with_nulls_and_after() {
 
 #[test]
 fn compound_pk_implicit_order_with_nulls_and_before() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -762,7 +762,7 @@ fn compound_pk_implicit_order_with_nulls_and_before() {
 
 #[test]
 fn nested_page_info_no_limit() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,

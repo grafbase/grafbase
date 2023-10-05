@@ -1,6 +1,6 @@
 use expect_test::expect;
 use indoc::{formatdoc, indoc};
-use integration_tests::postgresql::query_neon;
+use integration_tests::postgresql::query_postgresql;
 use serde_json::Value;
 
 #[derive(Debug, serde::Deserialize)]
@@ -45,7 +45,7 @@ struct Response {
 
 #[test]
 fn single_pk_implicit_order_after() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -159,7 +159,7 @@ fn single_pk_implicit_order_after() {
 
 #[test]
 fn single_pk_implicit_order_before() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,

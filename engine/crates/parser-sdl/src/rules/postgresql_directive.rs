@@ -7,11 +7,11 @@ use super::{
 };
 use crate::directive_de::parse_directive;
 
-const NEON_DIRECTIVE_NAME: &str = "neon";
+const POSTGRES_DIRECTIVE_NAME: &str = "postgresql";
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NeonDirective {
+pub struct PostgresDirective {
     name: String,
     url: String,
     #[serde(default = "default_to_true")]
@@ -22,7 +22,7 @@ fn default_to_true() -> bool {
     true
 }
 
-impl NeonDirective {
+impl PostgresDirective {
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -36,10 +36,10 @@ impl NeonDirective {
     }
 }
 
-impl Directive for NeonDirective {
+impl Directive for PostgresDirective {
     fn definition() -> String {
         r#"
-        directive @neon(
+        directive @postgresql(
           """
           A unique name for the given directive.
           """
@@ -61,19 +61,19 @@ impl Directive for NeonDirective {
     }
 }
 
-pub struct NeonVisitor;
+pub struct PostgresVisitor;
 
-impl<'a> Visitor<'a> for NeonVisitor {
+impl<'a> Visitor<'a> for PostgresVisitor {
     fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a Positioned<SchemaDefinition>) {
         let directives = doc
             .node
             .directives
             .iter()
-            .filter(|d| d.node.name.node == NEON_DIRECTIVE_NAME);
+            .filter(|d| d.node.name.node == POSTGRES_DIRECTIVE_NAME);
 
         for directive in directives {
-            match parse_directive::<NeonDirective>(&directive.node, ctx.variables) {
-                Ok(parsed_directive) => ctx.neon_directives.push((parsed_directive, directive.pos)),
+            match parse_directive::<PostgresDirective>(&directive.node, ctx.variables) {
+                Ok(parsed_directive) => ctx.postgresql_directives.push((parsed_directive, directive.pos)),
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }
         }
@@ -105,18 +105,18 @@ mod tests {
     }
 
     #[test]
-    fn parsing_neon_directive() {
+    fn parsing_postgres_directive() {
         let variables = HashMap::from([(
-            "NEON_CONNECTION_STRING".to_string(),
+            "PG_CONNECTION_STRING".to_string(),
             "postgres://postgres:grafbase@localhost:5432/postgres".to_string(),
         )]);
 
         let schema = r#"
             extend schema
-              @neon(
+              @postgresql(
                 name: "possu",
                 namespace: true,
-                url: "{{ env.NEON_CONNECTION_STRING }}",
+                url: "{{ env.PG_CONNECTION_STRING }}",
               )
             "#;
 
@@ -124,9 +124,9 @@ mod tests {
 
         block_on(crate::parse(schema, &variables, false, &connector_parsers)).unwrap();
 
-        insta::assert_debug_snapshot!(connector_parsers.neon_directives.lock().unwrap(), @r###"
+        insta::assert_debug_snapshot!(connector_parsers.postgresql_directives.lock().unwrap(), @r###"
         [
-            NeonDirective {
+            PostgresDirective {
                 name: "possu",
                 url: "postgres://postgres:grafbase@localhost:5432/postgres",
                 namespace: true,
@@ -140,7 +140,7 @@ mod tests {
         assert_validation_error!(
             r#"
             extend schema
-              @neon(
+              @postgresql(
                 name: "Test",
                 namespace: true,
                 url: "postgres://postgres:grafbase@localhost:5432/postgres",
@@ -162,7 +162,7 @@ mod tests {
         assert_validation_error!(
             r#"
             extend schema
-              @neon(
+              @postgresql(
                 name: "Test",
                 namespace: true,
                 url: "postgres://postgres:grafbase@localhost:5432/postgres",
@@ -187,7 +187,7 @@ mod tests {
         assert_validation_error!(
             r#"
             extend schema
-              @neon(
+              @postgresql(
                 name: "Test",
                 namespace: true,
                 url: "postgres://postgres:grafbase@localhost:5432/postgres",
