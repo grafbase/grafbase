@@ -21,10 +21,7 @@ input AccessTokenCreateInput {
   accountId: ID
 }
 
-union AccessTokenCreatePayload =
-    AccessTokenCreateSuccess
-  | InvalidAccountError
-  | TokenLimitExceededError
+union AccessTokenCreatePayload = AccessTokenCreateSuccess | InvalidAccountError | TokenLimitExceededError
 
 type AccessTokenCreateSuccess {
   token: AccessToken!
@@ -36,9 +33,7 @@ input AccessTokenDeleteInput {
   id: ID!
 }
 
-union AccessTokenDeletePayload =
-    AccessTokenDeleteSuccess
-  | TokenDoesNotExistError
+union AccessTokenDeletePayload = AccessTokenDeleteSuccess | TokenDoesNotExistError
 
 type AccessTokenDeleteSuccess {
   deletedId: ID!
@@ -60,18 +55,11 @@ interface Account {
   name: String!
   createdAt: DateTime!
   status: AccountStatus!
-  projects(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): ProjectConnection!
+  projects(after: String, before: String, first: Int, last: Int): ProjectConnection!
   projectsCountStatus: ResourceStatus!
   resources: AccountResources!
   usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
-  resourcesUsageDashboard(
-    filter: AccountResourcesUsageDashboardFilter
-  ): AccountResourcesUsageDashboardPayload!
+  resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
 }
 
 input AccountCreationValidateInput {
@@ -156,12 +144,7 @@ type Branch {
   domains: [String!]!
   latestDeployment: Deployment
   activeDeployment: Deployment
-  deployments(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): DeploymentConnection!
+  deployments(after: String, before: String, first: Int, last: Int): DeploymentConnection!
   project: Project!
   environment: BranchEnvironment!
 }
@@ -238,9 +221,7 @@ input CustomDomainDeleteInput {
   name: String!
 }
 
-union CustomDomainDeletePayload =
-    CustomDomainDeleteSuccess
-  | CustomDomainDoesNotExistError
+union CustomDomainDeletePayload = CustomDomainDeleteSuccess | CustomDomainDoesNotExistError
 
 type CustomDomainDeleteSuccess {
   name: String!
@@ -459,9 +440,7 @@ input EnvironmentVariableDeleteInput {
   id: ID!
 }
 
-union EnvironmentVariableDeletePayload =
-    EnvironmentVariableDeleteSuccess
-  | EnvironmentVariableDoesNotExistError
+union EnvironmentVariableDeletePayload = EnvironmentVariableDeleteSuccess | EnvironmentVariableDoesNotExistError
 
 type EnvironmentVariableDeleteSuccess {
   deletedId: ID!
@@ -650,10 +629,7 @@ input InviteAcceptInput {
   id: ID!
 }
 
-union InviteAcceptPayload =
-    InviteAcceptSuccess
-  | InviteDoesNotExistError
-  | AlreadyMemberError
+union InviteAcceptPayload = InviteAcceptSuccess | InviteDoesNotExistError | AlreadyMemberError
 
 type InviteAcceptSuccess {
   member: Member!
@@ -664,10 +640,7 @@ input InviteCancelInput {
   id: ID!
 }
 
-union InviteCancelPayload =
-    InviteCancelSuccess
-  | InviteDoesNotExistError
-  | NotAllowedToCancelInvitesError
+union InviteCancelPayload = InviteCancelSuccess | InviteDoesNotExistError | NotAllowedToCancelInvitesError
 
 type InviteCancelSuccess {
   id: ID!
@@ -715,10 +688,7 @@ input InviteSendInput {
   role: MemberRole!
 }
 
-union InviteSendPayload =
-    InviteSendSuccess
-  | OrganizationDoesNotExistError
-  | NotAllowedToSendInvitesError
+union InviteSendPayload = InviteSendSuccess | OrganizationDoesNotExistError | NotAllowedToSendInvitesError
 
 type InviteSendSuccess {
   invite: Invite!
@@ -868,61 +838,36 @@ type Mutation {
   accessTokenDelete(input: AccessTokenDeleteInput!): AccessTokenDeletePayload!
 
   # Create new organization account owned by the current user. Slug must be unique.
-  organizationCreate(
-    input: OrganizationCreateInput!
-  ): OrganizationCreatePayload!
-  organizationSlugUpdate(
-    input: OrganizationSlugUpdateInput!
-  ): OrganizationSlugUpdatePayload!
-  personalAccountSlugUpdate(
-    input: PersonalAccountSlugUpdateInput!
-  ): PersonalAccountSlugUpdatePayload!
+  organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
+  organizationSlugUpdate(input: OrganizationSlugUpdateInput!): OrganizationSlugUpdatePayload!
+  personalAccountSlugUpdate(input: PersonalAccountSlugUpdateInput!): PersonalAccountSlugUpdatePayload!
   organizationPaymentMethodReplace(
     accountId: ID!
     stripePaymentMethodId: String!
   ): OrganizationPaymentMethodReplacePayload!
-  organizationSetupPaymentMethod(
-    accountId: ID!
-    stripePaymentMethodId: String!
-  ): OrganizationSetupPaymentMethod!
-  organizationUpdate(
-    input: OrganizationUpdateInput!
-  ): OrganizationUpdatePayload!
-  personalAccountUpdate(
-    input: PersonalAccountUpdateInput!
-  ): PersonalAccountUpdatePayload!
+  organizationSetupPaymentMethod(accountId: ID!, stripePaymentMethodId: String!): OrganizationSetupPaymentMethod!
+  organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
+  personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload!
   personalAccountDelete: PersonalAccountDeletePayload!
-  organizationDelete(
-    input: OrganizationDeleteInput!
-  ): OrganizationDeletePayload!
+  organizationDelete(input: OrganizationDeleteInput!): OrganizationDeletePayload!
 
   # Add a new custom domain.
-  customDomainCreate(
-    input: CustomDomainCreateInput!
-  ): CustomDomainCreatePayload!
+  customDomainCreate(input: CustomDomainCreateInput!): CustomDomainCreatePayload!
 
   # Delete a custom hostname token.
-  customDomainDelete(
-    input: CustomDomainDeleteInput!
-  ): CustomDomainDeletePayload!
+  customDomainDelete(input: CustomDomainDeleteInput!): CustomDomainDeletePayload!
 
   # Create a new deployment for an existing project.
   deploymentCreate(input: DeploymentCreateInput!): DeploymentCreatePayload!
 
   # Create a new environment variable.
-  environmentVariableCreate(
-    input: EnvironmentVariableCreateInput!
-  ): EnvironmentVariableCreatePayload!
+  environmentVariableCreate(input: EnvironmentVariableCreateInput!): EnvironmentVariableCreatePayload!
 
   # Update an environment variable.
-  environmentVariableUpdate(
-    input: EnvironmentVariableUpdateInput!
-  ): EnvironmentVariableUpdatePayload!
+  environmentVariableUpdate(input: EnvironmentVariableUpdateInput!): EnvironmentVariableUpdatePayload!
 
   # Delete an environment variable.
-  environmentVariableDelete(
-    input: EnvironmentVariableDeleteInput!
-  ): EnvironmentVariableDeletePayload!
+  environmentVariableDelete(input: EnvironmentVariableDeleteInput!): EnvironmentVariableDeletePayload!
   inviteSend(input: InviteSendInput!): InviteSendPayload!
   inviteCancel(input: InviteCancelInput!): InviteCancelPayload!
   inviteAccept(input: InviteAcceptInput!): InviteAcceptPayload!
@@ -935,37 +880,25 @@ type Mutation {
   memberDelete(input: MemberDeleteInput!): MemberDeletePayload!
 
   # Create a new project API key.
-  projectApiKeyCreate(
-    input: ProjectApiKeyCreateInput!
-  ): ProjectApiKeyCreatePayload!
+  projectApiKeyCreate(input: ProjectApiKeyCreateInput!): ProjectApiKeyCreatePayload!
 
   # Update a given API key with a new name.
-  projectApiKeyUpdate(
-    input: ProjectApiKeyUpdateInput!
-  ): ProjectApiKeyUpdatePayload!
+  projectApiKeyUpdate(input: ProjectApiKeyUpdateInput!): ProjectApiKeyUpdatePayload!
 
   # Delete a given API key.
-  projectApiKeyDelete(
-    input: ProjectApiKeyDeleteInput!
-  ): ProjectApiKeyDeletePayload!
+  projectApiKeyDelete(input: ProjectApiKeyDeleteInput!): ProjectApiKeyDeletePayload!
 
   # Create a new project without any source for an initial deployment.
   projectCreate(input: ProjectCreateInput!): ProjectCreatePayload!
 
   # Create a new project from a GitHub repository.
-  projectCreateFromSchema(
-    input: ProjectCreateFromSchemaInput!
-  ): ProjectCreateFromSchemaPayload!
+  projectCreateFromSchema(input: ProjectCreateFromSchemaInput!): ProjectCreateFromSchemaPayload!
 
   # Create a new project from a GitHub repository.
-  projectCreateFromRepository(
-    input: ProjectCreateFromRepositoryInput!
-  ): ProjectCreateFromRepositoryPayload!
+  projectCreateFromRepository(input: ProjectCreateFromRepositoryInput!): ProjectCreateFromRepositoryPayload!
 
   # Create a new project from a template in a newly created GitHub repository.
-  projectCreateFromTemplate(
-    input: ProjectCreateFromTemplateInput!
-  ): ProjectCreateFromTemplatePayload!
+  projectCreateFromTemplate(input: ProjectCreateFromTemplateInput!): ProjectCreateFromTemplatePayload!
   projectUpdate(input: ProjectUpdateInput!): ProjectUpdatePayload!
   projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
   stripeSetupIntentCreate: StripeSetupIntentCreatePayload!
@@ -1241,32 +1174,14 @@ type Organization implements Account {
   stripeCustomer: StripeCustomer
   orbCustomer: OrbCustomer
   orbActiveSubscription: OrbSubscription
-  projects(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): ProjectConnection!
-  invites(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): InviteConnection!
-  members(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): MemberConnection!
+  projects(after: String, before: String, first: Int, last: Int): ProjectConnection!
+  invites(after: String, before: String, first: Int, last: Int): InviteConnection!
+  members(after: String, before: String, first: Int, last: Int): MemberConnection!
   projectsCountStatus: ResourceStatus!
   usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
     @deprecated(reason: "Use resources_usage_dashboard")
-  resourcesUsageDashboard(
-    filter: AccountResourcesUsageDashboardFilter
-  ): AccountResourcesUsageDashboardPayload!
-  resources: AccountResources!
-    @deprecated(reason: "Not relevant for organizations")
+  resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
+  resources: AccountResources! @deprecated(reason: "Not relevant for organizations")
 }
 
 type OrganizationConnection {
@@ -1412,24 +1327,15 @@ type PersonalAccount implements Account {
   name: String!
   createdAt: DateTime!
   status: AccountStatus!
-  projects(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): ProjectConnection!
+  projects(after: String, before: String, first: Int, last: Int): ProjectConnection!
   projectsCountStatus: ResourceStatus!
   usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
     @deprecated(reason: "Use resources_usage_dashboard")
-  resourcesUsageDashboard(
-    filter: AccountResourcesUsageDashboardFilter
-  ): AccountResourcesUsageDashboardPayload!
+  resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
   resources: AccountResources! @deprecated(reason: "use projects_count_status")
 }
 
-union PersonalAccountDeletePayload =
-    PersonalAccountDeleteSuccess
-  | OrganizationOwnershipNotTransferredError
+union PersonalAccountDeletePayload = PersonalAccountDeleteSuccess | OrganizationOwnershipNotTransferredError
 
 type PersonalAccountDeleteSuccess {
   deletedId: ID!
@@ -1455,9 +1361,7 @@ input PersonalAccountUpdateInput {
   name: String!
 }
 
-union PersonalAccountUpdatePayload =
-    PersonalAccountUpdateSuccess
-  | NameSizeCheckError
+union PersonalAccountUpdatePayload = PersonalAccountUpdateSuccess | NameSizeCheckError
 
 type PersonalAccountUpdateSuccess {
   query: Query!
@@ -1469,32 +1373,11 @@ type Project {
   slug: String!
   createdAt: DateTime!
   repository: GitRepository
-  branches(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): BranchConnection!
-  apiKeys(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): ProjectApiKeyConnection!
+  branches(after: String, before: String, first: Int, last: Int): BranchConnection!
+  apiKeys(after: String, before: String, first: Int, last: Int): ProjectApiKeyConnection!
   productionBranch: Branch!
-  environmentVariables(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): EnvironmentVariableConnection!
-  deployments(
-    after: String
-    before: String
-    first: Int
-    last: Int
-    filter: DeploymentFilter
-  ): DeploymentConnection!
+  environmentVariables(after: String, before: String, first: Int, last: Int): EnvironmentVariableConnection!
+  deployments(after: String, before: String, first: Int, last: Int, filter: DeploymentFilter): DeploymentConnection!
   databaseRegions: [DatabaseRegion!]!
   usage(filter: DatabaseUsageFilter): DatabaseUsage!
   plan: ProjectPlan!
@@ -1502,13 +1385,7 @@ type Project {
   databaseRegionChangeStatus: DatabaseRegionChangeStatus!
   customDomains: [String!]!
   requestAnalytics(filter: ProjectRequestAnalyticsFilter!): RequestAnalytics!
-  logEvents(
-    first: Int
-    after: String
-    last: Int
-    before: String
-    filter: LogEventFilter!
-  ): LogEventConnection!
+  logEvents(first: Int, after: String, last: Int, before: String, filter: LogEventFilter!): LogEventConnection!
 }
 
 type ProjectApiKey {
@@ -1536,10 +1413,7 @@ input ProjectApiKeyCreateInput {
   name: String!
 }
 
-union ProjectApiKeyCreatePayload =
-    ProjectApiKeyCreateSuccess
-  | KeyLimitExceededError
-  | ProjectDoesNotExistError
+union ProjectApiKeyCreatePayload = ProjectApiKeyCreateSuccess | KeyLimitExceededError | ProjectDoesNotExistError
 
 type ProjectApiKeyCreateSuccess {
   apiKey: ProjectApiKey!
@@ -1574,9 +1448,7 @@ input ProjectApiKeyUpdateInput {
   name: String!
 }
 
-union ProjectApiKeyUpdatePayload =
-    ProjectApiKeyUpdateSuccess
-  | KeyDoesNotExistError
+union ProjectApiKeyUpdatePayload = ProjectApiKeyUpdateSuccess | KeyDoesNotExistError
 
 type ProjectApiKeyUpdateSuccess {
   query: Query!
@@ -1778,19 +1650,12 @@ type ProjectUpdateSuccess {
 }
 
 type Query {
-  accessTokens(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): AccessTokenConnection!
+  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
   accountBySlug(
     # slug of the account
     slug: String!
   ): Account
-  accountCreationValidate(
-    input: AccountCreationValidateInput!
-  ): AccountCreationValidatePayload!
+  accountCreationValidate(input: AccountCreationValidateInput!): AccountCreationValidatePayload!
   metricsByBranch(
     accountSlug: String!
     projectSlug: String!
@@ -1842,11 +1707,7 @@ type Query {
   # Return a list of git repositories accessible by the current user, sorted by updatedAt.
   # With `query` specified, the list will include up to 10 repos matching the query.
   # Without `query`, the list will include the 10 most recently updated repos.
-  gitRepos(
-    provider: GitProvider!
-    gitAccountId: String!
-    query: String
-  ): [GitRepository!]!
+  gitRepos(provider: GitProvider!, gitAccountId: String!, query: String): [GitRepository!]!
 
   # Returns details about a specific git repository identified by its URL.
   gitRepoByUrl(url: Url!): GitRepository!
@@ -2097,12 +1958,7 @@ type User {
   email: String!
   avatarUrl: String
   createdAt: DateTime!
-  organizations(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): OrganizationConnection!
+  organizations(after: String, before: String, first: Int, last: Int): OrganizationConnection!
   organizationMemberships: [Member!]!
   personalAccount: PersonalAccount
   limits: ViewerLimits! @deprecated(reason: "Moved to account level")
