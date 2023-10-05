@@ -2,7 +2,7 @@ use super::{
     client::create_client,
     consts::{API_URL, PROJECT_METADATA_FILE},
     errors::ApiError,
-    graphql::queries::viewer::{PersonalAccount, Viewer},
+    graphql::queries::viewer_for_link::{PersonalAccount, Viewer},
     types::{self, AccountWithProjects, ProjectMetadata},
     utils::project_linked,
 };

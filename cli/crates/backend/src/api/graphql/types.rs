@@ -183,21 +183,13 @@ pub mod mutations {
 }
 
 pub mod queries {
-    pub mod viewer_and_regions {
+    pub mod viewer_for_create {
         use super::super::schema;
 
         #[derive(cynic::QueryFragment, Debug)]
         #[cynic(graphql_type = "Query")]
-        pub struct ViewerAndRegions {
+        pub struct Viewer {
             pub viewer: Option<User>,
-            pub closest_database_region: Option<DatabaseRegion>,
-            pub database_regions: Vec<DatabaseRegion>,
-        }
-
-        #[derive(cynic::QueryFragment, Debug)]
-        pub struct DatabaseRegion {
-            pub name: String,
-            pub city: String,
         }
 
         #[derive(cynic::QueryFragment, Debug)]
@@ -234,7 +226,7 @@ pub mod queries {
         }
     }
 
-    pub mod viewer {
+    pub mod viewer_for_link {
         use super::super::schema;
 
         #[derive(cynic::QueryFragment, Debug)]
