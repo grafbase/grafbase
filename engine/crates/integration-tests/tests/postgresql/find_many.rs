@@ -2,11 +2,11 @@ mod pagination;
 
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::postgresql::{query_namespaced_neon, query_neon};
+use integration_tests::postgresql::{query_namespaced_postgresql, query_postgresql};
 
 #[test]
 fn eq_pk() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -54,7 +54,7 @@ fn eq_pk() {
 
 #[test]
 fn first() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -102,7 +102,7 @@ fn first() {
 
 #[test]
 fn last() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -150,7 +150,7 @@ fn last() {
 
 #[test]
 fn order_by() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -204,7 +204,7 @@ fn order_by() {
 
 #[test]
 fn namespaced() {
-    let response = query_namespaced_neon("pg", |api| async move {
+    let response = query_namespaced_postgresql("pg", |api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -256,7 +256,7 @@ fn namespaced() {
 
 #[test]
 fn eq_pk_rename() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id_field INT PRIMARY KEY,
@@ -304,7 +304,7 @@ fn eq_pk_rename() {
 
 #[test]
 fn string_eq() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -352,7 +352,7 @@ fn string_eq() {
 
 #[test]
 fn array_eq() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -403,7 +403,7 @@ fn array_eq() {
 
 #[test]
 fn array_ne() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -454,7 +454,7 @@ fn array_ne() {
 
 #[test]
 fn array_gt() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -505,7 +505,7 @@ fn array_gt() {
 
 #[test]
 fn array_contains() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -556,7 +556,7 @@ fn array_contains() {
 
 #[test]
 fn array_contained() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -607,7 +607,7 @@ fn array_contained() {
 
 #[test]
 fn array_overlaps() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -658,7 +658,7 @@ fn array_overlaps() {
 
 #[test]
 fn two_field_eq() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -708,7 +708,7 @@ fn two_field_eq() {
 
 #[test]
 fn string_ne() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -756,7 +756,7 @@ fn string_ne() {
 
 #[test]
 fn string_gt() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -804,7 +804,7 @@ fn string_gt() {
 
 #[test]
 fn string_lt() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -852,7 +852,7 @@ fn string_lt() {
 
 #[test]
 fn string_gte() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -906,7 +906,7 @@ fn string_gte() {
 
 #[test]
 fn string_lte() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -960,7 +960,7 @@ fn string_lte() {
 
 #[test]
 fn string_in() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1014,7 +1014,7 @@ fn string_in() {
 
 #[test]
 fn string_nin() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1055,7 +1055,7 @@ fn string_nin() {
 
 #[test]
 fn all() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1108,7 +1108,7 @@ fn all() {
 
 #[test]
 fn any() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1168,7 +1168,7 @@ fn any() {
 
 #[test]
 fn none() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1224,7 +1224,7 @@ fn none() {
 
 #[test]
 fn not() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1284,7 +1284,7 @@ fn not() {
 
 #[test]
 fn one_to_one_relation_filter() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1362,7 +1362,7 @@ fn one_to_one_relation_filter() {
 
 #[test]
 fn one_to_many_relation_filter_child_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -1452,7 +1452,7 @@ fn one_to_many_relation_filter_child_side() {
 
 #[test]
 fn one_to_many_relation_filter_parent_side() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,

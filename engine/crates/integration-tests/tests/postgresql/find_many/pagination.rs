@@ -3,11 +3,11 @@ mod filters;
 
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::postgresql::query_neon;
+use integration_tests::postgresql::query_postgresql;
 
 #[test]
 fn page_info_no_nesting() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -68,7 +68,7 @@ fn page_info_no_nesting() {
 
 #[test]
 fn page_info_first_has_more_data() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -123,7 +123,7 @@ fn page_info_first_has_more_data() {
 
 #[test]
 fn page_info_last_has_more_data() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -178,7 +178,7 @@ fn page_info_last_has_more_data() {
 
 #[test]
 fn nested_page_info_no_limit() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -286,7 +286,7 @@ fn nested_page_info_no_limit() {
 
 #[test]
 fn nested_page_info_with_first() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -387,7 +387,7 @@ fn nested_page_info_with_first() {
 
 #[test]
 fn nested_page_info_with_last() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,

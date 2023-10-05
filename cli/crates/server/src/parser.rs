@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use common_types::UdfKind;
 use engine::registry::Registry;
 use itertools::Itertools;
-use parser_sdl::{GraphqlDirective, NeonDirective, OpenApiDirective, ParseResult};
+use parser_sdl::{GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective};
 use postgresql_types::transport::NeonTransport;
 
 use crate::errors::ServerError;
@@ -87,7 +87,7 @@ impl parser_sdl::ConnectorParsers for ConnectorParsers {
         .map_err(|errors| errors.into_iter().map(|error| error.to_string()).collect::<Vec<_>>())
     }
 
-    async fn fetch_and_parse_neon(&self, directive: &NeonDirective) -> Result<Registry, Vec<String>> {
+    async fn fetch_and_parse_postgresql(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>> {
         let transport =
             NeonTransport::new("", directive.connection_string()).map_err(|error| vec![error.to_string()])?;
 

@@ -1,10 +1,10 @@
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::postgresql::query_neon;
+use integration_tests::postgresql::query_postgresql;
 
 #[test]
 fn root_level_implicit_order_with_single_pk() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -58,7 +58,7 @@ fn root_level_implicit_order_with_single_pk() {
 
 #[test]
 fn root_level_implicit_order_with_compound_pk() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -113,7 +113,7 @@ fn root_level_implicit_order_with_compound_pk() {
 
 #[test]
 fn root_level_implicit_order_with_nullable_compound_key() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 name VARCHAR(255) NOT NULL,
@@ -168,7 +168,7 @@ fn root_level_implicit_order_with_nullable_compound_key() {
 
 #[test]
 fn root_level_explicit_order() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -222,7 +222,7 @@ fn root_level_explicit_order() {
 
 #[test]
 fn root_level_explicit_order_two_columns() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -276,7 +276,7 @@ fn root_level_explicit_order_two_columns() {
 
 #[test]
 fn nested_ordering_cursors_implicit_order() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,
@@ -368,7 +368,7 @@ fn nested_ordering_cursors_implicit_order() {
 
 #[test]
 fn nested_ordering_cursors_explicit_order() {
-    let response = query_neon(|api| async move {
+    let response = query_postgresql(|api| async move {
         let user_table = indoc! {r#"
             CREATE TABLE "User" (
                 id INT PRIMARY KEY,

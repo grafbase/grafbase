@@ -11,7 +11,7 @@ use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::A
 static ADMIN_CONNECTION_STRING: &str = "postgres://postgres:grafbase@db.localtest.me:5432/postgres";
 
 #[track_caller]
-pub fn query_neon<F, U>(test: F) -> String
+pub fn query_postgresql<F, U>(test: F) -> String
 where
     F: FnOnce(TestApi) -> U,
     U: Future<Output = Response>,
@@ -19,11 +19,11 @@ where
     let database = super::random_name();
     let test_api = || async { TestApi::new(&database).await };
 
-    inner_query_neon(test_api, &database, test)
+    inner_query_postgresql(test_api, &database, test)
 }
 
 #[track_caller]
-pub fn query_namespaced_neon<F, U>(name: &str, test: F) -> String
+pub fn query_namespaced_postgresql<F, U>(name: &str, test: F) -> String
 where
     F: FnOnce(TestApi) -> U,
     U: Future<Output = Response>,
@@ -31,11 +31,11 @@ where
     let database = super::random_name();
     let test_api = || async { TestApi::new_namespaced(&database, name).await };
 
-    inner_query_neon(test_api, &database, test)
+    inner_query_postgresql(test_api, &database, test)
 }
 
 #[track_caller]
-pub fn introspect_neon<F, U>(schema_init: F) -> String
+pub fn introspect_postgresql<F, U>(schema_init: F) -> String
 where
     F: FnOnce(TestApi) -> U,
     U: Future<Output = ()>,
@@ -43,11 +43,11 @@ where
     let database = super::random_name();
     let test_api = || async { TestApi::new(&database).await };
 
-    inner_introspect_neon(test_api, &database, schema_init)
+    inner_introspect_postgresql(test_api, &database, schema_init)
 }
 
 #[track_caller]
-pub fn introspect_namespaced_neon<F, U>(name: &str, schema_init: F) -> String
+pub fn introspect_namespaced_postgresql<F, U>(name: &str, schema_init: F) -> String
 where
     F: FnOnce(TestApi) -> U,
     U: Future<Output = ()>,
@@ -55,11 +55,11 @@ where
     let database = super::random_name();
     let test_api = || async { TestApi::new_namespaced(&database, name).await };
 
-    inner_introspect_neon(test_api, &database, schema_init)
+    inner_introspect_postgresql(test_api, &database, schema_init)
 }
 
 #[track_caller]
-fn inner_introspect_neon<B, E, S, T>(api: S, database: &str, schema_init: B) -> String
+fn inner_introspect_postgresql<B, E, S, T>(api: S, database: &str, schema_init: B) -> String
 where
     B: FnOnce(TestApi) -> E,
     E: Future<Output = ()>,
@@ -94,7 +94,7 @@ where
 }
 
 #[track_caller]
-fn inner_query_neon<P, L, U, R>(api: U, database: &str, test: P) -> String
+fn inner_query_postgresql<P, L, U, R>(api: U, database: &str, test: P) -> String
 where
     P: FnOnce(TestApi) -> L,
     L: Future<Output = Response>,
@@ -140,7 +140,7 @@ impl TestApi {
 
         let schema = formatdoc! {r#"
             extend schema
-              @neon(
+              @postgresql(
                 name: "test",
                 url: "{connection_string}",
                 namespace: false
@@ -158,7 +158,7 @@ impl TestApi {
 
         let schema = formatdoc! {r#"
             extend schema
-              @neon(
+              @postgresql(
                 name: "{name}",
                 url: "{connection_string}",
                 namespace: true

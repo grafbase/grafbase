@@ -1,22 +1,22 @@
-export interface NeonParams {
+export interface PostgresParams {
   url: string
 }
 
-export class PartialNeonAPI {
+export class PartialPostgresAPI {
   private name: string
   private url: string
 
-  constructor(name: string, params: NeonParams) {
+  constructor(name: string, params: PostgresParams) {
     this.name = name
     this.url = params.url
   }
 
-  finalize(namespace?: boolean): NeonAPI {
-    return new NeonAPI(this.name, this.url, namespace)
+  finalize(namespace?: boolean): PostgresAPI {
+    return new PostgresAPI(this.name, this.url, namespace)
   }
 }
 
-export class NeonAPI {
+export class PostgresAPI {
   private name: string
   private url: string
   private namespace?: boolean
@@ -28,7 +28,7 @@ export class NeonAPI {
   }
 
   public toString(): string {
-    const header = '  @neon(\n'
+    const header = '  @postgresql(\n'
     const name = `    name: "${this.name}"\n`
     const url = `    url: "${this.url}"\n`
 
