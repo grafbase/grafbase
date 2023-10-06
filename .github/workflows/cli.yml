@@ -274,7 +274,7 @@ jobs:
 
   darwin:
     needs: [lint]
-    runs-on: macos-latest
+    runs-on: macos-latest-xlarge
     strategy:
       fail-fast: false
       matrix:
