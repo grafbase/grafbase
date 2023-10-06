@@ -1,4 +1,5 @@
 mod errors;
+mod introspection;
 
 use integration_tests::{runtime, Engine, EngineBuilder, ResponseExt};
 use serde_json::{json, Value};
