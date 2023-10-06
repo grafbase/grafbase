@@ -13,7 +13,12 @@ use runtime::search::GraphqlCursor;
 use serde::{de::DeserializeOwned, Serialize};
 
 use self::oneof::OneOf;
-use crate::{resolver_utils::InputResolveMode, ContextField, Error, ServerError, ServerResult, Value};
+use crate::{
+    resolver_utils::{apply_input_transforms, InputResolveMode},
+    ContextField, Error, ServerError, ServerResult, Value,
+};
+
+use super::InputValueType;
 
 pub mod id;
 pub mod oneof;
@@ -38,6 +43,11 @@ pub enum VariableResolveDefinition {
     ResolverData(Cow<'static, str>),
     /// Resolve a Value by querying the most recent ancestor resolver property.
     LocalData(Cow<'static, str>),
+    /// Resolve a Value of a specific type by querying the most recent ancestor resolver property
+    ///
+    /// This particular branch expects the data to come from an external source and will
+    /// apply the transforms associated with the InputValueType to that data.
+    LocalDataWithTransforms(Box<(Cow<'static, str>, InputValueType)>),
 }
 
 impl VariableResolveDefinition {
@@ -55,6 +65,10 @@ impl VariableResolveDefinition {
 
     pub fn local_data(value: impl Into<Cow<'static, str>>) -> Self {
         Self::LocalData(value.into())
+    }
+
+    pub fn local_data_with_transforms(value: impl Into<Cow<'static, str>>, ty: InputValueType) -> Self {
+        Self::LocalDataWithTransforms(Box::new((value.into(), ty)))
     }
 
     /// Resolve the first variable with this definition
@@ -78,6 +92,18 @@ impl VariableResolveDefinition {
                     .unwrap_or_else(|| serde_json::Value::Null);
 
                 Ok(Value::from_json(result).ok())
+            }
+            Self::LocalDataWithTransforms(boxed) => {
+                let (field, ty) = boxed.as_ref();
+                let result = last_resolver_value
+                    .and_then(|x| x.get(field.as_ref()))
+                    .map(std::borrow::ToOwned::to_owned)
+                    .unwrap_or_else(|| serde_json::Value::Null);
+
+                let result = Value::from_json(result)
+                    .map_err(|error| ServerError::new(error.to_string(), Some(ctx.item.pos)))?;
+
+                apply_input_transforms(ctx, field.as_ref(), result, ty).map(Some)
             }
         }
     }

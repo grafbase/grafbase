@@ -4,6 +4,8 @@
 
 use serde_json::{Map, Value};
 
+use super::resolvers::http::HttpResolver;
+
 /// Federation details for a particular entity
 ///
 /// There should be one instance of this for each MetaType that represents
@@ -16,6 +18,7 @@ pub struct FederationEntity {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum FederationResolver {
     DynamoUnique,
+    Http(HttpResolver),
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -135,6 +138,11 @@ impl FederationEntity {
 }
 
 impl FederationEntityBuilder {
+    pub fn with_keys(mut self, keys: Vec<FederationKey>) -> Self {
+        self.0.keys.extend(keys);
+        self
+    }
+
     pub fn add_key(&mut self, key: FederationKey) {
         self.0.keys.push(key)
     }

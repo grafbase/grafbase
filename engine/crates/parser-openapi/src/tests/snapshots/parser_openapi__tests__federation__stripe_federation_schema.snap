@@ -1,0 +1,492 @@
+---
+source: crates/parser-openapi/src/tests/federation.rs
+expression: "registry.federation_entities.into_iter().collect::<BTreeMap<_, _>>()"
+---
+{
+  "StripeApplicationFee": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/application_fees/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeBalanceTransaction": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/balance_transactions/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      },
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/balance/history/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeCashBalance": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "customer",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/customers/{customer}/cash_balance",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "customer",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "customer",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeCreditNote": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/credit_notes/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeEvent": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/events/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeProduct": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/products/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeTaxCode": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/tax_codes/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeTreasuryInboundTransfer": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/treasury/inbound_transfers/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeTreasuryOutboundPayment": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/treasury/outbound_payments/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeTreasuryReceivedCredit": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/treasury/received_credits/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeTreasuryReceivedDebit": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/treasury/received_debits/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeTreasuryTransaction": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/treasury/transactions/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "StripeTreasuryTransactionEntry": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://api.stripe.com/v1/treasury/transaction_entries/{id}",
+            "a": "stripe",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  }
+}

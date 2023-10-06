@@ -31,13 +31,13 @@ fn validate_operation(operation: Operation, graph: &OpenApiGraph) -> Result<(), 
             let input_value = parameter.input_value(graph)?;
             if matches!(input_value.kind(graph), Some(InputValueKind::InputObject)) {
                 return Some(Error::PathParameterIsObject(
-                    parameter.openapi_name(graph).unwrap().to_string(),
+                    parameter.openapi_name(graph).to_string(),
                     operation_name.clone(),
                 ));
             }
             if input_value.wrapping_type().contains_list() {
                 return Some(Error::PathParameterIsList(
-                    parameter.openapi_name(graph).unwrap().to_string(),
+                    parameter.openapi_name(graph).to_string(),
                     operation_name.clone(),
                 ));
             }
@@ -59,7 +59,7 @@ fn validate_operation(operation: Operation, graph: &OpenApiGraph) -> Result<(), 
             if matches!(input_value.kind(graph), Some(InputValueKind::InputObject)) {
                 // We don't support encoding nested objects inside query strings so this is an error.
                 return Some(Error::ObjectNestedInsideListQueryParamter(
-                    parameter.openapi_name(graph).unwrap().to_owned(),
+                    parameter.openapi_name(graph).to_owned(),
                     operation_name.clone(),
                 ));
             }
@@ -68,13 +68,13 @@ fn validate_operation(operation: Operation, graph: &OpenApiGraph) -> Result<(), 
             for field in object.fields(graph) {
                 if field.value_type.wrapping_type().contains_list() {
                     return Some(Error::ListNestedInsideObjectQueryParameter(
-                        parameter.openapi_name(graph).unwrap().to_owned(),
+                        parameter.openapi_name(graph).to_owned(),
                         operation_name.clone(),
                     ));
                 }
                 if !matches!(field.value_type.kind(graph), Some(InputValueKind::Scalar)) {
                     return Some(Error::NonScalarNestedInsideObjectQueryParameter(
-                        parameter.openapi_name(graph).unwrap().to_owned(),
+                        parameter.openapi_name(graph).to_owned(),
                         operation_name.clone(),
                     ));
                 }

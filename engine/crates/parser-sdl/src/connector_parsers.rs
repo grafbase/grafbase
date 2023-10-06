@@ -90,6 +90,9 @@ pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Reg
     main_registry.implements.extend(src_registry.implements.into_iter());
     main_registry.http_headers.extend(src_registry.http_headers.into_iter());
     main_registry.postgres_databases.extend(src_registry.postgres_databases);
+    main_registry
+        .federation_entities
+        .extend(src_registry.federation_entities);
 
     // There are other fields on a Registry, but I think these are the only
     // ones likely to be touched by connectors for now.  We can look to update

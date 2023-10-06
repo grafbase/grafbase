@@ -57,7 +57,7 @@ impl super::OpenApiGraph {
 }
 
 impl Operation {
-    fn from_index(index: NodeIndex, graph: &super::OpenApiGraph) -> Option<Self> {
+    pub(super) fn from_index(index: NodeIndex, graph: &super::OpenApiGraph) -> Option<Self> {
         match &graph.graph[index] {
             Node::Operation(details) if details.http_method == HttpMethod::Get => Some(Operation::Query(index)),
             Node::Operation(_) => Some(Operation::Mutation(index)),

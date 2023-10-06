@@ -115,6 +115,10 @@ impl OutputType {
         }
     }
 
+    pub fn is_object(self) -> bool {
+        matches!(self, OutputType::Object(_))
+    }
+
     fn index(self) -> NodeIndex {
         match self {
             OutputType::Object(idx) | OutputType::Union(idx) | OutputType::ScalarWrapper(idx) => idx,
@@ -186,15 +190,25 @@ impl OutputFieldType {
     pub fn inner_kind(&self, graph: &OpenApiGraph) -> OutputFieldKind {
         if Enum::from_index(self.target_index, graph).is_some() {
             OutputFieldKind::Enum
-        } else if let Some(OutputType::Union(_)) = OutputType::from_index(self.target_index, graph) {
-            OutputFieldKind::Union
+        } else if let Some(output_type) = OutputType::from_index(self.target_index, graph) {
+            match output_type {
+                OutputType::Object(_) => OutputFieldKind::Object,
+                OutputType::Union(_) => OutputFieldKind::Union,
+                OutputType::ScalarWrapper(_) => OutputFieldKind::ScalarWrapper,
+            }
+        } else if Scalar::from_index(self.target_index, graph).is_some() {
+            OutputFieldKind::Scalar
         } else {
-            OutputFieldKind::Other
+            unreachable!()
         }
     }
 
     pub fn is_required(&self) -> bool {
         matches!(self.wrapping, WrappingType::NonNull(_))
+    }
+
+    pub fn is_list(&self) -> bool {
+        self.wrapping.contains_list()
     }
 
     pub fn possible_values<'a>(&self, graph: &'a OpenApiGraph) -> Vec<&'a Value> {

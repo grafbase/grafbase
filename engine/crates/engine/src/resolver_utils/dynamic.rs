@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use crate::{
     registry::{
         scalars::{DynamicScalar, PossibleScalar},
-        MetaEnumValue, MetaInputValue, MetaType, MetaTypeName,
+        InputValueType, MetaEnumValue, MetaInputValue, MetaType, MetaTypeName,
     },
     ContextField, Error, ServerResult,
 };
@@ -35,6 +35,26 @@ pub fn resolve_input(
         },
         value,
         mode,
+    )
+    .map_err(|err| err.into_server_error(ctx_field.item.pos))
+}
+
+pub fn apply_input_transforms(
+    ctx_field: &ContextField<'_>,
+    arg_name: &str,
+    value: ConstValue,
+    ty: &InputValueType,
+) -> ServerResult<ConstValue> {
+    resolve_present_input(
+        ResolveContext {
+            ctx: ctx_field,
+            path: PathNode::new(arg_name),
+            ty: ty.to_string().as_str(),
+            allow_list_coercion: true,
+            default_value: None,
+        },
+        value,
+        InputResolveMode::ApplyConnectorTransforms,
     )
     .map_err(|err| err.into_server_error(ctx_field.item.pos))
 }

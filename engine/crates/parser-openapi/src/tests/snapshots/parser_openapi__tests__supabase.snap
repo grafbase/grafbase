@@ -1,0 +1,447 @@
+---
+source: common/parser-openapi/src/lib.rs
+expression: "build_registry(\"test_data/supabase.json\", Format::Json,\n            metadata(Some(\"supabase\"))).unwrap().export_sdl(false)"
+---
+type Mutation {
+	supabase: SupabaseMutation!
+}
+type Query {
+	supabase: SupabaseQuery!
+}
+type SupabaseActivateVanitySubdomainResponse {
+	customDomain: String!
+}
+type SupabaseApiKeyResponse {
+	apiKey: String!
+	name: String!
+}
+type SupabaseAttributeMapping {
+	keys: JSON!
+}
+input SupabaseAttributeMappingInput {
+	keys: JSON!
+}
+input SupabaseCreateFunctionBodyInput {
+	verifyJwt: Boolean
+	body: String!
+	name: String!
+	slug: String!
+}
+input SupabaseCreateOrganizationBodyInput {
+	name: String!
+}
+input SupabaseCreateProjectBodyInput {
+	kpsEnabled: Boolean
+	region: SupabaseCreateProjectBodyRegion!
+	plan: SupabaseCreateProjectBodyPlan!
+	organizationId: String!
+	name: String!
+	dbPass: String!
+}
+enum SupabaseCreateProjectBodyPlan {
+	FREE
+	PRO
+}
+enum SupabaseCreateProjectBodyRegion {
+	US_EAST_1
+	US_WEST_1
+	US_WEST_2
+	AP_SOUTHEAST_1
+	AP_NORTHEAST_1
+	AP_NORTHEAST_2
+	AP_SOUTHEAST_2
+	EU_WEST_1
+	EU_WEST_2
+	EU_WEST_3
+	EU_CENTRAL_1
+	CA_CENTRAL_1
+	AP_SOUTH_1
+	SA_EAST_1
+}
+input SupabaseCreateProviderBodyInput {
+	attributeMapping: SupabaseAttributeMappingInput!
+	domains: [String!]
+	metadataUrl: String
+	metadataXml: String
+	type: SupabaseCreateProviderBodyType!
+}
+enum SupabaseCreateProviderBodyType {
+	SAML
+}
+type SupabaseCreateProviderResponse {
+	updatedAt: String
+	createdAt: String
+	domains: [SupabaseDomain!]
+	saml: SupabaseSamlDescriptor
+	id: String!
+}
+type SupabaseDatabaseResponse {
+	version: String!
+	host: String!
+}
+type SupabaseDatabaseUpgradeStatusResponse {
+	databaseUpgradeStatus: SupabaseDatabaseUpgradeStatusResponseDatabaseUpgradeStatus!
+}
+type SupabaseDatabaseUpgradeStatusResponseDatabaseUpgradeStatus {
+	targetVersion: Float!
+	status: Float!
+	progress: String
+	initiatedAt: String!
+	error: String
+}
+type SupabaseDeleteProviderResponse {
+	updatedAt: String
+	createdAt: String
+	domains: [SupabaseDomain!]
+	saml: SupabaseSamlDescriptor
+	id: String!
+}
+type SupabaseDomain {
+	updatedAt: String
+	createdAt: String
+	domain: String
+	id: String!
+}
+type SupabaseFunctionResponse {
+	importMapPath: String
+	entrypointPath: String
+	importMap: Boolean
+	verifyJwt: Boolean
+	updatedAt: Float!
+	createdAt: Float!
+	version: Float!
+	status: SupabaseFunctionResponseStatus!
+	name: String!
+	slug: String!
+	id: String!
+}
+enum SupabaseFunctionResponseStatus {
+	ACTIVE
+	REMOVED
+	THROTTLED
+}
+type SupabaseFunctionSlugResponse {
+	importMapPath: String
+	entrypointPath: String
+	importMap: Boolean
+	verifyJwt: Boolean
+	updatedAt: Float!
+	createdAt: Float!
+	version: Float!
+	status: SupabaseFunctionSlugResponseStatus!
+	name: String!
+	slug: String!
+	id: String!
+}
+enum SupabaseFunctionSlugResponseStatus {
+	ACTIVE
+	REMOVED
+	THROTTLED
+}
+type SupabaseGetProviderResponse {
+	updatedAt: String
+	createdAt: String
+	domains: [SupabaseDomain!]
+	saml: SupabaseSamlDescriptor
+	id: String!
+}
+type SupabaseListProvidersResponse {
+	items: [SupabaseProvider!]!
+}
+type SupabaseMutation {
+	createProject(input: SupabaseCreateProjectBodyInput!): SupabaseProjectResponse
+	createOrganization(input: SupabaseCreateOrganizationBodyInput!): SupabaseOrganizationResponse
+	createFunction(ref: String!, importMapPath: String, entrypointPath: String, importMap: Boolean, verifyJwt: Boolean, name: String, slug: String, input: SupabaseCreateFunctionBodyInput!): SupabaseFunctionResponse
+	updateFunction(functionSlug: String!, ref: String!, importMapPath: String, entrypointPath: String, importMap: Boolean, verifyJwt: Boolean, name: String, slug: String, input: SupabaseUpdateFunctionBodyInput!): SupabaseFunctionResponse
+	createCustomHostnameConfig(ref: String!, input: SupabaseUpdateCustomHostnameBodyInput!): SupabaseUpdateCustomHostnameResponse
+	reverify(ref: String!): SupabaseUpdateCustomHostnameResponse
+	activate(ref: String!): SupabaseUpdateCustomHostnameResponse
+	getNetworkBans(ref: String!): SupabaseNetworkBanResponse
+	applyNetworkRestrictions(ref: String!, input: SupabaseNetworkRestrictionsRequestInput!): SupabaseNetworkRestrictionsResponse
+	updatePgsodiumConfig(ref: String!, input: SupabaseUpdatePgsodiumConfigBodyInput!): SupabasePgsodiumConfigResponse
+	updatePostgRESTConfig(ref: String!, input: SupabaseUpdatePostgrestConfigBodyInput!): SupabasePostgrestConfigResponse
+	runQuery(ref: String!, input: SupabaseRunQueryBodyInput!): JSON
+	deleteSecrets(ref: String!, input: [String!]!): JSON
+	updateSslEnforcementConfig(ref: String!, input: SupabaseSslEnforcementRequestInput!): SupabaseSslEnforcementResponse
+	checkVanitySubdomainAvailability(ref: String!, input: SupabaseVanitySubdomainBodyInput!): SupabaseSubdomainAvailabilityResponse
+	activateVanitySubdomainPlease(ref: String!, input: SupabaseVanitySubdomainBodyInput!): SupabaseActivateVanitySubdomainResponse
+	updateConfig(ref: String!, input: SupabaseUpdatePostgresConfigBodyInput!): SupabasePostgresConfigResponse
+	updatePgbouncerConfig(ref: String!, input: SupabaseUpdatePgbouncerConfigBodyInput!): SupabaseUpdatePoolingConfigResponse
+	createProviderForProject(ref: String!, input: SupabaseCreateProviderBodyInput!): SupabaseCreateProviderResponse
+	updateProviderById(providerId: String!, ref: String!, input: SupabaseUpdateProviderBodyInput!): SupabaseUpdateProviderResponse
+	removeProviderById(providerId: String!, ref: String!): SupabaseDeleteProviderResponse
+}
+type SupabaseNetworkBanResponse {
+	bannedIpv4Addresses: [String!]!
+}
+type SupabaseNetworkRestrictionsRequest {
+	dbAllowedCidrs: [String!]!
+}
+input SupabaseNetworkRestrictionsRequestInput {
+	dbAllowedCidrs: [String!]!
+}
+type SupabaseNetworkRestrictionsResponse {
+	status: SupabaseNetworkRestrictionsResponseStatus!
+	oldConfig: SupabaseNetworkRestrictionsRequest
+	config: SupabaseNetworkRestrictionsRequest!
+	entitlement: SupabaseNetworkRestrictionsResponseEntitlement!
+}
+enum SupabaseNetworkRestrictionsResponseEntitlement {
+	DISALLOWED
+	ALLOWED
+}
+enum SupabaseNetworkRestrictionsResponseStatus {
+	STORED
+	APPLIED
+}
+type SupabaseOrganizationResponse {
+	name: String!
+	id: String!
+}
+type SupabasePgsodiumConfigResponse {
+	rootKey: String!
+}
+type SupabasePostgresConfigResponse {
+	sessionReplicationRole: SupabasePostgresConfigResponseSessionReplicationRole
+	workMem: String
+	sharedBuffers: String
+	maxWorkerProcesses: Int
+	maxParallelWorkersPerGather: Int
+	maxParallelWorkers: Int
+	maxParallelMaintenanceWorkers: Int
+	maxConnections: Int
+	maintenanceWorkMem: String
+	effectiveCacheSize: String
+	statementTimeout: String
+}
+enum SupabasePostgresConfigResponseSessionReplicationRole {
+	ORIGIN
+	REPLICA
+	LOCAL
+}
+type SupabasePostgrestConfigResponse {
+	dbExtraSearchPath: String!
+	dbSchema: String!
+	maxRows: Int!
+}
+type SupabasePostgrestConfigWithJWTSecretResponse {
+	jwtSecret: String
+	dbExtraSearchPath: String!
+	dbSchema: String!
+	maxRows: Int!
+}
+type SupabaseProjectPgBouncerConfig {
+	maxClientConn: Float
+	poolMode: SupabaseProjectPgBouncerConfigPoolMode!
+	pgbouncerStatus: SupabaseProjectPgBouncerConfigPgbouncerStatus!
+	pgbouncerEnabled: Boolean!
+	insertedAt: String!
+	ignoreStartupParameters: String!
+	defaultPoolSize: Float
+	dbUser: String!
+	dbSsl: Boolean!
+	dbPort: Float!
+	dbName: String!
+	dbHost: String!
+	dbDnsName: String!
+}
+enum SupabaseProjectPgBouncerConfigPgbouncerStatus {
+	COMING_DOWN
+	COMING_UP
+	DISABLED
+	ENABLED
+	RELOADING
+}
+enum SupabaseProjectPgBouncerConfigPoolMode {
+	TRANSACTION
+	SESSION
+	STATEMENT
+}
+type SupabaseProjectResponse {
+	database: SupabaseDatabaseResponse
+	createdAt: String!
+	region: String!
+	name: String!
+	organizationId: String!
+	id: String!
+}
+type SupabaseProjectUpgradeEligibilityResponse {
+	potentialBreakingChanges: [String!]!
+	requiresManualIntervention: String!
+	targetUpgradeVersions: [SupabaseProjectVersion!]!
+	latestAppVersion: String!
+	currentAppVersion: String!
+	eligible: Boolean!
+}
+type SupabaseProjectVersion {
+	appVersion: String!
+	postgresVersion: Float!
+}
+type SupabaseProvider {
+	updatedAt: String
+	createdAt: String
+	domains: [SupabaseDomain!]
+	saml: SupabaseSamlDescriptor
+	id: String!
+}
+type SupabaseQuery {
+	projectResponses: [SupabaseProjectResponse!]
+	organizationResponses: [SupabaseOrganizationResponse!]
+	functionResponses(ref: String!): [SupabaseFunctionResponse!]
+	functionSlugResponse(functionSlug: String!, ref: String!): SupabaseFunctionSlugResponse
+	apiKeyResponses(ref: String!): [SupabaseApiKeyResponse!]
+	updateCustomHostnameResponse(ref: String!): SupabaseUpdateCustomHostnameResponse
+	networkRestrictionsResponse(ref: String!): SupabaseNetworkRestrictionsResponse
+	pgsodiumConfigResponse(ref: String!): SupabasePgsodiumConfigResponse
+	postgrestConfigWithJWTSecretResponse(ref: String!): SupabasePostgrestConfigWithJWTSecretResponse
+	secretResponses(ref: String!): [SupabaseSecretResponse!]
+	sslEnforcementResponse(ref: String!): SupabaseSslEnforcementResponse
+	typescriptResponse(ref: String!, includedSchemas: String = "public"): SupabaseTypescriptResponse
+	vanitySubdomainConfigResponse(ref: String!): SupabaseVanitySubdomainConfigResponse
+	projectUpgradeEligibilityResponse(ref: String!): SupabaseProjectUpgradeEligibilityResponse
+	databaseUpgradeStatusResponse(ref: String!): SupabaseDatabaseUpgradeStatusResponse
+	readOnlyStatusResponse(ref: String!): SupabaseReadOnlyStatusResponse
+	postgresConfigResponse(ref: String!): SupabasePostgresConfigResponse
+	projectPgBouncerConfig(ref: String!): SupabaseProjectPgBouncerConfig
+	listProvidersResponse(ref: String!): SupabaseListProvidersResponse
+	getProviderResponse(providerId: String!, ref: String!): SupabaseGetProviderResponse
+}
+type SupabaseReadOnlyStatusResponse {
+	overrideActiveUntil: String!
+	overrideEnabled: Boolean!
+	enabled: Boolean!
+}
+input SupabaseRunQueryBodyInput {
+	query: String!
+}
+type SupabaseSamlDescriptor {
+	attributeMapping: SupabaseAttributeMapping
+	metadataXml: String
+	metadataUrl: String
+	entityId: String!
+	id: String!
+}
+type SupabaseSecretResponse {
+	value: String!
+	name: String!
+}
+input SupabaseSslEnforcementRequestInput {
+	requestedConfig: SupabaseSslEnforcementsInput!
+}
+type SupabaseSslEnforcementResponse {
+	appliedSuccessfully: Boolean!
+	currentConfig: SupabaseSslEnforcements!
+}
+type SupabaseSslEnforcements {
+	database: Boolean!
+}
+input SupabaseSslEnforcementsInput {
+	database: Boolean!
+}
+type SupabaseSubdomainAvailabilityResponse {
+	available: Boolean!
+}
+type SupabaseTypescriptResponse {
+	types: String!
+}
+input SupabaseUpdateCustomHostnameBodyInput {
+	customHostname: String!
+}
+type SupabaseUpdateCustomHostnameResponse {
+	data: JSON!
+	customHostname: String!
+	status: String!
+}
+input SupabaseUpdateFunctionBodyInput {
+	verifyJwt: Boolean
+	body: String
+	name: String
+}
+input SupabaseUpdatePgbouncerConfigBodyInput {
+	poolMode: SupabaseUpdatePgbouncerConfigBodyPoolMode!
+	pgbouncerEnabled: Boolean!
+	ignoreStartupParameters: String!
+	maxClientConn: Int
+	defaultPoolSize: Int
+}
+enum SupabaseUpdatePgbouncerConfigBodyPoolMode {
+	TRANSACTION
+	SESSION
+	STATEMENT
+}
+input SupabaseUpdatePgsodiumConfigBodyInput {
+	rootKey: String!
+}
+type SupabaseUpdatePoolingConfigResponse {
+	pgbouncerStatus: SupabaseUpdatePoolingConfigResponsePgbouncerStatus!
+	poolMode: SupabaseUpdatePoolingConfigResponsePoolMode!
+	pgbouncerEnabled: Boolean!
+	ignoreStartupParameters: String!
+	maxClientConn: Int
+	defaultPoolSize: Int
+}
+enum SupabaseUpdatePoolingConfigResponsePgbouncerStatus {
+	COMING_DOWN
+	COMING_UP
+	DISABLED
+	ENABLED
+	RELOADING
+}
+enum SupabaseUpdatePoolingConfigResponsePoolMode {
+	TRANSACTION
+	SESSION
+	STATEMENT
+}
+input SupabaseUpdatePostgresConfigBodyInput {
+	sessionReplicationRole: SupabaseUpdatePostgresConfigBodySessionReplicationRole
+	workMem: String
+	sharedBuffers: String
+	maxWorkerProcesses: Int
+	maxParallelWorkersPerGather: Int
+	maxParallelWorkers: Int
+	maxParallelMaintenanceWorkers: Int
+	maxConnections: Int
+	maintenanceWorkMem: String
+	effectiveCacheSize: String
+	statementTimeout: String
+}
+enum SupabaseUpdatePostgresConfigBodySessionReplicationRole {
+	ORIGIN
+	REPLICA
+	LOCAL
+}
+input SupabaseUpdatePostgrestConfigBodyInput {
+	dbSchema: String
+	dbExtraSearchPath: String
+	maxRows: Int
+}
+input SupabaseUpdateProviderBodyInput {
+	attributeMapping: SupabaseAttributeMappingInput!
+	domains: [String!]
+	metadataUrl: String
+	metadataXml: String
+}
+type SupabaseUpdateProviderResponse {
+	updatedAt: String
+	createdAt: String
+	domains: [SupabaseDomain!]
+	saml: SupabaseSamlDescriptor
+	id: String!
+}
+input SupabaseVanitySubdomainBodyInput {
+	vanitySubdomain: String!
+}
+type SupabaseVanitySubdomainConfigResponse {
+	customDomain: String
+	status: SupabaseVanitySubdomainConfigResponseStatus!
+}
+enum SupabaseVanitySubdomainConfigResponseStatus {
+	NOT_USED
+	CUSTOM_DOMAIN_USED
+	ACTIVE
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+
