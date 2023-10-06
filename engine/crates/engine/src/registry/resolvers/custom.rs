@@ -88,12 +88,7 @@ impl CustomResolver {
                 });
                 Err(error)
             }
-            #[allow(unused_variables)]
-            CustomResolverResponse::Error(err) => {
-                log::error!(ctx.trace_id(), "UDF error: {err}");
-
-                Err(CustomResolverError::InvocationError.into())
-            }
+            CustomResolverResponse::Error(_err) => Err(CustomResolverError::InvocationError.into()),
         }
     }
 }
