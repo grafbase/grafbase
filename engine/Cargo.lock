@@ -1182,7 +1182,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "pin-project-lite",
- "postgresql-types",
+ "postgres-types",
  "regex",
  "reqwest",
  "rstest",
@@ -2042,9 +2042,9 @@ dependencies = [
  "names",
  "parser-graphql",
  "parser-openapi",
- "parser-postgresql",
+ "parser-postgres",
  "parser-sdl",
- "postgresql-types",
+ "postgres-types",
  "reqwest",
  "runtime",
  "rusoto_core",
@@ -2676,7 +2676,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "parser-postgresql"
+name = "parser-postgres"
 version = "0.1.0"
 dependencies = [
  "Inflector",
@@ -2684,7 +2684,7 @@ dependencies = [
  "engine",
  "itertools",
  "parser-sdl",
- "postgresql-types",
+ "postgres-types",
  "serde",
  "serde_json",
 ]
@@ -2883,7 +2883,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
 
 [[package]]
-name = "postgresql-types"
+name = "postgres-types"
 version = "0.1.0"
 dependencies = [
  "Inflector",

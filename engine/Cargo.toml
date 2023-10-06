@@ -83,7 +83,7 @@ search-protocol = { path = "crates/search-protocol" }
 jwt-verifier = { path = "crates/jwt-verifier" }
 parser-openapi = { path = "crates/parser-openapi" }
 parser-graphql = { path = "crates/parser-graphql" }
-parser-postgresql = { path = "crates/parser-postgresql" }
+parser-postgres = { path = "crates/parser-postgres" }
 
 [profile.bench]
 debug = true

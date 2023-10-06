@@ -8,4 +8,4 @@ mod federation;
 mod graphql_connector;
 mod mongodb;
 mod openapi;
-mod postgresql;
+mod postgres;

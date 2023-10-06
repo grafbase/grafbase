@@ -4,7 +4,7 @@ mod engine;
 pub mod helpers;
 mod mocks;
 pub mod mongodb;
-pub mod postgresql;
+pub mod postgres;
 pub mod types;
 pub mod udfs;
 

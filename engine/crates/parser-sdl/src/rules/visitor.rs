@@ -23,7 +23,7 @@ use engine_value::ConstValue;
 
 use super::{
     federation_directive::FederationVersion, graphql_directive::GraphqlDirective, openapi_directive::OpenApiDirective,
-    postgresql_directive::PostgresDirective,
+    postgres_directive::PostgresDirective,
 };
 use crate::{
     rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
@@ -66,7 +66,7 @@ pub struct VisitorContext<'a> {
     pub(crate) openapi_directives: Vec<(OpenApiDirective, Pos)>,
     pub(crate) graphql_directives: Vec<(GraphqlDirective, Pos)>,
     pub(crate) mongodb_directives: Vec<(MongoDBDirective, Pos)>,
-    pub(crate) postgresql_directives: Vec<(PostgresDirective, Pos)>,
+    pub(crate) postgres_directives: Vec<(PostgresDirective, Pos)>,
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
 
     pub database_models_enabled: bool,
@@ -171,7 +171,7 @@ impl<'a> VisitorContext<'a> {
             openapi_directives: Vec::new(),
             graphql_directives: Vec::new(),
             mongodb_directives: Vec::new(),
-            postgresql_directives: Vec::new(),
+            postgres_directives: Vec::new(),
             global_cache_rules: Default::default(),
             database_models_enabled,
             federation: None,

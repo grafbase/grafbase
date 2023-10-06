@@ -37,7 +37,7 @@ use rules::{
     mongodb_directive::{MongoDBModelDirective, MongoDBTypeDirective},
     one_of_directive::OneOfDirective,
     openapi_directive::OpenApiVisitor,
-    postgresql_directive::PostgresVisitor,
+    postgres_directive::PostgresVisitor,
     relations::{relations_rules, RelationEngine},
     resolver_directive::ResolverDirective,
     search_directive::SearchDirective,
@@ -56,7 +56,7 @@ pub use rules::{
     graphql_directive::GraphqlDirective,
     mongodb_directive::MongoDBDirective,
     openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms},
-    postgresql_directive::PostgresDirective,
+    postgres_directive::PostgresDirective,
 };
 
 use crate::rules::{
@@ -226,8 +226,8 @@ async fn parse_connectors<'a>(
         }
     }
 
-    for (directive, position) in std::mem::take(&mut ctx.postgresql_directives) {
-        match connector_parsers.fetch_and_parse_postgresql(&directive).await {
+    for (directive, position) in std::mem::take(&mut ctx.postgres_directives) {
+        match connector_parsers.fetch_and_parse_postgres(&directive).await {
             Ok(registry) => {
                 connector_parsers::merge_registry(ctx, registry, position);
             }
@@ -256,7 +256,7 @@ fn validate_unique_names(ctx: &VisitorContext<'_>) -> Result<(), Error> {
         names.push(*position);
     }
 
-    for (directive, position) in &ctx.postgresql_directives {
+    for (directive, position) in &ctx.postgres_directives {
         let names = names.entry(directive.name()).or_insert(Vec::new());
         names.push(*position);
     }

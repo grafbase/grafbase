@@ -24,7 +24,7 @@ pub mod model_directive;
 pub mod mongodb_directive;
 pub mod one_of_directive;
 pub mod openapi_directive;
-pub mod postgresql_directive;
+pub mod postgres_directive;
 pub mod relations;
 pub mod resolver_directive;
 pub mod scalar_hydratation;
