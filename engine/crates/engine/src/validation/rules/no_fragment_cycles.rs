@@ -97,7 +97,7 @@ impl<'a> Visitor<'a> for NoFragmentCycles<'a> {
         if let Some(current_fragment) = self.current_fragment {
             self.spreads
                 .entry(current_fragment)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push((&fragment_spread.node.fragment_name.node, fragment_spread.pos));
         }
     }

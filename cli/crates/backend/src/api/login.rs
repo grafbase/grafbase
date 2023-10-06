@@ -112,7 +112,7 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
             let shutdown_result = shutdown_receiver.recv().await.expect("must be open");
 
             match shutdown_result {
-                Ok(_) => message_sender.send(LoginMessage::Done).expect("must be open"),
+                Ok(()) => message_sender.send(LoginMessage::Done).expect("must be open"),
                 Err(error) => message_sender.send(LoginMessage::Error(error)).expect("must be open"),
             }
         });

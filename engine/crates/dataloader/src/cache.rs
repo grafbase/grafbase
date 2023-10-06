@@ -153,6 +153,10 @@ pub struct LruCache {
 
 impl LruCache {
     /// Creates a new LRU Cache that holds at most `cap` items.
+    ///
+    /// # Panics
+    ///
+    /// Cap value must be a non-zero number.
     #[must_use]
     pub fn new(cap: usize) -> Self {
         Self {

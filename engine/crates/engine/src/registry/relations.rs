@@ -175,7 +175,7 @@ pub struct MetaRelation {
 
 impl MetaRelation {
     fn generate_relation_name(a: &str, b: &str) -> String {
-        let mut a = vec![a, b];
+        let mut a = [a, b];
         a.sort_unstable();
         a.join("To")
     }

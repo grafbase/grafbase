@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.71"
+channel = "1.73"
 targets = [
     "x86_64-unknown-linux-musl",  # Tools
     "aarch64-unknown-linux-musl", # AWS Lambda

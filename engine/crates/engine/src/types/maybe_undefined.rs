@@ -141,7 +141,7 @@ impl<T> MaybeUndefined<T> {
     {
         match self {
             MaybeUndefined::Value(y) => matches!(x, Some(v) if v == y),
-            MaybeUndefined::Null => matches!(x, None),
+            MaybeUndefined::Null => x.is_none(),
             MaybeUndefined::Undefined => false,
         }
     }

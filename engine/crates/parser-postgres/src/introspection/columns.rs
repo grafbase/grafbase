@@ -28,8 +28,12 @@ where
         .await?;
 
     for row in result.into_rows() {
-        let Some(schema_id) = database_definition.get_schema_id(&row.schema) else { continue };
-        let Some(table_id) = database_definition.get_table_id(schema_id, &row.table_name) else { continue };
+        let Some(schema_id) = database_definition.get_schema_id(&row.schema) else {
+            continue;
+        };
+        let Some(table_id) = database_definition.get_table_id(schema_id, &row.table_name) else {
+            continue;
+        };
 
         // If the type is an array, it's named `_type` in the database. We don't need that info in the type
         // name, we store enums without an underscore in our interner.

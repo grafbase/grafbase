@@ -47,7 +47,7 @@ fn main() {
     ShouldColorize::from_env();
 
     let exit_code = match try_main(args) {
-        Ok(_) => 0,
+        Ok(()) => 0,
         Err(error) => {
             report::error(&error);
             1

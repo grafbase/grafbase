@@ -90,9 +90,12 @@ where
         request: engine::Request,
         streaming_format: Option<StreamingFormat>,
     ) -> Result<Executor::Response, Executor::Error> {
-        let Ok(auth) = self.authorizer.authorize_request(ctx, &request)
+        let Ok(auth) = self
+            .authorizer
+            .authorize_request(ctx, &request)
             .instrument(info_span!("authorize_request"))
-            .await else {
+            .await
+        else {
             return Executor::Response::engine(Arc::new(engine::Response::from_errors(
                 vec![engine::ServerError::new("Unauthorized", None)],
                 // doesn't really matter, this is not client facing

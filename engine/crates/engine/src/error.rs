@@ -58,7 +58,7 @@ impl Debug for ServerError {
             .field("locations", &self.locations)
             .field("path", &self.path)
             .field("extensions", &self.extensions)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -253,7 +253,7 @@ impl Debug for Error {
         f.debug_struct("Error")
             .field("message", &self.message)
             .field("extensions", &self.extensions)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

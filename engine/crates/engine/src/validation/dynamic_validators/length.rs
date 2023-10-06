@@ -74,6 +74,8 @@ impl DynValidate<&Value> for LengthValidator {
 
 #[test]
 fn test_length_validator() {
+    #![allow(clippy::diverging_sub_expression)]
+
     use insta::assert_snapshot;
 
     use super::{DynValidator, MetaInputValue};

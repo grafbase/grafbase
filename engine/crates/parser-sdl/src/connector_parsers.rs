@@ -85,10 +85,10 @@ pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Reg
     // I am sort of making the assumption that connectors won't generate names that
     // clash with each other here.  This should be the case with the type prefixes
     // in openapi but might need revisited with other connectors.
-    main_registry.types.extend(src_registry.types.into_iter());
+    main_registry.types.extend(src_registry.types);
 
-    main_registry.implements.extend(src_registry.implements.into_iter());
-    main_registry.http_headers.extend(src_registry.http_headers.into_iter());
+    main_registry.implements.extend(src_registry.implements);
+    main_registry.http_headers.extend(src_registry.http_headers);
     main_registry.postgres_databases.extend(src_registry.postgres_databases);
     main_registry
         .federation_entities

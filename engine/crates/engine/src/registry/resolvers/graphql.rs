@@ -19,6 +19,7 @@
 
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
+#![allow(clippy::missing_panics_doc)]
 #![deny(warnings)]
 #![deny(let_underscore)]
 #![deny(nonstandard_style)]

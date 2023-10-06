@@ -134,7 +134,9 @@ impl CollectionArgs {
         let mut extra_columns = Vec::new();
 
         for value in order_by_argument {
-            let Some((field, value)) = value.as_object().and_then(IndexMap::first) else { continue };
+            let Some((field, value)) = value.as_object().and_then(IndexMap::first) else {
+                continue;
+            };
             let Some(direction) = value.as_str() else { continue };
 
             // For `last` to work, we must reverse the order of the inner query.

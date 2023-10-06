@@ -28,7 +28,7 @@ pub fn parse_spec(
     let url = metadata.url.as_mut().unwrap();
 
     // Make sure we have a trailing slash on metadata so that Url::join works correctly.
-    ensure_trailing_slash(url).map_err(|_| vec![Error::InvalidUrl(url.to_string())])?;
+    ensure_trailing_slash(url).map_err(|()| vec![Error::InvalidUrl(url.to_string())])?;
 
     let graph = OpenApiGraph::new(parsed, metadata.clone()).map_err(|error| vec![error])?;
 

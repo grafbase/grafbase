@@ -1478,7 +1478,7 @@ pub mod vectorize {
         K: Serialize + 'a,
         V: Serialize + 'a,
     {
-        ser.collect_seq(target.into_iter())
+        ser.collect_seq(target)
     }
 
     pub fn deserialize<'de, T, K, V, D>(des: D) -> Result<T, D::Error>

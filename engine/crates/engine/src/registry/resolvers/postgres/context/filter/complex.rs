@@ -31,7 +31,7 @@ impl<'a> Iterator for ComplexFilterIterator<'a> {
     type Item = ConditionTree<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Some((field, value)) = self.filter.pop_front() else { return None };
+        let (field, value) = self.filter.pop_front()?;
 
         let table = self
             .context
