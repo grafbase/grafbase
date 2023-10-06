@@ -10,7 +10,7 @@ use http::{
     header::{AsHeaderName, IntoHeaderName},
     HeaderValue,
 };
-use postgresql_types::database_definition::DatabaseDefinition;
+use postgres_types::database_definition::DatabaseDefinition;
 
 use crate::{
     deferred::DeferredWorkloadSender,
@@ -59,7 +59,7 @@ pub trait ContextExt<'a>: Context<'a> {
         self.schema_env().registry.mongodb_configurations.get(name)
     }
 
-    fn get_postgresql_definition(&self, name: &str) -> Option<&'a DatabaseDefinition> {
+    fn get_postgres_definition(&self, name: &str) -> Option<&'a DatabaseDefinition> {
         self.schema_env().registry.postgres_databases.get(name)
     }
 

@@ -72,8 +72,8 @@ parser-sdl = { path = "../../../engine/crates/parser-sdl", features = [
 ] }
 parser-openapi = { path = "../../../engine/crates/parser-openapi" }
 parser-graphql = { path = "../../../engine/crates/parser-graphql" }
-parser-postgresql = { path = "../../../engine/crates/parser-postgresql" }
-postgresql-types = { path = "../../../engine/crates/postgresql-types" }
+parser-postgres = { path = "../../../engine/crates/parser-postgres" }
+postgres-types = { path = "../../../engine/crates/postgres-types" }
 common-types = { path = "../../../engine/crates/common-types" }
 
 [dev-dependencies]

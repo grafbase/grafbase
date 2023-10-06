@@ -23,7 +23,7 @@
 
 ## Structure
 
-| Crate                                                   |                                  Description                                  |
+| Crate                                                   | Description                                                                   |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | [`async-runtime`](crates/async-runtime)                 | A wrapper crate for various async runtime functionality                       |
 | [`common-types`](crates/common-types)                   | Various type definitions for the Grafbase platform                            |
@@ -39,9 +39,9 @@
 | [`log`](crates/log)                                     | Logging facilities for various Grafbase crates                                |
 | [`parser-graphql`](crates/parser-graphql)               | A GraphQL schema parser for upstream APIs connected to Grafbase               |
 | [`parser-openapi`](crates/parser-openapi)               | An OpenAPI schema parser for the Grafbase platform                            |
-| [`parser-postgresql`](crates/parser-postgresql)         | Grafbase schema introspection for PostgreSQL database                         |
+| [`parser-postgres`](crates/parser-postgres)             | Grafbase schema introspection for Postgres database                           |
 | [`parser-sdl`](crates/parser-sdl)                       | A parser that transforms GraphQL SDL into the Grafbase registry format        |
-| [`postgresql-types`](crates/postgresql-types)           | Shared types for PostgreSQL connector                                         |
+| [`postgres-types`](crates/postgres-types)               | Shared types for Postgres connector                                           |
 | [`runtime`](crates/runtime)                             | An abstraction over the various Grafbase runtime environments                 |
 | [`runtime-local`](crates/runtime-local)                 | An implementation of the Grafbase runtime for local use                       |
 | [`search-protocol`](crates/search-protocol)             | Types related to the Grafbase platform search functionality                   |
