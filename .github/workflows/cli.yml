@@ -132,7 +132,7 @@ jobs:
 
   windows:
     needs: [lint]
-    runs-on: windows-latest-8-cores
+    runs-on: windows-2019-8-cores
     steps:
       - name: Get sources
         uses: actions/checkout@v3
