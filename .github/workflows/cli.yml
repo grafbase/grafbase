@@ -322,6 +322,8 @@ jobs:
       - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
         name: Upload the binary of the change to R2
         run: |
+          curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
+          sudo installer -pkg AWSCLIV2.pkg -target /
           aws s3api put-object \
             --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
             --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
