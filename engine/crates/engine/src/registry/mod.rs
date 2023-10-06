@@ -1715,6 +1715,7 @@ impl Registry {
                     MetaField {
                         name: "_service".to_string(),
                         ty: "_Service!".into(),
+                        resolver: Resolver::Introspection(resolvers::IntrospectionResolver::FederationServiceField),
                         ..Default::default()
                     },
                 );

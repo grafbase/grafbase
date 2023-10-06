@@ -19,13 +19,13 @@ use query::QueryResolver;
 use runtime::search::GraphqlCursor;
 use ulid::Ulid;
 
-pub use self::resolved_value::ResolvedValue;
 use self::{
     custom::CustomResolver,
     federation::resolve_federation_entities,
     graphql::{QueryBatcher, Target},
     transformer::Transformer,
 };
+pub use self::{introspection::IntrospectionResolver, resolved_value::ResolvedValue};
 use super::{type_kinds::OutputType, Constraint, MetaField};
 use crate::{Context, ContextExt, ContextField, Error, RequestHeaders};
 
@@ -36,6 +36,7 @@ pub mod dynamo_querying;
 mod federation;
 pub mod graphql;
 pub mod http;
+mod introspection;
 mod logged_fetch;
 pub mod postgres;
 pub mod query;
@@ -274,6 +275,11 @@ impl Resolver {
                 .instrument(info_span!("federation_resolver"))
                 .await
                 .map_err(Into::into),
+            Resolver::Introspection(resolver) => resolver
+                .resolve(ctx)
+                .instrument(info_span!("introspection_resolver"))
+                .await
+                .map_err(Into::into),
         }
     }
 
@@ -322,6 +328,7 @@ pub enum Resolver {
     MongoResolver(atlas_data_api::AtlasDataApiResolver),
     PostgresResolver(postgres::PostgresResolver),
     FederationEntitiesResolver,
+    Introspection(IntrospectionResolver),
 }
 
 impl Constraint {
