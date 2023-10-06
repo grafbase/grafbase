@@ -29,6 +29,13 @@ impl<'a> InputContext<'a> {
         }
     }
 
+    pub(crate) fn delete_type_name(&self, name: &str) -> String {
+        match self.namespace {
+            Some(namespace) => format!("{namespace}_{name}_delete").to_pascal_case(),
+            None => format!("{name}_delete").to_pascal_case(),
+        }
+    }
+
     pub(crate) fn filter_type_name(&self, scalar: &str) -> String {
         let base = format!("{scalar}_search_filter_input");
 
