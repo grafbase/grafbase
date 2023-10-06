@@ -2186,7 +2186,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.37.1"
+version = "0.38.0"
 dependencies = [
  "async-graphql 6.0.6",
  "async-trait",
@@ -2309,7 +2309,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.37.1"
+version = "0.38.0"
 dependencies = [
  "async-graphql 5.0.10",
  "async-graphql-axum",
@@ -2373,7 +2373,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.37.1"
+version = "0.38.0"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -2403,7 +2403,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.37.1"
+version = "0.38.0"
 dependencies = [
  "chrono",
  "common-types",
@@ -2419,7 +2419,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.37.1"
+version = "0.38.0"
 dependencies = [
  "async-trait",
  "axum",
