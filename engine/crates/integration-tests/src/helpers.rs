@@ -41,7 +41,9 @@ impl GetPath for Response {
             return Err(Error(error));
         }
 
-        let Some(mut data) = response.data else { panic!("Response had no data") };
+        let Some(mut data) = response.data else {
+            panic!("Response had no data")
+        };
 
         let mut path = path.split('.').peekable();
         let mut result = None;

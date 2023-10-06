@@ -86,6 +86,7 @@ impl<'ctx, 'a> Visitor<'ctx> for ComplexityCalculate<'ctx, 'a> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::diverging_sub_expression)]
 
     use super::*;
     use crate::{

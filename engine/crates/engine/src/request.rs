@@ -134,7 +134,7 @@ impl Debug for Request {
             .field("operation_name", &self.operation_name)
             .field("variables", &self.variables)
             .field("extensions", &self.extensions)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

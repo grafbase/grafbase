@@ -63,6 +63,7 @@ struct DeletionTask {
 }
 
 impl PartialOrd for DeletionTask {
+    #[allow(clippy::incorrect_partial_ord_impl_on_ord_type)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.to_delete_at
             .partial_cmp(&other.to_delete_at)

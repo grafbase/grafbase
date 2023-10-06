@@ -72,7 +72,7 @@ pub mod vectorize {
         K: Serialize + 'a,
         V: Serialize + 'a,
     {
-        ser.collect_seq(target.into_iter())
+        ser.collect_seq(target)
     }
 
     pub fn deserialize<'de, T, K, V, D>(des: D) -> Result<T, D::Error>
@@ -281,7 +281,7 @@ impl QueryResponse {
 
         let mut error = None;
         for id in node_ids {
-            if matches!(self.data.remove(&id), None) {
+            if self.data.remove(&id).is_none() {
                 error = Some(QueryResponseErrors::NodeNotFound);
             }
         }
@@ -405,7 +405,7 @@ impl QueryResponseNode {
     }
 
     pub fn is_entity_node(&self) -> bool {
-        matches!(self.entity_id(), Some(_))
+        self.entity_id().is_some()
     }
 
     pub const fn is_list(&self) -> bool {

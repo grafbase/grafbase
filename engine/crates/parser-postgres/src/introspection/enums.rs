@@ -22,7 +22,9 @@ where
         .await?;
 
     for row in result.into_rows() {
-        let Some(schema_id) = database_definition.get_schema_id(&row.schema) else { continue };
+        let Some(schema_id) = database_definition.get_schema_id(&row.schema) else {
+            continue;
+        };
 
         let enum_id = match database_definition.get_enum_id(schema_id, &row.enum_name) {
             Some(enum_id) => enum_id,

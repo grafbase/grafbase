@@ -111,7 +111,7 @@ impl<'a> Visitor<'a> for NoUndefinedVariables<'a> {
         if let Some(ref scope) = self.current_scope {
             self.used_variables
                 .entry(*scope)
-                .or_insert_with(HashMap::new)
+                .or_default()
                 .extend(referenced_variables(&value.node).into_iter().map(|n| (n, name.pos)));
         }
     }
@@ -124,7 +124,7 @@ impl<'a> Visitor<'a> for NoUndefinedVariables<'a> {
         if let Some(ref scope) = self.current_scope {
             self.spreads
                 .entry(*scope)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(&fragment_spread.node.fragment_name.node);
         }
     }

@@ -233,7 +233,7 @@ impl PartialEq for ConstValue {
                 if a.len() != b.len() {
                     return false;
                 }
-                for (a_key, a_value) in a.iter() {
+                for (a_key, a_value) in a {
                     if let Some(b_value) = b.get(a_key.as_str()) {
                         if b_value != a_value {
                             return false;

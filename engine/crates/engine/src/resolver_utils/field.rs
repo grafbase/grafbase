@@ -47,14 +47,14 @@ pub async fn resolve_field(
     }
 
     let Some(field) = ctx.parent_type.field(ctx.item.node.name.node.as_str()) else {
-            return Err(ServerError::new(
-                format!(
+        return Err(ServerError::new(
+            format!(
                 "Could not find a field named {} on {}",
                 ctx.item.node.name.node,
                 ctx.parent_type.name()
-                ),
-                Some(ctx.item.node.name.pos),
-            ));
+            ),
+            Some(ctx.item.node.name.pos),
+        ));
     };
 
     let result = match CurrentResolverType::new(&field, ctx) {

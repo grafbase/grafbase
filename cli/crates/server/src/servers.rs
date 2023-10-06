@@ -133,7 +133,7 @@ async fn server_loop(
                 let _: Result<_, _> = sender.send(ServerMessage::Reload(path.clone()));
                 path_changed = Some(path);
             }
-            _ = wait_for_event(event_bus.subscribe(), |event| *event == Event::ProxyError) => { break; }
+            () = wait_for_event(event_bus.subscribe(), |event| *event == Event::ProxyError) => { break; }
         }
     }
     proxy_handle.await?
@@ -243,7 +243,7 @@ async fn spawn_servers(
 
     trace!("waiting for bridge ready");
     tokio::select! {
-        _ = wait_for_event(receiver, |event| *event == Event::BridgeReady) => (),
+        () = wait_for_event(receiver, |event| *event == Event::BridgeReady) => (),
         result = &mut bridge_handle => {result??; return Ok(());}
     };
     trace!("bridge ready");
@@ -294,7 +294,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
         archive
             .unpack(full_path)
             .map_err(|err| error!("unpack error: {err}"))
-            .map_err(|_| ServerError::WriteFile(full_path.to_string_lossy().into_owned()))?;
+            .map_err(|()| ServerError::WriteFile(full_path.to_string_lossy().into_owned()))?;
 
         if fs::write(&version_path, current_version).is_err() {
             let version_path_string = version_path.to_string_lossy().into_owned();

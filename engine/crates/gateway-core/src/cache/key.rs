@@ -86,7 +86,7 @@ impl<HB: Hasher + Default> Hash for CacheKey<'_, HB> {
         state.write_usize(self.gql_request.variables.len());
         // variables is a BTreeMap behind the scenes so ordering is guaranteed
         // simply hashing its elements in the main hasher is enough
-        for (name, value) in self.gql_request.variables.iter() {
+        for (name, value) in &*self.gql_request.variables {
             name.hash(state);
             state.write_u64(hash_const_value::<HB>(value));
         }

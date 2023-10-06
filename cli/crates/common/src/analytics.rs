@@ -73,7 +73,7 @@ impl Analytics {
 
         ANALYTICS
             .set(
-                analytics_data_and_variables.map(|(((write_key, dataplane_url), _), _)| Analytics {
+                analytics_data_and_variables.map(|(((write_key, dataplane_url), ()), ())| Analytics {
                     client: RudderAnalytics::load(write_key.to_owned(), dataplane_url.to_owned()),
                     session_id: Ulid::new(),
                     start_time: Utc::now(),
