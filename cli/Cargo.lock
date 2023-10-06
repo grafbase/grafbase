@@ -1758,7 +1758,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "pin-project-lite",
- "postgresql-types",
+ "postgres-types",
  "regex",
  "reqwest",
  "runtime",
@@ -2186,7 +2186,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.37.0"
+version = "0.37.1"
 dependencies = [
  "async-graphql 6.0.6",
  "async-trait",
@@ -2309,7 +2309,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.37.0"
+version = "0.37.1"
 dependencies = [
  "async-graphql 5.0.10",
  "async-graphql-axum",
@@ -2373,7 +2373,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.37.0"
+version = "0.37.1"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -2403,7 +2403,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.37.0"
+version = "0.37.1"
 dependencies = [
  "chrono",
  "common-types",
@@ -2419,7 +2419,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.37.0"
+version = "0.37.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -2444,10 +2444,10 @@ dependencies = [
  "notify-debouncer-mini",
  "parser-graphql",
  "parser-openapi",
- "parser-postgresql",
+ "parser-postgres",
  "parser-sdl",
  "path-slash",
- "postgresql-types",
+ "postgres-types",
  "reqwest",
  "runtime",
  "serde",
@@ -2474,9 +2474,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sql-ast"
-version = "0.1.2"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d051b841d94e5716c3fdf21eed72031010958a8bf57c07149c0519d42cc7a9b2"
+checksum = "5f154aebff01eb8bda88eb204508b796577a785f2c436d27dceaf33c0b0a9af3"
 dependencies = [
  "serde_json",
 ]
@@ -3947,7 +3947,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "parser-postgresql"
+name = "parser-postgres"
 version = "0.1.0"
 dependencies = [
  "Inflector",
@@ -3955,7 +3955,7 @@ dependencies = [
  "engine",
  "itertools 0.11.0",
  "parser-sdl",
- "postgresql-types",
+ "postgres-types",
  "serde",
  "serde_json",
 ]
@@ -4211,7 +4211,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "767eb9f07d4a5ebcb39bbf2d452058a93c011373abf6832e24194a1c3f004794"
 
 [[package]]
-name = "postgresql-types"
+name = "postgres-types"
 version = "0.1.0"
 dependencies = [
  "Inflector",

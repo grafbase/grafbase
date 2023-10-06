@@ -11,12 +11,12 @@ import { Authorizer, AuthorizerParams } from './auth/authorizer'
 import { MongoDBParams, PartialMongoDBAPI } from './connector/mongodb'
 import path from 'path'
 import { validateIdentifier } from './validation'
-import { PostgresParams, PartialPostgresAPI } from './connector/postgresql'
+import { PostgresParams, PartialPostgresAPI } from './connector/postgres'
 
 dotenv.config({
   // must exist, defined by "~/.grafbase/parser/parse-config.ts"
   path: path.join(process.env.GRAFBASE_PROJECT_GRAFBASE_DIR!, '.env'),
-  override: true
+  override: true,
 })
 
 export type AtLeastOne<T> = [T, ...T[]]
@@ -68,16 +68,16 @@ export const connector = {
     return new PartialMongoDBAPI(name, params)
   },
   /**
-   * Create a new PostgreSQL connector object.
+   * Create a new Postgres connector object.
    *
    * @param name - A unique name for the connector.
    * @param params - The configuration parameters.
    */
-  PostgreSQL: (name: string, params: PostgresParams): PartialPostgresAPI => {
+  Postgres: (name: string, params: PostgresParams): PartialPostgresAPI => {
     validateIdentifier(name)
 
     return new PartialPostgresAPI(name, params)
-  }
+  },
 }
 
 export const auth = {
@@ -102,9 +102,7 @@ export const auth = {
    *
    * @param params - The configuration parameters.
    */
-  JWKS: (
-    params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>
-  ): JWKSAuth => {
+  JWKS: (params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>): JWKSAuth => {
     return new JWKSAuth(params)
   },
   /**
@@ -114,5 +112,5 @@ export const auth = {
    */
   Authorizer: (params: AuthorizerParams): Authorizer => {
     return new Authorizer(params)
-  }
+  },
 }

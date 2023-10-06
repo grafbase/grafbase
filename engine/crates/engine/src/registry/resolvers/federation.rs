@@ -24,7 +24,7 @@ pub async fn resolve_federation_entities(ctx: &ContextField<'_>) -> Result<Resol
     )
     .map_err(|error| Error::new(format!("Could not deserialize _Any: {error}")))?;
 
-    let futures = representations.iter().enumerate().map(|(index, representation)| {
+    let futures = representations.into_iter().enumerate().map(|(index, representation)| {
         let mut ctx = ctx.clone();
         ctx.path.push(index);
 
@@ -42,7 +42,7 @@ pub async fn resolve_federation_entities(ctx: &ContextField<'_>) -> Result<Resol
     Ok(ResolvedValue::new(serde_json::Value::Array(join_all(futures).await)))
 }
 
-async fn resolve_representation(ctx: &ContextField<'_>, representation: &Representation) -> Result<Value, Error> {
+async fn resolve_representation(ctx: &ContextField<'_>, representation: Representation) -> Result<Value, Error> {
     let entity = ctx
         .registry()
         .federation_entities
@@ -73,6 +73,10 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: &Represe
             }
             .resolve(&ctx, &resolver_context, last_resolver_value.as_ref())
             .await
+        }
+        FederationResolver::Http(resolver) => {
+            let last_resolver_value = Some(ResolvedValue::new(representation.data));
+            resolver.resolve(ctx, &resolver_context, last_resolver_value).await
         }
     }?;
 

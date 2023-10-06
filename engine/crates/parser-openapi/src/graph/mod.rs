@@ -22,6 +22,7 @@ mod transforms;
 
 mod all_of_member;
 pub mod construction;
+mod resource;
 
 pub use self::{
     enums::Enum,
@@ -30,6 +31,7 @@ pub use self::{
     operations::Operation,
     output_type::{OutputField, OutputFieldType, OutputType},
     parameters::{PathParameter, QueryParameter, RequestBody},
+    resource::{Resource, ResourceOperation},
     scalar::Scalar,
 };
 use crate::{parsing::ParseOutput, ApiMetadata, Error};
@@ -387,7 +389,7 @@ impl WrappingType {
 impl OpenApiGraph {
     fn type_name(&self, node: NodeIndex) -> Option<String> {
         match &self.graph[node] {
-            schema @ Node::Schema { .. } => Some(schema.name()?),
+            schema @ Node::Schema { .. } => Some(self.metadata.namespaced(&schema.name()?).to_pascal_case()),
             Node::Operation(_) | Node::Default(_) | Node::PossibleValue(_) | Node::AllOf => None,
             Node::Object | Node::Enum { .. } => {
                 // OpenAPI objects are generally anonymous so we walk back up the graph to the

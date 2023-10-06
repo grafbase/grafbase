@@ -37,7 +37,7 @@ mod federation;
 pub mod graphql;
 pub mod http;
 mod logged_fetch;
-pub mod postgresql;
+pub mod postgres;
 pub mod query;
 mod resolved_value;
 pub mod transformer;
@@ -175,7 +175,7 @@ impl Resolver {
             }
             Resolver::Http(resolver) => {
                 resolver
-                    .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
                     .instrument(info_span!("http_resolver", api_name = resolver.api_name))
                     .await
             }
@@ -264,7 +264,7 @@ impl Resolver {
             Resolver::PostgresResolver(resolver) => resolver
                 .resolve(ctx, resolver_ctx)
                 .instrument(info_span!(
-                    "postgresql_resolver",
+                    "postgres_resolver",
                     operation = resolver.operation.as_ref(),
                     directive_name = resolver.directive_name
                 ))
@@ -320,7 +320,7 @@ pub enum Resolver {
     Http(http::HttpResolver),
     Graphql(graphql::Resolver),
     MongoResolver(atlas_data_api::AtlasDataApiResolver),
-    PostgresResolver(postgresql::PostgresResolver),
+    PostgresResolver(postgres::PostgresResolver),
     FederationEntitiesResolver,
 }
 

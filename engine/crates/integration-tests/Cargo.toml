@@ -45,11 +45,11 @@ path = "../parser-graphql"
 [dependencies.parser-sdl]
 path = "../parser-sdl"
 
-[dependencies.parser-postgresql]
-path = "../parser-postgresql"
+[dependencies.parser-postgres]
+path = "../parser-postgres"
 
-[dependencies.postgresql-types]
-path = "../postgresql-types"
+[dependencies.postgres-types]
+path = "../postgres-types"
 
 [dependencies.runtime]
 path = "../runtime"

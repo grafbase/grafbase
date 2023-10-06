@@ -5,7 +5,7 @@ use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase_sql_ast::ast::Order;
 use indexmap::IndexMap;
-use postgresql_types::{cursor::SQLCursor, database_definition::TableId};
+use postgres_types::{cursor::SQLCursor, database_definition::TableId};
 use runtime::search::GraphqlCursor;
 use serde_json::Value;
 use std::hash::Hash;
@@ -16,7 +16,7 @@ use super::{
 };
 use crate::{
     registry::{
-        resolvers::{postgresql::CollectionArgs, resolved_value::SelectionData, ResolverContext},
+        resolvers::{postgres::CollectionArgs, resolved_value::SelectionData, ResolverContext},
         type_kinds::OutputType,
         variables::VariableResolveDefinition,
         MetaEnumValue, UnionDiscriminator,
@@ -97,11 +97,11 @@ pub enum Transformer {
     ByteArrayToBase64Array,
     /// Convert MongoDB timestamp as number
     MongoTimestamp,
-    /// A special transformer to fetch PostgreSQL page info for the current results.
+    /// A special transformer to fetch Postgres page info for the current results.
     PostgresPageInfo,
-    /// Calculate cursor value for a PostgreSQL row.
+    /// Calculate cursor value for a Postgres row.
     PostgresCursor,
-    /// Set PostgreSQL selection data.
+    /// Set Postgres selection data.
     PostgresSelectionData {
         directive_name: String,
         table_id: TableId,
@@ -412,7 +412,7 @@ impl Transformer {
                 table_id,
             } => {
                 let database_definition = ctx
-                    .get_postgresql_definition(&directive_name)
+                    .get_postgres_definition(&directive_name)
                     .expect("we must have an introspected database");
 
                 let table = database_definition.walk(*table_id);

@@ -16,8 +16,8 @@ async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
 common-types = { workspace = true }
-grafbase-sql-ast = "0.1.2"
-postgresql-types = { path = "../postgresql-types" }
+grafbase-sql-ast = "0.1.4"
+postgres-types = { path = "../postgres-types" }
 bytes = { version = "1", features = ["serde"] }
 case = "1"
 chrono = { version = "0.4", default-features = false, features = [

@@ -8,7 +8,7 @@ use engine::{
 use engine_parser::types::TypeDefinition;
 
 use crate::{
-    rules::{postgresql_directive::PostgresDirective, visitor::VisitorContext},
+    rules::{postgres_directive::PostgresDirective, visitor::VisitorContext},
     GraphqlDirective, OpenApiDirective,
 };
 
@@ -21,7 +21,7 @@ use crate::{
 pub trait ConnectorParsers: Sync + Send {
     async fn fetch_and_parse_openapi(&self, directive: OpenApiDirective) -> Result<Registry, Vec<String>>;
     async fn fetch_and_parse_graphql(&self, directive: GraphqlDirective) -> Result<Registry, Vec<String>>;
-    async fn fetch_and_parse_postgresql(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>>;
+    async fn fetch_and_parse_postgres(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>>;
 }
 
 /// A mock impl of the Connectors trait for tests and when we don't really care about
@@ -30,7 +30,7 @@ pub trait ConnectorParsers: Sync + Send {
 pub struct MockConnectorParsers {
     pub(crate) openapi_directives: Mutex<Vec<OpenApiDirective>>,
     pub(crate) graphql_directives: Mutex<Vec<GraphqlDirective>>,
-    pub(crate) postgresql_directives: Mutex<Vec<PostgresDirective>>,
+    pub(crate) postgres_directives: Mutex<Vec<PostgresDirective>>,
 }
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
@@ -48,8 +48,8 @@ impl ConnectorParsers for MockConnectorParsers {
         Ok(Registry::new())
     }
 
-    async fn fetch_and_parse_postgresql(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>> {
-        self.postgresql_directives.lock().unwrap().push(directive.clone());
+    async fn fetch_and_parse_postgres(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>> {
+        self.postgres_directives.lock().unwrap().push(directive.clone());
 
         Ok(Registry::new())
     }
@@ -90,6 +90,9 @@ pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Reg
     main_registry.implements.extend(src_registry.implements.into_iter());
     main_registry.http_headers.extend(src_registry.http_headers.into_iter());
     main_registry.postgres_databases.extend(src_registry.postgres_databases);
+    main_registry
+        .federation_entities
+        .extend(src_registry.federation_entities);
 
     // There are other fields on a Registry, but I think these are the only
     // ones likely to be touched by connectors for now.  We can look to update

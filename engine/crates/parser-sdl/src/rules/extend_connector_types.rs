@@ -81,7 +81,7 @@ mod tests {
     use engine::registry::{self, MetaField, Registry};
     use serde_json as _;
 
-    use crate::{rules::postgresql_directive::PostgresDirective, ConnectorParsers, GraphqlDirective, OpenApiDirective};
+    use crate::{rules::postgres_directive::PostgresDirective, ConnectorParsers, GraphqlDirective, OpenApiDirective};
 
     #[test]
     fn test_connector_models_can_be_extended() {
@@ -185,7 +185,7 @@ mod tests {
             Err(Vec::new())
         }
 
-        async fn fetch_and_parse_postgresql(&self, _: &PostgresDirective) -> Result<Registry, Vec<String>> {
+        async fn fetch_and_parse_postgres(&self, _: &PostgresDirective) -> Result<Registry, Vec<String>> {
             Err(Vec::new())
         }
     }

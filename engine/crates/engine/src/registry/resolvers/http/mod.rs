@@ -65,9 +65,9 @@ impl HttpResolver {
         &'a self,
         ctx: &'a ContextField<'_>,
         _resolver_ctx: &ResolverContext<'a>,
-        last_resolver_value: Option<&'a ResolvedValue>,
+        last_resolver_value: Option<ResolvedValue>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
-        let last_resolver_value = last_resolver_value.map(ResolvedValue::data_resolved);
+        let last_resolver_value = last_resolver_value.map(ResolvedValue::take);
 
         let request_headers = ctx.data::<RequestHeaders>().ok();
 
@@ -83,7 +83,7 @@ impl HttpResolver {
             let runtime_ctx = ctx.data::<runtime::Context>()?;
             let fetch_log_endpoint_url = runtime_ctx.log.fetch_log_endpoint_url.as_deref();
             let ray_id = &runtime_ctx.ray_id();
-            let url = self.build_url(ctx, last_resolver_value)?;
+            let url = self.build_url(ctx, last_resolver_value.as_ref())?;
             let mut request_builder = reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
 
             for (name, value) in headers {
