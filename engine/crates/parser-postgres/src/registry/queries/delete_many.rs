@@ -17,7 +17,7 @@ pub(crate) fn register(
     simple_filter: &str,
     output_ctx: &mut OutputContext,
 ) {
-    let type_name = input_ctx.delete_type_name(table.client_name());
+    let type_name = input_ctx.reduced_type_name(table.client_name());
     let query_name = format!("{}_Delete_Many", table.client_name()).to_camel_case();
 
     let filter_description = format!("The filter definining which rows to delete from the {type_name} table");

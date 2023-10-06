@@ -29,6 +29,13 @@ impl<'a> EnumWalker<'a> {
         range.map(move |id| self.walk(EnumVariantId(id as u32)))
     }
 
+    /// Find a variant with a given client name, returning the database name.
+    pub fn rename_variant(self, client_name: &str) -> Option<&'a str> {
+        self.variants()
+            .find(|variant| variant.client_name() == client_name)
+            .map(|variant| variant.database_name())
+    }
+
     fn get(self) -> &'a Enum<StringId> {
         &self.database_definition.enums[self.id.0 as usize]
     }

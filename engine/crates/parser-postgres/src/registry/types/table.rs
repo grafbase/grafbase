@@ -3,7 +3,7 @@ use engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     Constraint, InputObjectType, MetaField, MetaInputValue, ObjectType,
 };
-use postgres_types::database_definition::{DatabaseType, RelationWalker, ScalarType, TableColumnWalker, TableWalker};
+use postgres_types::database_definition::{DatabaseType, RelationWalker, TableColumnWalker, TableWalker};
 use std::borrow::Cow;
 
 pub(super) fn generate(
@@ -38,7 +38,7 @@ pub(super) fn generate(
         }
     });
 
-    let type_name = input_ctx.delete_type_name(table.client_name());
+    let type_name = input_ctx.reduced_type_name(table.client_name());
 
     // a simple type, which does not have relations in it (e.g. for deletions)
     output_ctx.with_object_type(&type_name, table.id(), |builder| {
@@ -67,8 +67,6 @@ fn add_column(column: TableColumnWalker<'_>, builder: &mut ObjectTypeBuilder) {
     });
 
     let extra_transformer = match column.database_type() {
-        DatabaseType::Scalar(ScalarType::Bytea) => Some(Transformer::BytesToBase64),
-        DatabaseType::Scalar(ScalarType::ByteaArray) => Some(Transformer::ByteArrayToBase64Array),
         DatabaseType::Enum(_) => Some(Transformer::RemoteEnum),
         _ => None,
     };

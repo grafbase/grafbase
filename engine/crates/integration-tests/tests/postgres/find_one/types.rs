@@ -1995,7 +1995,7 @@ fn bytea() {
           "data": {
             "a": {
               "id": 1,
-              "val": "XHg0NDQ1NDE0NDQyNDU0NTQ2"
+              "val": "REVBREJFRUY"
             }
           }
         }"#]];
@@ -2119,8 +2119,8 @@ fn bytea_array() {
             "a": {
               "id": 1,
               "val": [
-                "XHg0NDQ1NDE0NDQyNDU0NTQ2",
-                "XHg0MjQ1NDU0NjQ0NDU0MTQ0"
+                "REVBREJFRUY",
+                "QkVFRkRFQUQ"
               ]
             }
           }
