@@ -6,8 +6,8 @@ use super::graphql::mutations::{
     CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, InvalidDatabaseRegionsError, ProjectCreate,
     ProjectCreateArguments, ProjectCreateInput, ProjectCreatePayload, SlugTooLongError,
 };
-use super::graphql::queries::viewer_and_regions::{PersonalAccount, ViewerAndRegions};
-use super::types::{Account, DatabaseRegion, ProjectMetadata};
+use super::graphql::queries::viewer_for_create::{PersonalAccount, Viewer};
+use super::types::{Account, ProjectMetadata};
 use super::utils::project_linked;
 use common::environment::Project;
 use cynic::http::ReqwestExt;
@@ -19,7 +19,7 @@ use tokio::fs;
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<DatabaseRegion>, DatabaseRegion), ApiError> {
+pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
     // TODO consider if we want to do this elsewhere
     if project_linked().await? {
         return Err(ApiError::ProjectAlreadyLinked);
@@ -27,20 +27,13 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<Databas
 
     let client = create_client().await?;
 
-    let query = ViewerAndRegions::build(());
+    let query = Viewer::build(());
 
     let response = client.post(API_URL).run_graphql(query).await?;
 
     let response = response.data.expect("must exist");
 
     let viewer_response = response.viewer.ok_or(ApiError::UnauthorizedOrDeletedUser)?;
-
-    let closest_region = response
-        .closest_database_region
-        .ok_or(ApiError::UnauthorizedOrDeletedUser)?
-        .into();
-
-    let available_regions = response.database_regions.into_iter().map(Into::into).collect();
 
     let PersonalAccount { id, name, slug } = viewer_response
         .personal_account
@@ -64,7 +57,7 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<Databas
         }))
         .collect();
 
-    Ok((accounts, available_regions, closest_region))
+    Ok(accounts)
 }
 
 /// # Errors

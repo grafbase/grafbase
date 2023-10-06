@@ -1,8 +1,5 @@
 use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
-use backend::api::{
-    create,
-    types::{Account, DatabaseRegion},
-};
+use backend::api::{create, types::Account};
 use common::environment::Project;
 use inquire::{validator::Validation, Confirm, Select, Text};
 use slugify::slugify;
@@ -14,14 +11,6 @@ struct AccountSelection(Account);
 impl Display for AccountSelection {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_fmt(format_args!("{} ({})", self.0.name, self.0.slug))
-    }
-}
-
-struct RegionSelection(DatabaseRegion);
-
-impl Display for RegionSelection {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_fmt(format_args!("{} ({})", self.0.city, self.0))
     }
 }
 
@@ -45,7 +34,7 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
     report::create();
 
     // TODO do this with a separate mutation that accepts an account slug
-    let (accounts, ..) = create::get_viewer_data_for_creation()
+    let accounts = create::get_viewer_data_for_creation()
         .await
         .map_err(CliError::BackendApiError)?;
 
@@ -67,7 +56,7 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
 async fn interactive() -> Result<(), CliError> {
     let project = Project::get();
 
-    let (accounts, available_regions, closest_region) = create::get_viewer_data_for_creation()
+    let accounts = create::get_viewer_data_for_creation()
         .await
         .map_err(CliError::BackendApiError)?;
 
@@ -94,26 +83,13 @@ async fn interactive() -> Result<(), CliError> {
         .prompt()
         .map_err(handle_inquire_error)?;
 
-    let selected_region = Select::new(
-        "In which region should your database be created?",
-        available_regions.iter().cloned().map(RegionSelection).collect(),
-    )
-    .with_starting_cursor(
-        available_regions
-            .iter()
-            .position(|region| region.name == closest_region.name)
-            .unwrap_or_default(),
-    )
-    .prompt()
-    .map_err(handle_inquire_error)?;
-
     let confirm = Confirm::new("Please confirm the above to create and deploy your new project")
         .with_default(true)
         .prompt()
         .map_err(handle_inquire_error)?;
 
     if confirm {
-        let domains = create::create(&selected_account.id, &project_name, &[selected_region.0.name.clone()])
+        let domains = create::create(&selected_account.id, &project_name, &[])
             .await
             .map_err(CliError::BackendApiError)?;
 

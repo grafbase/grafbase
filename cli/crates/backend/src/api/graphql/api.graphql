@@ -42,11 +42,11 @@ type AccessTokenDeleteSuccess {
 
 # An edge in a connection.
 type AccessTokenEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: AccessToken!
+
+  # A cursor for use in pagination
+  cursor: String!
 }
 
 interface Account {
@@ -162,11 +162,11 @@ type BranchConnection {
 
 # An edge in a connection.
 type BranchEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: Branch!
+
+  # A cursor for use in pagination
+  cursor: String!
 }
 
 enum BranchEnvironment {
@@ -184,6 +184,57 @@ type BranchMetricsSuccess {
 type CurrentPlanLimitReachedError {
   max: Int!
   query: Query!
+}
+
+type CustomDomain {
+  hostnameVerificationStatus: CustomDomainStatus!
+  hostnameVerificationTxtName: String
+  hostnameVerificationTxtValue: String
+  name: String!
+  sslVerificationCnameName: String
+  sslVerificationCnameValue: String
+  sslVerificationStatus: CustomDomainStatus!
+}
+
+type CustomDomainAlreadyExists {
+  query: Query!
+}
+
+input CustomDomainCreateInput {
+  projectId: ID!
+  name: String!
+}
+
+union CustomDomainCreatePayload =
+    CustomDomainCreateSuccess
+  | ProjectDoesNotExistError
+  | CustomDomainAlreadyExists
+  | ProjectNotDeployed
+
+type CustomDomainCreateSuccess {
+  domain: CustomDomain!
+  query: Query!
+}
+
+input CustomDomainDeleteInput {
+  projectId: ID!
+  name: String!
+}
+
+union CustomDomainDeletePayload = CustomDomainDeleteSuccess | CustomDomainDoesNotExistError
+
+type CustomDomainDeleteSuccess {
+  name: String!
+}
+
+type CustomDomainDoesNotExistError {
+  query: Query!
+}
+
+enum CustomDomainStatus {
+  ACTIVE
+  PENDING
+  ERROR
 }
 
 type DailyDeploymentCountLimitExceededError {
@@ -279,16 +330,16 @@ type DeploymentCreateSuccess {
 
 # An edge in a connection.
 type DeploymentEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: Deployment!
+
+  # A cursor for use in pagination
+  cursor: String!
 }
 
 input DeploymentFilter {
   branch: String
-  statuses: [DeploymentStatus!]! = []
+  statuses: [DeploymentStatus!]
 }
 
 type DeploymentLogEntry {
@@ -327,6 +378,11 @@ type DuplicateDatabaseRegionsError {
   duplicates: [String!]!
   query: Query!
 }
+
+# Implement the Duration scalar
+#
+# The input/output is a string in ISO8601 format.
+scalar Duration
 
 type EmptyDatabaseRegionsError {
   query: Query!
@@ -397,11 +453,11 @@ type EnvironmentVariableDoesNotExistError {
 
 # An edge in a connection.
 type EnvironmentVariableEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: EnvironmentVariable!
+
+  # A cursor for use in pagination
+  cursor: String!
 }
 
 input EnvironmentVariableSpecification {
@@ -428,6 +484,46 @@ union EnvironmentVariableUpdatePayload =
 type EnvironmentVariableUpdateSuccess {
   environmentVariable: EnvironmentVariable!
   query: Query!
+}
+
+enum FunctionKind {
+  AUTHORIZER
+  RESOLVER
+}
+
+type FunctionLogEvent implements LogEvent {
+  id: String!
+  branch: String!
+  environment: BranchEnvironment!
+  deploymentId: ID!
+  createdAt: DateTime!
+  functionKind: FunctionKind!
+  functionName: String!
+  region: String!
+  logLevel: LogLevel!
+  url: String
+  message: String!
+}
+
+type GatewayRequestLogEvent implements LogEvent {
+  id: String!
+  branch: String!
+  environment: BranchEnvironment!
+  deploymentId: ID!
+  createdAt: DateTime!
+  region: String!
+  logLevel: LogLevel!
+  httpMethod: String!
+  httpStatus: Int!
+  url: String!
+  operation: GatewayRequestLogEventOperation
+  duration: Int!
+  message: String!
+}
+
+type GatewayRequestLogEventOperation {
+  name: String
+  type: OperationType!
 }
 
 type GitAccount {
@@ -477,6 +573,10 @@ type GitRepository {
   private: Boolean!
   updatedAt: DateTime!
   branches: [String!]!
+}
+
+type GithubInstallationInsufficientPermissionsError {
+  query: Query!
 }
 
 type HasAlreadyPaymentMethodError {
@@ -575,11 +675,11 @@ type InviteDoesNotExistError {
 
 # An edge in a connection.
 type InviteEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: Invite!
+
+  # A cursor for use in pagination
+  cursor: String!
 }
 
 input InviteSendInput {
@@ -616,6 +716,53 @@ enum LimitCycleChoice {
   PREVIOUS
 }
 
+interface LogEvent {
+  id: String!
+  createdAt: DateTime!
+  region: String!
+  logLevel: LogLevel!
+  deploymentId: ID!
+  branch: String!
+  environment: BranchEnvironment!
+  message: String!
+}
+
+type LogEventConnection {
+  # Information to aid in pagination.
+  pageInfo: PageInfo!
+
+  # A list of edges.
+  edges: [LogEventEdge!]!
+
+  # A list of nodes.
+  nodes: [LogEvent!]!
+}
+
+# An edge in a connection.
+type LogEventEdge {
+  # The item at the end of the edge
+  node: LogEvent!
+
+  # A cursor for use in pagination
+  cursor: String!
+}
+
+input LogEventFilter {
+  query: String
+  branch: String
+  from: DateTime
+  to: DateTime
+  region: [String!]
+  logLevel: [LogLevel!]
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
 type Member {
   id: ID!
   role: MemberRole!
@@ -646,11 +793,11 @@ type MemberDeletePayload {
 
 # An edge in a connection.
 type MemberEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: Member!
+
+  # A cursor for use in pagination
+  cursor: String!
 }
 
 enum MemberRole {
@@ -665,6 +812,10 @@ input MemberUpdateInput {
 
 type MemberUpdatePayload {
   member: Member!
+  query: Query!
+}
+
+type MissingStripeCustomerError {
   query: Query!
 }
 
@@ -690,11 +841,21 @@ type Mutation {
   organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
   organizationSlugUpdate(input: OrganizationSlugUpdateInput!): OrganizationSlugUpdatePayload!
   personalAccountSlugUpdate(input: PersonalAccountSlugUpdateInput!): PersonalAccountSlugUpdatePayload!
+  organizationPaymentMethodReplace(
+    accountId: ID!
+    stripePaymentMethodId: String!
+  ): OrganizationPaymentMethodReplacePayload!
   organizationSetupPaymentMethod(accountId: ID!, stripePaymentMethodId: String!): OrganizationSetupPaymentMethod!
   organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
   personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload!
   personalAccountDelete: PersonalAccountDeletePayload!
   organizationDelete(input: OrganizationDeleteInput!): OrganizationDeletePayload!
+
+  # Add a new custom domain.
+  customDomainCreate(input: CustomDomainCreateInput!): CustomDomainCreatePayload!
+
+  # Delete a custom hostname token.
+  customDomainDelete(input: CustomDomainDeleteInput!): CustomDomainDeletePayload!
 
   # Create a new deployment for an existing project.
   deploymentCreate(input: DeploymentCreateInput!): DeploymentCreatePayload!
@@ -761,6 +922,10 @@ type NameTooLongError {
   query: Query!
 }
 
+type NotAllowedError {
+  query: Query!
+}
+
 type NotAllowedToCancelInvitesError {
   query: Query!
 }
@@ -781,8 +946,10 @@ type NotAllowedToUpdateOrganizationError {
   query: Query!
 }
 
-type OnlyOwnerCanUpgradeToProError {
-  query: Query!
+enum OperationType {
+  QUERY
+  MUTATION
+  SUBSCRIPTION
 }
 
 type OrbBillingAddress {
@@ -900,8 +1067,9 @@ type OrbSubscription {
   plan: OrbPlan!
   currentBillingPeriodStartDate: DateTime
   currentBillingPeriodEndDate: DateTime
+  endDate: DateTime
   invoices(cursor: String): OrbPaginatedInvoices!
-  upcomingInvoice: OrbUpcomingInvoice!
+  upcomingInvoice: OrbUpcomingInvoice
 }
 
 enum OrbSubscriptionStatus {
@@ -1068,22 +1236,28 @@ type OrganizationDoesNotExistError {
 
 # An edge in a connection.
 type OrganizationEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: Organization!
+
+  # A cursor for use in pagination
+  cursor: String!
 }
 
 type OrganizationOwnershipNotTransferredError {
   query: Query!
 }
 
+union OrganizationPaymentMethodReplacePayload =
+    OrganizationSuccessfulUpdate
+  | MissingStripeCustomerError
+  | OrganizationDoesNotExistError
+  | NotAllowedError
+
 union OrganizationSetupPaymentMethod =
     OrganizationUpgradeToProSuccess
   | HasAlreadyPaymentMethodError
   | OrganizationDoesNotExistError
-  | OnlyOwnerCanUpgradeToProError
+  | NotAllowedError
 
 input OrganizationSlugUpdateInput {
   id: ID!
@@ -1100,6 +1274,11 @@ union OrganizationSlugUpdatePayload =
   | NotAllowedToSlugUpdateError
 
 type OrganizationSlugUpdateSuccess {
+  organization: Organization!
+  query: Query!
+}
+
+type OrganizationSuccessfulUpdate {
   organization: Organization!
   query: Query!
 }
@@ -1190,6 +1369,7 @@ type PersonalAccountUpdateSuccess {
 
 type Project {
   id: ID!
+  accountSlug: String!
   slug: String!
   createdAt: DateTime!
   repository: GitRepository
@@ -1203,6 +1383,9 @@ type Project {
   plan: ProjectPlan!
   status: ProjectStatus!
   databaseRegionChangeStatus: DatabaseRegionChangeStatus!
+  customDomains: [String!]!
+  requestAnalytics(filter: ProjectRequestAnalyticsFilter!): RequestAnalytics!
+  logEvents(first: Int, after: String, last: Int, before: String, filter: LogEventFilter!): LogEventConnection!
 }
 
 type ProjectApiKey {
@@ -1253,11 +1436,11 @@ type ProjectApiKeyDeleteSuccess {
 
 # An edge in a connection.
 type ProjectApiKeyEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: ProjectApiKey!
+
+  # A cursor for use in pagination
+  cursor: String!
 }
 
 input ProjectApiKeyUpdateInput {
@@ -1288,7 +1471,7 @@ input ProjectCreateFromRepositoryInput {
   gitRepoUrl: Url!
   gitAccountId: String!
   productionBranch: String!
-  databaseRegions: [String!]!
+  databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
 }
 
@@ -1316,7 +1499,7 @@ input ProjectCreateFromSchemaInput {
   accountId: ID!
   projectSlug: String!
   schema: String!
-  databaseRegions: [String!]!
+  databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
 }
 
@@ -1346,7 +1529,7 @@ input ProjectCreateFromTemplateInput {
   gitAccountId: String!
   repoSlug: String!
   repoPrivate: Boolean!
-  databaseRegions: [String!]!
+  databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
 }
 
@@ -1365,6 +1548,7 @@ union ProjectCreateFromTemplatePayload =
   | InvalidDatabaseRegionsError
   | EnvironmentVariableCountLimitExceededError
   | InvalidEnvironmentVariablesError
+  | GithubInstallationInsufficientPermissionsError
 
 type ProjectCreateFromTemplateSuccess {
   project: Project!
@@ -1413,16 +1597,33 @@ type ProjectDoesNotExistError {
 
 # An edge in a connection.
 type ProjectEdge {
-  # A cursor for use in pagination
-  cursor: String!
-
   # The item at the end of the edge
   node: Project!
+
+  # A cursor for use in pagination
+  cursor: String!
+}
+
+type ProjectNotDeployed {
+  query: Query!
 }
 
 type ProjectPlan {
   name: String!
   monthlyLimits: MonthlyLimits!
+}
+
+input ProjectRequestAnalyticsFilter {
+  branch: String = null
+  period: ProjectRequestAnalyticsPeriod!
+  now: DateTime!
+  graphqlOperation: String
+}
+
+enum ProjectRequestAnalyticsPeriod {
+  LAST_HOUR
+  LAST_24_HOURS
+  LAST_7_DAYS
 }
 
 enum ProjectStatus {
@@ -1475,6 +1676,21 @@ type Query {
     name: String!
   ): Branch
 
+  # Get branch by domain.
+  branchByDomain(
+    # domain
+    domain: String!
+  ): Branch
+
+  # Get custom domain by project id and name.
+  customDomainByName(
+    # id of the project
+    projectId: ID!
+
+    # name of the domain
+    name: String!
+  ): CustomDomain
+
   # Get all database regions available for replication.
   databaseRegions: [DatabaseRegion!]!
   closestDatabaseRegion: DatabaseRegion
@@ -1519,6 +1735,60 @@ type RepositoryContainsNoBranchesError {
 
 type RepositorySlugInUseError {
   query: Query!
+}
+
+type RequestAnalytics {
+  timeSeries: RequestMetricsTimeSeries!
+  metrics: RequestMetrics!
+  periodStart: DateTime!
+  periodEnd: DateTime!
+}
+
+type RequestLogEvent implements LogEvent {
+  id: String!
+  branch: String!
+  environment: BranchEnvironment!
+  deploymentId: ID!
+  createdAt: DateTime!
+  region: String!
+  logLevel: LogLevel!
+  url: String!
+  httpMethod: String!
+  httpStatus: Int!
+  duration: Int!
+  message: String!
+}
+
+type RequestMetrics {
+  requestCount: Int!
+  cacheableRequestCount: Int!
+  cacheHitCount: Int!
+  cacheMissCount: Int!
+  cachePassCount: Int!
+  error4XxCount: Int!
+  error5XxCount: Int!
+  errorGraphqlCount: Int!
+  latencyMsP95: Int
+  latencyMsP99: Int
+}
+
+type RequestMetricsTimeSeries {
+  data: [RequestMetricsTimeSeriesDataPoint!]!
+  aggregationStep: Duration!
+}
+
+type RequestMetricsTimeSeriesDataPoint {
+  dateTime: DateTime!
+  requestCount: Int!
+  cacheableRequestCount: Int!
+  cacheHitCount: Int!
+  cacheMissCount: Int!
+  cachePassCount: Int!
+  error4XxCount: Int!
+  error5XxCount: Int!
+  errorGraphqlCount: Int!
+  latencyMsP95: Int
+  latencyMsP99: Int
 }
 
 type ReservedPrefixError {
@@ -1585,6 +1855,7 @@ type StripeCustomer {
 type StripePaginatedPaymentMethods {
   data: [StripePaymentMethod!]!
   hasMore: Boolean!
+  nextPage: String
 }
 
 type StripePaymentMethod {
