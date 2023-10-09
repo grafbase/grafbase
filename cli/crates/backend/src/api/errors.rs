@@ -69,8 +69,8 @@ pub enum ApiError {
     WriteProjectMetadataFile(io::Error),
 
     /// returned if a cynic request could not be completed
-    #[error("could not complete a request")]
-    RequestError,
+    #[error("could not complete a request: {0}")]
+    RequestError(String),
 
     /// returned if a cynic request could not be completed (due to connection issues)
     #[error("could not complete a request")]
@@ -135,6 +135,10 @@ pub enum ApiError {
     /// wraps a [`DeployError`]
     #[error(transparent)]
     DeployError(#[from] DeployError),
+
+    /// returned if the project does not exist
+    #[error("could not find the project")]
+    ProjectDoesNotExist,
 }
 
 #[derive(Error, Debug)]
@@ -217,7 +221,9 @@ impl From<CynicReqwestError> for ApiError {
     fn from(error: CynicReqwestError) -> Self {
         match error {
             CynicReqwestError::ReqwestError(error) if error.is_connect() => ApiError::ConnectionError,
-            CynicReqwestError::ReqwestError(_) | CynicReqwestError::ErrorResponse(_, _) => ApiError::RequestError,
+            CynicReqwestError::ReqwestError(_) | CynicReqwestError::ErrorResponse(_, _) => {
+                ApiError::RequestError(error.to_string())
+            }
         }
     }
 }

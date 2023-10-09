@@ -9,8 +9,9 @@ pub enum LocalAddressType {
     Unspecified,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, strum::Display)]
 #[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum LogLevel {
     Error,
     Warn,

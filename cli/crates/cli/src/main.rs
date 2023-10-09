@@ -10,6 +10,7 @@ mod init;
 mod link;
 mod login;
 mod logout;
+mod logs;
 mod output;
 mod panic_hook;
 mod prompts;
@@ -21,7 +22,7 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    cli_input::{Args, ArgumentNames, SubCommand},
+    cli_input::{Args, ArgumentNames, LogsCommand, SubCommand},
     create::create,
     deploy::deploy,
     dev::dev,
@@ -29,6 +30,7 @@ use crate::{
     link::link,
     login::login,
     logout::logout,
+    logs::logs,
     reset::reset,
     unlink::unlink,
 };
@@ -104,5 +106,10 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Deploy => deploy(),
         SubCommand::Link(cmd) => link(cmd.project),
         SubCommand::Unlink => unlink(),
+        SubCommand::Logs(LogsCommand {
+            project_branch_reference: project_reference,
+            limit,
+            no_follow,
+        }) => logs(project_reference, limit, !no_follow),
     }
 }

@@ -38,6 +38,9 @@ pub enum CliError {
     /// returned if an account selected for linking a project has no projects
     #[error("the selected account has no projects")]
     AccountWithNoProjects,
+    /// returned if a command taking a project reference fails to find the project
+    #[error("could not find the project referenced by: {0}")]
+    ProjectNotFound(String),
     /// returned if the account name argument provided to create is not an existing account
     #[error("could not find an account with the provided name")]
     NoAccountFound,
@@ -80,7 +83,7 @@ impl CliError {
             Self::ServerError(ServerError::OutdatedNode(_, min_version)) => Some(format!("please update your Node.js version to {min_version} or higher to continue (https://nodejs.org/en/download)")),
             Self::ServerError(ServerError::PortInUse(_)) => Some("try using a different --port number or supplying the --search flag".to_owned()),
             Self::BackendApiError(
-                ApiError::RequestError
+                ApiError::RequestError(_)
                 | ApiError::CreateError(CreateError::Unknown(_))
                 | ApiError::DeployError(DeployError::Unknown(_)),
             ) => Some("you may be using an older version of the Grafbase CLI, try updating".to_owned()),
