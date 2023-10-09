@@ -17,6 +17,7 @@ pub enum Operation {
     DeleteOne,
     DeleteMany,
     CreateOne,
+    CreateMany,
 }
 
 impl AsRef<str> for Operation {
@@ -27,6 +28,7 @@ impl AsRef<str> for Operation {
             Self::DeleteOne => "deleteOne",
             Self::DeleteMany => "deleteMany",
             Self::CreateOne => "createOne",
+            Self::CreateMany => "createMany",
         }
     }
 }

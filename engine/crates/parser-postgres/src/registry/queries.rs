@@ -1,3 +1,4 @@
+mod create_many;
 mod create_one;
 mod delete_many;
 mod delete_one;
@@ -23,5 +24,6 @@ pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
         delete_one::register(input_ctx, table, &filter_oneof_type, output_ctx);
         delete_many::register(input_ctx, table, &simple_filter, output_ctx);
         create_one::register(input_ctx, table, &create_input_type, output_ctx);
+        create_many::register(input_ctx, table, &create_input_type, output_ctx);
     }
 }

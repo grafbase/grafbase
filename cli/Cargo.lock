@@ -1744,6 +1744,7 @@ dependencies = [
  "getrandom 0.2.10",
  "grafbase-sql-ast",
  "graph-entities",
+ "hex",
  "http",
  "im",
  "indexmap 2.0.0-pre",

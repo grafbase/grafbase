@@ -138,6 +138,19 @@ impl<'a> PostgresContext<'a> {
         Ok(iterator)
     }
 
+    /// A collection of iterators for multiple input value definitions.
+    pub fn many_input(&'a self) -> ServerResult<Vec<InputIterator<'a>>> {
+        let input_map: Vec<Map<String, Value>> = self.context.input_by_name("input")?;
+        let input_type = self.context.find_argument_type("input")?;
+
+        let iterators = input_map
+            .into_iter()
+            .map(|input_map| InputIterator::new(self.database_definition(), input_type, input_map))
+            .collect();
+
+        Ok(iterators)
+    }
+
     /// The database connection.
     pub fn transport(&self) -> &NeonTransport {
         &self.transport

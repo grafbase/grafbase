@@ -59,6 +59,10 @@ fn table_with_serial_primary_key() {
             Create a User
           """
           userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
         }
 
         enum OrderByDirection {
@@ -275,6 +279,10 @@ fn table_with_enum_field() {
             Create a A
           """
           aCreate(input: AInput!): AReduced
+          """
+            Create multiple As
+          """
+          aCreateMany(input: [AInput!]!): [AReduced!]!
         }
 
         enum OrderByDirection {
@@ -372,6 +380,10 @@ fn table_with_int_primary_key() {
             Create a User
           """
           userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
         }
 
         enum OrderByDirection {
@@ -519,6 +531,10 @@ fn table_with_int_unique() {
             Create a User
           """
           userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
         }
 
         enum OrderByDirection {
@@ -667,6 +683,10 @@ fn table_with_serial_primary_key_string_unique() {
             Create a User
           """
           userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
         }
 
         enum OrderByDirection {
@@ -823,6 +843,10 @@ fn table_with_composite_primary_key() {
             Create a User
           """
           userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
         }
 
         enum OrderByDirection {
@@ -1023,6 +1047,10 @@ fn two_schemas_same_table_name() {
           """
           privateUserCreate(input: PrivateUserInput!): PrivateUserReduced
           """
+            Create multiple PrivateUsers
+          """
+          privateUserCreateMany(input: [PrivateUserInput!]!): [PrivateUserReduced!]!
+          """
             Delete a unique PublicUser by a field or combination of fields
           """
           publicUserDelete(by: PublicUserByInput!): PublicUserReduced
@@ -1034,6 +1062,10 @@ fn two_schemas_same_table_name() {
             Create a PublicUser
           """
           publicUserCreate(input: PublicUserInput!): PublicUserReduced
+          """
+            Create multiple PublicUsers
+          """
+          publicUserCreateMany(input: [PublicUserInput!]!): [PublicUserReduced!]!
         }
 
         enum OrderByDirection {
@@ -1249,6 +1281,10 @@ fn table_with_serial_primary_key_namespaced() {
             Create a User
           """
           userCreate(input: NeonUserInput!): NeonUserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [NeonUserInput!]!): [NeonUserReduced!]!
         }
 
         enum NeonOrderByDirection {
@@ -1494,6 +1530,10 @@ fn two_tables_with_single_column_foreign_key() {
           """
           blogCreate(input: BlogInput!): BlogReduced
           """
+            Create multiple Blogs
+          """
+          blogCreateMany(input: [BlogInput!]!): [BlogReduced!]!
+          """
             Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserReduced
@@ -1505,6 +1545,10 @@ fn two_tables_with_single_column_foreign_key() {
             Create a User
           """
           userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
         }
 
         enum OrderByDirection {

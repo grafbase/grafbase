@@ -1,6 +1,5 @@
 #![allow(deprecated)]
 
-use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase_sql_ast::ast::Order;
@@ -91,10 +90,6 @@ pub enum Transformer {
     RemoteEnum,
     /// Resolves the __typename of a remote union type
     RemoteUnion,
-    /// Converts bytes to base64
-    BytesToBase64,
-    /// Converts byte array to base64 array
-    ByteArrayToBase64Array,
     /// Convert MongoDB timestamp as number
     MongoTimestamp,
     /// A special transformer to fetch Postgres page info for the current results.
@@ -293,47 +288,6 @@ impl Transformer {
                     .as_object_mut()
                     .unwrap()
                     .insert("__typename".into(), Value::String(typename.clone()));
-
-                Ok(ResolvedValue::new(new_value))
-            }
-            Transformer::BytesToBase64 => {
-                let resolved_value = last_resolver_value.ok_or_else(|| Error::new("missing value for bytes column"))?;
-
-                let new_value = match resolved_value.data_resolved() {
-                    Value::Null => Value::Null,
-                    Value::String(ref string) => Value::String(STANDARD_NO_PAD.encode(string.as_bytes())),
-                    _ => return Err(Error::new("The resolved value is not a bytes string")),
-                };
-
-                let mut new_value = ResolvedValue::new(new_value);
-                new_value.selection_data = resolved_value.selection_data.clone();
-
-                Ok(new_value)
-            }
-            Transformer::ByteArrayToBase64Array => {
-                let resolved_value = last_resolver_value.ok_or_else(|| Error::new("missing value for bytes column"))?;
-
-                let new_value = match resolved_value.data_resolved() {
-                    Value::Null => Value::Null,
-                    Value::Array(ref values) => {
-                        let mut result = Vec::with_capacity(values.len());
-
-                        for value in values {
-                            match value {
-                                Value::Null => result.push(Value::Null),
-                                Value::String(ref string) => {
-                                    let new_value = Value::String(STANDARD_NO_PAD.encode(string.as_bytes()));
-
-                                    result.push(new_value)
-                                }
-                                _ => return Err(Error::new("The resolved value is not a bytes string")),
-                            }
-                        }
-
-                        Value::Array(result)
-                    }
-                    _ => return Err(Error::new("The resolved value is not a bytes string")),
-                };
 
                 Ok(ResolvedValue::new(new_value))
             }

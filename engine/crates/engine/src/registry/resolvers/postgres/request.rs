@@ -1,3 +1,4 @@
+mod create_many;
 mod create_one;
 mod delete_many;
 mod delete_one;
@@ -15,5 +16,6 @@ pub(super) async fn execute(ctx: PostgresContext<'_>, operation: Operation) -> R
         Operation::DeleteOne => delete_one::execute(ctx).await,
         Operation::DeleteMany => delete_many::execute(ctx).await,
         Operation::CreateOne => create_one::execute(ctx).await,
+        Operation::CreateMany => create_many::execute(ctx).await,
     }
 }
