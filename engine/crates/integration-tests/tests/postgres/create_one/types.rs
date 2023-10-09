@@ -1258,48 +1258,51 @@ fn json() {
     expected.assert_eq(&response);
 }
 
-// https://grafbase.slack.com/archives/C04V5QCF8MP/p1696858449093239
-//
-// #[test]
-// fn json_array() {
-//     let response = query_postgres(|api| async move {
-//         let schema = indoc! {r#"
-//             CREATE TABLE "User" (
-//                 id SERIAL PRIMARY KEY,
-//                 val JSON[] NOT NULL
-//             )
-//         "#};
+#[test]
+fn json_array() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id SERIAL PRIMARY KEY,
+                val JSON[] NOT NULL
+            )
+        "#};
 
-//         api.execute_sql(schema).await;
+        api.execute_sql(schema).await;
 
-//         let mutation = indoc! {r#"
-//             mutation {
-//               userCreate(input: { val: [{ foo: 1 }, { bar: 2 }] }) {
-//                 val
-//               }
-//             }
-//         "#};
+        let mutation = indoc! {r#"
+            mutation {
+              userCreate(input: { val: [{ foo: 1 }, { bar: 2 }] }) {
+                val
+              }
+            }
+        "#};
 
-//         let result = api.execute(mutation).await;
+        let result = api.execute(mutation).await;
 
-//         assert_eq!(1, api.row_count("User").await);
+        assert_eq!(1, api.row_count("User").await);
 
-//         result
-//     });
+        result
+    });
 
-//     let expected = expect![[r#"
-//         {
-//           "data": {
-//             "userCreate": {
-//               "val": {
-//                 "foo": 1
-//               }
-//             }
-//           }
-//         }"#]];
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCreate": {
+              "val": [
+                {
+                  "foo": 1
+                },
+                {
+                  "bar": 2
+                }
+              ]
+            }
+          }
+        }"#]];
 
-//     expected.assert_eq(&response);
-// }
+    expected.assert_eq(&response);
+}
 
 #[test]
 fn jsonb() {
@@ -1335,6 +1338,52 @@ fn jsonb() {
               "val": {
                 "foo": 1
               }
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn jsonb_array() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id SERIAL PRIMARY KEY,
+                val JSONB[] NOT NULL
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userCreate(input: { val: [{ foo: 1 }, { bar: 2 }] }) {
+                val
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+
+        assert_eq!(1, api.row_count("User").await);
+
+        result
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCreate": {
+              "val": [
+                {
+                  "foo": 1
+                },
+                {
+                  "bar": 2
+                }
+              ]
             }
           }
         }"#]];
