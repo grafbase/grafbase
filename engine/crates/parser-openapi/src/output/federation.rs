@@ -6,7 +6,7 @@ use engine::registry::{
     variables::VariableResolveDefinition,
 };
 
-use crate::graph::{Arity, OpenApiGraph, OutputType, Resource, ResourceOperation};
+use crate::graph::{Arity, DebugNode, OpenApiGraph, OutputType, Resource, ResourceOperation};
 
 use super::OutputFieldKind;
 
@@ -23,9 +23,9 @@ fn entity_for_resource(resource: Resource, graph: &OpenApiGraph) -> Option<Feder
     let underlying_type = resource.underlying_type(graph)?;
     if !underlying_type.is_object() {
         // Only objects can be entities
-        tracing::info!(
+        tracing::debug!(
             "Skipping {:?} because it does not represent an object",
-            resource.name(graph)
+            resource.debug(graph)
         );
         return None;
     }
@@ -42,7 +42,7 @@ fn entity_for_resource(resource: Resource, graph: &OpenApiGraph) -> Option<Feder
             // for simplicities sake I'm going to skip
             let request_body = operation.operation.request_body(graph);
             if request_body.is_some() {
-                tracing::info!(
+                tracing::debug!(
                     "Skipping {:?} because it has a request body",
                     operation.operation.name(graph)
                 );
@@ -53,7 +53,11 @@ fn entity_for_resource(resource: Resource, graph: &OpenApiGraph) -> Option<Feder
         .collect::<Vec<_>>();
 
     if unary_operations.is_empty() {
-        tracing::info!("Skipping {:?} because it has no unary operations", resource.name(graph));
+        tracing::debug!(
+            "Skipping {} because it has no unary operations: {:#?}",
+            resource.name(graph).unwrap_or_default(),
+            resource.debug(graph)
+        );
         return None;
     }
 
@@ -63,7 +67,7 @@ fn entity_for_resource(resource: Resource, graph: &OpenApiGraph) -> Option<Feder
         .collect::<Vec<_>>();
 
     if keys.is_empty() {
-        tracing::info!("Skipping {:?} because it has no keys", resource.name(graph));
+        tracing::debug!("Skipping {:?} because it has no keys", resource.name(graph));
         return None;
     }
 
@@ -93,9 +97,10 @@ fn key_for_operation(
         // We're going to struggle to map the fields into the URL if they
         // don't exist or aren't simple enums & scalars.
         // So just skip generating a key for this field
-        tracing::info!(
-            "Skipping {:?} because its keys are difficult",
-            operation.operation.name(graph)
+        tracing::debug!(
+            "Skipping {:?} because its keys are difficult: {:#?}",
+            operation.operation.name(graph),
+            path_parameters.debug(graph)
         );
         return None;
     }

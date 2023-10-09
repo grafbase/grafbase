@@ -22,9 +22,11 @@ mod transforms;
 
 mod all_of_member;
 pub mod construction;
+mod debug;
 mod resource;
 
 pub use self::{
+    debug::DebugNode,
     enums::Enum,
     input_object::{InputField, InputObject},
     input_value::{InputValue, InputValueKind},

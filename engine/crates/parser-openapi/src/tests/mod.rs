@@ -1,3 +1,5 @@
+use std::sync::Once;
+
 use assert_matches::assert_matches;
 use engine::registry::{MetaType, UnionType};
 
@@ -113,7 +115,7 @@ fn test_orb() {
 
 #[test]
 fn test_mongo_atlas() {
-    tracing_subscriber::fmt().with_env_filter("trace").pretty().init();
+    init_tracing();
 
     // Mongo Atlas is a 3.1 spec
     insta::assert_snapshot!(build_registry(
@@ -212,4 +214,15 @@ fn metadata(name: &str, namespace: bool) -> ApiMetadata {
         headers: ConnectorHeaders::new([]),
         query_naming: QueryNamingStrategy::SchemaName,
     }
+}
+
+fn init_tracing() {
+    static INITIALIZER: Once = Once::new();
+    INITIALIZER.call_once(|| {
+        tracing_subscriber::fmt()
+            .with_env_filter("trace")
+            .without_time()
+            .with_test_writer()
+            .init();
+    });
 }

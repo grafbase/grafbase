@@ -6,8 +6,8 @@ use petgraph::{
 };
 
 use super::{
-    output_type::OutputFieldType, Arity, Edge, HttpMethod, Node, OperationDetails, PathParameter, QueryParameter,
-    RequestBody, RequestBodyContentType,
+    output_type::OutputFieldType, Arity, DebugNode, Edge, HttpMethod, Node, OperationDetails, PathParameter,
+    QueryParameter, RequestBody, RequestBodyContentType,
 };
 use crate::{is_ok, QueryNamingStrategy};
 
@@ -225,6 +225,15 @@ impl Operation {
                 }
                 _ => None,
             })
+    }
+}
+
+impl DebugNode for Operation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, graph: &super::OpenApiGraph) -> std::fmt::Result {
+        f.debug_struct("Operation")
+            .field("name", &self.name(graph))
+            .field("path_parameters", &self.path_parameters(graph).debug(graph))
+            .finish_non_exhaustive()
     }
 }
 

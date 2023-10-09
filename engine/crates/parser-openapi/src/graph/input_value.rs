@@ -4,7 +4,7 @@ use inflector::Inflector;
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use serde_json::Value;
 
-use super::{Edge, Enum, InputObject, Node, OpenApiGraph, ScalarKind, WrappingType};
+use super::{DebugNode, Edge, Enum, InputObject, Node, OpenApiGraph, ScalarKind, WrappingType};
 
 #[derive(Clone, Debug)]
 pub struct InputValue {
@@ -12,6 +12,7 @@ pub struct InputValue {
     wrapping: WrappingType,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum InputValueKind {
     Scalar,
     InputObject,
@@ -160,5 +161,14 @@ impl InputValue {
                 None
             }
         }
+    }
+}
+
+impl DebugNode for InputValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, graph: &OpenApiGraph) -> std::fmt::Result {
+        f.debug_struct("InputValue")
+            .field("kind", &self.kind(graph))
+            .field("wrapping_type", self.wrapping_type())
+            .finish_non_exhaustive()
     }
 }
