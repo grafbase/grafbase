@@ -119,16 +119,16 @@ async fn graphql(
         let uri = format!("http://127.0.0.1:{worker_port}/graphql{query}");
 
         // http::Request can't be cloned
-        let mut cloned = Request::builder()
+        let mut cloned_request = Request::builder()
             .method(req.method().clone())
             .uri(uri)
             .version(req.version());
 
         for header in req.headers() {
-            cloned = cloned.header(header.0, header.1);
+            cloned_request = cloned_request.header(header.0, header.1);
         }
 
-        let request = cloned
+        let request = cloned_request
             .body(body.clone().into())
             .expect("must succeed, using an existing request");
 
