@@ -220,4 +220,16 @@ impl TestApi {
     {
         self.inner.connection.query(query).await.expect("error in query")
     }
+
+    pub async fn row_count(&self, table: &str) -> usize {
+        #[derive(serde::Deserialize)]
+        struct Result {
+            count: String,
+        }
+
+        let query = format!("SELECT COUNT(*) AS count FROM \"{table}\"");
+        let response = self.query_sql::<Result>(&query).await;
+
+        response.into_single_row().unwrap().count.parse().unwrap()
+    }
 }

@@ -156,9 +156,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.71"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "arc-swap"
@@ -1744,6 +1744,7 @@ dependencies = [
  "getrandom 0.2.10",
  "grafbase-sql-ast",
  "graph-entities",
+ "hex",
  "http",
  "im",
  "indexmap 2.0.0-pre",
@@ -2476,10 +2477,11 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sql-ast"
-version = "0.1.4"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f154aebff01eb8bda88eb204508b796577a785f2c436d27dceaf33c0b0a9af3"
+checksum = "fa0f9b4ca8baa35c2988ea3b900d470e1cd80faa5aff94953cea6267f43d4c36"
 dependencies = [
+ "anyhow",
  "serde_json",
 ]
 

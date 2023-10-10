@@ -35,7 +35,7 @@ pub(crate) fn register(
         });
     });
 
-    let simple_input = format!("{}Collection", input_ctx.delete_type_name(table.client_name()));
+    let simple_input = format!("{}Collection", input_ctx.reduced_type_name(table.client_name()));
 
     output_ctx.with_input_type(&simple_input, table.id(), |builder| {
         for column in table.columns() {

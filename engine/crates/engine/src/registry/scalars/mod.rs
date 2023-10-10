@@ -38,6 +38,8 @@ mod unsigned_bigint;
 pub use unsigned_bigint::UnsignedBigIntScalar;
 mod bytes;
 pub use self::bytes::BytesScalar;
+mod hex_bytes;
+pub use self::hex_bytes::HexBytesScalar;
 mod time;
 pub use self::time::TimeScalar;
 mod naive_datetime;
@@ -276,6 +278,7 @@ pub type PossibleScalar = merge_scalar!(
     DecimalScalar,
     BigIntScalar,
     BytesScalar,
+    HexBytesScalar,
     UnsignedBigIntScalar,
     TimeScalar,
     NaiveDateTimeScalar,

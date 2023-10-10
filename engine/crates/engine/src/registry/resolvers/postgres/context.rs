@@ -1,9 +1,11 @@
 mod filter;
+mod input;
 pub mod selection;
 
 pub use selection::CollectionArgs;
 
 pub(super) use filter::FilterIterator;
+pub(super) use input::{InputItem, InputIterator};
 pub(super) use selection::{SelectionIterator, TableSelection};
 
 use crate::{
@@ -118,12 +120,35 @@ impl<'a> PostgresContext<'a> {
         Ok(FilterIterator::By(iterator))
     }
 
+    /// A complex `user(filter: { id: { eq: 1 } })` filter.
     pub fn filter(&'a self) -> ServerResult<FilterIterator<'a>> {
         let filter_map: Map<String, Value> = self.context.input_by_name("filter")?;
         let input_type = self.context.find_argument_type("filter")?;
         let iterator = ComplexFilterIterator::new(self, input_type, filter_map);
 
         Ok(FilterIterator::Complex(iterator))
+    }
+
+    /// An iterator for input value definition.
+    pub fn input(&'a self) -> ServerResult<InputIterator<'a>> {
+        let input_map: Map<String, Value> = self.context.input_by_name("input")?;
+        let input_type = self.context.find_argument_type("input")?;
+        let iterator = InputIterator::new(self.database_definition(), input_type, input_map);
+
+        Ok(iterator)
+    }
+
+    /// A collection of iterators for multiple input value definitions.
+    pub fn many_input(&'a self) -> ServerResult<Vec<InputIterator<'a>>> {
+        let input_map: Vec<Map<String, Value>> = self.context.input_by_name("input")?;
+        let input_type = self.context.find_argument_type("input")?;
+
+        let iterators = input_map
+            .into_iter()
+            .map(|input_map| InputIterator::new(self.database_definition(), input_type, input_map))
+            .collect();
+
+        Ok(iterators)
     }
 
     /// The database connection.

@@ -29,10 +29,18 @@ impl<'a> InputContext<'a> {
         }
     }
 
-    pub(crate) fn delete_type_name(&self, name: &str) -> String {
+    // an output type which has limited number of fields, e.g. only scalar fields.
+    pub(crate) fn reduced_type_name(&self, name: &str) -> String {
         match self.namespace {
-            Some(namespace) => format!("{namespace}_{name}_delete").to_pascal_case(),
-            None => format!("{name}_delete").to_pascal_case(),
+            Some(namespace) => format!("{namespace}_{name}_reduced").to_pascal_case(),
+            None => format!("{name}_reduced").to_pascal_case(),
+        }
+    }
+
+    pub(crate) fn create_input_name(&self, name: &str) -> String {
+        match self.namespace {
+            Some(namespace) => format!("{namespace}_{name}_input").to_pascal_case(),
+            None => format!("{name}_input").to_pascal_case(),
         }
     }
 

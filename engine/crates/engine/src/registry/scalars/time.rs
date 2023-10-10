@@ -1,5 +1,5 @@
 use engine_value::ConstValue;
-use time::{format_description::well_known::Rfc3339, Time};
+use time::{format_description::well_known::Iso8601, Time};
 
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
@@ -10,7 +10,7 @@ impl TimeScalar {
     pub fn parse_value(value: serde_json::Value) -> Result<Time, Error> {
         match value {
             serde_json::Value::String(string) => {
-                Time::parse(&string, &Rfc3339).map_err(|e| Error::new(format!("could not parse time: {e}")))
+                Time::parse(&string, &Iso8601::TIME).map_err(|e| Error::new(format!("could not parse time: {e}")))
             }
             _ => Err(Error::new("times should be provided as string")),
         }
@@ -34,7 +34,7 @@ impl<'a> SDLDefinitionScalar<'a> for TimeScalar {
 impl DynamicParse for TimeScalar {
     fn is_valid(value: &ConstValue) -> bool {
         match value {
-            ConstValue::String(time) => Time::parse(&time, &Rfc3339).is_ok(),
+            ConstValue::String(time) => Time::parse(&time, &Iso8601::TIME).is_ok(),
             _ => false,
         }
     }
@@ -51,7 +51,7 @@ impl DynamicParse for TimeScalar {
     fn parse(value: ConstValue) -> InputValueResult<serde_json::Value> {
         match value {
             ConstValue::String(time) => {
-                Time::parse(&time, &Rfc3339)
+                Time::parse(&time, &Iso8601::TIME)
                     .map_err(|e| InputValueError::ty_custom("Time", format!("could not parse time: {e}")))?;
 
                 Ok(serde_json::Value::String(time))
