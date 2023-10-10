@@ -2,7 +2,9 @@ use grafbase_sql_ast::ast::{
     json_build_object, Aliasable, Column, CommonTableExpression, Insert, MultiRowInsert, Select, SingleRowInsert,
 };
 
-use crate::registry::resolvers::postgres::context::{InputItem, InputIterator, PostgresContext, TableSelection};
+use crate::registry::resolvers::postgres::context::{
+    CreateInputItem, CreateInputIterator, PostgresContext, TableSelection,
+};
 
 enum InsertType<'a> {
     Single(SingleRowInsert<'a>),
@@ -11,7 +13,7 @@ enum InsertType<'a> {
 
 pub fn build<'a>(
     ctx: &'a PostgresContext<'a>,
-    input: impl IntoIterator<Item = InputIterator<'a>>,
+    input: impl IntoIterator<Item = CreateInputIterator<'a>>,
 ) -> Result<Select<'a>, crate::Error> {
     let mut query = None;
 
@@ -65,18 +67,18 @@ pub fn build<'a>(
     insert.returning(returning);
 
     let mut select = Select::from_table(insert_name.clone());
-    select.with(CommonTableExpression::new(insert_name.clone(), insert));
+    select.with(CommonTableExpression::new(insert_name, insert));
     select.value(json_build_object(selected_data).alias("root"));
 
     Ok(select)
 }
 
-fn create_insert<'a>(ctx: &'a PostgresContext, input: InputIterator<'a>) -> SingleRowInsert<'a> {
+fn create_insert<'a>(ctx: &'a PostgresContext, input: CreateInputIterator<'a>) -> SingleRowInsert<'a> {
     let mut insert = Insert::single_into(ctx.table().database_name());
 
     for input in input {
         match input {
-            InputItem::Column(column, value) => insert.value(column.database_name(), value),
+            CreateInputItem::Column(column, value) => insert.value(column.database_name(), value),
         }
     }
 

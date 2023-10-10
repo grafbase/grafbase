@@ -1,12 +1,14 @@
+mod create_input;
 mod filter;
-mod input;
 pub mod selection;
+mod update_input;
 
 pub use selection::CollectionArgs;
 
+pub(super) use create_input::{CreateInputItem, CreateInputIterator};
 pub(super) use filter::FilterIterator;
-pub(super) use input::{InputItem, InputIterator};
 pub(super) use selection::{SelectionIterator, TableSelection};
+pub(super) use update_input::{UpdateInputItem, UpdateInputIterator};
 
 use crate::{
     registry::{resolvers::ResolverContext, type_kinds::SelectionSetTarget, Registry},
@@ -129,26 +131,35 @@ impl<'a> PostgresContext<'a> {
         Ok(FilterIterator::Complex(iterator))
     }
 
-    /// An iterator for input value definition.
-    pub fn input(&'a self) -> ServerResult<InputIterator<'a>> {
+    /// An iterator for create input value definition.
+    pub fn create_input(&'a self) -> ServerResult<CreateInputIterator<'a>> {
         let input_map: Map<String, Value> = self.context.input_by_name("input")?;
         let input_type = self.context.find_argument_type("input")?;
-        let iterator = InputIterator::new(self.database_definition(), input_type, input_map);
+        let iterator = CreateInputIterator::new(self.database_definition(), input_type, input_map);
 
         Ok(iterator)
     }
 
-    /// A collection of iterators for multiple input value definitions.
-    pub fn many_input(&'a self) -> ServerResult<Vec<InputIterator<'a>>> {
+    /// A collection of iterators for multiple create input value definitions.
+    pub fn create_many_input(&'a self) -> ServerResult<Vec<CreateInputIterator<'a>>> {
         let input_map: Vec<Map<String, Value>> = self.context.input_by_name("input")?;
         let input_type = self.context.find_argument_type("input")?;
 
         let iterators = input_map
             .into_iter()
-            .map(|input_map| InputIterator::new(self.database_definition(), input_type, input_map))
+            .map(|input_map| CreateInputIterator::new(self.database_definition(), input_type, input_map))
             .collect();
 
         Ok(iterators)
+    }
+
+    /// An iterator for update value definition.
+    pub fn update_input(&'a self) -> ServerResult<UpdateInputIterator<'a>> {
+        let input_map: Map<String, Value> = self.context.input_by_name("input")?;
+        let input_type = self.context.find_argument_type("input")?;
+        let iterator = UpdateInputIterator::new(self.database_definition(), input_type, input_map);
+
+        Ok(iterator)
     }
 
     /// The database connection.

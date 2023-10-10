@@ -22,6 +22,15 @@ impl<'a> InputContext<'a> {
         self.directive_name
     }
 
+    pub(crate) fn update_type_name(&self, scalar: &str) -> String {
+        let base_name = format!("{scalar}_update_input");
+
+        match self.namespace {
+            Some(namespace) => format!("{namespace}_{base_name}").to_pascal_case(),
+            None => base_name.to_pascal_case(),
+        }
+    }
+
     pub(crate) fn type_name<'b>(&self, name: &'b str) -> Cow<'b, str> {
         match self.namespace {
             Some(namespace) => Cow::Owned(format!("{namespace}_{name}").to_pascal_case()),

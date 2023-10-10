@@ -5,6 +5,7 @@ mod delete_one;
 mod find_many;
 mod find_one;
 mod input;
+mod update_one;
 
 use super::context::{InputContext, OutputContext};
 
@@ -17,6 +18,8 @@ pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
     for table in tables {
         let filter_oneof_type = input::oneof::register(input_ctx, table, output_ctx);
         let create_input_type = input::create::register(input_ctx, table, output_ctx);
+        let update_input_type = input::update::register(input_ctx, table, output_ctx);
+
         let (simple_filter, complex_filter) = input::filter::register(input_ctx, table, output_ctx);
 
         find_one::register(input_ctx, table, &filter_oneof_type, output_ctx);
@@ -25,5 +28,6 @@ pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
         delete_many::register(input_ctx, table, &simple_filter, output_ctx);
         create_one::register(input_ctx, table, &create_input_type, output_ctx);
         create_many::register(input_ctx, table, &create_input_type, output_ctx);
+        update_one::register(input_ctx, table, &filter_oneof_type, &update_input_type, output_ctx);
     }
 }

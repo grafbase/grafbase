@@ -46,6 +46,27 @@ fn table_with_serial_primary_key() {
           not: IntSearchFilterInput
         }
 
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
         type Mutation {
           """
             Delete a unique User by a field or combination of fields
@@ -63,6 +84,10 @@ fn table_with_serial_primary_key() {
             Create multiple Users
           """
           userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
         }
 
         enum OrderByDirection {
@@ -142,6 +167,10 @@ fn table_with_serial_primary_key() {
           """
             At least one of the filters must match
           """ ANY: [UserReducedCollection]
+        }
+
+        input UserUpdateInput {
+          id: IntUpdateInput
         }
 
         schema {
@@ -235,6 +264,11 @@ fn table_with_enum_field() {
           """ ANY: [AReducedCollection]
         }
 
+        input AUpdateInput {
+          id: IntUpdateInput
+          val: StreetLightUpdateInput
+        }
+
         """
           Search filter input for Int type.
         """
@@ -266,6 +300,27 @@ fn table_with_enum_field() {
           not: IntSearchFilterInput
         }
 
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
         type Mutation {
           """
             Delete a unique A by a field or combination of fields
@@ -283,6 +338,10 @@ fn table_with_enum_field() {
             Create multiple As
           """
           aCreateMany(input: [AInput!]!): [AReduced!]!
+          """
+            Update a unique A
+          """
+          aUpdate(by: AByInput!, input: AUpdateInput!): AReduced
         }
 
         enum OrderByDirection {
@@ -367,6 +426,27 @@ fn table_with_int_primary_key() {
           not: IntSearchFilterInput
         }
 
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
         type Mutation {
           """
             Delete a unique User by a field or combination of fields
@@ -384,6 +464,10 @@ fn table_with_int_primary_key() {
             Create multiple Users
           """
           userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
         }
 
         enum OrderByDirection {
@@ -463,6 +547,10 @@ fn table_with_int_primary_key() {
           """
             At least one of the filters must match
           """ ANY: [UserReducedCollection]
+        }
+
+        input UserUpdateInput {
+          id: IntUpdateInput
         }
 
         schema {
@@ -518,6 +606,27 @@ fn table_with_int_unique() {
           not: IntSearchFilterInput
         }
 
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
         type Mutation {
           """
             Delete a unique User by a field or combination of fields
@@ -535,6 +644,10 @@ fn table_with_int_unique() {
             Create multiple Users
           """
           userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
         }
 
         enum OrderByDirection {
@@ -614,6 +727,10 @@ fn table_with_int_unique() {
           """
             At least one of the filters must match
           """ ANY: [UserReducedCollection]
+        }
+
+        input UserUpdateInput {
+          id: IntUpdateInput
         }
 
         schema {
@@ -670,6 +787,27 @@ fn table_with_serial_primary_key_string_unique() {
           not: IntSearchFilterInput
         }
 
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
         type Mutation {
           """
             Delete a unique User by a field or combination of fields
@@ -687,6 +825,10 @@ fn table_with_serial_primary_key_string_unique() {
             Create multiple Users
           """
           userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
         }
 
         enum OrderByDirection {
@@ -741,6 +883,15 @@ fn table_with_serial_primary_key_string_unique() {
             The value is not in the given array of values
           """ nin: [String]
           not: StringSearchFilterInput
+        }
+
+        """
+          Update input for String type.
+        """
+        input StringUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: String
         }
 
         type User {
@@ -806,6 +957,11 @@ fn table_with_serial_primary_key_string_unique() {
           """ ANY: [UserReducedCollection]
         }
 
+        input UserUpdateInput {
+          id: IntUpdateInput
+          email: StringUpdateInput
+        }
+
         schema {
           query: Query
           mutation: Mutation
@@ -847,6 +1003,10 @@ fn table_with_composite_primary_key() {
             Create multiple Users
           """
           userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
         }
 
         enum OrderByDirection {
@@ -901,6 +1061,15 @@ fn table_with_composite_primary_key() {
             The value is not in the given array of values
           """ nin: [String]
           not: StringSearchFilterInput
+        }
+
+        """
+          Update input for String type.
+        """
+        input StringUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: String
         }
 
         type User {
@@ -970,6 +1139,11 @@ fn table_with_composite_primary_key() {
           """ ANY: [UserReducedCollection]
         }
 
+        input UserUpdateInput {
+          name: StringUpdateInput
+          email: StringUpdateInput
+        }
+
         schema {
           query: Query
           mutation: Mutation
@@ -1033,6 +1207,27 @@ fn two_schemas_same_table_name() {
           not: IntSearchFilterInput
         }
 
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
         type Mutation {
           """
             Delete a unique PrivateUser by a field or combination of fields
@@ -1051,6 +1246,10 @@ fn two_schemas_same_table_name() {
           """
           privateUserCreateMany(input: [PrivateUserInput!]!): [PrivateUserReduced!]!
           """
+            Update a unique PrivateUser
+          """
+          privateUserUpdate(by: PrivateUserByInput!, input: PrivateUserUpdateInput!): PrivateUserReduced
+          """
             Delete a unique PublicUser by a field or combination of fields
           """
           publicUserDelete(by: PublicUserByInput!): PublicUserReduced
@@ -1066,6 +1265,10 @@ fn two_schemas_same_table_name() {
             Create multiple PublicUsers
           """
           publicUserCreateMany(input: [PublicUserInput!]!): [PublicUserReduced!]!
+          """
+            Update a unique PublicUser
+          """
+          publicUserUpdate(by: PublicUserByInput!, input: PublicUserUpdateInput!): PublicUserReduced
         }
 
         enum OrderByDirection {
@@ -1136,6 +1339,10 @@ fn two_schemas_same_table_name() {
           """ ANY: [PrivateUserReducedCollection]
         }
 
+        input PrivateUserUpdateInput {
+          id: IntUpdateInput
+        }
+
         type PublicUser {
           id: Int!
         }
@@ -1190,6 +1397,10 @@ fn two_schemas_same_table_name() {
           """
             At least one of the filters must match
           """ ANY: [PublicUserReducedCollection]
+        }
+
+        input PublicUserUpdateInput {
+          id: IntUpdateInput
         }
 
         type Query {
@@ -1268,6 +1479,27 @@ fn table_with_serial_primary_key_namespaced() {
           not: NeonIntSearchFilterInput
         }
 
+        """
+          Update input for Int type.
+        """
+        input NeonIntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
         type NeonMutation {
           """
             Delete a unique User by a field or combination of fields
@@ -1285,6 +1517,10 @@ fn table_with_serial_primary_key_namespaced() {
             Create multiple Users
           """
           userCreateMany(input: [NeonUserInput!]!): [NeonUserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: NeonUserByInput!, input: NeonUserUpdateInput!): NeonUserReduced
         }
 
         enum NeonOrderByDirection {
@@ -1364,6 +1600,10 @@ fn table_with_serial_primary_key_namespaced() {
           """
             At least one of the filters must match
           """ ANY: [NeonUserReducedCollection]
+        }
+
+        input NeonUserUpdateInput {
+          id: NeonIntUpdateInput
         }
 
         type Query {
@@ -1485,6 +1725,13 @@ fn two_tables_with_single_column_foreign_key() {
           """ ANY: [BlogReducedCollection]
         }
 
+        input BlogUpdateInput {
+          id: IntUpdateInput
+          title: StringUpdateInput
+          content: StringUpdateInput
+          userId: IntUpdateInput
+        }
+
         """
           Search filter input for Int type.
         """
@@ -1516,6 +1763,27 @@ fn two_tables_with_single_column_foreign_key() {
           not: IntSearchFilterInput
         }
 
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
         type Mutation {
           """
             Delete a unique Blog by a field or combination of fields
@@ -1534,6 +1802,10 @@ fn two_tables_with_single_column_foreign_key() {
           """
           blogCreateMany(input: [BlogInput!]!): [BlogReduced!]!
           """
+            Update a unique Blog
+          """
+          blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogReduced
+          """
             Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserReduced
@@ -1549,6 +1821,10 @@ fn two_tables_with_single_column_foreign_key() {
             Create multiple Users
           """
           userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
         }
 
         enum OrderByDirection {
@@ -1613,6 +1889,15 @@ fn two_tables_with_single_column_foreign_key() {
           not: StringSearchFilterInput
         }
 
+        """
+          Update input for String type.
+        """
+        input StringUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: String
+        }
+
         type User {
           id: Int!
           name: String!
@@ -1675,6 +1960,11 @@ fn two_tables_with_single_column_foreign_key() {
           """
             At least one of the filters must match
           """ ANY: [UserReducedCollection]
+        }
+
+        input UserUpdateInput {
+          id: IntUpdateInput
+          name: StringUpdateInput
         }
 
         schema {

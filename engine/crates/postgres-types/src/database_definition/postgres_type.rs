@@ -14,6 +14,10 @@ impl<'a> DatabaseType<'a> {
     pub fn is_binary(&self) -> bool {
         matches!(self, DatabaseType::Scalar(ScalarType::Bytea | ScalarType::ByteaArray))
     }
+
+    pub fn is_json(&self) -> bool {
+        matches!(self, DatabaseType::Scalar(ScalarType::Json | ScalarType::JsonArray))
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
