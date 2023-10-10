@@ -1,0 +1,8 @@
+---
+source: crates/parser-sdl/src/rules/federation/key.rs
+expression: registry.export_sdl(true)
+---
+type User @key(fields: "id" resolvable: false) {
+	id: ID!
+}
+

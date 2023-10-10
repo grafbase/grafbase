@@ -1,5 +1,5 @@
-use super::{directive::Directive, visitor::Visitor};
-use crate::directive_de::parse_directive;
+use super::super::{directive::Directive, visitor::Visitor};
+use crate::{directive_de::parse_directive, rules::visitor::VisitorContext};
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,7 +32,7 @@ pub struct FederationDirectiveVisitor;
 impl<'a> Visitor<'a> for FederationDirectiveVisitor {
     fn enter_schema(
         &mut self,
-        ctx: &mut super::visitor::VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a>,
         doc: &'a engine::Positioned<engine_parser::types::SchemaDefinition>,
     ) {
         let directives = doc
@@ -55,17 +55,6 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::RuleError;
-
-    #[cfg(comebacktothisone)]
-    #[test]
-    fn test_federation_with_no_models() {
-        let schema = r#"extend schema @federation(version: "2.3")"#;
-        let registry = crate::to_parse_result_with_variables(schema, &HashMap::new())
-            .unwrap()
-            .registry;
-        // TODO: This fails.  Not sure if it should?
-        assert_eq!(registry.export_sdl(false), registry.export_sdl(true));
-    }
 
     #[test]
     fn test_federation_with_a_model() {

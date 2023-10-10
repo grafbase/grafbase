@@ -5,6 +5,7 @@
 //!
 use engine::registry::{
     self,
+    federation::FederationKey,
     resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
     MetaField,
 };
@@ -12,13 +13,16 @@ use engine_parser::{
     types::{FieldDefinition, TypeKind},
     Positioned,
 };
-use if_chain::if_chain;
+use itertools::Itertools;
 
 use super::{
+    federation::KeyDirective,
     resolver_directive::ResolverDirective,
     visitor::{Visitor, VisitorContext},
 };
-use crate::{registry::add_input_type_non_primitive, rules::cache_directive::CacheDirective};
+use crate::{
+    directive_de::parse_directive, registry::add_input_type_non_primitive, rules::cache_directive::CacheDirective,
+};
 
 pub struct BasicType;
 
@@ -29,15 +33,24 @@ impl<'a> Visitor<'a> for BasicType {
         type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
         let directives = &type_definition.node.directives;
-        if_chain! {
-            if !["Query", "Mutation"].contains(&type_definition.node.name.node.as_str());
-            if !directives.iter().any(|directive| directive.is_model());
-            if let TypeKind::Object(object) = &type_definition.node.kind;
-            then {
-                let type_name = type_definition.node.name.node.to_string();
-                // If it's a modeled Type, we create the associated type into the registry.
-                // Without more data, we infer it's from our modelization.
-                ctx.registry.get_mut().create_type(|_| registry::ObjectType::new(
+
+        if ["Query", "Mutation"].contains(&type_definition.node.name.node.as_str())
+            | directives.iter().any(|directive| directive.is_model())
+        {
+            return;
+        }
+
+        let TypeKind::Object(object) = &type_definition.node.kind else {
+            return;
+        };
+
+        let type_name = type_definition.node.name.node.to_string();
+
+        // If it's a modeled Type, we create the associated type into the registry.
+        // Without more data, we infer it's from our modelization.
+        ctx.registry.get_mut().create_type(
+            |_| {
+                registry::ObjectType::new(
                     type_name.clone(),
                     object.fields.iter().map(|field| {
                         let name = field.name().to_string();
@@ -54,20 +67,56 @@ impl<'a> Visitor<'a> for BasicType {
                             resolver,
                             ..Default::default()
                         }
-                    })
+                    }),
                 )
-                    .with_description(type_definition.node.description.clone().map(|x| x.node))
-                    .with_cache_control(CacheDirective::parse(&type_definition.node.directives))
-                    .into()
-                ,&type_name,
-                &type_name
-                );
+                .with_description(type_definition.node.description.clone().map(|x| x.node))
+                .with_cache_control(CacheDirective::parse(&type_definition.node.directives))
+                .into()
+            },
+            &type_name,
+            &type_name,
+        );
 
-                // If the type is a non primitive and also not modelized, it means we need to
-                // create the Input version of it.
-                // If the input is non used by other queries/mutation, it'll be removed from the
-                // final schema.
-                add_input_type_non_primitive(ctx, object, &type_name);
+        // If the type is a non primitive and also not modelized, it means we need to
+        // create the Input version of it.
+        // If the input is non used by other queries/mutation, it'll be removed from the
+        // final schema.
+        add_input_type_non_primitive(ctx, object, &type_name);
+
+        // We also need to parse any unresolvable keys
+        let key_directives = directives
+            .iter()
+            .filter(|directive| directive.node.name.node == "key")
+            .collect::<Vec<_>>();
+
+        if !key_directives.is_empty() {
+            let (oks, errors) = key_directives
+                .into_iter()
+                .map(|directive| {
+                    Ok((
+                        directive.pos,
+                        parse_directive::<KeyDirective>(directive, ctx.variables)?,
+                    ))
+                })
+                .partition_result::<Vec<_>, Vec<_>, _, _>();
+
+            ctx.append_errors(errors);
+
+            for (pos, key) in oks {
+                if key.resolvable {
+                    ctx.report_error(
+                        vec![pos],
+                        "Found a resolvable key on a basic type, which is currently unsupported",
+                    );
+                }
+
+                ctx.registry
+                    .borrow_mut()
+                    .federation_entities
+                    .entry(type_name.clone())
+                    .or_default()
+                    .keys
+                    .push(FederationKey::unresolvable(key.fields));
             }
         }
     }
