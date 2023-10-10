@@ -9,6 +9,7 @@
     "types": "tsc --noEmit"
   },
   "dependencies": {
+    "@pathfinder-ide/react": "^0.2.1",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -18,9 +19,7 @@
     "@vitejs/plugin-react": "^4.0.0",
     "monaco-editor": "0.43.0",
     "monaco-graphql": "1.2.4",
-    "pathfinder": "workspace:*",
     "ui": "workspace:*",
-    "vite-plugin-monaco-editor": "1.1.0",
     "vite": "4.4.9",
     "zustand": "4.4.1"
   }

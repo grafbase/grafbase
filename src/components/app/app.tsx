@@ -1,13 +1,12 @@
-import { Pathfinder, SchemaInitializer } from 'pathfinder'
-import { SchemaDefinition, SchemaDocumentation } from 'pathfinder'
+// import { Pathfinder, SchemaInitializer } from 'pathfinder'
+// import { SchemaDefinition, SchemaDocumentation } from 'pathfinder'
 import { darkTheme, theme } from 'ui'
 
 import { useCliApp } from '../../stores'
 import { Nav } from '../nav'
 import {
-  StyledApp,
-  StyledToolDisplayWrapper,
-  StyledToolsContainer,
+  StyledApp, // StyledToolDisplayWrapper,
+  // StyledToolsContainer,
   globalStyles
 } from './app.styles'
 
@@ -15,13 +14,13 @@ export const App = () => {
   // this global css comes from our stitches setup and is the same as in the next app
   globalStyles()
 
-  const endpoint =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    import.meta.env.VITE_GRAFBASE_ENDPOINT || window.GRAPHQL_URL
+  // const endpoint =
+  //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //   import.meta.env.VITE_GRAFBASE_ENDPOINT || window.GRAPHQL_URL
 
-  const apiKey = import.meta.env.VITE_GRAFBASE_API_KEY || ''
+  // const apiKey = import.meta.env.VITE_GRAFBASE_API_KEY || ''
 
-  const visibleTool = useCliApp(state => state.visibleTool)
+  // const visibleTool = useCliApp(state => state.visibleTool)
   const appTheme = useCliApp(state => state.theme)
 
   return (
@@ -29,7 +28,7 @@ export const App = () => {
       className={appTheme === 'dark' ? darkTheme.className : theme.className}
     >
       <Nav />
-      <SchemaInitializer
+      {/* <SchemaInitializer
         fetcherOptions={{
           endpoint,
           http: {
@@ -57,7 +56,7 @@ export const App = () => {
             </StyledToolDisplayWrapper>
           </StyledToolsContainer>
         }
-      />
+      /> */}
     </StyledApp>
   )
 }

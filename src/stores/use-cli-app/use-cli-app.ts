@@ -1,4 +1,4 @@
-import { useEditor } from 'pathfinder'
+// import { useEditor } from 'pathfinder'
 import { create } from 'zustand'
 
 import { UseCliAppStore } from './use-cli-app.types'
@@ -11,16 +11,16 @@ export const useCliApp = create<UseCliAppStore>((set, get) => ({
     const theme = get().theme
 
     if (theme === 'dark') {
-      useEditor.getState().setEditorTheme({
-        theme: 'light'
-      })
+      // useEditor.getState().setEditorTheme({
+      //   theme: 'light'
+      // })
       return set({ theme: 'light' })
     }
 
     if (theme === 'light') {
-      useEditor.getState().setEditorTheme({
-        theme: 'dark'
-      })
+      // useEditor.getState().setEditorTheme({
+      //   theme: 'dark'
+      // })
       return set({ theme: 'dark' })
     }
   },

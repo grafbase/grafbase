@@ -28,29 +28,29 @@ export const StyledApp = styled('div', {
   overflow: 'hidden'
 })
 
-export const StyledToolsContainer = styled('main', {
-  height: '100%',
-  width: '100%',
-  overflow: 'hidden'
-})
+// export const StyledToolsContainer = styled('main', {
+//   height: '100%',
+//   width: '100%',
+//   overflow: 'hidden'
+// })
 
-export const StyledToolDisplayWrapper = styled('div', {
-  boxSizing: 'border-box',
+// export const StyledToolDisplayWrapper = styled('div', {
+//   boxSizing: 'border-box',
 
-  variants: {
-    isVisible: {
-      true: {
-        visibility: 'visible',
-        opacity: 1,
-        height: '100%',
-        width: '100%'
-      },
-      false: {
-        visibility: 'hidden',
-        opacity: 0,
-        height: 0,
-        width: 0
-      }
-    }
-  }
-})
+//   variants: {
+//     isVisible: {
+//       true: {
+//         visibility: 'visible',
+//         opacity: 1,
+//         height: '100%',
+//         width: '100%'
+//       },
+//       false: {
+//         visibility: 'hidden',
+//         opacity: 0,
+//         height: 0,
+//         width: 0
+//       }
+//     }
+//   }
+// })
