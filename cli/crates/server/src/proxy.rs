@@ -21,7 +21,6 @@ use hyper::{http::HeaderValue, Method, Request};
 use serde_json::json;
 use sqlx::query;
 use std::net::Shutdown;
-use std::sync::Arc;
 use std::time::Duration;
 use std::{
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, TcpListener},
