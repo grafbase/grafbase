@@ -353,6 +353,8 @@ pub fn print_log_entry(
         ..
     }: LogEvent,
 ) {
+    let created_at: chrono::DateTime<chrono::Local> = chrono::DateTime::from(created_at);
+
     let extra_properties = match log_event_type {
         crate::logs::LogEventType::Request {
             http_method,
