@@ -35,7 +35,7 @@ impl SubscriptionType for EmptySubscription {
     {
         Some(Box::pin(stream::once(async move {
             let err = ServerError::new("Schema is not configured for subscription.", None);
-            Response::from_errors(vec![err], OperationType::Subscription)
+            Response::from_errors_with_type(vec![err], OperationType::Subscription)
         })))
     }
 }

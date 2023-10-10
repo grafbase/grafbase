@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use common_types::{LogEventType, OperationType};
+use common_types::LogEventType;
 use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute, NextPrepareRequest},
     parser::types::OperationDefinition,
@@ -70,7 +70,7 @@ impl Extension for RuntimeLogExtension {
         operation: &OperationDefinition,
         next: NextExecute<'_>,
     ) -> Response {
-        use engine::parser::types::{OperationType as ParserOperationType, Selection};
+        use engine::parser::types::Selection;
 
         let runtime_ctx = ctx.data::<runtime::Context>().expect("must be set");
 
@@ -97,23 +97,19 @@ impl Extension for RuntimeLogExtension {
             _ => None,
         });
 
-        self.log_event_receiver
-            .invoke(
-                runtime_ctx.ray_id(),
-                runtime_ctx.log.request_log_event_id,
-                LogEventType::OperationCompleted {
-                    name: operation_name.map(From::from),
-                    duration,
-                    r#type: match response.operation_type {
-                        ParserOperationType::Query => OperationType::Query {
-                            is_introspection: crate::is_operation_introspection(operation),
-                        },
-                        ParserOperationType::Mutation => OperationType::Mutation,
-                        ParserOperationType::Subscription => OperationType::Subscription,
+        if let Some(operation) = response.graphql_operation.as_ref() {
+            self.log_event_receiver
+                .invoke(
+                    runtime_ctx.ray_id(),
+                    runtime_ctx.log.request_log_event_id,
+                    LogEventType::OperationCompleted {
+                        name: operation_name.map(From::from),
+                        duration,
+                        r#type: operation.r#type,
                     },
-                },
-            )
-            .await;
+                )
+                .await;
+        }
 
         response
     }

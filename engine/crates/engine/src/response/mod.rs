@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use engine_parser::types::OperationType;
+use engine_parser::types::{OperationDefinition, OperationType, Selection};
 use graph_entities::QueryResponse;
 use http::{
     header::{HeaderMap, HeaderName},
@@ -15,6 +15,13 @@ use crate::{CacheControl, Result, ServerError, Value};
 pub use streaming::*;
 
 mod streaming;
+
+/// GraphQL operation used in the request.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ResponseOperation {
+    pub name: Option<String>,
+    pub r#type: common_types::OperationType,
+}
 
 /// Query response
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -38,8 +45,34 @@ pub struct Response {
     #[serde(skip)]
     pub http_headers: HeaderMap,
 
-    /// GraphQL operation type derived from incoming request
-    pub operation_type: OperationType,
+    /// GraphQL operation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub graphql_operation: Option<ResponseOperation>,
+}
+
+fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
+    match operation.ty {
+        OperationType::Query => common_types::OperationType::Query {
+            is_introspection: is_operation_introspection(operation),
+        },
+        OperationType::Mutation => common_types::OperationType::Mutation,
+        OperationType::Subscription => common_types::OperationType::Subscription,
+    }
+}
+
+fn is_operation_introspection(operation: &OperationDefinition) -> bool {
+    operation.ty == OperationType::Query
+        && operation
+            .selection_set
+            .node
+            .items
+            .iter()
+            // If field name starts with `__` it is part of introspection system, see http://spec.graphql.org/October2021/#sec-Names.Reserved-Names
+            .all(|item| {
+                matches!(
+                &item.node,
+                Selection::Field(field) if field.node.name.node.starts_with("__"))
+            })
 }
 
 impl Response {
@@ -49,21 +82,75 @@ impl Response {
 
     /// Create a new successful response with the data.
     #[must_use]
-    pub fn new(mut data: QueryResponse, operation_type: OperationType) -> Self {
+    pub fn new(
+        mut data: QueryResponse,
+        operation_name: Option<&str>,
+        operation_definition: &OperationDefinition,
+    ) -> Self {
         data.shrink_to_fit();
         Self {
             data,
-            operation_type,
+            graphql_operation: Some(ResponseOperation {
+                name: operation_name.map(str::to_owned),
+                r#type: response_operation_for_definition(operation_definition),
+            }),
+            ..Default::default()
+        }
+    }
+
+    /// Create a new successful response with the data.
+    #[cfg(test)]
+    #[must_use]
+    pub fn new_test(mut data: QueryResponse) -> Self {
+        data.shrink_to_fit();
+        Self {
+            data,
+            graphql_operation: None,
+            ..Default::default()
+        }
+    }
+
+    #[must_use]
+    pub fn bad_request(errors: Vec<ServerError>) -> Self {
+        Self {
+            errors,
+            graphql_operation: None,
             ..Default::default()
         }
     }
 
     /// Create a response from some errors.
     #[must_use]
-    pub fn from_errors(errors: Vec<ServerError>, operation_type: OperationType) -> Self {
+    pub fn from_errors_with_type(errors: Vec<ServerError>, operation_type: OperationType) -> Self {
         Self {
             errors,
-            operation_type,
+            graphql_operation: Some(ResponseOperation {
+                name: None,
+                r#type: match operation_type {
+                    OperationType::Query => common_types::OperationType::Query {
+                        is_introspection: false,
+                    },
+                    OperationType::Mutation => common_types::OperationType::Mutation,
+                    OperationType::Subscription => common_types::OperationType::Subscription,
+                },
+            }),
+            ..Default::default()
+        }
+    }
+
+    /// Create a response from some errors.
+    #[must_use]
+    pub fn from_errors(
+        errors: Vec<ServerError>,
+        operation_name: Option<&str>,
+        operation_definition: &OperationDefinition,
+    ) -> Self {
+        Self {
+            errors,
+            graphql_operation: Some(ResponseOperation {
+                name: operation_name.map(str::to_owned),
+                r#type: response_operation_for_definition(operation_definition),
+            }),
             ..Default::default()
         }
     }
@@ -222,11 +309,19 @@ impl Cacheable for Response {
     }
 
     fn should_purge_related(&self) -> bool {
-        self.operation_type == OperationType::Mutation && !self.data.cache_tags().is_empty()
+        self.graphql_operation
+            .as_ref()
+            .is_some_and(|operation| operation.r#type == common_types::OperationType::Mutation)
+            && !self.data.cache_tags().is_empty()
     }
 
     fn should_cache(&self) -> bool {
-        self.operation_type != OperationType::Mutation && self.errors.is_empty() && self.cache_control.max_age != 0
+        !self
+            .graphql_operation
+            .as_ref()
+            .is_some_and(|operation| operation.r#type == common_types::OperationType::Mutation)
+            && self.errors.is_empty()
+            && self.cache_control.max_age != 0
     }
 }
 
@@ -241,7 +336,7 @@ mod tests {
         let id = resp.from_serde_value(json);
         resp.set_root_unchecked(id);
 
-        let resp = Response::new(resp, Default::default());
+        let resp = Response::new_test(resp);
 
         let resp = BatchResponse::Single(resp);
         assert_eq!(resp.into_json_value().unwrap().to_string(), r#"{"data":true}"#);
@@ -253,13 +348,13 @@ mod tests {
         let mut resp1 = QueryResponse::default();
         let id = resp1.from_serde_value(json1);
         resp1.set_root_unchecked(id);
-        let resp1 = Response::new(resp1, Default::default());
+        let resp1 = Response::new_test(resp1);
 
         let json2 = Value::String("1".to_string()).into_json().unwrap();
         let mut resp2 = QueryResponse::default();
         let id = resp2.from_serde_value(json2);
         resp2.set_root_unchecked(id);
-        let resp2 = Response::new(resp2, Default::default());
+        let resp2 = Response::new_test(resp2);
 
         let resp = BatchResponse::Batch(vec![resp1, resp2]);
         assert_eq!(

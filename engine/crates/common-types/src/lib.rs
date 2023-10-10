@@ -20,11 +20,20 @@ pub enum UdfKind {
     Authorizer,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone, Copy, Debug)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Copy, Debug, strum::Display, PartialEq)]
+#[strum(serialize_all = "lowercase")]
 pub enum OperationType {
     Query { is_introspection: bool },
     Mutation,
     Subscription,
+}
+
+impl Default for OperationType {
+    fn default() -> Self {
+        Self::Query {
+            is_introspection: false,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize)]
@@ -34,6 +43,12 @@ pub enum LogLevel {
     Warn,
     Info,
     Debug,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
+pub struct Operation<'a> {
+    pub name: Option<std::borrow::Cow<'a, str>>,
+    pub r#type: OperationType,
 }
 
 #[serde_with::serde_as]
@@ -60,6 +75,7 @@ pub enum LogEventType<'a> {
         status_code: u16,
         #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
         duration: std::time::Duration,
+        operation: Option<Operation<'a>>,
     },
     NestedRequest {
         url: String,
