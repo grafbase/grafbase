@@ -9,8 +9,9 @@ import {
 import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 import { EnumDefinition } from './typedefs/enum'
+import { ResolverDefinition } from './typedefs/resolver'
 import { validateIdentifier } from './validation'
-import { InputType, OutputType, Query, QueryArgument } from './query'
+import { Query } from './query'
 import { MapDefinition } from './typedefs/map'
 
 /**
@@ -28,6 +29,7 @@ export type TypeFieldShape =
   | CacheDefinition
   | MapDefinition
   | EnumDefinition<any, any>
+  | ResolverDefinition
 
 /**
  * A composite type definition (e.g. not a model).
