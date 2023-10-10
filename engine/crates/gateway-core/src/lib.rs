@@ -96,7 +96,7 @@ where
             .instrument(info_span!("authorize_request"))
             .await
         else {
-            return Executor::Response::engine(Arc::new(engine::Response::from_errors(
+            return Executor::Response::engine(Arc::new(engine::Response::from_errors_with_type(
                 vec![engine::ServerError::new("Unauthorized", None)],
                 // doesn't really matter, this is not client facing
                 OperationType::Query,

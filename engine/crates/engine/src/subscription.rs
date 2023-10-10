@@ -58,7 +58,7 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
                     } else {
                         let err = ServerError::new(format!(r#"Cannot query field "{}" on type "{}"."#, field_name, T::type_name()), Some(ctx.item.pos))
                             .with_path(vec![field_name.as_str().into()]);
-                        yield Response::from_errors(vec![err], OperationType::Subscription);
+                        yield Response::from_errors_with_type(vec![err], OperationType::Subscription);
                     }
                 }
             })),

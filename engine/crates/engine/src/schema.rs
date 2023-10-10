@@ -536,13 +536,24 @@ impl Schema {
             )),
         };
 
+        let operation_name =
+            env.operation_name
+                .as_deref()
+                .or_else(|| match env.operation.selection_set.node.items.as_slice() {
+                    [Positioned {
+                        node: Selection::Field(field),
+                        ..
+                    }] => Some(field.node.name.node.as_str()),
+                    _ => None,
+                });
+
         let mut resp = match res {
             Ok(value) => {
                 let response = &mut *ctx.response().await;
                 response.set_root_unchecked(value);
-                Response::new(std::mem::take(response), env.operation.node.ty)
+                Response::new(std::mem::take(response), operation_name, &env.operation)
             }
-            Err(err) => Response::from_errors(vec![err], env.operation.node.ty),
+            Err(err) => Response::from_errors(vec![err], operation_name, &env.operation),
         }
         .http_headers(std::mem::take(&mut *env.response_http_headers.lock().unwrap()));
 
@@ -566,9 +577,7 @@ impl Schema {
                             .execute(env.operation_name.as_deref(), &env.operation, &mut fut)
                             .await
                     }
-                    // here we don't know the type of the operation because it failed preparing the request
-                    // defaulting but this might not be the best option
-                    Err(errors) => Response::from_errors(errors, Default::default()),
+                    Err(errors) => Response::bad_request(errors),
                 }
             }
         };
@@ -610,7 +619,7 @@ impl Schema {
                 let (env_builder, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
-                        yield Response::from_errors(errors, OperationType::Subscription).into_streaming_payload(false);
+                        yield Response::from_errors_with_type(errors, OperationType::Subscription).into_streaming_payload(false);
                         return;
                     }
                 };
@@ -650,7 +659,7 @@ impl Schema {
                 let mut streams = Vec::new();
                 if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
                     // This hasNext: false is probably not correct, but we dont' support subscriptios atm so whatever
-                    yield Response::from_errors(vec![err], OperationType::Subscription).into_streaming_payload(false);
+                    yield Response::from_errors_with_type(vec![err], OperationType::Subscription).into_streaming_payload(false);
                 }
 
                 let mut stream = stream::select_all(streams);
