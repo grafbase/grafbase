@@ -21,11 +21,13 @@ use hyper::{http::HeaderValue, Method, Request};
 use serde_json::json;
 use sqlx::query;
 use std::net::Shutdown;
+use std::time::Duration;
 use std::{
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, TcpListener},
     sync::atomic::Ordering,
 };
 use tokio::signal;
+use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
 type Client = hyper::client::Client<HttpConnector, Body>;
@@ -91,32 +93,57 @@ async fn root(State(ProxyState { pathfinder_html, .. }): State<ProxyState>) -> i
     pathfinder_html
 }
 
+const POLL_INTERVAL: Duration = Duration::from_millis(200);
+
 async fn graphql(
     State(ProxyState { client, .. }): State<ProxyState>,
     mut req: Request<Body>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     let query = req.uri().query().map_or(String::new(), |query| format!("?{query}"));
 
-    let worker_port = WORKER_PORT.load(Ordering::Relaxed);
+    // http::Request can't be cloned
+    let (parts, body) = req.into_parts();
+    let body_bytes = hyper::body::to_bytes(body).await.map_err(|_| StatusCode::BAD_REQUEST)?;
+    let body = String::from_utf8(body_bytes.clone().into()).map_err(|_| StatusCode::BAD_REQUEST)?;
+    req = Request::from_parts(parts, body_bytes.into());
 
-    if worker_port == 0 {
-        return Err(StatusCode::SERVICE_UNAVAILABLE);
-    }
+    loop {
+        let worker_port = WORKER_PORT.load(Ordering::Relaxed);
 
-    let uri = format!("http://127.0.0.1:{worker_port}/graphql{query}");
-
-    *req.uri_mut() = Uri::try_from(uri).expect("must be valid");
-
-    let response = client.request(req).await;
-
-    match response {
-        Ok(response) => Ok(response),
-        Err(error) => {
-            if error.is_connect() {
-                Err(StatusCode::SERVICE_UNAVAILABLE)
-            } else {
-                Err(StatusCode::BAD_REQUEST)
-            }
+        if worker_port == 0 {
+            sleep(POLL_INTERVAL).await;
+            continue;
         }
+
+        let uri = format!("http://127.0.0.1:{worker_port}/graphql{query}");
+
+        // http::Request can't be cloned
+        let mut cloned_request = Request::builder()
+            .method(req.method().clone())
+            .uri(uri)
+            .version(req.version());
+
+        for header in req.headers() {
+            cloned_request = cloned_request.header(header.0, header.1);
+        }
+
+        let request = cloned_request
+            .body(body.clone().into())
+            .expect("must succeed, using an existing request");
+
+        let response = client.request(request).await;
+
+        match response {
+            Ok(response) => {
+                return Ok(response);
+            }
+            Err(error) => {
+                if error.is_connect() {
+                    sleep(POLL_INTERVAL).await;
+                } else {
+                    return Err(StatusCode::BAD_REQUEST);
+                }
+            }
+        };
     }
 }
