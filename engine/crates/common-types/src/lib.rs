@@ -45,7 +45,6 @@ pub enum LogLevel {
     Debug,
 }
 
-#[serde_with::serde_as]
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Operation<'a> {
     pub name: Option<std::borrow::Cow<'a, str>>,

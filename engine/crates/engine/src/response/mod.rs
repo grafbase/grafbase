@@ -46,6 +46,7 @@ pub struct Response {
     pub http_headers: HeaderMap,
 
     /// GraphQL operation.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub graphql_operation: Option<ResponseOperation>,
 }
 

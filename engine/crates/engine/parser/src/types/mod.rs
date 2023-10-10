@@ -33,10 +33,9 @@ pub const SEARCH_DIRECTIVE: &str = "search";
 /// The type of an operation; `query`, `mutation` or `subscription`.
 ///
 /// [Reference](https://spec.graphql.org/October2021/#OperationType).
-#[derive(Debug, Hash, Default, PartialEq, Eq, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Hash, PartialEq, Eq, Copy, Clone, Serialize, Deserialize)]
 pub enum OperationType {
     /// A query.
-    #[default]
     Query,
     /// A mutation.
     Mutation,
