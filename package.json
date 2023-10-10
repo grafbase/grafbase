@@ -17,8 +17,6 @@
     "@types/react": "18.2.24",
     "@types/react-dom": "18.2.8",
     "@vitejs/plugin-react": "^4.0.0",
-    "monaco-editor": "0.43.0",
-    "monaco-graphql": "1.2.4",
     "ui": "workspace:*",
     "vite": "4.4.9",
     "zustand": "4.4.1"
