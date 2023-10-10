@@ -5,21 +5,23 @@ use engine::{registry::Registry, Schema};
 use function_name::named;
 use serde_json as _;
 
-use crate::rules::visitor::RuleError;
-
 macro_rules! assert_validation_error {
     ($schema:literal, $expected_message:literal) => {
         assert_matches!(
-            super::parse_registry($schema)
+            $crate::parse_registry($schema)
                 .err()
-                .and_then(super::Error::validation_errors)
+                .and_then(crate::Error::validation_errors)
                 // We don't care whether there are more errors or not.
                 // It only matters that we find the expected error.
                 .and_then(|errors| errors.into_iter().next()),
-            Some(RuleError { message, .. }) if message == $expected_message
-        );
+            Some(crate::RuleError { message, .. }) => {
+                assert_eq!(message, $expected_message);
+            }
+        )
     };
 }
+
+pub(crate) use assert_validation_error;
 
 fn assert_snapshot(name: &str, registry: Registry) {
     let _reg_string = serde_json::to_value(&registry).unwrap();

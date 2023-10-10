@@ -220,23 +220,7 @@ mod tests {
     use engine::Schema;
     use pretty_assertions::assert_eq;
 
-    use crate::rules::visitor::RuleError;
-
-    macro_rules! assert_validation_error {
-        ($schema:literal, $expected_message:literal) => {
-            assert_matches!(
-                crate::parse_registry($schema)
-                    .err()
-                    .and_then(crate::Error::validation_errors)
-                    // We don't care whether there are more errors or not.
-                    // It only matters that we find the expected error.
-                    .and_then(|errors| errors.into_iter().next()),
-                Some(RuleError { message, .. }) => {
-                    assert_eq!(message, $expected_message);
-                }
-            );
-        };
-    }
+    use crate::tests::assert_validation_error;
 
     #[test]
     fn test_not_usable_on_nullable_fields() {

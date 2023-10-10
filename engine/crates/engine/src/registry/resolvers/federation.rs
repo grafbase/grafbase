@@ -9,7 +9,7 @@ use crate::{
 
 use super::{dynamo_querying::DynamoResolver, ResolvedValue, ResolverContext};
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 struct Representation {
     #[serde(rename = "__typename")]
     ty: NamedType<'static>,
@@ -78,6 +78,7 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
             let last_resolver_value = Some(ResolvedValue::new(representation.data));
             resolver.resolve(ctx, &resolver_context, last_resolver_value).await
         }
+        Some(FederationResolver::BasicType) => Ok(ResolvedValue::new(serde_json::to_value(&representation)?)),
         None => {
             return Err(Error::new(format!(
                 "Tried to resolve an unresolvable key for {}",

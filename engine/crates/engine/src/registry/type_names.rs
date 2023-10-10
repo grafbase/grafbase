@@ -164,7 +164,7 @@ impl TypeReference for TypeCondition {
 }
 
 /// A named GraphQL type without any non-null or list wrappers
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct NamedType<'a>(Cow<'a, str>);
 
 impl NamedType<'_> {

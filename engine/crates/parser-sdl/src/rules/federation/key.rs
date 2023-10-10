@@ -83,34 +83,4 @@ mod tests {
 
         insta::assert_display_snapshot!(registry.export_sdl(true));
     }
-
-    macro_rules! assert_validation_error {
-        ($schema:literal, $expected_message:literal) => {
-            assert_matches!(
-                crate::parse_registry($schema)
-                    .err()
-                    .and_then(crate::Error::validation_errors)
-                    // We don't care whether there are more errors or not.
-                    // It only matters that we find the expected error.
-                    .and_then(|errors| errors.into_iter().next()),
-                Some(crate::RuleError { message, .. }) => {
-                    assert_eq!(message, $expected_message);
-                }
-            )
-        };
-    }
-
-    #[test]
-    fn resolvable_basic_types_not_allowed() {
-        assert_validation_error!(
-            r#"
-                extend schema @federation(version: "2.3")
-
-                type User @key(fields: "id") {
-                    id: ID!
-                }
-            "#,
-            "Found a resolvable key on a basic type, which is currently unsupported"
-        );
-    }
 }
