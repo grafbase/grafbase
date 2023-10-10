@@ -316,4 +316,16 @@ describe('Type generator', () => {
       }"
     `)
   })
+
+  it('supports field resolvers', () => {
+    g.type('User', {
+      name: g.string().resolver('a-field')
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User {
+        name: String! @resolver(name: "a-field")
+      }"
+    `)
+  })
 })
