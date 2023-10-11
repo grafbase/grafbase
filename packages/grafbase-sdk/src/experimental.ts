@@ -3,6 +3,7 @@
  */
 export interface ExperimentalParams {
   kv?: boolean
+  ai?: boolean
 }
 
 export class Experimental {
@@ -13,6 +14,9 @@ export class Experimental {
   }
 
   public toString(): string {
-    return `extend schema\n  @experimental(kv: ${this.params.kv})\n\n`
+    const params = Object.keys(this.params)
+      .map(key => `${key}: ${(this.params as any)[key]}`)
+      .join(', ');
+    return params ? `extend schema\n  @experimental(${params})\n\n` : ''
   }
 }

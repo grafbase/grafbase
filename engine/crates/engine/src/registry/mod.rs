@@ -1387,6 +1387,8 @@ pub struct Registry {
     pub enable_kv: bool,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub federation_entities: BTreeMap<String, FederationEntity>,
+    #[serde(default)]
+    pub enable_ai: bool,
 }
 
 impl Default for Registry {
@@ -1409,6 +1411,7 @@ impl Default for Registry {
             enable_caching: false,
             enable_kv: false,
             federation_entities: Default::default(),
+            enable_ai: false,
         }
     }
 }

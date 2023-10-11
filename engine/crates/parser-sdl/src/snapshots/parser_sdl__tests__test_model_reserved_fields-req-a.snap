@@ -87,6 +87,7 @@ expression: req_string_a
     }
   },
   "disable_introspection": false,
+  "enable_ai": false,
   "enable_caching": false,
   "enable_federation": false,
   "enable_kv": false,

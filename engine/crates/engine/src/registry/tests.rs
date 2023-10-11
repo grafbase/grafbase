@@ -2,7 +2,7 @@ use super::*;
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 
-const EXPECTED_SHA: &str = "dc8e4d84699ebc2a4742c068d4157d0e79cfcbe3826eca2e3996756d1fefb5c1";
+const EXPECTED_SHA: &str = "d7e48694f72c0a6246eabb79bae2ce2aa44bf27f5e2b1e8b9e245fc7b5d08964";
 
 #[test]
 fn test_serde_roundtrip() {

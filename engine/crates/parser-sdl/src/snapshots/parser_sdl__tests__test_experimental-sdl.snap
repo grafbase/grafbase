@@ -1,0 +1,10 @@
+---
+source: crates/parser-sdl/src/tests.rs
+expression: sdl
+---
+type Query {
+}
+schema {
+	query: Query
+}
+
