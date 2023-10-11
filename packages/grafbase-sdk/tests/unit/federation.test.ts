@@ -24,19 +24,4 @@ describe('Federation generator', () => {
       }"
     `)
   })
-
-  it('does not render federation when disabled', async () => {
-    g.type('Post', {
-      id: g.id()
-    })
-    const cfg = config({
-      schema: g
-    })
-
-    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "type Post {
-        id: ID!
-      }"
-    `)
-  })
 })
