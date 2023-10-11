@@ -127,14 +127,14 @@ fn create_scalar_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_
     if scalar == "JSON" {
         fields.push({
             let mut input = MetaInputValue::new("append", scalar);
-            input.description = Some(String::from("Append json value to the column."));
+            input.description = Some(String::from("Append JSON value to the column."));
 
             input
         });
 
         fields.push({
             let mut input = MetaInputValue::new("prepend", scalar);
-            input.description = Some(String::from("Prepend json value to the column."));
+            input.description = Some(String::from("Prepend JSON value to the column."));
 
             input
         });

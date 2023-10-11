@@ -5,6 +5,7 @@ mod delete_one;
 mod find_many;
 mod find_one;
 mod query;
+mod update_many;
 mod update_one;
 
 use super::{context::PostgresContext, Operation};
@@ -19,5 +20,6 @@ pub(super) async fn execute(ctx: PostgresContext<'_>, operation: Operation) -> R
         Operation::CreateOne => create_one::execute(ctx).await,
         Operation::CreateMany => create_many::execute(ctx).await,
         Operation::UpdateOne => update_one::execute(ctx).await,
+        Operation::UpdateMany => update_many::execute(ctx).await,
     }
 }

@@ -5,6 +5,7 @@ mod delete_one;
 mod find_many;
 mod find_one;
 mod input;
+mod update_many;
 mod update_one;
 
 use super::context::{InputContext, OutputContext};
@@ -29,5 +30,6 @@ pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
         create_one::register(input_ctx, table, &create_input_type, output_ctx);
         create_many::register(input_ctx, table, &create_input_type, output_ctx);
         update_one::register(input_ctx, table, &filter_oneof_type, &update_input_type, output_ctx);
+        update_many::register(input_ctx, table, &simple_filter, &update_input_type, output_ctx);
     }
 }

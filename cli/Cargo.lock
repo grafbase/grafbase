@@ -2477,9 +2477,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sql-ast"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80d39c76dd44c3cec2c81e527770394ac6371da5883454addcedafae5470bd98"
+checksum = "c3aac7444d8a2748651d0ad4b7f27dc08b616b2babfe0ebe2656b2ee82463396"
 dependencies = [
  "anyhow",
  "serde_json",

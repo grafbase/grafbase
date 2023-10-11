@@ -18,6 +18,10 @@ impl<'a> DatabaseType<'a> {
     pub fn is_json(&self) -> bool {
         matches!(self, DatabaseType::Scalar(ScalarType::Json | ScalarType::JsonArray))
     }
+
+    pub fn is_jsonb(&self) -> bool {
+        matches!(self, DatabaseType::Scalar(ScalarType::Jsonb | ScalarType::JsonbArray))
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]

@@ -88,6 +88,10 @@ fn table_with_serial_primary_key() {
             Update a unique User
           """
           userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
         }
 
         enum OrderByDirection {
@@ -342,6 +346,10 @@ fn table_with_enum_field() {
             Update a unique A
           """
           aUpdate(by: AByInput!, input: AUpdateInput!): AReduced
+          """
+            Update multiple As
+          """
+          aUpdateMany(filter: AReducedCollection!, input: AUpdateInput!): [AReduced]!
         }
 
         enum OrderByDirection {
@@ -468,6 +476,10 @@ fn table_with_int_primary_key() {
             Update a unique User
           """
           userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
         }
 
         enum OrderByDirection {
@@ -648,6 +660,10 @@ fn table_with_int_unique() {
             Update a unique User
           """
           userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
         }
 
         enum OrderByDirection {
@@ -829,6 +845,10 @@ fn table_with_serial_primary_key_string_unique() {
             Update a unique User
           """
           userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
         }
 
         enum OrderByDirection {
@@ -1007,6 +1027,10 @@ fn table_with_composite_primary_key() {
             Update a unique User
           """
           userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
         }
 
         enum OrderByDirection {
@@ -1250,6 +1274,10 @@ fn two_schemas_same_table_name() {
           """
           privateUserUpdate(by: PrivateUserByInput!, input: PrivateUserUpdateInput!): PrivateUserReduced
           """
+            Update multiple PrivateUsers
+          """
+          privateUserUpdateMany(filter: PrivateUserReducedCollection!, input: PrivateUserUpdateInput!): [PrivateUserReduced]!
+          """
             Delete a unique PublicUser by a field or combination of fields
           """
           publicUserDelete(by: PublicUserByInput!): PublicUserReduced
@@ -1269,6 +1297,10 @@ fn two_schemas_same_table_name() {
             Update a unique PublicUser
           """
           publicUserUpdate(by: PublicUserByInput!, input: PublicUserUpdateInput!): PublicUserReduced
+          """
+            Update multiple PublicUsers
+          """
+          publicUserUpdateMany(filter: PublicUserReducedCollection!, input: PublicUserUpdateInput!): [PublicUserReduced]!
         }
 
         enum OrderByDirection {
@@ -1521,6 +1553,10 @@ fn table_with_serial_primary_key_namespaced() {
             Update a unique User
           """
           userUpdate(by: NeonUserByInput!, input: NeonUserUpdateInput!): NeonUserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: NeonUserReducedCollection!, input: NeonUserUpdateInput!): [NeonUserReduced]!
         }
 
         enum NeonOrderByDirection {
@@ -1608,6 +1644,742 @@ fn table_with_serial_primary_key_namespaced() {
 
         type Query {
           neon: NeonQuery
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+    "#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn table_with_an_array_column() {
+    let response = introspect_postgres(|api| async move {
+        let schema = indoc! {r#"
+           CREATE TABLE "User" (
+               id SERIAL PRIMARY KEY,
+               name INT[] NOT NULL 
+           );
+       "#};
+
+        api.execute_sql(schema).await;
+    });
+
+    let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntArraySearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: [Int]
+          """
+            The value is not the one given
+          """ ne: [Int]
+          """
+            The value is greater than the one given
+          """ gt: [Int]
+          """
+            The value is less than the one given
+          """ lt: [Int]
+          """
+            The value is greater than, or equal to the one given
+          """ gte: [Int]
+          """
+            The value is less than, or equal to the one given
+          """ lte: [Int]
+          """
+            The value is in the given array of values
+          """ in: [[Int]]
+          """
+            The value is not in the given array of values
+          """ nin: [[Int]]
+          """
+            The column contains all elements from the given array.
+          """ contains: [Int]
+          """
+            The given array contains all elements from the column.
+          """ contained: [Int]
+          """
+            Do the arrays have any elements in common.
+          """ overlaps: [Int]
+          not: IntArraySearchFilterInput
+        }
+
+        """
+          Update input for Int array type.
+        """
+        input IntArrayUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: [Int]
+          """
+            Append an array value to the column.
+          """ append: [Int]
+          """
+            Prepend an array value to the column.
+          """ prepend: [Int]
+        }
+
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
+        type Mutation {
+          """
+            Delete a unique User by a field or combination of fields
+          """
+          userDelete(by: UserByInput!): UserReduced
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          """
+            Create a User
+          """
+          userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
+        type Query {
+          """
+            Query a single User by a field
+          """
+          user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
+        }
+
+        type User {
+          id: Int!
+          name: [Int]!
+        }
+
+        input UserByInput {
+          id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          name: IntArraySearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserInput {
+          id: Int
+          name: [Int]!
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
+          name: OrderByDirection
+        }
+
+        type UserReduced {
+          id: Int!
+          name: [Int]!
+        }
+
+        input UserReducedCollection {
+          id: IntSearchFilterInput
+          name: IntArraySearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserReducedCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserReducedCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserReducedCollection]
+        }
+
+        input UserUpdateInput {
+          id: IntUpdateInput
+          name: IntArrayUpdateInput
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+    "#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn table_with_jsonb_column() {
+    let response = introspect_postgres(|api| async move {
+        let schema = indoc! {r#"
+           CREATE TABLE "User" (
+               id SERIAL PRIMARY KEY,
+               name JSONB NOT NULL 
+           );
+       "#};
+
+        api.execute_sql(schema).await;
+    });
+
+    let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
+        """
+          A JSON Value
+        """
+        scalar JSON
+
+        """
+          Search filter input for JSON type.
+        """
+        input JsonSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: JSON
+          """
+            The value is not the one given
+          """ ne: JSON
+          """
+            The value is greater than the one given
+          """ gt: JSON
+          """
+            The value is less than the one given
+          """ lt: JSON
+          """
+            The value is greater than, or equal to the one given
+          """ gte: JSON
+          """
+            The value is less than, or equal to the one given
+          """ lte: JSON
+          """
+            The value is in the given array of values
+          """ in: [JSON]
+          """
+            The value is not in the given array of values
+          """ nin: [JSON]
+          not: JsonSearchFilterInput
+        }
+
+        """
+          Update input for JSON type.
+        """
+        input JsonUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: JSON
+          """
+            Append JSON value to the column.
+          """ append: JSON
+          """
+            Prepend JSON value to the column.
+          """ prepend: JSON
+          """
+            Deletes a key (and its value) from a JSON object, or matching string value(s) from a JSON array.
+          """ deleteKey: String
+          """
+            Deletes the array element with specified index (negative integers count from the end). Throws an error if JSON value is not an array.
+          """ deleteElem: Int
+          """
+            Deletes the field or array element at the specified path, where path elements can be either field keys or array indexes.
+          """ deleteAtPath: [String!]
+        }
+
+        type Mutation {
+          """
+            Delete a unique User by a field or combination of fields
+          """
+          userDelete(by: UserByInput!): UserReduced
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          """
+            Create a User
+          """
+          userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
+        type Query {
+          """
+            Query a single User by a field
+          """
+          user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
+        }
+
+        type User {
+          id: Int!
+          name: JSON!
+        }
+
+        input UserByInput {
+          id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          name: JsonSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserInput {
+          id: Int
+          name: JSON!
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
+          name: OrderByDirection
+        }
+
+        type UserReduced {
+          id: Int!
+          name: JSON!
+        }
+
+        input UserReducedCollection {
+          id: IntSearchFilterInput
+          name: JsonSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserReducedCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserReducedCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserReducedCollection]
+        }
+
+        input UserUpdateInput {
+          id: IntUpdateInput
+          name: JsonUpdateInput
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+    "#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn table_with_json_column() {
+    let response = introspect_postgres(|api| async move {
+        let schema = indoc! {r#"
+           CREATE TABLE "User" (
+               id SERIAL PRIMARY KEY,
+               name JSON NOT NULL 
+           );
+       "#};
+
+        api.execute_sql(schema).await;
+    });
+
+    let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
+        """
+          A JSON Value
+        """
+        scalar JSON
+
+        """
+          Search filter input for JSON type.
+        """
+        input JsonSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: JSON
+          """
+            The value is not the one given
+          """ ne: JSON
+          """
+            The value is greater than the one given
+          """ gt: JSON
+          """
+            The value is less than the one given
+          """ lt: JSON
+          """
+            The value is greater than, or equal to the one given
+          """ gte: JSON
+          """
+            The value is less than, or equal to the one given
+          """ lte: JSON
+          """
+            The value is in the given array of values
+          """ in: [JSON]
+          """
+            The value is not in the given array of values
+          """ nin: [JSON]
+          not: JsonSearchFilterInput
+        }
+
+        type Mutation {
+          """
+            Delete a unique User by a field or combination of fields
+          """
+          userDelete(by: UserByInput!): UserReduced
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          """
+            Create a User
+          """
+          userCreate(input: UserInput!): UserReduced
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
+        type Query {
+          """
+            Query a single User by a field
+          """
+          user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
+        }
+
+        """
+          Update input for SimpleJSON type.
+        """
+        input SimpleJSONUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: SimpleJSON
+        }
+
+        type User {
+          id: Int!
+          name: JSON!
+        }
+
+        input UserByInput {
+          id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          name: JsonSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserInput {
+          id: Int
+          name: JSON!
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
+          name: OrderByDirection
+        }
+
+        type UserReduced {
+          id: Int!
+          name: JSON!
+        }
+
+        input UserReducedCollection {
+          id: IntSearchFilterInput
+          name: JsonSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserReducedCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserReducedCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserReducedCollection]
+        }
+
+        input UserUpdateInput {
+          id: IntUpdateInput
+          name: SimpleJSONUpdateInput
         }
 
         schema {
@@ -1806,6 +2578,10 @@ fn two_tables_with_single_column_foreign_key() {
           """
           blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogReduced
           """
+            Update multiple Blogs
+          """
+          blogUpdateMany(filter: BlogReducedCollection!, input: BlogUpdateInput!): [BlogReduced]!
+          """
             Delete a unique User by a field or combination of fields
           """
           userDelete(by: UserByInput!): UserReduced
@@ -1825,6 +2601,10 @@ fn two_tables_with_single_column_foreign_key() {
             Update a unique User
           """
           userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
         }
 
         enum OrderByDirection {

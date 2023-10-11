@@ -655,6 +655,120 @@ fn array_set() {
 }
 
 #[test]
+fn array_append() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                val INT[] NOT NULL
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, val) VALUES (1, '{1}')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userUpdate(by: { id: 1 }, input: { val: { append: [2, 3] } }) {
+                id
+              }
+            }
+        "#};
+
+        api.execute(mutation).await;
+
+        let query = indoc! {r#"
+            query {
+              user(by: { id: 1 }) {
+                id
+                val
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "user": {
+              "id": 1,
+              "val": [
+                1,
+                2,
+                3
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn array_prepend() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                val INT[] NOT NULL
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, val) VALUES (1, '{1}')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userUpdate(by: { id: 1 }, input: { val: { prepend: [2, 3] } }) {
+                id
+              }
+            }
+        "#};
+
+        api.execute(mutation).await;
+
+        let query = indoc! {r#"
+            query {
+              user(by: { id: 1 }) {
+                id
+                val
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "user": {
+              "id": 1,
+              "val": [
+                2,
+                3,
+                1
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn jsonb_append() {
     let response = query_postgres(|api| async move {
         let schema = indoc! {r#"
