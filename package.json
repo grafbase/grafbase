@@ -3,13 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "cli-app:dev": "vite",
+    "cli-app:dev": "vite --force",
     "cli-app:build": "tsc && vite build",
     "cli-app:preview": "vite preview",
     "types": "tsc --noEmit"
   },
   "dependencies": {
-    "@pathfinder-ide/react": "^0.2.1",
+    "@pathfinder-ide/react": "^0.2.3",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
