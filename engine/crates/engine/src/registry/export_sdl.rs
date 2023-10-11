@@ -136,8 +136,9 @@ impl Registry {
 
                 if federation {
                     if let Some(entity) = self.federation_entities.get(name) {
-                        for key in entity.key_strings() {
-                            write!(sdl, "@key(fields: \"{key}\") ").ok();
+                        for key in entity.keys() {
+                            let resolvable = if key.is_resolvable() { "" } else { " resolvable: false" };
+                            write!(sdl, "@key(fields: \"{key}\"{resolvable}) ").ok();
                         }
                     }
                 }
@@ -162,8 +163,9 @@ impl Registry {
                 write!(sdl, "interface {name} ").ok();
                 if federation {
                     if let Some(entity) = self.federation_entities.get(name) {
-                        for key in entity.key_strings() {
-                            write!(sdl, "@key(fields: \"{key}\") ").ok();
+                        for key in entity.keys() {
+                            let resolvable = if key.is_resolvable() { "" } else { " resolvable: false" };
+                            write!(sdl, "@key(fields: \"{key}\"{resolvable}) ").ok();
                         }
                     }
                 }

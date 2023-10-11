@@ -22,7 +22,7 @@ use engine_parser::types::{
 use engine_value::ConstValue;
 
 use super::{
-    federation_directive::FederationVersion, graphql_directive::GraphqlDirective, openapi_directive::OpenApiDirective,
+    federation::FederationVersion, graphql_directive::GraphqlDirective, openapi_directive::OpenApiDirective,
     postgres_directive::PostgresDirective,
 };
 use crate::{

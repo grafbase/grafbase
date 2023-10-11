@@ -65,7 +65,7 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
     let resolver_context = ResolverContext::new(&ctx).with_ty(actual_type);
 
     let data = match key_being_resolved.resolver() {
-        FederationResolver::DynamoUnique => {
+        Some(FederationResolver::DynamoUnique) => {
             let last_resolver_value = Some(ResolvedValue::new(json!({"by": representation.data})));
             DynamoResolver::QueryBy {
                 by: VariableResolveDefinition::local_data("by"),
@@ -74,9 +74,15 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
             .resolve(&ctx, &resolver_context, last_resolver_value.as_ref())
             .await
         }
-        FederationResolver::Http(resolver) => {
+        Some(FederationResolver::Http(resolver)) => {
             let last_resolver_value = Some(ResolvedValue::new(representation.data));
             resolver.resolve(ctx, &resolver_context, last_resolver_value).await
+        }
+        None => {
+            return Err(Error::new(format!(
+                "Tried to resolve an unresolvable key for {}",
+                actual_type.name()
+            )))
         }
     }?;
 

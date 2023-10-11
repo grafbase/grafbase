@@ -28,7 +28,7 @@ use rules::{
     enum_type::EnumType,
     extend_connector_types::ExtendConnectorTypes,
     extend_query_and_mutation_types::ExtendQueryAndMutationTypes,
-    federation_directive::{FederationDirective, FederationDirectiveVisitor},
+    federation::{FederationDirective, FederationDirectiveVisitor, KeyDirective},
     graphql_directive::GraphqlVisitor,
     input_object::InputObjectVisitor,
     length_directive::LengthDirective,
@@ -134,7 +134,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<MongoDBDirective>()
         .with::<PostgresDirective>()
         .with::<ExperimentalDirective>()
-        .with::<FederationDirective>();
+        .with::<FederationDirective>()
+        .with::<KeyDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",

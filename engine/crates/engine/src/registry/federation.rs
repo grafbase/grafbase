@@ -12,7 +12,7 @@ use super::resolvers::http::HttpResolver;
 /// a federation entity.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, Default)]
 pub struct FederationEntity {
-    keys: Vec<FederationKey>,
+    pub keys: Vec<FederationKey>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -26,7 +26,7 @@ pub enum FederationResolver {
 #[serde_with::skip_serializing_defaults(Option, Vec, ConstraintType)]
 pub struct FederationKey {
     selections: Vec<Selection>,
-    resolver: FederationResolver,
+    resolver: Option<FederationResolver>,
 }
 
 impl FederationKey {
@@ -36,7 +36,7 @@ impl FederationKey {
                 field: field.into(),
                 selections: vec![],
             }],
-            resolver,
+            resolver: Some(resolver),
         }
     }
 
@@ -49,28 +49,39 @@ impl FederationKey {
                     selections: vec![],
                 })
                 .collect(),
-            resolver,
+            resolver: Some(resolver),
         }
     }
 
-    pub fn resolver(&self) -> &FederationResolver {
-        &self.resolver
+    pub fn unresolvable(selections: Vec<Selection>) -> Self {
+        FederationKey {
+            selections,
+            resolver: None,
+        }
+    }
+
+    pub fn resolver(&self) -> Option<&FederationResolver> {
+        self.resolver.as_ref()
+    }
+
+    pub fn is_resolvable(&self) -> bool {
+        self.resolver.is_some()
     }
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::skip_serializing_defaults(Option, Vec, ConstraintType)]
-struct Selection {
-    field: String,
-    selections: Vec<Selection>,
+pub struct Selection {
+    pub field: String,
+    pub selections: Vec<Selection>,
 }
 
 impl FederationEntity {
     /// The keys for this entity in the string format expected in federation SDL
     /// e.g. `fieldOne fieldTwo { someNestedField }`
-    pub fn key_strings(&self) -> impl Iterator<Item = String> + '_ {
-        self.keys.iter().map(ToString::to_string)
+    pub fn keys(&self) -> impl Iterator<Item = &FederationKey> + '_ {
+        self.keys.iter()
     }
 
     /// Takes an `_Any` representation from the federation `_entities` field and determines

@@ -2082,30 +2082,32 @@ Registry {
                             selections: [],
                         },
                     ],
-                    resolver: Http(
-                        HttpResolver {
-                            method: "GET",
-                            url: "http://example.com/user/{username}",
-                            api_name: "petstore",
-                            path_parameters: [
-                                PathParameter {
-                                    name: "username",
-                                    variable_resolve_definition: LocalDataWithTransforms(
-                                        (
-                                            "username",
-                                            InputValueType(
-                                                "String!",
+                    resolver: Some(
+                        Http(
+                            HttpResolver {
+                                method: "GET",
+                                url: "http://example.com/user/{username}",
+                                api_name: "petstore",
+                                path_parameters: [
+                                    PathParameter {
+                                        name: "username",
+                                        variable_resolve_definition: LocalDataWithTransforms(
+                                            (
+                                                "username",
+                                                InputValueType(
+                                                    "String!",
+                                                ),
                                             ),
                                         ),
-                                    ),
-                                },
-                            ],
-                            query_parameters: [],
-                            request_body: None,
-                            expected_status: Exact(
-                                200,
-                            ),
-                        },
+                                    },
+                                ],
+                                query_parameters: [],
+                                request_body: None,
+                                expected_status: Exact(
+                                    200,
+                                ),
+                            },
+                        ),
                     ),
                 },
             ],
