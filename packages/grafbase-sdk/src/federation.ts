@@ -1,5 +1,5 @@
 export interface FederationParams {
-  version: string
+  version: '2.3'
 }
 
 export class Federation {
