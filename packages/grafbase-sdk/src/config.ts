@@ -52,6 +52,6 @@ export class Config {
     const experimental = this.experimental ? this.experimental.toString() : ''
     const federation = this.federation ? this.federation.toString() : ''
 
-    return `${experimental}${auth}${cache}${schema}${federation}`
+    return `${experimental}${auth}${cache}${federation}${schema}`
   }
 }

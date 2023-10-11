@@ -17,11 +17,11 @@ describe('Federation generator', () => {
     })
 
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "type Post {
-        id: ID!
-      }
-      extend schema @federation(version: "2.3")
       "
+      extend schema @federation(version: "2.3")
+      type Post {
+        id: ID!
+      }"
     `)
   })
 
