@@ -1,10 +1,9 @@
 import { useCliApp } from '../../stores'
 import { StyledThemeToggle } from './theme-toggle.styles'
 
-const toggleTheme = useCliApp.getState().toggleTheme
-
 export const ThemeToggle = () => {
   const appTheme = useCliApp(state => state.theme)
+  const toggleTheme = useCliApp.getState().toggleTheme
 
   return (
     <StyledThemeToggle onClick={() => toggleTheme()}>

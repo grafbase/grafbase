@@ -22,35 +22,5 @@ export const globalStyles = globalCss({
 export const StyledApp = styled('div', {
   height: '100%',
   width: '100%',
-  backgroundColor: theme.colors.ui_neutral01,
-  display: 'grid',
-  gridTemplateColumns: `56px 1fr`,
   overflow: 'hidden'
 })
-
-// export const StyledToolsContainer = styled('main', {
-//   height: '100%',
-//   width: '100%',
-//   overflow: 'hidden'
-// })
-
-// export const StyledToolDisplayWrapper = styled('div', {
-//   boxSizing: 'border-box',
-
-//   variants: {
-//     isVisible: {
-//       true: {
-//         visibility: 'visible',
-//         opacity: 1,
-//         height: '100%',
-//         width: '100%'
-//       },
-//       false: {
-//         visibility: 'hidden',
-//         opacity: 0,
-//         height: 0,
-//         width: 0
-//       }
-//     }
-//   }
-// })

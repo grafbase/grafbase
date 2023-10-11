@@ -1,4 +1,4 @@
-// import { useEditor } from 'pathfinder'
+import { setPathfinderTheme } from '@pathfinder-ide/react'
 import { create } from 'zustand'
 
 import { UseCliAppStore } from './use-cli-app.types'
@@ -11,21 +11,13 @@ export const useCliApp = create<UseCliAppStore>((set, get) => ({
     const theme = get().theme
 
     if (theme === 'dark') {
-      // useEditor.getState().setEditorTheme({
-      //   theme: 'light'
-      // })
+      setPathfinderTheme({ theme: 'light' })
       return set({ theme: 'light' })
     }
 
     if (theme === 'light') {
-      // useEditor.getState().setEditorTheme({
-      //   theme: 'dark'
-      // })
+      setPathfinderTheme({ theme: 'dark' })
       return set({ theme: 'dark' })
     }
-  },
-  visibleTool: 'Pathfinder',
-  setVisibleTool: ({ visibleTool }) => {
-    set({ visibleTool })
   }
 }))
