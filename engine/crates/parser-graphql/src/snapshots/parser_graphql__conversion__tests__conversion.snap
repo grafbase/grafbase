@@ -1,6 +1,6 @@
 ---
-source: crates/engine/src/registry/introspection.rs
-expression: "Registry::from(schema)"
+source: crates/parser-graphql/src/conversion.rs
+expression: registry_from_introspection(schema)
 ---
 {
   "types": {
@@ -3114,5 +3114,6 @@ expression: "Registry::from(schema)"
     "indices": {}
   },
   "enable_caching": false,
-  "enable_kv": false
+  "enable_kv": false,
+  "enable_ai": false
 }

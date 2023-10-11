@@ -21,12 +21,82 @@ describe('Experimental generator', () => {
     `)
   })
 
+  it('renders experimental with ai enabled', async () => {
+    const cfg = config({
+      schema: g,
+      experimental: {
+        ai: true
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @experimental(ai: true)
+      
+      "
+    `)
+  })
+
+  it('renders experimental with ai and kv enabled', async () => {
+    const cfg = config({
+      schema: g,
+      experimental: {
+        ai: true,
+        kv: true
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @experimental(ai: true, kv: true)
+      
+      "
+    `)
+  })
+
   it('renders experimental with kv disabled', async () => {
     const cfg = config({
       schema: g,
       experimental: {
         kv: false
       }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @experimental(kv: false)
+      
+      "
+    `)
+  })
+
+  it('renders experimental with ai disabled', async () => {
+    const cfg = config({
+      schema: g,
+      experimental: {
+        ai: false
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @experimental(ai: false)
+      
+      "
+    `)
+  })
+
+  it('doesnt render experimental', async () => {
+    const cfg = config({
+      schema: g,
+      cache: {
+        rules: [
+          {
+            types: 'Query',
+            maxAge: 60
+          }
+        ],
+      },
     })
 
     const cfg2 = config({
@@ -37,18 +107,12 @@ describe('Experimental generator', () => {
             types: 'Query',
             maxAge: 60
           }
-        ]
-      }
+        ],
+      },
+      experimental: {}
     })
 
-    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "extend schema
-        @experimental(kv: false)
-      
-      "
-    `)
-
-    expect(renderGraphQL(cfg2)).toMatchInlineSnapshot(`
+    const expected = `
       "extend schema
         @cache(rules: [
           {
@@ -58,6 +122,8 @@ describe('Experimental generator', () => {
         ])
       
       "
-    `)
+    `
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(expected)
+    expect(renderGraphQL(cfg2)).toMatchInlineSnapshot(expected)
   })
 })

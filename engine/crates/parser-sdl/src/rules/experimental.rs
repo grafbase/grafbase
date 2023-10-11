@@ -21,7 +21,8 @@ pub enum ExperimentalDirectiveError {
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ExperimentalDirective {
-    pub kv: bool,
+    pub kv: Option<bool>,
+    pub ai: Option<bool>,
 }
 
 pub struct ExperimentalDirectiveVisitor;
@@ -37,7 +38,8 @@ impl<'a> Visitor<'a> for ExperimentalDirectiveVisitor {
 
         match parse_directive::<ExperimentalDirective>(experimental_directive, &HashMap::default()) {
             Ok(experimental_directive) => {
-                ctx.registry.get_mut().enable_kv = experimental_directive.kv;
+                ctx.registry.get_mut().enable_kv = experimental_directive.kv.unwrap_or_default();
+                ctx.registry.get_mut().enable_ai = experimental_directive.ai.unwrap_or_default();
             }
             Err(err) => {
                 ctx.report_error(
@@ -57,6 +59,10 @@ impl Directive for ExperimentalDirective {
           Enable experimental usage of KV in resolvers.
           """
           kv: Boolean
+          """
+          Enable experimental usage of AI in resolvers.
+          """
+          ai: Boolean
         ) on SCHEMA
         "#
         .to_string()
@@ -76,14 +82,25 @@ mod tests {
     #[rstest::rstest]
     #[case::error_parsing_unknown_field(r#"
         extend schema @experimental(random: true)
-    "#, &["Unable to parse @experimental - [2:37] unknown field `random`, expected `kv`"], false)]
+    "#, &["Unable to parse @experimental - [2:37] unknown field `random`, expected `kv` or `ai`"], "", false)]
     #[case::successful_parsing_kv_enabled(r#"
         extend schema @experimental(kv: true)
-    "#, &[], true)]
+    "#, &[], "kv", true)]
     #[case::successful_parsing_kv_disabled(r#"
         extend schema @experimental(kv: false)
-    "#, &[], false)]
-    fn test_parsing(#[case] schema: &str, #[case] expected_messages: &[&str], #[case] expected_kv_enabled: bool) {
+    "#, &[], "kv", false)]
+    #[case::successful_parsing_ai_enabled(r#"
+        extend schema @experimental(ai: true)
+    "#, &[], "ai", true)]
+    #[case::successful_parsing_ai_disabled(r#"
+        extend schema @experimental(ai: false)
+    "#, &[], "ai", false)]
+    fn test_parsing(
+        #[case] schema: &str,
+        #[case] expected_messages: &[&str],
+        #[case] target: &str,
+        #[case] expected: bool,
+    ) {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new_for_tests(&schema);
         visit(&mut ExperimentalDirectiveVisitor, &mut ctx, &schema);
@@ -91,6 +108,10 @@ mod tests {
         let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();
         assert_eq!(actual_messages.as_slice(), expected_messages);
 
-        assert_eq!(ctx.registry.borrow().enable_kv, expected_kv_enabled);
+        match target {
+            "ai" => assert_eq!(ctx.registry.borrow().enable_ai, expected),
+            "kv" => assert_eq!(ctx.registry.borrow().enable_kv, expected),
+            _ => {}
+        }
     }
 }

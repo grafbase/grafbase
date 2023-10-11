@@ -2111,4 +2111,5 @@ Registry {
             ],
         },
     },
+    enable_ai: false,
 }
