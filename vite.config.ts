@@ -14,6 +14,10 @@ export default defineConfig(({ command }) => {
         }
       }
     },
-    plugins: [react()]
+    plugins: [react()],
+    optimizeDeps: {
+      include: ['react', 'react-dom'],
+      exclude: ['@pathfinder-ide/react']
+    }
   }
 })
