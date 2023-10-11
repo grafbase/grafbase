@@ -138,7 +138,7 @@ pub enum CacheControlError {
     Validate(Vec<crate::ServerError>),
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 pub struct CachePartialRegistry {
     pub enable_caching: bool,
     pub types: BTreeMap<String, MetaType>,
