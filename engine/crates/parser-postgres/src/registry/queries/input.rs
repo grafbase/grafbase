@@ -1,6 +1,7 @@
 pub(super) mod create;
 pub(super) mod filter;
 pub(super) mod oneof;
+pub(super) mod update;
 
 use engine::registry::MetaInputValue;
 use postgres_types::database_definition::TableColumnWalker;

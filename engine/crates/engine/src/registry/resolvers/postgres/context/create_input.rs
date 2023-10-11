@@ -7,18 +7,18 @@ use serde_json::Value;
 
 use crate::registry::type_kinds::InputType;
 
-pub enum InputItem<'a> {
+pub enum CreateInputItem<'a> {
     /// Inserts a single column value.
     Column(TableColumnWalker<'a>, Value),
 }
 
-pub struct InputIterator<'a> {
+pub struct CreateInputIterator<'a> {
     database_definition: &'a DatabaseDefinition,
     table: TableWalker<'a>,
     input: VecDeque<(String, Value)>,
 }
 
-impl<'a> InputIterator<'a> {
+impl<'a> CreateInputIterator<'a> {
     pub fn new(
         database_definition: &'a DatabaseDefinition,
         input_type: InputType<'a>,
@@ -36,8 +36,8 @@ impl<'a> InputIterator<'a> {
     }
 }
 
-impl<'a> Iterator for InputIterator<'a> {
-    type Item = InputItem<'a>;
+impl<'a> Iterator for CreateInputIterator<'a> {
+    type Item = CreateInputItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let (field, value) = self.input.pop_front()?;
@@ -69,7 +69,7 @@ impl<'a> Iterator for InputIterator<'a> {
             (value, _) => value,
         };
 
-        Some(InputItem::Column(column, value))
+        Some(CreateInputItem::Column(column, value))
     }
 }
 

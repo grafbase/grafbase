@@ -13,7 +13,7 @@ struct Response {
 }
 
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, crate::Error> {
-    let (sql, params) = renderer::Postgres::build(query::insert::build(&ctx, [ctx.input()?])?);
+    let (sql, params) = renderer::Postgres::build(query::insert::build(&ctx, [ctx.create_input()?])?);
 
     let response = ctx
         .transport()

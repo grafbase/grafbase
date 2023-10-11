@@ -1,8 +1,11 @@
-use super::query;
-use crate::registry::resolvers::{postgres::context::PostgresContext, ResolvedValue};
 use grafbase_sql_ast::renderer::{self, Renderer};
 use postgres_types::transport::Transport;
 use serde_json::Value;
+
+use crate::registry::resolvers::{
+    postgres::{context::PostgresContext, request::query},
+    ResolvedValue,
+};
 
 #[derive(Debug, serde::Deserialize)]
 struct Response {
@@ -10,7 +13,9 @@ struct Response {
 }
 
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, crate::Error> {
-    let (sql, params) = renderer::Postgres::build(query::insert::build(&ctx, ctx.create_many_input()?)?);
+    let (sql, params) = renderer::Postgres::build(query::update::build(&ctx, ctx.filter()?)?);
+
+    println!("{sql}");
 
     let response = ctx
         .transport()
@@ -19,6 +24,5 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, c
         .map_err(|error| crate::Error::new(error.to_string()))?;
 
     let rows = response.into_rows().map(|row| row.root).collect();
-
     Ok(ResolvedValue::new(Value::Array(rows)))
 }
