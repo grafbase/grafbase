@@ -3,22 +3,23 @@
 //! When a basic type is stubble uppon on the definition of the schema, if it
 //! got no specialized behavior, we apply this behavior uppon it.
 //!
+
 use engine::registry::{
     self,
     federation::FederationKey,
     resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
-    MetaField,
+    MetaField, MetaType, ObjectType,
 };
 use engine_parser::{
     types::{FieldDefinition, TypeKind},
-    Positioned,
+    Pos, Positioned,
 };
 use itertools::Itertools;
 
 use super::{
     federation::KeyDirective,
     resolver_directive::ResolverDirective,
-    visitor::{Visitor, VisitorContext},
+    visitor::{RuleError, Visitor, VisitorContext},
 };
 use crate::{
     directive_de::parse_directive, registry::add_input_type_non_primitive, rules::cache_directive::CacheDirective,
@@ -89,35 +90,46 @@ impl<'a> Visitor<'a> for BasicType {
             .filter(|directive| directive.node.name.node == "key")
             .collect::<Vec<_>>();
 
-        if !key_directives.is_empty() {
-            let (oks, errors) = key_directives
-                .into_iter()
-                .map(|directive| {
-                    Ok((
-                        directive.pos,
-                        parse_directive::<KeyDirective>(directive, ctx.variables)?,
-                    ))
-                })
-                .partition_result::<Vec<_>, Vec<_>, _, _>();
+        let (oks, errors) = key_directives
+            .into_iter()
+            .map(|directive| {
+                Ok((
+                    directive.pos,
+                    parse_directive::<KeyDirective>(directive, ctx.variables)?,
+                ))
+            })
+            .partition_result::<Vec<_>, Vec<_>, _, _>();
 
-            ctx.append_errors(errors);
+        ctx.append_errors(errors);
 
-            for (pos, key) in oks {
-                if key.resolvable {
-                    ctx.report_error(
-                        vec![pos],
-                        "Found a resolvable key on a basic type, which is currently unsupported",
-                    );
-                }
+        ctx.append_errors(validate_keys_against_fields(&oks, {
+            let registry = ctx.registry.borrow();
+            let Some(MetaType::Object(object)) = registry.types.get(&type_name) else {
+                // Apparently this can happen in the face of duplicate types.
+                // Which is annoying but ok
+                return;
+            };
+            object.clone()
+        }));
 
-                ctx.registry
-                    .borrow_mut()
-                    .federation_entities
-                    .entry(type_name.clone())
-                    .or_default()
-                    .keys
-                    .push(FederationKey::unresolvable(key.fields));
-            }
+        for (_, directive) in oks {
+            ctx.registry
+                .borrow_mut()
+                .federation_entities
+                .entry(type_name.clone())
+                .or_default()
+                .keys
+                .push(directive.into_key());
+        }
+    }
+}
+
+impl KeyDirective {
+    fn into_key(self) -> FederationKey {
+        if self.resolvable {
+            FederationKey::basic_type(self.fields)
+        } else {
+            FederationKey::unresolvable(self.fields)
         }
     }
 }
@@ -130,4 +142,51 @@ fn field_resolver(field: &Positioned<FieldDefinition>, mapped_name: Option<&str>
     }
 
     Transformer::select(mapped_name.unwrap_or_else(|| field.name())).into()
+}
+
+fn validate_keys_against_fields(oks: &[(Pos, KeyDirective)], object: ObjectType) -> Vec<RuleError> {
+    let mut errors = Vec::new();
+
+    // First make sure all the keys are actually fields
+    for (pos, key) in oks {
+        for field in &key.fields {
+            if object.field_by_name(&field.field).is_none() {
+                errors.push(RuleError::new(
+                    vec![*pos],
+                    format!(
+                        "The object {} has a key that requires the field {} but that field isn't present",
+                        object.name, &field.field,
+                    ),
+                ));
+            }
+            // In an ideal world we'd also validate any nested keys, but we don't really have
+            // access to any of the other types involved at this point :(
+        }
+    }
+
+    // Ideally I'd like to do some validation of the fields as well:
+    // Fields should usually be either part of a key or provided by a custom resolver.
+    // But i'm going to leave that out for now as I'd rather not get it wrong
+    // will try to revisit this.
+
+    errors
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::assert_validation_error;
+
+    #[test]
+    fn test_errors_if_missing_field_used_as_key() {
+        assert_validation_error!(
+            r#"
+                extend schema @federation(version: "2.3")
+
+                type User @key(fields: "id blah") {
+                    id: ID!
+                }
+            "#,
+            "The object User has a key that requires the field blah but that field isn't present"
+        );
+    }
 }

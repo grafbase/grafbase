@@ -230,6 +230,69 @@ fn test_returning_unresolvable_representations() {
     });
 }
 
+#[test]
+fn test_contributing_fields_via_default_resolver() {
+    // Tests that we can take in a representation and add fields to it via custom
+    // resolvers.
+
+    runtime().block_on(async {
+        let schema = r#"
+            extend schema @federation(version: "2.3")
+
+            type TodoList @key(fields: "id") {
+                id: ID!
+                name: String! @resolver(name: "todoListName")
+            }
+        "#;
+
+        let engine = EngineBuilder::new(schema)
+            .with_local_dynamo()
+            .with_custom_resolvers(
+                RustUdfs::new().resolver("todoListName", |payload: CustomResolverRequestPayload| {
+                    let parent = payload.parent.unwrap();
+                    let id = parent["id"].as_str().unwrap();
+                    Ok(CustomResolverResponse::Success(json!(format!("A List With ID {id}"))))
+                }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(
+                r#"
+                    query($repr: _Any!) {
+                        _entities(representations: [$repr]) {
+                            __typename
+                            ... on TodoList {
+                                id
+                                name
+                            }
+                        }
+                    }
+                "#,
+                )
+                .variables(json!({"repr": {
+                    "__typename": "TodoList",
+                    "id": "123"
+                }}))
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "_entities": [
+            {
+              "__typename": "TodoList",
+              "id": "123",
+              "name": "A List With ID 123"
+            }
+          ]
+        }
+        "###
+        );
+    });
+}
+
 #[async_trait::async_trait]
 trait TodoEngineExt {
     /// Creates a todo with this engine, returns a string

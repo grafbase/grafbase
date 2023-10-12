@@ -17,8 +17,20 @@ pub struct FederationEntity {
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum FederationResolver {
+    /// Fetches a dynamo entity by some unique key
     DynamoUnique,
+    /// Makes an HTTP call to resolve
     Http(HttpResolver),
+    /// This "resolver" doesn't actually resolve data in the same way the others do.
+    ///
+    /// This should be put on entities where the primary representation lives in
+    /// another subgraph but we contribute fields to it - the result of resolution
+    /// will be the representation we are passed from the router.
+    ///
+    /// This should only ever be applied to types where all the fields on that type
+    /// are present in the representation or resolvable from the representation (e.g.
+    /// fields with custom resolvers)
+    BasicType,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -57,6 +69,13 @@ impl FederationKey {
         FederationKey {
             selections,
             resolver: None,
+        }
+    }
+
+    pub fn basic_type(selections: Vec<Selection>) -> Self {
+        FederationKey {
+            selections,
+            resolver: Some(FederationResolver::BasicType),
         }
     }
 

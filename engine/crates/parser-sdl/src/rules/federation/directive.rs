@@ -54,7 +54,7 @@ impl<'a> Visitor<'a> for FederationDirectiveVisitor {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::RuleError;
+    use crate::tests::assert_validation_error;
 
     #[test]
     fn test_federation_with_a_model() {
@@ -72,22 +72,6 @@ mod tests {
             .registry;
 
         insta::assert_display_snapshot!(registry.export_sdl(true));
-    }
-
-    macro_rules! assert_validation_error {
-        ($schema:literal, $expected_message:literal) => {
-            assert_matches!(
-                crate::parse_registry($schema)
-                    .err()
-                    .and_then(crate::Error::validation_errors)
-                    // We don't care whether there are more errors or not.
-                    // It only matters that we find the expected error.
-                    .and_then(|errors| errors.into_iter().next()),
-                Some(RuleError { message, .. }) => {
-                    assert_eq!(message, $expected_message);
-                }
-            )
-        };
     }
 
     #[test]

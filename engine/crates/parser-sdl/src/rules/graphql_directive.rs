@@ -133,7 +133,7 @@ mod tests {
 
     use futures::executor::block_on;
 
-    use crate::{connector_parsers::MockConnectorParsers, rules::visitor::RuleError};
+    use crate::{connector_parsers::MockConnectorParsers, tests::assert_validation_error};
 
     #[test]
     fn parsing_graphql_directive() {
@@ -261,22 +261,6 @@ mod tests {
             },
         ]
         "###);
-    }
-
-    macro_rules! assert_validation_error {
-        ($schema:literal, $expected_message:literal) => {
-            assert_matches!(
-                crate::parse_registry($schema)
-                    .err()
-                    .and_then(crate::Error::validation_errors)
-                    // We don't care whether there are more errors or not.
-                    // It only matters that we find the expected error.
-                    .and_then(|errors| errors.into_iter().next()),
-                Some(RuleError { message, .. }) => {
-                    assert_eq!(message, $expected_message);
-                }
-            );
-        };
     }
 
     #[test]
