@@ -13,30 +13,74 @@ use common::consts::MAX_PORT;
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project, SchemaLocation};
 use common::types::UdfKind;
+use engine::registry::Registry;
 use flate2::read::GzDecoder;
 use futures_util::FutureExt;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::Path;
 use std::sync::atomic::Ordering;
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use std::{
-    fs,
-    process::Stdio,
-    thread::{self, JoinHandle},
-};
+use std::{fs, process::Stdio};
 use tokio::net::TcpListener;
 use tokio::process::Command;
-use tokio::runtime::Builder;
 use tokio::sync::broadcast::{self, channel};
 use version_compare::Version;
 use which::which;
 
 const EVENT_BUS_BOUND: usize = 5;
+
+pub async fn production_start(
+    listen_address: IpAddr,
+    port: u16,
+    tracing: bool,
+    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+) -> Result<(), ServerError> {
+    use bridge::BridgeState;
+
+    create_project_dot_grafbase_directory()?;
+
+    let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
+    let ParsingResponse {
+        registry,
+        detected_udfs,
+    } = run_schema_parser(&environment_variables).await?;
+
+    let environment = Environment::get();
+    if !detected_udfs.is_empty() {
+        export_embedded_files()?;
+        validate_node().await?;
+        install_wrangler(environment, tracing).await?;
+    }
+
+    let (bridge_app, bridge_state) =
+        bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
+    bridge_state.build_all_udfs(detected_udfs).await?;
+
+    let bridge_server =
+        axum::Server::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).serve(bridge_app.into_make_service());
+    let bridge_port = bridge_server.local_addr().port();
+
+    let gateway_app =
+        gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry).into_router();
+    let gateway_server =
+        axum::Server::bind(&SocketAddr::new(listen_address, port)).serve(gateway_app.into_make_service());
+
+    let _ = message_sender.send(ServerMessage::Ready(port));
+    tokio::select! {
+        result = gateway_server => {
+            result?;
+        }
+        result = bridge_server => {
+            result?;
+        }
+    }
+    bridge_state.close().await;
+    Ok(())
+}
 
 /// starts a development server by unpacking any files needed by the gateway worker
 /// and starting the miniflare cli in `user_grafbase_path` in [`Environment`]
@@ -52,54 +96,38 @@ const EVENT_BUS_BOUND: usize = 5;
 /// # Panics
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
-#[must_use]
-pub fn start(
+pub async fn start(
     port: u16,
     search: bool,
     watch: bool,
     tracing: bool,
-) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
-    let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
-
+    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+) -> Result<(), ServerError> {
     let project = Project::get();
 
-    let handle = thread::spawn(move || {
-        export_embedded_files()?;
+    create_project_dot_grafbase_directory()?;
 
-        create_project_dot_grafbase_directory()?;
+    let (event_bus, _receiver) = channel::<Event>(EVENT_BUS_BOUND);
 
-        // manual implementation of #[tokio::main] due to a rust analyzer issue
-        Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(async {
-                let (event_bus, _receiver) = channel::<Event>(EVENT_BUS_BOUND);
+    if watch {
+        let watch_event_bus = event_bus.clone();
 
-                if watch {
-                    let watch_event_bus = event_bus.clone();
-
-                    tokio::select! {
-                        result = start_watcher(project.grafbase_directory_path.clone(), move |path| {
-                            let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
-                            watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
-                        }) => { result }
-                        result = server_loop(port, search, watch, sender, event_bus, tracing) => { result }
-                    }
-                } else {
-                    server_loop(port, search, watch, sender, event_bus, tracing).await
-                }
-            })
-    });
-
-    (handle, receiver)
+        tokio::select! {
+            result = start_watcher(project.grafbase_directory_path.clone(), move |path| {
+                let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
+                watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
+            }) => { result }
+            result = server_loop(port, search, message_sender, event_bus, tracing) => { result }
+        }
+    } else {
+        server_loop(port, search, message_sender, event_bus, tracing).await
+    }
 }
 
 async fn server_loop(
     port: u16,
     search: bool,
-    watch: bool,
-    sender: Sender<ServerMessage>,
+    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
     tracing: bool,
 ) -> Result<(), ServerError> {
@@ -121,7 +149,7 @@ async fn server_loop(
         let receiver = event_bus.subscribe();
 
         tokio::select! {
-            result = spawn_servers(proxy_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
+            result = spawn_servers(proxy_port, message_sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
             path = wait_for_event_and_match(receiver, |event| match event {
@@ -130,7 +158,7 @@ async fn server_loop(
                 Event::ProxyError => None,
             }) => {
                 trace!("reload");
-                let _: Result<_, _> = sender.send(ServerMessage::Reload(path.clone()));
+                let _: Result<_, _> = message_sender.send(ServerMessage::Reload(path.clone()));
                 path_changed = Some(path);
             }
             () = wait_for_event(event_bus.subscribe(), |event| *event == Event::ProxyError) => { break; }
@@ -143,8 +171,7 @@ async fn server_loop(
 #[tracing::instrument(level = "trace")]
 async fn spawn_servers(
     proxy_port: u16,
-    watch: bool,
-    sender: Sender<ServerMessage>,
+    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
     path_changed: Option<&Path>,
     tracing: bool,
@@ -152,8 +179,6 @@ async fn spawn_servers(
     let bridge_event_bus = event_bus.clone();
 
     let receiver = event_bus.subscribe();
-
-    validate_dependencies().await?;
 
     let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
 
@@ -167,13 +192,12 @@ async fn spawn_servers(
     } = match run_schema_parser(&environment_variables).await {
         Ok(parsing_response) => parsing_response,
         Err(error) => {
-            let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
+            let _: Result<_, _> = message_sender.send(ServerMessage::CompilationError(error.to_string()));
             tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
                 .await??;
             return Ok(());
         }
     };
-    let registry = Arc::new(registry);
     // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
     // determined by inspecting the modified time of final artifacts of detected resolvers compared to the modified time
     // of the generated schema registry file.
@@ -196,41 +220,31 @@ async fn spawn_servers(
 
     if detected_udfs.is_empty() {
         trace!("Skipping wrangler installation");
-    } else if let Err(error) = install_wrangler(environment, tracing).await {
-        let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
-        // TODO consider disabling colored output from wrangler
-        let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
-            .ok()
-            .and_then(|stripped| String::from_utf8(stripped).ok())
-            .unwrap_or_else(|| error.to_string());
-        tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
-        return Ok(());
+    } else {
+        export_embedded_files()?;
+        validate_node().await?;
+        if let Err(error) = install_wrangler(environment, tracing).await {
+            let _: Result<_, _> = message_sender.send(ServerMessage::CompilationError(error.to_string()));
+            // TODO consider disabling colored output from wrangler
+            let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
+                .ok()
+                .and_then(|stripped| String::from_utf8(stripped).ok())
+                .unwrap_or_else(|| error.to_string());
+            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
+            return Ok(());
+        }
     }
 
-    let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
-
-    let (bridge_listener, bridge_port) = get_listener_for_random_port().await?;
-
-    let bridge_registry = Arc::clone(&registry);
-    let mut bridge_handle = tokio::spawn(async move {
-        bridge::start(
-            bridge_listener,
-            bridge_port,
-            bridge_sender,
-            bridge_event_bus,
-            bridge_registry,
-            tracing,
-        )
-        .await
-    })
-    .fuse();
-
-    let sender_cloned = sender.clone();
-    tokio::spawn(async move {
-        while let Some(message) = bridge_receiver.recv().await {
-            sender_cloned.send(message).unwrap();
-        }
-    });
+    let (mut bridge_handle, bridge_port) = {
+        let (listern, port) = get_listener_for_random_port().await?;
+        let registry = Arc::clone(&registry);
+        let message_sender = message_sender.clone();
+        let handle = tokio::spawn(async move {
+            bridge::start(listern, port, message_sender, bridge_event_bus, registry, tracing).await
+        })
+        .fuse();
+        (handle, port)
+    };
 
     let gateway = {
         let app =
@@ -248,7 +262,7 @@ async fn spawn_servers(
     };
     trace!("bridge ready");
 
-    let _: Result<_, _> = sender.send(ServerMessage::Ready(proxy_port));
+    let _: Result<_, _> = message_sender.send(ServerMessage::Ready(proxy_port));
 
     tokio::select! {
         result = gateway => {
@@ -326,7 +340,7 @@ pub struct DetectedUdf {
 }
 
 pub struct ParsingResponse {
-    registry: engine::registry::Registry,
+    registry: Arc<Registry>,
     detected_udfs: Vec<DetectedUdf>,
 }
 
@@ -389,7 +403,7 @@ async fn run_schema_parser(environment_variables: &HashMap<String, String>) -> R
     );
 
     Ok(ParsingResponse {
-        registry,
+        registry: Arc::new(registry),
         detected_udfs: detected_resolvers,
     })
 }
@@ -421,6 +435,7 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
         &generated_config_path,
     ];
 
+    validate_node().await?;
     let node_command = Command::new("node")
         .args(args)
         .stderr(Stdio::piped())
@@ -461,9 +476,11 @@ async fn get_node_version_string() -> Result<String, ServerError> {
     Ok(node_version_string)
 }
 
-async fn validate_node_version() -> Result<(), ServerError> {
+async fn validate_node() -> Result<(), ServerError> {
     trace!("validating Node.js version");
     trace!("minimal supported Node.js version: {}", MIN_NODE_VERSION);
+
+    which("node").map_err(|_| ServerError::NodeInPath)?;
 
     let node_version_string = get_node_version_string().await?;
 
@@ -480,16 +497,6 @@ async fn validate_node_version() -> Result<(), ServerError> {
             MIN_NODE_VERSION.to_owned(),
         ))
     }
-}
-
-async fn validate_dependencies() -> Result<(), ServerError> {
-    trace!("validating dependencies");
-
-    which("node").map_err(|_| ServerError::NodeInPath)?;
-
-    validate_node_version().await?;
-
-    Ok(())
 }
 
 pub async fn get_listener_for_random_port() -> Result<(std::net::TcpListener, u16), ServerError> {

@@ -15,6 +15,7 @@ mod output;
 mod panic_hook;
 mod prompts;
 mod reset;
+mod start;
 mod unlink;
 mod watercolor;
 
@@ -32,6 +33,7 @@ use crate::{
     logout::logout,
     logs::logs,
     reset::reset,
+    start::start,
     unlink::unlink,
 };
 use clap::Parser;
@@ -111,5 +113,13 @@ fn try_main(args: Args) -> Result<(), CliError> {
             limit,
             no_follow,
         }) => logs(project_reference, limit, !no_follow),
+        SubCommand::Start(cmd) => {
+            let _ = ctrlc::set_handler(|| {
+                report::goodbye();
+                process::exit(exitcode::OK);
+            });
+
+            start(cmd.listen_address(), cmd.port, cmd.log_levels(), args.trace >= 2)
+        }
     }
 }

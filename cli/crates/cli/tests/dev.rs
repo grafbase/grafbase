@@ -6,12 +6,18 @@ use serde_json::{json, Value};
 use utils::consts::{DEFAULT_CREATE, DEFAULT_QUERY, DEFAULT_SCHEMA, DEFAULT_UPDATE};
 use utils::environment::Environment;
 
-#[test]
-fn dev() {
+#[rstest::rstest]
+#[case::dev(true)]
+#[case::start(false)]
+fn dev(#[case] use_dev: bool) {
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
     env.write_schema(DEFAULT_SCHEMA);
-    env.grafbase_dev();
+    if use_dev {
+        env.grafbase_dev();
+    } else {
+        env.grafbase_start();
+    }
     let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 

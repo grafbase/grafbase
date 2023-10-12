@@ -48,7 +48,6 @@ indoc = { version = "2", optional = true }
 maplit = { version = "1", optional = true }
 once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
-send_wrapper = { version = "0.6", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, optional = true, features = [
@@ -64,4 +63,4 @@ reqwest = { version = "0.11", default-features = false, optional = true, feature
 [features]
 default = []
 local = []
-sqlite = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper"]
+sqlite = ["indoc", "maplit", "once_cell", "regex", "reqwest"]

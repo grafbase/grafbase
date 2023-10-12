@@ -27,5 +27,4 @@ mod consts;
 pub mod api;
 pub mod errors;
 pub mod project;
-pub mod server_api;
 pub mod types;

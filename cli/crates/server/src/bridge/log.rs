@@ -4,6 +4,7 @@ use axum::{extract::State, Json};
 
 use super::{errors::ApiError, server::HandlerState, types::LogEvent};
 
+#[allow(clippy::unused_async)]
 pub async fn log_event_endpoint(
     State(handler_state): State<Arc<HandlerState>>,
     Json(request): Json<LogEvent>,
@@ -44,7 +45,7 @@ pub async fn log_event_endpoint(
             }),
         },
     };
-    handler_state.bridge_sender.send(message).await.unwrap();
+    handler_state.message_sender.send(message).unwrap();
 
     Ok(())
 }
