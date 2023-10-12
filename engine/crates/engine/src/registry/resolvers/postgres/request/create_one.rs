@@ -7,21 +7,14 @@ use crate::registry::resolvers::{
     ResolvedValue,
 };
 
-#[derive(Debug, serde::Deserialize)]
-struct Response {
-    root: Value,
-}
+use super::{log, RowData};
 
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, crate::Error> {
     let (sql, params) = renderer::Postgres::build(query::insert::build(&ctx, [ctx.create_input()?])?);
 
-    let response = ctx
-        .transport()
-        .parameterized_query::<Response>(&sql, params)
-        .await
-        .map_err(|error| crate::Error::new(error.to_string()))?;
+    let operation = ctx.transport().parameterized_query::<RowData>(&sql, params);
+    let response = log::query(&ctx, &sql, operation).await?;
+    let row = response.into_single_row().map(|row| row.root).unwrap_or(Value::Null);
 
-    Ok(ResolvedValue::new(
-        response.into_single_row().map(|row| row.root).unwrap_or(Value::Null),
-    ))
+    Ok(ResolvedValue::new(row))
 }

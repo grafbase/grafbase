@@ -186,15 +186,22 @@ pub fn operation_log(
     };
 
     let formatted_duration = format_duration(duration);
+
     let formatted_name = name
         .map(|name| format!(" {}", name.to_string().bold()))
         .unwrap_or_default();
+
     let formatted_type = r#type.map_or_else(|| "operation".to_owned(), |value| value.to_string());
+
     println!(
         "{formatted_type}{formatted_name} {formatted_duration}",
         formatted_type = formatted_type.color(colour)
     );
 
+    log_nested_events(nested_events, log_level_filters);
+}
+
+fn log_nested_events(nested_events: Vec<NestedRequestScopedMessage>, log_level_filters: LogLevelFilters) {
     let indent = "  ";
 
     for nested_event in nested_events {
@@ -215,6 +222,7 @@ pub fn operation_log(
                     LogLevel::Info => watercolor::colored::Color::Cyan,
                     LogLevel::Warn => watercolor::colored::Color::Yellow,
                 };
+
                 println!(
                     "{indent}{} {} {}",
                     watercolor!("{udf_kind}", @Blue),
@@ -235,6 +243,7 @@ pub fn operation_log(
                 } else {
                     LogLevel::Info
                 };
+
                 if !log_level_filters.fetch_requests.should_display(required_log_level) {
                     continue;
                 }
@@ -242,11 +251,13 @@ pub fn operation_log(
                 // A minor presentational tweak for URLs.
                 let url: url::Url = url.parse().expect("must be a valid URL surely");
                 let mut url_string = url.to_string();
+
                 if url.path() == "/" && url.query().is_none() {
                     url_string = url_string.trim_end_matches('/').to_owned();
                 }
 
                 let formatted_duration = format_duration(duration);
+
                 println!(
                     "{indent}{} {} {} {status_code} {formatted_duration}",
                     watercolor!("fetch", @Yellow),
@@ -255,6 +266,40 @@ pub fn operation_log(
                 );
 
                 if log_level_filters.fetch_requests.should_display(LogLevel::Debug) {
+                    if let Some(formatted_body) = format_response_body(indent, body, content_type) {
+                        println!("{formatted_body}");
+                    }
+                }
+            }
+            NestedRequestScopedMessage::SqlQuery {
+                successful,
+                sql,
+                duration,
+                body,
+            } => {
+                let required_log_level = if successful { LogLevel::Debug } else { LogLevel::Error };
+
+                if !log_level_filters.fetch_requests.should_display(required_log_level) {
+                    continue;
+                }
+
+                let formatted_duration = format_duration(duration);
+
+                let status = if successful {
+                    watercolor!("OK", @Green)
+                } else {
+                    watercolor!("ERROR", @Red)
+                };
+
+                println!(
+                    "{indent}{} {} {status} {formatted_duration}",
+                    watercolor!("sql", @Yellow),
+                    sql.bold(),
+                );
+
+                if log_level_filters.fetch_requests.should_display(LogLevel::Debug) {
+                    let content_type = Some(String::from("application/json"));
+
                     if let Some(formatted_body) = format_response_body(indent, body, content_type) {
                         println!("{formatted_body}");
                     }

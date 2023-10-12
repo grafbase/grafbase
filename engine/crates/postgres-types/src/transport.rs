@@ -52,6 +52,13 @@ impl<T> QueryResponse<T> {
     pub fn into_single_row(self) -> Option<T> {
         self.into_rows().next()
     }
+
+    pub fn clone_rows(&self) -> Vec<T>
+    where
+        T: Clone,
+    {
+        self.rows.clone()
+    }
 }
 
 #[derive(Debug, Clone)]

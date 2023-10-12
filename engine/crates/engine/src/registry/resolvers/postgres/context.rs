@@ -166,4 +166,16 @@ impl<'a> PostgresContext<'a> {
     pub fn transport(&self) -> &NeonTransport {
         &self.transport
     }
+
+    pub fn runtime_ctx(&self) -> Result<&runtime::Context, crate::Error> {
+        self.context.data::<runtime::Context>()
+    }
+
+    pub fn ray_id(&self) -> Result<&str, crate::Error> {
+        Ok(self.runtime_ctx()?.ray_id())
+    }
+
+    pub fn fetch_log_endpoint_url(&self) -> Result<Option<&str>, crate::Error> {
+        Ok(self.runtime_ctx()?.log.fetch_log_endpoint_url.as_deref())
+    }
 }
