@@ -22,6 +22,6 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, c
         .map_err(|error| crate::Error::new(error.to_string()))?;
 
     Ok(ResolvedValue::new(
-        response.into_single_row().map(|row| row.root).unwrap_or(Value::Null),
+        response.into_iter().next().map(|row| row.root).unwrap_or(Value::Null),
     ))
 }

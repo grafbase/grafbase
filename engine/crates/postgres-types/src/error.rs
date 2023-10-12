@@ -14,6 +14,8 @@ pub enum Error {
     Unauthorized(String),
     #[error("internal error: {}", _0)]
     Internal(String),
+    #[error("error connecting to Postgres: {}", _0)]
+    Connection(String),
     #[error("error code {}: {}", code, message)]
     Query { code: String, message: String },
 }
@@ -43,5 +45,17 @@ impl From<reqwest::Error> for Error {
         }
 
         Self::Internal(error.to_string())
+    }
+}
+
+impl From<tokio_postgres::Error> for Error {
+    fn from(error: tokio_postgres::Error) -> Self {
+        match error.code() {
+            Some(code) => Self::Query {
+                code: code.code().to_string(),
+                message: error.to_string(),
+            },
+            None => Self::Internal(error.to_string()),
+        }
     }
 }

@@ -54,10 +54,11 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
 
     let (sql, params) = renderer::Postgres::build(query::select::build(builder)?);
     let operation = ctx.transport().parameterized_query::<RowData>(&sql, params);
-    let response = log::query(&ctx, &sql, operation).await?;
+    let rows = log::query(&ctx, &sql, operation).await?;
 
-    let response_data = response
-        .into_single_row()
+    let response_data = rows
+        .into_iter()
+        .next()
         .map(|row| row.root)
         .unwrap_or(Value::Array(Vec::new()));
 

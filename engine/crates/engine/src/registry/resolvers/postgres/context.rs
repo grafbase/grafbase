@@ -16,7 +16,7 @@ use crate::{
 };
 use postgres_types::{
     database_definition::{DatabaseDefinition, TableWalker},
-    transport::NeonTransport,
+    transport::TcpTransport,
 };
 use serde_json::{Map, Value};
 
@@ -28,21 +28,21 @@ pub struct PostgresContext<'a> {
     context: &'a ContextField<'a>,
     resolver_context: &'a ResolverContext<'a>,
     database_definition: &'a DatabaseDefinition,
-    transport: NeonTransport,
+    transport: TcpTransport,
 }
 
 impl<'a> PostgresContext<'a> {
-    pub fn new(
+    pub async fn new(
         context: &'a ContextField<'a>,
         resolver_context: &'a ResolverContext<'a>,
         directive_name: &str,
-    ) -> Result<Self, Error> {
+    ) -> Result<PostgresContext<'a>, Error> {
         let database_definition = context
             .get_postgres_definition(directive_name)
             .expect("directive must exist");
 
-        let ray_id = context.data::<runtime::Context>()?.ray_id();
-        let transport = NeonTransport::new(ray_id, database_definition.connection_string())
+        let transport = TcpTransport::new(database_definition.connection_string())
+            .await
             .map_err(|error| Error::new(error.to_string()))?;
 
         Ok(Self {
@@ -163,7 +163,7 @@ impl<'a> PostgresContext<'a> {
     }
 
     /// The database connection.
-    pub fn transport(&self) -> &NeonTransport {
+    pub fn transport(&self) -> &TcpTransport {
         &self.transport
     }
 

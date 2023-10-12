@@ -15,14 +15,12 @@ struct Response {
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, crate::Error> {
     let (sql, params) = renderer::Postgres::build(query::update::build(&ctx, ctx.filter()?)?);
 
-    println!("{sql}");
-
     let response = ctx
         .transport()
         .parameterized_query::<Response>(&sql, params)
         .await
         .map_err(|error| crate::Error::new(error.to_string()))?;
 
-    let rows = response.into_rows().map(|row| row.root).collect();
+    let rows = response.into_iter().map(|row| row.root).collect();
     Ok(ResolvedValue::new(Value::Array(rows)))
 }

@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use postgres_types::database_definition::{
-    DatabaseDefinition, DatabaseType, EnumWalker, ScalarType, TableColumnWalker, TableWalker,
+    DatabaseDefinition, DatabaseType, EnumWalker, TableColumnWalker, TableWalker,
 };
 use serde_json::Value;
 
@@ -48,15 +48,6 @@ impl<'a> Iterator for CreateInputIterator<'a> {
             .expect("column for client field not found");
 
         let value = match (value, column.database_type()) {
-            // workaround, until this is fixed: https://github.com/neondatabase/neon/issues/5515
-            (Value::Array(values), DatabaseType::Scalar(ScalarType::JsonArray | ScalarType::JsonbArray)) => {
-                let values = values
-                    .into_iter()
-                    .map(|value| Value::String(serde_json::to_string(&value).unwrap()))
-                    .collect();
-
-                Value::Array(values)
-            }
             (Value::String(value), DatabaseType::Enum(r#enum)) => rename_enum_variant(r#enum, &value),
             (Value::Array(values), DatabaseType::Enum(r#enum)) => {
                 let values = values
