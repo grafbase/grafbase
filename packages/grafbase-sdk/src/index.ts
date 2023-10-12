@@ -13,6 +13,9 @@ import path from 'path'
 import { validateIdentifier } from './validation'
 import { PostgresParams, PartialPostgresAPI } from './connector/postgres'
 
+export { type ResolverContext as Context } from './resolver/context'
+export { type ResolverInfo as Info } from './resolver/info'
+
 dotenv.config({
   // must exist, defined by "~/.grafbase/parser/parse-config.ts"
   path: path.join(process.env.GRAFBASE_PROJECT_GRAFBASE_DIR!, '.env'),
