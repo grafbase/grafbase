@@ -5,8 +5,8 @@ export type KVMetadata = any
 /** The result of a [`list()`](https://grafbase.com/docs/edge-gateway/resolvers#list) call.  */
 export type KVListResult = {
   keys: KVListKey[]
-  list_complete: boolean
   /** If `list_complete` is false then you will receive a `cursor` value you can pass to `list()` to obtain the next set of results. */
+  list_complete: boolean
   cursor?: string
 }
 
@@ -14,7 +14,7 @@ export type KVListKey = {
   customKey: string
   /** Only returned if the key has an expiration set. */
   expiration?: number
-  metadata: KVMetadata
+  metadata?: KVMetadata
 }
 
 // source of truth: https://github.com/grafbase/api/blob/main/common/grafbase-sdk/src/api/kv/input.rs
@@ -26,7 +26,7 @@ export type KVGetOptions = {
    */
   ttl?: number
   /**  Type of the value. */
-  type: "text" | "json" | "arraybuffer" | "stream"
+  type?: "text" | "json" | "arraybuffer" | "stream"
 }
 
 export type KVSetOptions = {
@@ -35,7 +35,7 @@ export type KVSetOptions = {
   /** Time to live of the value in seconds. */
   ttl?: number
   /** Arbitrary JSON to be associated with a key/value pair. */
-  metadata: KVMetadata
+  metadata?: KVMetadata
 }
 
 export type KVListOptions = {
