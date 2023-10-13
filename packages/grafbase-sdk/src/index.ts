@@ -13,6 +13,8 @@ import path from 'path'
 import { validateIdentifier } from './validation'
 import { PostgresParams, PartialPostgresAPI } from './connector/postgres'
 
+This is broken on purpose
+
 export { type ResolverContext as Context } from './resolver/context'
 export { type ResolverInfo as Info } from './resolver/info'
 
