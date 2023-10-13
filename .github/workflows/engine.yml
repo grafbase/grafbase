@@ -51,6 +51,8 @@ jobs:
         run: cargo clippy --locked --all-targets --tests -- -D warnings
 
   cargo-integration-tests:
+    needs: [detect-change-type]
+    if: ${{ needs.filter.outputs.build == 'true' }}
     name: Run Rust integration tests
     runs-on: buildjet-16vcpu-ubuntu-2204
     steps:
@@ -87,6 +89,8 @@ jobs:
           exitcode="$?"
 
   cargo-unit-tests:
+    needs: [detect-change-type]
+    if: ${{ needs.filter.outputs.build == 'true' }}
     name: Run Rust unit tests
     runs-on: buildjet-16vcpu-ubuntu-2204
     steps:

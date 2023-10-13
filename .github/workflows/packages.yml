@@ -36,7 +36,7 @@ jobs:
   lint:
     name: Lint
     needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.packages == 'true' }}
+    if: ${{ needs.filter.outputs.packages == 'true' }}
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Checkout Repository
