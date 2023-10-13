@@ -7,7 +7,7 @@
  *
  * import { AuthorizerContext, VerifiedIdentity } from '@grafbase/sdk'
  *
- * export default async ({ request }: AuthorizerContext): VerifiedIdentity? {
+ * export default async function({ request }: AuthorizerContext): VerifiedIdentity? {
  *   // ...
  * }
  */
