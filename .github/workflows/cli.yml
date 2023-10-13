@@ -98,7 +98,6 @@ jobs:
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     strategy:
-      fail-fast: false
       matrix:
         package: [common, server, backend, cli]
     runs-on: buildjet-8vcpu-ubuntu-2204
@@ -196,7 +195,6 @@ jobs:
   linux:
     needs: [lint]
     strategy:
-      fail-fast: false
       matrix:
         archs:
           [
@@ -273,11 +271,9 @@ jobs:
             cli/target/${{ matrix.archs.target }}/release/grafbase
 
   darwin:
-    needs: [detect-change-type, lint]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    needs: [lint]
     runs-on: macos-latest-xlarge
     strategy:
-      fail-fast: false
       matrix:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
     steps:
