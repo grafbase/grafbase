@@ -1,3 +1,4 @@
+use super::{log, RowData};
 use crate::{
     registry::resolvers::{
         postgres::{
@@ -12,11 +13,6 @@ use grafbase_sql_ast::renderer::{self, Renderer};
 use postgres_types::transport::Transport;
 use serde_json::Value;
 
-#[derive(Debug, serde::Deserialize)]
-struct Response {
-    root: Value,
-}
-
 pub(super) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, Error> {
     let mut builder = SelectBuilder::new(ctx.table(), ctx.selection(), "root");
 
@@ -26,13 +22,9 @@ pub(super) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
 
     let (sql, params) = renderer::Postgres::build(query::select::build(builder)?);
 
-    let response = ctx
-        .transport()
-        .parameterized_query::<Response>(&sql, params)
-        .await
-        .map_err(|error| Error::new(error.to_string()))?;
+    let operation = ctx.transport().parameterized_query::<RowData>(&sql, params);
+    let response = log::query(&ctx, &sql, operation).await?;
+    let row = response.into_single_row().map(|row| row.root).unwrap_or(Value::Null);
 
-    Ok(ResolvedValue::new(
-        response.into_single_row().map(|row| row.root).unwrap_or(Value::Null),
-    ))
+    Ok(ResolvedValue::new(row))
 }

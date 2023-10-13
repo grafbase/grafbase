@@ -4,12 +4,19 @@ mod delete_many;
 mod delete_one;
 mod find_many;
 mod find_one;
+mod log;
 mod query;
 mod update_many;
 mod update_one;
 
 use super::{context::PostgresContext, Operation};
 use crate::{registry::resolvers::ResolvedValue, Error};
+use serde_json::Value;
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+struct RowData {
+    root: Value,
+}
 
 pub(super) async fn execute(ctx: PostgresContext<'_>, operation: Operation) -> Result<ResolvedValue, Error> {
     match operation {

@@ -104,6 +104,13 @@ pub enum LogEventType {
         #[serde(rename = "contentType")]
         content_type: Option<String>,
     },
+    SqlQuery {
+        successful: bool,
+        sql: String,
+        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+        duration: std::time::Duration,
+        body: Option<String>,
+    },
 }
 
 #[derive(Deserialize, Debug)]

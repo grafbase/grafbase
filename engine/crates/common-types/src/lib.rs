@@ -88,6 +88,13 @@ pub enum LogEventType<'a> {
         #[serde(rename = "contentType")]
         content_type: Option<String>,
     },
+    SqlQuery {
+        successful: bool,
+        sql: String,
+        #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
+        duration: std::time::Duration,
+        body: Option<String>,
+    },
     UdfMessage {
         level: LogLevel,
         message: String,
@@ -101,6 +108,10 @@ impl LogEventType<'_> {
             LogEventType::OperationStarted { .. }
             | LogEventType::OperationCompleted { .. }
             | LogEventType::NestedRequest { .. } => LogLevel::Info,
+            LogEventType::SqlQuery { successful, .. } => match successful {
+                true => LogLevel::Info,
+                false => LogLevel::Error,
+            },
             LogEventType::GatewayRequest { status_code, .. } => match *status_code {
                 200..=299 => LogLevel::Info,
                 _other => LogLevel::Error,

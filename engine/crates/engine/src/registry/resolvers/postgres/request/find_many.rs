@@ -1,4 +1,8 @@
-use super::query::{self, SelectBuilder};
+use super::{
+    log,
+    query::{self, SelectBuilder},
+    RowData,
+};
 use crate::{
     registry::resolvers::{
         postgres::context::{CollectionArgs, PostgresContext},
@@ -13,11 +17,6 @@ use grafbase_sql_ast::{
 };
 use postgres_types::transport::Transport;
 use serde_json::Value;
-
-#[derive(Debug, serde::Deserialize)]
-struct Response {
-    root: Value,
-}
 
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, Error> {
     let mut builder = SelectBuilder::new(ctx.table(), ctx.collection_selection(), "root");
@@ -54,12 +53,8 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
     }
 
     let (sql, params) = renderer::Postgres::build(query::select::build(builder)?);
-
-    let response = ctx
-        .transport()
-        .parameterized_query::<Response>(&sql, params)
-        .await
-        .map_err(|error| Error::new(error.to_string()))?;
+    let operation = ctx.transport().parameterized_query::<RowData>(&sql, params);
+    let response = log::query(&ctx, &sql, operation).await?;
 
     let response_data = response
         .into_single_row()
