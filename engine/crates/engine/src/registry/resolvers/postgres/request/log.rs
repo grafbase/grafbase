@@ -14,7 +14,7 @@ pub(super) async fn query<F>(
     operation: F,
 ) -> crate::Result<QueryResponse<RowData>>
 where
-    F: Future<Output = postgres_types::Result<QueryResponse<RowData>>> + Send,
+    F: Future<Output = postgres_types::Result<QueryResponse<RowData>>>,
 {
     let Some(log_endpoint_url) = ctx.fetch_log_endpoint_url()? else {
         return operation.await.map_err(|error| Error::new(error.to_string()));
