@@ -1,1 +1,6 @@
-This file is necessary to allow linking the grafbase binary
+#!/usr/bin/env node
+
+// With node.js and npm, this script is never executed: the postinstall lifecycle script is invoked by npm after installing the `grafbase` package, and this file is replaced with the appropriate platform-specific binary. The only role of this file is as a placeholder than can be replaced by the appropriate binary or a symlink to it.
+
+// Bun however [does not execute lifecycle scripts](https://bun.sh/docs/install/lifecycle) on dependencies. The next line is here so that on first invocation, the postinstall script is invoked and this file gets replaced by the appropriate binary.
+require('./postinstall');
