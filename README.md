@@ -1,8 +1,6 @@
 # cli-app
 
-A vite-powered full page version of Pathfinder/Schema Documentation/Schema Definition, for use in the CLI.
-
-This app uses distinct script names in package.json so we don't deal with `turbo` collisions. This means you'll want to run the below commands from the _app_ root (`apps/cli-app`).
+A vite-powered full page version of Pathfinder, for use in the CLI.
 
 Running in dev and preview modes require use of the `.env.development.local` file.
 
