@@ -328,4 +328,28 @@ describe('Type generator', () => {
       }"
     `)
   })
+
+  it('supports federation keys', () => {
+    g.type('User', {
+      id: g.id()
+    }).key('id')
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+"type User @key(fields: "id" resolvable: true) {
+  id: ID!
+}"
+`)
+  })
+
+  it('supports unresolvable federation keys', () => {
+    g.type('User', {
+      id: g.id()
+    }).key('id', { resolvable: false })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+"type User @key(fields: "id" resolvable: false) {
+  id: ID!
+}"
+`)
+  })
 })

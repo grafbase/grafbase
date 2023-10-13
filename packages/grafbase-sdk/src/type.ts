@@ -13,6 +13,7 @@ import { ResolverDefinition } from './typedefs/resolver'
 import { validateIdentifier } from './validation'
 import { Query } from './query'
 import { MapDefinition } from './typedefs/map'
+import { FederationKey, FederationKeyParameters } from './federation'
 
 /**
  * A collection of fields in a model.
@@ -39,6 +40,7 @@ export class Type {
   private fields: Field[]
   private interfaces: Interface[]
   private cacheDirective?: TypeLevelCache
+  private keys: FederationKey[]
 
   constructor(name: string) {
     validateIdentifier(name)
@@ -46,6 +48,7 @@ export class Type {
     this._name = name
     this.fields = []
     this.interfaces = []
+    this.keys = []
   }
 
   /**
@@ -89,11 +92,26 @@ export class Type {
     return this
   }
 
+  /**
+   * Marks this type as a federation entitiy with the given key
+   *
+   * @param fields The fields that make up this key, in FieldSet format
+   * @param params The parameters for this key
+   */
+  public key(fields: string, params?: FederationKeyParameters): this {
+    this.keys.push(new FederationKey(fields, params))
+    return this
+  }
+
   public toString(): string {
     const interfaces = this.interfaces.map((i) => i.name).join(' & ')
     const cache = this.cacheDirective ? ` ${this.cacheDirective}` : ''
+    const keys =
+      this.keys.length != 0
+        ? ` ${this.keys.map((key) => key.toString()).join(' ')}`
+        : ''
     const impl = interfaces ? ` implements ${interfaces}` : ''
-    const header = `type ${this.name}${cache}${impl} {`
+    const header = `type ${this.name}${cache}${keys}${impl} {`
 
     const fields = distinct(
       (this.interfaces.flatMap((i) => i.fields) ?? []).concat(this.fields)
