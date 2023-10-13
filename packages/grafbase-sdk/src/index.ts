@@ -15,6 +15,8 @@ import { PostgresParams, PartialPostgresAPI } from './connector/postgres'
 
 export { type ResolverContext as Context } from './resolver/context'
 export { type ResolverInfo as Info } from './resolver/info'
+export { type VerifiedIdentity } from './authorizer/verifiedIdentity'
+export { type AuthorizerContext } from './authorizer/context'
 
 dotenv.config({
   // must exist, defined by "~/.grafbase/parser/parse-config.ts"
