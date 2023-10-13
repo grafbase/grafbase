@@ -19,5 +19,5 @@ export type VerifiedIdentity = {
     groups?: string[]
     /** Extra, custom token claims. */
     [tokenClaim: string]: any
-	} 
+  } 
 }
