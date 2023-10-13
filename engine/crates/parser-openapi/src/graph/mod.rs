@@ -81,6 +81,7 @@ impl OpenApiGraph {
                 url: None,
                 headers: ConnectorHeaders::default(),
                 query_naming: OpenApiQueryNamingStrategy::default(),
+                type_prefix: Some("Test".into()),
             },
         }
     }
@@ -389,7 +390,7 @@ impl WrappingType {
 impl OpenApiGraph {
     fn type_name(&self, node: NodeIndex) -> Option<String> {
         match &self.graph[node] {
-            schema @ Node::Schema { .. } => Some(self.metadata.namespaced(&schema.name()?).to_pascal_case()),
+            schema @ Node::Schema { .. } => Some(self.metadata.prefix_type(&schema.name()?).to_pascal_case()),
             Node::Operation(_) | Node::Default(_) | Node::PossibleValue(_) | Node::AllOf => None,
             Node::Object | Node::Enum { .. } => {
                 // OpenAPI objects are generally anonymous so we walk back up the graph to the
@@ -451,7 +452,14 @@ impl OpenApiGraph {
                 // Any placeholders that make it this far should just be mapped to JSON.
                 Some(ScalarKind::Json.type_name())
             }
-            Node::UnionWrappedScalar(kind) => Some(self.metadata.namespaced(&kind.type_name()).to_pascal_case()),
+            Node::UnionWrappedScalar(kind) => {
+                // If we have a type_prefix use it - otherwise default to WrappedX to avoid clashes with
+                // the built in scalar
+                Some(match &self.metadata.type_prefix {
+                    Some(_) => self.metadata.prefix_type(&kind.type_name()).to_pascal_case(),
+                    None => format!("Wrapped{}", kind.type_name()),
+                })
+            }
             Node::Union => {
                 // First we check if this union has an immediate schema parent.
                 // If so we use it's name for the union
@@ -461,7 +469,7 @@ impl OpenApiGraph {
                     .find(|edge| matches!(edge.weight(), Edge::HasType { .. }))
                     .and_then(|edge| self.graph[edge.target()].name())
                 {
-                    return Some(self.metadata.namespaced(&name).to_pascal_case());
+                    return Some(self.metadata.prefix_type(&name).to_pascal_case());
                 }
 
                 // Unions are named based on the names of their constituent types.

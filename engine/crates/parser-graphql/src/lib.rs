@@ -3,15 +3,6 @@
 //! The parser fetches a GraphQL schema from an upstream server, parses the response, and modifies
 //! it to allow the result to be exposed through the Grafbase API.
 
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-#![deny(warnings)]
-#![deny(let_underscore)]
-#![deny(nonstandard_style)]
-#![deny(unused)]
-#![deny(rustdoc::all)]
-#![allow(clippy::implicit_hasher)]
-
 mod conversion;
 
 use cynic::{
@@ -94,6 +85,7 @@ pub async fn parse_schema(
     url: &Url,
     headers: ConnectorHeaders,
     introspection_headers: impl IntoIterator<Item = (&str, &str)>,
+    type_prefix: Option<&str>,
 ) -> Result<Registry, Vec<Error>> {
     let mut builder = client.post(url.clone()).header(USER_AGENT, "Grafbase");
 
@@ -120,6 +112,7 @@ pub async fn parse_schema(
         name: name.to_string(),
         namespace,
         url: url.clone(),
+        type_prefix: type_prefix.or(namespace.then_some(name)),
     };
 
     let mut registry = parser.into_registry(schema);
@@ -128,13 +121,14 @@ pub async fn parse_schema(
     Ok(registry)
 }
 
-struct Parser {
+struct Parser<'a> {
     name: String,
     namespace: bool,
     url: Url,
+    type_prefix: Option<&'a str>,
 }
 
-impl Parser {
+impl Parser<'_> {
     fn into_registry(self, mut schema: cynic_introspection::Schema) -> Registry {
         use cynic_introspection::Type;
 
@@ -358,8 +352,8 @@ impl Parser {
     }
 
     fn prefixed(&self, s: &mut String) {
-        if self.namespace {
-            *s = format!("{}{}", self.name.to_pascal_case(), s);
+        if let Some(prefix) = self.type_prefix {
+            *s = format!("{}{}", prefix.to_pascal_case(), s);
         }
     }
 }
@@ -428,6 +422,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             introspection_headers,
+            None,
         )
         .await
         .unwrap()
@@ -473,6 +468,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             headers.clone(),
             std::iter::empty(),
+            None,
         )
         .await
         .unwrap();
@@ -499,6 +495,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
+            None,
         )
         .await
         .unwrap()
@@ -523,6 +520,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
+            None,
         )
         .await
         .unwrap()
@@ -547,6 +545,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
+            None,
         )
         .await
         .unwrap()

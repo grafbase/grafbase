@@ -139,6 +139,10 @@ impl ConnectorParsers for EngineBuilder {
             &directive.url,
             directive.headers(),
             directive.introspection_headers(),
+            directive
+                .transforms
+                .as_ref()
+                .and_then(|transforms| transforms.prefix_types.as_deref()),
         )
         .await
         .map_err(|errors| errors.into_iter().map(|error| error.to_string()).collect::<Vec<_>>())

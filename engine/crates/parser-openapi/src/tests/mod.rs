@@ -211,5 +211,6 @@ fn metadata(name: &str, namespace: bool) -> ApiMetadata {
         url: Some(Url::parse("http://example.com").unwrap()),
         headers: ConnectorHeaders::new([]),
         query_naming: QueryNamingStrategy::SchemaName,
+        type_prefix: Some(name.to_string()),
     }
 }

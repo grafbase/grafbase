@@ -53,35 +53,38 @@ describe('GraphQL connector', () => {
       transforms: (schema) => {
         schema.exclude('Foo.Bar', 'Bar.Foo')
         schema.exclude('Foo.*.bar')
+
+        schema.prefixTypes('AFancyPrefix')
       }
     })
 
     g.datasource(contentful, { namespace: true })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
-        @graphql(
-          name: "Contentful"
-          namespace: true
-          url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
-          headers: [
-            { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
-            { name: "Method", value: "POST" }
-            { name: "X-Features", value: "Foo,Bar" }
-            { name: "Foo", forward: "Bar" }
-          ]
-          introspectionHeaders: [
-            { name: "Foo", value: "BAR" }
-          ]
-          transforms: {
-            exclude: [
-              "Foo.Bar"
-              "Bar.Foo"
-              "Foo.*.bar"
-            ]
-          }
-        )"
-    `)
+"extend schema
+  @graphql(
+    name: "Contentful"
+    namespace: true
+    url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
+    headers: [
+      { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
+      { name: "Method", value: "POST" }
+      { name: "X-Features", value: "Foo,Bar" }
+      { name: "Foo", forward: "Bar" }
+    ]
+    introspectionHeaders: [
+      { name: "Foo", value: "BAR" }
+    ]
+    transforms: {
+      exclude: [
+        "Foo.Bar"
+        "Bar.Foo"
+        "Foo.*.bar"
+      ]
+      typePrefix: "AFancyPrefix"
+    }
+  )"
+`)
   })
 
   it('combines multiple apis into one extension', () => {
