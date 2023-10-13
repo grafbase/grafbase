@@ -273,7 +273,8 @@ jobs:
             cli/target/${{ matrix.archs.target }}/release/grafbase
 
   darwin:
-    needs: [lint]
+    needs: [detect-change-type, lint]
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: macos-latest-xlarge
     strategy:
       fail-fast: false
