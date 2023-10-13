@@ -341,15 +341,6 @@ impl Schema {
         });
 
         registry.add_directive(MetaDirective {
-            name: "live".to_string(),
-            description: Some("Directs the executor to return values as a Streaming response.".to_string()),
-            locations: vec![__DirectiveLocation::QUERY],
-            args: { IndexMap::new() },
-            is_repeatable: false,
-            visible: None,
-        });
-
-        registry.add_directive(MetaDirective {
             name: "defer".to_string(),
             description: Some("De-prioritizes a fragment, causing the fragment to be omitted in the initial response and delivered as a subsequent response afterward.".to_string()),
             locations: vec![
