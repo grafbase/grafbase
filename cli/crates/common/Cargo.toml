@@ -23,3 +23,6 @@ thiserror = "1"
 ulid = { version = "1", features = ["serde"] }
 
 common-types = { path = "../../../engine/crates/common-types" }
+
+[build-dependencies]
+serde_json.workspace = true
