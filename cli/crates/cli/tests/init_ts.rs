@@ -2,7 +2,7 @@
 mod utils;
 
 use backend::project::ConfigType;
-use serde_json::json;
+use serde_json::{json, Value};
 use utils::environment::Environment;
 
 #[test]
@@ -34,9 +34,12 @@ fn init_ts_existing_package_json() {
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
 
-    let package_json = env.load_file_from_project("package.json");
+    let package_json = serde_json::from_str::<Value>(&env.load_file_from_project("package.json")).expect("valid JSON");
 
-    insta::assert_snapshot!(&package_json, @r###"
+    insta::assert_json_snapshot!(&package_json, {
+      r#".devDependencies["@grafbase/sdk"]"# => "[version]"
+    },
+    @r###"
     {
       "name": "test",
       "version": "1.0.0",
@@ -46,7 +49,7 @@ fn init_ts_existing_package_json() {
       "author": "",
       "license": "ISC",
       "devDependencies": {
-        "@grafbase/sdk": "~0.6.1"
+        "@grafbase/sdk": "[version]"
       }
     }
     "###);
@@ -72,9 +75,12 @@ fn init_ts_new_project() {
     let package_json: serde_json::Value = serde_json::from_str(&env.load_file_from_project("package.json")).unwrap();
     let package_json = package_json.as_object().unwrap().get("devDependencies").unwrap();
 
-    insta::assert_json_snapshot!(&package_json, @r###"
+    insta::assert_json_snapshot!(&package_json, {
+      r#"["@grafbase/sdk"]"# => "[version]"
+    },
+    @r###"
     {
-      "@grafbase/sdk": "~0.6.1"
+      "@grafbase/sdk": "[version]"
     }
     "###);
 }
