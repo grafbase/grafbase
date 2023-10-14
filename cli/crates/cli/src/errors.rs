@@ -47,6 +47,9 @@ pub enum CliError {
     /// returned if the schema parser failed to compile a file
     #[error("{0}")]
     CompilationError(String),
+    /// returned if `logs` is run without a project branch reference, and no project has been linked
+    #[error("no project is linked to the workspace and `logs` has been invoked without any argument")]
+    LogsNoLinkedProject,
 }
 
 #[cfg(target_family = "windows")]

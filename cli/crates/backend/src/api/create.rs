@@ -8,7 +8,7 @@ use super::graphql::mutations::{
 };
 use super::graphql::queries::viewer_for_create::{PersonalAccount, Viewer};
 use super::types::{Account, ProjectMetadata};
-use super::utils::project_linked;
+use super::utils::has_project_linked;
 use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::Id;
@@ -21,7 +21,7 @@ use tokio::fs;
 /// See [`ApiError`]
 pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
     // TODO consider if we want to do this elsewhere
-    if project_linked().await? {
+    if has_project_linked().await? {
         return Err(ApiError::ProjectAlreadyLinked);
     }
 

@@ -4,7 +4,7 @@ use super::{
     errors::ApiError,
     graphql::queries::viewer_for_link::{PersonalAccount, Viewer},
     types::{self, AccountWithProjects, ProjectMetadata},
-    utils::project_linked,
+    utils::has_project_linked,
 };
 use common::environment::Project;
 use cynic::{http::ReqwestExt, QueryBuilder};
@@ -14,7 +14,7 @@ use std::iter;
 ///
 /// see [`ApiError`]
 pub async fn project_link_validations() -> Result<(), ApiError> {
-    if project_linked().await? {
+    if has_project_linked().await? {
         Err(ApiError::ProjectAlreadyLinked)
     } else {
         Ok(())

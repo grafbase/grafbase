@@ -206,8 +206,10 @@ const DEFAULT_LOGS_LIMIT: u16 = 100;
 
 #[derive(Debug, clap::Args)]
 pub struct LogsCommand {
-    /// The reference of a project
-    pub project_branch_reference: String,
+    /// The reference to a project: either `{account_slug}/{project_slug}`, `{project_slug}` for the personal account, or a URL to a deployed gateway.
+    /// Defaults to the linked project if there's one.
+    #[arg(value_name = "PROJECT_BRANCH")]
+    pub project_branch: Option<String>,
     /// How many last entries to retrive
     #[arg(short, long, default_value_t = DEFAULT_LOGS_LIMIT)]
     pub limit: u16,
@@ -364,7 +366,14 @@ impl SubCommand {
     pub(crate) fn in_project_context(&self) -> bool {
         matches!(
             self,
-            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link(_) | Self::Unlink | Self::Reset | Self::Start(_)
+            Self::Create(_)
+                | Self::Deploy
+                | Self::Dev(_)
+                | Self::Link(_)
+                | Self::Logs(_)
+                | Self::Reset
+                | Self::Start(_)
+                | Self::Unlink
         )
     }
 }

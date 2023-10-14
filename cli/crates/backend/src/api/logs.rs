@@ -3,6 +3,7 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 use crate::api::graphql::queries::log_entries::LogEventsQuery;
 
 pub use super::graphql::queries::log_entries::{FunctionLogEvent, GatewayRequestLogEvent, LogEvent};
+pub use super::utils::project_linked;
 use super::{
     client::create_client,
     consts::API_URL,
@@ -10,6 +11,7 @@ use super::{
     graphql::queries::{
         branch_by_domain::{Branch, BranchByDomain, BranchByDomainArguments, Project},
         log_entries::{LogEventFilter, LogEventsArguments},
+        project_slug_by_id::{ProjectSlugById, ProjectSlugByIdArguments, ProjectSlugByIdProject},
         viewer_for_link::{PersonalAccount, Viewer},
     },
 };
@@ -139,4 +141,21 @@ pub async fn logs_events_by_time_range(
     }
 
     Ok(log_events)
+}
+
+/// # Errors
+///
+/// see [`ApiError`]
+pub async fn project_slug_by_id(id: &str) -> Result<Option<(String, String)>, ApiError> {
+    let client = create_client().await?;
+
+    let query = ProjectSlugById::build(ProjectSlugByIdArguments { id });
+
+    let response = client.post(API_URL).run_graphql(query).await?;
+
+    let response = response.data.expect("must exist");
+
+    Ok(response
+        .project_by_id
+        .map(|ProjectSlugByIdProject { account_slug, slug }| (account_slug, slug)))
 }
