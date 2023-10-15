@@ -16,7 +16,9 @@ WORKDIR /grafbase/cli
 RUN cargo build --release
 
 # Run
-FROM debian:bullseye AS run
+FROM debian:bookworm AS run
+
+WORKDIR /grafbase
 
 COPY --from=build /grafbase/cli/target/release/grafbase .
 
