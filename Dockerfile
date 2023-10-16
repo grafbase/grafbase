@@ -20,6 +20,10 @@ FROM debian:bookworm AS run
 
 WORKDIR /grafbase
 
-COPY --from=build /grafbase/cli/target/release/grafbase .
+COPY --from=build /grafbase/cli/target/release/grafbase /bin/grafbase
 
-CMD ["./grafbase", "start"]
+ENTRYPOINT ["/bin/grafbase"]
+
+CMD ["start"]
+
+EXPOSE 4000
