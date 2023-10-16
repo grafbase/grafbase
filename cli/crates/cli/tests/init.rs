@@ -18,20 +18,23 @@ fn init() {
     assert!(std::str::from_utf8(&output.stderr).unwrap().contains("already exists"));
     env.remove_grafbase_dir(None);
 
-    env.grafbase_init_template(None, "todo");
+    env.grafbase_init_template(None, "graphql-github");
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
     assert!(env.directory.join("package.json").exists());
 
     env.remove_grafbase_dir(None);
 
-    env.grafbase_init_template(Some("new-project"), "todo");
+    env.grafbase_init_template(Some("new-project"), "graphql-github");
     let directory = env.directory.join("new-project").join("grafbase");
     assert!(directory.exists());
     assert!(directory.join("grafbase.config.ts").exists());
     env.remove_grafbase_dir(Some("new-project"));
 
-    env.grafbase_init_template(None, "https://github.com/grafbase/grafbase/tree/main/templates/blog");
+    env.grafbase_init_template(
+        None,
+        "https://github.com/grafbase/grafbase/tree/main/templates/graphql-github",
+    );
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
     assert!(env.directory.join("package.json").exists());
@@ -39,15 +42,17 @@ fn init() {
 
     env.grafbase_init_template(
         Some("new-project"),
-        "https://github.com/grafbase/grafbase/tree/main/templates/blog",
+        "https://github.com/grafbase/grafbase/tree/main/templates/graphql-github",
     );
     let directory = env.directory.join("new-project").join("grafbase");
     assert!(directory.exists());
     assert!(directory.join("grafbase.config.ts").exists());
 
     env.remove_grafbase_dir(Some("new-project"));
-    let output =
-        env.grafbase_init_template_output(None, "https://example.com/grafbase/grafbase/tree/main/templates/blog");
+    let output = env.grafbase_init_template_output(
+        None,
+        "https://example.com/grafbase/grafbase/tree/main/templates/graphql-github",
+    );
     assert!(!output.stderr.is_empty());
     assert!(std::str::from_utf8(&output.stderr)
         .unwrap()
