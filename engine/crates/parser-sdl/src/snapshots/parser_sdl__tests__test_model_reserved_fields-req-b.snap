@@ -50,15 +50,6 @@ expression: req_string_b
       ],
       "name": "include"
     },
-    "live": {
-      "args": {},
-      "description": "Directs the executor to return values as a Streaming response.",
-      "is_repeatable": false,
-      "locations": [
-        "QUERY"
-      ],
-      "name": "live"
-    },
     "oneOf": {
       "args": {},
       "description": "Indicates that an input object is a oneOf input object",

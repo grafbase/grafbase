@@ -1969,14 +1969,6 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
           ]
         },
         {
-          "name": "live",
-          "description": "Directs the executor to return values as a Streaming response.",
-          "locations": [
-            "QUERY"
-          ],
-          "args": []
-        },
-        {
           "name": "oneOf",
           "description": "Indicates that an input object is a oneOf input object",
           "locations": [
