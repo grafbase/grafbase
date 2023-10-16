@@ -17,11 +17,11 @@ pub(crate) fn register(
     create_input_type: &str,
     output_ctx: &mut OutputContext,
 ) {
-    let type_name = input_ctx.reduced_type_name(table.client_name());
+    let type_name = input_ctx.batch_mutation_return_type_name(table.client_name());
     let query_name = format!("{}_Create_Many", table.client_name()).to_camel_case();
     let input_value = MetaInputValue::new("input", format!("[{create_input_type}!]!"));
 
-    let mut meta_field = MetaField::new(query_name, format!("[{type_name}!]!"));
+    let mut meta_field = MetaField::new(query_name, type_name);
     meta_field.description = Some(format!("Create multiple {}s", table.client_name()));
     meta_field.args = [("input".to_string(), input_value)].into();
     meta_field.required_operation = Some(Operations::CREATE);

@@ -71,27 +71,27 @@ fn table_with_serial_primary_key() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -119,6 +119,17 @@ fn table_with_serial_primary_key() {
 
         type User {
           id: Int!
+        }
+
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input UserByInput {
@@ -152,25 +163,36 @@ fn table_with_serial_primary_key() {
           id: Int
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserOrderByInput {
           id: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           id: Int!
-        }
-
-        input UserReducedCollection {
-          id: IntSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {
@@ -211,6 +233,17 @@ fn table_with_enum_field() {
           val: StreetLight!
         }
 
+        type ABatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [AReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
         input AByInput {
           id: Int
         }
@@ -244,28 +277,39 @@ fn table_with_enum_field() {
           val: StreetLight!
         }
 
+        type AMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: AReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input AMutationCollection {
+          id: IntSearchFilterInput
+          val: StreetLightSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [AMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [AMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [AMutationCollection]
+        }
+
         input AOrderByInput {
           id: OrderByDirection
           val: OrderByDirection
         }
 
-        type AReduced {
+        type AReturning {
           id: Int!
           val: StreetLight!
-        }
-
-        input AReducedCollection {
-          id: IntSearchFilterInput
-          val: StreetLightSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [AReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [AReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [AReducedCollection]
         }
 
         input AUpdateInput {
@@ -329,27 +373,27 @@ fn table_with_enum_field() {
           """
             Delete a unique A by a field or combination of fields
           """
-          aDelete(by: AByInput!): AReduced
+          aDelete(by: AByInput!): AMutation
           """
             Delete multiple rows of A by a filter
           """
-          aDeleteMany(filter: AReducedCollection!): [AReduced]!
+          aDeleteMany(filter: AMutationCollection!): ABatchMutation
           """
             Create a A
           """
-          aCreate(input: AInput!): AReduced
+          aCreate(input: AInput!): AMutation
           """
             Create multiple As
           """
-          aCreateMany(input: [AInput!]!): [AReduced!]!
+          aCreateMany(input: [AInput!]!): ABatchMutation
           """
             Update a unique A
           """
-          aUpdate(by: AByInput!, input: AUpdateInput!): AReduced
+          aUpdate(by: AByInput!, input: AUpdateInput!): AMutation
           """
             Update multiple As
           """
-          aUpdateMany(filter: AReducedCollection!, input: AUpdateInput!): [AReduced]!
+          aUpdateMany(filter: AMutationCollection!, input: AUpdateInput!): ABatchMutation
         }
 
         enum OrderByDirection {
@@ -459,27 +503,27 @@ fn table_with_int_primary_key() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -507,6 +551,17 @@ fn table_with_int_primary_key() {
 
         type User {
           id: Int!
+        }
+
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input UserByInput {
@@ -540,25 +595,36 @@ fn table_with_int_primary_key() {
           id: Int!
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserOrderByInput {
           id: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           id: Int!
-        }
-
-        input UserReducedCollection {
-          id: IntSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {
@@ -643,27 +709,27 @@ fn table_with_int_unique() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -691,6 +757,17 @@ fn table_with_int_unique() {
 
         type User {
           id: Int!
+        }
+
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input UserByInput {
@@ -724,25 +801,36 @@ fn table_with_int_unique() {
           id: Int!
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserOrderByInput {
           id: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           id: Int!
-        }
-
-        input UserReducedCollection {
-          id: IntSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {
@@ -828,27 +916,27 @@ fn table_with_serial_primary_key_string_unique() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -917,6 +1005,17 @@ fn table_with_serial_primary_key_string_unique() {
         type User {
           id: Int!
           email: String!
+        }
+
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input UserByInput {
@@ -953,28 +1052,39 @@ fn table_with_serial_primary_key_string_unique() {
           email: String!
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          email: StringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserOrderByInput {
           id: OrderByDirection
           email: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           id: Int!
           email: String!
-        }
-
-        input UserReducedCollection {
-          id: IntSearchFilterInput
-          email: StringSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {
@@ -1010,27 +1120,27 @@ fn table_with_composite_primary_key() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -1101,6 +1211,17 @@ fn table_with_composite_primary_key() {
           email: String!
         }
 
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
         input UserByInput {
           nameEmail: UserNameEmailInput
         }
@@ -1134,6 +1255,31 @@ fn table_with_composite_primary_key() {
           email: String!
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          name: StringSearchFilterInput
+          email: StringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserNameEmailInput {
           name: String!
           email: String!
@@ -1144,23 +1290,9 @@ fn table_with_composite_primary_key() {
           email: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           name: String!
           email: String!
-        }
-
-        input UserReducedCollection {
-          name: StringSearchFilterInput
-          email: StringSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {
@@ -1256,51 +1388,51 @@ fn two_schemas_same_table_name() {
           """
             Delete a unique PrivateUser by a field or combination of fields
           """
-          privateUserDelete(by: PrivateUserByInput!): PrivateUserReduced
+          privateUserDelete(by: PrivateUserByInput!): PrivateUserMutation
           """
             Delete multiple rows of PrivateUser by a filter
           """
-          privateUserDeleteMany(filter: PrivateUserReducedCollection!): [PrivateUserReduced]!
+          privateUserDeleteMany(filter: PrivateUserMutationCollection!): PrivateUserBatchMutation
           """
             Create a PrivateUser
           """
-          privateUserCreate(input: PrivateUserInput!): PrivateUserReduced
+          privateUserCreate(input: PrivateUserInput!): PrivateUserMutation
           """
             Create multiple PrivateUsers
           """
-          privateUserCreateMany(input: [PrivateUserInput!]!): [PrivateUserReduced!]!
+          privateUserCreateMany(input: [PrivateUserInput!]!): PrivateUserBatchMutation
           """
             Update a unique PrivateUser
           """
-          privateUserUpdate(by: PrivateUserByInput!, input: PrivateUserUpdateInput!): PrivateUserReduced
+          privateUserUpdate(by: PrivateUserByInput!, input: PrivateUserUpdateInput!): PrivateUserMutation
           """
             Update multiple PrivateUsers
           """
-          privateUserUpdateMany(filter: PrivateUserReducedCollection!, input: PrivateUserUpdateInput!): [PrivateUserReduced]!
+          privateUserUpdateMany(filter: PrivateUserMutationCollection!, input: PrivateUserUpdateInput!): PrivateUserBatchMutation
           """
             Delete a unique PublicUser by a field or combination of fields
           """
-          publicUserDelete(by: PublicUserByInput!): PublicUserReduced
+          publicUserDelete(by: PublicUserByInput!): PublicUserMutation
           """
             Delete multiple rows of PublicUser by a filter
           """
-          publicUserDeleteMany(filter: PublicUserReducedCollection!): [PublicUserReduced]!
+          publicUserDeleteMany(filter: PublicUserMutationCollection!): PublicUserBatchMutation
           """
             Create a PublicUser
           """
-          publicUserCreate(input: PublicUserInput!): PublicUserReduced
+          publicUserCreate(input: PublicUserInput!): PublicUserMutation
           """
             Create multiple PublicUsers
           """
-          publicUserCreateMany(input: [PublicUserInput!]!): [PublicUserReduced!]!
+          publicUserCreateMany(input: [PublicUserInput!]!): PublicUserBatchMutation
           """
             Update a unique PublicUser
           """
-          publicUserUpdate(by: PublicUserByInput!, input: PublicUserUpdateInput!): PublicUserReduced
+          publicUserUpdate(by: PublicUserByInput!, input: PublicUserUpdateInput!): PublicUserMutation
           """
             Update multiple PublicUsers
           """
-          publicUserUpdateMany(filter: PublicUserReducedCollection!, input: PublicUserUpdateInput!): [PublicUserReduced]!
+          publicUserUpdateMany(filter: PublicUserMutationCollection!, input: PublicUserUpdateInput!): PublicUserBatchMutation
         }
 
         enum OrderByDirection {
@@ -1317,6 +1449,17 @@ fn two_schemas_same_table_name() {
 
         type PrivateUser {
           id: Int!
+        }
+
+        type PrivateUserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PrivateUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input PrivateUserByInput {
@@ -1350,25 +1493,36 @@ fn two_schemas_same_table_name() {
           id: Int
         }
 
+        type PrivateUserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: PrivateUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input PrivateUserMutationCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PrivateUserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [PrivateUserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PrivateUserMutationCollection]
+        }
+
         input PrivateUserOrderByInput {
           id: OrderByDirection
         }
 
-        type PrivateUserReduced {
+        type PrivateUserReturning {
           id: Int!
-        }
-
-        input PrivateUserReducedCollection {
-          id: IntSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [PrivateUserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [PrivateUserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [PrivateUserReducedCollection]
         }
 
         input PrivateUserUpdateInput {
@@ -1377,6 +1531,17 @@ fn two_schemas_same_table_name() {
 
         type PublicUser {
           id: Int!
+        }
+
+        type PublicUserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PublicUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input PublicUserByInput {
@@ -1410,25 +1575,36 @@ fn two_schemas_same_table_name() {
           id: Int
         }
 
+        type PublicUserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: PublicUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input PublicUserMutationCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PublicUserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [PublicUserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PublicUserMutationCollection]
+        }
+
         input PublicUserOrderByInput {
           id: OrderByDirection
         }
 
-        type PublicUserReduced {
+        type PublicUserReturning {
           id: Int!
-        }
-
-        input PublicUserReducedCollection {
-          id: IntSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [PublicUserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [PublicUserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [PublicUserReducedCollection]
         }
 
         input PublicUserUpdateInput {
@@ -1536,27 +1712,27 @@ fn table_with_serial_primary_key_namespaced() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: NeonUserByInput!): NeonUserReduced
+          userDelete(by: NeonUserByInput!): NeonUserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: NeonUserReducedCollection!): [NeonUserReduced]!
+          userDeleteMany(filter: NeonUserMutationCollection!): NeonUserBatchMutation
           """
             Create a User
           """
-          userCreate(input: NeonUserInput!): NeonUserReduced
+          userCreate(input: NeonUserInput!): NeonUserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [NeonUserInput!]!): [NeonUserReduced!]!
+          userCreateMany(input: [NeonUserInput!]!): NeonUserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: NeonUserByInput!, input: NeonUserUpdateInput!): NeonUserReduced
+          userUpdate(by: NeonUserByInput!, input: NeonUserUpdateInput!): NeonUserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: NeonUserReducedCollection!, input: NeonUserUpdateInput!): [NeonUserReduced]!
+          userUpdateMany(filter: NeonUserMutationCollection!, input: NeonUserUpdateInput!): NeonUserBatchMutation
         }
 
         enum NeonOrderByDirection {
@@ -1584,6 +1760,17 @@ fn table_with_serial_primary_key_namespaced() {
 
         type NeonUser {
           id: Int!
+        }
+
+        type NeonUserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [NeonUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input NeonUserByInput {
@@ -1617,25 +1804,36 @@ fn table_with_serial_primary_key_namespaced() {
           id: Int
         }
 
+        type NeonUserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: NeonUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input NeonUserMutationCollection {
+          id: NeonIntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [NeonUserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [NeonUserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [NeonUserMutationCollection]
+        }
+
         input NeonUserOrderByInput {
           id: NeonOrderByDirection
         }
 
-        type NeonUserReduced {
+        type NeonUserReturning {
           id: Int!
-        }
-
-        input NeonUserReducedCollection {
-          id: NeonIntSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [NeonUserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [NeonUserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [NeonUserReducedCollection]
         }
 
         input NeonUserUpdateInput {
@@ -1780,27 +1978,27 @@ fn table_with_an_array_column() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -1829,6 +2027,17 @@ fn table_with_an_array_column() {
         type User {
           id: Int!
           name: [Int]!
+        }
+
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input UserByInput {
@@ -1864,28 +2073,39 @@ fn table_with_an_array_column() {
           name: [Int]!
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          name: IntArraySearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserOrderByInput {
           id: OrderByDirection
           name: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           id: Int!
           name: [Int]!
-        }
-
-        input UserReducedCollection {
-          id: IntSearchFilterInput
-          name: IntArraySearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {
@@ -2032,27 +2252,27 @@ fn table_with_jsonb_column() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -2081,6 +2301,17 @@ fn table_with_jsonb_column() {
         type User {
           id: Int!
           name: JSON!
+        }
+
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         input UserByInput {
@@ -2116,28 +2347,39 @@ fn table_with_jsonb_column() {
           name: JSON!
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          name: JsonSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserOrderByInput {
           id: OrderByDirection
           name: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           id: Int!
           name: JSON!
-        }
-
-        input UserReducedCollection {
-          id: IntSearchFilterInput
-          name: JsonSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {
@@ -2260,27 +2502,27 @@ fn table_with_json_column() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -2320,6 +2562,17 @@ fn table_with_json_column() {
           name: JSON!
         }
 
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
         input UserByInput {
           id: Int
         }
@@ -2353,28 +2606,39 @@ fn table_with_json_column() {
           name: JSON!
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          name: JsonSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserOrderByInput {
           id: OrderByDirection
           name: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           id: Int!
           name: JSON!
-        }
-
-        input UserReducedCollection {
-          id: IntSearchFilterInput
-          name: JsonSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {
@@ -2425,6 +2689,17 @@ fn two_tables_with_single_column_foreign_key() {
           user: User!
         }
 
+        type BlogBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [BlogReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
         input BlogByInput {
           id: Int
         }
@@ -2467,6 +2742,33 @@ fn two_tables_with_single_column_foreign_key() {
           userId: Int!
         }
 
+        type BlogMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: BlogReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input BlogMutationCollection {
+          id: IntSearchFilterInput
+          title: StringSearchFilterInput
+          content: StringSearchFilterInput
+          userId: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [BlogMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [BlogMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [BlogMutationCollection]
+        }
+
         input BlogOrderByInput {
           id: OrderByDirection
           title: OrderByDirection
@@ -2474,27 +2776,11 @@ fn two_tables_with_single_column_foreign_key() {
           userId: OrderByDirection
         }
 
-        type BlogReduced {
+        type BlogReturning {
           id: Int!
           title: String!
           content: String
           userId: Int!
-        }
-
-        input BlogReducedCollection {
-          id: IntSearchFilterInput
-          title: StringSearchFilterInput
-          content: StringSearchFilterInput
-          userId: IntSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [BlogReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [BlogReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [BlogReducedCollection]
         }
 
         input BlogUpdateInput {
@@ -2560,51 +2846,51 @@ fn two_tables_with_single_column_foreign_key() {
           """
             Delete a unique Blog by a field or combination of fields
           """
-          blogDelete(by: BlogByInput!): BlogReduced
+          blogDelete(by: BlogByInput!): BlogMutation
           """
             Delete multiple rows of Blog by a filter
           """
-          blogDeleteMany(filter: BlogReducedCollection!): [BlogReduced]!
+          blogDeleteMany(filter: BlogMutationCollection!): BlogBatchMutation
           """
             Create a Blog
           """
-          blogCreate(input: BlogInput!): BlogReduced
+          blogCreate(input: BlogInput!): BlogMutation
           """
             Create multiple Blogs
           """
-          blogCreateMany(input: [BlogInput!]!): [BlogReduced!]!
+          blogCreateMany(input: [BlogInput!]!): BlogBatchMutation
           """
             Update a unique Blog
           """
-          blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogReduced
+          blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogMutation
           """
             Update multiple Blogs
           """
-          blogUpdateMany(filter: BlogReducedCollection!, input: BlogUpdateInput!): [BlogReduced]!
+          blogUpdateMany(filter: BlogMutationCollection!, input: BlogUpdateInput!): BlogBatchMutation
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserReduced
+          userDelete(by: UserByInput!): UserMutation
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserReducedCollection!): [UserReduced]!
+          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserReduced
+          userCreate(input: UserInput!): UserMutation
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): [UserReduced!]!
+          userCreateMany(input: [UserInput!]!): UserBatchMutation
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserReduced
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserReducedCollection!, input: UserUpdateInput!): [UserReduced]!
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
         }
 
         enum OrderByDirection {
@@ -2684,6 +2970,17 @@ fn two_tables_with_single_column_foreign_key() {
           blogs(first: Int, last: Int, before: String, after: String, orderBy: [BlogOrderByInput!]): BlogConnection
         }
 
+        type UserBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
         input UserByInput {
           id: Int
         }
@@ -2718,28 +3015,39 @@ fn two_tables_with_single_column_foreign_key() {
           name: String!
         }
 
+        type UserMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          name: StringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
         input UserOrderByInput {
           id: OrderByDirection
           name: OrderByDirection
         }
 
-        type UserReduced {
+        type UserReturning {
           id: Int!
           name: String!
-        }
-
-        input UserReducedCollection {
-          id: IntSearchFilterInput
-          name: StringSearchFilterInput
-          """
-            All of the filters must match
-          """ ALL: [UserReducedCollection]
-          """
-            None of the filters must match
-          """ NONE: [UserReducedCollection]
-          """
-            At least one of the filters must match
-          """ ANY: [UserReducedCollection]
         }
 
         input UserUpdateInput {

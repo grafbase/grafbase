@@ -17,7 +17,7 @@ fn char() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "Musti" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -33,7 +33,9 @@ fn char() {
         {
           "data": {
             "userCreate": {
-              "val": "Musti"
+              "returning": {
+                "val": "Musti"
+              }
             }
           }
         }"#]];
@@ -56,7 +58,7 @@ fn char_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["Musti", "Naukio"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -72,10 +74,12 @@ fn char_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "Musti ",
-                "Naukio"
-              ]
+              "returning": {
+                "val": [
+                  "Musti ",
+                  "Naukio"
+                ]
+              }
             }
           }
         }"#]];
@@ -98,7 +102,7 @@ fn name() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "Musti" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -114,7 +118,9 @@ fn name() {
         {
           "data": {
             "userCreate": {
-              "val": "Musti"
+              "returning": {
+                "val": "Musti"
+              }
             }
           }
         }"#]];
@@ -137,7 +143,7 @@ fn name_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["Musti", "Naukio"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -153,10 +159,12 @@ fn name_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "Musti",
-                "Naukio"
-              ]
+              "returning": {
+                "val": [
+                  "Musti",
+                  "Naukio"
+                ]
+              }
             }
           }
         }"#]];
@@ -179,7 +187,7 @@ fn text() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "Musti" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -195,7 +203,9 @@ fn text() {
         {
           "data": {
             "userCreate": {
-              "val": "Musti"
+              "returning": {
+                "val": "Musti"
+              }
             }
           }
         }"#]];
@@ -218,7 +228,7 @@ fn text_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["Musti", "Naukio"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -234,10 +244,12 @@ fn text_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "Musti",
-                "Naukio"
-              ]
+              "returning": {
+                "val": [
+                  "Musti",
+                  "Naukio"
+                ]
+              }
             }
           }
         }"#]];
@@ -260,7 +272,7 @@ fn xml() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "<html></html>" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -276,7 +288,9 @@ fn xml() {
         {
           "data": {
             "userCreate": {
-              "val": "<html></html>"
+              "returning": {
+                "val": "<html></html>"
+              }
             }
           }
         }"#]];
@@ -299,7 +313,7 @@ fn xml_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["<html></html>", "<head></head>"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -315,10 +329,12 @@ fn xml_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "<html></html>",
-                "<head></head>"
-              ]
+              "returning": {
+                "val": [
+                  "<html></html>",
+                  "<head></head>"
+                ]
+              }
             }
           }
         }"#]];
@@ -341,7 +357,7 @@ fn cidr() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "0.0.0.0/0" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -357,7 +373,9 @@ fn cidr() {
         {
           "data": {
             "userCreate": {
-              "val": "0.0.0.0/0"
+              "returning": {
+                "val": "0.0.0.0/0"
+              }
             }
           }
         }"#]];
@@ -380,7 +398,7 @@ fn cidr_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["0.0.0.0/0", "192.168.0.0/32"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -396,10 +414,12 @@ fn cidr_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "0.0.0.0/0",
-                "192.168.0.0/32"
-              ]
+              "returning": {
+                "val": [
+                  "0.0.0.0/0",
+                  "192.168.0.0/32"
+                ]
+              }
             }
           }
         }"#]];
@@ -422,7 +442,7 @@ fn macaddr8() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "08:00:2b:01:02:03:04:05" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -438,7 +458,9 @@ fn macaddr8() {
         {
           "data": {
             "userCreate": {
-              "val": "08:00:2b:01:02:03:04:05"
+              "returning": {
+                "val": "08:00:2b:01:02:03:04:05"
+              }
             }
           }
         }"#]];
@@ -461,7 +483,7 @@ fn macaddr8_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["08:00:2b:01:02:03:04:05", "08002b:0102030405"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -477,10 +499,12 @@ fn macaddr8_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "08:00:2b:01:02:03:04:05",
-                "08:00:2b:01:02:03:04:05"
-              ]
+              "returning": {
+                "val": [
+                  "08:00:2b:01:02:03:04:05",
+                  "08:00:2b:01:02:03:04:05"
+                ]
+              }
             }
           }
         }"#]];
@@ -503,7 +527,7 @@ fn macaddr() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "08:00:2b:01:02:03" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -519,7 +543,9 @@ fn macaddr() {
         {
           "data": {
             "userCreate": {
-              "val": "08:00:2b:01:02:03"
+              "returning": {
+                "val": "08:00:2b:01:02:03"
+              }
             }
           }
         }"#]];
@@ -542,7 +568,7 @@ fn macaddr_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["08:00:2b:01:02:03", "08:00:2b:01:02:04"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -558,10 +584,12 @@ fn macaddr_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "08:00:2b:01:02:03",
-                "08:00:2b:01:02:04"
-              ]
+              "returning": {
+                "val": [
+                  "08:00:2b:01:02:03",
+                  "08:00:2b:01:02:04"
+                ]
+              }
             }
           }
         }"#]];
@@ -584,7 +612,7 @@ fn bpchar() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "Musti" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -600,7 +628,9 @@ fn bpchar() {
         {
           "data": {
             "userCreate": {
-              "val": "Musti"
+              "returning": {
+                "val": "Musti"
+              }
             }
           }
         }"#]];
@@ -623,7 +653,7 @@ fn bpchar_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["Musti", "Naukio"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -639,10 +669,12 @@ fn bpchar_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "Musti ",
-                "Naukio"
-              ]
+              "returning": {
+                "val": [
+                  "Musti ",
+                  "Naukio"
+                ]
+              }
             }
           }
         }"#]];
@@ -665,7 +697,7 @@ fn varchar() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "Musti" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -681,7 +713,9 @@ fn varchar() {
         {
           "data": {
             "userCreate": {
-              "val": "Musti"
+              "returning": {
+                "val": "Musti"
+              }
             }
           }
         }"#]];
@@ -704,7 +738,7 @@ fn varchar_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["Musti", "Naukio"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -720,10 +754,12 @@ fn varchar_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "Musti",
-                "Naukio"
-              ]
+              "returning": {
+                "val": [
+                  "Musti",
+                  "Naukio"
+                ]
+              }
             }
           }
         }"#]];
@@ -746,7 +782,7 @@ fn bit() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "010" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -762,7 +798,9 @@ fn bit() {
         {
           "data": {
             "userCreate": {
-              "val": "010"
+              "returning": {
+                "val": "010"
+              }
             }
           }
         }"#]];
@@ -785,7 +823,7 @@ fn bit_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["010", "101"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -801,10 +839,12 @@ fn bit_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "010",
-                "101"
-              ]
+              "returning": {
+                "val": [
+                  "010",
+                  "101"
+                ]
+              }
             }
           }
         }"#]];
@@ -827,7 +867,7 @@ fn varbit() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "010" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -843,7 +883,9 @@ fn varbit() {
         {
           "data": {
             "userCreate": {
-              "val": "010"
+              "returning": {
+                "val": "010"
+              }
             }
           }
         }"#]];
@@ -866,7 +908,7 @@ fn varbit_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["010", "101"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -882,10 +924,12 @@ fn varbit_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "010",
-                "101"
-              ]
+              "returning": {
+                "val": [
+                  "010",
+                  "101"
+                ]
+              }
             }
           }
         }"#]];
@@ -908,7 +952,7 @@ fn int2() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: 420 }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -924,7 +968,9 @@ fn int2() {
         {
           "data": {
             "userCreate": {
-              "val": 420
+              "returning": {
+                "val": 420
+              }
             }
           }
         }"#]];
@@ -947,7 +993,7 @@ fn int2_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: [1, 2] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -963,10 +1009,12 @@ fn int2_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                1,
-                2
-              ]
+              "returning": {
+                "val": [
+                  1,
+                  2
+                ]
+              }
             }
           }
         }"#]];
@@ -989,7 +1037,7 @@ fn int4() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: 420 }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1005,7 +1053,9 @@ fn int4() {
         {
           "data": {
             "userCreate": {
-              "val": 420
+              "returning": {
+                "val": 420
+              }
             }
           }
         }"#]];
@@ -1028,7 +1078,7 @@ fn int4_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: [1, 2] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1044,10 +1094,12 @@ fn int4_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                1,
-                2
-              ]
+              "returning": {
+                "val": [
+                  1,
+                  2
+                ]
+              }
             }
           }
         }"#]];
@@ -1070,7 +1122,7 @@ fn int8() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "420" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1086,7 +1138,9 @@ fn int8() {
         {
           "data": {
             "userCreate": {
-              "val": "420"
+              "returning": {
+                "val": "420"
+              }
             }
           }
         }"#]];
@@ -1109,7 +1163,7 @@ fn int8_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["1", "2"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1125,10 +1179,12 @@ fn int8_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "1",
-                "2"
-              ]
+              "returning": {
+                "val": [
+                  "1",
+                  "2"
+                ]
+              }
             }
           }
         }"#]];
@@ -1151,7 +1207,7 @@ fn oid() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "420" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1167,7 +1223,9 @@ fn oid() {
         {
           "data": {
             "userCreate": {
-              "val": "420"
+              "returning": {
+                "val": "420"
+              }
             }
           }
         }"#]];
@@ -1190,7 +1248,7 @@ fn oid_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["1", "2"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1206,10 +1264,12 @@ fn oid_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "1",
-                "2"
-              ]
+              "returning": {
+                "val": [
+                  "1",
+                  "2"
+                ]
+              }
             }
           }
         }"#]];
@@ -1232,7 +1292,7 @@ fn json() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: { foo: 1 } }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1248,8 +1308,10 @@ fn json() {
         {
           "data": {
             "userCreate": {
-              "val": {
-                "foo": 1
+              "returning": {
+                "val": {
+                  "foo": 1
+                }
               }
             }
           }
@@ -1273,7 +1335,7 @@ fn json_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: [{ foo: 1 }, { bar: 2 }] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1289,14 +1351,16 @@ fn json_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                {
-                  "foo": 1
-                },
-                {
-                  "bar": 2
-                }
-              ]
+              "returning": {
+                "val": [
+                  {
+                    "foo": 1
+                  },
+                  {
+                    "bar": 2
+                  }
+                ]
+              }
             }
           }
         }"#]];
@@ -1319,7 +1383,7 @@ fn jsonb() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: { foo: 1 } }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1335,8 +1399,10 @@ fn jsonb() {
         {
           "data": {
             "userCreate": {
-              "val": {
-                "foo": 1
+              "returning": {
+                "val": {
+                  "foo": 1
+                }
               }
             }
           }
@@ -1360,7 +1426,7 @@ fn jsonb_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: [{ foo: 1 }, { bar: 2 }] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1376,14 +1442,16 @@ fn jsonb_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                {
-                  "foo": 1
-                },
-                {
-                  "bar": 2
-                }
-              ]
+              "returning": {
+                "val": [
+                  {
+                    "foo": 1
+                  },
+                  {
+                    "bar": 2
+                  }
+                ]
+              }
             }
           }
         }"#]];
@@ -1406,7 +1474,7 @@ fn money() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "1.23" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1422,7 +1490,9 @@ fn money() {
         {
           "data": {
             "userCreate": {
-              "val": "$1.23"
+              "returning": {
+                "val": "$1.23"
+              }
             }
           }
         }"#]];
@@ -1445,7 +1515,7 @@ fn money_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["1.23", "3.14"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1461,10 +1531,12 @@ fn money_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "$1.23",
-                "$3.14"
-              ]
+              "returning": {
+                "val": [
+                  "$1.23",
+                  "$3.14"
+                ]
+              }
             }
           }
         }"#]];
@@ -1487,7 +1559,7 @@ fn numeric() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "1.23" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1503,7 +1575,9 @@ fn numeric() {
         {
           "data": {
             "userCreate": {
-              "val": "1.23"
+              "returning": {
+                "val": "1.23"
+              }
             }
           }
         }"#]];
@@ -1526,7 +1600,7 @@ fn numeric_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["1.23", "3.14"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1542,10 +1616,12 @@ fn numeric_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "1.23",
-                "3.14"
-              ]
+              "returning": {
+                "val": [
+                  "1.23",
+                  "3.14"
+                ]
+              }
             }
           }
         }"#]];
@@ -1568,7 +1644,7 @@ fn float4() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: 3.14 }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1584,7 +1660,9 @@ fn float4() {
         {
           "data": {
             "userCreate": {
-              "val": 3.14
+              "returning": {
+                "val": 3.14
+              }
             }
           }
         }"#]];
@@ -1607,7 +1685,7 @@ fn float4_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: [3.14, 1.23] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1623,10 +1701,12 @@ fn float4_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                3.14,
-                1.23
-              ]
+              "returning": {
+                "val": [
+                  3.14,
+                  1.23
+                ]
+              }
             }
           }
         }"#]];
@@ -1649,7 +1729,7 @@ fn float8() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: 3.14 }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1665,7 +1745,9 @@ fn float8() {
         {
           "data": {
             "userCreate": {
-              "val": 3.14
+              "returning": {
+                "val": 3.14
+              }
             }
           }
         }"#]];
@@ -1688,7 +1770,7 @@ fn float8_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: [3.14, 1.23] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1704,10 +1786,12 @@ fn float8_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                3.14,
-                1.23
-              ]
+              "returning": {
+                "val": [
+                  3.14,
+                  1.23
+                ]
+              }
             }
           }
         }"#]];
@@ -1730,7 +1814,7 @@ fn time() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "16:20:00" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1746,7 +1830,9 @@ fn time() {
         {
           "data": {
             "userCreate": {
-              "val": "16:20:00"
+              "returning": {
+                "val": "16:20:00"
+              }
             }
           }
         }"#]];
@@ -1769,7 +1855,7 @@ fn time_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["16:20:00", "04:20:00"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1785,10 +1871,12 @@ fn time_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "16:20:00",
-                "04:20:00"
-              ]
+              "returning": {
+                "val": [
+                  "16:20:00",
+                  "04:20:00"
+                ]
+              }
             }
           }
         }"#]];
@@ -1811,7 +1899,7 @@ fn timetz() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "16:20:00+00" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1827,7 +1915,9 @@ fn timetz() {
         {
           "data": {
             "userCreate": {
-              "val": "16:20:00+00"
+              "returning": {
+                "val": "16:20:00+00"
+              }
             }
           }
         }"#]];
@@ -1850,7 +1940,7 @@ fn timetz_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["16:20:00+00", "04:20:00Z"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1866,10 +1956,12 @@ fn timetz_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "16:20:00+00",
-                "04:20:00+00"
-              ]
+              "returning": {
+                "val": [
+                  "16:20:00+00",
+                  "04:20:00+00"
+                ]
+              }
             }
           }
         }"#]];
@@ -1892,7 +1984,7 @@ fn bool() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: true }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1908,7 +2000,9 @@ fn bool() {
         {
           "data": {
             "userCreate": {
-              "val": true
+              "returning": {
+                "val": true
+              }
             }
           }
         }"#]];
@@ -1931,7 +2025,7 @@ fn bool_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: [true, false] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1947,10 +2041,12 @@ fn bool_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                true,
-                false
-              ]
+              "returning": {
+                "val": [
+                  true,
+                  false
+                ]
+              }
             }
           }
         }"#]];
@@ -1973,7 +2069,7 @@ fn bytea() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "XHg0NDQ1NDE0NDQyNDU0NTQ2" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -1989,7 +2085,9 @@ fn bytea() {
         {
           "data": {
             "userCreate": {
-              "val": "XHg0NDQ1NDE0NDQyNDU0NTQ2"
+              "returning": {
+                "val": "XHg0NDQ1NDE0NDQyNDU0NTQ2"
+              }
             }
           }
         }"#]];
@@ -2012,7 +2110,7 @@ fn bytea_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["XHg0NDQ1NDE0NDQyNDU0NTQ2", "XHg0NDQ1NDE0NDQyNDU0NTQ3"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2028,10 +2126,12 @@ fn bytea_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "XHg0NDQ1NDE0NDQyNDU0NTQ2",
-                "XHg0NDQ1NDE0NDQyNDU0NTQ3"
-              ]
+              "returning": {
+                "val": [
+                  "XHg0NDQ1NDE0NDQyNDU0NTQ2",
+                  "XHg0NDQ1NDE0NDQyNDU0NTQ3"
+                ]
+              }
             }
           }
         }"#]];
@@ -2054,7 +2154,7 @@ fn inet() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "192.168.0.1" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2070,7 +2170,9 @@ fn inet() {
         {
           "data": {
             "userCreate": {
-              "val": "192.168.0.1"
+              "returning": {
+                "val": "192.168.0.1"
+              }
             }
           }
         }"#]];
@@ -2093,7 +2195,7 @@ fn inet_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["192.168.0.1", "10.0.0.1"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2109,10 +2211,12 @@ fn inet_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "192.168.0.1",
-                "10.0.0.1"
-              ]
+              "returning": {
+                "val": [
+                  "192.168.0.1",
+                  "10.0.0.1"
+                ]
+              }
             }
           }
         }"#]];
@@ -2135,7 +2239,7 @@ fn date() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "1999-01-08" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2151,7 +2255,9 @@ fn date() {
         {
           "data": {
             "userCreate": {
-              "val": "1999-01-08"
+              "returning": {
+                "val": "1999-01-08"
+              }
             }
           }
         }"#]];
@@ -2174,7 +2280,7 @@ fn date_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["1999-01-08", "1999-01-09"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2190,10 +2296,12 @@ fn date_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "1999-01-08",
-                "1999-01-09"
-              ]
+              "returning": {
+                "val": [
+                  "1999-01-08",
+                  "1999-01-09"
+                ]
+              }
             }
           }
         }"#]];
@@ -2216,7 +2324,7 @@ fn timestamp() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "2004-10-19T10:23:54" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2232,7 +2340,9 @@ fn timestamp() {
         {
           "data": {
             "userCreate": {
-              "val": "2004-10-19T10:23:54"
+              "returning": {
+                "val": "2004-10-19T10:23:54"
+              }
             }
           }
         }"#]];
@@ -2255,7 +2365,7 @@ fn timestamp_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["2004-10-19T10:23:54", "2004-10-19T10:23:55"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2271,10 +2381,12 @@ fn timestamp_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "2004-10-19T10:23:54",
-                "2004-10-19T10:23:55"
-              ]
+              "returning": {
+                "val": [
+                  "2004-10-19T10:23:54",
+                  "2004-10-19T10:23:55"
+                ]
+              }
             }
           }
         }"#]];
@@ -2297,7 +2409,7 @@ fn timestamptz() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "2004-10-19T10:23:54.000Z" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2313,7 +2425,9 @@ fn timestamptz() {
         {
           "data": {
             "userCreate": {
-              "val": "2004-10-19T10:23:54.000Z"
+              "returning": {
+                "val": "2004-10-19T10:23:54.000Z"
+              }
             }
           }
         }"#]];
@@ -2336,7 +2450,7 @@ fn timestamptz_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["2004-10-19T10:23:54.000Z", "2004-10-19T10:23:55.000Z"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2352,10 +2466,12 @@ fn timestamptz_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "2004-10-19T10:23:54.000Z",
-                "2004-10-19T10:23:55.000Z"
-              ]
+              "returning": {
+                "val": [
+                  "2004-10-19T10:23:54.000Z",
+                  "2004-10-19T10:23:55.000Z"
+                ]
+              }
             }
           }
         }"#]];
@@ -2378,7 +2494,7 @@ fn uuid() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: "d89bd15d-ac64-4c71-895c-adba9c35a132" }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2394,7 +2510,9 @@ fn uuid() {
         {
           "data": {
             "userCreate": {
-              "val": "d89bd15d-ac64-4c71-895c-adba9c35a132"
+              "returning": {
+                "val": "d89bd15d-ac64-4c71-895c-adba9c35a132"
+              }
             }
           }
         }"#]];
@@ -2417,7 +2535,7 @@ fn uuid_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: ["d89bd15d-ac64-4c71-895c-adba9c35a132", "d89bd15d-ac64-4c71-895c-adba9c35a133"] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2433,10 +2551,12 @@ fn uuid_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "d89bd15d-ac64-4c71-895c-adba9c35a132",
-                "d89bd15d-ac64-4c71-895c-adba9c35a133"
-              ]
+              "returning": {
+                "val": [
+                  "d89bd15d-ac64-4c71-895c-adba9c35a132",
+                  "d89bd15d-ac64-4c71-895c-adba9c35a133"
+                ]
+              }
             }
           }
         }"#]];
@@ -2465,7 +2585,7 @@ fn r#enum() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: YELLOW }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2481,7 +2601,9 @@ fn r#enum() {
         {
           "data": {
             "userCreate": {
-              "val": "YELLOW"
+              "returning": {
+                "val": "YELLOW"
+              }
             }
           }
         }"#]];
@@ -2510,7 +2632,7 @@ fn enum_array() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { val: [YELLOW, GREEN] }) {
-                val
+                returning { val }
               }
             }
         "#};
@@ -2526,10 +2648,12 @@ fn enum_array() {
         {
           "data": {
             "userCreate": {
-              "val": [
-                "YELLOW",
-                "GREEN"
-              ]
+              "returning": {
+                "val": [
+                  "YELLOW",
+                  "GREEN"
+                ]
+              }
             }
           }
         }"#]];

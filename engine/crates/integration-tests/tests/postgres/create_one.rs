@@ -18,7 +18,10 @@ fn pk_explicit_int() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { id: 1 }) {
-                id
+                returning {
+                  id
+                }
+                rowCount
               }
             }
         "#};
@@ -34,7 +37,48 @@ fn pk_explicit_int() {
         {
           "data": {
             "userCreate": {
-              "id": 1
+              "returning": {
+                "id": 1
+              },
+              "rowCount": 1
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn pk_explicit_int_no_returning() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userCreate(input: { id: 1 }) {
+                rowCount
+              }
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+
+        assert_eq!(1, api.row_count("User").await);
+
+        result
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCreate": {
+              "rowCount": 1
             }
           }
         }"#]];
@@ -57,7 +101,7 @@ fn namespaced() {
             mutation {
               neon {
                 userCreate(input: { id: 1 }) {
-                  id
+                  returning { id }
                 }
               }
             }    
@@ -75,7 +119,9 @@ fn namespaced() {
           "data": {
             "neon": {
               "userCreate": {
-                "id": 1
+                "returning": {
+                  "id": 1
+                }
               }
             }
           }
@@ -98,7 +144,7 @@ fn renamed() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: { idField: 1 }) {
-                idField
+                returning { idField }
               }
             }
         "#};
@@ -114,7 +160,9 @@ fn renamed() {
         {
           "data": {
             "userCreate": {
-              "idField": 1
+              "returning": {
+                "idField": 1
+              }
             }
           }
         }"#]];
@@ -136,7 +184,7 @@ fn serial_id() {
         let mutation = indoc! {r#"
             mutation {
               userCreate(input: {}) {
-                idField
+                returning { idField }
               }
             }
         "#};
@@ -152,7 +200,9 @@ fn serial_id() {
         {
           "data": {
             "userCreate": {
-              "idField": 1
+              "returning": {
+                "idField": 1
+              }
             }
           }
         }"#]];

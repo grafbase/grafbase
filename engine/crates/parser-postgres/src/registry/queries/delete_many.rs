@@ -17,13 +17,13 @@ pub(crate) fn register(
     simple_filter: &str,
     output_ctx: &mut OutputContext,
 ) {
-    let type_name = input_ctx.reduced_type_name(table.client_name());
+    let type_name = input_ctx.batch_mutation_return_type_name(table.client_name());
     let query_name = format!("{}_Delete_Many", table.client_name()).to_camel_case();
 
     let filter_description = format!("The filter definining which rows to delete from the {type_name} table");
     let filter_input = MetaInputValue::new("filter", format!("{simple_filter}!")).with_description(filter_description);
 
-    let mut meta_field = MetaField::new(query_name, format!("[{type_name}]!"));
+    let mut meta_field = MetaField::new(query_name, type_name);
     meta_field.description = Some(format!("Delete multiple rows of {} by a filter", table.client_name()));
     meta_field.args = [("filter".to_string(), filter_input)].into();
     meta_field.resolver =

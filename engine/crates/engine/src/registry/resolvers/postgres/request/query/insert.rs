@@ -1,5 +1,5 @@
 use grafbase_sql_ast::ast::{
-    json_build_object, Aliasable, Column, CommonTableExpression, Insert, MultiRowInsert, Select, SingleRowInsert,
+    json_build_object, Aliasable, Column, CommonTableExpression, Insert, MultiRowInsert, Query, Select, SingleRowInsert,
 };
 
 use crate::registry::resolvers::postgres::context::{
@@ -14,7 +14,7 @@ enum InsertType<'a> {
 pub fn build<'a>(
     ctx: &'a PostgresContext<'a>,
     input: impl IntoIterator<Item = CreateInputIterator<'a>>,
-) -> Result<Select<'a>, crate::Error> {
+) -> Result<Query<'a>, crate::Error> {
     let mut query = None;
 
     for input in input {
@@ -39,38 +39,41 @@ pub fn build<'a>(
 
     let insert_name = format!("{}_{}_insert", ctx.table().schema(), ctx.table().database_name());
 
-    let mut returning = Vec::new();
-    let mut selected_data = Vec::new();
-
-    for selection in ctx.selection() {
-        match selection? {
-            TableSelection::Column(column) => {
-                selected_data.push((
-                    column.database_name(),
-                    Column::from((insert_name.clone(), column.database_name())),
-                ));
-
-                returning.push(column.database_name());
-            }
-            // we will not have relations in the first phase
-            TableSelection::JoinUnique(..) | TableSelection::JoinMany(..) => {
-                todo!("we'll get back to this with nested inserts")
-            }
-        }
-    }
-
     let mut insert = match query.expect("we must have at least one input document") {
         InsertType::Single(insert) => insert.build(),
         InsertType::Multi(insert) => insert.build(),
     };
 
-    insert.returning(returning);
+    if let Some(selection) = ctx.returning_selection() {
+        let mut select = Select::from_table(insert_name.clone());
+        let mut returning = Vec::new();
+        let mut selected_data = Vec::new();
 
-    let mut select = Select::from_table(insert_name.clone());
-    select.with(CommonTableExpression::new(insert_name, insert));
-    select.value(json_build_object(selected_data).alias("root"));
+        for selection in selection {
+            match selection? {
+                TableSelection::Column(column) => {
+                    selected_data.push((
+                        column.database_name(),
+                        Column::from((insert_name.clone(), column.database_name())),
+                    ));
 
-    Ok(select)
+                    returning.push(column.database_name());
+                }
+                // we will not have relations in the first phase
+                TableSelection::JoinUnique(..) | TableSelection::JoinMany(..) => {
+                    todo!("we'll get back to this with nested inserts")
+                }
+            }
+        }
+
+        insert.returning(returning);
+        select.value(json_build_object(selected_data).alias("root"));
+        select.with(CommonTableExpression::new(insert_name, insert));
+
+        Ok(Query::from(select))
+    } else {
+        Ok(Query::from(insert))
+    }
 }
 
 fn create_insert<'a>(ctx: &'a PostgresContext, input: CreateInputIterator<'a>) -> SingleRowInsert<'a> {

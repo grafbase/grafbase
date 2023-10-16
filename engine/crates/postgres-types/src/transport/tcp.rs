@@ -125,6 +125,10 @@ impl Transport for TcpTransport {
         let params = json_to_string(params);
         let row_stream = self.client.query_raw_txt(query, params).await?;
 
+        pin_mut!(row_stream);
+
+        while (row_stream.next().await).is_some() {}
+
         let command_tag = row_stream.command_tag().unwrap_or_default();
         let mut command_tag_split = command_tag.split(' ');
         let command_tag_name = command_tag_split.next().unwrap_or_default();

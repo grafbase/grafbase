@@ -38,13 +38,49 @@ pub(super) fn generate(
         }
     });
 
-    let type_name = input_ctx.reduced_type_name(table.client_name());
+    let returning_type_name = input_ctx.returning_type_name(table.client_name());
 
     // a simple type, which does not have relations in it (e.g. for deletions)
-    output_ctx.with_object_type(&type_name, table.id(), |builder| {
+    output_ctx.with_object_type(&returning_type_name, table.id(), |builder| {
         for column in table.columns() {
             add_column(column, builder);
         }
+    });
+
+    let mutation_return_type_name = input_ctx.mutation_return_type_name(table.client_name());
+
+    output_ctx.with_object_type(&mutation_return_type_name, table.id(), |builder| {
+        let mut field = MetaField::new("returning", returning_type_name.as_str());
+        field.description = Some(String::from("Returned item from the mutation."));
+        field.resolver = Resolver::Transformer(Transformer::Select {
+            key: "returning".to_string(),
+        });
+        builder.push_non_mapped_scalar_field(field);
+
+        let mut field = MetaField::new("rowCount", "Int!");
+        field.description = Some(String::from("The number of rows mutated."));
+        field.resolver = Resolver::Transformer(Transformer::Select {
+            key: "rowCount".to_string(),
+        });
+        builder.push_non_mapped_scalar_field(field);
+    });
+
+    let mutation_return_type_name = input_ctx.batch_mutation_return_type_name(table.client_name());
+
+    output_ctx.with_object_type(&mutation_return_type_name, table.id(), |builder| {
+        let mut field = MetaField::new("returning", format!("[{returning_type_name}]!"));
+        field.description = Some(String::from("Returned items from the mutation."));
+        field.resolver = Resolver::Transformer(Transformer::Select {
+            key: "returning".to_string(),
+        });
+        builder.push_non_mapped_scalar_field(field);
+
+        let mut field = MetaField::new("rowCount", "Int!");
+        field.description = Some(String::from("The number of rows mutated."));
+        field.resolver = Resolver::Transformer(Transformer::Select {
+            key: "rowCount".to_string(),
+        });
+        builder.push_non_mapped_scalar_field(field);
     });
 }
 

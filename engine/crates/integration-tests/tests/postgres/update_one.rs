@@ -23,8 +23,11 @@ fn string_set_with_returning() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { name: { set: "Naukio" } }) {
-                id
-                name
+                returning {
+                  id
+                  name
+                }
+                rowCount
               }
             }
         "#};
@@ -35,8 +38,75 @@ fn string_set_with_returning() {
             {
               "data": {
                 "userUpdate": {
-                  "id": 1,
-                  "name": "Naukio"
+                  "returning": {
+                    "id": 1,
+                    "name": "Naukio"
+                  },
+                  "rowCount": 1
+                }
+              }
+            }"#]];
+
+        expected.assert_eq(&result);
+
+        let query = indoc! {r#"
+            query {
+              user(by: { id: 1 }) {
+                id
+                name
+              }
+            }    
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "user": {
+              "id": 1,
+              "name": "Naukio"
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn string_set_no_returning() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userUpdate(by: { id: 1 }, input: { name: { set: "Naukio" } }) {
+                rowCount
+              }
+            }
+        "#};
+
+        let result = serde_json::to_string_pretty(&api.execute(mutation).await.to_graphql_response()).unwrap();
+
+        let expected = expect![[r#"
+            {
+              "data": {
+                "userUpdate": {
+                  "rowCount": 1
                 }
               }
             }"#]];
@@ -89,7 +159,7 @@ fn int2_increment() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: 68 } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -142,7 +212,7 @@ fn int2_decrement() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { decrement: 1 } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -195,7 +265,7 @@ fn int2_multiply() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { multiply: 8 } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -248,7 +318,7 @@ fn int2_divide() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { divide: 2 } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -301,7 +371,7 @@ fn int4_increment() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: 68 } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -354,7 +424,7 @@ fn int8_increment() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: "68" } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -407,7 +477,7 @@ fn float_increment() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: 68.0 } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -460,7 +530,7 @@ fn double_increment() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: 68.0 } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -513,7 +583,7 @@ fn numeric_increment() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: "68.0" } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -566,7 +636,7 @@ fn money_increment() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: "68.0" } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -619,7 +689,7 @@ fn array_set() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { set: [3, 4] } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -675,7 +745,7 @@ fn array_append() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { append: [2, 3] } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -732,7 +802,7 @@ fn array_prepend() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { prepend: [2, 3] } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -789,7 +859,7 @@ fn jsonb_append() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { append: [2, 3] } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -846,7 +916,7 @@ fn jsonb_prepend() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { prepend: [2, 3] } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -903,7 +973,7 @@ fn jsonb_delete_key_from_object() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { deleteKey: "foo" } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -958,7 +1028,7 @@ fn jsonb_delete_key_from_array() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { deleteKey: "foo" } }) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -1013,7 +1083,7 @@ fn jsonb_delete_at_path() {
         let mutation = indoc! {r#"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { deleteAtPath: ["1", "b"] } }) {
-                id
+                returning { id }
               }
             }
         "#};
