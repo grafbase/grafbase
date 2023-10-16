@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  The unified data layer
+  The API platform for developers
 </p>
 
 <p align="center">
@@ -19,10 +19,6 @@
   <a href="https://grafbase.com/changelog"><strong>Changelog</strong></a>
 </p>
 
-<br/>
-
-## Welcome to Grafbase!
-
-Connect your APIs, databases and microservices to a unified API.
-
-Deploy globally fast GraphQL APIs with a top-notch developer experience.
+<p align="center">
+  Connect your APIs, databases and microservices and deploy a globally fast GraphQL API in minutes
+</p>
