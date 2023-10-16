@@ -68,4 +68,30 @@ fn ts_config_flag(#[case] case_path: PathBuf) {
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
+
+    let response = client
+        .gql::<serde_json::Value>(
+            r#"
+        query {
+            userCollection(first: 100) {
+                edges {
+                    node {
+                        id
+                    }
+                }
+            }
+        }
+    "#,
+        )
+        .send();
+    assert_eq!(
+        response,
+        serde_json::json!({
+            "data": {
+                "userCollection": {
+                    "edges": []
+                }
+            }
+        })
+    );
 }

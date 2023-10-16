@@ -105,6 +105,8 @@ pub async fn start(
 ) -> Result<(), ServerError> {
     let project = Project::get();
 
+    // Exporting Pathfinder, TS parser & miniflare for resolvers.
+    export_embedded_files()?;
     create_project_dot_grafbase_directory()?;
 
     let (event_bus, _receiver) = channel::<Event>(EVENT_BUS_BOUND);
@@ -221,7 +223,6 @@ async fn spawn_servers(
     if detected_udfs.is_empty() {
         trace!("Skipping wrangler installation");
     } else {
-        export_embedded_files()?;
         validate_node().await?;
         if let Err(error) = install_wrangler(environment, tracing).await {
             let _: Result<_, _> = message_sender.send(ServerMessage::CompilationError(error.to_string()));
@@ -435,6 +436,7 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
         &generated_config_path,
     ];
 
+    export_embedded_files()?;
     validate_node().await?;
     let node_command = Command::new("node")
         .args(args)
