@@ -12,7 +12,7 @@ keywords = ["graphql", "postgres", "grafbase"]
 [dependencies]
 Inflector = "0.11.4"
 async-runtime.workspace = true
-async-trait = "0.1.73"
+async-trait = "0.1.74"
 flexbuffers.workspace = true
 futures.workspace = true
 indexmap = { version = "1", features = ["serde"] }
@@ -35,5 +35,5 @@ reqwest = { version = "0.11", default-features = false, features = ["json", "rus
 # https://github.com/sfackler/rust-postgres/pull/1067
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase" }
 tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls" }
-rustls = "0.21.0"
+rustls = "0.21.7"
 rustls-native-certs = "0.6.3"
