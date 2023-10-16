@@ -13,7 +13,6 @@ pub struct Branch {
 }
 
 #[derive(cynic::QueryVariables)]
-
 pub struct BranchByDomainArguments<'a> {
     pub domain: &'a str,
 }
