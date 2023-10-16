@@ -109,10 +109,10 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Link(cmd) => link(cmd.project),
         SubCommand::Unlink => unlink(),
         SubCommand::Logs(LogsCommand {
-            project_branch_reference: project_reference,
+            project_branch,
             limit,
             no_follow,
-        }) => logs(project_reference, limit, !no_follow),
+        }) => logs(project_branch, limit, !no_follow),
         SubCommand::Start(cmd) => {
             let _ = ctrlc::set_handler(|| {
                 report::goodbye();

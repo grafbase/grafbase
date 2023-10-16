@@ -17,38 +17,54 @@ pub struct BranchReference {
 }
 
 pub async fn project_branch_reference_to_account_project_slug(
-    project_reference: String,
+    project_branch_reference: Option<String>,
 ) -> Result<BranchReference, CliError> {
-    let elements = project_reference.split('/').collect_vec();
-    Ok(match elements.as_slice() {
-        [account_slug, project_slug] => BranchReference {
-            account_slug: (*account_slug).to_string(),
-            project_slug: (*project_slug).to_string(),
-            branch_name: None,
-        },
-        [project_slug] if !project_slug.contains('.') => {
-            let account_slug = api::personal_account_slug().await.map_err(CliError::BackendApiError)?;
-            BranchReference {
-                account_slug,
+    Ok(if let Some(project_branch_reference) = project_branch_reference {
+        let elements = project_branch_reference.split('/').collect_vec();
+        match elements.as_slice() {
+            [account_slug, project_slug] => BranchReference {
+                account_slug: (*account_slug).to_string(),
                 project_slug: (*project_slug).to_string(),
                 branch_name: None,
+            },
+            [project_slug] if !project_slug.contains('.') => {
+                let account_slug = api::personal_account_slug().await.map_err(CliError::BackendApiError)?;
+                BranchReference {
+                    account_slug,
+                    project_slug: (*project_slug).to_string(),
+                    branch_name: None,
+                }
+            }
+            _ => {
+                let domain = url::Url::from_str(&project_branch_reference)
+                    .ok()
+                    .and_then(|parsed_url| parsed_url.domain().map(str::to_owned))
+                    .unwrap_or_else(|| project_branch_reference.clone());
+
+                let (account_slug, project_slug, branch_name) = api::branch_by_domain(&domain)
+                    .await
+                    .map_err(CliError::BackendApiError)?
+                    .ok_or_else(|| CliError::ProjectNotFound(project_branch_reference))?;
+                BranchReference {
+                    account_slug,
+                    project_slug,
+                    branch_name: Some(branch_name),
+                }
             }
         }
-        _ => {
-            let domain = url::Url::from_str(&project_reference)
-                .ok()
-                .and_then(|parsed_url| parsed_url.domain().map(str::to_owned))
-                .unwrap_or_else(|| project_reference.clone());
-
-            let (account_slug, project_slug, branch_name) = api::branch_by_domain(&domain)
-                .await
-                .map_err(CliError::BackendApiError)?
-                .ok_or_else(|| CliError::ProjectNotFound(project_reference))?;
-            BranchReference {
-                account_slug,
-                project_slug,
-                branch_name: Some(branch_name),
-            }
+    } else {
+        let project_metadata = api::project_linked()
+            .await
+            .map_err(CliError::BackendApiError)?
+            .ok_or(CliError::LogsNoLinkedProject)?;
+        let (account_slug, project_slug) = api::project_slug_by_id(&project_metadata.project_id)
+            .await
+            .map_err(CliError::BackendApiError)?
+            .ok_or_else(|| CliError::ProjectNotFound(project_metadata.project_id))?;
+        BranchReference {
+            account_slug,
+            project_slug,
+            branch_name: None,
         }
     })
 }
@@ -135,7 +151,7 @@ pub async fn log_events_for_time_range(
 }
 
 #[tokio::main]
-pub async fn logs(project_branch_reference: String, limit: u16, follow: bool) -> Result<(), CliError> {
+pub async fn logs(project_branch_reference: Option<String>, limit: u16, follow: bool) -> Result<(), CliError> {
     let project_branch_reference = project_branch_reference_to_account_project_slug(project_branch_reference).await?;
 
     let mut range = LogEventsRange::Last(limit);
