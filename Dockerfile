@@ -1,22 +1,19 @@
 # Build
-FROM rust:1.73 AS build
+FROM rust:1.73-alpine3.18 AS build
 
 WORKDIR /grafbase
 
 COPY ./cli ./cli
 COPY ./engine ./engine
 
-COPY ./cli/Cargo.lock ./cli/Cargo.lock
-COPY ./cli/Cargo.toml ./cli/Cargo.toml
-COPY ./engine/Cargo.lock ./engine/Cargo.lock
-COPY ./engine/Cargo.toml ./engine/Cargo.toml
-
 WORKDIR /grafbase/cli
+
+RUN apk add --no-cache git musl-dev
 
 RUN cargo build --release
 
 # Run
-FROM debian:bookworm AS run
+FROM alpine:3.18
 
 WORKDIR /grafbase
 
