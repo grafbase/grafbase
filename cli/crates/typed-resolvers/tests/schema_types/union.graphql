@@ -1,0 +1,11 @@
+type Dog {
+  id: ID!
+  barkVolume: Float
+}
+
+type Cat {
+  id: ID!
+  meowVolume: Float
+}
+
+union Pet = Cat | Dog

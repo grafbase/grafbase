@@ -1,0 +1,20 @@
+[package]
+name = "typed-resolvers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+graphql-parser = "0.4"
+
+[dev-dependencies]
+similar = "2"
+datatest-stable = "0.2.3"
+
+[[test]]
+name = "schema_types"
+harness = false

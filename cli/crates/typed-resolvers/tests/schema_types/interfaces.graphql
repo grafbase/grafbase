@@ -1,0 +1,19 @@
+type Human implements LivingThing {
+  id: ID!
+  firstName: String!
+  lastName: String!
+}
+
+type Dog implements LivingThing & Animal {
+  id: ID!
+  name: String!
+}
+
+interface LivingThing {
+  metabolicRate: Float!
+  age: Int!
+}
+
+interface Animal {
+  pettable: Boolean!
+}

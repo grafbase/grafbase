@@ -1,0 +1,51 @@
+# Initial Type Definitions
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  episode(id: ID!): Episode
+  character(id: ID!): Character
+}
+
+type Mutation {
+  createEpisode(input: CreateEpisodeInput!): Episode!
+}
+
+type Episode {
+  id: ID!
+  title: String!
+  season: Int!
+}
+
+type Character {
+  id: ID!
+  name: String!
+}
+
+input CreateEpisodeInput {
+  title: String!
+  season: Int!
+}
+
+# Type Extensions
+
+extend type Episode {
+  episodeNumber: Int!
+  description: String
+  characters: [Character!]!
+}
+
+extend type Character {
+  occupation: String
+  episodes: [Episode!]!
+  friends: [Character!]
+}
+
+extend input CreateEpisodeInput {
+  episodeNumber: Int!
+  description: String
+  characters: [ID!]
+}

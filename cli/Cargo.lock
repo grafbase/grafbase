@@ -898,6 +898,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "camino"
+version = "1.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c59e92b5a388f549b863a7bea62612c09f24c8393560709a54558a9abdfb3b9c"
+
+[[package]]
 name = "case"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1430,6 +1436,18 @@ dependencies = [
  "futures-util",
  "lru 0.11.1",
  "tracing",
+]
+
+[[package]]
+name = "datatest-stable"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22a384d02609f0774f4dbf0c38fc57eb2769b24c30b9185911ff657ec14837da"
+dependencies = [
+ "camino",
+ "libtest-mimic",
+ "regex",
+ "walkdir",
 ]
 
 [[package]]
@@ -3316,6 +3334,17 @@ dependencies = [
  "cc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "libtest-mimic"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d8de370f98a6cb8a4606618e53e802f93b094ddec0f96988eaec2c27e6e9ce7"
+dependencies = [
+ "clap",
+ "termcolor",
+ "threadpool",
 ]
 
 [[package]]
@@ -6108,6 +6137,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "threadpool"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d050e60b33d41c19108b32cea32164033a9013fe3b46cbd4457559bfbf77afaa"
+dependencies = [
+ "num_cpus",
+]
+
+[[package]]
 name = "time"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6443,6 +6481,15 @@ checksum = "39a40ba241047e1174c927dc5f61c141a166b938d61a2ff61838441368cc7d0e"
 dependencies = [
  "num-traits",
  "serde",
+]
+
+[[package]]
+name = "typed-resolvers"
+version = "0.40.2"
+dependencies = [
+ "datatest-stable",
+ "graphql-parser",
+ "similar",
 ]
 
 [[package]]
