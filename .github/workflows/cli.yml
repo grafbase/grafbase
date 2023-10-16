@@ -83,7 +83,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
-      - name: Fetch CDN assets
+      - name: Prepare CLI assets
         uses: ./.github/actions/cdn_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
@@ -143,7 +143,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
-      - name: Fetch CDN assets
+      - name: Prepare CLI assets
         uses: ./.github/actions/cdn_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
@@ -223,7 +223,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
-      - name: Fetch CDN assets
+      - name: Prepare CLI assets
         uses: ./.github/actions/cdn_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
@@ -290,7 +290,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}
 
-      - name: Fetch CDN assets
+      - name: Prepare CLI assets
         uses: ./.github/actions/cdn_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}

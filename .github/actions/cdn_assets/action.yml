@@ -21,15 +21,15 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.tar.gz --output assets.tar.gz --fail
-        curl https://${{ inputs.cdn }}/cli/pathfinder/static.tgz --output static.tgz --fail
-        tar -zxvf static.tgz
-        rm static.tgz
-        gunzip assets.tar.gz
-        tar -rf assets.tar static
-        rm -r static
-        gzip assets.tar
         cp assets.tar.gz crates/server/assets
         mkdir ~/.grafbase
         cp assets.tar.gz ~/.grafbase
         (cd ~/.grafbase && tar -xf assets.tar.gz)
         touch ~/.grafbase/version.txt
+
+    - name: Build cli-app
+      shell: bash
+      working-directory: './packages/cli-app'
+      run: |
+        npx pnpm i
+        npx pnpm run cli-app:build

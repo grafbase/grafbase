@@ -88,13 +88,6 @@ cd "$assets_dir"
 
 printf "Loading new assets: %s...\n" "$url"
 curl --fail "$url" -o assets.tar.gz
-curl https://assets.grafbase.com/cli/pathfinder/static.tgz --output static.tgz --fail
-tar -zxvf static.tgz
-rm static.tgz
-gunzip assets.tar.gz
-tar -rf assets.tar static
-rm -r static
-gzip assets.tar
 cat >"$assets_dir/.gitignore" <<EOM
 *
 !.gitignore

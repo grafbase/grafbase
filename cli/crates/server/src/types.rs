@@ -1,7 +1,7 @@
 use common::types::{LogLevel, UdfKind};
 use std::path::PathBuf;
 
-pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
+pub const ASSETS_GZIP: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets.tar.gz"));
 
 #[derive(Clone, Copy, Debug)]
 pub enum RequestCompletedOutcome {

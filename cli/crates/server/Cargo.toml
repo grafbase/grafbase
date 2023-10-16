@@ -46,8 +46,7 @@ sqlx = { version = "0.7", features = [
 strip-ansi-escapes = "0.1"
 strum = { version = "0.25", features = ["derive"] }
 tantivy = { version = "0.19", default-features = false, features = ["mmap"] }
-# Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is release
-tar = { git = "https://github.com/obmarg/tar-rs.git", rev = "bffee32190d531c03d806680daebd89cb1544be1" }
+tar.workspace = true
 tempfile = "3"
 thiserror = "1"
 tokio = { workspace = true, features = ["full"] }
@@ -78,6 +77,11 @@ common-types = { path = "../../../engine/crates/common-types" }
 
 [dev-dependencies]
 serde_json = "1"
+
+[build-dependencies]
+flate2 = "1"
+tar.workspace = true
+tempfile = "3"
 
 [features]
 dynamodb = ["gateway/dynamodb"]
