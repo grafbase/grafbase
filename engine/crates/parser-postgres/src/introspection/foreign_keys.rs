@@ -26,7 +26,7 @@ where
         .await?;
 
     #[allow(clippy::manual_let_else)] // sorry, but match looks better here
-    for row in result.into_rows() {
+    for row in result {
         let constrained_schema_id = match database_definition.get_schema_id(&row.constrained_schema) {
             Some(id) => id,
             None => continue,

@@ -1,20 +1,15 @@
 use std::future::Future;
 
 use common_types::LogEventType;
-use postgres_types::transport::QueryResponse;
 use runtime::log::LogEvent;
 
 use crate::{registry::resolvers::postgres::context::PostgresContext, Error};
 
 use super::RowData;
 
-pub(super) async fn query<F>(
-    ctx: &PostgresContext<'_>,
-    sql: &str,
-    operation: F,
-) -> crate::Result<QueryResponse<RowData>>
+pub(super) async fn query<F>(ctx: &PostgresContext<'_>, sql: &str, operation: F) -> crate::Result<Vec<RowData>>
 where
-    F: Future<Output = postgres_types::Result<QueryResponse<RowData>>>,
+    F: Future<Output = postgres_types::Result<Vec<RowData>>>,
 {
     let Some(log_endpoint_url) = ctx.fetch_log_endpoint_url()? else {
         return operation.await.map_err(|error| Error::new(error.to_string()));
@@ -28,7 +23,7 @@ where
     let body = response
         .as_ref()
         .ok()
-        .and_then(|response| serde_json::to_string(&response.clone_rows()).ok());
+        .and_then(|response| serde_json::to_string(response).ok());
 
     let r#type = LogEventType::SqlQuery {
         successful: response.is_ok(),

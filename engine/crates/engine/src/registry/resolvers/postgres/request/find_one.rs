@@ -23,8 +23,8 @@ pub(super) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
     let (sql, params) = renderer::Postgres::build(query::select::build(builder)?);
 
     let operation = ctx.transport().parameterized_query::<RowData>(&sql, params);
-    let response = log::query(&ctx, &sql, operation).await?;
-    let row = response.into_single_row().map(|row| row.root).unwrap_or(Value::Null);
+    let rows = log::query(&ctx, &sql, operation).await?;
+    let row = rows.into_iter().next().map(|row| row.root).unwrap_or(Value::Null);
 
     Ok(ResolvedValue::new(row))
 }

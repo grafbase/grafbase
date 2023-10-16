@@ -17,7 +17,7 @@ where
         )
         .await?;
 
-    for row in result.into_rows() {
+    for row in result {
         database_definition.push_schema(row.name);
     }
 

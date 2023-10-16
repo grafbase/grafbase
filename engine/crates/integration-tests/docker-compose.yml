@@ -25,16 +25,7 @@ services:
     networks:
       - databases
 
-  # PostgreSQL
-  neon-api:
-    image: grafbase/neon-proxy:latest
-    restart: always
-    command: /usr/local/bin/proxy -c /server.crt -k /server.key --auth-backend=postgres --auth-endpoint=postgres://postgres:grafbase@postgres:5432/postgres --wss=0.0.0.0:4444
-    ports:
-      - '4444:4444'
-    networks:
-      - databases
-
+  # Postgres
   postgres:
     image: postgres:15
     restart: always
@@ -47,6 +38,21 @@ services:
       - '5432:5432'
     networks:
       - databases
+
+  pgbouncer:
+    image: brainsam/pgbouncer:latest
+    restart: always
+    environment:
+      DB_HOST: 'postgres'
+      DB_PORT: '5432'
+      DB_USER: 'postgres'
+      DB_PASSWORD: 'grafbase'
+      POOL_MODE: 'transaction'
+      MAX_CLIENT_CONN: '100000'
+    networks:
+      - databases
+    ports:
+      - '6432:6432'
 
   dynamodb:
     image: amazon/dynamodb-local

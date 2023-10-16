@@ -3,7 +3,7 @@ use crate::Engine;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::BoxFuture;
 use parser_sdl::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective, Registry};
-use postgres_types::transport::NeonTransport;
+use postgres_types::transport::TcpTransport;
 use runtime::udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker};
 use std::{collections::HashMap, sync::Arc};
 
@@ -145,7 +145,8 @@ impl ConnectorParsers for EngineBuilder {
     }
 
     async fn fetch_and_parse_postgres(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>> {
-        let transport = NeonTransport::new("dummy-ray-id", directive.connection_string())
+        let transport = TcpTransport::new(directive.connection_string())
+            .await
             .map_err(|error| vec![error.to_string()])?;
 
         parser_postgres::introspect(&transport, directive.name(), directive.namespace())

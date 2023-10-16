@@ -4,11 +4,15 @@ use engine::Response;
 use futures::FutureExt;
 use graphql_parser::parse_schema;
 use indoc::formatdoc;
-use postgres_types::transport::{ExecuteResponse, NeonTransport, QueryResponse, Transport};
+use postgres_types::transport::{TcpTransport, Transport};
 use serde::de::DeserializeOwned;
 use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::Arc};
 
-static ADMIN_CONNECTION_STRING: &str = "postgres://postgres:grafbase@db.localtest.me:5432/postgres";
+// this is for creating/dropping databases, which _should not be done_ over pgbouncer.
+static ADMIN_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/postgres";
+
+// url for the engine for introspecting, querying and mutating the database.
+static POOL_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:6432/";
 
 #[track_caller]
 pub fn query_postgres<F, U>(test: F) -> String
@@ -67,7 +71,7 @@ where
     T: Future<Output = TestApi>,
 {
     super::runtime().block_on(async {
-        let admin = NeonTransport::new("dummy-ray-id", ADMIN_CONNECTION_STRING).unwrap();
+        let admin = TcpTransport::new(ADMIN_CONNECTION_STRING).await.unwrap();
 
         admin
             .execute(&format!("DROP DATABASE IF EXISTS {database}"))
@@ -102,7 +106,7 @@ where
     R: Future<Output = TestApi>,
 {
     super::runtime().block_on(async {
-        let admin = NeonTransport::new("dummy-ray-id", ADMIN_CONNECTION_STRING).unwrap();
+        let admin = TcpTransport::new(ADMIN_CONNECTION_STRING).await.unwrap();
 
         admin
             .execute(&format!("DROP DATABASE IF EXISTS {database}"))
@@ -122,7 +126,7 @@ where
 
 pub struct Inner {
     engine: OnceCell<Engine>,
-    connection: NeonTransport,
+    connection: TcpTransport,
     schema: String,
 }
 
@@ -133,7 +137,7 @@ pub struct TestApi {
 
 impl TestApi {
     async fn new(database: &str) -> Self {
-        let mut url = url::Url::parse(ADMIN_CONNECTION_STRING).unwrap();
+        let mut url = url::Url::parse(POOL_CONNECTION_STRING).unwrap();
         url.set_path(&format!("/{database}"));
 
         let connection_string = url.to_string();
@@ -151,7 +155,7 @@ impl TestApi {
     }
 
     async fn new_namespaced(database: &str, name: &str) -> Self {
-        let mut url = url::Url::parse(ADMIN_CONNECTION_STRING).unwrap();
+        let mut url = url::Url::parse(POOL_CONNECTION_STRING).unwrap();
         url.set_path(&format!("/{database}"));
 
         let connection_string = url.to_string();
@@ -170,7 +174,7 @@ impl TestApi {
 
     async fn new_inner(schema: String, connection_string: String) -> Self {
         let engine = OnceCell::new();
-        let connection = NeonTransport::new("dummy-ray-id", &connection_string).unwrap();
+        let connection = TcpTransport::new(&connection_string).await.unwrap();
 
         let inner = Inner {
             engine,
@@ -181,7 +185,7 @@ impl TestApi {
         Self { inner: Arc::new(inner) }
     }
 
-    pub async fn execute_sql(&self, query: &str) -> ExecuteResponse {
+    pub async fn execute_sql(&self, query: &str) -> i64 {
         self.inner
             .connection
             .execute(query)
@@ -214,7 +218,7 @@ impl TestApi {
         serde_json::from_str(&response).unwrap()
     }
 
-    pub async fn query_sql<T>(&self, query: &str) -> QueryResponse<T>
+    pub async fn query_sql<T>(&self, query: &str) -> Vec<T>
     where
         T: DeserializeOwned + Send,
     {
@@ -230,6 +234,6 @@ impl TestApi {
         let query = format!("SELECT COUNT(*) AS count FROM \"{table}\"");
         let response = self.query_sql::<Result>(&query).await;
 
-        response.into_single_row().unwrap().count.parse().unwrap()
+        response.into_iter().next().unwrap().count.parse().unwrap()
     }
 }

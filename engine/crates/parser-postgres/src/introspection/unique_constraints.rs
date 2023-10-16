@@ -23,7 +23,7 @@ where
         .parameterized_query::<Row>(query, vec![super::blocked_schemas()])
         .await?;
 
-    for row in result.into_rows() {
+    for row in result {
         let Some(schema_id) = database_definition.get_schema_id(&row.schema) else {
             continue;
         };

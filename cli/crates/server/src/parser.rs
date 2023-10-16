@@ -4,7 +4,7 @@ use common_types::UdfKind;
 use engine::registry::Registry;
 use itertools::Itertools;
 use parser_sdl::{GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective};
-use postgres_types::transport::NeonTransport;
+use postgres_types::transport::TcpTransport;
 
 use crate::errors::ServerError;
 
@@ -88,8 +88,9 @@ impl parser_sdl::ConnectorParsers for ConnectorParsers {
     }
 
     async fn fetch_and_parse_postgres(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>> {
-        let transport =
-            NeonTransport::new("", directive.connection_string()).map_err(|error| vec![error.to_string()])?;
+        let transport = TcpTransport::new(directive.connection_string())
+            .await
+            .map_err(|error| vec![error.to_string()])?;
 
         parser_postgres::introspect(&transport, directive.name(), directive.namespace())
             .await

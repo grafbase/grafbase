@@ -58,7 +58,7 @@ impl PostgresResolver {
         resolver_ctx: &'a ResolverContext<'_>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         Box::pin(make_send_on_wasm(async move {
-            let context = PostgresContext::new(ctx, resolver_ctx, &self.directive_name)?;
+            let context = PostgresContext::new(ctx, resolver_ctx, &self.directive_name).await?;
             request::execute(context, self.operation).await
         }))
     }

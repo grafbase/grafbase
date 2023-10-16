@@ -14,7 +14,7 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
 
     let operation = ctx.transport().parameterized_query::<RowData>(&sql, params);
     let response = log::query(&ctx, &sql, operation).await?;
-    let rows = response.into_rows().map(|row| row.root).collect();
+    let rows = response.into_iter().map(|row| row.root).collect();
 
     Ok(ResolvedValue::new(Value::Array(rows)))
 }
