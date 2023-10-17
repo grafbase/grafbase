@@ -27,7 +27,7 @@ services:
 
   # Postgres
   postgres:
-    image: postgres:15
+    image: postgres:16
     restart: always
     command: postgres -c 'max_connections=1000'
     environment:
