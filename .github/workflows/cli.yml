@@ -84,7 +84,7 @@ jobs:
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Prepare CLI assets
-        uses: ./.github/actions/cdn_assets
+        uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
@@ -114,7 +114,7 @@ jobs:
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build
 
       - name: Fetch CDN assets
-        uses: ./.github/actions/cdn_assets
+        uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
@@ -144,7 +144,7 @@ jobs:
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Prepare CLI assets
-        uses: ./.github/actions/cdn_assets
+        uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
@@ -224,7 +224,7 @@ jobs:
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Prepare CLI assets
-        uses: ./.github/actions/cdn_assets
+        uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
@@ -291,7 +291,7 @@ jobs:
           restore-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}
 
       - name: Prepare CLI assets
-        uses: ./.github/actions/cdn_assets
+        uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}

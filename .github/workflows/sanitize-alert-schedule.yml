@@ -32,8 +32,8 @@ jobs:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
 
-      - name: Fetch CDN assets
-        uses: ./.github/actions/cdn_assets
+      - name: Build CLI assets
+        uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}

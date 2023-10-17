@@ -89,7 +89,10 @@ fn main() -> io::Result<()> {
     eprintln!("⏱️ Timing after copy: {:?}", time::Instant::now().duration_since(start));
 
     recompress_assets(tmp_assets.path())?;
-    eprintln!("⏱️ Timing after recompress: {:?}", time::Instant::now().duration_since(start));
+    eprintln!(
+        "⏱️ Timing after recompress: {:?}",
+        time::Instant::now().duration_since(start)
+    );
 
     // Tell Cargo to rerun this script only if the assets or the pathfinder bundle changed.
     println!("cargo:rerun-if-changed={bundle_location}");
