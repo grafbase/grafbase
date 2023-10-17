@@ -209,7 +209,7 @@ mod tests {
               @postgres(
                 name: "",
                 namespace: true,
-                url: "{{ env.PG_CONNECTION_STRING }}",
+                url: "postgres://postgres:grafbase@localhost:5432/postgres",
               )
             "#,
             "Connector names cannot be empty"
@@ -221,12 +221,10 @@ mod tests {
         assert_validation_error!(
             r#"
             extend schema
-              @mongodb(
-                name: "1234"
-                apiKey: "i am a key"
-                url: "http://example.com/mongodbinnit"
-                dataSource: "woop"
-                database: "poow"
+              @postgres(
+                name: "123",
+                namespace: true,
+                url: "postgres://postgres:grafbase@localhost:5432/postgres",
               )
             "#,
             "Connector names must be alphanumeric and cannot start with a number"
