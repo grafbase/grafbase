@@ -12,7 +12,7 @@ use super::{
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
-use crate::directive_de::parse_directive;
+use crate::{directive_de::parse_directive, validations::validate_connector_name};
 
 static NUMERIC_SCALARS: &[&str] = &["BigInt", "Decimal", "Float", "Int"];
 
@@ -140,7 +140,11 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
         let mut found_directive = false;
 
         for directive in directives {
-            match parse_directive::<MongoDBDirective>(&directive.node, ctx.variables) {
+            let result = parse_directive::<MongoDBDirective>(&directive.node, ctx.variables)
+                .map_err(|error| error.to_string())
+                .and_then(|directive| directive.validate());
+
+            match result {
                 Ok(parsed_directive) => {
                     ctx.registry.get_mut().create_mongo_config(
                         |_| MongoDBConfiguration {
@@ -189,5 +193,52 @@ impl<'a> Visitor<'a> for MongoDBVisitor {
         if found_directive {
             model_directive::types::generic::register_input(ctx);
         }
+    }
+}
+
+impl MongoDBDirective {
+    fn validate(self) -> Result<Self, String> {
+        validate_connector_name(&self.name)?;
+
+        Ok(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::assert_validation_error;
+
+    #[test]
+    fn empty_name() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @mongodb(
+                name: ""
+                apiKey: "i am a key"
+                url: "http://example.com/mongodbinnit"
+                dataSource: "woop"
+                database: "poow"
+              )
+            "#,
+            "Connector names cannot be empty"
+        );
+    }
+
+    #[test]
+    fn invalid_name() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @mongodb(
+                name: "1234"
+                apiKey: "i am a key"
+                url: "http://example.com/mongodbinnit"
+                dataSource: "woop"
+                database: "poow"
+              )
+            "#,
+            "Connector names must be alphanumeric and cannot start with a number"
+        );
     }
 }
