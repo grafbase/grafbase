@@ -403,17 +403,15 @@ pub fn print_log_entry(
 ) {
     let created_at: chrono::DateTime<chrono::Local> = chrono::DateTime::from(created_at);
 
-    let extra_properties = match log_event_type {
-        crate::logs::LogEventType::Request {
-            http_method,
-            path,
-            http_status,
-        } => format!("{http_method} {path} {http_status}"),
+    let rest = match log_event_type {
+        crate::logs::LogEventType::Request { duration, .. } => {
+            format!("{message} {duration}", duration = format_duration(duration))
+        }
         crate::logs::LogEventType::FunctionMessage {
             log_level,
             function_kind,
             function_name,
-        } => format!("[{log_level}] {function_kind} {function_name}"),
+        } => format!("[{log_level}] {function_kind} {function_name} | {message}"),
     };
-    println!("{} {extra_properties} | {message}", created_at.to_rfc3339());
+    println!("{} {rest}", created_at.to_rfc3339());
 }
