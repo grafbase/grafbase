@@ -23,7 +23,7 @@ fn namespaced() {
         let mutation = indoc! {r#"
             mutation {
               postgres {
-                userDeleteMany(filter: { name: { eq: "Musti" } }) { id name }
+                userDeleteMany(filter: { name: { eq: "Musti" } }) { returning { id name } }
               }
             }
         "#};
@@ -66,16 +66,18 @@ fn namespaced() {
         {
           "data": {
             "postgres": {
-              "userDeleteMany": [
-                {
-                  "id": 1,
-                  "name": "Musti"
-                },
-                {
-                  "id": 3,
-                  "name": "Musti"
-                }
-              ]
+              "userDeleteMany": {
+                "returning": [
+                  {
+                    "id": 1,
+                    "name": "Musti"
+                  },
+                  {
+                    "id": 3,
+                    "name": "Musti"
+                  }
+                ]
+              }
             }
           }
         }"#]];
@@ -103,7 +105,7 @@ fn eq() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { name: { eq: "Musti" } }) { id name }
+              userDeleteMany(filter: { name: { eq: "Musti" } }) { returning { id name } rowCount }
             }
         "#};
 
@@ -140,16 +142,85 @@ fn eq() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "name": "Musti"
-              },
-              {
-                "id": 3,
-                "name": "Musti"
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "name": "Musti"
+                },
+                {
+                  "id": 3,
+                  "name": "Musti"
+                }
+              ],
+              "rowCount": 2
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn eq_not_returning() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti'), (2, 'Naukio'), (3, 'Musti')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userDeleteMany(filter: { name: { eq: "Musti" } }) { rowCount }
+            }
+        "#};
+
+        let mutation_result = api.execute(mutation).await;
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) { edges { node { id name } } }
+            }
+        "#};
+
+        let expected = expect![[r#"
+            {
+              "data": {
+                "userCollection": {
+                  "edges": [
+                    {
+                      "node": {
+                        "id": 2,
+                        "name": "Naukio"
+                      }
+                    }
+                  ]
+                }
               }
-            ]
+            }"#]];
+
+        let query_result = serde_json::to_string_pretty(&api.execute(query).await.to_graphql_response()).unwrap();
+        expected.assert_eq(&query_result);
+
+        mutation_result
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userDeleteMany": {
+              "rowCount": 2
+            }
           }
         }"#]];
 
@@ -176,7 +247,7 @@ fn missing() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { name: { eq: "Pertti" } }) { id name }
+              userDeleteMany(filter: { name: { eq: "Pertti" } }) { returning { id name } rowCount }
             }
         "#};
 
@@ -225,7 +296,10 @@ fn missing() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": []
+            "userDeleteMany": {
+              "returning": [],
+              "rowCount": 0
+            }
           }
         }"#]];
 
@@ -252,7 +326,7 @@ fn eq_null() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { name: { eq: null } }) { id name }
+              userDeleteMany(filter: { name: { eq: null } }) { returning { id name } }
             }
         "#};
 
@@ -295,12 +369,14 @@ fn eq_null() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "name": null
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "name": null
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -327,7 +403,7 @@ fn ne_null() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { name: { ne: null } }) { id name }
+              userDeleteMany(filter: { name: { ne: null } }) { returning { id name } }
             }
         "#};
 
@@ -364,16 +440,18 @@ fn ne_null() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "name": "Musti"
-              },
-              {
-                "id": 3,
-                "name": "Musti"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "name": "Musti"
+                },
+                {
+                  "id": 3,
+                  "name": "Musti"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -401,7 +479,7 @@ fn eq_two_fields() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { name: { eq: "Musti" }, age: { eq: 12 } }) { id name age }
+              userDeleteMany(filter: { name: { eq: "Musti" }, age: { eq: 12 } }) { returning { id name age } }
             }
         "#};
 
@@ -446,13 +524,15 @@ fn eq_two_fields() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 3,
-                "name": "Musti",
-                "age": 12
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 3,
+                  "name": "Musti",
+                  "age": 12
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -479,7 +559,7 @@ fn eq_rename() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { nameGame: { eq: "Musti" } }) { id nameGame }
+              userDeleteMany(filter: { nameGame: { eq: "Musti" } }) { returning { id nameGame } }
             }
         "#};
 
@@ -516,16 +596,18 @@ fn eq_rename() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "nameGame": "Musti"
-              },
-              {
-                "id": 3,
-                "nameGame": "Musti"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "nameGame": "Musti"
+                },
+                {
+                  "id": 3,
+                  "nameGame": "Musti"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -552,7 +634,7 @@ fn ne() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { name: { ne: "Musti" } }) { id name }
+              userDeleteMany(filter: { name: { ne: "Musti" } }) { returning { id name } }
             }
         "#};
 
@@ -595,12 +677,14 @@ fn ne() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "name": "Naukio"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "name": "Naukio"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -627,7 +711,7 @@ fn gt() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { id: { gt: 1 } }) { id name }
+              userDeleteMany(filter: { id: { gt: 1 } }) { returning { id name } }
             }
         "#};
 
@@ -664,16 +748,18 @@ fn gt() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "name": "Naukio"
-              },
-              {
-                "id": 3,
-                "name": "Musti"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "name": "Naukio"
+                },
+                {
+                  "id": 3,
+                  "name": "Musti"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -700,7 +786,7 @@ fn lt() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { id: { lt: 3 } }) { id name }
+              userDeleteMany(filter: { id: { lt: 3 } }) { returning { id name } }
             }
         "#};
 
@@ -737,16 +823,18 @@ fn lt() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "name": "Musti"
-              },
-              {
-                "id": 2,
-                "name": "Naukio"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "name": "Musti"
+                },
+                {
+                  "id": 2,
+                  "name": "Naukio"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -773,7 +861,7 @@ fn gte() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { id: { gte: 2 } }) { id name }
+              userDeleteMany(filter: { id: { gte: 2 } }) { returning { id name } }
             }
         "#};
 
@@ -810,16 +898,18 @@ fn gte() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "name": "Naukio"
-              },
-              {
-                "id": 3,
-                "name": "Musti"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "name": "Naukio"
+                },
+                {
+                  "id": 3,
+                  "name": "Musti"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -846,7 +936,7 @@ fn lte() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { id: { lte: 2 } }) { id name }
+              userDeleteMany(filter: { id: { lte: 2 } }) { returning { id name } }
             }
         "#};
 
@@ -883,16 +973,18 @@ fn lte() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "name": "Musti"
-              },
-              {
-                "id": 2,
-                "name": "Naukio"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "name": "Musti"
+                },
+                {
+                  "id": 2,
+                  "name": "Naukio"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -919,7 +1011,7 @@ fn r#in() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { id: { in: [1, 3] } }) { id name }
+              userDeleteMany(filter: { id: { in: [1, 3] } }) { returning { id name } }
             }
         "#};
 
@@ -956,16 +1048,18 @@ fn r#in() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "name": "Musti"
-              },
-              {
-                "id": 3,
-                "name": "Musti"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "name": "Musti"
+                },
+                {
+                  "id": 3,
+                  "name": "Musti"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -994,7 +1088,7 @@ fn nin() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { id: { nin: [1, 3] } }) { id name }
+              userDeleteMany(filter: { id: { nin: [1, 3] } }) { returning { id name } }
             }
         "#};
 
@@ -1037,12 +1131,14 @@ fn nin() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "name": "Naukio"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "name": "Naukio"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1074,7 +1170,7 @@ fn all() {
                 { name: { eq: "Musti" } },
                 { age: { eq: 11 } }
               ]}) {
-                id name age
+                returning { id name age }
               }
             }
         "#};
@@ -1120,13 +1216,15 @@ fn all() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "name": "Musti",
-                "age": 11
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "name": "Musti",
+                  "age": 11
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1158,7 +1256,7 @@ fn any() {
                 { name: { eq: "Naukio" } },
                 { age: { eq: 12 } }
               ]}) {
-                id name age
+                returning { id name age }
               }
             }
         "#};
@@ -1197,18 +1295,20 @@ fn any() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "name": "Naukio",
-                "age": 11
-              },
-              {
-                "id": 3,
-                "name": "Musti",
-                "age": 12
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "name": "Naukio",
+                  "age": 11
+                },
+                {
+                  "id": 3,
+                  "name": "Musti",
+                  "age": 12
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1240,7 +1340,7 @@ fn none() {
                 { name: { eq: "Musti" } },
                 { age: { eq: 13 } }
               ]}) {
-                id name age
+                returning { id name age }
               }
             }
         "#};
@@ -1286,13 +1386,15 @@ fn none() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "name": "Naukio",
-                "age": 12
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "name": "Naukio",
+                  "age": 12
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1319,7 +1421,7 @@ fn not() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { name: { not: { eq: "Musti" } } }) { id name }
+              userDeleteMany(filter: { name: { not: { eq: "Musti" } } }) { returning { id name } }
             }
         "#};
 
@@ -1362,12 +1464,14 @@ fn not() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "name": "Naukio"
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "name": "Naukio"
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1394,7 +1498,7 @@ fn array_eq() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { numbers: { eq: [3, 4] } }) { id numbers }
+              userDeleteMany(filter: { numbers: { eq: [3, 4] } }) { returning { id numbers } }
             }
         "#};
 
@@ -1436,15 +1540,17 @@ fn array_eq() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "numbers": [
-                  3,
-                  4
-                ]
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "numbers": [
+                    3,
+                    4
+                  ]
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1471,7 +1577,7 @@ fn array_ne() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { numbers: { ne: [3, 4] } }) { id numbers }
+              userDeleteMany(filter: { numbers: { ne: [3, 4] } }) { returning { id numbers } }
             }
         "#};
 
@@ -1513,15 +1619,17 @@ fn array_ne() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "numbers": [
-                  1,
-                  2
-                ]
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "numbers": [
+                    1,
+                    2
+                  ]
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1548,7 +1656,7 @@ fn array_gt() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { numbers: { gt: [1, 2] } }) { id numbers }
+              userDeleteMany(filter: { numbers: { gt: [1, 2] } }) { returning { id numbers } }
             }
         "#};
 
@@ -1590,15 +1698,17 @@ fn array_gt() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "numbers": [
-                  3,
-                  4
-                ]
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "numbers": [
+                    3,
+                    4
+                  ]
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1625,7 +1735,7 @@ fn array_contains() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { numbers: { contains: [1, 2, 2, 1] } }) { id numbers }
+              userDeleteMany(filter: { numbers: { contains: [1, 2, 2, 1] } }) { returning { id numbers } }
             }
         "#};
 
@@ -1667,15 +1777,17 @@ fn array_contains() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "numbers": [
-                  1,
-                  2
-                ]
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "numbers": [
+                    1,
+                    2
+                  ]
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1702,7 +1814,7 @@ fn array_contained() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { numbers: { contained: [3, 6, 4, 7] } }) { id numbers }
+              userDeleteMany(filter: { numbers: { contained: [3, 6, 4, 7] } }) { returning { id numbers } }
             }
         "#};
 
@@ -1744,15 +1856,17 @@ fn array_contained() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 2,
-                "numbers": [
-                  3,
-                  4
-                ]
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 2,
+                  "numbers": [
+                    3,
+                    4
+                  ]
+                }
+              ]
+            }
           }
         }"#]];
 
@@ -1779,7 +1893,7 @@ fn array_overlaps() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDeleteMany(filter: { numbers: { overlaps: [1, 5, 5, 6] } }) { id numbers }
+              userDeleteMany(filter: { numbers: { overlaps: [1, 5, 5, 6] } }) { returning { id numbers } }
             }
         "#};
 
@@ -1821,15 +1935,17 @@ fn array_overlaps() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDeleteMany": [
-              {
-                "id": 1,
-                "numbers": [
-                  1,
-                  2
-                ]
-              }
-            ]
+            "userDeleteMany": {
+              "returning": [
+                {
+                  "id": 1,
+                  "numbers": [
+                    1,
+                    2
+                  ]
+                }
+              ]
+            }
           }
         }"#]];
 

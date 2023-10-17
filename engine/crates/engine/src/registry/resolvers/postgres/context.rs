@@ -85,6 +85,33 @@ impl<'a> PostgresContext<'a> {
         SelectionIterator::new(self, self.resolver_context.ty, &self.root_field(), selection)
     }
 
+    pub fn mutation_is_returning(&self) -> bool {
+        self.context.look_ahead().field("returning").exists()
+    }
+
+    pub fn returning_selection(&'a self) -> Option<SelectionIterator<'a>> {
+        if !self.mutation_is_returning() {
+            return None;
+        }
+
+        let selection = self
+            .context
+            .look_ahead()
+            .field("returning")
+            .iter_selection_fields()
+            .flat_map(|selection| selection.selection_set())
+            .collect();
+
+        let target: SelectionSetTarget = self.resolver_context.ty.try_into().unwrap();
+
+        let output_type = target
+            .field("returning")
+            .and_then(|field| self.registry().lookup(&field.ty).ok())
+            .expect("couldn't find a meta type for a returning selection");
+
+        Some(SelectionIterator::new(self, output_type, &self.root_field(), selection))
+    }
+
     pub fn collection_selection(&'a self) -> SelectionIterator<'a> {
         let selection = self
             .context

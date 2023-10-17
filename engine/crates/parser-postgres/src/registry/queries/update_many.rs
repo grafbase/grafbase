@@ -18,13 +18,13 @@ pub(crate) fn register(
     update_input_type: &str,
     output_ctx: &mut OutputContext,
 ) {
-    let type_name = input_ctx.reduced_type_name(table.client_name());
+    let type_name = input_ctx.batch_mutation_return_type_name(table.client_name());
     let query_name = format!("{}_Update_Many", table.client_name()).to_camel_case();
 
     let by_value = MetaInputValue::new("filter", format!("{update_filter_type}!"));
 
     let input_value = MetaInputValue::new("input", format!("{update_input_type}!"));
-    let mut meta_field = MetaField::new(query_name, format!("[{type_name}]!"));
+    let mut meta_field = MetaField::new(query_name, type_name);
 
     meta_field.description = Some(format!("Update multiple {}s", table.client_name()));
     meta_field.required_operation = Some(Operations::UPDATE);

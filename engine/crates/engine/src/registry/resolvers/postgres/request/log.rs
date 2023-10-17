@@ -42,3 +42,34 @@ where
 
     response.map_err(|error| Error::new(error.to_string()))
 }
+
+pub(super) async fn execute<F>(ctx: &PostgresContext<'_>, sql: &str, operation: F) -> crate::Result<i64>
+where
+    F: Future<Output = postgres_types::Result<i64>>,
+{
+    let Some(log_endpoint_url) = ctx.fetch_log_endpoint_url()? else {
+        return operation.await.map_err(|error| Error::new(error.to_string()));
+    };
+
+    let request_id = ctx.ray_id()?;
+    let start_time = web_time::Instant::now();
+    let response = operation.await;
+    let duration = start_time.elapsed();
+
+    let r#type = LogEventType::SqlQuery {
+        successful: response.is_ok(),
+        sql: sql.to_string(),
+        duration,
+        body: None,
+    };
+
+    let log_event = LogEvent { request_id, r#type };
+
+    reqwest::Client::new()
+        .post(format!("{log_endpoint_url}/log-event"))
+        .json(&log_event)
+        .send()
+        .await?;
+
+    response.map_err(|error| Error::new(error.to_string()))
+}

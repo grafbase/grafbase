@@ -16,7 +16,8 @@ fn two_pk_ids() {
         let mutation = indoc! {r#"
             mutation {
               userCreateMany(input: [{ id: 1 }, { id: 2 }]) {
-                id
+                returning { id }
+                rowCount
               }
             }
         "#};
@@ -31,14 +32,55 @@ fn two_pk_ids() {
     let expected = expect![[r#"
         {
           "data": {
-            "userCreateMany": [
-              {
-                "id": 1
-              },
-              {
-                "id": 2
+            "userCreateMany": {
+              "returning": [
+                {
+                  "id": 1
+                },
+                {
+                  "id": 2
+                }
+              ],
+              "rowCount": 2
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn two_pk_ids_no_returning() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userCreateMany(input: [{ id: 1 }, { id: 2 }]) {
+                rowCount
               }
-            ]
+            }
+        "#};
+
+        let result = api.execute(mutation).await;
+
+        assert_eq!(2, api.row_count("User").await);
+
+        result
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCreateMany": {
+              "rowCount": 2
+            }
           }
         }"#]];
 
@@ -60,7 +102,7 @@ fn wrong_keys() {
         let mutation = indoc! {r#"
             mutation {
               userCreateMany(input: [{ id: 1 }, { id: 2, name: "Musti" }]) {
-                id
+                returning { id }
               }
             }
         "#};
@@ -74,7 +116,9 @@ fn wrong_keys() {
 
     let expected = expect![[r#"
         {
-          "data": null,
+          "data": {
+            "userCreateMany": null
+          },
           "errors": [
             {
               "message": "All insert items must have the same columns.",

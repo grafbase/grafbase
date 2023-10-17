@@ -23,7 +23,9 @@ fn namespaced() {
         let mutation = indoc! {r#"
             mutation {
               neon {
-                userDelete(by: { id: 1 }) { id name }
+                userDelete(by: { id: 1 }) {
+                  returning { id name }
+                }
               }
             }
         "#};
@@ -67,8 +69,10 @@ fn namespaced() {
           "data": {
             "neon": {
               "userDelete": {
-                "id": 1,
-                "name": "Musti"
+                "returning": {
+                  "id": 1,
+                  "name": "Musti"
+                }
               }
             }
           }
@@ -97,7 +101,10 @@ fn single_pk() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDelete(by: { id: 1 }) { id name }
+              userDelete(by: { id: 1 }) {
+                returning { id name }
+                rowCount
+              }
             }
         "#};
 
@@ -135,8 +142,79 @@ fn single_pk() {
         {
           "data": {
             "userDelete": {
-              "id": 1,
-              "name": "Musti"
+              "returning": {
+                "id": 1,
+                "name": "Musti"
+              },
+              "rowCount": 1
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn single_pk_not_returning() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti'), (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let mutation = indoc! {r#"
+            mutation {
+              userDelete(by: { id: 1 }) {
+                rowCount
+              }
+            }
+        "#};
+
+        let mutation_result = api.execute(mutation).await;
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) { edges { node { id name } } }
+            }
+        "#};
+
+        let expected = expect![[r#"
+            {
+              "data": {
+                "userCollection": {
+                  "edges": [
+                    {
+                      "node": {
+                        "id": 2,
+                        "name": "Naukio"
+                      }
+                    }
+                  ]
+                }
+              }
+            }"#]];
+
+        let query_result = serde_json::to_string_pretty(&api.execute(query).await.to_graphql_response()).unwrap();
+        expected.assert_eq(&query_result);
+
+        mutation_result
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userDelete": {
+              "rowCount": 1
             }
           }
         }"#]];
@@ -164,7 +242,7 @@ fn missing() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDelete(by: { id: 3 }) { id name }
+              userDelete(by: { id: 3 }) { returning { id name } rowCount }
             }
         "#};
 
@@ -207,7 +285,10 @@ fn missing() {
     let expected = expect![[r#"
         {
           "data": {
-            "userDelete": null
+            "userDelete": {
+              "returning": null,
+              "rowCount": 0
+            }
           }
         }"#]];
 
@@ -234,7 +315,7 @@ fn single_unique() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDelete(by: { name: "Musti" }) { id name }
+              userDelete(by: { name: "Musti" }) { returning { id name } }
             }
         "#};
 
@@ -272,8 +353,10 @@ fn single_unique() {
         {
           "data": {
             "userDelete": {
-              "id": 1,
-              "name": "Musti"
+              "returning": {
+                "id": 1,
+                "name": "Musti"
+              }
             }
           }
         }"#]];
@@ -302,7 +385,9 @@ fn composite_pk() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDelete(by: { nameEmail: { name: "Musti", email: "purr@example.com" } }) { name email }
+              userDelete(by: { nameEmail: { name: "Musti", email: "purr@example.com" } }) {
+                returning { name email }
+              }
             }
         "#};
 
@@ -340,8 +425,10 @@ fn composite_pk() {
         {
           "data": {
             "userDelete": {
-              "name": "Musti",
-              "email": "purr@example.com"
+              "returning": {
+                "name": "Musti",
+                "email": "purr@example.com"
+              }
             }
           }
         }"#]];
@@ -370,7 +457,9 @@ fn composite_key_with_nulls() {
 
         let mutation = indoc! {r#"
             mutation {
-              userDelete(by: { nameEmail: { name: "Musti" } }) { name email }
+              userDelete(by: { nameEmail: { name: "Musti" } }) {
+                returning { name email }
+              }
             }
         "#};
 
@@ -408,8 +497,10 @@ fn composite_key_with_nulls() {
         {
           "data": {
             "userDelete": {
-              "name": "Musti",
-              "email": null
+              "returning": {
+                "name": "Musti",
+                "email": null
+              }
             }
           }
         }"#]];

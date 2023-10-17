@@ -39,10 +39,25 @@ impl<'a> InputContext<'a> {
     }
 
     // an output type which has limited number of fields, e.g. only scalar fields.
-    pub(crate) fn reduced_type_name(&self, name: &str) -> String {
+    pub(crate) fn mutation_return_type_name(&self, name: &str) -> String {
         match self.namespace {
-            Some(namespace) => format!("{namespace}_{name}_reduced").to_pascal_case(),
-            None => format!("{name}_reduced").to_pascal_case(),
+            Some(namespace) => format!("{namespace}_{name}_mutation").to_pascal_case(),
+            None => format!("{name}_mutation").to_pascal_case(),
+        }
+    }
+
+    // an output type which has limited number of fields, e.g. only scalar fields.
+    pub(crate) fn batch_mutation_return_type_name(&self, name: &str) -> String {
+        match self.namespace {
+            Some(namespace) => format!("{namespace}_{name}_batch_mutation").to_pascal_case(),
+            None => format!("{name}_batch_mutation").to_pascal_case(),
+        }
+    }
+
+    pub(crate) fn returning_type_name(&self, name: &str) -> String {
+        match self.namespace {
+            Some(namespace) => format!("{namespace}_{name}_returning").to_pascal_case(),
+            None => format!("{name}_returning").to_pascal_case(),
         }
     }
 
