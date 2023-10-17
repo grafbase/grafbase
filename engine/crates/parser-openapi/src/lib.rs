@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use engine::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
 use graph::OpenApiGraph;
 use inflector::Inflector;
@@ -50,6 +52,7 @@ pub struct ApiMetadata {
     pub url: Option<Url>,
     pub headers: ConnectorHeaders,
     pub query_naming: QueryNamingStrategy,
+    pub type_prefix: Option<String>,
 }
 
 impl ApiMetadata {
@@ -57,8 +60,11 @@ impl ApiMetadata {
         self.name.to_camel_case()
     }
 
-    pub fn namespaced(&self, name: &str) -> String {
-        format!("{}_{}", self.unique_namespace(), name)
+    pub fn prefix_type<'a>(&self, name: &'a str) -> Cow<'a, str> {
+        match &self.type_prefix {
+            None => Cow::Borrowed(name),
+            Some(prefix) => Cow::Owned(format!("{prefix}_{name}")),
+        }
     }
 }
 
@@ -66,12 +72,19 @@ impl From<parser_sdl::OpenApiDirective> for ApiMetadata {
     fn from(val: parser_sdl::OpenApiDirective) -> Self {
         let headers = val.headers();
 
+        let type_prefix = val
+            .transforms
+            .transforms
+            .and_then(|transforms| transforms.prefix_types)
+            .or(val.namespace.then(|| val.name.clone()));
+
         ApiMetadata {
             name: val.name,
             namespace: val.namespace,
             url: val.url,
             headers,
             query_naming: val.transforms.query_naming,
+            type_prefix,
         }
     }
 }

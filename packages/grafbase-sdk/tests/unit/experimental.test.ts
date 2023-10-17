@@ -95,8 +95,8 @@ describe('Experimental generator', () => {
             types: 'Query',
             maxAge: 60
           }
-        ],
-      },
+        ]
+      }
     })
 
     const cfg2 = config({
@@ -107,7 +107,7 @@ describe('Experimental generator', () => {
             types: 'Query',
             maxAge: 60
           }
-        ],
+        ]
       },
       experimental: {}
     })

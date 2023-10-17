@@ -50,6 +50,7 @@ describe('OpenAPI generator', () => {
         schema.queryNaming('OPERATION_ID')
         schema.exclude('Foo.Bar', 'Bar.Foo')
         schema.exclude('Foo.*.bar')
+        schema.prefixTypes('AFancyPrefix')
       },
       headers: (headers) => {
         headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
@@ -65,31 +66,32 @@ describe('OpenAPI generator', () => {
     g.datasource(stripe)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
-        @openapi(
-          name: "Stripe"
-          namespace: true
-          url: "https://api.stripe.com"
-          schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
-          transforms: {
-            exclude: [
-              "Foo.Bar"
-              "Bar.Foo"
-              "Foo.*.bar"
-            ]
-            queryNaming: OPERATION_ID
-          }
-          headers: [
-            { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
-            { name: "Method", value: "POST" }
-            { name: "X-Features", value: "Foo,Bar" }
-            { name: "Foo", forward: "Bar" }
-          ]
-          introspectionHeaders: [
-            { name: "foo", value: "bar" }
-          ]
-        )"
-    `)
+"extend schema
+  @openapi(
+    name: "Stripe"
+    namespace: true
+    url: "https://api.stripe.com"
+    schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+    transforms: {
+      exclude: [
+        "Foo.Bar"
+        "Bar.Foo"
+        "Foo.*.bar"
+      ]
+      typePrefix: "AFancyPrefix"
+      queryNaming: OPERATION_ID
+    }
+    headers: [
+      { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
+      { name: "Method", value: "POST" }
+      { name: "X-Features", value: "Foo,Bar" }
+      { name: "Foo", forward: "Bar" }
+    ]
+    introspectionHeaders: [
+      { name: "foo", value: "bar" }
+    ]
+  )"
+`)
   })
 
   it('combines multiple apis into one extension', () => {

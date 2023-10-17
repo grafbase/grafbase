@@ -12,6 +12,7 @@ mod field_lookup;
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Transforms {
     exclude: Vec<FieldLookup>,
+    pub prefix_types: Option<String>,
 }
 
 pub fn run_transforms(registry: &mut Registry, transforms: &Transforms) {

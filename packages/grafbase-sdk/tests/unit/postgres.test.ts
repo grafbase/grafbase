@@ -7,7 +7,7 @@ describe('OpenAPI generator', () => {
 
   it('generates the minimum possible Postgres datasource', () => {
     const postgres = connector.Postgres('Postgres', {
-      url: 'postgres://postgres:grafbase@localhost:5432/postgres',
+      url: 'postgres://postgres:grafbase@localhost:5432/postgres'
     })
 
     g.datasource(postgres)
@@ -24,7 +24,7 @@ describe('OpenAPI generator', () => {
 
   it('generates a Postgres datasource with negative namespace', () => {
     const postgres = connector.Postgres('Postgres', {
-      url: 'postgres://postgres:grafbase@localhost:5432/postgres',
+      url: 'postgres://postgres:grafbase@localhost:5432/postgres'
     })
 
     g.datasource(postgres, { namespace: false })
@@ -41,7 +41,7 @@ describe('OpenAPI generator', () => {
 
   it('generates a Postgres datasource with positive namespace', () => {
     const postgres = connector.Postgres('Postgres', {
-      url: 'postgres://postgres:grafbase@localhost:5432/postgres',
+      url: 'postgres://postgres:grafbase@localhost:5432/postgres'
     })
 
     g.datasource(postgres, { namespace: true })

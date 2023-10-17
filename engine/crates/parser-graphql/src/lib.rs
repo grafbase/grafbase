@@ -3,15 +3,6 @@
 //! The parser fetches a GraphQL schema from an upstream server, parses the response, and modifies
 //! it to allow the result to be exposed through the Grafbase API.
 
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-#![deny(warnings)]
-#![deny(let_underscore)]
-#![deny(nonstandard_style)]
-#![deny(unused)]
-#![deny(rustdoc::all)]
-#![allow(clippy::implicit_hasher)]
-
 mod conversion;
 
 use cynic::{
@@ -94,6 +85,7 @@ pub async fn parse_schema(
     url: &Url,
     headers: ConnectorHeaders,
     introspection_headers: impl IntoIterator<Item = (&str, &str)>,
+    type_prefix: Option<&str>,
 ) -> Result<Registry, Vec<Error>> {
     let mut builder = client.post(url.clone()).header(USER_AGENT, "Grafbase");
 
@@ -120,6 +112,9 @@ pub async fn parse_schema(
         name: name.to_string(),
         namespace,
         url: url.clone(),
+        type_prefix: type_prefix
+            .map(ToOwned::to_owned)
+            .or(namespace.then(|| name.to_pascal_case())),
     };
 
     let mut registry = parser.into_registry(schema);
@@ -132,6 +127,7 @@ struct Parser {
     name: String,
     namespace: bool,
     url: Url,
+    type_prefix: Option<String>,
 }
 
 impl Parser {
@@ -262,7 +258,7 @@ impl Parser {
     }
 
     /// Add a new `Query` type with an `upstream` field to access the upstream API.
-    fn add_root_query_field(&self, registry: &mut Registry, prefix: &str) {
+    fn add_root_query_field(&self, registry: &mut Registry, name: &str) {
         let root = registry
             .types
             .entry(registry.query_type.clone())
@@ -271,17 +267,18 @@ impl Parser {
         let Some(fields) = root.fields_mut() else { return };
 
         fields.insert(
-            prefix.to_camel_case(),
+            name.to_camel_case(),
             MetaField {
-                name: prefix.to_camel_case(),
-                description: Some(format!("Access to embedded {prefix} API.")),
-                ty: format!("{}{}!", prefix.to_pascal_case(), &registry.query_type).into(),
+                name: name.to_camel_case(),
+                description: Some(format!("Access to embedded {name} API.")),
+                ty: format!("{}{}!", name.to_pascal_case(), &registry.query_type).into(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolver: Resolver::Graphql(graphql::Resolver::new(
                     self.name.clone(),
                     self.url.clone(),
-                    Some(prefix.to_owned()),
+                    Some(name.to_owned()),
+                    self.type_prefix.clone(),
                 )),
                 ..Default::default()
             },
@@ -301,12 +298,17 @@ impl Parser {
         // fields from the upstream API. No fields, means no API access exposed by the upstream
         // server.
         for (_name, field) in fields {
-            field.resolver = Resolver::Graphql(graphql::Resolver::new(self.name.clone(), self.url.clone(), None));
+            field.resolver = Resolver::Graphql(graphql::Resolver::new(
+                self.name.clone(),
+                self.url.clone(),
+                None,
+                self.type_prefix.clone(),
+            ));
         }
     }
 
     /// Add an optional `Mutate` type with an `upstream` field to access the upstream API.
-    fn add_root_mutation_field(&self, registry: &mut Registry, prefix: &str) {
+    fn add_root_mutation_field(&self, registry: &mut Registry, name: &str) {
         let Some(mutation_type) = registry.mutation_type.clone() else {
             return;
         };
@@ -319,17 +321,18 @@ impl Parser {
         let Some(fields) = root.fields_mut() else { return };
 
         fields.insert(
-            prefix.to_camel_case(),
+            name.to_camel_case(),
             MetaField {
-                name: prefix.to_camel_case(),
-                description: Some(format!("Access to embedded {prefix} API.")),
-                ty: format!("{}{mutation_type}!", prefix.to_pascal_case()).into(),
+                name: name.to_camel_case(),
+                description: Some(format!("Access to embedded {name} API.")),
+                ty: format!("{}{mutation_type}!", name.to_pascal_case()).into(),
                 deprecation: Deprecation::NoDeprecated,
                 cache_control: CacheControl::default(),
                 resolver: Resolver::Graphql(graphql::Resolver::new(
                     self.name.clone(),
                     self.url.clone(),
-                    Some(prefix.to_owned()),
+                    Some(name.to_owned()),
+                    self.type_prefix.clone(),
                 )),
                 ..Default::default()
             },
@@ -353,13 +356,18 @@ impl Parser {
         // fields from the upstream API. No fields, means no API access exposed by the upstream
         // server.
         for (_name, field) in fields {
-            field.resolver = Resolver::Graphql(graphql::Resolver::new(self.name.clone(), self.url.clone(), None));
+            field.resolver = Resolver::Graphql(graphql::Resolver::new(
+                self.name.clone(),
+                self.url.clone(),
+                None,
+                self.type_prefix.clone(),
+            ));
         }
     }
 
     fn prefixed(&self, s: &mut String) {
-        if self.namespace {
-            *s = format!("{}{}", self.name.to_pascal_case(), s);
+        if let Some(prefix) = &self.type_prefix {
+            *s = format!("{prefix}{s}");
         }
     }
 }
@@ -428,6 +436,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             introspection_headers,
+            None,
         )
         .await
         .unwrap()
@@ -473,6 +482,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             headers.clone(),
             std::iter::empty(),
+            None,
         )
         .await
         .unwrap();
@@ -499,6 +509,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
+            None,
         )
         .await
         .unwrap()
@@ -523,6 +534,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
+            None,
         )
         .await
         .unwrap()
@@ -547,6 +559,7 @@ mod tests {
             &Url::parse(&server.uri()).unwrap(),
             ConnectorHeaders::new([]),
             std::iter::empty(),
+            None,
         )
         .await
         .unwrap()

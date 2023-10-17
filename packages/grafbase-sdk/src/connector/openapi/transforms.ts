@@ -41,6 +41,18 @@ export class OpenApiTransforms {
   public exclude(...name: string[]) {
     this._schemaTransforms.exclude(...name)
   }
+
+  /**
+   * Sets the prefix that will be applied to the name of all of this connectors
+   * types.
+   *
+   * This defaults to the name of the connector if the connector is namespaced
+   *
+   * @param prefix - The prefix to use
+   */
+  public prefixTypes(prefix: string) {
+    this._schemaTransforms.prefixTypes(prefix)
+  }
 }
 
 /**
