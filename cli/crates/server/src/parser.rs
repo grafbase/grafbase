@@ -84,6 +84,7 @@ impl parser_sdl::ConnectorParsers for ConnectorParsers {
             directive.introspection_headers(),
             directive
                 .transforms
+                .as_ref()
                 .and_then(|transforms| transforms.prefix_types.as_deref()),
         )
         .await
