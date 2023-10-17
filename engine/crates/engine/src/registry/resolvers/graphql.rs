@@ -99,14 +99,17 @@ pub struct Resolver {
     ///
     /// Each instance is expected to have a unique name, as the name of the instance is used as the
     /// field name within which the root upstream fields are exposed.
+    pub namespace: Option<String>,
+
+    /// The prefix for this GraphQL resolver if any.
     ///
-    /// Additionally, it is use by the serializer to make sure there is no collision between global
+    /// If not present this will default to the namespace above, mostly for backwards
+    /// compatability reasons.
+    ///
+    /// This is used by the serializer to make sure there is no collision between global
     /// types. E.g. if a `User` type exists, it won't be overwritten by the same type of the
     /// upstream server, as it'll be prefixed as `MyPrefixUser`.
-    ///
-    /// Note that this *only* affects global types. Anything that's scoped at a lower level is kept
-    /// as-is.
-    pub namespace: Option<String>,
+    pub type_prefix: Option<String>,
 
     /// The URL of the upstream GraphQL API.
     ///
@@ -117,11 +120,12 @@ pub struct Resolver {
 
 impl Resolver {
     #[must_use]
-    pub fn new(name: String, url: Url, namespace: Option<String>) -> Self {
+    pub fn new(name: String, url: Url, namespace: Option<String>, type_prefix: Option<String>) -> Self {
         Self {
             id_or_name: IdOrName::Name { name },
             url,
             namespace,
+            type_prefix,
         }
     }
 
@@ -142,6 +146,7 @@ impl Resolver {
 
         Self {
             id_or_name: IdOrName::Name { name: name.to_string() },
+            type_prefix: namespace.clone(),
             namespace,
             url: Url::parse(url.as_ref()).expect("valid url"),
         }
@@ -354,7 +359,13 @@ impl Resolver {
         batcher: Option<&'a QueryBatcher>,
     ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         let mut query = String::new();
-        let prefix = self.namespace.clone().map(|n| n.to_pascal_case());
+
+        let prefix = self.type_prefix.as_ref().cloned().or(
+            // If we don't have a type_prefix we fall back to the namespace.
+            // This is mostly for backwards compatability reasons.
+            // Every new connector from 2023-10-17 should gave type_prefix set correctly
+            self.namespace.as_ref().map(inflector::Inflector::to_pascal_case),
+        );
 
         let wrapping_field = match &target {
             Target::SelectionSet(_) => None,
@@ -875,7 +886,8 @@ mod tests {
             Resolver {
                 id_or_name: IdOrName::LegacyId { id: 1 },
                 url: "https://example.com".parse().unwrap(),
-                namespace: Some("prefix".into())
+                namespace: Some("prefix".into()),
+                type_prefix: None
             }
         );
 
@@ -895,7 +907,8 @@ mod tests {
                     name: "hello".to_string()
                 },
                 url: "https://example.com".parse().unwrap(),
-                namespace: Some("prefix".into())
+                namespace: Some("prefix".into()),
+                type_prefix: None
             }
         );
     }
