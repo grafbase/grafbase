@@ -1,6 +1,6 @@
 #![allow(clippy::panic)] // this is a build script, an explicit panic is more readable than Result
 
-use std::{env, fs, io, path::Path};
+use std::{env, fs, io, path::Path, time};
 
 /// Env var name
 const GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH: &str = "GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH";
@@ -64,8 +64,18 @@ fn recompress_assets(assets_path: &Path) -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
+    let start = time::Instant::now();
+
     let tmp_assets = decompress_assets()?;
+    eprintln!(
+        "⏱️ Timing after decompress_assets(): {:?}",
+        time::Instant::now().duration_since(start)
+    );
     let bundle_location = find_pathfinder_bundle_location();
+    eprintln!(
+        "⏱️ Timing after find_pathfinder_bundle_location(): {:?}",
+        time::Instant::now().duration_since(start)
+    );
 
     eprintln!("Copying bundled pathfinder to the assets dir...");
     let target_path = tmp_assets.path().join("static/assets");
@@ -76,8 +86,10 @@ fn main() -> io::Result<()> {
         eprintln!("    {file_path:?} -> {dest_path:?}");
         fs::copy(file_path, &dest_path)?;
     }
+    eprintln!("⏱️ Timing after copy: {:?}", time::Instant::now().duration_since(start));
 
     recompress_assets(tmp_assets.path())?;
+    eprintln!("⏱️ Timing after recompress: {:?}", time::Instant::now().duration_since(start));
 
     // Tell Cargo to rerun this script only if the assets or the pathfinder bundle changed.
     println!("cargo:rerun-if-changed={bundle_location}");
