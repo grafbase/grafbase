@@ -74,6 +74,7 @@ pub enum LogEventType {
         http_method: String,
         path: String,
         http_status: u16,
+        duration: std::time::Duration,
     },
     FunctionMessage {
         log_level: LogLevel,
@@ -110,6 +111,7 @@ pub async fn log_events_for_time_range(
                 http_status,
                 url,
                 message,
+                duration,
                 ..
             }) => Some(LogEvent {
                 id: id.parse().expect("must be a valid ULID"),
@@ -119,6 +121,7 @@ pub async fn log_events_for_time_range(
                     http_method,
                     path: url::Url::from_str(&url).expect("must be a valid URL").path().to_owned(),
                     http_status: u16::try_from(http_status).expect("must be valid"),
+                    duration: std::time::Duration::from_millis(duration.try_into().expect("must be a positive number")),
                 },
             }),
             api::LogEvent::FunctionLogEvent(api::FunctionLogEvent {
