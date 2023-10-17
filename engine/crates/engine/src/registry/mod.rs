@@ -4,6 +4,7 @@ mod connector_headers;
 pub mod enums;
 mod export_sdl;
 pub mod federation;
+pub mod field_set;
 pub mod relations;
 pub mod resolvers;
 pub mod scalars;
@@ -41,6 +42,7 @@ pub use self::{
         CachePartialRegistry,
     },
     connector_headers::{ConnectorHeaderValue, ConnectorHeaders},
+    field_set::FieldSet,
     type_names::{
         InputValueType, MetaFieldType, ModelName, NamedType, TypeCondition, TypeReference, WrappingType,
         WrappingTypeIter,

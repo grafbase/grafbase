@@ -1,4 +1,4 @@
-use engine::registry::federation::Selection;
+use engine::registry::field_set::Selection;
 use serde::Deserializer;
 
 use crate::rules::directive::Directive;

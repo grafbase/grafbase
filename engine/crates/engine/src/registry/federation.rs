@@ -2,9 +2,12 @@
 //!
 //! [1]: https://www.apollographql.com/docs/federation/subgraph-spec
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
-use super::resolvers::http::HttpResolver;
+use super::{
+    field_set::{FieldSet, Selection},
+    resolvers::http::HttpResolver,
+};
 
 /// Federation details for a particular entity
 ///
@@ -37,44 +40,41 @@ pub enum FederationResolver {
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::skip_serializing_defaults(Option, Vec, ConstraintType)]
 pub struct FederationKey {
-    selections: Vec<Selection>,
+    selections: FieldSet,
     resolver: Option<FederationResolver>,
 }
 
 impl FederationKey {
     pub fn single(field: impl Into<String>, resolver: FederationResolver) -> Self {
         FederationKey {
-            selections: vec![Selection {
+            selections: FieldSet::new([Selection {
                 field: field.into(),
                 selections: vec![],
-            }],
+            }]),
             resolver: Some(resolver),
         }
     }
 
     pub fn multiple(fields: Vec<String>, resolver: FederationResolver) -> Self {
         FederationKey {
-            selections: fields
-                .into_iter()
-                .map(|field| Selection {
-                    field,
-                    selections: vec![],
-                })
-                .collect(),
+            selections: FieldSet::new(fields.into_iter().map(|field| Selection {
+                field,
+                selections: vec![],
+            })),
             resolver: Some(resolver),
         }
     }
 
     pub fn unresolvable(selections: Vec<Selection>) -> Self {
         FederationKey {
-            selections,
+            selections: FieldSet::new(selections),
             resolver: None,
         }
     }
 
     pub fn basic_type(selections: Vec<Selection>) -> Self {
         FederationKey {
-            selections,
+            selections: FieldSet::new(selections),
             resolver: Some(FederationResolver::BasicType),
         }
     }
@@ -86,14 +86,6 @@ impl FederationKey {
     pub fn is_resolvable(&self) -> bool {
         self.resolver.is_some()
     }
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-#[serde_with::skip_serializing_defaults(Option, Vec, ConstraintType)]
-pub struct Selection {
-    pub field: String,
-    pub selections: Vec<Selection>,
 }
 
 impl FederationEntity {
@@ -109,52 +101,13 @@ impl FederationEntity {
         let object = data.as_object()?;
         self.keys
             .iter()
-            .find(|key| selections_are_present(object, &key.selections))
+            .find(|key| key.selections.all_fields_are_present(object))
     }
-}
-
-fn selections_are_present(object: &Map<String, Value>, selections: &[Selection]) -> bool {
-    selections.iter().all(|selection| {
-        if !object.contains_key(&selection.field) {
-            return false;
-        }
-        if selection.selections.is_empty() {
-            return true;
-        }
-        // Make sure any sub-selections are also present
-        let Some(object) = object.get(&selection.field).and_then(Value::as_object) else {
-            return false;
-        };
-        selections_are_present(object, &selection.selections)
-    })
 }
 
 impl std::fmt::Display for FederationKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (i, selection) in self.selections.iter().enumerate() {
-            if i != 0 {
-                write!(f, " ")?;
-            }
-            write!(f, "{selection}")?;
-        }
-        Ok(())
-    }
-}
-
-impl std::fmt::Display for Selection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Selection { field, selections } = self;
-        write!(f, "{field}")?;
-        if !selections.is_empty() {
-            write!(f, " {{")?;
-            for (i, selection) in selections.iter().enumerate() {
-                if i != 0 {
-                    write!(f, " ")?;
-                }
-                write!(f, "{selection}")?;
-            }
-            write!(f, "}}")?;
-        }
+        write!(f, "{}", self.selections)?;
         Ok(())
     }
 }
