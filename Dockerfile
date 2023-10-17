@@ -17,6 +17,8 @@ FROM alpine:3.18
 
 WORKDIR /grafbase
 
+RUN apk add --no-cache nodejs npm
+
 COPY --from=build /grafbase/cli/target/release/grafbase /bin/grafbase
 
 ENTRYPOINT ["/bin/grafbase"]
