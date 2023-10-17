@@ -158,3 +158,11 @@ description = "Deletes the exported CLI assets"
 script = '''
 rm -r ~/.grafbase
 '''
+
+[tasks.build-cli-app]
+description = "Build packages/cli-app — the Pathfinder wrapper included in CLI"
+script = '''
+cd ../packages/cli-app
+npx --yes pnpm i
+npx --yes pnpm run cli-app:build
+'''
