@@ -54,8 +54,8 @@ jobs:
         with:
           cmd: yq '.env.ASSETS_VERSION' './.github/workflows/cli.yml'
 
-      - name: Fetch CDN assets
-        uses: ./.github/actions/cdn_assets
+      - name: Build CLI assets
+        uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ steps.lookup-prod-assets.outputs.result }}
           assets_version: ${{ steps.lookup-assets-version.outputs.result }}
