@@ -1,6 +1,6 @@
 # cli-app
 
-A vite-powered full page version of Pathfinder, for use in the CLI.
+A Vite-powered full page version of Pathfinder, for use in the CLI.
 
 Running in dev and preview modes require use of the `.env.development.local` file.
 
