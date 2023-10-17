@@ -1,5 +1,5 @@
 use common::types::{LogLevel, UdfKind};
-use std::path::PathBuf;
+use std::{net::IpAddr, path::PathBuf};
 
 pub const ASSETS_GZIP: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets.tar.gz"));
 
@@ -45,8 +45,15 @@ pub enum LogEventType {
 
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
-    Ready(u16),
+    Ready {
+        listen_address: IpAddr,
+        port: u16,
+    },
     Reload(PathBuf),
+    StartUdfBuildAll,
+    CompleteUdfBuildAll {
+        duration: std::time::Duration,
+    },
     StartUdfBuild {
         udf_kind: UdfKind,
         udf_name: String,

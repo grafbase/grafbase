@@ -74,7 +74,7 @@ pub enum JavaScriptPackageManager {
     Yarn,
 }
 
-pub const LOCK_FILE_NAMES: &[(&str, JavaScriptPackageManager)] = &[
+pub(crate) const LOCK_FILE_NAMES: &[(&str, JavaScriptPackageManager)] = &[
     ("package-lock.json", JavaScriptPackageManager::Npm),
     ("pnpm-lock.yaml", JavaScriptPackageManager::Pnpm),
     ("yarn.lock", JavaScriptPackageManager::Yarn),
@@ -95,7 +95,7 @@ async fn extract_udf_wrapper_worker_contents(udf_kind: UdfKind) -> Result<String
 const UDF_EXTENSIONS: [&str; 2] = ["js", "ts"];
 
 #[allow(clippy::too_many_lines)]
-pub async fn build(
+pub(crate) async fn build(
     environment: &Environment,
     environment_variables: &std::collections::HashMap<String, String>,
     udf_kind: UdfKind,
@@ -107,7 +107,11 @@ pub async fn build(
 
     let project = environment.project.as_ref().expect("must be present");
 
-    let udf_wrapper_worker_contents = extract_udf_wrapper_worker_contents(udf_kind).await?;
+    // FIXME: that's a hack, need to change the wrapper script to only check the final part of the
+    // URL.
+    let udf_wrapper_worker_contents = extract_udf_wrapper_worker_contents(udf_kind)
+        .await?
+        .replace("\"/invoke\"", &format!("\"{}\"", udf_url_path(udf_kind, udf_name)));
 
     trace!("building {udf_kind} '{udf_name}'");
 
@@ -254,6 +258,7 @@ pub async fn build(
     ))?;
 
     let slugified_udf_name = slug::slugify(udf_name);
+    let udf_url_path = udf_url_path(udf_kind, udf_name);
     tokio::fs::write(
         &wrangler_toml_file_path,
         format!(
@@ -278,7 +283,7 @@ pub async fn build(
                 fallthrough = true
 
                 [miniflare]
-                routes = ["127.0.0.1/invoke"]
+                routes = ["127.0.0.1{udf_url_path}"]
                 kv_persist = '{grafbase_kv_data_path}'
             "#,
         ),
@@ -287,6 +292,10 @@ pub async fn build(
     .map_err(UdfBuildError::CreateTemporaryFile)?;
 
     Ok((udf_build_package_json_path, wrangler_toml_file_path))
+}
+
+pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
+    format!("/{kind}/{}/invoke", slug::slugify(name))
 }
 
 async fn symlink_grafbase_wasm_sdk(
@@ -345,7 +354,7 @@ async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>
 
 const WRANGLER_VERSION: &str = "2.20.1";
 
-pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
+pub(crate) async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
     let lock_file_path = environment.user_dot_grafbase_path.join(".wrangler.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
         let mut file = fslock::LockFile::open(&lock_file_path)?;

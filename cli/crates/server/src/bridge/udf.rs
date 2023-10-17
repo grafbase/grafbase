@@ -1,8 +1,14 @@
+use std::borrow::Cow;
+use std::collections::HashMap;
+use std::num::NonZeroUsize;
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 
 use crate::errors::UdfBuildError;
+use crate::servers::DetectedUdf;
 use crate::types::ServerMessage;
+use crate::udf_builder::udf_url_path;
 
 use axum::extract::State;
 use axum::Json;
@@ -10,7 +16,8 @@ use common::types::UdfKind;
 use common::{environment::Environment, types::LogLevel};
 use futures_util::{pin_mut, TryFutureExt, TryStreamExt};
 use tokio::process::Command;
-use tokio::sync::Notify;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::{Mutex, Notify};
 
 use super::errors::ApiError;
 use super::server::HandlerState;
@@ -46,16 +53,29 @@ struct UdfResponse {
     value: serde_json::Value,
 }
 
-pub enum UdfBuild {
-    InProgress {
+enum UdfWorkerStatus {
+    BuildInProgress {
         notify: Arc<Notify>,
     },
-    Succeeded {
+    Available {
         #[allow(dead_code)]
-        miniflare_handle: tokio::task::JoinHandle<()>,
+        miniflare_handle: Arc<tokio::task::JoinHandle<()>>,
         worker_port: u16,
     },
-    Failed,
+    BuildFailed,
+}
+
+struct UdfWorker {
+    name: String,
+    directory: PathBuf,
+}
+
+pub struct UdfRuntime {
+    udf_workers: Mutex<HashMap<(String, UdfKind), UdfWorkerStatus>>,
+    environment_variables: HashMap<String, String>,
+    registry: Arc<engine::Registry>,
+    tracing: bool,
+    message_sender: UnboundedSender<ServerMessage>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -72,9 +92,9 @@ pub async fn invoke_udf_endpoint(
         udf_kind,
     } = payload;
 
-    let udf_worker_port = build_udf(&handler_state, udf_name.clone(), udf_kind).await?;
+    let udf_worker_port = handler_state.udf_runtime.build_udf(udf_name.clone(), udf_kind).await?;
 
-    super::udf::invoke(
+    invoke(
         &handler_state.message_sender,
         &request_id,
         udf_worker_port,
@@ -86,105 +106,271 @@ pub async fn invoke_udf_endpoint(
     .map(Json)
 }
 
-pub async fn build_udf(handler_state: &HandlerState, udf_name: String, udf_kind: UdfKind) -> Result<u16, ApiError> {
-    let environment = Environment::get();
-    let udf_worker_port = loop {
-        let notify = {
-            let mut udf_builds: tokio::sync::MutexGuard<'_, _> = handler_state.udf_builds.lock().await;
+impl UdfRuntime {
+    pub fn new(
+        environment_variables: HashMap<String, String>,
+        registry: Arc<engine::Registry>,
+        tracing: bool,
+        message_sender: UnboundedSender<ServerMessage>,
+    ) -> Self {
+        Self {
+            udf_workers: Mutex::default(),
+            environment_variables,
+            registry,
+            tracing,
+            message_sender,
+        }
+    }
 
-            if let Some(udf_build) = udf_builds.get(&(udf_name.clone(), udf_kind)) {
-                match udf_build {
-                    UdfBuild::Succeeded { worker_port, .. } => break *worker_port,
-                    UdfBuild::Failed => return Err(ApiError::UdfInvocation),
-                    UdfBuild::InProgress { notify } => {
-                        // If the resolver build happening within another invocation has been cancelled
-                        // due to the invocation having been interrupted by the HTTP client, start a new build.
-                        if Arc::strong_count(notify) == 1 {
-                            notify.clone()
-                        } else {
-                            let notify = notify.clone();
-                            drop(udf_builds);
-                            notify.notified().await;
-                            continue;
-                        }
+    pub async fn build_all(&self, udfs: Vec<DetectedUdf>, parallelism: NonZeroUsize) -> Result<(), UdfBuildError> {
+        let start = std::time::Instant::now();
+        self.message_sender
+            .send(ServerMessage::StartUdfBuildAll)
+            .expect("receiver is not never closed");
+        let udf_workers = self.build_all_udf_workers(udfs.clone(), parallelism).await?;
+        self.message_sender
+            .send(ServerMessage::CompleteUdfBuildAll {
+                duration: start.elapsed(),
+            })
+            .expect("receiver is not never closed");
+        let (join_handle, port) = self.spawn_multi_worker_miniflare(udf_workers).await?;
+        let join_handle = Arc::new(join_handle);
+        let mut builds = self.udf_workers.lock().await;
+        for udf in udfs {
+            builds.insert(
+                (udf.udf_name, udf.udf_kind),
+                UdfWorkerStatus::Available {
+                    miniflare_handle: join_handle.clone(),
+                    worker_port: port,
+                },
+            );
+        }
+        Ok(())
+    }
+}
+
+impl UdfRuntime {
+    async fn spawn_multi_worker_miniflare(
+        &self,
+        udf_workers: Vec<UdfWorker>,
+    ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
+        let mut miniflare_arguments: Vec<_> = [
+            // used by miniflare when running normally as well
+            "--experimental-vm-modules",
+            "./node_modules/miniflare/dist/src/cli.js",
+            "--modules",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "0",
+            "--no-update-check",
+            "--no-cf-fetch",
+            "--do-persist",
+        ]
+        .into_iter()
+        .map(Cow::Borrowed)
+        .collect();
+        if self.tracing {
+            miniflare_arguments.push("--debug".into());
+        }
+
+        miniflare_arguments.extend(udf_workers.into_iter().flat_map(|UdfWorker { name, directory }| {
+            [
+                Cow::Borrowed("--mount"),
+                format!("{name}={path}", name = slug::slugify(name), path = directory.display()).into(),
+            ]
+        }));
+
+        let environment = Environment::get();
+        let mut miniflare = Command::new("node");
+        miniflare
+            // Unbounded worker limit
+            .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
+            .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .current_dir(&environment.user_dot_grafbase_path)
+            .kill_on_drop(true);
+        trace!("Spawning {miniflare:?}");
+        let mut miniflare = miniflare.spawn().unwrap();
+
+        let bound_port = {
+            use tokio::io::AsyncBufReadExt;
+            use tokio_stream::wrappers::LinesStream;
+            let stdout = miniflare.stdout.as_mut().unwrap();
+            let mut lines_skipped_over = vec![];
+            let filtered_lines_stream =
+                LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
+                    trace!("miniflare: {line}");
+                    let port = line
+                        .split("Listening on")
+                        .skip(1)
+                        .flat_map(|bound_address| bound_address.split(':'))
+                        .nth(1)
+                        .and_then(|value| value.trim().parse::<u16>().ok());
+                    lines_skipped_over.push(line);
+                    futures_util::future::ready(Ok(port))
+                });
+            pin_mut!(filtered_lines_stream);
+            filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
+                UdfBuildError::MiniflareSpawnFailedWithOutput {
+                    output: lines_skipped_over.join("\n"),
+                }
+            })?
+        };
+        trace!("Bound to port: {bound_port}");
+        let join_handle = tokio::spawn(async move {
+            let outcome = miniflare.wait_with_output().await.unwrap();
+            assert!(
+                outcome.status.success(),
+                "Miniflare failed: '{}'",
+                String::from_utf8_lossy(&outcome.stderr).into_owned()
+            );
+        });
+
+        Ok((join_handle, bound_port))
+    }
+
+    async fn build_all_udf_workers(
+        &self,
+        udfs: impl IntoIterator<Item = DetectedUdf>,
+        parallelism: NonZeroUsize,
+    ) -> Result<Vec<UdfWorker>, UdfBuildError> {
+        use futures_util::StreamExt;
+
+        let environment = Environment::get();
+
+        let mut resolvers_iterator = udfs.into_iter().peekable();
+        if resolvers_iterator.peek().is_none() {
+            return Ok(vec![]);
+        }
+
+        futures_util::stream::iter(resolvers_iterator)
+            .map(Ok)
+            .map_ok(|DetectedUdf { udf_name, udf_kind, .. }| async move {
+                match crate::udf_builder::build(
+                    environment,
+                    &self.environment_variables,
+                    udf_kind,
+                    &udf_name,
+                    self.tracing,
+                    self.registry.enable_kv,
+                )
+                .await
+                {
+                    Ok((_, wrangler_toml_path)) => Ok(UdfWorker {
+                        name: udf_name,
+                        directory: wrangler_toml_path.parent().unwrap().to_owned(),
+                    }),
+                    Err(err) => {
+                        self.message_sender
+                            .send(ServerMessage::CompilationError(format!(
+                                "{udf_kind} '{udf_name}' failed to build: {err}"
+                            )))
+                            .expect("receiver is not never closed");
+
+                        Err(err)
                     }
                 }
-            } else {
-                let notify = Arc::new(Notify::new());
-                udf_builds.insert(
-                    (udf_name.clone(), udf_kind),
-                    UdfBuild::InProgress { notify: notify.clone() },
-                );
-                notify
-            }
-        };
-
-        let start = std::time::Instant::now();
-        handler_state
-            .message_sender
-            .send(ServerMessage::StartUdfBuild {
-                udf_kind,
-                udf_name: udf_name.clone(),
             })
-            .unwrap();
-
-        let tracing = handler_state.tracing;
-        let enable_kv = handler_state.registry.enable_kv;
-
-        match crate::udf_builder::build(
-            environment,
-            &handler_state.environment_variables,
-            udf_kind,
-            &udf_name,
-            tracing,
-            enable_kv,
-        )
-        .and_then(|(package_json_path, wrangler_toml_path)| {
-            super::udf::spawn_miniflare(udf_kind, &udf_name, package_json_path, wrangler_toml_path, tracing)
-        })
-        .await
-        {
-            Ok((miniflare_handle, worker_port)) => {
-                handler_state.udf_builds.lock().await.insert(
-                    (udf_name.clone(), udf_kind),
-                    UdfBuild::Succeeded {
-                        miniflare_handle,
-                        worker_port,
-                    },
-                );
-                notify.notify_waiters();
-
-                handler_state
-                    .message_sender
-                    .send(ServerMessage::CompleteUdfBuild {
-                        udf_kind,
-                        udf_name: udf_name.clone(),
-                        duration: start.elapsed(),
-                    })
-                    .unwrap();
-
-                break worker_port;
-            }
-            Err(err) => {
-                error!("Build of {udf_kind} '{udf_name}' failed: {err:?}");
-                handler_state
-                    .message_sender
-                    .send(ServerMessage::CompilationError(format!(
-                        "{udf_kind} '{udf_name}' failed to build: {err}"
-                    )))
-                    .unwrap();
-            }
-        };
-
-        handler_state
-            .udf_builds
-            .lock()
+            .try_buffer_unordered(parallelism.into())
+            .try_collect()
             .await
-            .insert((udf_name.clone(), udf_kind), UdfBuild::Failed);
-        notify.notify_waiters();
-        return Err(ApiError::UdfInvocation);
-    };
-    Ok(udf_worker_port)
+    }
+
+    async fn build_udf(&self, udf_name: String, udf_kind: UdfKind) -> Result<u16, ApiError> {
+        let environment = Environment::get();
+        let udf_worker_port = loop {
+            let notify = {
+                let mut udf_builds: tokio::sync::MutexGuard<'_, _> = self.udf_workers.lock().await;
+
+                if let Some(udf_build) = udf_builds.get(&(udf_name.clone(), udf_kind)) {
+                    match udf_build {
+                        UdfWorkerStatus::Available { worker_port, .. } => break *worker_port,
+                        UdfWorkerStatus::BuildFailed => return Err(ApiError::UdfInvocation),
+                        UdfWorkerStatus::BuildInProgress { notify } => {
+                            // If the resolver build happening within another invocation has been cancelled
+                            // due to the invocation having been interrupted by the HTTP client, start a new build.
+                            if Arc::strong_count(notify) == 1 {
+                                notify.clone()
+                            } else {
+                                let notify = notify.clone();
+                                drop(udf_builds);
+                                notify.notified().await;
+                                continue;
+                            }
+                        }
+                    }
+                } else {
+                    let notify = Arc::new(Notify::new());
+                    udf_builds.insert(
+                        (udf_name.clone(), udf_kind),
+                        UdfWorkerStatus::BuildInProgress { notify: notify.clone() },
+                    );
+                    notify
+                }
+            };
+
+            let start = std::time::Instant::now();
+            self.message_sender
+                .send(ServerMessage::StartUdfBuild {
+                    udf_kind,
+                    udf_name: udf_name.clone(),
+                })
+                .unwrap();
+
+            match crate::udf_builder::build(
+                environment,
+                &self.environment_variables,
+                udf_kind,
+                &udf_name,
+                self.tracing,
+                self.registry.enable_kv,
+            )
+            .and_then(|(package_json_path, wrangler_toml_path)| {
+                super::udf::spawn_miniflare(udf_kind, &udf_name, package_json_path, wrangler_toml_path, self.tracing)
+            })
+            .await
+            {
+                Ok((miniflare_handle, worker_port)) => {
+                    self.udf_workers.lock().await.insert(
+                        (udf_name.clone(), udf_kind),
+                        UdfWorkerStatus::Available {
+                            miniflare_handle: Arc::new(miniflare_handle),
+                            worker_port,
+                        },
+                    );
+                    notify.notify_waiters();
+
+                    self.message_sender
+                        .send(ServerMessage::CompleteUdfBuild {
+                            udf_kind,
+                            udf_name: udf_name.clone(),
+                            duration: start.elapsed(),
+                        })
+                        .unwrap();
+
+                    break worker_port;
+                }
+                Err(err) => {
+                    error!("Build of {udf_kind} '{udf_name}' failed: {err:?}");
+                    self.message_sender
+                        .send(ServerMessage::CompilationError(format!(
+                            "{udf_kind} '{udf_name}' failed to build: {err}"
+                        )))
+                        .unwrap();
+                }
+            };
+
+            self.udf_workers
+                .lock()
+                .await
+                .insert((udf_name.clone(), udf_kind), UdfWorkerStatus::BuildFailed);
+            notify.notify_waiters();
+            return Err(ApiError::UdfInvocation);
+        };
+        Ok(udf_worker_port)
+    }
 }
 
 async fn wait_until_udf_ready(worker_port: u16, udf_kind: UdfKind, udf_name: &str) -> Result<bool, reqwest::Error> {
@@ -216,7 +402,7 @@ async fn is_udf_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error>
     }
 }
 
-pub async fn spawn_miniflare(
+async fn spawn_miniflare(
     udf_kind: UdfKind,
     udf_name: &str,
     package_json_path: std::path::PathBuf,
@@ -251,6 +437,7 @@ pub async fn spawn_miniflare(
             "--wrangler-config",
             wrangler_toml_path.to_str().unwrap(),
         ];
+        println!("{miniflare_arguments:?}");
         if tracing {
             miniflare_arguments.push("--debug");
         }
@@ -314,17 +501,19 @@ pub async fn spawn_miniflare(
     }
 }
 
-pub async fn invoke(
-    bridge_sender: &tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+async fn invoke(
+    bridge_sender: &UnboundedSender<ServerMessage>,
     request_id: &str,
     udf_worker_port: u16,
     udf_kind: UdfKind,
     udf_name: &str,
     payload: &serde_json::Value,
 ) -> Result<serde_json::Value, ApiError> {
-    trace!("Invocation of {udf_kind} '{udf_name}' with payload {payload}");
+    let url = format!("http://127.0.0.1:{udf_worker_port}{}", udf_url_path(udf_kind, udf_name));
+    trace!("Invocation of {udf_kind} '{udf_name}' as {url} with payload {payload}");
+
     let json_string = reqwest::Client::new()
-        .post(format!("http://127.0.0.1:{udf_worker_port}/invoke"))
+        .post(url)
         .json(&payload)
         .send()
         .inspect_err(|err| error!("{udf_kind} '{udf_name}' worker error: {err:?}"))

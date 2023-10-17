@@ -1,6 +1,6 @@
 use super::consts::{DATABASE_FILE, DATABASE_URL_PREFIX, PREPARE};
 use super::types::{Mutation, Operation, Record};
-use super::udf::{build_udf, UdfBuild};
+use super::udf::UdfRuntime;
 use crate::bridge::errors::ApiError;
 use crate::bridge::log::log_event_endpoint;
 use crate::bridge::search::search_endpoint;
@@ -15,14 +15,12 @@ use axum::Json;
 use axum::{http::StatusCode, routing::post, Router};
 use common::environment::Project;
 
-use common::types::UdfKind;
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use tokio::fs;
-use tokio::sync::Mutex;
 
-use std::collections::HashMap;
 use std::net::TcpListener;
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use tower_http::trace::TraceLayer;
@@ -30,8 +28,7 @@ use tower_http::trace::TraceLayer;
 pub struct HandlerState {
     pub pool: SqlitePool,
     pub message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
-    pub udf_builds: Mutex<std::collections::HashMap<(String, UdfKind), UdfBuild>>,
-    pub environment_variables: HashMap<String, String>,
+    pub udf_runtime: UdfRuntime,
     pub tracing: bool,
     pub registry: Arc<engine::Registry>,
 }
@@ -101,8 +98,8 @@ async fn mutation_endpoint(
 
 // Not great, but I don't want to expose HandlerState and nor do I want to change everything now...
 #[async_trait::async_trait]
-pub trait BridgeState {
-    async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>) -> Result<(), ServerError>;
+pub trait BridgeState: Send + Sync {
+    async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>, parallelism: NonZeroUsize) -> Result<(), ServerError>;
     async fn close(&self) -> ();
 }
 
@@ -112,13 +109,11 @@ impl BridgeState for Arc<HandlerState> {
         self.pool.close().await;
     }
 
-    async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>) -> Result<(), ServerError> {
-        for DetectedUdf { udf_name, udf_kind, .. } in udfs {
-            build_udf(self, udf_name.clone(), udf_kind)
-                .await
-                .map_err(|err| ServerError::ResolverBuild(udf_name, err.to_string()))?;
-        }
-        Ok(())
+    async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>, parallelism: NonZeroUsize) -> Result<(), ServerError> {
+        self.udf_runtime
+            .build_all(udfs, parallelism)
+            .await
+            .map_err(|_| ServerError::NodeInPath)
     }
 }
 
@@ -155,11 +150,11 @@ pub async fn build_router(
 
     query(PREPARE).execute(&pool).await?;
 
+    let udf_runtime = UdfRuntime::new(environment_variables, registry.clone(), tracing, message_sender.clone());
     let handler_state = Arc::new(HandlerState {
         pool,
         message_sender,
-        udf_builds: Mutex::default(),
-        environment_variables,
+        udf_runtime,
         tracing,
         registry,
     });

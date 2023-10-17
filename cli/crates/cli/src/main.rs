@@ -1,6 +1,7 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 #![forbid(unsafe_code)]
 
+mod build;
 mod cli_input;
 mod create;
 mod deploy;
@@ -23,6 +24,7 @@ mod watercolor;
 extern crate log;
 
 use crate::{
+    build::build,
     cli_input::{Args, ArgumentNames, LogsCommand, SubCommand},
     create::create,
     deploy::deploy,
@@ -120,6 +122,14 @@ fn try_main(args: Args) -> Result<(), CliError> {
             });
 
             start(cmd.listen_address(), cmd.port, cmd.log_levels(), args.trace >= 2)
+        }
+        SubCommand::Build(cmd) => {
+            let _ = ctrlc::set_handler(|| {
+                report::goodbye();
+                process::exit(exitcode::OK);
+            });
+
+            build(cmd.parallelism(), args.trace >= 2)
         }
     }
 }

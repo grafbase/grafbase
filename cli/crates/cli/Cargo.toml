@@ -39,6 +39,7 @@ uuid = { version = "1", features = ["v4"] }
 url = "2"
 webbrowser = "0.8"
 lru = "0.12"
+futures-util = "0.3"
 
 server = { package = "grafbase-local-server", path = "../server", version = "0.40.2" }
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.40.2" }
