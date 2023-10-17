@@ -5,7 +5,7 @@ use super::{
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
-use crate::directive_de::parse_directive;
+use crate::{directive_de::parse_directive, validations::validate_connector_name};
 
 const POSTGRES_DIRECTIVE_NAME: &str = "postgres";
 
@@ -72,11 +72,23 @@ impl<'a> Visitor<'a> for PostgresVisitor {
             .filter(|d| d.node.name.node == POSTGRES_DIRECTIVE_NAME);
 
         for directive in directives {
-            match parse_directive::<PostgresDirective>(&directive.node, ctx.variables) {
+            let result = parse_directive::<PostgresDirective>(&directive.node, ctx.variables)
+                .map_err(|error| error.to_string())
+                .and_then(|directive| directive.validate());
+
+            match result {
                 Ok(parsed_directive) => ctx.postgres_directives.push((parsed_directive, directive.pos)),
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }
         }
+    }
+}
+
+impl PostgresDirective {
+    fn validate(self) -> Result<Self, String> {
+        validate_connector_name(&self.name)?;
+
+        Ok(self)
     }
 }
 
@@ -186,6 +198,36 @@ mod tests {
               )
             "#,
             "Name \"Test\" is not unique. A connector must have a unique name."
+        );
+    }
+
+    #[test]
+    fn empty_name() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @postgres(
+                name: "",
+                namespace: true,
+                url: "postgres://postgres:grafbase@localhost:5432/postgres",
+              )
+            "#,
+            "Connector names cannot be empty"
+        );
+    }
+
+    #[test]
+    fn invalid_name() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @postgres(
+                name: "123",
+                namespace: true,
+                url: "postgres://postgres:grafbase@localhost:5432/postgres",
+              )
+            "#,
+            "Connector names must be alphanumeric and cannot start with a number"
         );
     }
 }

@@ -8,7 +8,7 @@ use super::{
     directive::Directive,
     visitor::{Visitor, VisitorContext},
 };
-use crate::directive_de::parse_directive;
+use crate::{directive_de::parse_directive, validations::validate_connector_name};
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -113,13 +113,25 @@ impl<'a> Visitor<'a> for GraphqlVisitor {
             .filter(|d| d.node.name.node == GRAPHQL_DIRECTIVE_NAME);
 
         for directive in directives {
-            match parse_directive::<GraphqlDirective>(&directive.node, ctx.variables) {
+            let result = parse_directive::<GraphqlDirective>(&directive.node, ctx.variables)
+                .map_err(|error| error.to_string())
+                .and_then(|directive| directive.validate());
+
+            match result {
                 Ok(parsed_directive) => {
                     ctx.graphql_directives.push((parsed_directive, directive.pos));
                 }
-                Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
+                Err(err) => ctx.report_error(vec![directive.pos], err),
             }
         }
+    }
+}
+
+impl GraphqlDirective {
+    fn validate(self) -> Result<Self, String> {
+        validate_connector_name(&self.name)?;
+
+        Ok(self)
     }
 }
 
@@ -291,6 +303,36 @@ mod tests {
               )
             "#,
             "[7:26] invalid type: integer `12`, expected a string"
+        );
+    }
+
+    #[test]
+    fn empty_name() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @graphql(
+                name: "",
+                namespace: false,
+                url: "https://countries.trevorblades.com",
+              )
+            "#,
+            "Connector names cannot be empty"
+        );
+    }
+
+    #[test]
+    fn invalid_name() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @graphql(
+                name: "1234",
+                namespace: false,
+                url: "https://countries.trevorblades.com",
+              )
+            "#,
+            "Connector names must be alphanumeric and cannot start with a number"
         );
     }
 

@@ -7,7 +7,7 @@ use super::{
     directive::Directive,
     visitor::Visitor,
 };
-use crate::directive_de::parse_directive;
+use crate::{directive_de::parse_directive, validations::validate_connector_name};
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -121,13 +121,25 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
             .filter(|d| d.node.name.node == OPENAPI_DIRECTIVE_NAME);
 
         for directive in directives {
-            match parse_directive::<OpenApiDirective>(&directive.node, ctx.variables) {
+            let result = parse_directive::<OpenApiDirective>(&directive.node, ctx.variables)
+                .map_err(|error| error.to_string())
+                .and_then(|directive| directive.validate());
+
+            match result {
                 Ok(parsed_directive) => {
                     ctx.openapi_directives.push((parsed_directive, directive.pos));
                 }
-                Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
+                Err(err) => ctx.report_error(vec![directive.pos], err),
             }
         }
+    }
+}
+
+impl OpenApiDirective {
+    fn validate(self) -> Result<Self, String> {
+        validate_connector_name(&self.name)?;
+
+        Ok(self)
     }
 }
 
@@ -268,6 +280,36 @@ mod tests {
               )
             "#,
             "[8:29] unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"
+        );
+    }
+
+    #[test]
+    fn empty_name() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @openapi(
+                name: "",
+                namespace: true,
+                schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
+              )
+            "#,
+            "Connector names cannot be empty"
+        );
+    }
+
+    #[test]
+    fn invalid_name() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @openapi(
+                name: "1234",
+                namespace: true,
+                schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
+              )
+            "#,
+            "Connector names must be alphanumeric and cannot start with a number"
         );
     }
 

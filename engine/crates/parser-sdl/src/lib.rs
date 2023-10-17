@@ -47,6 +47,7 @@ use rules::{
 };
 
 mod type_names;
+mod validations;
 
 pub use connector_parsers::ConnectorParsers;
 pub use engine::registry::Registry;
