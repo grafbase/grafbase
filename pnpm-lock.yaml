@@ -21,8 +21,8 @@ importers:
   packages/cli-app:
     dependencies:
       '@pathfinder-ide/react':
-        specifier: 0.2.5
-        version: 0.2.5(@types/react@18.2.24)(prettier@3.0.3)(react-dom@18.2.0)(react@18.2.0)
+        specifier: 0.2.6
+        version: 0.2.6(@types/react@18.2.24)(prettier@3.0.3)(react-dom@18.2.0)(react@18.2.0)
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -1721,8 +1721,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.15.0
 
-  /@pathfinder-ide/react@0.2.5(@types/react@18.2.24)(prettier@3.0.3)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-aMEzxnn3bFyaSlIyKMgK590UxSzp4gAg/LxmRp9MgvQq4p+9YMAZIupYlJVCYJNbuJjOTTnTQ19sHZaJUqP7wQ==}
+  /@pathfinder-ide/react@0.2.6(@types/react@18.2.24)(prettier@3.0.3)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-nFMgC8vuw4k6RLvBARoM/IVmVoez8TTDKEB43YtQHs776iYQgNMusZH7/I2bZsHhnZeOJsTtYfaT+7GvSFZH4w==}
     peerDependencies:
       react: ^18.2.0
       react-dom: ^18.2.0
@@ -1730,6 +1730,7 @@ packages:
       '@headlessui/react': 1.7.17(react-dom@18.2.0)(react@18.2.0)
       graphql: 16.8.1
       idb-keyval: 6.2.1
+      lodash: 4.17.21
       monaco-editor: 0.40.0
       monaco-graphql: 1.3.0(graphql@16.8.1)(monaco-editor@0.40.0)(prettier@3.0.3)
       react: 18.2.0
@@ -5064,6 +5065,10 @@ packages:
   /lodash.sortby@4.7.0:
     resolution: {integrity: sha512-HDWXG8isMntAyRF5vZ7xKuEvOhT4AhlRt/3czTSjvGUxjYCBVRQY48ViDHyfYz9VIoBkW4TMGQNapx+l3RUwdA==}
     dev: true
+
+  /lodash@4.17.21:
+    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+    dev: false
 
   /loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
