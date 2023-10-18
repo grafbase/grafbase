@@ -1,0 +1,70 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  episode(id: ID!): Episode
+  episodesBySeason(season: Int!): [Episode!]!
+  character(id: ID!): Character
+  searchCharacters(name: String!): [Character!]!
+  locations: [Location!]!
+}
+
+type Mutation {
+  createEpisode(input: CreateEpisodeInput!): Episode!
+  updateEpisode(id: ID!, input: UpdateEpisodeInput!): Episode
+}
+
+input CreateEpisodeInput {
+  title: String!
+  season: Int!
+  episodeNumber: Int!
+  description: String
+  characters: [ID!]!
+}
+
+input UpdateEpisodeInput {
+  title: String
+  season: Int
+  episodeNumber: Int
+  description: String
+  characters: [ID!]
+}
+
+type Episode {
+  id: ID!
+  title: String!
+  season: Int!
+  episodeNumber: Int!
+  description: String
+  characters: [Character!]!
+  nestedTrivia: [[[TriviaItem!]]] # List nested up to three levels
+}
+
+type Character {
+  id: ID!
+  name: String!
+  occupation: String
+  episodes: [Episode!]!
+  friends: [Character!]
+  favoriteLocations: [Location]
+  deepRelations: [[[[Relation]]!]] # List nested up to four levels
+}
+
+type Location {
+  id: ID!
+  name: String!
+  type: String!
+  frequentVisitors: [Character]
+}
+
+type TriviaItem {
+  fact: String!
+  episode: Episode!
+}
+
+type Relation {
+  relationType: String!
+  character: Character!
+}
