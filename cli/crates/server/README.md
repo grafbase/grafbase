@@ -16,9 +16,8 @@ the CLI binary, you must either provide the
 `GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH` environment variable or build the cli-app
 in this repository at the default location (`/packages/cli-app`).
 
-By default, you can go to [`packages/cli-app`] in this repo and run `pnpm run
-cli-app:build` to build the Pathfinder wrapper used by the CLI. This part of
-the CLI build should now succeed.
+You can run `cargo make build-cli-app` to build the Pathfinder wrapper used by
+the CLI. This part of the CLI build should now succeed.
 
 ### assets.tar.gz
 
