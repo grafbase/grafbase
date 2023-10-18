@@ -40,9 +40,9 @@ url = "2"
 webbrowser = "0.8"
 lru = "0.12"
 
-server = { package = "grafbase-local-server", path = "../server", version = "0.40.1" }
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.40.1" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.40.1" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.40.2" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.40.2" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.40.2" }
 
 
 [dev-dependencies]
