@@ -45,7 +45,7 @@ use super::{
     relations::RelationEngine,
     resolver_directive::ResolverDirective,
     unique_directive::UniqueDirective,
-    visitor::{Visitor, VisitorContext},
+    visitor::{Visitor, VisitorContext, Warning},
 };
 use crate::{
     registry::{
@@ -453,6 +453,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                 .federation_entities
                 .insert(type_name, entity.build());
 
+            ctx.report_warning(Warning::DeprecatedModelDefinition);
+
             //
             // ADD FURTHER QUERIES/MUTATIONS
             //
@@ -525,6 +527,22 @@ mod tests {
         visit(&mut ModelDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
+    }
+
+    #[test]
+    fn should_warn_about_deprecated_models() {
+        let schema = r#"
+            type Product @model {
+                id: ID!
+                test: String!
+            }
+        "#;
+
+        let schema = parse_schema(schema).expect("");
+        let mut ctx = VisitorContext::new_for_tests(&schema);
+        visit(&mut ModelDirective, &mut ctx, &schema);
+
+        assert!(ctx.warnings.uses_deprecated_models());
     }
 
     #[test]

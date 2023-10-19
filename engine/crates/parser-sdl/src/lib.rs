@@ -180,6 +180,10 @@ pub async fn parse<'a>(
         return Err(ctx.errors.into());
     }
 
+    if !ctx.warnings.is_empty() {
+        println!("{}", ctx.warnings);
+    }
+
     Ok(ctx.finish())
 }
 

@@ -124,3 +124,43 @@ fn get_config<'a>(ctx: &'a VisitorContext<'_>, r#type: &'a Positioned<TypeDefini
 
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        parse_schema,
+        rules::{
+            model_directive::ModelDirective,
+            mongodb_directive::MongoDBModelDirective,
+            visitor::{visit, VisitorContext},
+        },
+    };
+
+    #[test]
+    fn should_not_warn_about_deprecated_models() {
+        let schema = r#"
+            extend schema
+              @mongodb(
+                 name: "test",
+                 apiKey: "TEST"
+                 url: "https://example.com"
+                 dataSource: "TEST"
+                 database: "test"
+                 namespace: false
+              )
+
+            type Product @model(connector: "test", collection: "test") {
+                id: ID!
+                test: String!
+            }
+        "#;
+
+        let schema = parse_schema(schema).expect("");
+        let mut ctx = VisitorContext::new_for_tests(&schema);
+
+        visit(&mut ModelDirective, &mut ctx, &schema);
+        visit(&mut MongoDBModelDirective, &mut ctx, &schema);
+
+        assert!(ctx.warnings.is_empty());
+    }
+}

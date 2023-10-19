@@ -94,6 +94,8 @@ export class GrafbaseSchema {
   /**
    * Add a new model to the schema.
    *
+   * @deprecated The Grafbase database is deprecated and will be sunset soon. Use connectors like Postgres or MongoDB instead.
+   *
    * @param name - The name of the model.
    * @param fields - The fields to be included.
    */
