@@ -394,7 +394,10 @@ impl SubCommand {
                 | Self::Deploy
                 | Self::Dev(_)
                 | Self::Link(_)
-                | Self::Logs(_)
+                | Self::Logs(LogsCommand {
+                    project_branch: None,
+                    ..
+                })
                 | Self::Reset
                 | Self::Start(_)
                 | Self::Build(_)
