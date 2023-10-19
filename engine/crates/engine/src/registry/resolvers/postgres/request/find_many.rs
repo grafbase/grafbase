@@ -1,7 +1,13 @@
+use futures_util::TryFutureExt;
+use grafbase_sql_ast::{
+    ast::Order,
+    renderer::{self, Renderer},
+};
+use serde_json::Value;
+
 use super::{
     log,
     query::{self, SelectBuilder},
-    RowData,
 };
 use crate::{
     registry::resolvers::{
@@ -11,12 +17,6 @@ use crate::{
     },
     Error,
 };
-use grafbase_sql_ast::{
-    ast::Order,
-    renderer::{self, Renderer},
-};
-use postgres_types::transport::Transport;
-use serde_json::Value;
 
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, Error> {
     let mut builder = SelectBuilder::new(ctx.table(), ctx.collection_selection(), "root");
@@ -53,7 +53,10 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, E
     }
 
     let (sql, params) = renderer::Postgres::build(query::select::build(builder)?);
-    let operation = ctx.transport().parameterized_query::<RowData>(&sql, params);
+    let operation = ctx
+        .transport()
+        .parameterized_query(&sql, params)
+        .map_ok(postgres_types::transport::map_result);
     let rows = log::query(&ctx, &sql, operation).await?;
 
     let response_data = rows

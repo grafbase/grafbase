@@ -1,6 +1,7 @@
-use crate::registry::context::{InputContext, OutputContext};
 use common_types::auth::Operations;
 use engine::registry::{resolvers::transformer::Transformer, MetaField, ObjectType};
+
+use crate::registry::context::{InputContext, OutputContext};
 
 pub(super) fn register(input_ctx: &InputContext<'_>, output_ctx: &mut OutputContext) {
     let object = ObjectType::new(

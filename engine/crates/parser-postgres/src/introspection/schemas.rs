@@ -1,3 +1,4 @@
+use engine::futures_util::TryFutureExt;
 use postgres_types::{database_definition::DatabaseDefinition, transport::Transport};
 use serde::Deserialize;
 
@@ -10,11 +11,12 @@ pub(super) async fn introspect<T>(transport: &T, database_definition: &mut Datab
 where
     T: Transport + Sync,
 {
-    let result = transport
-        .parameterized_query::<Row>(
+    let result: Vec<Row> = transport
+        .parameterized_query(
             "SELECT nspname AS name FROM pg_namespace WHERE nspname <> ALL ($1) ORDER BY name",
             vec![super::blocked_schemas()],
         )
+        .map_ok(postgres_types::transport::map_result)
         .await?;
 
     for row in result {

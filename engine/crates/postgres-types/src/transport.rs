@@ -31,23 +31,25 @@ impl Column {
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-pub trait Transport {
+pub trait Transport: Send + Sync {
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<i64>;
 
-    async fn parameterized_query<T>(&self, query: &str, params: Vec<Value>) -> crate::Result<Vec<T>>
-    where
-        T: DeserializeOwned + Send;
+    async fn parameterized_query(&self, query: &str, params: Vec<Value>) -> crate::Result<Vec<Value>>;
 
     fn connection_string(&self) -> &str;
 
-    async fn query<T>(&self, query: &str) -> crate::Result<Vec<T>>
-    where
-        T: DeserializeOwned + Send,
-    {
+    async fn query(&self, query: &str) -> crate::Result<Vec<Value>> {
         self.parameterized_query(query, Vec::new()).await
     }
 
     async fn execute(&self, query: &str) -> crate::Result<i64> {
         self.parameterized_execute(query, Vec::new()).await
     }
+}
+
+pub fn map_result<T: DeserializeOwned + Send>(values: Vec<Value>) -> Vec<T> {
+    values
+        .into_iter()
+        .map(|value| serde_json::from_value::<T>(value).expect("should deserialize to expected type"))
+        .collect()
 }

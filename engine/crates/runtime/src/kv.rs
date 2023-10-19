@@ -1,6 +1,6 @@
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use std::time::Duration;
+
+use serde::{de::DeserializeOwned, Serialize};
 
 pub trait KvManager {
     type Error: std::fmt::Debug;

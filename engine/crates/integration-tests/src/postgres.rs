@@ -1,5 +1,6 @@
 use crate::{Engine, EngineBuilder};
 use async_once_cell::OnceCell;
+use engine::futures_util::TryFutureExt;
 use engine::Response;
 use futures::FutureExt;
 use graphql_parser::parse_schema;
@@ -148,7 +149,7 @@ impl TestApi {
                 name: "test",
                 url: "{connection_string}",
                 namespace: false
-              )    
+              )
         "#};
 
         Self::new_inner(schema, connection_string).await
@@ -199,7 +200,12 @@ impl TestApi {
                 .engine
                 // this prevents a race. we initialize the engine only when executing the first request,
                 // so the introspection runs only after we've modified the database schema.
-                .get_or_init(async { Engine::new(self.inner.schema.clone()).await }),
+                .get_or_init(async {
+                    EngineBuilder::new(self.inner.schema.clone())
+                        .with_local_postgres()
+                        .build()
+                        .await
+                }),
         )
         .await
         .execute(operation.as_ref())
@@ -222,7 +228,12 @@ impl TestApi {
     where
         T: DeserializeOwned + Send,
     {
-        self.inner.connection.query(query).await.expect("error in query")
+        self.inner
+            .connection
+            .query(query)
+            .map_ok(postgres_types::transport::map_result)
+            .await
+            .expect("error in query")
     }
 
     pub async fn row_count(&self, table: &str) -> usize {

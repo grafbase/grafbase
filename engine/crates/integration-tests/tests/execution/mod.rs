@@ -6,10 +6,11 @@
 //! A lot of these make use of OpenAPI at the moment but only because it's easy to
 //! set up an OpenAPI connector.  There's no real reason they need to.
 
+use std::net::SocketAddr;
+
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
 use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::json;
-use std::net::SocketAddr;
 use wiremock::{
     matchers::{method, path},
     Mock, MockServer, ResponseTemplate,

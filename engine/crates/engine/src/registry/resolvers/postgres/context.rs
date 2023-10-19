@@ -3,24 +3,22 @@ mod filter;
 pub mod selection;
 mod update_input;
 
-pub use selection::CollectionArgs;
-
 pub(super) use create_input::{CreateInputItem, CreateInputIterator};
 pub(super) use filter::FilterIterator;
+use postgres_types::{
+    database_definition::{DatabaseDefinition, TableWalker},
+    transport::Transport,
+};
+pub use selection::CollectionArgs;
 pub(super) use selection::{SelectionIterator, TableSelection};
+use serde_json::{Map, Value};
 pub(super) use update_input::{UpdateInputItem, UpdateInputIterator};
 
+use self::filter::{ByFilterIterator, ComplexFilterIterator};
 use crate::{
     registry::{resolvers::ResolverContext, type_kinds::SelectionSetTarget, Registry},
     Context, ContextExt, ContextField, Error, SelectionField, ServerResult,
 };
-use postgres_types::{
-    database_definition::{DatabaseDefinition, TableWalker},
-    transport::TcpTransport,
-};
-use serde_json::{Map, Value};
-
-use self::filter::{ByFilterIterator, ComplexFilterIterator};
 
 /// The API to access the request parameters, such as filters and selection, and map that together with
 /// the database types.
@@ -28,23 +26,16 @@ pub struct PostgresContext<'a> {
     context: &'a ContextField<'a>,
     resolver_context: &'a ResolverContext<'a>,
     database_definition: &'a DatabaseDefinition,
-    transport: TcpTransport,
+    transport: Box<dyn Transport>,
 }
 
 impl<'a> PostgresContext<'a> {
     pub async fn new(
         context: &'a ContextField<'a>,
         resolver_context: &'a ResolverContext<'a>,
-        directive_name: &str,
+        database_definition: &'a DatabaseDefinition,
+        transport: Box<dyn Transport>,
     ) -> Result<PostgresContext<'a>, Error> {
-        let database_definition = context
-            .get_postgres_definition(directive_name)
-            .expect("directive must exist");
-
-        let transport = TcpTransport::new(database_definition.connection_string())
-            .await
-            .map_err(|error| Error::new(error.to_string()))?;
-
         Ok(Self {
             context,
             resolver_context,
@@ -190,8 +181,8 @@ impl<'a> PostgresContext<'a> {
     }
 
     /// The database connection.
-    pub fn transport(&self) -> &TcpTransport {
-        &self.transport
+    pub fn transport(&self) -> &dyn Transport {
+        self.transport.as_ref()
     }
 
     pub fn runtime_ctx(&self) -> Result<&runtime::Context, crate::Error> {

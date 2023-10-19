@@ -5,7 +5,6 @@ use self::conversion::json_to_string;
 use super::Transport;
 use async_trait::async_trait;
 use futures::{pin_mut, StreamExt};
-use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 pub struct TcpTransport {
@@ -103,19 +102,16 @@ impl TcpTransport {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for TcpTransport {
-    async fn parameterized_query<T>(&self, query: &str, params: Vec<Value>) -> crate::Result<Vec<T>>
-    where
-        T: DeserializeOwned + Send,
-    {
+    async fn parameterized_query(&self, query: &str, params: Vec<Value>) -> crate::Result<Vec<Value>> {
         let params = json_to_string(params);
         let row_stream = self.client.query_raw_txt(query, params).await?;
 
         pin_mut!(row_stream);
 
-        let mut rows: Vec<T> = Vec::new();
+        let mut rows = Vec::new();
 
         while let Some(row) = row_stream.next().await {
-            rows.push(serde_json::from_value(conversion::row_to_json(&row?)).unwrap());
+            rows.push(conversion::row_to_json(&row?));
         }
 
         Ok(rows)

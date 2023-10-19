@@ -1,3 +1,4 @@
+use engine::futures_util::TryFutureExt;
 use postgres_types::{
     database_definition::{ColumnType, DatabaseDefinition, ScalarType, TableColumn},
     transport::Transport,
@@ -23,8 +24,9 @@ where
 {
     let query = include_str!("queries/columns.sql");
 
-    let result = transport
-        .parameterized_query::<Row>(query, vec![super::blocked_schemas()])
+    let result: Vec<Row> = transport
+        .parameterized_query(query, vec![super::blocked_schemas()])
+        .map_ok(postgres_types::transport::map_result)
         .await?;
 
     for row in result {

@@ -14,6 +14,7 @@ pub struct EngineBuilder {
     environment_variables: HashMap<String, String>,
     custom_resolvers: Option<CustomResolversEngine>,
     local_dynamo: bool,
+    local_postgres: bool,
 }
 
 struct RequestContext {
@@ -44,6 +45,7 @@ impl EngineBuilder {
             environment_variables: HashMap::new(),
             custom_resolvers: None,
             local_dynamo: false,
+            local_postgres: false,
         }
     }
 
@@ -59,6 +61,11 @@ impl EngineBuilder {
 
     pub fn with_local_dynamo(mut self) -> Self {
         self.local_dynamo = true;
+        self
+    }
+
+    pub fn with_local_postgres(mut self) -> Self {
+        self.local_postgres = true;
         self
     }
 
@@ -94,6 +101,10 @@ impl EngineBuilder {
 
         if self.local_dynamo {
             schema_builder = enable_local_dynamo(schema_builder).await;
+        }
+
+        if self.local_postgres {
+            schema_builder = schema_builder.data(runtime_local::LocalPgTransportFactory::runtime_factory());
         }
 
         if let Some(custom_resolvers) = self.custom_resolvers {

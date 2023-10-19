@@ -20,8 +20,8 @@ ulid = { workspace = true }
 http = { workspace = true }
 headers = { workspace = true }
 
-
 search-protocol = { path = "../search-protocol" }
+postgres-types = { path = "../postgres-types" }
 common-types = { workspace = true }
 
 [features]
