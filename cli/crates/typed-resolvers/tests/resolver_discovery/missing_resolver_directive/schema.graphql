@@ -1,0 +1,8 @@
+type Test {
+  id: ID!
+  shouldHaveAResolver: [Case!]
+}
+
+type Case {
+  id: ID!
+}

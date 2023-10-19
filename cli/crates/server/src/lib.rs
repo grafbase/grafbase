@@ -23,6 +23,7 @@ extern crate log;
 
 mod atomics;
 mod bridge;
+mod codegen_server;
 mod consts;
 mod environment;
 mod error_server;

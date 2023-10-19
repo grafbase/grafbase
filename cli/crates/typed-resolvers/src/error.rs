@@ -1,4 +1,4 @@
-use graphql_parser::schema::ParseError;
+use engine_parser::Error as ParseError;
 use std::fmt;
 
 #[derive(Debug)]

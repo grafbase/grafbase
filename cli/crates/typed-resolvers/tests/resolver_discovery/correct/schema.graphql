@@ -1,0 +1,16 @@
+type User {
+    id: ID!
+    firstName: String!
+    lastName: String
+    friends: [User!]! @resolver(name: "nested/friends")
+    stronger(otherUser: ID!): Boolean @resolver(name: "stronger")
+}
+
+type ErrorReport {
+  id: ID!
+  deployment: Deployment
+}
+
+type Deployment {
+  id: ID!
+}

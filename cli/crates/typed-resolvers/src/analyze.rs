@@ -1,7 +1,9 @@
-use graphql_parser::schema as ast;
+use engine_parser::types as ast;
+use engine_value::ConstValue;
 use std::{collections::HashMap, ops, str::FromStr};
 
-pub(crate) fn analyze<'doc>(graphql_document: &'doc ast::Document<'doc, &'doc str>) -> AnalyzedSchema<'doc> {
+#[must_use]
+pub fn analyze(graphql_document: &ast::ServiceDocument) -> AnalyzedSchema<'_> {
     let mut schema = AnalyzedSchema::default();
 
     analyze_top_level(graphql_document, &mut schema);
@@ -11,241 +13,159 @@ pub(crate) fn analyze<'doc>(graphql_document: &'doc ast::Document<'doc, &'doc st
 }
 
 /// First pass. Resolve what definitions exist in the schema (objects, unions, etc.).
-fn analyze_top_level<'doc>(graphql_document: &'doc ast::Document<'doc, &'doc str>, schema: &mut AnalyzedSchema<'doc>) {
+fn analyze_top_level<'doc>(graphql_document: &'doc ast::ServiceDocument, schema: &mut AnalyzedSchema<'doc>) {
     for definition in &graphql_document.definitions {
         match definition {
-            ast::Definition::DirectiveDefinition(_) | ast::Definition::SchemaDefinition(_) => (), // not interested
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Object(output_type)) => {
-                schema.push_output_type(Object {
-                    name: output_type.name,
-                    docs: output_type.description.as_deref(),
-                    kind: ObjectKind::Object,
-                });
-            }
-            ast::Definition::TypeDefinition(ast::TypeDefinition::InputObject(object_definition)) => {
-                schema.push_output_type(Object {
-                    name: object_definition.name,
-                    docs: object_definition.description.as_deref(),
-                    kind: ObjectKind::InputObject,
-                });
-            }
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Interface(object_definition)) => {
-                schema.push_output_type(Object {
-                    name: object_definition.name,
-                    docs: object_definition.description.as_deref(),
-                    kind: ObjectKind::Interface,
-                });
-            }
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Scalar(scalar)) => {
-                schema.push_custom_scalar(CustomScalar {
-                    name: scalar.name,
-                    docs: scalar.description.as_deref(),
-                });
-            }
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Union(union_definition)) => {
-                schema.push_union(Union {
-                    name: union_definition.name,
-                });
-            }
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Enum(enum_definition)) => {
-                let id = schema.push_enum(Enum {
-                    name: enum_definition.name,
-                    docs: enum_definition.description.as_deref(),
-                });
+            ast::TypeSystemDefinition::Type(ty) => {
+                if ty.node.extend {
+                    // We ignore type extensions in the first pass because we can't know if they extend
+                    // types defined in the document yet.
+                    continue;
+                }
+                let name = &ty.node.name.node;
+                let docs = ty.node.description.as_ref().map(|desc| desc.node.as_str());
 
-                for variant in &enum_definition.values {
-                    schema.push_enum_variant(id, variant.name);
+                match &ty.node.kind {
+                    ast::TypeKind::Scalar => {
+                        schema.push_custom_scalar(CustomScalar { name, docs });
+                    }
+                    ast::TypeKind::Object(_) => {
+                        schema.push_output_type(Object {
+                            name,
+                            docs,
+                            kind: ObjectKind::Object,
+                        });
+                    }
+                    ast::TypeKind::Interface(_) => {
+                        schema.push_output_type(Object {
+                            name,
+                            docs,
+                            kind: ObjectKind::Interface,
+                        });
+                    }
+                    ast::TypeKind::InputObject(_) => {
+                        schema.push_output_type(Object {
+                            name,
+                            docs,
+                            kind: ObjectKind::InputObject,
+                        });
+                    }
+                    ast::TypeKind::Union(_) => {
+                        schema.push_union(Union { name });
+                    }
+                    ast::TypeKind::Enum(r#enum) => {
+                        let id = schema.push_enum(Enum { name, docs });
+
+                        for variant in &r#enum.values {
+                            schema.push_enum_variant(id, &variant.node.value.node);
+                        }
+                    }
                 }
             }
-            ast::Definition::TypeExtension(_) => {
-                // We ignore type extensions in the first pass because we can't know if they extend
-                // types defined in the document yet.
-            }
+            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (), // not interested
         }
     }
 }
 
 /// Second pass. We know about all definitions, now we analyze fields inside object and interface
 /// types, and variants inside unions.
-fn analyze_fields<'doc>(graphql_document: &'doc ast::Document<'doc, &'doc str>, schema: &mut AnalyzedSchema<'doc>) {
+fn analyze_fields<'doc>(graphql_document: &'doc ast::ServiceDocument, schema: &mut AnalyzedSchema<'doc>) {
     for definition in &graphql_document.definitions {
         match definition {
-            ast::Definition::DirectiveDefinition(_) | ast::Definition::SchemaDefinition(_) => (), // not interested
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Union(union_definition)) => {
-                let Definition::Union(union_id) = schema.definition_names[union_definition.name] else {
-                    continue;
-                };
+            ast::TypeSystemDefinition::Type(ty) => {
+                let name = ty.node.name.node.as_str();
+                match &ty.node.kind {
+                    ast::TypeKind::Union(union_definition) => {
+                        let Some(Definition::Union(union_id)) = schema.definition_names.get(name).copied() else {
+                            continue;
+                        };
 
-                for variant_name in &union_definition.types {
-                    match schema.definition_names.get(variant_name) {
-                        Some(Definition::Object(object_id)) => schema.push_union_variant(union_id, *object_id),
-                        None | Some(_) => (), // invalid: union variant is not an object name. Ignore here.
+                        for variant_name in &union_definition.members {
+                            match schema.definition_names.get(variant_name.node.as_str()) {
+                                Some(Definition::Object(object_id)) => schema.push_union_variant(union_id, *object_id),
+                                None | Some(_) => (), // invalid: union variant is not an object name. Ignore here.
+                            }
+                        }
                     }
+                    ast::TypeKind::Object(object_definition) => {
+                        let Some(Definition::Object(object_id)) = schema.definition_names.get(name).copied() else {
+                            continue;
+                        };
+
+                        for ast_field in &object_definition.fields {
+                            if let Some(field) = analyze_ast_field(&ast_field.node, schema) {
+                                let field_id = schema.push_object_field(object_id, field);
+                                for arg in &ast_field.node.arguments {
+                                    if let Some(r#type) = GraphqlType::resolve(&arg.node.ty.node, schema) {
+                                        schema.object_field_args.push((
+                                            field_id,
+                                            FieldArgument {
+                                                name: arg.node.name.node.as_str(),
+                                                r#type,
+                                            },
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    ast::TypeKind::Interface(iface_definition) => {
+                        let Some(Definition::Object(object_id)) = schema.definition_names.get(name).copied() else {
+                            continue;
+                        };
+
+                        for field in &iface_definition.fields {
+                            if let Some(field) = analyze_ast_field(&field.node, schema) {
+                                schema.object_fields.push((object_id, field));
+                            }
+                        }
+                    }
+                    ast::TypeKind::InputObject(input_object_definition) => {
+                        let Some(Definition::Object(object_id)) = schema.definition_names.get(name).copied() else {
+                            continue;
+                        };
+
+                        for field in &input_object_definition.fields {
+                            if let Some(field) = analyze_ast_input_field(&field.node, schema) {
+                                schema.object_fields.push((object_id, field));
+                            }
+                        }
+                    }
+                    // Already completely handled in first pass.
+                    ast::TypeKind::Scalar | ast::TypeKind::Enum(_) => (),
                 }
             }
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Object(object_definition)) => {
-                let Definition::Object(object_id) = schema.definition_names[object_definition.name] else {
-                    continue;
-                };
 
-                for field in &object_definition.fields {
-                    if let Some(field) = analyze_ast_field(field, schema) {
-                        schema.object_fields.push((object_id, field));
-                    }
-                }
-            }
-            ast::Definition::TypeDefinition(ast::TypeDefinition::InputObject(object_definition)) => {
-                let Definition::Object(object_id) = schema.definition_names[object_definition.name] else {
-                    continue;
-                };
-
-                for field in &object_definition.fields {
-                    if let Some(field) = analyze_ast_input_field(field, schema) {
-                        schema.object_fields.push((object_id, field));
-                    }
-                }
-            }
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Interface(object_definition)) => {
-                let Definition::Object(object_id) = schema.definition_names[object_definition.name] else {
-                    continue;
-                };
-
-                for field in &object_definition.fields {
-                    if let Some(field) = analyze_ast_field(field, schema) {
-                        schema.object_fields.push((object_id, field));
-                    }
-                }
-            }
-            ast::Definition::TypeExtension(ast::TypeExtension::Object(obj)) => {
-                let Some(Definition::Object(extended_object_id)) = schema.definition_names.get(obj.name) else {
-                    continue;
-                };
-
-                for field in &obj.fields {
-                    if let Some(field) = analyze_ast_field(field, schema) {
-                        schema.object_fields.push((*extended_object_id, field));
-                    }
-                }
-            }
-            ast::Definition::TypeExtension(ast::TypeExtension::InputObject(obj)) => {
-                let Some(Definition::Object(extended_object_id)) = schema.definition_names.get(obj.name) else {
-                    continue;
-                };
-
-                for field in &obj.fields {
-                    if let Some(field) = analyze_ast_input_field(field, schema) {
-                        schema.object_fields.push((*extended_object_id, field));
-                    }
-                }
-            }
-            // Already completely handled in first pass.
-            ast::Definition::TypeDefinition(ast::TypeDefinition::Scalar(_) | ast::TypeDefinition::Enum(_))
-            // Not handled
-            | ast::Definition::TypeExtension(_) => {}
+            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (), // not interested
         }
     }
 
     schema.object_fields.sort_by_key(|(object_id, _)| *object_id);
-}
-
-fn analyze_ast_input_field<'doc>(
-    field: &'doc ast::InputValue<'doc, &'doc str>,
-    schema: &AnalyzedSchema<'doc>,
-) -> Option<Field<'doc>> {
-    let (name, inner_is_nullable, list_wrappers) = type_from_nested(&field.value_type);
-    Some(Field {
-        name: field.name,
-        docs: field.description.as_deref(),
-        kind: BuiltinScalar::from_str(name)
-            .ok()
-            .map(FieldTypeKind::BuiltinScalar)
-            .or_else(|| schema.definition_names.get(name).map(|d| FieldTypeKind::Definition(*d)))?,
-        inner_is_nullable,
-        list_wrappers,
-    })
-}
-
-fn analyze_ast_field<'doc>(
-    field: &'doc ast::Field<'doc, &'doc str>,
-    schema: &AnalyzedSchema<'doc>,
-) -> Option<Field<'doc>> {
-    let (name, inner_is_nullable, list_wrappers) = type_from_nested(&field.field_type);
-    Some(Field {
-        name: field.name,
-        docs: field.description.as_deref(),
-        kind: BuiltinScalar::from_str(name)
-            .ok()
-            .map(FieldTypeKind::BuiltinScalar)
-            .or_else(|| schema.definition_names.get(name).map(|d| FieldTypeKind::Definition(*d)))?,
-        inner_is_nullable,
-        list_wrappers,
-    })
-}
-
-fn type_from_nested<'a>(ty: &ast::Type<'a, &'a str>) -> (&'a str, bool, Vec<ListWrapper>) {
-    match ty {
-        ast::Type::NonNullType(ty) => match ty.as_ref() {
-            ast::Type::ListType(inner) => {
-                let (name, inner_is_nullable, mut wrappers) = type_from_nested(inner);
-                wrappers.push(ListWrapper::NonNullList);
-                (name, inner_is_nullable, wrappers)
-            }
-            ast::Type::NamedType(name) => (name, false, Vec::new()),
-            ast::Type::NonNullType(_) => {
-                unreachable!("unreachable double required (!!)");
-            }
-        },
-        ast::Type::NamedType(name) => (name, true, Vec::new()),
-        ast::Type::ListType(inner) => {
-            let (name, inner, mut wrappers) = type_from_nested(inner);
-            wrappers.push(ListWrapper::NullableList);
-            (name, inner, wrappers)
-        }
-    }
-}
-
-#[derive(Default, Debug)]
-pub(crate) struct AnalyzedSchema<'doc> {
-    pub(crate) definitions: Vec<Definition>,
-
-    // Index mapping names to definitions.
-    definition_names: HashMap<&'doc str, Definition>,
-
-    pub(crate) objects: Vec<Object<'doc>>,
-
-    object_fields: Vec<(ObjectId, Field<'doc>)>,
-
-    pub(crate) unions: Vec<Union<'doc>>,
-    // Invariant: This is sorted because we iterate unions in order. We rely on that for binary
-    // search.
-    pub(crate) union_variants: Vec<(UnionId, ObjectId)>,
-
-    pub(crate) enums: Vec<Enum<'doc>>,
-    // Invariant: This is sorted. We rely on that for binary search.
-    pub(crate) enum_variants: Vec<(EnumId, &'doc str)>,
-
-    pub(crate) custom_scalars: Vec<CustomScalar<'doc>>,
+    schema.object_field_args.sort_by_key(|(object_id, _)| *object_id);
 }
 
 #[derive(Debug)]
-pub(crate) struct Field<'doc> {
-    pub(crate) name: &'doc str,
-    pub(crate) kind: FieldTypeKind,
-    pub(crate) docs: Option<&'doc str>,
-
+pub(crate) struct GraphqlType {
+    pub(crate) kind: TypeKind,
     inner_is_nullable: bool,
     // TODO: a more compact and/or normalized representation
     /// The list wrapper types, from innermost to outermost.
     list_wrappers: Vec<ListWrapper>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum ListWrapper {
-    NullableList,
-    NonNullList,
-}
+impl GraphqlType {
+    fn resolve(ty: &ast::Type, schema: &AnalyzedSchema<'_>) -> Option<Self> {
+        let (name, inner_is_nullable, list_wrappers) = type_from_nested(ty);
+        Some(GraphqlType {
+            inner_is_nullable,
+            list_wrappers,
+            kind: BuiltinScalar::from_str(name)
+                .ok()
+                .map(TypeKind::BuiltinScalar)
+                .or_else(|| schema.definition_names.get(name).map(|d| TypeKind::Definition(*d)))?,
+        })
+    }
 
-impl Field<'_> {
     /// Returns whether the innermost type is nullable.
     ///
     /// For example `[Test]!` would return true, `[Test!]` would return false, `Test` would be
@@ -263,8 +183,117 @@ impl Field<'_> {
     }
 }
 
+fn analyze_ast_input_field<'doc>(
+    field: &'doc ast::InputValueDefinition,
+    schema: &AnalyzedSchema<'doc>,
+) -> Option<Field<'doc>> {
+    Some(Field {
+        name: field.name.node.as_str(),
+        docs: field.description.as_ref().map(|d| d.node.as_str()),
+        r#type: GraphqlType::resolve(&field.ty.node, schema)?,
+        resolver_name: None, // no resolvers on input fields
+    })
+}
+
+fn analyze_ast_field<'doc>(field: &'doc ast::FieldDefinition, schema: &AnalyzedSchema<'doc>) -> Option<Field<'doc>> {
+    let resolver_name = field
+        .directives
+        .iter()
+        .find(|directive| directive.node.name.node == "resolver")
+        .and_then(|directive| {
+            directive
+                .node
+                .arguments
+                .iter()
+                .find(|(name, _)| name.node == "name")
+                .and_then(|(_, value)| match &value.node {
+                    ConstValue::String(s) => Some(s.clone()),
+                    _ => None,
+                })
+        });
+    let r#type = GraphqlType::resolve(&field.ty.node, schema)?;
+
+    Some(Field {
+        name: field.name.node.as_str(),
+        docs: field.description.as_ref().map(|d| d.node.as_str()),
+        r#type,
+        resolver_name,
+    })
+}
+
+fn type_from_nested(ty: &ast::Type) -> (&str, bool, Vec<ListWrapper>) {
+    if ty.nullable {
+        match &ty.base {
+            ast::BaseType::Named(name) => (name, true, Vec::new()),
+            ast::BaseType::List(inner) => {
+                let (name, inner, mut wrappers) = type_from_nested(inner);
+                wrappers.push(ListWrapper::NullableList);
+                (name, inner, wrappers)
+            }
+        }
+    } else {
+        match &ty.base {
+            ast::BaseType::List(inner) => {
+                let (name, inner_is_nullable, mut wrappers) = type_from_nested(inner);
+                wrappers.push(ListWrapper::NonNullList);
+                (name, inner_is_nullable, wrappers)
+            }
+            ast::BaseType::Named(name) => (name, false, Vec::new()),
+        }
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct AnalyzedSchema<'doc> {
+    pub(crate) definitions: Vec<Definition>,
+
+    // Index mapping names to definitions.
+    pub(crate) definition_names: HashMap<&'doc str, Definition>,
+
+    pub(crate) objects: Vec<Object<'doc>>,
+
+    object_fields: Vec<(ObjectId, Field<'doc>)>,
+    object_field_args: Vec<(FieldId, FieldArgument<'doc>)>,
+
+    pub(crate) unions: Vec<Union<'doc>>,
+    // Invariant: This is sorted because we iterate unions in order. We rely on that for binary
+    // search.
+    pub(crate) union_variants: Vec<(UnionId, ObjectId)>,
+
+    pub(crate) enums: Vec<Enum<'doc>>,
+    // Invariant: This is sorted. We rely on that for binary search.
+    pub(crate) enum_variants: Vec<(EnumId, &'doc str)>,
+
+    pub(crate) custom_scalars: Vec<CustomScalar<'doc>>,
+}
+
 #[derive(Debug)]
-pub(crate) enum FieldTypeKind {
+pub(crate) struct FieldArgument<'doc> {
+    pub(crate) name: &'doc str,
+    pub(crate) r#type: GraphqlType,
+}
+
+#[derive(Debug)]
+pub(crate) struct Field<'doc> {
+    pub(crate) name: &'doc str,
+    pub(crate) docs: Option<&'doc str>,
+    pub(crate) r#type: GraphqlType,
+
+    /// ```graphql,ignore
+    /// @resolver(name: "user/fullName")
+    /// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    /// ```
+    pub(crate) resolver_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum ListWrapper {
+    NullableList,
+    NonNullList,
+}
+
+#[derive(Debug)]
+pub(crate) enum TypeKind {
     BuiltinScalar(BuiltinScalar),
     Definition(Definition),
 }
@@ -300,6 +329,21 @@ impl FromStr for BuiltinScalar {
 }
 
 impl<'doc> AnalyzedSchema<'doc> {
+    pub(crate) fn iter_field_arguments(&self, field_id: FieldId) -> impl Iterator<Item = &FieldArgument<'_>> {
+        let start = self.object_field_args.partition_point(|(id, _)| *id < field_id);
+        self.object_field_args[start..]
+            .iter()
+            .take_while(move |(id, _)| field_id == *id)
+            .map(|(_, arg)| arg)
+    }
+
+    pub(crate) fn iter_fields(&self) -> impl Iterator<Item = (&ObjectId, FieldId, &Field<'doc>)> {
+        self.object_fields
+            .iter()
+            .enumerate()
+            .map(|(idx, (object_id, field))| (object_id, FieldId(idx), field))
+    }
+
     pub(crate) fn iter_object_fields(&self, object_id: ObjectId) -> impl Iterator<Item = &Field<'doc>> {
         let start = self.object_fields.partition_point(|(id, _)| *id < object_id);
         self.object_fields[start..]
@@ -345,6 +389,12 @@ impl<'doc> AnalyzedSchema<'doc> {
 
     fn push_enum_variant(&mut self, id: EnumId, variant: &'doc str) {
         self.enum_variants.push((id, variant));
+    }
+
+    fn push_object_field(&mut self, object_id: ObjectId, field: Field<'doc>) -> FieldId {
+        let field_id = FieldId(self.object_fields.len());
+        self.object_fields.push((object_id, field));
+        field_id
     }
 
     fn push_output_type(&mut self, output_type: Object<'doc>) -> ObjectId {
@@ -442,3 +492,6 @@ pub(crate) struct UnionId(usize);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub(crate) struct CustomScalarId(usize);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct FieldId(usize);

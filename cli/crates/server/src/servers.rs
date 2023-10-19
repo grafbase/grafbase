@@ -57,7 +57,7 @@ impl ProductionServer {
         let ParsingResponse {
             registry,
             detected_udfs,
-        } = run_schema_parser(&environment_variables).await?;
+        } = run_schema_parser(&environment_variables, None).await?;
 
         let (bridge_app, bridge_state) =
             bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
@@ -154,10 +154,12 @@ pub async fn start(
     export_embedded_files()?;
     create_project_dot_grafbase_directory()?;
 
-    let (event_bus, _receiver) = channel::<Event>(EVENT_BUS_BOUND);
+    let (event_bus, receiver) = channel::<Event>(EVENT_BUS_BOUND);
 
     if watch {
         let watch_event_bus = event_bus.clone();
+        crate::codegen_server::start_codegen_worker(receiver, message_sender.clone())
+            .expect("Invariant violation: codegen worker started twice.");
 
         tokio::select! {
             result = start_watcher(project.grafbase_directory_path.clone(), move |path| {
@@ -201,6 +203,7 @@ async fn server_loop(
             }
             path = wait_for_event_and_match(receiver, |event| match event {
                 Event::Reload(path) => Some(path),
+                Event::NewSdlFromTsConfig(_) |
                 Event::BridgeReady |
                 Event::ProxyError => None,
             }) => {
@@ -236,7 +239,7 @@ async fn spawn_servers(
     let ParsingResponse {
         registry,
         mut detected_udfs,
-    } = match run_schema_parser(&environment_variables).await {
+    } = match run_schema_parser(&environment_variables, Some(event_bus)).await {
         Ok(parsing_response) => parsing_response,
         Err(error) => {
             let _: Result<_, _> = message_sender.send(ServerMessage::CompilationError(error.to_string()));
@@ -396,13 +399,24 @@ pub struct ParsingResponse {
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environment
 // and due to schema-parser not being open source
-async fn run_schema_parser(environment_variables: &HashMap<String, String>) -> Result<ParsingResponse, ServerError> {
+async fn run_schema_parser(
+    environment_variables: &HashMap<String, String>,
+    event_bus: Option<broadcast::Sender<Event>>,
+) -> Result<ParsingResponse, ServerError> {
     trace!("parsing schema");
     let project = Project::get();
 
     let schema_path = match project.schema_path.location() {
         SchemaLocation::TsConfig(ref ts_config_path) => {
-            Cow::Owned(parse_and_generate_config_from_ts(ts_config_path).await?)
+            let written_schema_path = parse_and_generate_config_from_ts(ts_config_path).await?;
+
+            // broadcast
+            if let Some(bus) = event_bus {
+                let path = std::path::PathBuf::from(written_schema_path.clone()).into_boxed_path();
+                bus.send(Event::NewSdlFromTsConfig(path)).ok();
+            }
+
+            Cow::Owned(written_schema_path)
         }
         SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
     };

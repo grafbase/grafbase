@@ -45,4 +45,10 @@ fn dev_watch() {
     assert!(user_id.starts_with("user_"));
     assert!(user_birthday.ends_with('Z'));
     assert_eq!(user_verified, "VERIFIED");
+
+    {
+        // Check that the TS resolver types are being generated.
+        let generated_types_path = env.directory.join("grafbase/generated/index.ts");
+        assert!(generated_types_path.is_file());
+    }
 }

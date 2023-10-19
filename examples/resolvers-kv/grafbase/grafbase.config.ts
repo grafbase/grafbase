@@ -13,6 +13,7 @@ const authProvider = auth.Authorizer({
 // https://grafbase.com/docs/database
 
 g.model('Question', {
+    id: g.id(),
     author: g.relation(() => user).optional(),
     content: g.string(),
     getAnswer: g.string().resolver('getAnswer')
