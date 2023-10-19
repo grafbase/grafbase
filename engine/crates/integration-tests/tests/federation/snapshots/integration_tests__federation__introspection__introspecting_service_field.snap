@@ -142,4 +142,8 @@ type TodoUpdateManyPayload {
 type TodoUpdatePayload {
 	todo: Todo
 }
+type User @key(fields: "id") {
+	id: ID!
+	name: String! @requires(fields: "id")
+}
 

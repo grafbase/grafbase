@@ -1,5 +1,6 @@
 mod errors;
 mod introspection;
+mod requires;
 
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
 use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};

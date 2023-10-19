@@ -5,7 +5,10 @@ use engine::registry::{
 };
 use engine_parser::types::TypeKind;
 
-use super::visitor::{Visitor, VisitorContext};
+use super::{
+    requires_directive::RequiresDirective,
+    visitor::{Visitor, VisitorContext},
+};
 use crate::rules::resolver_directive::ResolverDirective;
 
 pub struct ExtendConnectorTypes;
@@ -40,6 +43,9 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                     return None;
                 };
 
+                let requires =
+                    RequiresDirective::from_directives(&field.directives, ctx).map(RequiresDirective::into_fields);
+
                 let field = &field.node;
 
                 Some(MetaField {
@@ -54,6 +60,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                         .map(|arg| (arg.name.clone(), arg))
                         .collect(),
                     ty: field.ty.clone().node.to_string().into(),
+                    requires,
                     resolver: Resolver::CustomResolver(CustomResolver {
                         resolver_name: resolver_name.to_owned(),
                     }),

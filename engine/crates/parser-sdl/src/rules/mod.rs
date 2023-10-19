@@ -26,6 +26,7 @@ pub mod one_of_directive;
 pub mod openapi_directive;
 pub mod postgres_directive;
 pub mod relations;
+pub mod requires_directive;
 pub mod resolver_directive;
 pub mod scalar_hydratation;
 pub mod search_directive;

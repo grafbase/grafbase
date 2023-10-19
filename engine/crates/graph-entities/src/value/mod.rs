@@ -67,20 +67,19 @@ impl From<ConstValue> for CompactValue {
     }
 }
 
-// Note: would be nice to get rid of this conversion, as _usually_ we'd only need
-// to go from ConstValue -> CompactValue.  But there's some query_planning stuff that works on
-// ConstValue and I cba updating it right now so _for now_ we can keep this.
-impl From<CompactValue> for ConstValue {
+impl From<CompactValue> for serde_json::Value {
     fn from(value: CompactValue) -> Self {
         match value {
-            CompactValue::Null => ConstValue::Null,
-            CompactValue::Number(num) => ConstValue::Number(num),
-            CompactValue::String(string) => ConstValue::String(string),
-            CompactValue::Boolean(boolean) => ConstValue::Boolean(boolean),
-            CompactValue::Binary(binary) => ConstValue::Binary(binary.into()),
-            CompactValue::Enum(en) => ConstValue::Enum(Name::new(en.to_string())),
-            CompactValue::List(list) => ConstValue::List(list.into_iter().map(Into::into).collect()),
-            CompactValue::Object(obj) => ConstValue::Object(obj.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            CompactValue::Null => serde_json::Value::Null,
+            CompactValue::Number(num) => serde_json::Value::Number(num),
+            CompactValue::String(string) => serde_json::Value::String(string),
+            CompactValue::Boolean(boolean) => serde_json::Value::Bool(boolean),
+            CompactValue::Binary(binary) => serde_json::Value::Array(binary.into_iter().map(Into::into).collect()),
+            CompactValue::Enum(en) => serde_json::Value::String(en.to_string()),
+            CompactValue::List(list) => serde_json::Value::Array(list.into_iter().map(Into::into).collect()),
+            CompactValue::Object(obj) => {
+                serde_json::Value::Object(obj.into_iter().map(|(k, v)| (k.to_string(), v.into())).collect())
+            }
         }
     }
 }

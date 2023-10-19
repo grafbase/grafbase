@@ -39,6 +39,7 @@ use rules::{
     openapi_directive::OpenApiVisitor,
     postgres_directive::PostgresVisitor,
     relations::{relations_rules, RelationEngine},
+    requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
     search_directive::SearchDirective,
     unique_directive::UniqueDirective,
@@ -136,6 +137,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<PostgresDirective>()
         .with::<ExperimentalDirective>()
         .with::<FederationDirective>()
+        .with::<RequiresDirective>()
         .with::<KeyDirective>();
 
     let schema = format!(

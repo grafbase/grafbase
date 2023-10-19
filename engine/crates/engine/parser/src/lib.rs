@@ -16,7 +16,7 @@
 use std::fmt::{self, Display, Formatter};
 
 use engine_value::Name;
-pub use parse::{parse_query, parse_schema};
+pub use parse::{parse_query, parse_schema, parse_selection_set};
 use pest::{error::LineColLocation, RuleType};
 pub use pos::{Pos, Positioned};
 use serde::{Serialize, Serializer};

@@ -8,7 +8,10 @@ use engine::{
 use resolver_data::ResolverData;
 
 use super::CreateTypeContext;
-use crate::rules::{auth_directive::AuthDirective, resolver_directive::ResolverDirective, visitor::VisitorContext};
+use crate::rules::{
+    auth_directive::AuthDirective, requires_directive::RequiresDirective, resolver_directive::ResolverDirective,
+    visitor::VisitorContext,
+};
 
 pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) {
     let type_name = create_ctx.model_name().to_string();
@@ -46,6 +49,9 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
             None => ResolverData::projection(field),
         };
 
+        let requires =
+            RequiresDirective::from_directives(&field.directives, visitor_ctx).map(RequiresDirective::into_fields);
+
         let description = field.description.as_ref().map(|description| description.node.clone());
 
         let meta_field = MetaField {
@@ -56,6 +62,7 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
             ty: resolver_data.field_type.into(),
             cache_control: resolver_data.cache_control,
             resolver: resolver_data.resolver,
+            requires,
             auth,
             ..Default::default()
         };

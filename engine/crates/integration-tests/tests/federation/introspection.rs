@@ -10,6 +10,11 @@ const TODO_SCHEMA: &str = r#"
         id: ID!
         title: String!
     }
+
+    type User @key(fields: "id") {
+        id: ID!
+        name: String! @resolver(name: "user/name") @requires(fields: "id")
+    }
 "#;
 
 #[test]
