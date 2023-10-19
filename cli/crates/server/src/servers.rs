@@ -9,6 +9,7 @@ use crate::types::{ServerMessage, ASSETS_GZIP};
 use crate::udf_builder::install_wrangler;
 use crate::{bridge, errors::ServerError};
 use crate::{error_server, proxy};
+use bridge::BridgeState;
 use common::consts::MAX_PORT;
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project, SchemaLocation};
@@ -16,10 +17,12 @@ use common::types::UdfKind;
 use engine::registry::Registry;
 use flate2::read::GzDecoder;
 use futures_util::FutureExt;
+use sha2::Digest;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::num::NonZeroUsize;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -28,58 +31,100 @@ use std::{fs, process::Stdio};
 use tokio::net::TcpListener;
 use tokio::process::Command;
 use tokio::sync::broadcast::{self, channel};
+use tokio::sync::mpsc::UnboundedSender;
 use version_compare::Version;
 use which::which;
 
 const EVENT_BUS_BOUND: usize = 5;
 
-pub async fn production_start(
-    listen_address: IpAddr,
-    port: u16,
-    tracing: bool,
-    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
-) -> Result<(), ServerError> {
-    use bridge::BridgeState;
+pub struct ProductionServer {
+    registry: Arc<Registry>,
+    bridge_app: axum::Router,
+    bridge_state: Box<dyn BridgeState>,
+    environment_variables: HashMap<String, String>,
+    message_sender: UnboundedSender<ServerMessage>,
+}
 
-    create_project_dot_grafbase_directory()?;
+impl ProductionServer {
+    pub async fn build(
+        message_sender: UnboundedSender<ServerMessage>,
+        parallelism: NonZeroUsize,
+        tracing: bool,
+    ) -> Result<Self, ServerError> {
+        create_project_dot_grafbase_directory()?;
 
-    let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
-    let ParsingResponse {
-        registry,
-        detected_udfs,
-    } = run_schema_parser(&environment_variables).await?;
+        let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
+        let ParsingResponse {
+            registry,
+            detected_udfs,
+        } = run_schema_parser(&environment_variables).await?;
 
-    let environment = Environment::get();
-    if !detected_udfs.is_empty() {
-        export_embedded_files()?;
-        validate_node().await?;
-        install_wrangler(environment, tracing).await?;
+        let (bridge_app, bridge_state) =
+            bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
+        if !detected_udfs.is_empty() {
+            validate_node().await?;
+            let project = Project::get();
+
+            let mut hasher = sha2::Sha256::new();
+
+            for entry in walkdir::WalkDir::new(&project.grafbase_directory_path)
+                .sort_by_file_name()
+                .follow_links(true)
+                .into_iter()
+                .filter_map(Result::ok)
+                // Only path we can somewhat safely ignore is the schema one
+                .filter(|entry| !entry.file_type().is_dir() && entry.path() != project.schema_path.path())
+            {
+                let content =
+                    std::fs::read(entry.path()).map_err(|err| ServerError::ReadFile(entry.path().into(), err))?;
+                hasher.update(entry.path().to_string_lossy().as_bytes());
+                hasher.update(content);
+            }
+            let hash = hasher.finalize().to_vec();
+            let hash_path = project.dot_grafbase_directory_path.join("grafbase_hash");
+            if hash != std::fs::read(&hash_path).unwrap_or_default() {
+                export_embedded_files()?;
+                install_wrangler(Environment::get(), tracing).await?;
+                bridge_state.build_all_udfs(detected_udfs, parallelism).await?;
+            }
+            // If we fail to write the hash, we're just going to recompile the UDFs.
+            let _ = std::fs::write(hash_path, hash);
+        }
+        Ok(Self {
+            registry,
+            bridge_app,
+            bridge_state: Box::new(bridge_state),
+            environment_variables,
+            message_sender,
+        })
     }
 
-    let (bridge_app, bridge_state) =
-        bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
-    bridge_state.build_all_udfs(detected_udfs).await?;
+    pub async fn serve(self, listen_address: IpAddr, port: u16) -> Result<(), ServerError> {
+        let bridge_server = axum::Server::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
+            .serve(self.bridge_app.into_make_service());
+        let bridge_port = bridge_server.local_addr().port();
 
-    let bridge_server =
-        axum::Server::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).serve(bridge_app.into_make_service());
-    let bridge_port = bridge_server.local_addr().port();
+        let gateway_app = gateway::Gateway::new(
+            self.environment_variables,
+            gateway::Bridge::new(bridge_port),
+            self.registry,
+        )
+        .into_router();
+        let gateway_server =
+            axum::Server::bind(&SocketAddr::new(listen_address, port)).serve(gateway_app.into_make_service());
 
-    let gateway_app =
-        gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry).into_router();
-    let gateway_server =
-        axum::Server::bind(&SocketAddr::new(listen_address, port)).serve(gateway_app.into_make_service());
-
-    let _ = message_sender.send(ServerMessage::Ready(port));
-    tokio::select! {
-        result = gateway_server => {
-            result?;
+        let _ = self.message_sender.send(ServerMessage::Ready { listen_address, port });
+        tokio::select! {
+            result = gateway_server => {
+                result?;
+            }
+            result = bridge_server => {
+                result?;
+            }
         }
-        result = bridge_server => {
-            result?;
-        }
+        self.bridge_state.close().await;
+        Ok(())
     }
-    bridge_state.close().await;
-    Ok(())
 }
 
 /// starts a development server by unpacking any files needed by the gateway worker
@@ -101,7 +146,7 @@ pub async fn start(
     search: bool,
     watch: bool,
     tracing: bool,
-    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+    message_sender: UnboundedSender<ServerMessage>,
 ) -> Result<(), ServerError> {
     let project = Project::get();
 
@@ -129,7 +174,7 @@ pub async fn start(
 async fn server_loop(
     port: u16,
     search: bool,
-    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+    message_sender: UnboundedSender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
     tracing: bool,
 ) -> Result<(), ServerError> {
@@ -173,7 +218,7 @@ async fn server_loop(
 #[tracing::instrument(level = "trace")]
 async fn spawn_servers(
     proxy_port: u16,
-    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+    message_sender: UnboundedSender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
     path_changed: Option<&Path>,
     tracing: bool,
@@ -263,7 +308,10 @@ async fn spawn_servers(
     };
     trace!("bridge ready");
 
-    let _: Result<_, _> = message_sender.send(ServerMessage::Ready(proxy_port));
+    let _: Result<_, _> = message_sender.send(ServerMessage::Ready {
+        listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
+        port: proxy_port,
+    });
 
     tokio::select! {
         result = gateway => {
@@ -334,6 +382,7 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     Ok(())
 }
 
+#[derive(Debug, Clone)]
 pub struct DetectedUdf {
     pub udf_name: String,
     pub udf_kind: UdfKind,

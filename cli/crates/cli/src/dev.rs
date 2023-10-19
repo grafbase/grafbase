@@ -39,7 +39,7 @@ pub fn dev(
 
         while let Some(message) = message_receiver.recv().await {
             match message {
-                ServerMessage::Ready(port) => {
+                ServerMessage::Ready { port, .. } => {
                     READY.call_once(|| report::start_dev_server(resolvers_reported, port, external_port));
                 }
                 ServerMessage::Reload(path) => report::reload(path),
@@ -75,6 +75,7 @@ pub fn dev(
                     }
                 },
                 ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
+                ServerMessage::StartUdfBuildAll | ServerMessage::CompleteUdfBuildAll { .. } => {}
             }
 
             // Flush nested events that are really old – if a user interrupts a request, we will not see an operation completion event.

@@ -7,18 +7,20 @@ use common::{
 };
 use std::{
     net::{IpAddr, Ipv4Addr},
+    num::NonZeroUsize,
     path::PathBuf,
 };
 use ulid::Ulid;
 
 const DEFAULT_PORT: u16 = 4000;
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, clap::ValueEnum)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, clap::ValueEnum)]
 #[clap(rename_all = "snake_case")]
 pub enum LogLevelFilter {
     None,
     Error,
     Warn,
+    #[default]
     Info,
     Debug,
 }
@@ -36,7 +38,7 @@ impl LogLevelFilter {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub struct LogLevelFilters {
     pub functions: LogLevelFilter,
     pub graphql_operations: LogLevelFilter,
@@ -81,9 +83,9 @@ impl DevCommand {
             }
         } else {
             LogLevelFilters {
-                functions: self.log_level.unwrap_or(LogLevelFilter::Info),
-                graphql_operations: self.log_level.unwrap_or(LogLevelFilter::Info),
-                fetch_requests: self.log_level.unwrap_or(LogLevelFilter::Info),
+                functions: self.log_level.unwrap_or_default(),
+                graphql_operations: self.log_level.unwrap_or_default(),
+                fetch_requests: self.log_level.unwrap_or_default(),
             }
         };
         LogLevelFilters {
@@ -219,6 +221,24 @@ pub struct LogsCommand {
 }
 
 #[derive(Debug, clap::Args)]
+pub struct BuildCommand {
+    /// Number of resolver builds running in parallel
+    #[arg(long)]
+    pub parallelism: Option<u16>,
+}
+
+impl BuildCommand {
+    pub fn parallelism(&self) -> NonZeroUsize {
+        let parallelism = self.parallelism.unwrap_or(0);
+        if parallelism == 0 {
+            std::thread::available_parallelism().unwrap_or(NonZeroUsize::new(1).expect("strictly positive"))
+        } else {
+            NonZeroUsize::new(parallelism as usize).expect("strictly positive")
+        }
+    }
+}
+
+#[derive(Debug, clap::Args)]
 pub struct StartCommand {
     /// Use a specific port
     #[arg(short, long, default_value_t = DEFAULT_PORT)]
@@ -243,9 +263,9 @@ pub struct StartCommand {
 impl StartCommand {
     pub fn log_levels(&self) -> LogLevelFilters {
         let default_log_levels = LogLevelFilters {
-            functions: self.log_level.unwrap_or(LogLevelFilter::Info),
-            graphql_operations: self.log_level.unwrap_or(LogLevelFilter::Info),
-            fetch_requests: self.log_level.unwrap_or(LogLevelFilter::Info),
+            functions: self.log_level.unwrap_or_default(),
+            graphql_operations: self.log_level.unwrap_or_default(),
+            fetch_requests: self.log_level.unwrap_or_default(),
         };
         LogLevelFilters {
             functions: self.log_level_functions.unwrap_or(default_log_levels.functions),
@@ -291,6 +311,9 @@ pub enum SubCommand {
     Logs(LogsCommand),
     /// Run your Grafbase project locally in production mode
     Start(StartCommand),
+    /// Build the Grafbase project in advance to avoid the resolver build step in the start
+    /// command.
+    Build(BuildCommand),
 }
 
 // TODO see if there's a way to do this automatically (https://github.com/clap-rs/clap/discussions/4921)
@@ -356,6 +379,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Link(_)
             | SubCommand::Unlink
             | SubCommand::Start(_)
+            | SubCommand::Build(_)
             | SubCommand::Completions(_)
             | SubCommand::Logs(_) => None,
         }
@@ -373,6 +397,7 @@ impl SubCommand {
                 | Self::Logs(_)
                 | Self::Reset
                 | Self::Start(_)
+                | Self::Build(_)
                 | Self::Unlink
         )
     }

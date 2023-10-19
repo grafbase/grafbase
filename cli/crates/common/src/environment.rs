@@ -57,10 +57,14 @@ impl GrafbaseSchemaPath {
     }
 
     fn parent(&self) -> Option<&Path> {
-        use SchemaLocation::{Graphql, TsConfig};
+        self.path().parent()
+    }
 
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        use SchemaLocation::{Graphql, TsConfig};
         match self.location() {
-            TsConfig(path) | Graphql(path) => path.parent(),
+            TsConfig(path) | Graphql(path) => path,
         }
     }
 }

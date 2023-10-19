@@ -113,11 +113,27 @@ pub fn goodbye() {
     watercolor::output!("\n👋 See you next time!", @BrightBlue);
 }
 
+pub fn start_udf_build_all() {
+    println!("{} compiling user defined functions...", watercolor!("wait", @Cyan),);
+}
+
 pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
     println!(
         "{} compiling {udf_kind} {udf_name}...",
         watercolor!("wait", @Cyan),
         udf_name = udf_name.to_string().bold()
+    );
+}
+
+pub fn complete_udf_build_all(duration: std::time::Duration) {
+    let formatted_duration = if duration < std::time::Duration::from_secs(1) {
+        format!("{}ms", duration.as_millis())
+    } else {
+        format!("{:.1}s", duration.as_secs_f64())
+    };
+    println!(
+        "{} user defined functions compiled successfully in {formatted_duration}",
+        watercolor!("event", @BrightMagenta),
     );
 }
 
