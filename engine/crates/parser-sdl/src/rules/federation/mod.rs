@@ -1,4 +1,5 @@
 mod directive;
+mod field_set;
 mod key;
 
 pub use directive::*;

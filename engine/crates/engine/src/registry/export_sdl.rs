@@ -68,7 +68,7 @@ impl Registry {
                 if field.external {
                     write!(sdl, " @external").ok();
                 }
-                if let Some(requires) = field.requires.as_deref() {
+                if let Some(requires) = &field.requires {
                     write!(sdl, " @requires(fields: \"{requires}\")").ok();
                 }
                 if let Some(provides) = field.provides.as_deref() {

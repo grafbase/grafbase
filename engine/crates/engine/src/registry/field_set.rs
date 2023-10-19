@@ -1,7 +1,7 @@
 use serde_json::{Map, Value};
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct FieldSet(Vec<Selection>);
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, Hash, PartialEq)]
+pub struct FieldSet(pub Vec<Selection>);
 
 impl FieldSet {
     pub fn new(selections: impl IntoIterator<Item = Selection>) -> Self {
@@ -30,7 +30,7 @@ fn selections_are_present(object: &Map<String, Value>, selections: &[Selection])
     })
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, Hash, PartialEq)]
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::skip_serializing_defaults(Option, Vec, ConstraintType)]
 pub struct Selection {
@@ -56,13 +56,10 @@ impl std::fmt::Display for Selection {
         write!(f, "{field}")?;
         if !selections.is_empty() {
             write!(f, " {{")?;
-            for (i, selection) in selections.iter().enumerate() {
-                if i != 0 {
-                    write!(f, " ")?;
-                }
-                write!(f, "{selection}")?;
+            for selection in selections {
+                write!(f, " {selection}")?;
             }
-            write!(f, "}}")?;
+            write!(f, " }}")?;
         }
         Ok(())
     }

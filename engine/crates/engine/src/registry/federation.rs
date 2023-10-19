@@ -65,16 +65,16 @@ impl FederationKey {
         }
     }
 
-    pub fn unresolvable(selections: Vec<Selection>) -> Self {
+    pub fn unresolvable(selections: FieldSet) -> Self {
         FederationKey {
-            selections: FieldSet::new(selections),
+            selections,
             resolver: None,
         }
     }
 
-    pub fn basic_type(selections: Vec<Selection>) -> Self {
+    pub fn basic_type(selections: FieldSet) -> Self {
         FederationKey {
-            selections: FieldSet::new(selections),
+            selections,
             resolver: Some(FederationResolver::BasicType),
         }
     }

@@ -304,7 +304,7 @@ pub struct MetaField {
     pub deprecation: Deprecation,
     pub cache_control: CacheControl,
     pub external: bool,
-    pub requires: Option<String>,
+    pub requires: Option<FieldSet>,
     pub provides: Option<String>,
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
