@@ -1,12 +1,13 @@
-use futures_util::TryFutureExt;
 use grafbase_sql_ast::renderer::{self, Renderer};
 use serde_json::Value;
 
-use super::log;
+use super::{log, RowData};
 use crate::registry::resolvers::{
     postgres::{context::PostgresContext, request::query},
     ResolvedValue,
 };
+
+use futures_util::TryStreamExt;
 
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, crate::Error> {
     let (sql, params) = renderer::Postgres::build(query::insert::build(&ctx, [ctx.create_input()?])?);
@@ -15,7 +16,9 @@ pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, c
         let operation = ctx
             .transport()
             .parameterized_query(&sql, params)
-            .map_ok(postgres_types::transport::map_result);
+            .map_ok(postgres_types::transport::checked_map::<RowData>)
+            .try_collect();
+
         let rows = log::query(&ctx, &sql, operation).await?;
         let row = rows.into_iter().next().map(|row| row.root).unwrap_or(Value::Null);
         let row_count = if row.is_null() { 0 } else { 1 };

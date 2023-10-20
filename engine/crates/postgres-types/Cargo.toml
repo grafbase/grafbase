@@ -13,6 +13,7 @@ keywords = ["graphql", "postgres", "grafbase"]
 Inflector = "0.11.4"
 async-runtime.workspace = true
 async-trait = "0.1.74"
+async-stream = "0.3"
 flexbuffers.workspace = true
 futures.workspace = true
 indexmap = { version = "1", features = ["serde"] }

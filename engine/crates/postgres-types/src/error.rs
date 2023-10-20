@@ -18,6 +18,8 @@ pub enum Error {
     Connection(String),
     #[error("error code {}: {}", code, message)]
     Query { code: String, message: String },
+    #[error(transparent)]
+    Serde(#[from] serde_json::Error),
 }
 
 impl From<url::ParseError> for Error {

@@ -1,4 +1,4 @@
-use engine::futures_util::TryFutureExt;
+use engine::futures_util::TryStreamExt;
 use postgres_types::{
     database_definition::{DatabaseDefinition, ForeignKey, ForeignKeyColumn},
     transport::Transport,
@@ -24,7 +24,8 @@ where
 
     let result: Vec<Row> = transport
         .parameterized_query(query, vec![super::blocked_schemas()])
-        .map_ok(postgres_types::transport::map_result)
+        .map_ok(postgres_types::transport::checked_map)
+        .try_collect()
         .await?;
 
     #[allow(clippy::manual_let_else)] // sorry, but match looks better here

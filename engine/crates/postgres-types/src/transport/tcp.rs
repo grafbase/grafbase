@@ -3,7 +3,9 @@ mod conversion;
 use self::conversion::json_to_string;
 
 use super::Transport;
+use crate::error::Error;
 use async_trait::async_trait;
+use futures::stream::BoxStream;
 use futures::{pin_mut, StreamExt};
 use serde_json::Value;
 
@@ -102,19 +104,17 @@ impl TcpTransport {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for TcpTransport {
-    async fn parameterized_query(&self, query: &str, params: Vec<Value>) -> crate::Result<Vec<Value>> {
-        let params = json_to_string(params);
-        let row_stream = self.client.query_raw_txt(query, params).await?;
+    fn parameterized_query<'a>(&'a self, query: &'a str, params: Vec<Value>) -> BoxStream<'a, Result<Value, Error>> {
+        Box::pin(async_stream::try_stream! {
+            let params = json_to_string(params);
+            let row_stream = self.client.query_raw_txt(query, params).await?;
 
-        pin_mut!(row_stream);
+            pin_mut!(row_stream);
 
-        let mut rows = Vec::new();
-
-        while let Some(row) = row_stream.next().await {
-            rows.push(conversion::row_to_json(&row?));
-        }
-
-        Ok(rows)
+            while let Some(row) = row_stream.next().await {
+                yield serde_json::from_value(conversion::row_to_json(&row?)?)?;
+            }
+        })
     }
 
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<i64> {

@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc};
+use std::ops::Deref;
 
 use postgres_types::{database_definition::DatabaseDefinition, transport::Transport};
 
@@ -22,14 +22,12 @@ pub trait PgTransportFactoryInner {
 type BoxedPgTransportFactoryImpl = Box<dyn PgTransportFactoryInner + Send + Sync>;
 
 pub struct PgTransportFactory {
-    inner: Arc<BoxedPgTransportFactoryImpl>,
+    inner: BoxedPgTransportFactoryImpl,
 }
 
 impl PgTransportFactory {
     pub fn new(factory: BoxedPgTransportFactoryImpl) -> PgTransportFactory {
-        PgTransportFactory {
-            inner: Arc::new(factory),
-        }
+        PgTransportFactory { inner: factory }
     }
 }
 

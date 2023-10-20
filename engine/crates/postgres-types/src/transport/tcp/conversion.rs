@@ -1,3 +1,4 @@
+use crate::error::Error;
 use serde_json::{Map, Value};
 use tokio_postgres::{
     types::{Kind, Type},
@@ -33,18 +34,18 @@ pub(super) fn json_array_to_string_array(value: &Value) -> Option<String> {
     }
 }
 
-pub(super) fn row_to_json(row: &Row) -> Value {
+pub(super) fn row_to_json(row: &Row) -> Result<Value, Error> {
     let mut object = Map::new();
 
     for (i, column) in row.columns().iter().enumerate() {
         let name = column.name().to_string();
-        let pg_value = row.as_text(i).expect("column must have a text value at this point");
+        let pg_value = row.as_text(i)?;
         let value = pg_text_to_json(pg_value, column.type_());
 
         object.insert(name, value);
     }
 
-    Value::Object(object)
+    Ok(Value::Object(object))
 }
 
 fn pg_text_to_json(pg_value: Option<&str>, pg_type: &Type) -> Value {

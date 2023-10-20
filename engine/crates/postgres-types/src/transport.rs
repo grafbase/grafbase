@@ -3,10 +3,12 @@ mod tcp;
 pub use tcp::TcpTransport;
 
 use async_trait::async_trait;
+use futures::stream::BoxStream;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::database_definition::ScalarType;
+use crate::error::Error;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Column {
@@ -34,12 +36,12 @@ impl Column {
 pub trait Transport: Send + Sync {
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<i64>;
 
-    async fn parameterized_query(&self, query: &str, params: Vec<Value>) -> crate::Result<Vec<Value>>;
+    fn parameterized_query<'a>(&'a self, query: &'a str, params: Vec<Value>) -> BoxStream<'a, Result<Value, Error>>;
 
     fn connection_string(&self) -> &str;
 
-    async fn query(&self, query: &str) -> crate::Result<Vec<Value>> {
-        self.parameterized_query(query, Vec::new()).await
+    fn query<'a>(&'a self, query: &'a str) -> BoxStream<'a, Result<Value, Error>> {
+        self.parameterized_query(query, Vec::new())
     }
 
     async fn execute(&self, query: &str) -> crate::Result<i64> {
@@ -47,9 +49,6 @@ pub trait Transport: Send + Sync {
     }
 }
 
-pub fn map_result<T: DeserializeOwned + Send>(values: Vec<Value>) -> Vec<T> {
-    values
-        .into_iter()
-        .map(|value| serde_json::from_value::<T>(value).expect("should deserialize to expected type"))
-        .collect()
+pub fn checked_map<T: DeserializeOwned + Send>(value: Value) -> T {
+    serde_json::from_value::<T>(value).expect("should deserialize to expected type")
 }
