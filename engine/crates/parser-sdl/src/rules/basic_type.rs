@@ -127,9 +127,9 @@ impl<'a> Visitor<'a> for BasicType {
 impl KeyDirective {
     fn into_key(self) -> FederationKey {
         if self.resolvable {
-            FederationKey::basic_type(self.fields)
+            FederationKey::basic_type(self.fields.0)
         } else {
-            FederationKey::unresolvable(self.fields)
+            FederationKey::unresolvable(self.fields.0)
         }
     }
 }
@@ -149,7 +149,7 @@ fn validate_keys_against_fields(oks: &[(Pos, KeyDirective)], object: ObjectType)
 
     // First make sure all the keys are actually fields
     for (pos, key) in oks {
-        for field in &key.fields {
+        for field in &key.fields.0 .0 {
             if object.field_by_name(&field.field).is_none() {
                 errors.push(RuleError::new(
                     vec![*pos],

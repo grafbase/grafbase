@@ -2166,12 +2166,14 @@ Registry {
         "PetstoreUser": FederationEntity {
             keys: [
                 FederationKey {
-                    selections: [
-                        Selection {
-                            field: "username",
-                            selections: [],
-                        },
-                    ],
+                    selections: FieldSet(
+                        [
+                            Selection {
+                                field: "username",
+                                selections: [],
+                            },
+                        ],
+                    ),
                     resolver: Some(
                         Http(
                             HttpResolver {

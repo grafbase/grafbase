@@ -1,13 +1,11 @@
-use engine::registry::federation::Selection;
-use serde::Deserializer;
-
 use crate::rules::directive::Directive;
+
+use super::field_set::FieldSet;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct KeyDirective {
-    #[serde(deserialize_with = "deserialize_selections")]
-    pub fields: Vec<Selection>,
+    pub fields: FieldSet,
     #[serde(default = "default_to_true")]
     pub resolvable: bool,
 }
@@ -26,41 +24,6 @@ impl Directive for KeyDirective {
         "#
         .to_string()
     }
-}
-
-fn deserialize_selections<'de, D>(deserializer: D) -> Result<Vec<Selection>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct Visitor;
-    impl<'de> serde::de::Visitor<'de> for Visitor {
-        type Value = Vec<Selection>;
-
-        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            // This whole implementation is extremely naive and doesn't support a lot of stuff.
-            // Will fix in https://linear.app/grafbase/issue/GB-5086
-            if value.contains('{') {
-                return Err(E::custom("nested fields in keys aren't supported at the moment"));
-            }
-
-            Ok(value
-                .split(' ')
-                .map(|field| Selection {
-                    field: field.to_string(),
-                    selections: vec![],
-                })
-                .collect())
-        }
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(formatter, "a string in FieldSet format")
-        }
-    }
-
-    deserializer.deserialize_str(Visitor)
 }
 
 #[cfg(test)]
