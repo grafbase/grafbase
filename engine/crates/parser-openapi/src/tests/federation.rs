@@ -4,6 +4,8 @@ use super::*;
 
 #[test]
 fn test_stripe_federation_schema() {
+    super::init_tracing();
+
     let metadata = ApiMetadata {
         url: None,
         ..metadata("stripe", true)

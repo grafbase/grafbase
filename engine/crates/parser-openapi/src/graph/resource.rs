@@ -1,6 +1,6 @@
 use petgraph::{graph::NodeIndex, visit::EdgeRef, Direction};
 
-use super::{Arity, Edge, Node, OpenApiGraph, Operation, OutputType};
+use super::{Arity, DebugNode, Edge, Node, OpenApiGraph, Operation, OutputType};
 
 /// A Resource is any named schema in the OpenAPI document that some endpoint
 /// directly contains in it's response.
@@ -14,11 +14,11 @@ use super::{Arity, Edge, Node, OpenApiGraph, Operation, OutputType};
 ///   ^------ForResource {arity: Many}--- GetUsers Operation
 ///
 /// See `determine_resource_relationships` for how this is calculated
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Resource(NodeIndex);
 
 /// An operation associated with a resource
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct ResourceOperation {
     pub operation: Operation,
     pub arity: Arity,
@@ -69,6 +69,25 @@ impl Resource {
         }
 
         Some(Resource(index))
+    }
+}
+
+impl DebugNode for Resource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, graph: &OpenApiGraph) -> std::fmt::Result {
+        let operations = self.operations(graph).collect::<Vec<_>>();
+        f.debug_struct("Resource")
+            .field("name", &self.name(graph))
+            .field("operations", &operations.debug(graph))
+            .finish_non_exhaustive()
+    }
+}
+
+impl DebugNode for ResourceOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, graph: &OpenApiGraph) -> std::fmt::Result {
+        f.debug_struct("ResourceOperation")
+            .field("operation", &self.operation.debug(graph))
+            .field("arity", &self.arity)
+            .finish()
     }
 }
 

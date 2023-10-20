@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use engine::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 use petgraph::graph::EdgeIndex;
 
-use super::{input_value::InputValue, Edge, FieldName};
+use super::{input_value::InputValue, DebugNode, Edge, FieldName};
 
 #[derive(Clone, Copy)]
 pub struct PathParameter(pub(super) EdgeIndex);
@@ -35,6 +35,19 @@ impl PathParameter {
             Edge::HasPathParameter { wrapping, .. } => InputValue::from_index(dest_index, wrapping.clone(), graph),
             _ => None,
         }
+    }
+}
+
+impl DebugNode for PathParameter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, graph: &super::OpenApiGraph) -> std::fmt::Result {
+        f.debug_struct("PathParameter")
+            .field("openapi_name", &self.openapi_name(graph))
+            .field("graphql_name", &self.graphql_name(graph).to_string())
+            .field(
+                "input_value",
+                &self.input_value(graph).as_ref().map(|value| value.debug(graph)),
+            )
+            .finish()
     }
 }
 
