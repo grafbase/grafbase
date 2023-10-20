@@ -1,0 +1,19 @@
+[package]
+name = "grafbase-graphql-introspection"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+indoc = "2.0.4"
+reqwest = { version = "0.11.22", default-features = false, features = ["json", "rustls"] }
+cynic = { version = "3.2.2", features = ["http-reqwest"] }
+cynic-introspection = "3.2.2"
+serde = "1.0.189"
+apollo-parser = "0.7.1"
+apollo-encoder = "0.8.0"

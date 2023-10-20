@@ -215,6 +215,24 @@ impl Environment {
     }
 
     #[track_caller]
+    pub fn grafbase_introspect(&self, url: &str, headers: &[&str]) -> Output {
+        let mut args = vec!["subgraph", "introspect", url];
+
+        for header in headers {
+            args.push("--header");
+            args.push(*header);
+        }
+
+        duct::cmd(cargo_bin("grafbase"), args)
+            .dir(&self.directory)
+            .stdout_capture()
+            .stderr_capture()
+            .unchecked()
+            .run()
+            .unwrap()
+    }
+
+    #[track_caller]
     pub fn grafbase_init(&self, config_format: ConfigType) {
         cmd!(
             cargo_bin("grafbase"),

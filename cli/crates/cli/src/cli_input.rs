@@ -283,6 +283,40 @@ impl StartCommand {
     }
 }
 
+#[derive(Debug, clap::Args)]
+pub struct IntrospectCommand {
+    /// GraphQL URL to introspect
+    url: String,
+    /// Add a header to the introspection request
+    #[clap(short = 'H', long, value_parser, num_args = 0..)]
+    header: Vec<String>,
+}
+
+impl IntrospectCommand {
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
+    pub fn headers(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.header.iter().map(|header| {
+            let mut splitted = header.split(':');
+            (splitted.next().unwrap_or(""), splitted.next().unwrap_or("").trim())
+        })
+    }
+}
+
+#[derive(Debug, Parser)]
+pub enum SubgraphCommandKind {
+    /// Introspect a subgraph endpoint and print its schema
+    Introspect(IntrospectCommand),
+}
+
+#[derive(Debug, Parser)]
+pub struct SubgraphCommand {
+    #[command(subcommand)]
+    pub kind: SubgraphCommandKind,
+}
+
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum SubCommand {
@@ -314,6 +348,8 @@ pub enum SubCommand {
     /// Build the Grafbase project in advance to avoid the resolver build step in the start
     /// command.
     Build(BuildCommand),
+    /// Operations related to GraphQL subgraphs
+    Subgraph(SubgraphCommand),
 }
 
 // TODO see if there's a way to do this automatically (https://github.com/clap-rs/clap/discussions/4921)
@@ -381,6 +417,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Start(_)
             | SubCommand::Build(_)
             | SubCommand::Completions(_)
+            | SubCommand::Subgraph(_)
             | SubCommand::Logs(_) => None,
         }
     }
