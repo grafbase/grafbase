@@ -2960,7 +2960,6 @@ dependencies = [
  "futures",
  "indexmap 1.9.3",
  "itertools",
- "percent-encoding",
  "reqwest",
  "rustls",
  "rustls-native-certs",
@@ -2971,7 +2970,6 @@ dependencies = [
  "tokio-postgres",
  "tokio-postgres-rustls",
  "url",
- "worker",
 ]
 
 [[package]]

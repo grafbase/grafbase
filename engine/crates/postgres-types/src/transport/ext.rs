@@ -19,7 +19,12 @@ pub trait TransportExt: Transport {
         pin_mut!(stream);
 
         while let Some(value) = stream.next().await {
-            result.push(serde_json::from_value(value?).unwrap());
+            let value = serde_json::from_value(value?).map_err(|error| {
+                let message = error.to_string();
+                crate::error::Error::Internal(message)
+            })?;
+
+            result.push(value);
         }
 
         Ok(result)

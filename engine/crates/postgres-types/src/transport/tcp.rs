@@ -42,19 +42,17 @@ impl TcpTransport {
             }
         });
 
-        Ok(Self::new_inner(client, connection_string))
+        let this = Self {
+            client,
+            connection_string: connection_string.to_string(),
+        };
+
+        Ok(this)
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub async fn new(connection_string: &str) -> crate::Result<Self> {
+    pub async fn new(_: &str) -> crate::Result<Self> {
         unimplemented!("Please implement a separate transport for WASM.")
-    }
-
-    fn new_inner(client: tokio_postgres::Client, connection_string: &str) -> Self {
-        Self {
-            client,
-            connection_string: connection_string.to_string(),
-        }
     }
 }
 
