@@ -1,12 +1,14 @@
+mod ext;
 mod tcp;
 
+pub use ext::TransportExt;
 pub use tcp::TcpTransport;
 
-use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use serde_json::Value;
-
 use crate::database_definition::ScalarType;
+use crate::error::Error;
+use async_trait::async_trait;
+use futures::stream::BoxStream;
+use serde_json::Value;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Column {
@@ -31,20 +33,15 @@ impl Column {
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-pub trait Transport {
+pub trait Transport: Send + Sync {
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<i64>;
 
-    async fn parameterized_query<T>(&self, query: &str, params: Vec<Value>) -> crate::Result<Vec<T>>
-    where
-        T: DeserializeOwned + Send;
+    fn parameterized_query<'a>(&'a self, query: &'a str, params: Vec<Value>) -> BoxStream<'a, Result<Value, Error>>;
 
     fn connection_string(&self) -> &str;
 
-    async fn query<T>(&self, query: &str) -> crate::Result<Vec<T>>
-    where
-        T: DeserializeOwned + Send,
-    {
-        self.parameterized_query(query, Vec::new()).await
+    fn query<'a>(&'a self, query: &'a str) -> BoxStream<'a, Result<Value, Error>> {
+        self.parameterized_query(query, Vec::new())
     }
 
     async fn execute(&self, query: &str) -> crate::Result<i64> {

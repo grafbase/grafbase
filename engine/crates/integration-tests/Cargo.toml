@@ -26,6 +26,7 @@ serde.workspace = true
 serde_json.workspace = true
 url.workspace = true
 wiremock = "0.5"
+runtime-local = { path = "../runtime-local" }
 
 [dependencies.tokio]
 version = "1.32"

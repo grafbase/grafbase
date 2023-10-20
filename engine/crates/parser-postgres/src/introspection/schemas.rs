@@ -1,4 +1,7 @@
-use postgres_types::{database_definition::DatabaseDefinition, transport::Transport};
+use postgres_types::{
+    database_definition::DatabaseDefinition,
+    transport::{Transport, TransportExt},
+};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -10,11 +13,10 @@ pub(super) async fn introspect<T>(transport: &T, database_definition: &mut Datab
 where
     T: Transport + Sync,
 {
+    let query = "SELECT nspname AS name FROM pg_namespace WHERE nspname <> ALL ($1) ORDER BY name";
+
     let result = transport
-        .parameterized_query::<Row>(
-            "SELECT nspname AS name FROM pg_namespace WHERE nspname <> ALL ($1) ORDER BY name",
-            vec![super::blocked_schemas()],
-        )
+        .collect_query::<Row>(query, vec![super::blocked_schemas()])
         .await?;
 
     for row in result {

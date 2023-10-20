@@ -4,7 +4,7 @@ use engine::Response;
 use futures::FutureExt;
 use graphql_parser::parse_schema;
 use indoc::formatdoc;
-use postgres_types::transport::{TcpTransport, Transport};
+use postgres_types::transport::{TcpTransport, Transport, TransportExt};
 use serde::de::DeserializeOwned;
 use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::Arc};
 
@@ -148,7 +148,7 @@ impl TestApi {
                 name: "test",
                 url: "{connection_string}",
                 namespace: false
-              )    
+              )
         "#};
 
         Self::new_inner(schema, connection_string).await
@@ -222,7 +222,11 @@ impl TestApi {
     where
         T: DeserializeOwned + Send,
     {
-        self.inner.connection.query(query).await.expect("error in query")
+        self.inner
+            .connection
+            .collect_query(query, Vec::new())
+            .await
+            .expect("error in query")
     }
 
     pub async fn row_count(&self, table: &str) -> usize {

@@ -1,6 +1,6 @@
 use postgres_types::{
     database_definition::{DatabaseDefinition, Enum, EnumVariant},
-    transport::Transport,
+    transport::{Transport, TransportExt},
 };
 use serde::Deserialize;
 
@@ -18,7 +18,7 @@ where
     let query = include_str!("queries/enums.sql");
 
     let result = transport
-        .parameterized_query::<Row>(query, vec![super::blocked_schemas()])
+        .collect_query::<Row>(query, vec![super::blocked_schemas()])
         .await?;
 
     for row in result {

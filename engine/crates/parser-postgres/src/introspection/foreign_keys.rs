@@ -1,6 +1,6 @@
 use postgres_types::{
     database_definition::{DatabaseDefinition, ForeignKey, ForeignKeyColumn},
-    transport::Transport,
+    transport::{Transport, TransportExt},
 };
 use serde::Deserialize;
 
@@ -22,7 +22,7 @@ where
     let query = include_str!("queries/foreign_keys.sql");
 
     let result = transport
-        .parameterized_query::<Row>(query, vec![super::blocked_schemas()])
+        .collect_query::<Row>(query, vec![super::blocked_schemas()])
         .await?;
 
     #[allow(clippy::manual_let_else)] // sorry, but match looks better here

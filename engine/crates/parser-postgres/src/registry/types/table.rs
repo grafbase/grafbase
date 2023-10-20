@@ -1,10 +1,12 @@
-use crate::registry::context::{InputContext, ObjectTypeBuilder, OutputContext};
+use std::borrow::Cow;
+
 use engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     Constraint, InputObjectType, MetaField, MetaInputValue, ObjectType,
 };
 use postgres_types::database_definition::{DatabaseType, RelationWalker, TableColumnWalker, TableWalker};
-use std::borrow::Cow;
+
+use crate::registry::context::{InputContext, ObjectTypeBuilder, OutputContext};
 
 pub(super) fn generate(
     input_ctx: &InputContext<'_>,

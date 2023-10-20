@@ -90,7 +90,8 @@ impl EngineBuilder {
                     fetch_log_endpoint_url: None,
                     request_log_event_id: None,
                 },
-            ));
+            ))
+            .data(runtime_local::LocalPgTransportFactory::runtime_factory());
 
         if self.local_dynamo {
             schema_builder = enable_local_dynamo(schema_builder).await;

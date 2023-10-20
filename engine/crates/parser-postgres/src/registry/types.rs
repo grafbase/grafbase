@@ -3,8 +3,9 @@ mod page_info;
 mod scalar;
 mod table;
 
-use super::context::{InputContext, OutputContext};
 use engine::registry::MetaEnumValue;
+
+use super::context::{InputContext, OutputContext};
 
 pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputContext) {
     let tables = input_ctx

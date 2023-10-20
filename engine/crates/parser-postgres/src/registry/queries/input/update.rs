@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
-use crate::registry::context::{InputContext, OutputContext};
 use engine::registry::MetaInputValue;
 use postgres_types::database_definition::TableWalker;
+
+use crate::registry::context::{InputContext, OutputContext};
 
 pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, output_ctx: &mut OutputContext) -> String {
     let input_type_name = input_ctx.update_type_name(table.client_name());

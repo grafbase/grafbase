@@ -1,19 +1,18 @@
 use grafbase_sql_ast::renderer::{self, Renderer};
-use postgres_types::transport::Transport;
+use postgres_types::transport::TransportExt;
 use serde_json::Value;
 
+use super::log;
 use crate::registry::resolvers::{
     postgres::{context::PostgresContext, request::query},
     ResolvedValue,
 };
 
-use super::{log, RowData};
-
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, crate::Error> {
     let (sql, params) = renderer::Postgres::build(query::insert::build(&ctx, [ctx.create_input()?])?);
 
     if ctx.mutation_is_returning() {
-        let operation = ctx.transport().parameterized_query::<RowData>(&sql, params);
+        let operation = ctx.transport().collect_query(&sql, params);
         let rows = log::query(&ctx, &sql, operation).await?;
         let row = rows.into_iter().next().map(|row| row.root).unwrap_or(Value::Null);
         let row_count = if row.is_null() { 0 } else { 1 };

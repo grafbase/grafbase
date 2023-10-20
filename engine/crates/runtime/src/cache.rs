@@ -1,5 +1,6 @@
-use serde::{de::DeserializeOwned, Serialize};
 use std::{sync::Arc, time::Duration};
+
+use serde::{de::DeserializeOwned, Serialize};
 
 pub type Result<T> = std::result::Result<T, Error>;
 

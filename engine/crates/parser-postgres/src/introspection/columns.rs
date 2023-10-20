@@ -1,6 +1,6 @@
 use postgres_types::{
     database_definition::{ColumnType, DatabaseDefinition, ScalarType, TableColumn},
-    transport::Transport,
+    transport::{Transport, TransportExt},
 };
 use serde::Deserialize;
 
@@ -24,7 +24,7 @@ where
     let query = include_str!("queries/columns.sql");
 
     let result = transport
-        .parameterized_query::<Row>(query, vec![super::blocked_schemas()])
+        .collect_query::<Row>(query, vec![super::blocked_schemas()])
         .await?;
 
     for row in result {

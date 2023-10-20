@@ -4306,12 +4306,12 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "async-runtime",
+ "async-stream",
  "async-trait",
  "flexbuffers",
  "futures",
  "indexmap 1.9.3",
  "itertools 0.11.0",
- "percent-encoding",
  "reqwest",
  "rustls",
  "rustls-native-certs",
@@ -4322,7 +4322,6 @@ dependencies = [
  "tokio-postgres",
  "tokio-postgres-rustls",
  "url",
- "worker",
 ]
 
 [[package]]
@@ -4873,6 +4872,7 @@ dependencies = [
  "futures-util",
  "headers",
  "http",
+ "postgres-types 0.1.0",
  "search-protocol",
  "serde",
  "serde_json",
@@ -4890,6 +4890,7 @@ dependencies = [
  "futures-util",
  "graph-entities",
  "log 0.1.0",
+ "postgres-types 0.1.0",
  "reqwest",
  "runtime",
  "search-protocol",
