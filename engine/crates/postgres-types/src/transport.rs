@@ -1,14 +1,14 @@
+mod ext;
 mod tcp;
 
+pub use ext::TransportExt;
 pub use tcp::TcpTransport;
-
-use async_trait::async_trait;
-use futures::stream::BoxStream;
-use serde::de::DeserializeOwned;
-use serde_json::Value;
 
 use crate::database_definition::ScalarType;
 use crate::error::Error;
+use async_trait::async_trait;
+use futures::stream::BoxStream;
+use serde_json::Value;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Column {
@@ -47,8 +47,4 @@ pub trait Transport: Send + Sync {
     async fn execute(&self, query: &str) -> crate::Result<i64> {
         self.parameterized_execute(query, Vec::new()).await
     }
-}
-
-pub fn checked_map<T: DeserializeOwned + Send>(value: Value) -> T {
-    serde_json::from_value::<T>(value).expect("should deserialize to expected type")
 }

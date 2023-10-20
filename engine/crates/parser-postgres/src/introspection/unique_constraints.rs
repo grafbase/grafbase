@@ -1,7 +1,6 @@
-use engine::futures_util::TryStreamExt;
 use postgres_types::{
     database_definition::{ConstraintType, DatabaseDefinition, UniqueConstraint, UniqueConstraintColumn},
-    transport::Transport,
+    transport::{Transport, TransportExt},
 };
 use serde::Deserialize;
 
@@ -20,19 +19,19 @@ where
 {
     let query = include_str!("queries/unique_constraints.sql");
 
-    let result: Vec<Row> = transport
-        .parameterized_query(query, vec![super::blocked_schemas()])
-        .map_ok(postgres_types::transport::checked_map)
-        .try_collect()
+    let result = transport
+        .collect_query::<Row>(query, vec![super::blocked_schemas()])
         .await?;
 
     for row in result {
         let Some(schema_id) = database_definition.get_schema_id(&row.schema) else {
             continue;
         };
+
         let Some(table_id) = database_definition.get_table_id(schema_id, &row.table_name) else {
             continue;
         };
+
         let Some(column_id) = database_definition.get_table_column_id(table_id, &row.column_name) else {
             continue;
         };

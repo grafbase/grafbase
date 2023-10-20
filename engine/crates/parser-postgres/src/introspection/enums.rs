@@ -1,7 +1,6 @@
-use engine::futures_util::TryStreamExt;
 use postgres_types::{
     database_definition::{DatabaseDefinition, Enum, EnumVariant},
-    transport::Transport,
+    transport::{Transport, TransportExt},
 };
 use serde::Deserialize;
 
@@ -18,10 +17,8 @@ where
 {
     let query = include_str!("queries/enums.sql");
 
-    let result: Vec<Row> = transport
-        .parameterized_query(query, vec![super::blocked_schemas()])
-        .map_ok(postgres_types::transport::checked_map)
-        .try_collect()
+    let result = transport
+        .collect_query::<Row>(query, vec![super::blocked_schemas()])
         .await?;
 
     for row in result {

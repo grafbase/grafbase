@@ -1,11 +1,10 @@
 use crate::{Engine, EngineBuilder};
 use async_once_cell::OnceCell;
-use engine::futures_util::TryStreamExt;
 use engine::Response;
 use futures::FutureExt;
 use graphql_parser::parse_schema;
 use indoc::formatdoc;
-use postgres_types::transport::{TcpTransport, Transport};
+use postgres_types::transport::{TcpTransport, Transport, TransportExt};
 use serde::de::DeserializeOwned;
 use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::Arc};
 
@@ -225,9 +224,7 @@ impl TestApi {
     {
         self.inner
             .connection
-            .query(query)
-            .map_ok(postgres_types::transport::checked_map)
-            .try_collect()
+            .collect_query(query, Vec::new())
             .await
             .expect("error in query")
     }
