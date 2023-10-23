@@ -17,6 +17,7 @@ mod panic_hook;
 mod prompts;
 mod reset;
 mod start;
+mod subgraph;
 mod unlink;
 mod watercolor;
 
@@ -36,6 +37,7 @@ use crate::{
     logs::logs,
     reset::reset,
     start::start,
+    subgraph::subgraph,
     unlink::unlink,
 };
 use clap::Parser;
@@ -68,7 +70,11 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
     trace!("subcommand: {}", args.command);
-    report::cli_header();
+
+    // do not display header if we're in a pipe
+    if atty::is(atty::Stream::Stdout) {
+        report::cli_header();
+    }
 
     if args.command.in_project_context() {
         Environment::try_init_with_project(args.home).map_err(CliError::CommonError)?;
@@ -131,5 +137,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
             build(cmd.parallelism(), args.trace >= 2)
         }
+        SubCommand::Subgraph(cmd) => subgraph(cmd),
     }
 }
