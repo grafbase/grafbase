@@ -19,10 +19,12 @@ export type Resolvable =
 export class ResolverDefinition {
   private field: Resolvable
   private resolver: string
+  private requiresFields: string | null
 
   constructor(field: Resolvable, resolver: string) {
     this.field = field
     this.resolver = resolver
+    this.requiresFields = null
   }
 
   /**
@@ -43,7 +45,22 @@ export class ResolverDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
   }
 
+  /**
+   * Declares that this resolver requires certain fields to function correctly
+   *
+   * @param fields - The fields this resolver requires
+   */
+  public requires(fields: string): ResolverDefinition {
+    this.requiresFields = fields
+    return this
+  }
+
   public toString(): string {
-    return `${this.field} @resolver(name: "${this.resolver}")`
+    const requires =
+      this.requiresFields == null
+        ? ''
+        : ` @requires(fields: "${this.requiresFields}")`
+
+    return `${this.field} @resolver(name: "${this.resolver}")${requires}`
   }
 }
