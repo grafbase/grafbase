@@ -49,4 +49,4 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.working-directory }}
-        RUST_BACKTRACE=1 cargo nextest run --profile ci
+        CARGO_BUILD_JOBS=4 RUST_BACKTRACE=1 cargo nextest run --profile ci
