@@ -22,7 +22,7 @@ mod service;
 mod utils;
 
 use engine_value::{ConstValue, Name, Number, Value};
-pub use executable::{parse_query, parse_selection_set};
+pub use executable::{parse_field, parse_query, parse_selection_set};
 pub use service::parse_schema;
 
 #[derive(Parser)]

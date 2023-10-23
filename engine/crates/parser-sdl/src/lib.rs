@@ -31,6 +31,7 @@ use rules::{
     federation::{FederationDirective, FederationDirectiveVisitor, KeyDirective},
     graphql_directive::GraphqlVisitor,
     input_object::InputObjectVisitor,
+    join_directive::JoinDirective,
     length_directive::LengthDirective,
     map_directive::MapDirective,
     model_directive::ModelDirective,
@@ -138,7 +139,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<ExperimentalDirective>()
         .with::<FederationDirective>()
         .with::<RequiresDirective>()
-        .with::<KeyDirective>();
+        .with::<KeyDirective>()
+        .with::<JoinDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",

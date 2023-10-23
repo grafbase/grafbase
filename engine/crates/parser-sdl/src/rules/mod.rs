@@ -18,6 +18,7 @@ pub mod extend_query_and_mutation_types;
 pub mod federation;
 pub mod graphql_directive;
 pub mod input_object;
+pub mod join_directive;
 pub mod length_directive;
 pub mod map_directive;
 pub mod model_directive;

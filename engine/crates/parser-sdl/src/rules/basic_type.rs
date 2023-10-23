@@ -18,6 +18,7 @@ use itertools::Itertools;
 
 use super::{
     federation::KeyDirective,
+    join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
     visitor::{RuleError, Visitor, VisitorContext},
@@ -55,10 +56,23 @@ impl<'a> Visitor<'a> for BasicType {
                 let name = field.name().to_string();
                 let mapped_name = field.mapped_name().map(ToString::to_string);
 
-                let resolver = field_resolver(field, mapped_name.as_deref());
+                let mut resolver = field_resolver(field, mapped_name.as_deref());
 
-                let requires =
+                let mut requires =
                     RequiresDirective::from_directives(&field.directives, ctx).map(RequiresDirective::into_fields);
+
+                if let Some(join_directive) = JoinDirective::from_directives(&field.node.directives, ctx) {
+                    if resolver.is_custom() {
+                        ctx.report_error(vec![field.pos], "A field can't have a join and a custom resolver on it");
+                    }
+                    if requires.is_some() {
+                        // We could support this by merging the requires, but I don't want to implement it right now.
+                        // If someone asks we could do it
+                        ctx.report_error(vec![field.pos], "A field can't have a join and a requires on it");
+                    }
+                    requires = join_directive.required_fieldset();
+                    resolver = Resolver::Join(join_directive.to_join_resolver());
+                }
 
                 MetaField {
                     name: name.clone(),

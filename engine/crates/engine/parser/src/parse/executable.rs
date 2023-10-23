@@ -102,6 +102,20 @@ pub fn parse_selection_set<T: AsRef<str>>(input: T) -> Result<Positioned<Selecti
     )?)
 }
 
+/// Parse a GraphQL field selection
+///
+/// # Errors
+///
+/// Fails if the input is not a valid GraphQL selection set
+pub fn parse_field<T: AsRef<str>>(input: T) -> Result<Positioned<Field>> {
+    let mut pc = PositionCalculator::new(input.as_ref());
+
+    Ok(parse_field_internal(
+        exactly_one(GraphQLParser::parse(Rule::field, input.as_ref())?),
+        &mut pc,
+    )?)
+}
+
 fn parse_definition_items(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Vec<DefinitionItem>> {
     debug_assert_eq!(pair.as_rule(), Rule::executable_document);
 
@@ -245,7 +259,7 @@ fn parse_selection(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Posi
 
     Ok(Positioned::new(
         match pair.as_rule() {
-            Rule::field => Selection::Field(parse_field(pair, pc)?),
+            Rule::field => Selection::Field(parse_field_internal(pair, pc)?),
             Rule::fragment_spread => Selection::FragmentSpread(parse_fragment_spread(pair, pc)?),
             Rule::inline_fragment => Selection::InlineFragment(parse_inline_fragment(pair, pc)?),
             _ => unreachable!(),
@@ -254,7 +268,7 @@ fn parse_selection(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Posi
     ))
 }
 
-fn parse_field(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<Field>> {
+fn parse_field_internal(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<Field>> {
     debug_assert_eq!(pair.as_rule(), Rule::field);
 
     let pos = pc.step(&pair);
