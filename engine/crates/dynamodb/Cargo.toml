@@ -23,7 +23,7 @@ derivative = "2.2"
 dynomite = "0.10"
 futures = "0.3"
 futures-util = { workspace = true, features = ["std", "async-await"] }
-indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
+indexmap.workspace = true
 itertools = { workspace = true }
 log = { path = "../log", features = ["with-worker"] }
 quick-error = "2"

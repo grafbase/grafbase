@@ -31,6 +31,11 @@ impl ArgumentSet {
                 .collect(),
         )
     }
+
+    /// Checks if the ArgumentSet contains the given argument
+    pub fn contains_argument(&self, name: &str) -> bool {
+        self.0.iter().any(|(argument_name, _)| argument_name == name)
+    }
 }
 
 impl IntoIterator for ArgumentSet {

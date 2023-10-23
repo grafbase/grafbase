@@ -61,6 +61,7 @@ pub use rules::{
     openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms},
     postgres_directive::PostgresDirective,
 };
+use validations::post_parsing_validations;
 
 use crate::rules::{
     cache_directive::{visitor::CacheVisitor, CacheDirective},
@@ -184,11 +185,26 @@ pub async fn parse<'a>(
         return Err(ctx.errors.into());
     }
 
+    // TODO: Validate all the @requires field sets
+    //       Also any JoinResolvers:
+    //       - The field being joined to must exist
+    //       - All its required arguments must be present somehow and of compatible types
+    //       - Its return type should be compatible with the return type of the joined field.
+    //       - Possibly some other stuff.
+    //       - Should I leave this for a future PR. maybe?  Might be sensible
+
     if !ctx.warnings.is_empty() {
         println!("{}", ctx.warnings);
     }
 
-    Ok(ctx.finish())
+    let result = ctx.finish();
+    let post_parsing_errors = post_parsing_validations(&result.registry);
+
+    if !post_parsing_errors.is_empty() {
+        return Err(post_parsing_errors.into());
+    }
+
+    Ok(result)
 }
 
 async fn parse_connectors<'a>(

@@ -10,8 +10,8 @@ use super::{ResolvedValue, ResolverContext};
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 pub struct JoinResolver {
-    field_name: String,
-    arguments: ArgumentSet,
+    pub field_name: String,
+    pub arguments: ArgumentSet,
 }
 
 // ArgumentSet can't be hashed so we've got a manual impl here that goes via JSON.

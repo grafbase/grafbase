@@ -26,6 +26,7 @@ chrono = { version = "0.4", default-features = false }
 flexbuffers = "2"
 futures = { version = "0.3" }
 futures-util = "0.3"
+indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = "0.11"
 lazy_static = "1"
 num-traits = "0.2"

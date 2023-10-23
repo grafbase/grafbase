@@ -46,6 +46,8 @@ impl Directive for RequiresDirective {
 mod tests {
     use std::collections::HashMap;
 
+    use crate::tests::assert_validation_error;
+
     #[test]
     fn requires_on_normal_type() {
         let schema = r#"
@@ -54,7 +56,12 @@ mod tests {
             type User @key(fields: "id", resolvable: false) {
                 id: ID!
                 name: String!
-                field: String! @requires(fields: "id name")
+                account: Account!
+                field: String! @requires(fields: "id name account { id }")
+            }
+
+            type Account {
+                id: ID!
             }
         "#;
 
@@ -67,6 +74,57 @@ mod tests {
             .as_ref()
             .unwrap();
 
-        assert_eq!(requires.to_string(), "id name");
+        assert_eq!(requires.to_string(), "id name account { id }");
+    }
+
+    #[test]
+    fn require_a_missing_field_on_current_type() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @requires(fields: "id name")
+            }
+            "#,
+            "The field nickname on User declares that it requires the field name on User but that field doesn't exist"
+        );
+    }
+
+    #[test]
+    fn require_a_missing_field_on_nested_type() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                account: Account!
+                nickname: String! @requires(fields: "id account { name }")
+            }
+
+            type Account {
+                id: ID!
+            }
+            "#,
+            "The field nickname on User declares that it requires the field name on Account but that field doesn't exist"
+        );
+    }
+
+    #[test]
+    fn require_subfields_of_leaf_type() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                name: String!
+                nickname: String! @requires(fields: "id name { blah }")
+            }
+            "#,
+            "The field nickname on User tries to require subfields of name on User but that field is a leaf type"
+        );
     }
 }
