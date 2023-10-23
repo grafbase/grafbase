@@ -22,11 +22,18 @@ fn selections_are_present(object: &Map<String, Value>, selections: &[Selection])
         if selection.selections.is_empty() {
             return true;
         }
-        // Make sure any sub-selections are also present
-        let Some(object) = object.get(&selection.field).and_then(Value::as_object) else {
-            return false;
-        };
-        selections_are_present(object, &selection.selections)
+
+        match object.get(&selection.field) {
+            Some(Value::Object(object)) => {
+                // Make sure any sub-selections are also present
+                selections_are_present(object, &selection.selections)
+            }
+            Some(Value::Null) => {
+                // We assume the value is nullable if it's present as a null
+                true
+            }
+            _ => false,
+        }
     })
 }
 

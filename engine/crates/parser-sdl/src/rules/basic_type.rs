@@ -18,6 +18,7 @@ use itertools::Itertools;
 
 use super::{
     federation::KeyDirective,
+    requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
     visitor::{RuleError, Visitor, VisitorContext},
 };
@@ -47,32 +48,39 @@ impl<'a> Visitor<'a> for BasicType {
 
         let type_name = type_definition.node.name.node.to_string();
 
+        let fields = object
+            .fields
+            .iter()
+            .map(|field| {
+                let name = field.name().to_string();
+                let mapped_name = field.mapped_name().map(ToString::to_string);
+
+                let resolver = field_resolver(field, mapped_name.as_deref());
+
+                let requires =
+                    RequiresDirective::from_directives(&field.directives, ctx).map(RequiresDirective::into_fields);
+
+                MetaField {
+                    name: name.clone(),
+                    mapped_name,
+                    description: field.node.description.clone().map(|x| x.node),
+                    ty: field.node.ty.clone().node.to_string().into(),
+                    cache_control: CacheDirective::parse(&field.node.directives),
+                    resolver,
+                    requires,
+                    ..Default::default()
+                }
+            })
+            .collect::<Vec<_>>();
+
         // If it's a modeled Type, we create the associated type into the registry.
         // Without more data, we infer it's from our modelization.
         ctx.registry.get_mut().create_type(
             |_| {
-                registry::ObjectType::new(
-                    type_name.clone(),
-                    object.fields.iter().map(|field| {
-                        let name = field.name().to_string();
-                        let mapped_name = field.mapped_name().map(ToString::to_string);
-
-                        let resolver = field_resolver(field, mapped_name.as_deref());
-
-                        MetaField {
-                            name: name.clone(),
-                            mapped_name,
-                            description: field.node.description.clone().map(|x| x.node),
-                            ty: field.node.ty.clone().node.to_string().into(),
-                            cache_control: CacheDirective::parse(&field.node.directives),
-                            resolver,
-                            ..Default::default()
-                        }
-                    }),
-                )
-                .with_description(type_definition.node.description.clone().map(|x| x.node))
-                .with_cache_control(CacheDirective::parse(&type_definition.node.directives))
-                .into()
+                registry::ObjectType::new(type_name.clone(), fields)
+                    .with_description(type_definition.node.description.clone().map(|x| x.node))
+                    .with_cache_control(CacheDirective::parse(&type_definition.node.directives))
+                    .into()
             },
             &type_name,
             &type_name,

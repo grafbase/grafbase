@@ -75,3 +75,9 @@ impl RustResolver for CustomResolverResponse {
         Ok(self.clone())
     }
 }
+
+impl RustResolver for serde_json::Value {
+    fn invoke(&self, _: CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> {
+        Ok(CustomResolverResponse::Success(self.clone()))
+    }
+}

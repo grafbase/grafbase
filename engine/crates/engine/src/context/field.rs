@@ -81,6 +81,17 @@ impl<'a> ContextField<'a> {
         }
     }
 
+    /// Builds a context for resolving an `@requires` FieldSet for this contexts field.
+    pub fn with_requires_selection_set(&self, selection_set: &'a Positioned<SelectionSet>) -> ContextSelectionSet<'a> {
+        ContextSelectionSet {
+            ty: self.parent_type,
+            path: self.path.clone(),
+            item: selection_set,
+            schema_env: self.schema_env,
+            query_env: self.query_env,
+        }
+    }
+
     /// Returns the base type for the currently resolving field
     pub fn field_base_type(&self) -> OutputType<'a> {
         self.registry()

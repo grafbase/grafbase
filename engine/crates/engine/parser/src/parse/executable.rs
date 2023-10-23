@@ -88,6 +88,20 @@ pub fn parse_query<T: AsRef<str>>(input: T) -> Result<ExecutableDocument> {
     })
 }
 
+/// Parse a GraphQL selection set
+///
+/// # Errors
+///
+/// Fails if the input is not a valid GraphQL selection set
+pub fn parse_selection_set<T: AsRef<str>>(input: T) -> Result<Positioned<SelectionSet>> {
+    let mut pc = PositionCalculator::new(input.as_ref());
+
+    Ok(parse_selection_set_internal(
+        exactly_one(GraphQLParser::parse(Rule::selection_set, input.as_ref())?),
+        &mut pc,
+    )?)
+}
+
 fn parse_definition_items(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Vec<DefinitionItem>> {
     debug_assert_eq!(pair.as_rule(), Rule::executable_document);
 
@@ -136,7 +150,7 @@ fn parse_operation_definition_item(
                     ty: OperationType::Query,
                     variable_definitions: Vec::new(),
                     directives: Vec::new(),
-                    selection_set: parse_selection_set(pair, pc)?,
+                    selection_set: parse_selection_set_internal(pair, pc)?,
                 },
             },
             _ => unreachable!(),
@@ -156,7 +170,7 @@ fn parse_named_operation_definition(pair: Pair<Rule>, pc: &mut PositionCalculato
         parse_variable_definitions(pair, pc)
     })?;
     let directives = parse_opt_directives(&mut pairs, pc)?;
-    let selection_set = parse_selection_set(pairs.next().unwrap(), pc)?;
+    let selection_set = parse_selection_set_internal(pairs.next().unwrap(), pc)?;
 
     debug_assert_eq!(pairs.next(), None);
 
@@ -207,7 +221,7 @@ fn parse_variable_definition(pair: Pair<Rule>, pc: &mut PositionCalculator) -> R
     ))
 }
 
-fn parse_selection_set(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<SelectionSet>> {
+fn parse_selection_set_internal(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<SelectionSet>> {
     debug_assert_eq!(pair.as_rule(), Rule::selection_set);
 
     let pos = pc.step(&pair);
@@ -250,7 +264,9 @@ fn parse_field(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Position
     let name = parse_name(pairs.next().unwrap(), pc)?;
     let arguments = parse_if_rule(&mut pairs, Rule::arguments, |pair| parse_arguments(pair, pc))?;
     let directives = parse_opt_directives(&mut pairs, pc)?;
-    let selection_set = parse_if_rule(&mut pairs, Rule::selection_set, |pair| parse_selection_set(pair, pc))?;
+    let selection_set = parse_if_rule(&mut pairs, Rule::selection_set, |pair| {
+        parse_selection_set_internal(pair, pc)
+    })?;
 
     debug_assert_eq!(pairs.next(), None);
 
@@ -299,7 +315,7 @@ fn parse_inline_fragment(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Resul
 
     let type_condition = parse_if_rule(&mut pairs, Rule::type_condition, |pair| parse_type_condition(pair, pc))?;
     let directives = parse_opt_directives(&mut pairs, pc)?;
-    let selection_set = parse_selection_set(pairs.next().unwrap(), pc)?;
+    let selection_set = parse_selection_set_internal(pairs.next().unwrap(), pc)?;
 
     debug_assert_eq!(pairs.next(), None);
 
@@ -330,7 +346,7 @@ fn parse_fragment_definition_item(
     let name = parse_name(pairs.next().unwrap(), pc)?;
     let type_condition = parse_type_condition(pairs.next().unwrap(), pc)?;
     let directives = parse_opt_directives(&mut pairs, pc)?;
-    let selection_set = parse_selection_set(pairs.next().unwrap(), pc)?;
+    let selection_set = parse_selection_set_internal(pairs.next().unwrap(), pc)?;
 
     debug_assert_eq!(pairs.next(), None);
 

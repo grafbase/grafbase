@@ -8,6 +8,8 @@
 
 use std::net::SocketAddr;
 
+mod requires;
+
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
 use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::json;

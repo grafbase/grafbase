@@ -1,12 +1,14 @@
+use engine_parser::parse_selection_set;
 use engine_value::ConstValue;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
+use serde_json::Value;
 
 use crate::{
     registry::{
         resolvers::{ResolvedValue, ResolverContext},
         scalars::{DynamicScalar, PossibleScalar},
         type_kinds::OutputType,
-        MetaField, MetaType, ScalarParser, TypeReference,
+        FieldSet, MetaField, MetaType, ScalarParser, TypeReference,
     },
     Context, ContextExt, ContextField, Error, QueryPathSegment, ServerError,
 };
@@ -57,6 +59,12 @@ pub async fn resolve_field(
         ));
     };
 
+    let mut parent_resolver_value = parent_resolver_value.unwrap_or_default();
+
+    if let Some(requires) = &field.requires {
+        parent_resolver_value = resolve_requires_fieldset(parent_resolver_value, requires, ctx).await?;
+    }
+
     let result = match CurrentResolverType::new(&field, ctx) {
         CurrentResolverType::PRIMITIVE => resolve_primitive_field(ctx, field, parent_resolver_value).await,
         CurrentResolverType::CONTAINER => resolve_container_field(ctx, field, parent_resolver_value).await,
@@ -80,7 +88,7 @@ pub async fn resolve_field(
 async fn resolve_primitive_field(
     ctx: &ContextField<'_>,
     field: &MetaField,
-    parent_resolver_value: Option<ResolvedValue>,
+    parent_resolver_value: ResolvedValue,
 ) -> Result<ResponseNodeId, ServerError> {
     let resolved_value = run_field_resolver(&ctx, parent_resolver_value)
         .await
@@ -164,7 +172,7 @@ async fn resolve_primitive_field(
 async fn resolve_container_field(
     ctx: &ContextField<'_>,
     field: &MetaField,
-    parent_resolver_value: Option<ResolvedValue>,
+    parent_resolver_value: ResolvedValue,
 ) -> Result<ResponseNodeId, ServerError> {
     // If there is a resolver associated to the container we execute it before
     // asking to resolve the other fields
@@ -242,7 +250,7 @@ async fn resolve_container_field(
 async fn resolve_array_field(
     ctx: &ContextField<'_>,
     field: &MetaField,
-    parent_resolver_value: Option<ResolvedValue>,
+    parent_resolver_value: ResolvedValue,
 ) -> Result<ResponseNodeId, ServerError> {
     let registry = ctx.registry();
     let container_type = registry
@@ -263,9 +271,9 @@ async fn resolve_array_field(
 
 async fn run_field_resolver(
     ctx: &ContextField<'_>,
-    parent_resolver_value: Option<ResolvedValue>,
+    parent_resolver_value: ResolvedValue,
 ) -> Result<ResolvedValue, Error> {
-    let mut final_result = parent_resolver_value.unwrap_or_default();
+    let mut final_result = parent_resolver_value;
 
     if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
         // If we are in an index segment, it means we do not have a current resolver (YET).
@@ -286,6 +294,42 @@ async fn run_field_resolver(
     }
 
     Ok(final_result)
+}
+
+async fn resolve_requires_fieldset(
+    parent_resolver_value: ResolvedValue,
+    requires: &FieldSet,
+    ctx: &ContextField<'_>,
+) -> Result<ResolvedValue, ServerError> {
+    let all_fields_present = match parent_resolver_value.data_resolved() {
+        Value::Object(object) => requires.all_fields_are_present(object),
+        _ => false,
+    };
+
+    if all_fields_present {
+        return Ok(parent_resolver_value);
+    }
+
+    let selection_set_string = format!("{{ {requires} }}");
+    let selection_set = parse_selection_set(&selection_set_string).map_err(|error| {
+        log::error!(
+            ctx.trace_id(),
+            "Could not parse require string `{selection_set_string} as selection set: {error}"
+        );
+        ServerError::new("Internal error processing @requires", None)
+    })?;
+
+    let require_context = ctx.with_requires_selection_set(&selection_set);
+
+    let node_id = resolve_container(&require_context, None, parent_resolver_value.clone()).await?;
+
+    let data = ctx
+        .response()
+        .await
+        .take_node_into_const_value(node_id)
+        .expect("this has to work");
+
+    Ok(ResolvedValue::new(data.into()))
 }
 
 #[derive(Debug)]
