@@ -1,0 +1,5 @@
+type User {
+  id: ID!
+  fullName: String
+  creditScore: Int @resolver(name: "nested/somewhere/else")
+}

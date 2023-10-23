@@ -10,8 +10,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@grafbase/sdk": "^0.7.0",
-    "@types/node": "^20.8.5"
+    "@grafbase/sdk": "^0.7.0"
   },
   "dependencies": {
   }

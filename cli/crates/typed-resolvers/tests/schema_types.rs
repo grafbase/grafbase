@@ -1,6 +1,5 @@
-#![allow(clippy::panic)] // this is tests, panicking signals failure
+#![allow(clippy::panic, unused_crate_dependencies)] // this is tests, panicking signals failure
 
-use graphql_parser as _;
 use std::{fs, path::Path, sync::OnceLock};
 
 fn update_expect() -> bool {

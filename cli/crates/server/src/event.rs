@@ -1,23 +1,26 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::sync::broadcast::Receiver;
 
 /// server lifecycle related events
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Event {
-    /// emitted when a schema change is detected
+    /// emitted when a schema or UDF change is detected
     /// and the server should be reloaded
     Reload(PathBuf),
     /// emitted when the bridge is ready to receive requests
     BridgeReady,
     /// emitted when the proxy server has a startup error
     ProxyError,
+    /// emitted when an SDL schema produced from the TS config has been written. Contains the file
+    /// path where it was written.
+    NewSdlFromTsConfig(Box<Path>),
 }
 
 impl Event {
     pub fn should_restart_servers(&self) -> bool {
         match self {
             Self::Reload(_) | Self::ProxyError => true,
-            Self::BridgeReady => false,
+            Self::BridgeReady | Self::NewSdlFromTsConfig(_) => false,
         }
     }
 }

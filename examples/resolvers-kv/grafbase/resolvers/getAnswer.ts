@@ -1,6 +1,8 @@
-import { Context, Info } from '@grafbase/sdk'
+import { Resolver } from '@grafbase/generated'
 
-export default async function(parent, _, { kv }: Context, info: Info) {
+const resolver: Resolver['Question.getAnswer'] = async (parent, args, { kv }, info) => {
     const { value } = await kv.get(`answers/${parent.id}`)
     return `⚙️ Result of ${info.fieldName}: ${value}`
 }
+
+export default resolver

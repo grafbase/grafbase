@@ -59,7 +59,7 @@ const ROOT_FILE_WHITELIST: [&str; 2] = [GRAFBASE_SCHEMA_FILE_NAME, DOT_ENV_FILE_
 const EXTENSION_WHITELIST: [&str; 11] = [
     "js", "ts", "jsx", "tsx", "mjs", "mts", ".wasm", "cjs", "json", "yaml", "yml",
 ];
-const DIRECTORY_BLACKLIST: [&str; 1] = ["node_modules"];
+const DIRECTORY_BLACKLIST: &[&str] = &["node_modules", "generated"];
 
 fn should_handle_change(path: &Path, root: &Path) -> bool {
     is_whitelisted_root_file(path, root)

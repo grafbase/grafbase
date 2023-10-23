@@ -66,6 +66,7 @@ tantivy-fst = "0.4.0"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.40.2" }
 gateway = { path = "../gateway" }
+typed-resolvers = { path = "../typed-resolvers" }
 engine = { path = "../../../engine/crates/engine" }
 runtime = { path = "../../../engine/crates/runtime" }
 parser-sdl = { path = "../../../engine/crates/parser-sdl", features = [
