@@ -329,6 +329,20 @@ describe('Type generator', () => {
     `)
   })
 
+  it('supports field resolvers with requires directive', () => {
+    g.type('User', {
+      id: g.id(),
+      name: g.string().resolver('a-field').requires('id')
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User {
+        id: ID!
+        name: String! @resolver(name: "a-field") @requires(fields: "id")
+      }"
+    `)
+  })
+
   it('supports federation keys', () => {
     g.type('User', {
       id: g.id()
