@@ -159,7 +159,7 @@ fn write_resolver_type<O: fmt::Write>(schema: &AnalyzedSchema<'_>, out: &mut O) 
         return Ok(());
     }
 
-    writeln!(out, "{RESOLVER_FN_DEFINITION}")?;
+    writeln!(out, "\nimport * as sdk from '@grafbase/sdk'\n")?;
     writeln!(out, "export type Resolver = {{")?;
 
     for (object_id, field_id, field) in fields {
@@ -181,18 +181,12 @@ fn write_resolver_type<O: fmt::Write>(schema: &AnalyzedSchema<'_>, out: &mut O) 
 
         writeln!(
             out,
-            "{INDENT}'{resolver_id}': ResolverFn<{parent_object_generated_type_name}, {arguments}, {rendered_field_type}>"
+            "{INDENT}'{resolver_id}': sdk.ResolverFn<{parent_object_generated_type_name}, {arguments}, {rendered_field_type}>"
         )?;
     }
 
     writeln!(out, "}}\n")
 }
-
-const RESOLVER_FN_DEFINITION: &str = r#"
-import * as sdk from '@grafbase/sdk'
-type ResolverFn<Parent, Args, Return> = ((parent: Parent, args: Args, context: sdk.Context, info: sdk.Info) => Return) |
-    ((parent: Parent, args: Args, context: sdk.Context, pageInfo: sdk.Info) => Promise<Return>)
-"#;
 
 const HEADER: &str = r#"// This is a generated file. It should not be edited manually.
 //
