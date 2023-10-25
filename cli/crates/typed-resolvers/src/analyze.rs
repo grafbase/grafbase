@@ -65,6 +65,16 @@ fn analyze_top_level<'doc>(graphql_document: &'doc ast::ServiceDocument, schema:
             ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (), // not interested
         }
     }
+
+    for name in ["Query", "Mutation", "Subscription"] {
+        if !schema.definition_names.contains_key(name) {
+            schema.push_output_type(Object {
+                name,
+                docs: None,
+                kind: ObjectKind::Object,
+            });
+        }
+    }
 }
 
 /// Second pass. We know about all definitions, now we analyze fields inside object and interface
