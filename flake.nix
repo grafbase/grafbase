@@ -32,14 +32,6 @@
 
       aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8"];
 
-      x86_64LinuxPkgs = import nixpkgs {
-        inherit system;
-        crossSystem = {
-          config = "x86_64-unknown-linux-musl";
-        };
-      };
-      x86_64LinuxBuildPkgs = x86_64LinuxPkgs.buildPackages;
-
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
           [
@@ -94,31 +86,5 @@
       };
     in {
       devShells.default = pkgs.mkShell defaultShellConf;
-      devShells.full = pkgs.mkShell (defaultShellConf
-        // {
-          buildInputs = with pkgs; [
-            rustToolChain
-            x86_64LinuxBuildPkgs.gcc
-          ];
-
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
-          CC_x86_64_unknown_linux_musl = "${x86_64LinuxBuildPkgs.gcc.out}/bin/x86_64-unknown-linux-gnu-gcc";
-        });
-      # Nightly Rust
-      #
-      # Clippy:
-      #   nix develop .#nightly --command bash -c 'cd cli && cargo clippy --all-targets'
-      #
-      # Check Rust version:
-      #   nix develop .#nightly --command bash -c 'echo "$PATH" | tr ":" "\n" | grep nightly'
-      devShells.nightly = pkgs.mkShell {
-        nativeBuildInputs = with pkgs; [
-          (rust-bin.selectLatestNightlyWith
-            (toolchain:
-              toolchain.minimal.override {
-                extensions = ["clippy"];
-              }))
-        ];
-      };
     });
 }
