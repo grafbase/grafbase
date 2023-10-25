@@ -42,6 +42,21 @@ fn test_petstore_output() {
 }
 
 #[test]
+fn test_petstore_without_prefix() {
+    let registry = build_registry(
+        "test_data/petstore.openapi.json",
+        Format::Json,
+        ApiMetadata {
+            type_prefix: None,
+            ..metadata("petstore", false)
+        },
+    )
+    .unwrap();
+
+    insta::assert_snapshot!(registry.export_sdl(false));
+}
+
+#[test]
 fn test_flat_output() {
     let registry = build_registry(
         "test_data/petstore.openapi.json",

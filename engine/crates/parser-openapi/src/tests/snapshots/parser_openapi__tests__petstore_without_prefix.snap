@@ -1,0 +1,113 @@
+---
+source: crates/parser-openapi/src/tests/mod.rs
+expression: registry.export_sdl(false)
+---
+type ApiResponse {
+	message: String
+	type: String
+	code: Int
+}
+type Category {
+	name: String
+	id: Int
+}
+input CategoryInput {
+	name: String
+	id: Int
+}
+enum FindPetsByStatusStatus {
+	AVAILABLE
+	PENDING
+	SOLD
+}
+type Mutation {
+	updatePet(input: PetInput!): Pet
+	addPet(input: PetInput!): Pet
+	uploadFile(petId: Int!, additionalMetadata: String): ApiResponse
+	placeOrder(input: OrderInput!): Order
+	createUsersWithListInput(input: [UserInput!]!): User
+}
+type Order {
+	complete: Boolean
+	status: OrderStatus
+	shipDate: String
+	quantity: Int
+	petId: Int
+	id: Int
+}
+input OrderInput {
+	complete: Boolean
+	status: OrderStatus
+	shipDate: String
+	quantity: Int
+	petId: Int
+	id: Int
+}
+enum OrderStatus {
+	PLACED
+	APPROVED
+	DELIVERED
+}
+type Pet {
+	status: PetStatus
+	tags: [Tag!]
+	photoUrls: [String!]!
+	category: Category
+	name: String!
+	id: Int
+}
+input PetInput {
+	status: PetStatus
+	tags: [TagInput!]!
+	photoUrls: [String!]!
+	category: CategoryInput!
+	name: String!
+	id: Int
+}
+enum PetStatus {
+	AVAILABLE
+	PENDING
+	SOLD
+}
+type Query {
+	findPetsByStatus(status: FindPetsByStatusStatus = AVAILABLE): [Pet!]
+	findPetsByTags(tags: [String!]): [Pet!]
+	pet(petId: Int!): Pet
+	inventory: JSON
+	order(orderId: Int!): Order
+	loginUser(password: String, username: String): String
+	user(username: String!): User
+}
+type Tag {
+	name: String
+	id: Int
+}
+input TagInput {
+	name: String
+	id: Int
+}
+type User {
+	userStatus: Int
+	phone: String
+	password: String
+	email: String
+	lastName: String
+	firstName: String
+	username: String
+	id: Int
+}
+input UserInput {
+	userStatus: Int
+	phone: String
+	password: String
+	email: String
+	lastName: String
+	firstName: String
+	username: String
+	id: Int
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

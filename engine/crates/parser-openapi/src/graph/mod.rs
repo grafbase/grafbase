@@ -444,10 +444,9 @@ impl OpenApiGraph {
 
                 let root_name = self.graph[named_node].name().unwrap();
                 name_components.push(Cow::Borrowed(root_name.as_str()));
-                name_components.push(Cow::Owned(self.metadata.unique_namespace()));
                 name_components.reverse();
 
-                Some(name_components.join("_").to_pascal_case())
+                Some(self.metadata.prefix_type(&name_components.join("_")).to_pascal_case())
             }
             Node::Scalar(kind) => Some(kind.type_name()),
             Node::PlaceholderType => {
