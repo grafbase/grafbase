@@ -1,0 +1,4 @@
+type Band {
+    name: String!
+    revenue: Int
+}

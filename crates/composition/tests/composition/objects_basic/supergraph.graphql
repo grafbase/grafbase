@@ -1,0 +1,6 @@
+type User {
+    name: String
+    age: Int
+    id: ID
+    score: Float
+}
