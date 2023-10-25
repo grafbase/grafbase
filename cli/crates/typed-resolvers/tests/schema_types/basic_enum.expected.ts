@@ -11,8 +11,6 @@
 //    }
 //  }
 
-export enum Color {
-  RED,
-  GREEN,
-  BLUE,
-}
+export type Schema = {
+  'Color': | 'RED'| 'GREEN'| 'BLUE';
+};
