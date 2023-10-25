@@ -11,40 +11,38 @@
 //    }
 //  }
 
-export type User = {
-  __typename?: 'User';
-  id: string;
-  name: string;
-  account?: Account;
+export type Schema = {
+  'User': {
+    __typename?: 'User';
+    id: string;
+    name: string;
+    account?: Schema['Account'];
+  };
+  'Account': {
+    __typename?: 'Account';
+    id: string;
+    email: string;
+  };
+  'Other': {
+    __typename?: 'Other';
+    id: string;
+  };
+  'UserFilter': {
+    name_eq: string | null;
+  };
+  'Query': {
+    __typename?: 'Query';
+    user?: Schema['User'] | null;
+    users?: Array<Schema['User'] | null> | null;
+    other?: Schema['Other'] | null;
+  };
 };
 
-export type Account = {
-  __typename?: 'Account';
-  id: string;
-  email: string;
-};
-
-export type Other = {
-  __typename?: 'Other';
-  id: string;
-};
-
-export type UserFilter = {
-  name_eq: string | null;
-};
-
-export type Query = {
-  __typename?: 'Query';
-  user?: User | null;
-  users?: Array<User | null> | null;
-  other?: Other | null;
-};
-
-import * as sdk from '@grafbase/sdk'
+import { ResolverFn } from '@grafbase/sdk'
 
 export type Resolver = {
-  'Query.user': sdk.ResolverFn<Query, { anonymize: boolean | null,  }, User | null>
-  'Query.users': sdk.ResolverFn<Query, { filter: UserFilter | null, take: number,  }, Array<User | null> | null>
-  'Query.other': sdk.ResolverFn<Query, {  }, Other | null>
+  'Query.user': ResolverFn<Schema['Query'], { anonymize: boolean | null,  }, Schema['User'] | null>
+  'Query.users': ResolverFn<Schema['Query'], { filter: Schema['UserFilter'] | null, take: number,  }, Array<Schema['User'] | null> | null>
+  'Query.other': ResolverFn<Schema['Query'], {  }, Schema['Other'] | null>
 }
 

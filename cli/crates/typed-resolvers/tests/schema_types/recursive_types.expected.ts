@@ -11,23 +11,22 @@
 //    }
 //  }
 
-export type TreeNode = {
-  __typename?: 'TreeNode';
-  value: number;
-  children?: Array<TreeNode | null> | null;
-};
-
-export type TreeNodeInput = {
-  value: number;
-  children: Array<TreeNodeInput | null> | null;
-};
-
-export type Query = {
-  __typename?: 'Query';
-  getTree?: TreeNode | null;
-};
-
-export type Mutation = {
-  __typename?: 'Mutation';
-  createTree?: TreeNode | null;
+export type Schema = {
+  'TreeNode': {
+    __typename?: 'TreeNode';
+    value: number;
+    children?: Array<Schema['TreeNode'] | null> | null;
+  };
+  'TreeNodeInput': {
+    value: number;
+    children: Array<Schema['TreeNodeInput'] | null> | null;
+  };
+  'Query': {
+    __typename?: 'Query';
+    getTree?: Schema['TreeNode'] | null;
+  };
+  'Mutation': {
+    __typename?: 'Mutation';
+    createTree?: Schema['TreeNode'] | null;
+  };
 };

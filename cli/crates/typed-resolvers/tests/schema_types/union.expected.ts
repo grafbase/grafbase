@@ -11,16 +11,16 @@
 //    }
 //  }
 
-export type Dog = {
-  __typename?: 'Dog';
-  id: string;
-  barkVolume: number | null;
+export type Schema = {
+  'Dog': {
+    __typename?: 'Dog';
+    id: string;
+    barkVolume: number | null;
+  };
+  'Cat': {
+    __typename?: 'Cat';
+    id: string;
+    meowVolume: number | null;
+  };
+  'Pet': | Schema['Cat'] | Schema['Dog'];
 };
-
-export type Cat = {
-  __typename?: 'Cat';
-  id: string;
-  meowVolume: number | null;
-};
-
-export type Pet = Cat | Dog;

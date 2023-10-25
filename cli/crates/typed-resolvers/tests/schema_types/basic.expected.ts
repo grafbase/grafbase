@@ -11,7 +11,9 @@
 //    }
 //  }
 
-export type Test = {
-  __typename?: 'Test';
-  id: string | null;
+export type Schema = {
+  'Test': {
+    __typename?: 'Test';
+    id: string | null;
+  };
 };

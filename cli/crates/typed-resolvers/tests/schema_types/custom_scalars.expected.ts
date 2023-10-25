@@ -11,12 +11,13 @@
 //    }
 //  }
 
-/**
- * An IPv4 address
- */
-export type NetworkAddress = any;
-
-export type QueryRoot = {
-  __typename?: 'QueryRoot';
-  address: NetworkAddress | null;
+export type Schema = {
+  /**
+   * An IPv4 address
+   */
+  'NetworkAddress': any;
+  'QueryRoot': {
+    __typename?: 'QueryRoot';
+    address: Schema['NetworkAddress'] | null;
+  };
 };
