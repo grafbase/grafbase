@@ -41,12 +41,10 @@ export type Query = {
 };
 
 import * as sdk from '@grafbase/sdk'
-type ResolverFn<Parent, Args, Return> = ((parent: Parent, args: Args, context: sdk.Context, info: sdk.Info) => Return) |
-    ((parent: Parent, args: Args, context: sdk.Context, pageInfo: sdk.Info) => Promise<Return>)
 
 export type Resolver = {
-  'Query.user': ResolverFn<Query, { anonymize: boolean | null,  }, User | null>
-  'Query.users': ResolverFn<Query, { filter: UserFilter | null, take: number,  }, Array<User | null> | null>
-  'Query.other': ResolverFn<Query, {  }, Other | null>
+  'Query.user': sdk.ResolverFn<Query, { anonymize: boolean | null,  }, User | null>
+  'Query.users': sdk.ResolverFn<Query, { filter: UserFilter | null, take: number,  }, Array<User | null> | null>
+  'Query.other': sdk.ResolverFn<Query, {  }, Other | null>
 }
 
