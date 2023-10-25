@@ -15,6 +15,12 @@ where
         match definition {
             Definition::Object(id) => {
                 let object_type = &schema[*id];
+                let mut fields = schema.iter_object_fields(*id).peekable();
+
+                if fields.peek().is_none() {
+                    continue;
+                }
+
                 let object_type_name = object_type.name;
                 let is_input_object = matches!(object_type.kind, ObjectKind::InputObject);
 
@@ -25,7 +31,7 @@ where
                     writeln!(out, "{DOUBLE_INDENT}__typename?: '{object_type_name}';")?;
                 }
 
-                for field in schema.iter_object_fields(*id) {
+                for field in fields {
                     let field_optional = !is_input_object
                         && matches!(
                             field.r#type.kind,
