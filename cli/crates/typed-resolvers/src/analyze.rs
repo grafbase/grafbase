@@ -202,6 +202,7 @@ fn analyze_ast_input_field<'doc>(
         docs: field.description.as_ref().map(|d| d.node.as_str()),
         r#type: GraphqlType::resolve(&field.ty.node, schema)?,
         resolver_name: None, // no resolvers on input fields
+        has_arguments: false,
     })
 }
 
@@ -228,6 +229,7 @@ fn analyze_ast_field<'doc>(field: &'doc ast::FieldDefinition, schema: &AnalyzedS
         docs: field.description.as_ref().map(|d| d.node.as_str()),
         r#type,
         resolver_name,
+        has_arguments: !field.arguments.is_empty(),
     })
 }
 
@@ -288,6 +290,7 @@ pub(crate) struct Field<'doc> {
     pub(crate) name: &'doc str,
     pub(crate) docs: Option<&'doc str>,
     pub(crate) r#type: GraphqlType,
+    pub(crate) has_arguments: bool,
 
     /// ```graphql,ignore
     /// @resolver(name: "user/fullName")

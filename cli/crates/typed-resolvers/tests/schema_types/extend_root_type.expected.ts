@@ -14,11 +14,11 @@
 export type Schema = {
   'Query': {
     __typename?: 'Query';
-    ping: string;
+    ping?: string;
   };
   'Mutation': {
     __typename?: 'Mutation';
-    pong: string;
+    pong?: string;
   };
   'Subscription': {
     __typename?: 'Subscription';

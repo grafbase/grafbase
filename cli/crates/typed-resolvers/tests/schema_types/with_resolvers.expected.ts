@@ -16,6 +16,8 @@ export type Schema = {
     __typename?: 'User';
     id: string;
     name: string;
+    biography?: string;
+    linkedInProfile?: string;
     account?: Schema['Account'];
   };
   'Account': {
@@ -41,6 +43,7 @@ export type Schema = {
 import { ResolverFn } from '@grafbase/sdk'
 
 export type Resolver = {
+  'User.linkedInProfile': ResolverFn<Schema['User'], {  }, string>
   'Query.user': ResolverFn<Schema['Query'], { anonymize: boolean | null,  }, Schema['User'] | null>
   'Query.users': ResolverFn<Schema['Query'], { filter: Schema['UserFilter'] | null, take: number,  }, Array<Schema['User'] | null> | null>
   'Query.other': ResolverFn<Schema['Query'], {  }, Schema['Other'] | null>
