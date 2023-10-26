@@ -15,7 +15,7 @@ ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db32
 
 
 [workspace.package]
-version = "0.41.0"
+version = "0.41.1"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"
