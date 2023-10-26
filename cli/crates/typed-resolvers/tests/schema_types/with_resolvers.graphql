@@ -3,6 +3,8 @@ directive @resolver(name: String) on FIELD_DEFINITION
 type User {
     id: ID!
     name: String!
+    biography(short: Boolean): String!
+    linkedInProfile: String! @resolver(name: "user/linkedin-profile")
     account: Account!
 }
 

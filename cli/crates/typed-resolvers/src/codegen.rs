@@ -33,10 +33,11 @@ where
 
                 for field in fields {
                     let field_optional = !is_input_object
-                        && matches!(
+                        && (matches!(
                             field.r#type.kind,
                             TypeKind::Definition(Definition::Object(_) | Definition::Union(_))
-                        );
+                        ) || field.resolver_name.is_some()
+                            || field.has_arguments);
 
                     let field_optional = if field_optional { "?" } else { "" };
                     let field_name = field.name;
