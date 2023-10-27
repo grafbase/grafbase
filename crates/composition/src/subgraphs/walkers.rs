@@ -45,6 +45,10 @@ impl<'a> DefinitionWalker<'a> {
         self.definition().kind
     }
 
+    pub fn is_entity(self) -> bool {
+        self.subgraphs.iter_object_keys(self.id).next().is_some()
+    }
+
     pub fn subgraph(self) -> SubgraphWalker<'a> {
         self.walk(self.definition().subgraph_id)
     }
@@ -53,6 +57,24 @@ impl<'a> DefinitionWalker<'a> {
 impl<'a> FieldWalker<'a> {
     fn field(self) -> &'a Field {
         &self.subgraphs.fields[self.id.0]
+    }
+
+    /// Returns true iff there is an `@key` directive containing exactly this field (no composite
+    /// key).
+    pub fn is_key(self) -> bool {
+        let field = self.field();
+        self.subgraphs.iter_object_keys(field.parent_id).any(|key| {
+            let mut key_fields = key.fields();
+            let Some(first_field) = key_fields.next() else {
+                return false;
+            };
+
+            if key_fields.next().is_some() || first_field.children().next().is_some() {
+                return false;
+            }
+
+            first_field.field() == field.name
+        })
     }
 
     pub fn is_shareable(self) -> bool {

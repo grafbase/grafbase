@@ -1,11 +1,13 @@
-mod object;
+mod keys;
+mod selection_sets;
 mod walkers;
 
 pub(crate) use self::walkers::*;
 
+use self::{keys::*, selection_sets::*};
 use crate::strings::{StringId, Strings};
 use itertools::Itertools;
-use std::{collections::BTreeSet, ops};
+use std::collections::BTreeSet;
 
 /// A set of subgraphs to be composed.
 #[derive(Default)]
@@ -18,6 +20,13 @@ pub struct Subgraphs {
 
     // Invariant: `fields` is sorted by `Field::object_id`. We rely on it for binary search.
     fields: Vec<Field>,
+
+    /// All the keys (`@key(...)`) in all the subgraphs in one container.
+    keys: Keys,
+
+    /// Storage for selection sets. Technically only a restricted version of selection sets allowed
+    /// inside `@key(fields: "...")`.
+    selection_sets: SelectionSets,
 
     // Secondary indexes.
 
@@ -45,27 +54,27 @@ impl Subgraphs {
     }
 
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The
-    /// argument is a closure that receives, for each group, the first definition of the group and
-    /// an iterator over all the other definitions in the group. The order of iteration is
+    /// argument is a closure that receives each group as argument. The order of iteration is
     /// deterministic but unspecified.
     pub(crate) fn iter_definition_groups<'a>(
         &'a self,
-        mut compose_fn: impl FnMut(DefinitionWalker<'a>, &mut dyn Iterator<Item = DefinitionWalker<'a>>),
+        mut compose_fn: impl FnMut(&[DefinitionWalker<'a>]),
     ) {
+        let mut buf = Vec::new();
         for (_, group) in &self.definition_names.iter().group_by(|(name, _)| name) {
-            let mut group = group
-                .into_iter()
-                .map(move |(_, definition_id)| self.walk(*definition_id));
-            let Some(first_definition_id) = group.next() else {
-                continue;
-            };
-            compose_fn(first_definition_id, &mut group);
+            buf.clear();
+            buf.extend(
+                group
+                    .into_iter()
+                    .map(move |(_, definition_id)| self.walk(*definition_id)),
+            );
+            compose_fn(&buf);
         }
     }
 
-    /// Iterate over groups of fields to compose. The definitions are grouped by parent type name
-    /// and field name. The argument is a closure that receives each group as an argument. The
-    /// order of iteration is deterministic but unspecified.
+    /// Iterate over groups of fields to compose. The fields are grouped by parent type name and
+    /// field name. The argument is a closure that receives each group as an argument. The order of
+    /// iteration is deterministic but unspecified.
     pub(crate) fn iter_field_groups<'a>(&'a self, mut compose_fn: impl FnMut(&[FieldWalker<'a>])) {
         let mut buf = Vec::new();
         for (_, group) in &self

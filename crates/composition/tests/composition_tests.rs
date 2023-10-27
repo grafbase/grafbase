@@ -13,10 +13,14 @@ fn run_test(supergraph_path: &Path) -> datatest_stable::Result<()> {
         return Err(miette::miette!("{} is not a directory.", subgraphs_dir.display()).into());
     }
 
-    let subgraphs_sdl = fs::read_dir(subgraphs_dir)?
+    let mut subgraphs_sdl = fs::read_dir(subgraphs_dir)?
         .filter_map(Result::ok)
         .map(|file| fs::read_to_string(file.path()).map(|contents| (contents, file.path())))
         .collect::<Result<Vec<_>, _>>()?;
+
+    // [fs::read_dir()] doesn't guarantee ordering. Sort to make tests deterministic
+    // (inconsistencies observed in CI).
+    subgraphs_sdl.sort_by_key(|(_, path)| path.file_name().unwrap().to_owned());
 
     let mut subgraphs = grafbase_composition::Subgraphs::default();
 
@@ -32,7 +36,11 @@ fn run_test(supergraph_path: &Path) -> datatest_stable::Result<()> {
         Ok(sdl) => sdl,
         Err(diagnostics) => format!(
             "{}\n",
-            diagnostics.iter_messages().collect::<Vec<_>>().join("\n"),
+            diagnostics
+                .iter_messages()
+                .map(|msg| format!("# {msg}"))
+                .collect::<Vec<_>>()
+                .join("\n"),
         ),
     };
 

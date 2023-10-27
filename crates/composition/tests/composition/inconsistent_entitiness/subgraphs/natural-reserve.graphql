@@ -1,0 +1,5 @@
+type Animal @federation__key(fields: "id") {
+    id: ID!
+    age: Int!
+}
+

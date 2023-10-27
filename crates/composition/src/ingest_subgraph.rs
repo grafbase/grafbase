@@ -1,6 +1,7 @@
 //! This is a separate module because we want to use only the public API of [Subgraphs] and avoid
 //! mixing GraphQL parser logic and types with our internals.
 
+mod object;
 mod schema_definitions;
 
 use self::schema_definitions::*;
@@ -27,7 +28,6 @@ pub(crate) fn ingest_subgraph(
     );
 }
 
-
 fn ingest_top_level_definitions(
     subgraph_id: SubgraphId,
     document: &ast::ServiceDocument,
@@ -45,10 +45,12 @@ fn ingest_top_level_definitions(
                             type_name,
                             DefinitionKind::Object,
                         );
-
-                        let object_is_shareable = type_definition.node.directives.iter().any(|d| {
-                            federation_directives_matcher.is_shareable(d.node.name.node.as_str())
-                        });
+                        let object_is_shareable = object::ingest_directives(
+                            definition_id,
+                            &type_definition.node,
+                            subgraphs,
+                            federation_directives_matcher,
+                        );
 
                         for field in &object_type.fields {
                             let is_shareable = object_is_shareable

@@ -1,0 +1,25 @@
+type Author @federation__key(fields: "name") {
+  id: ID! @federation__shareable
+  name: String!
+  articles: [Article]
+}
+
+type Article {
+  id: ID!
+  title: String!
+  content: String
+  author: Author
+}
+
+type Query {
+  authors: [Author]
+  articles: [Article]
+  authorById(id: ID!): Author
+  articleById(id: ID!): Article
+}
+
+type Mutation {
+  addAuthor(name: String!, age: Int): Author
+  addArticle(title: String!, content: String, authorId: ID!): Article
+}
+
