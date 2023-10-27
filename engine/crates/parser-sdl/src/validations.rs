@@ -2,12 +2,14 @@ use std::sync::OnceLock;
 
 use engine::{
     registry::{
+        federation::FederationResolver,
         field_set::Selection,
         resolvers::{join::JoinResolver, Resolver},
-        MetaField,
+        MetaField, MetaFieldType,
     },
     Registry,
 };
+use engine_parser::types::{BaseType, Type};
 use indexmap::IndexMap;
 use regex::Regex;
 
@@ -34,6 +36,7 @@ pub fn post_parsing_validations(registry: &Registry) -> Vec<RuleError> {
 
     errors.extend(validate_all_requires(registry));
     errors.extend(validate_joins(registry));
+    errors.extend(validate_federation_joins(registry));
 
     errors
 }
@@ -52,8 +55,7 @@ fn validate_all_requires(registry: &Registry) -> Vec<RuleError> {
                     &field_set.0,
                     fields,
                     registry,
-                    ty.name(),
-                    &field.name,
+                    SchemaCoord::Field(ty.name(), &field.name),
                     ty.name(),
                 ));
             }
@@ -67,14 +69,19 @@ fn validate_single_require(
     required_fields: &[Selection],
     available_fields: &IndexMap<String, MetaField>,
     registry: &Registry,
-    type_with_requires: &str,
-    field_with_requires: &str,
+    coord: SchemaCoord<'_>,
     current_type: &str,
 ) -> Vec<RuleError> {
     let mut errors = vec![];
     for selection in required_fields {
         let Some(field) = available_fields.get(&selection.field) else {
-            errors.push(RuleError::new(vec![], format!("The field {field_with_requires} on {type_with_requires} declares that it requires the field {} on {current_type} but that field doesn't exist", &selection.field)));
+            errors.push(RuleError::new(
+                vec![],
+                format!(
+                    "{coord} declares that it requires the field {} on {current_type} but that field doesn't exist",
+                    &selection.field
+                ),
+            ));
             continue;
         };
 
@@ -84,7 +91,13 @@ fn validate_single_require(
                 .expect("all the registry types to actually exist");
 
             let Some(fields) = ty.field_map() else {
-                errors.push(RuleError::new(vec![], format!("The field {field_with_requires} on {type_with_requires} tries to require subfields of {} on {current_type} but that field is a leaf type", &selection.field)));
+                errors.push(RuleError::new(
+                    vec![],
+                    format!(
+                        "{coord} tries to require subfields of {} on {current_type} but that field is a leaf type",
+                        &selection.field
+                    ),
+                ));
                 continue;
             };
 
@@ -92,8 +105,7 @@ fn validate_single_require(
                 &selection.selections,
                 fields,
                 registry,
-                type_with_requires,
-                field_with_requires,
+                coord,
                 ty.name(),
             ));
         }
@@ -107,12 +119,16 @@ fn validate_joins(registry: &Registry) -> Vec<RuleError> {
     let mut errors = vec![];
 
     for ty in registry.types.values() {
-        let Some(fields) = ty.fields() else {
-            continue;
-        };
+        let Some(fields) = ty.fields() else { continue };
+
         for field in fields.values() {
             if let Resolver::Join(join) = &field.resolver {
-                errors.extend(validate_join(join, registry, ty.name(), field));
+                errors.extend(validate_join(
+                    join,
+                    registry,
+                    SchemaCoord::Field(ty.name(), &field.name),
+                    &field.ty,
+                ));
             }
         }
     }
@@ -120,23 +136,36 @@ fn validate_joins(registry: &Registry) -> Vec<RuleError> {
     errors
 }
 
-fn validate_join(join: &JoinResolver, registry: &Registry, type_with_join: &str, field: &MetaField) -> Vec<RuleError> {
-    let field_with_join = &field.name;
+fn validate_join(
+    join: &JoinResolver,
+    registry: &Registry,
+    coord: SchemaCoord<'_>,
+    expected_return_type: &MetaFieldType,
+) -> Vec<RuleError> {
     let mut errors = vec![];
 
     let root_query_type = registry.root_type(engine_parser::types::OperationType::Query);
     let Some(destination_field) = root_query_type.field(&join.field_name) else {
         errors.push(RuleError::new(
             vec![],
-            format!("The field {field_with_join} of the type {type_with_join} is trying to join with a field named {}, which doesn't exist on the {} type", join.field_name, root_query_type.name()),
+            format!(
+                "{coord} is trying to join with a field named {}, which doesn't exist on the {} type",
+                join.field_name,
+                root_query_type.name()
+            ),
         ));
         return errors;
     };
 
-    if field.ty != destination_field.ty {
+    // TODO: Make this a bit more forgiving.
+    // If destination_field is non-null but expected_return is null that's fine...
+    if !types_are_compatible(&destination_field.ty, expected_return_type) {
         errors.push(RuleError::new(
             vec![],
-        format!("The field {field_with_join} of the type {type_with_join} is trying to join with the field named {}, but those fields do not have the same type", join.field_name),
+            format!(
+                "{coord} is trying to join with the field named {}, but those fields do not have compatible types",
+                join.field_name
+            ),
         ));
     }
 
@@ -144,7 +173,7 @@ fn validate_join(join: &JoinResolver, registry: &Registry, type_with_join: &str,
         if argument.ty.is_non_null() && !join.arguments.contains_argument(name) {
             errors.push(RuleError::new(
                 vec![],
-            format!("The field {field_with_join} of the type {type_with_join} is trying to join with the field named {}, but does not provide the non-nullable argument {name}", join.field_name),
+            format!("{coord} is trying to join with the field named {}, but does not provide the non-nullable argument {name}", join.field_name),
             ));
         }
 
@@ -153,4 +182,77 @@ fn validate_join(join: &JoinResolver, registry: &Registry, type_with_join: &str,
     }
 
     errors
+}
+
+fn types_are_compatible(actual_type: &MetaFieldType, expected_type: &MetaFieldType) -> bool {
+    let Some(actual) = Type::new(actual_type.as_str()) else {
+        return false;
+    };
+    let Some(expected) = Type::new(expected_type.as_str()) else {
+        return false;
+    };
+
+    let mut actual = &actual;
+    let mut expected = &expected;
+
+    loop {
+        if actual.nullable && !expected.nullable {
+            return false;
+        }
+        match (&actual.base, &expected.base) {
+            (BaseType::List(actual_inner), BaseType::List(expected_inner)) => {
+                actual = actual_inner.as_ref();
+                expected = expected_inner.as_ref();
+            }
+            (BaseType::Named(actual_name), BaseType::Named(expected_name)) => return actual_name == expected_name,
+            _ => {
+                // I've not implemented the list coercion rules here but since
+                // this is just used for joins I think we're fine without them for now.
+                // Can add later if that turns out to be wrong
+                return false;
+            }
+        }
+    }
+}
+
+/// Validates that all the federation joins in the schema make sense
+fn validate_federation_joins(registry: &Registry) -> Vec<RuleError> {
+    let mut errors = vec![];
+
+    for (name, entity) in &registry.federation_entities {
+        let Some(ty) = registry.types.get(name) else { continue };
+
+        for key in entity.keys() {
+            if let Some(FederationResolver::Join(join)) = key.resolver() {
+                errors.extend(validate_join(
+                    join,
+                    registry,
+                    SchemaCoord::Entity(ty.name(), &key.to_string()),
+                    &ty.name().into(),
+                ));
+            }
+        }
+    }
+
+    errors
+}
+
+/// Helper enum for specifying the location of errors
+#[derive(Clone, Copy)]
+enum SchemaCoord<'a> {
+    Field(&'a str, &'a str),
+    Entity(&'a str, &'a str),
+}
+
+impl std::fmt::Display for SchemaCoord<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SchemaCoord::Field(ty, field) => {
+                write!(f, "The field {field} on the type {ty}")
+            }
+            SchemaCoord::Entity(ty, key) => {
+                write!(f, "The federation key `{key}` on the type {ty}")
+            }
+        }
+    }
 }

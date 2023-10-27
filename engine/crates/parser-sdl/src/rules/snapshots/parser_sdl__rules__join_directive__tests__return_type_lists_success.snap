@@ -1,0 +1,17 @@
+---
+source: crates/parser-sdl/src/rules/join_directive.rs
+expression: resolver
+---
+{
+  "J": {
+    "field_name": "blah",
+    "arguments": [
+      [
+        "id",
+        {
+          "$var": "id"
+        }
+      ]
+    ]
+  }
+}

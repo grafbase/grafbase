@@ -1,5 +1,6 @@
 mod errors;
 mod introspection;
+mod openapi;
 mod requires;
 
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
@@ -286,6 +287,79 @@ fn test_contributing_fields_via_default_resolver() {
               "__typename": "TodoList",
               "id": "123",
               "name": "A List With ID 123"
+            }
+          ]
+        }
+        "###
+        );
+    });
+}
+
+#[test]
+fn test_key_with_select() {
+    // Tests that keys with a select parameter correctly resolve using the
+    // join resolver
+
+    runtime().block_on(async {
+        let schema = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                todoList(id: ID!): TodoList! @resolver(name: "todoList")
+            }
+
+            type TodoList @key(fields: "id", select: "todoList(id: $id)") {
+                id: ID!
+                name: String!
+            }
+        "#;
+
+        let engine = EngineBuilder::new(schema)
+            .with_local_dynamo()
+            .with_custom_resolvers(
+                RustUdfs::new().resolver("todoList", |payload: CustomResolverRequestPayload| {
+                    let id = payload.arguments["id"].as_str().unwrap();
+                    Ok(CustomResolverResponse::Success(
+                        json!({"id": id, "name": format!("A list With Id {id}")}),
+                    ))
+                }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(
+                r#"
+                    query($reprs: [_Any!]!) {
+                        _entities(representations: $reprs) {
+                            __typename
+                            ... on TodoList {
+                                id
+                                name
+                            }
+                        }
+                    }
+                "#,
+                )
+                .variables(json!({"reprs": [
+                    { "__typename": "TodoList", "id": "123" },
+                    { "__typename": "TodoList", "id": "456" },
+                ]}))
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "_entities": [
+            {
+              "__typename": "TodoList",
+              "id": "123",
+              "name": "A list With Id 123"
+            },
+            {
+              "__typename": "TodoList",
+              "id": "456",
+              "name": "A list With Id 456"
             }
           ]
         }

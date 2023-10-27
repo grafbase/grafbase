@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use super::{
     field_set::{FieldSet, Selection},
-    resolvers::http::HttpResolver,
+    resolvers::{http::HttpResolver, join::JoinResolver},
 };
 
 /// Federation details for a particular entity
@@ -34,6 +34,9 @@ pub enum FederationResolver {
     /// are present in the representation or resolvable from the representation (e.g.
     /// fields with custom resolvers)
     BasicType,
+    /// This entity resolves to a specific field in the schema using the same mechanism
+    /// as a JoinResolver
+    Join(JoinResolver),
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -76,6 +79,13 @@ impl FederationKey {
         FederationKey {
             selections,
             resolver: Some(FederationResolver::BasicType),
+        }
+    }
+
+    pub fn join(selections: FieldSet, resolver: JoinResolver) -> Self {
+        FederationKey {
+            selections,
+            resolver: Some(FederationResolver::Join(resolver)),
         }
     }
 

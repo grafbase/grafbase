@@ -79,6 +79,10 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
             resolver.resolve(ctx, &resolver_context, last_resolver_value).await
         }
         Some(FederationResolver::BasicType) => Ok(ResolvedValue::new(serde_json::to_value(&representation)?)),
+        Some(FederationResolver::Join(resolver)) => {
+            let last_resolver_value = Some(ResolvedValue::new(representation.data));
+            resolver.resolve(ctx, last_resolver_value).await
+        }
         None => {
             return Err(Error::new(format!(
                 "Tried to resolve an unresolvable key for {}",

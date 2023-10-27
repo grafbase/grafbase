@@ -27,7 +27,7 @@ fn simple_inferred_stripe_federation() {
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
-                            ... on StripeProduct {
+                            ... on Product {
                                 name
                                 shippable
                             }
@@ -36,7 +36,7 @@ fn simple_inferred_stripe_federation() {
                 "#,
                 )
                 .variables(json!({"repr": {
-                    "__typename": "StripeProduct",
+                    "__typename": "Product",
                     "id": "123"
                 }}))
                 .await
@@ -45,7 +45,7 @@ fn simple_inferred_stripe_federation() {
         {
           "_entities": [
             {
-              "__typename": "StripeProduct",
+              "__typename": "Product",
               "name": "Widget",
               "shippable": true
             }
@@ -56,8 +56,67 @@ fn simple_inferred_stripe_federation() {
     });
 }
 
+#[test]
+fn extending_openapi_type_with_key() {
+    // Simple test of our inferred federation keys w/ the stripe API
+    runtime().block_on(async {
+        let mock_server = wiremock::MockServer::start().await;
+        let engine = build_engine(format!(
+            r#"
+            {}
+
+            extend type Quote @key(fields: "id", select: "quote(quote: $id)")
+            "#,
+            stripe_schema(mock_server.address())
+        ))
+        .await;
+
+        Mock::given(method("GET"))
+            .and(path("/v1/quotes/123"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(stripe_quote()))
+            .mount(&mock_server)
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(
+                    r#"
+                    query($repr: _Any!) {
+                        _entities(representations: [$repr]) {
+                            __typename
+                            ... on Quote {
+                                amountTotal
+                            }
+                        }
+                    }
+                "#,
+                )
+                .variables(json!({"repr": {
+                    "__typename": "Quote",
+                    "id": "123"
+                }}))
+                .await
+                .into_data::<Value>(),
+            @r###"
+        {
+          "_entities": [
+            {
+              "__typename": "Quote",
+              "amountTotal": 100
+            }
+          ]
+        }
+        "###
+        );
+    });
+}
+
 fn stripe_product() -> Value {
     json!({"name": "Widget", "shippable": true})
+}
+
+fn stripe_quote() -> Value {
+    json!({"amount_total": 100})
 }
 
 async fn build_engine(schema: String) -> Engine {

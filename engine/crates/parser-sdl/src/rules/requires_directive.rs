@@ -88,7 +88,7 @@ mod tests {
                 nickname: String! @requires(fields: "id name")
             }
             "#,
-            "The field nickname on User declares that it requires the field name on User but that field doesn't exist"
+            "The field nickname on the type User declares that it requires the field name on User but that field doesn't exist"
         );
     }
 
@@ -108,7 +108,7 @@ mod tests {
                 id: ID!
             }
             "#,
-            "The field nickname on User declares that it requires the field name on Account but that field doesn't exist"
+            "The field nickname on the type User declares that it requires the field name on Account but that field doesn't exist"
         );
     }
 
@@ -124,7 +124,7 @@ mod tests {
                 nickname: String! @requires(fields: "id name { blah }")
             }
             "#,
-            "The field nickname on User tries to require subfields of name on User but that field is a leaf type"
+            "The field nickname on the type User tries to require subfields of name on User but that field is a leaf type"
         );
     }
 }
