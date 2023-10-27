@@ -102,11 +102,123 @@ impl<'de> serde::Deserialize<'de> for JoinDirective {
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_debug_snapshot;
+    use insta::{assert_debug_snapshot, assert_json_snapshot};
     use serde::Deserialize;
     use serde_json::json;
 
+    use crate::tests::assert_validation_error;
+
     use super::*;
+
+    #[test]
+    fn join_happy_path() {
+        let schema = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): String! @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "blah(id: $id)")
+            }
+        "#;
+
+        let registry = crate::to_parse_result_with_variables(schema, &HashMap::new())
+            .unwrap()
+            .registry;
+
+        let resolver = &registry.types["User"].fields().as_ref().unwrap()["nickname"].resolver;
+
+        assert_json_snapshot!(resolver, @r###"
+        {
+          "J": {
+            "field_name": "blah",
+            "arguments": [
+              [
+                "id",
+                {
+                  "$var": "id"
+                }
+              ]
+            ]
+          }
+        }
+        "###);
+    }
+
+    #[test]
+    fn join_with_missing_required_argument() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String!): String! @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "blah(id: $id)")
+            }
+            "#,
+            "The field nickname of the type User is trying to join with the field named blah, but does not provide the non-nullable argument name"
+        );
+    }
+
+    #[test]
+    fn join_on_missing_field() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "blah(id: $id)")
+            }
+            "#,
+            "The field nickname of the type User is trying to join with a field named blah, which doesn't exist on the Query type"
+        );
+    }
+
+    #[test]
+    fn join_with_return_type_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!): Int @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "blah(id: $id)")
+            }
+            "#,
+            "The field nickname of the type User is trying to join with the field named blah, but those fields do not have the same type"
+        );
+    }
+
+    #[test]
+    fn join_with_variable_that_doesnt_exist() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!): String! @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "blah(id: $whatever)")
+            }
+            "#,
+            "The field nickname on User declares that it requires the field whatever on User but that field doesn't exist"
+        );
+    }
 
     #[test]
     fn join_directive_deser() {
