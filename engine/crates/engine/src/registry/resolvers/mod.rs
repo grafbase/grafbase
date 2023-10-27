@@ -23,6 +23,7 @@ use self::{
     custom::CustomResolver,
     federation::resolve_federation_entities,
     graphql::{QueryBatcher, Target},
+    join::JoinResolver,
     transformer::Transformer,
 };
 pub use self::{introspection::IntrospectionResolver, resolved_value::ResolvedValue};
@@ -37,6 +38,7 @@ mod federation;
 pub mod graphql;
 pub mod http;
 mod introspection;
+pub mod join;
 mod logged_fetch;
 pub mod postgres;
 pub mod query;
@@ -280,6 +282,11 @@ impl Resolver {
                 .instrument(info_span!("introspection_resolver"))
                 .await
                 .map_err(Into::into),
+            Resolver::Join(resolver) => resolver
+                .resolve(ctx, last_resolver_value)
+                .instrument(info_span!("join_resolver"))
+                .await
+                .map_err(Into::into),
         }
     }
 
@@ -308,6 +315,10 @@ impl Resolver {
     pub fn is_custom(&self) -> bool {
         matches!(self, Self::CustomResolver(_))
     }
+
+    pub fn is_join(&self) -> bool {
+        matches!(self, Self::Join(_))
+    }
 }
 
 #[non_exhaustive]
@@ -329,6 +340,7 @@ pub enum Resolver {
     PostgresResolver(postgres::PostgresResolver),
     FederationEntitiesResolver,
     Introspection(IntrospectionResolver),
+    Join(JoinResolver),
 }
 
 impl Constraint {

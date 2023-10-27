@@ -6,6 +6,7 @@ use engine::registry::{
 use engine_parser::types::TypeKind;
 
 use super::{
+    join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     visitor::{Visitor, VisitorContext},
 };
@@ -35,16 +36,37 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
             .filter_map(|field| {
                 let name = field.node.name.node.to_string();
 
-                let Some(resolver_name) = ResolverDirective::resolver_name(&field.node) else {
-                    ctx.report_error(
-                        vec![field.pos],
-                        format!("Field '{name}' of extended '{type_name}' must hold a `@resolver` directive."),
-                    );
-                    return None;
-                };
+                let join_directive = JoinDirective::from_directives(&field.node.directives, ctx);
+                let resolver_name = ResolverDirective::resolver_name(&field.node);
 
-                let requires =
+                let mut requires =
                     RequiresDirective::from_directives(&field.directives, ctx).map(RequiresDirective::into_fields);
+
+                let resolver = match (join_directive, resolver_name) {
+                    (None, None) => {
+                        ctx.report_error(
+                            vec![field.pos],
+                            format!("Field '{name}' of extended '{type_name}' must have a custom resolver or a join"),
+                        );
+                        return None;
+                    }
+                    (None, Some(resolver_name)) => Resolver::CustomResolver(CustomResolver {
+                        resolver_name: resolver_name.to_owned(),
+                    }),
+                    (Some(join_directive), None) => {
+                        if requires.is_some() {
+                            // We could support this by merging the requires, but I don't want to implement it right now.
+                            // If someone asks we could do it
+                            ctx.report_error(vec![field.pos], "A field can't have a join and a requires on it");
+                        }
+                        requires = join_directive.required_fieldset();
+                        Resolver::Join(join_directive.to_join_resolver())
+                    }
+                    (Some(_), Some(_)) => {
+                        ctx.report_error(vec![field.pos], "A field can't have a join and a custom resolver on it");
+                        return None;
+                    }
+                };
 
                 let field = &field.node;
 
@@ -61,9 +83,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                         .collect(),
                     ty: field.ty.clone().node.to_string().into(),
                     requires,
-                    resolver: Resolver::CustomResolver(CustomResolver {
-                        resolver_name: resolver_name.to_owned(),
-                    }),
+                    resolver,
                     ..MetaField::default()
                 })
             })
@@ -145,7 +165,7 @@ mod tests {
         extend type StripeCustomer {
             foo: String!
         }
-    "#, &["Field 'foo' of extended 'StripeCustomer' must hold a `@resolver` directive."])]
+    "#, &["Field 'foo' of extended 'StripeCustomer' must have a custom resolver or a join"])]
     fn test_parse_result(#[case] schema: &str, #[case] expected_messages: &[&str]) {
         let output = futures::executor::block_on(crate::parse(schema, &HashMap::new(), false, &FakeConnectorParser));
 

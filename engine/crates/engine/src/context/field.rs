@@ -92,6 +92,20 @@ impl<'a> ContextField<'a> {
         }
     }
 
+    pub fn to_join_context(
+        &self,
+        item: &'a Positioned<Field>,
+        field: &'a MetaField,
+        parent_type: SelectionSetTarget<'a>,
+    ) -> Self {
+        Self {
+            field,
+            item,
+            parent_type,
+            ..self.clone()
+        }
+    }
+
     /// Returns the base type for the currently resolving field
     pub fn field_base_type(&self) -> OutputType<'a> {
         self.registry()

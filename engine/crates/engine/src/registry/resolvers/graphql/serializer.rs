@@ -153,8 +153,8 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
 
     fn serialize_field(&mut self, field: &Field, schema_field: Option<&MetaField>) -> Result<(), Error> {
         if let Some(schema_field) = schema_field {
-            if schema_field.resolver.is_custom() {
-                // Skip fields that have resolvers, as they won't exist in the downstream
+            if schema_field.resolver.is_custom() || schema_field.resolver.is_join() {
+                // Skip fields that have resolvers or are joins - they won't exist in the downstream
                 // server
                 return Ok(());
             }

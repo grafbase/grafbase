@@ -8,6 +8,7 @@
 
 use std::net::SocketAddr;
 
+mod joins;
 mod requires;
 
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};

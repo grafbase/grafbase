@@ -184,7 +184,6 @@ fn schema(port: u16, namespace: bool) -> String {
             name: "gothub",
             namespace: {namespace},
             url: "http://127.0.0.1:{port}",
-            schema: "http://127.0.0.1:{port}/spec.json",
           )
         "#
     )

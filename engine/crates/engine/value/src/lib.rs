@@ -6,6 +6,7 @@
 #![allow(clippy::manual_let_else)]
 #![allow(clippy::module_name_repetitions)]
 
+pub mod argument_set;
 mod deserializer;
 mod macros;
 mod serializer;
