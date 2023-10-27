@@ -70,8 +70,9 @@ fn is_operation_introspection(operation: &OperationDefinition) -> bool {
             // If field name starts with `__` it is part of introspection system, see http://spec.graphql.org/October2021/#sec-Names.Reserved-Names
             .all(|item| {
                 matches!(
-                &item.node,
-                Selection::Field(field) if field.node.name.node.starts_with("__"))
+                    &item.node,
+                    Selection::Field(field) if field.node.name.node.starts_with("__") || field.node.name.node == "_service"
+                )
             })
 }
 
