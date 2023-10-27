@@ -1,8 +1,9 @@
 import { FieldShape as DynamoFieldShape } from './connector/dynamodb/model'
 import { FieldShape as MongoFieldShape } from './connector/mongodb/model'
+import { JoinDefinition } from './typedefs/join'
 import { validateIdentifier } from './validation'
 
-type FieldShape = DynamoFieldShape | MongoFieldShape
+type FieldShape = DynamoFieldShape | MongoFieldShape | JoinDefinition
 
 export class Field {
   private _name: string

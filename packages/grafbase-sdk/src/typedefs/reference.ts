@@ -4,6 +4,7 @@ import { Type } from '../type'
 import { AuthDefinition } from './auth'
 import { ResolverDefinition } from './resolver'
 import { MapDefinition } from './map'
+import { JoinDefinition } from './join'
 
 export class ReferenceDefinition {
   private referencedType: string
@@ -46,6 +47,15 @@ export class ReferenceDefinition {
    */
   public resolver(name: string): ResolverDefinition {
     return new ResolverDefinition(this, name)
+  }
+
+  /**
+   * Attach a join function to the field.
+   *
+   * @param select - The field selection string to join onto this field
+   */
+  public join(select: string): JoinDefinition {
+    return new JoinDefinition(this, select)
   }
 
   /**

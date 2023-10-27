@@ -349,10 +349,10 @@ describe('Type generator', () => {
     }).key('id')
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-"type User @key(fields: "id" resolvable: true) {
-  id: ID!
-}"
-`)
+      "type User @key(fields: "id" resolvable: true) {
+        id: ID!
+      }"
+    `)
   })
 
   it('supports unresolvable federation keys', () => {
@@ -361,9 +361,39 @@ describe('Type generator', () => {
     }).key('id', { resolvable: false })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-"type User @key(fields: "id" resolvable: false) {
-  id: ID!
-}"
-`)
+      "type User @key(fields: "id" resolvable: false) {
+        id: ID!
+      }"
+    `)
+  })
+
+  it('supports federation keys with select', () => {
+    g.type('User', {
+      id: g.id()
+    }).key('id', { select: 'foo(id: $id)' })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User @key(fields: "id" resolvable: true select: "foo(id: $id)") {
+        id: ID!
+      }"
+    `)
+  })
+
+  it(`supports joins for all the field types`, () => {
+    g.type('User', {
+      id: g.id().join('foo(id: $id)'),
+      str: g.string().join('bar(id: $id)'),
+      num: g.boolean().join('baz(id: $id)'),
+      list: g.boolean().list().join('bing(id: $id)')
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User {
+        id: ID! @join(select: "foo(id: $id)")
+        str: String! @join(select: "bar(id: $id)")
+        num: Boolean! @join(select: "baz(id: $id)")
+        list: [Boolean!]! @join(select: "bing(id: $id)")
+      }"
+    `)
   })
 })

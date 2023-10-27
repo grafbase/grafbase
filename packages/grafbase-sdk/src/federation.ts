@@ -16,6 +16,7 @@ export class Federation {
 
 export interface FederationKeyParameters {
   resolvable?: boolean
+  select?: string
 }
 
 const DefaultFederationParameters: FederationKeyParameters = {
@@ -34,6 +35,10 @@ export class FederationKey {
   }
 
   public toString(): string {
-    return `@key(fields: "${this.fields}" resolvable: ${this.parameters.resolvable})`
+    const select = this.parameters.select
+      ? ` select: "${this.parameters.select}"`
+      : ''
+
+    return `@key(fields: "${this.fields}" resolvable: ${this.parameters.resolvable}${select})`
   }
 }

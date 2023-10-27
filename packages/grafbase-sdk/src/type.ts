@@ -14,6 +14,7 @@ import { validateIdentifier } from './validation'
 import { Query } from './query'
 import { MapDefinition } from './typedefs/map'
 import { FederationKey, FederationKeyParameters } from './federation'
+import { JoinDefinition } from './typedefs/join'
 
 /**
  * A collection of fields in a model.
@@ -31,6 +32,7 @@ export type TypeFieldShape =
   | MapDefinition
   | EnumDefinition<any, any>
   | ResolverDefinition
+  | JoinDefinition
 
 /**
  * A composite type definition (e.g. not a model).
