@@ -1,5 +1,5 @@
 use crate::{
-    subgraphs::{DefinitionKind, DefinitionWalker},
+    subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker},
     Context,
 };
 
@@ -10,23 +10,8 @@ pub(crate) fn build_supergraph(ctx: &mut Context<'_>) {
             _ => todo!(),
         });
 
-    ctx.subgraphs.iter_field_groups(|first, rest| {
-        if let Some(next) = rest.next() {
-            ctx.diagnostics.push_fatal(format!(
-                "The field `{}` on `{}` is defined in two subgraphs (`{}` and `{}`).",
-                first.name_str(),
-                first.parent_definition().name_str(),
-                first.parent_definition().subgraph().name_str(),
-                next.parent_definition().subgraph().name_str(),
-            ));
-        }
-
-        ctx.supergraph.insert_field(
-            first.parent_definition().name(),
-            first.name(),
-            first.type_name(),
-        )
-    });
+    ctx.subgraphs
+        .iter_field_groups(|fields| merge_field_definitions(ctx, fields));
 }
 
 fn merge_object_definitions<'a>(
@@ -49,4 +34,26 @@ fn merge_object_definitions<'a>(
 
     ctx.supergraph
         .insert_definition(first.name(), DefinitionKind::Object);
+}
+
+fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
+    let Some(first) = fields.get(0) else { return };
+
+    if fields.len() > 1 && fields.iter().any(|f| !f.is_shareable()) {
+        let next = &fields[1];
+
+        ctx.diagnostics.push_fatal(format!(
+            "The field `{}` on `{}` is defined in two subgraphs (`{}` and `{}`).",
+            first.name_str(),
+            first.parent_definition().name_str(),
+            first.parent_definition().subgraph().name_str(),
+            next.parent_definition().subgraph().name_str(),
+        ));
+    }
+
+    ctx.supergraph.insert_field(
+        first.parent_definition().name(),
+        first.name(),
+        first.type_name(),
+    )
 }

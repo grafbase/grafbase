@@ -48,18 +48,15 @@ impl<'a> DefinitionWalker<'a> {
     pub fn subgraph(self) -> SubgraphWalker<'a> {
         self.walk(self.definition().subgraph_id)
     }
-
-    // pub fn object_fields(self) -> impl Iterator<Item = ObjectFieldWalker<'a>> {
-    //     binary_search_range_for_key(&self.subgraphs.object_fields, self.id, |field| {
-    //         field.object_id
-    //     })
-    //     .map(move |idx| self.walk(ObjectFieldId(idx)))
-    // }
 }
 
 impl<'a> FieldWalker<'a> {
     fn field(self) -> &'a Field {
         &self.subgraphs.fields[self.id.0]
+    }
+
+    pub fn is_shareable(self) -> bool {
+        self.field().is_shareable
     }
 
     pub fn parent_definition(self) -> DefinitionWalker<'a> {
@@ -78,19 +75,3 @@ impl<'a> FieldWalker<'a> {
         self.field().type_name
     }
 }
-
-// fn binary_search_range_for_key<'a, T, K>(
-//     store: &'a [T],
-//     key: K,
-//     extract_key: impl Fn(&T) -> K + 'a,
-// ) -> impl Iterator<Item = usize> + 'a
-// where
-//     K: Ord + Eq + 'static,
-// {
-//     let start = store.partition_point(|item| extract_key(item) < key);
-//     store[start..]
-//         .iter()
-//         .take_while(move |item| extract_key(*item) == key)
-//         .enumerate()
-//         .map(move |(idx, _)| idx + start)
-// }

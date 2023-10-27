@@ -1,0 +1,7 @@
+type Customer {
+    id: ID
+    name: String
+    subscriptionPlan: Plan
+    newsletterSubscribed: Boolean
+    other: Int
+}
