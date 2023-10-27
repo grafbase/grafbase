@@ -1,0 +1,27 @@
+on:
+  pull_request:
+    paths:
+      - 'crates/composition/**/*'
+
+jobs:
+  composition:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
+        with:
+          platform: linux
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('crates/composition/Cargo.toml') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
+
+      - run: cargo clippy
+        working-directory: 'crates/composition'
+
+      - run: cargo test
+        working-directory: 'crates/composition'
+      
+      - run: cargo fmt --check
+         working-directory: 'crates/composition'

@@ -1,0 +1,12 @@
+extend schema
+    @link(
+        url: "https://specs.apollo.dev/federation/v2.3",
+        import: [{ name: "@shareable", as: "@partageable" }]
+     )
+
+type Customer @partageable {
+    id: ID!
+    name: String
+    
+    newsletterSubscribed: Boolean
+}

@@ -1,10 +1,11 @@
+mod object;
 mod walkers;
 
-pub(crate) use walkers::*;
+pub(crate) use self::walkers::*;
 
 use crate::strings::{StringId, Strings};
 use itertools::Itertools;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, ops};
 
 /// A set of subgraphs to be composed.
 #[derive(Default)]
@@ -12,7 +13,7 @@ pub struct Subgraphs {
     pub(crate) strings: Strings,
     subgraphs: Vec<Subgraph>,
 
-    // Invariant: `fields` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
+    // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
     definitions: Vec<Definition>,
 
     // Invariant: `fields` is sorted by `Field::object_id`. We rely on it for binary search.
@@ -63,25 +64,22 @@ impl Subgraphs {
     }
 
     /// Iterate over groups of fields to compose. The definitions are grouped by parent type name
-    /// and field name. The argument is a closure that receives, for each group, the first field of
-    /// the group and an iterator over all the other fields in the group. The order of iteration is
-    /// deterministic but unspecified.
-    pub(crate) fn iter_field_groups(
-        &self,
-        mut compose_fn: impl FnMut(FieldWalker<'_>, &mut dyn Iterator<Item = FieldWalker<'_>>),
-    ) {
+    /// and field name. The argument is a closure that receives each group as an argument. The
+    /// order of iteration is deterministic but unspecified.
+    pub(crate) fn iter_field_groups<'a>(&'a self, mut compose_fn: impl FnMut(&[FieldWalker<'a>])) {
+        let mut buf = Vec::new();
         for (_, group) in &self
             .field_names
             .iter()
             .group_by(|(parent_name, field_name, _)| (parent_name, field_name))
         {
-            let mut group = group
-                .into_iter()
-                .map(|(_, _, field_id)| self.walk(*field_id));
-            let Some(first_field_id) = group.next() else {
-                continue;
-            };
-            compose_fn(first_field_id, &mut group);
+            buf.clear();
+            buf.extend(
+                group
+                    .into_iter()
+                    .map(|(_, _, field_id)| self.walk(*field_id)),
+            );
+            compose_fn(&buf);
         }
     }
 
@@ -114,12 +112,14 @@ impl Subgraphs {
         parent_id: DefinitionId,
         field_name: &str,
         type_name: &str,
+        is_shareable: bool,
     ) -> FieldId {
         let name = self.strings.intern(field_name);
         let field = Field {
             parent_id,
             name,
             type_name: self.strings.intern(type_name),
+            is_shareable,
         };
         let id = push_and_return_id(&mut self.fields, field, FieldId);
         let parent_object_name = self.walk(parent_id).name();
@@ -136,8 +136,8 @@ impl Subgraphs {
 }
 
 pub(crate) struct Subgraph {
-    /// The name of the subgraph. It is not contained in the GraphQL schema of the subgraph, it only makes sense within a
-    /// project.
+    /// The name of the subgraph. It is not contained in the GraphQL schema of the subgraph, it
+    /// only makes sense within a project.
     name: StringId,
 }
 
@@ -161,9 +161,10 @@ pub(crate) struct Field {
     parent_id: DefinitionId,
     name: StringId,
     type_name: StringId,
+    is_shareable: bool,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct SubgraphId(usize);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
