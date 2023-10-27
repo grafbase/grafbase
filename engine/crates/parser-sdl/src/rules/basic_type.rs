@@ -70,8 +70,8 @@ impl<'a> Visitor<'a> for BasicType {
                         // If someone asks we could do it
                         ctx.report_error(vec![field.pos], "A field can't have a join and a requires on it");
                     }
-                    requires = join_directive.required_fieldset();
-                    resolver = Resolver::Join(join_directive.to_join_resolver());
+                    requires = join_directive.select.required_fieldset();
+                    resolver = Resolver::Join(join_directive.select.to_join_resolver());
                 }
 
                 MetaField {
@@ -106,7 +106,7 @@ impl<'a> Visitor<'a> for BasicType {
         // final schema.
         add_input_type_non_primitive(ctx, object, &type_name);
 
-        // We also need to parse any unresolvable keys
+        // We also need to parse any @key directives
         let key_directives = directives
             .iter()
             .filter(|directive| directive.node.name.node == "key")
@@ -124,7 +124,7 @@ impl<'a> Visitor<'a> for BasicType {
 
         ctx.append_errors(errors);
 
-        ctx.append_errors(validate_keys_against_fields(&oks, {
+        ctx.append_errors(validate_keys(&oks, {
             let registry = ctx.registry.borrow();
             let Some(MetaType::Object(object)) = registry.types.get(&type_name) else {
                 // Apparently this can happen in the face of duplicate types.
@@ -148,10 +148,10 @@ impl<'a> Visitor<'a> for BasicType {
 
 impl KeyDirective {
     fn into_key(self) -> FederationKey {
-        if self.resolvable {
-            FederationKey::basic_type(self.fields.0)
-        } else {
-            FederationKey::unresolvable(self.fields.0)
+        match (self.resolvable, &self.select) {
+            (true, None) => FederationKey::basic_type(self.fields.0),
+            (false, _) => FederationKey::unresolvable(self.fields.0),
+            (_, Some(select)) => FederationKey::join(self.fields.0, select.to_join_resolver()),
         }
     }
 }
@@ -166,11 +166,17 @@ fn field_resolver(field: &Positioned<FieldDefinition>, mapped_name: Option<&str>
     Transformer::select(mapped_name.unwrap_or_else(|| field.name())).into()
 }
 
-fn validate_keys_against_fields(oks: &[(Pos, KeyDirective)], object: ObjectType) -> Vec<RuleError> {
+fn validate_keys(key_directives: &[(Pos, KeyDirective)], object: ObjectType) -> Vec<RuleError> {
     let mut errors = Vec::new();
 
     // First make sure all the keys are actually fields
-    for (pos, key) in oks {
+    for (pos, key) in key_directives {
+        errors.extend(
+            key.validate()
+                .into_iter()
+                .map(|error| RuleError::new(vec![*pos], error)),
+        );
+
         for field in &key.fields.0 .0 {
             if object.field_by_name(&field.field).is_none() {
                 errors.push(RuleError::new(

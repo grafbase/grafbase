@@ -59,8 +59,8 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                             // If someone asks we could do it
                             ctx.report_error(vec![field.pos], "A field can't have a join and a requires on it");
                         }
-                        requires = join_directive.required_fieldset();
-                        Resolver::Join(join_directive.to_join_resolver())
+                        requires = join_directive.select.required_fieldset();
+                        Resolver::Join(join_directive.select.to_join_resolver())
                     }
                     (Some(_), Some(_)) => {
                         ctx.report_error(vec![field.pos], "A field can't have a join and a custom resolver on it");

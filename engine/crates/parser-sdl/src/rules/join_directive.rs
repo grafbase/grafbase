@@ -9,8 +9,14 @@ use crate::directive_de::parse_directive;
 
 use super::{directive::Directive, visitor::VisitorContext};
 
-#[derive(Debug)]
+#[derive(serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct JoinDirective {
+    pub select: FieldSelection,
+}
+
+#[derive(Debug)]
+pub struct FieldSelection {
     field_name: String,
     arguments: Vec<(Name, Value)>,
     required_fields: Vec<String>,
@@ -18,7 +24,10 @@ pub struct JoinDirective {
 
 impl Directive for JoinDirective {
     fn definition() -> String {
-        "directive @join(select: String!) on FIELD_DEFINITION".into()
+        "
+        directive @join(select: FieldSelection!) on FIELD_DEFINITION
+        "
+        .into()
     }
 }
 
@@ -37,7 +46,9 @@ impl JoinDirective {
             }
         }
     }
+}
 
+impl FieldSelection {
     pub fn required_fieldset(&self) -> Option<FieldSet> {
         if self.required_fields.is_empty() {
             return None;
@@ -54,22 +65,14 @@ impl JoinDirective {
     }
 }
 
-impl<'de> serde::Deserialize<'de> for JoinDirective {
+impl<'de> serde::Deserialize<'de> for FieldSelection {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(serde::Deserialize)]
-        #[serde(rename_all = "camelCase", deny_unknown_fields)]
-        struct RawDirective {
-            // TODO: Is this the best right name?  Not sure...
-            select: String,
-        }
+        let select = String::deserialize(deserializer)?;
 
-        let raw_directive = RawDirective::deserialize(deserializer)?;
-
-        let field = parse_field(raw_directive.select)
-            .map_err(|error| D::Error::custom(format!("Could not parse join: {error}")))?;
+        let field = parse_field(select).map_err(|error| D::Error::custom(format!("Could not parse join: {error}")))?;
 
         if !field.node.selection_set.items.is_empty() {
             return Err(D::Error::custom(
@@ -92,7 +95,7 @@ impl<'de> serde::Deserialize<'de> for JoinDirective {
             .into_iter()
             .collect::<Vec<_>>();
 
-        Ok(JoinDirective {
+        Ok(FieldSelection {
             field_name: field.node.name.node.to_string(),
             arguments,
             required_fields,
@@ -163,7 +166,7 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname of the type User is trying to join with the field named blah, but does not provide the non-nullable argument name"
+            "The field nickname on the type User is trying to join with the field named blah, but does not provide the non-nullable argument name"
         );
     }
 
@@ -178,7 +181,7 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname of the type User is trying to join with a field named blah, which doesn't exist on the Query type"
+            "The field nickname on the type User is trying to join with a field named blah, which doesn't exist on the Query type"
         );
     }
 
@@ -197,7 +200,7 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname of the type User is trying to join with the field named blah, but those fields do not have the same type"
+            "The field nickname on the type User is trying to join with the field named blah, but those fields do not have compatible types"
         );
     }
 
@@ -216,7 +219,112 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $whatever)")
             }
             "#,
-            "The field nickname on User declares that it requires the field whatever on User but that field doesn't exist"
+            "The field nickname on the type User declares that it requires the field whatever on User but that field doesn't exist"
+        );
+    }
+
+    #[test]
+    fn acceptable_return_type_nullability_mismatch() {
+        let schema = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): String! @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String @join(select: "blah(id: $id)")
+            }
+            "#;
+
+        let registry = crate::to_parse_result_with_variables(schema, &HashMap::new())
+            .unwrap()
+            .registry;
+
+        let resolver = &registry.types["User"].fields().as_ref().unwrap()["nickname"].resolver;
+
+        assert_json_snapshot!(resolver);
+    }
+
+    #[test]
+    fn return_type_nullability_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): String @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "blah(id: $id)")
+            }
+            "#,
+            "The field nickname on the type User is trying to join with the field named blah, but those fields do not have compatible types"
+        );
+    }
+
+    #[test]
+    fn return_type_lists_success() {
+        let schema = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): [String!]! @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: [String] @join(select: "blah(id: $id)")
+            }
+            "#;
+
+        let registry = crate::to_parse_result_with_variables(schema, &HashMap::new())
+            .unwrap()
+            .registry;
+
+        let resolver = &registry.types["User"].fields().as_ref().unwrap()["nickname"].resolver;
+
+        assert_json_snapshot!(resolver);
+    }
+
+    #[test]
+    fn return_list_nullability_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): [String] @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: [String]! @join(select: "blah(id: $id)")
+            }
+            "#,
+            "The field nickname on the type User is trying to join with the field named blah, but those fields do not have compatible types"
+        );
+    }
+
+    #[test]
+    fn return_list_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): [String] @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String @join(select: "blah(id: $id)")
+            }
+            "#,
+            "The field nickname on the type User is trying to join with the field named blah, but those fields do not have compatible types"
         );
     }
 
@@ -227,39 +335,41 @@ mod tests {
         assert_debug_snapshot!(directive, @r###"
         Ok(
             JoinDirective {
-                field_name: "findUser",
-                arguments: [
-                    (
-                        Name(
-                            "name",
-                        ),
-                        Variable(
+                select: FieldSelection {
+                    field_name: "findUser",
+                    arguments: [
+                        (
                             Name(
                                 "name",
                             ),
-                        ),
-                    ),
-                    (
-                        Name(
-                            "filters",
-                        ),
-                        Object(
-                            {
+                            Variable(
                                 Name(
-                                    "eq",
-                                ): Variable(
-                                    Name(
-                                        "filters",
-                                    ),
+                                    "name",
                                 ),
-                            },
+                            ),
                         ),
-                    ),
-                ],
-                required_fields: [
-                    "filters",
-                    "name",
-                ],
+                        (
+                            Name(
+                                "filters",
+                            ),
+                            Object(
+                                {
+                                    Name(
+                                        "eq",
+                                    ): Variable(
+                                        Name(
+                                            "filters",
+                                        ),
+                                    ),
+                                },
+                            ),
+                        ),
+                    ],
+                    required_fields: [
+                        "filters",
+                        "name",
+                    ],
+                },
             },
         )
         "###);
