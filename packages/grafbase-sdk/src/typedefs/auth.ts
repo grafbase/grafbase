@@ -10,6 +10,7 @@ import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
 import { MapDefinition } from './map'
+import { JoinDefinition } from './join'
 
 export type Authenticable =
   | ScalarDefinition
@@ -22,6 +23,7 @@ export type Authenticable =
   | CacheDefinition
   | ResolverDefinition
   | EnumDefinition<any, any>
+  | JoinDefinition
 
 export class AuthDefinition {
   private field: Authenticable

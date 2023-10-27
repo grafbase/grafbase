@@ -34,6 +34,7 @@ export class ListDefinition {
   protected defaultValue?: DefaultValueType[]
   private authRules?: AuthRules
   private resolverName?: string
+  private joinSelect?: string
 
   constructor(fieldDefinition: ListScalarType) {
     this.fieldDefinition = fieldDefinition
@@ -82,6 +83,17 @@ export class ListDefinition {
   }
 
   /**
+   * Attach a join function to the field.
+   *
+   * @param select - The field selection string to join onto this field
+   */
+  public join(select: string): ListDefinition {
+    this.joinSelect = select
+
+    return this
+  }
+
+  /**
    * Sets the name of the field in the database, if different than the name of the field.
    *
    * @param name - The mapped name
@@ -101,7 +113,9 @@ export class ListDefinition {
       ? ` @resolver(name: "${this.resolverName}")`
       : ''
 
-    return `[${this.fieldDefinition}]${required}${rules}${resolver}`
+    const join = this.joinSelect ? ` @join(select: "${this.joinSelect}")` : ''
+
+    return `[${this.fieldDefinition}]${required}${rules}${resolver}${join}`
   }
 }
 

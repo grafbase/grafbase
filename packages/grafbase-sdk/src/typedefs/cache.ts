@@ -8,6 +8,7 @@ import {
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { EnumDefinition } from './enum'
+import { JoinDefinition } from './join'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { MapDefinition } from './map'
 import { ResolverDefinition } from './resolver'
@@ -24,6 +25,7 @@ export type Cacheable =
   | SearchDefinition
   | UniqueDefinition
   | EnumDefinition<any, any>
+  | JoinDefinition
 
 export interface TypeCacheParams {
   maxAge: number

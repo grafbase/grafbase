@@ -3,6 +3,7 @@ import { Enum, EnumShape } from '../enum'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
+import { JoinDefinition } from './join'
 import { ListDefinition } from './list'
 import { MapDefinition } from './map'
 import { ResolverDefinition } from './resolver'
@@ -77,6 +78,15 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
    */
   public resolver(name: string): ResolverDefinition {
     return new ResolverDefinition(this, name)
+  }
+
+  /**
+   * Attach a join function to the field.
+   *
+   * @param select - The field selection string to join onto this field
+   */
+  public join(select: string): JoinDefinition {
+    return new JoinDefinition(this, select)
   }
 
   /**
