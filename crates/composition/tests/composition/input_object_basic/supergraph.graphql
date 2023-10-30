@@ -1,0 +1,16 @@
+type Query {
+    getPersonInfo(input: InputPerson): Person
+    searchPerson(input: InputPerson): Person
+}
+type Person {
+    id: ID
+    firstName: String
+    lastName: String
+    age: Int
+    email: String
+    phoneNumber: String
+}
+input InputPerson {
+    firstName: String
+    lastName: String
+}

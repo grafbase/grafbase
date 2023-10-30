@@ -1,0 +1,17 @@
+type Query {
+    getRollerCoaster(id: ID): RollerCoaster
+}
+type RollerCoaster {
+    id: ID
+    name: String
+    height: Float
+    speed: Float
+    manufacturer: String
+    historicalData: HistoricalData
+    numberOfInversions: Int
+}
+type HistoricalData {
+    year: Int
+    visitors: Int
+    incidents: Int
+}

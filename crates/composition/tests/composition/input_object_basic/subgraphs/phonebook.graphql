@@ -1,0 +1,17 @@
+type Query {
+  searchPerson(input: InputPerson!): [Person]
+}
+
+type Person @federation__shareable {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  age: Int!
+  phoneNumber: String
+}
+
+input InputPerson {
+  firstName: String!
+  lastName: String!
+  phoneNumber: String
+}

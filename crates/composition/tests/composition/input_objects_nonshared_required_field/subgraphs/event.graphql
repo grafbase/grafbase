@@ -1,0 +1,17 @@
+type Mutation {
+  createEvent(input: CyclistInput): Event
+}
+
+type Event {
+  id: ID!
+  name: String!
+  team: String
+  category: String
+}
+
+input CyclistInput {
+  eventLink: String
+  name: String!
+  team: String
+  category: String
+}
