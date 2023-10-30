@@ -1,0 +1,21 @@
+type Pizza {
+    id: ID!
+    nameEn: String
+    nameIt: String!
+    toppings: [Topping!]!
+}
+
+union Topping = Onion | Cheese | Pineapple
+
+type Onion {
+    variety: String
+}
+
+type Cheese {
+    type: String!
+    quantity: Int!
+}
+
+type Pineapple {
+    isAnanas: Boolean!
+}

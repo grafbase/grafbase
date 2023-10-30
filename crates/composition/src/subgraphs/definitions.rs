@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct DefinitionId(usize);
+pub(crate) struct DefinitionId(pub(super) usize);
 
 // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
 #[derive(Default)]
@@ -18,12 +18,20 @@ pub(crate) struct Definition {
 pub(crate) enum DefinitionKind {
     Object,
     Interface,
+    Union,
     // InputObject,
-    // Union,
     // CustomScalar,
 }
 
 impl Subgraphs {
+    pub(crate) fn definition_by_name(
+        &mut self,
+        name: &str,
+        subgraph_id: SubgraphId,
+    ) -> DefinitionId {
+        let interned_name = self.strings.intern(name);
+        self.definition_names[&(interned_name, subgraph_id)]
+    }
     pub(crate) fn set_shareable(&mut self, definition_id: DefinitionId) {
         self.definitions.0[definition_id.0].is_shareable = true;
     }
@@ -42,7 +50,7 @@ impl Subgraphs {
             is_shareable: false,
         };
         let id = push_and_return_id(&mut self.definitions.0, definition, DefinitionId);
-        self.definition_names.insert((name, id));
+        self.definition_names.insert((name, subgraph_id), id);
         id
     }
 }

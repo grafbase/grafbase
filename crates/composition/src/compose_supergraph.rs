@@ -12,6 +12,7 @@ pub(crate) fn build_supergraph(ctx: &mut Context<'_>) {
 
         match first.kind() {
             DefinitionKind::Object => merge_object_definitions(ctx, first, definitions),
+            DefinitionKind::Union => merge_union_definitions(ctx, first, definitions),
             _ => todo!(),
         }
     });
@@ -110,4 +111,23 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
         first.name(),
         first.type_name(),
     )
+}
+
+fn merge_union_definitions(
+    ctx: &mut Context<'_>,
+    first_union: &DefinitionWalker<'_>,
+    definitions: &[DefinitionWalker<'_>],
+) {
+    let union_name = first_union.name();
+    ctx.supergraph
+        .insert_definition(union_name, DefinitionKind::Union);
+
+    for member in definitions
+        .iter()
+        .flat_map(|def| ctx.subgraphs.iter_union_members(def.id))
+    {
+        let member = first_union.walk(member);
+        ctx.supergraph
+            .insert_union_member(union_name, member.name());
+    }
 }

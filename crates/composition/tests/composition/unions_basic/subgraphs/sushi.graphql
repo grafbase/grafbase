@@ -1,0 +1,15 @@
+type Sushi {
+    id: ID!
+    topping: Topping
+}
+
+type Salmon {
+  id: ID!
+  raw: Boolean
+}
+
+union Topping = Salmon | Omelet
+
+type Omelet {
+  isRectangular: Boolean
+}
