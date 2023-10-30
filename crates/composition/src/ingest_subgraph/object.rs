@@ -9,12 +9,10 @@ pub(super) fn ingest_directives(
     type_definition: &ast::TypeDefinition,
     subgraphs: &mut Subgraphs,
     federation_directives_matcher: &FederationDirectivesMatcher<'_>,
-) -> bool {
-    let mut is_shareable = false;
-
+) {
     for directive in &type_definition.directives {
         if federation_directives_matcher.is_shareable(&directive.node.name.node) {
-            is_shareable = true;
+            subgraphs.set_shareable(definition_id);
             continue;
         }
 
@@ -37,6 +35,4 @@ pub(super) fn ingest_directives(
             subgraphs.push_key(definition_id, selection_id, is_resolvable);
         }
     }
-
-    is_shareable
 }

@@ -14,7 +14,6 @@ impl<'a, Id> Walker<'a, Id> {
     }
 }
 
-pub(crate) type DefinitionWalker<'a> = Walker<'a, DefinitionId>;
 pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;
 pub(crate) type SubgraphWalker<'a> = Walker<'a, SubgraphId>;
 
@@ -25,32 +24,6 @@ impl<'a> SubgraphWalker<'a> {
 
     pub(crate) fn name_str(self) -> &'a str {
         self.subgraphs.strings.resolve(self.subgraph().name)
-    }
-}
-
-impl<'a> DefinitionWalker<'a> {
-    fn definition(self) -> &'a Definition {
-        &self.subgraphs.definitions[self.id.0]
-    }
-
-    pub fn name_str(self) -> &'a str {
-        self.subgraphs.strings.resolve(self.name())
-    }
-
-    pub fn name(self) -> StringId {
-        self.definition().name
-    }
-
-    pub fn kind(self) -> DefinitionKind {
-        self.definition().kind
-    }
-
-    pub fn is_entity(self) -> bool {
-        self.subgraphs.iter_object_keys(self.id).next().is_some()
-    }
-
-    pub fn subgraph(self) -> SubgraphWalker<'a> {
-        self.walk(self.definition().subgraph_id)
     }
 }
 

@@ -45,12 +45,13 @@ fn ingest_top_level_definitions(
                             type_name,
                             DefinitionKind::Object,
                         );
-                        let object_is_shareable = object::ingest_directives(
+                        object::ingest_directives(
                             definition_id,
                             &type_definition.node,
                             subgraphs,
                             federation_directives_matcher,
                         );
+                        let object_is_shareable = subgraphs.walk(definition_id).is_shareable();
 
                         for field in &object_type.fields {
                             let is_shareable = object_is_shareable

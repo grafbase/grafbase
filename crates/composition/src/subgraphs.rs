@@ -1,8 +1,12 @@
+mod definitions;
 mod keys;
 mod selection_sets;
 mod walkers;
 
-pub(crate) use self::walkers::*;
+pub(crate) use self::{
+    definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
+    walkers::*,
+};
 
 use self::{keys::*, selection_sets::*};
 use crate::strings::{StringId, Strings};
@@ -15,8 +19,7 @@ pub struct Subgraphs {
     pub(crate) strings: Strings,
     subgraphs: Vec<Subgraph>,
 
-    // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
-    definitions: Vec<Definition>,
+    definitions: definitions::Definitions,
 
     // Invariant: `fields` is sorted by `Field::object_id`. We rely on it for binary search.
     fields: Vec<Field>,
@@ -99,23 +102,6 @@ impl Subgraphs {
         push_and_return_id(&mut self.subgraphs, subgraph, SubgraphId)
     }
 
-    pub(crate) fn push_definition(
-        &mut self,
-        subgraph_id: SubgraphId,
-        name: &str,
-        kind: DefinitionKind,
-    ) -> DefinitionId {
-        let name = self.strings.intern(name);
-        let definition = Definition {
-            subgraph_id,
-            name,
-            kind,
-        };
-        let id = push_and_return_id(&mut self.definitions, definition, DefinitionId);
-        self.definition_names.insert((name, id));
-        id
-    }
-
     pub(crate) fn push_field(
         &mut self,
         parent_id: DefinitionId,
@@ -150,21 +136,6 @@ pub(crate) struct Subgraph {
     name: StringId,
 }
 
-pub(crate) struct Definition {
-    subgraph_id: SubgraphId,
-    name: StringId,
-    kind: DefinitionKind,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum DefinitionKind {
-    Object,
-    Interface,
-    // InputObject,
-    // Union,
-    // CustomScalar,
-}
-
 /// A field in an object, interface or input object type.
 pub(crate) struct Field {
     parent_id: DefinitionId,
@@ -175,9 +146,6 @@ pub(crate) struct Field {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct SubgraphId(usize);
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct DefinitionId(usize);
 
 /// The unique identifier for a field in an object, interface or input object field.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
