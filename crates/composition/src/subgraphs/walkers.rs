@@ -42,11 +42,11 @@ impl<'a> FieldWalker<'a> {
                 return false;
             };
 
-            if key_fields.next().is_some() || first_field.children().next().is_some() {
+            if key_fields.next().is_some() || !first_field.subselection.is_empty() {
                 return false;
             }
 
-            first_field.field() == field.name
+            first_field.field == field.name
         })
     }
 

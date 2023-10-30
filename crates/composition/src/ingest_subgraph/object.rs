@@ -21,9 +21,6 @@ pub(super) fn ingest_directives(
             let Some(ConstValue::String(fields_arg)) = fields_arg else {
                 continue;
             };
-            let Ok(selection_id) = subgraphs.selection_set_from_str(fields_arg) else {
-                continue; // TODO: error handling in subgraph ingestion?
-            };
             let is_resolvable = directive
                 .node
                 .get_argument("resolvable")
@@ -32,7 +29,9 @@ pub(super) fn ingest_directives(
                     _ => None,
                 })
                 .unwrap_or(true); // defaults to true
-            subgraphs.push_key(definition_id, selection_id, is_resolvable);
+            subgraphs
+                .push_key(definition_id, fields_arg, is_resolvable)
+                .ok();
         }
     }
 }

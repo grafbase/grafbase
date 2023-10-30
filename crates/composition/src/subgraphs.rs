@@ -1,6 +1,5 @@
 mod definitions;
 mod keys;
-mod selection_sets;
 mod walkers;
 
 pub(crate) use self::{
@@ -8,7 +7,7 @@ pub(crate) use self::{
     walkers::*,
 };
 
-use self::{keys::*, selection_sets::*};
+use self::keys::*;
 use crate::strings::{StringId, Strings};
 use itertools::Itertools;
 use std::collections::BTreeSet;
@@ -26,10 +25,6 @@ pub struct Subgraphs {
 
     /// All the keys (`@key(...)`) in all the subgraphs in one container.
     keys: Keys,
-
-    /// Storage for selection sets. Technically only a restricted version of selection sets allowed
-    /// inside `@key(fields: "...")`.
-    selection_sets: SelectionSets,
 
     // Secondary indexes.
 
