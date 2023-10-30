@@ -3,6 +3,7 @@
 # someone opens a pull request.
 
 cli/ @grafbase/backend
+crates/ @grafbase/backend
 engine/ @grafbase/backend
 .github/actions/ @grafbase/infrastructure
 examples/ @grafbase/frontend
