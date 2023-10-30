@@ -22,7 +22,7 @@ importers:
     dependencies:
       '@pathfinder-ide/react':
         specifier: 0.2.6
-        version: 0.2.6(@types/react@18.2.31)(prettier@3.0.3)(react-dom@18.2.0)(react@18.2.0)
+        version: 0.2.6(@types/react@18.2.33)(prettier@3.0.3)(react-dom@18.2.0)(react@18.2.0)
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -31,8 +31,8 @@ importers:
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/react':
-        specifier: 18.2.31
-        version: 18.2.31
+        specifier: 18.2.33
+        version: 18.2.33
       '@types/react-dom':
         specifier: 18.2.14
         version: 18.2.14
@@ -1721,7 +1721,7 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.15.0
 
-  /@pathfinder-ide/react@0.2.6(@types/react@18.2.31)(prettier@3.0.3)(react-dom@18.2.0)(react@18.2.0):
+  /@pathfinder-ide/react@0.2.6(@types/react@18.2.33)(prettier@3.0.3)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-nFMgC8vuw4k6RLvBARoM/IVmVoez8TTDKEB43YtQHs776iYQgNMusZH7/I2bZsHhnZeOJsTtYfaT+7GvSFZH4w==}
     peerDependencies:
       react: ^18.2.0
@@ -1735,8 +1735,8 @@ packages:
       monaco-graphql: 1.3.0(graphql@16.8.1)(monaco-editor@0.40.0)(prettier@3.0.3)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      react-markdown: 9.0.0(@types/react@18.2.31)(react@18.2.0)
-      zustand: 4.4.3(@types/react@18.2.31)(react@18.2.0)
+      react-markdown: 9.0.0(@types/react@18.2.33)(react@18.2.0)
+      zustand: 4.4.3(@types/react@18.2.33)(react@18.2.0)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -1919,13 +1919,13 @@ packages:
   /@types/react-dom@18.0.11:
     resolution: {integrity: sha512-O38bPbI2CWtgw/OoQoY+BRelw7uysmXbWvw3nLWO21H1HSh+GOlqPuXshJfjmpNlKiiSDG9cc1JZAaMmVdcTlw==}
     dependencies:
-      '@types/react': 18.2.31
+      '@types/react': 18.2.33
     dev: true
 
   /@types/react-dom@18.2.14:
     resolution: {integrity: sha512-V835xgdSVmyQmI1KLV2BEIUgqEuinxp9O4G6g3FqO/SqLac049E53aysv0oEFD2kHfejeKU+ZqL2bcFWj9gLAQ==}
     dependencies:
-      '@types/react': 18.2.31
+      '@types/react': 18.2.33
     dev: true
 
   /@types/react@18.0.28:
@@ -1936,8 +1936,8 @@ packages:
       csstype: 3.1.2
     dev: true
 
-  /@types/react@18.2.31:
-    resolution: {integrity: sha512-c2UnPv548q+5DFh03y8lEDeMfDwBn9G3dRwfkrxQMo/dOtRHUUO57k6pHvBIfH/VF4Nh+98mZ5aaSe+2echD5g==}
+  /@types/react@18.2.33:
+    resolution: {integrity: sha512-v+I7S+hu3PIBoVkKGpSYYpiBT1ijqEzWpzQD62/jm4K74hPpSP7FF9BnKG6+fg2+62weJYkkBWDJlZt5JO/9hg==}
     dependencies:
       '@types/prop-types': 15.7.5
       '@types/scheduler': 0.16.3
@@ -5852,14 +5852,14 @@ packages:
     resolution: {integrity: sha512-xWGDIW6x921xtzPkhiULtthJHoJvBbF3q26fzloPCK0hsvxtPVelvftw3zjbHWSkR2km9Z+4uxbDDK/6Zw9B8w==}
     dev: true
 
-  /react-markdown@9.0.0(@types/react@18.2.31)(react@18.2.0):
+  /react-markdown@9.0.0(@types/react@18.2.33)(react@18.2.0):
     resolution: {integrity: sha512-v6yNf3AB8GfJ8lCpUvzxAXKxgsHpdmWPlcVRQ6Nocsezp255E/IDrF31kLQsPJeB/cKto/geUwjU36wH784FCA==}
     peerDependencies:
       '@types/react': '>=18'
       react: '>=18'
     dependencies:
       '@types/hast': 3.0.1
-      '@types/react': 18.2.31
+      '@types/react': 18.2.33
       devlop: 1.1.0
       hast-util-to-jsx-runtime: 2.2.0
       html-url-attributes: 3.0.0
@@ -7056,7 +7056,7 @@ packages:
     resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
     dev: false
 
-  /zustand@4.4.3(@types/react@18.2.31)(react@18.2.0):
+  /zustand@4.4.3(@types/react@18.2.33)(react@18.2.0):
     resolution: {integrity: sha512-oRy+X3ZazZvLfmv6viIaQmtLOMeij1noakIsK/Y47PWYhT8glfXzQ4j0YcP5i0P0qI1A4rIB//SGROGyZhx91A==}
     engines: {node: '>=12.7.0'}
     peerDependencies:
@@ -7071,7 +7071,7 @@ packages:
       react:
         optional: true
     dependencies:
-      '@types/react': 18.2.31
+      '@types/react': 18.2.33
       react: 18.2.0
       use-sync-external-store: 1.2.0(react@18.2.0)
     dev: false
