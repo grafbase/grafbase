@@ -41,7 +41,6 @@ pub(super) fn ingest_schema_definitions(
 #[derive(Debug)]
 pub(crate) struct FederationDirectivesMatcher<'a> {
     shareable: Cow<'a, str>,
-    #[cfg(test)]
     key: Cow<'a, str>,
 }
 
@@ -51,7 +50,6 @@ impl Default for FederationDirectivesMatcher<'_> {
     fn default() -> Self {
         FederationDirectivesMatcher {
             shareable: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}shareable")),
-            #[cfg(test)]
             key: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}key")),
         }
     }
@@ -98,7 +96,6 @@ impl<'a> FederationDirectivesMatcher<'a> {
 
         FederationDirectivesMatcher {
             shareable: final_name("shareable"),
-            #[cfg(test)]
             key: final_name("key"),
         }
     }
@@ -107,7 +104,6 @@ impl<'a> FederationDirectivesMatcher<'a> {
         self.shareable == directive_name
     }
 
-    #[cfg(test)]
     pub(crate) fn is_key(&self, directive_name: &str) -> bool {
         self.key == directive_name
     }

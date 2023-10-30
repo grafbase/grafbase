@@ -1,0 +1,7 @@
+type Query {
+  animalsInShow(showId: ID!): [Animal!]
+}
+
+type Animal {
+  popularityScore: Int!
+}

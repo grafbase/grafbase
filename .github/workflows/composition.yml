@@ -24,4 +24,4 @@ jobs:
         working-directory: 'crates/composition'
       
       - run: cargo fmt --check
-         working-directory: 'crates/composition'
+        working-directory: 'crates/composition'

@@ -2,13 +2,19 @@ use crate::{
     subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker},
     Context,
 };
+use itertools::Itertools;
 
 pub(crate) fn build_supergraph(ctx: &mut Context<'_>) {
-    ctx.subgraphs
-        .iter_definition_groups(|first, rest| match first.kind() {
-            DefinitionKind::Object => merge_object_definitions(ctx, first, rest),
+    ctx.subgraphs.iter_definition_groups(|definitions| {
+        let Some(first) = definitions.get(0) else {
+            return;
+        };
+
+        match first.kind() {
+            DefinitionKind::Object => merge_object_definitions(ctx, first, definitions),
             _ => todo!(),
-        });
+        }
+    });
 
     ctx.subgraphs
         .iter_field_groups(|fields| merge_field_definitions(ctx, fields));
@@ -16,12 +22,13 @@ pub(crate) fn build_supergraph(ctx: &mut Context<'_>) {
 
 fn merge_object_definitions<'a>(
     ctx: &mut Context<'_>,
-    first: DefinitionWalker<'a>,
-    mut rest: impl Iterator<Item = DefinitionWalker<'a>>,
+    first: &DefinitionWalker<'a>,
+    definitions: &[DefinitionWalker<'a>],
 ) {
-    let kind = first.kind();
-
-    if let Some(incompatible) = rest.find(|definition| definition.kind() != kind) {
+    if let Some(incompatible) = definitions
+        .iter()
+        .find(|definition| definition.kind() != DefinitionKind::Object)
+    {
         let first_kind = first.kind();
         let second_kind = incompatible.kind();
         let name = first.name_str();
@@ -32,6 +39,29 @@ fn merge_object_definitions<'a>(
         ));
     }
 
+    let first_is_entity = first.is_entity();
+    if definitions
+        .iter()
+        .any(|object| object.is_entity() != first_is_entity)
+    {
+        let name = first.name_str();
+        let (entity_subgraphs, non_entity_subgraphs) = definitions
+            .iter()
+            .partition::<Vec<DefinitionWalker<'_>>, _>(|definition| definition.is_entity());
+
+        ctx.diagnostics.push_fatal(format!(
+            "The `{name}` object is an entity in subgraphs {} but not in subgraphs {}.",
+            entity_subgraphs
+                .into_iter()
+                .map(|d| d.subgraph().name_str())
+                .join(", "),
+            non_entity_subgraphs
+                .into_iter()
+                .map(|d| d.subgraph().name_str())
+                .join(", "),
+        ));
+    }
+
     ctx.supergraph
         .insert_definition(first.name(), DefinitionKind::Object);
 }
@@ -39,7 +69,7 @@ fn merge_object_definitions<'a>(
 fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
     let Some(first) = fields.get(0) else { return };
 
-    if fields.len() > 1 && fields.iter().any(|f| !f.is_shareable()) {
+    if fields.len() > 1 && fields.iter().any(|f| !(f.is_shareable() || f.is_key())) {
         let next = &fields[1];
 
         ctx.diagnostics.push_fatal(format!(
@@ -48,6 +78,30 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
             first.parent_definition().name_str(),
             first.parent_definition().subgraph().name_str(),
             next.parent_definition().subgraph().name_str(),
+        ));
+    }
+
+    let first_is_key = first.is_key();
+    if fields.iter().any(|field| field.is_key() != first_is_key) {
+        let name = format!(
+            "{}.{}",
+            first.parent_definition().name_str(),
+            first.name_str()
+        );
+        let (key_subgraphs, non_key_subgraphs) = fields
+            .iter()
+            .partition::<Vec<FieldWalker<'_>>, _>(|field| field.is_key());
+
+        ctx.diagnostics.push_fatal(format!(
+            "The field `{name}` is part of `@key` in {} but not in {}",
+            key_subgraphs
+                .into_iter()
+                .map(|f| f.parent_definition().subgraph().name_str())
+                .join(", "),
+            non_key_subgraphs
+                .into_iter()
+                .map(|f| f.parent_definition().subgraph().name_str())
+                .join(", "),
         ));
     }
 

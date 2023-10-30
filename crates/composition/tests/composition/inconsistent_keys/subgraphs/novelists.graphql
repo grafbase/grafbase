@@ -1,0 +1,30 @@
+enum Genre {
+  FICTION
+  NONFICTION
+  SCIFI
+  FANTASY
+  MYSTERY
+  BIOGRAPHY
+}
+
+type Book {
+  id: ID!
+  title: String!
+  genre: Genre
+  author: Author
+  publisher: Publisher
+}
+
+type Author @federation__key(fields: "id") {
+  id: ID!
+  name: String! @federation__shareable
+  age: Int
+  books: [Book]
+}
+
+type Publisher {
+  id: ID!
+  name: String!
+  location: String
+  books: [Book]
+}

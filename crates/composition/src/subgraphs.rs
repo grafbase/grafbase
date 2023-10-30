@@ -1,11 +1,16 @@
-mod object;
+mod definitions;
+mod keys;
 mod walkers;
 
-pub(crate) use self::walkers::*;
+pub(crate) use self::{
+    definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
+    walkers::*,
+};
 
+use self::keys::*;
 use crate::strings::{StringId, Strings};
 use itertools::Itertools;
-use std::{collections::BTreeSet, ops};
+use std::collections::BTreeSet;
 
 /// A set of subgraphs to be composed.
 #[derive(Default)]
@@ -13,11 +18,13 @@ pub struct Subgraphs {
     pub(crate) strings: Strings,
     subgraphs: Vec<Subgraph>,
 
-    // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
-    definitions: Vec<Definition>,
+    definitions: definitions::Definitions,
 
     // Invariant: `fields` is sorted by `Field::object_id`. We rely on it for binary search.
     fields: Vec<Field>,
+
+    /// All the keys (`@key(...)`) in all the subgraphs in one container.
+    keys: Keys,
 
     // Secondary indexes.
 
@@ -45,27 +52,27 @@ impl Subgraphs {
     }
 
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The
-    /// argument is a closure that receives, for each group, the first definition of the group and
-    /// an iterator over all the other definitions in the group. The order of iteration is
+    /// argument is a closure that receives each group as argument. The order of iteration is
     /// deterministic but unspecified.
     pub(crate) fn iter_definition_groups<'a>(
         &'a self,
-        mut compose_fn: impl FnMut(DefinitionWalker<'a>, &mut dyn Iterator<Item = DefinitionWalker<'a>>),
+        mut compose_fn: impl FnMut(&[DefinitionWalker<'a>]),
     ) {
+        let mut buf = Vec::new();
         for (_, group) in &self.definition_names.iter().group_by(|(name, _)| name) {
-            let mut group = group
-                .into_iter()
-                .map(move |(_, definition_id)| self.walk(*definition_id));
-            let Some(first_definition_id) = group.next() else {
-                continue;
-            };
-            compose_fn(first_definition_id, &mut group);
+            buf.clear();
+            buf.extend(
+                group
+                    .into_iter()
+                    .map(move |(_, definition_id)| self.walk(*definition_id)),
+            );
+            compose_fn(&buf);
         }
     }
 
-    /// Iterate over groups of fields to compose. The definitions are grouped by parent type name
-    /// and field name. The argument is a closure that receives each group as an argument. The
-    /// order of iteration is deterministic but unspecified.
+    /// Iterate over groups of fields to compose. The fields are grouped by parent type name and
+    /// field name. The argument is a closure that receives each group as an argument. The order of
+    /// iteration is deterministic but unspecified.
     pub(crate) fn iter_field_groups<'a>(&'a self, mut compose_fn: impl FnMut(&[FieldWalker<'a>])) {
         let mut buf = Vec::new();
         for (_, group) in &self
@@ -88,23 +95,6 @@ impl Subgraphs {
             name: self.strings.intern(name),
         };
         push_and_return_id(&mut self.subgraphs, subgraph, SubgraphId)
-    }
-
-    pub(crate) fn push_definition(
-        &mut self,
-        subgraph_id: SubgraphId,
-        name: &str,
-        kind: DefinitionKind,
-    ) -> DefinitionId {
-        let name = self.strings.intern(name);
-        let definition = Definition {
-            subgraph_id,
-            name,
-            kind,
-        };
-        let id = push_and_return_id(&mut self.definitions, definition, DefinitionId);
-        self.definition_names.insert((name, id));
-        id
     }
 
     pub(crate) fn push_field(
@@ -141,21 +131,6 @@ pub(crate) struct Subgraph {
     name: StringId,
 }
 
-pub(crate) struct Definition {
-    subgraph_id: SubgraphId,
-    name: StringId,
-    kind: DefinitionKind,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum DefinitionKind {
-    Object,
-    Interface,
-    // InputObject,
-    // Union,
-    // CustomScalar,
-}
-
 /// A field in an object, interface or input object type.
 pub(crate) struct Field {
     parent_id: DefinitionId,
@@ -166,9 +141,6 @@ pub(crate) struct Field {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct SubgraphId(usize);
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct DefinitionId(usize);
 
 /// The unique identifier for a field in an object, interface or input object field.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
