@@ -3,6 +3,10 @@ name: cli
 on:
   workflow_dispatch:
   pull_request:
+    paths:
+      - 'cli/**/*'
+      - 'crates/**/*'
+      - 'engine/**/*'
   push:
     tags:
       - 'cli-*'
