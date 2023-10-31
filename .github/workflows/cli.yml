@@ -51,7 +51,7 @@ jobs:
             build:
               - 'cli/**/*'
               - 'engine/**/*'
-              - '.github/workflows/cli.yml'
+              # - '.github/workflows/cli.yml'
               - '.github/actions/**/*'
 
   prettier:
@@ -276,7 +276,7 @@ jobs:
     needs: [lint]
     runs-on: macos-latest-xlarge
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
     steps:
