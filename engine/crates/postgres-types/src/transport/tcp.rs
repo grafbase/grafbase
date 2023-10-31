@@ -51,8 +51,55 @@ impl TcpTransport {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub async fn new(_: &str) -> crate::Result<Self> {
-        unimplemented!("Please implement a separate transport for WASM.")
+    pub async fn new(connection_string: &str) -> crate::Result<Self> {
+        let url = url::Url::parse(connection_string)
+            .map_err(|error| crate::error::Error::InvalidConnectionString(error.to_string()))?;
+
+        let username = percent_encoding::percent_decode_str(url.username())
+            .decode_utf8()
+            .unwrap_or_default();
+
+        let password = percent_encoding::percent_decode_str(url.password().unwrap_or_default())
+            .decode_utf8()
+            .unwrap_or_default();
+
+        let dbname = match url.path_segments() {
+            Some(mut segments) => segments.next().unwrap_or("postgres"),
+            None => "postgres",
+        };
+
+        let mut config = tokio_postgres::config::Config::new();
+        config.user(&username);
+        config.password(password.as_ref());
+        config.dbname(dbname);
+
+        let hostname = url.host_str().ok_or_else(|| {
+            crate::error::Error::InvalidConnectionString(String::from(
+                "the connection string does not define a valid hostname",
+            ))
+        })?;
+
+        let socket = worker::Socket::builder()
+            .connect(hostname, url.port().unwrap_or(5432))
+            .map_err(|error| crate::error::Error::Connection(error.to_string()))?;
+
+        let (client, connection) = config
+            .connect_raw(socket, tokio_postgres::tls::NoTls)
+            .await
+            .map_err(|error| crate::error::Error::Connection(error.to_string()))?;
+
+        async_runtime::spawn(async move {
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {e}");
+            }
+        });
+
+        let this = Self {
+            client,
+            connection_string: connection_string.to_string(),
+        };
+
+        Ok(this)
     }
 }
 
