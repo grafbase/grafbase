@@ -1,0 +1,6 @@
+interface FurbyType {
+  id: ID!
+  color: String!
+  height: Float! # in centimeters
+  weight: Float! # in grams
+}

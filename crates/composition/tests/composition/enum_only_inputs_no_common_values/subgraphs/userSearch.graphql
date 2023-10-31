@@ -1,0 +1,10 @@
+type Query {
+  searchUser(filterName: FilterName, filterValue: String): [String!]
+}
+
+enum FilterName {
+  ROLE
+  NAME
+  PROFESSION
+  CREATED_AT
+}

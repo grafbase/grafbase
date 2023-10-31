@@ -1,0 +1,7 @@
+interface FurbyType {
+  id: ID!
+  batteryType: String!
+  connectivity: String # such as Bluetooth, WiFi, etc.
+  sensorTypes: [String!] # such as "motion", "sound", etc.
+}
+

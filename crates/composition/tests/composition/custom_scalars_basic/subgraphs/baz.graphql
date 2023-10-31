@@ -1,0 +1,5 @@
+scalar Texture
+
+type Sheep {
+  texture: Texture!
+}

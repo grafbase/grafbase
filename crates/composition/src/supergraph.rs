@@ -10,10 +10,12 @@ pub(crate) struct Supergraph {
     // We use BTreeMaps here in order to have a consistent ordering when rendering the supergraph
     // schema.
     definitions: BTreeMap<StringId, DefinitionKind>,
-    // (definition_name, field_name) -> (arguments, field_type)
-    fields: BTreeMap<(StringId, StringId), (Vec<(StringId, StringId)>, StringId)>,
+    // (definition_name, field_name) -> Field
+    fields: BTreeMap<(StringId, StringId), Field>,
     // (union_name, member_name)
     union_members: BTreeSet<(StringId, StringId)>,
+    // (enum_name, value)
+    enum_values: BTreeSet<(StringId, StringId)>,
 }
 
 impl Supergraph {
@@ -36,9 +38,13 @@ impl Supergraph {
         field_type: StringId,
         arguments: Vec<(StringId, StringId)>,
     ) {
+        let field = Field {
+            arguments,
+            field_type,
+        };
         if self
             .fields
-            .insert((parent_type_name, field_name), (arguments, field_type))
+            .insert((parent_type_name, field_name), field)
             .is_some()
         {
             panic!("Invariant broken: Supergraph::insert_field() was called twice with the same parent type and field name.");
@@ -52,4 +58,14 @@ impl Supergraph {
     ) {
         self.union_members.insert((parent_union_name, member_name));
     }
+
+    pub(crate) fn insert_enum_value(&mut self, enum_name: StringId, value: StringId) {
+        self.enum_values.insert((enum_name, value));
+    }
+}
+
+#[derive(Debug)]
+struct Field {
+    arguments: Vec<(StringId, StringId)>,
+    field_type: StringId,
 }

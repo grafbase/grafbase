@@ -1,0 +1,18 @@
+interface FurbyType {
+  id: ID!
+  languages: [String!] # languages it can understand
+  canSing: Boolean!
+  canDance: Boolean!
+}
+
+type Furby implements FurbyType & SocialFurby {
+    id: ID!
+  languages: [String!]
+  canSing: Boolean!
+  canDance: Boolean!
+  friends: [Furby!]
+}
+
+interface SocialFurby {
+  friends: [Furby!]
+}

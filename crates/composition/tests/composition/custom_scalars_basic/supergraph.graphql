@@ -1,0 +1,8 @@
+scalar Yan
+scalar Tan
+scalar Texture
+type Sheep {
+    texture: Texture
+    sheepIdx: Tethera
+}
+scalar Tethera

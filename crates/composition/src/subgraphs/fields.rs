@@ -18,6 +18,12 @@ struct Field {
 }
 
 impl Subgraphs {
+    pub(crate) fn iter_fields(&self) -> impl Iterator<Item = FieldWalker<'_>> {
+        (0..self.fields.0.len())
+            .map(FieldId)
+            .map(|id| self.walk(id))
+    }
+
     pub(crate) fn push_field(
         &mut self,
         parent_definition_id: DefinitionId,

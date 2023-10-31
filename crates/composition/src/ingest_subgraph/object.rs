@@ -35,3 +35,25 @@ pub(super) fn ingest_directives(
         }
     }
 }
+
+pub(super) fn ingest_fields(
+    definition_id: DefinitionId,
+    object_type: &ast::ObjectType,
+    federation_directives_matcher: &FederationDirectivesMatcher<'_>,
+    subgraphs: &mut Subgraphs,
+) {
+    let object_is_shareable = subgraphs.walk(definition_id).is_shareable();
+
+    for field in &object_type.fields {
+        let field = &field.node;
+        let is_shareable = object_is_shareable
+            || field.directives.iter().any(|directive| {
+                federation_directives_matcher.is_shareable(directive.node.name.node.as_str())
+            });
+
+        let type_id = subgraphs.intern_field_type(&field.ty.node);
+        let field_id = subgraphs.push_field(definition_id, &field.name.node, type_id, is_shareable);
+
+        super::field::ingest_field_arguments(field_id, &field.arguments, subgraphs);
+    }
+}

@@ -16,7 +16,7 @@ pub(super) fn merge_input_object_definitions(
     for input_object in definitions {
         fields_buf.clear();
         fields_buf.extend(input_object.fields().map(|f| f.name()));
-        common_fields.retain(|field_name, _| fields_buf.contains(&field_name));
+        common_fields.retain(|field_name, _| fields_buf.contains(field_name));
     }
 
     // Check that no required field was excluded.
