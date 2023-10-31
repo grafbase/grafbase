@@ -26,6 +26,8 @@ pub(crate) fn ingest_subgraph(
         subgraphs,
         &federation_directives_matcher,
     );
+
+    ingest_definition_bodies(subgraph_id, document, subgraphs);
 }
 
 fn ingest_top_level_definitions(
@@ -75,11 +77,38 @@ fn ingest_top_level_definitions(
                             DefinitionKind::Interface,
                         );
                     }
+                    ast::TypeKind::Union(_) => {
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union);
+                    }
                     _ => (), // TODO
                 }
             }
             ast::TypeSystemDefinition::Schema(_) => (),
             ast::TypeSystemDefinition::Directive(_) => (),
+        }
+    }
+}
+
+fn ingest_definition_bodies(
+    subgraph_id: SubgraphId,
+    document: &ast::ServiceDocument,
+    subgraphs: &mut Subgraphs,
+) {
+    let type_definitions = document.definitions.iter().filter_map(|def| match def {
+        ast::TypeSystemDefinition::Type(ty) => Some(ty),
+        _ => None,
+    });
+
+    for definition in type_definitions {
+        let union = match &definition.node.kind {
+            ast::TypeKind::Union(def) => def,
+            _ => continue,
+        };
+        let union_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+
+        for member in &union.members {
+            let member_id = subgraphs.definition_by_name(&member.node, subgraph_id);
+            subgraphs.push_union_member(union_id, member_id);
         }
     }
 }

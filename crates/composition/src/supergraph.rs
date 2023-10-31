@@ -1,7 +1,7 @@
 mod render;
 
 use crate::{subgraphs::DefinitionKind, StringId};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// This is a **write only** data structure. The source of truth for the contents of the supergraph
 /// is the subgraphs.
@@ -12,6 +12,8 @@ pub(crate) struct Supergraph {
     definitions: BTreeMap<StringId, DefinitionKind>,
     // (definition_name, field_name) -> field_type
     fields: BTreeMap<(StringId, StringId), StringId>,
+    // (union_name, member_name)
+    union_members: BTreeSet<(StringId, StringId)>,
 }
 
 impl Supergraph {
@@ -40,5 +42,13 @@ impl Supergraph {
         {
             panic!("Invariant broken: Supergraph::insert_field() was called twice with the same parent type and field name.");
         }
+    }
+
+    pub(crate) fn insert_union_member(
+        &mut self,
+        parent_union_name: StringId,
+        member_name: StringId,
+    ) {
+        self.union_members.insert((parent_union_name, member_name));
     }
 }

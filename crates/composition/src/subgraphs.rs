@@ -1,5 +1,6 @@
 mod definitions;
 mod keys;
+mod unions;
 mod walkers;
 
 pub(crate) use self::{
@@ -7,10 +8,9 @@ pub(crate) use self::{
     walkers::*,
 };
 
-use self::keys::*;
 use crate::strings::{StringId, Strings};
 use itertools::Itertools;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// A set of subgraphs to be composed.
 #[derive(Default)]
@@ -24,15 +24,19 @@ pub struct Subgraphs {
     fields: Vec<Field>,
 
     /// All the keys (`@key(...)`) in all the subgraphs in one container.
-    keys: Keys,
+    keys: keys::Keys,
+
+    /// All the unions in all subgraphs.
+    unions: unions::Unions,
 
     // Secondary indexes.
 
-    // We want a set and not a map, because each name corresponds to one _or more_ definitions (in
-    // different subgrahs). And a BTreeSet because we need range queries.
+    // We want a BTreeMap because we need range queries. The name comes first, then the subgraph,
+    // because we want to know which definitions have the same name but live in different
+    // subgraphs.
     //
-    // (definition name, definition id)
-    definition_names: BTreeSet<(StringId, DefinitionId)>,
+    // (definition name, subgraph_id) -> definition id
+    definition_names: BTreeMap<(StringId, SubgraphId), DefinitionId>,
 
     // We want a set and not a map, because each name corresponds to one _or more_ fields (in
     // different subgrahs). And a BTreeSet because we need range queries.
@@ -59,7 +63,7 @@ impl Subgraphs {
         mut compose_fn: impl FnMut(&[DefinitionWalker<'a>]),
     ) {
         let mut buf = Vec::new();
-        for (_, group) in &self.definition_names.iter().group_by(|(name, _)| name) {
+        for (_, group) in &self.definition_names.iter().group_by(|((name, _), _)| name) {
             buf.clear();
             buf.extend(
                 group

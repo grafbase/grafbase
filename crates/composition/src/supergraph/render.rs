@@ -1,4 +1,5 @@
 use crate::{strings::Strings, subgraphs::DefinitionKind, StringId, Supergraph};
+use itertools::Itertools;
 use std::fmt::Write as _;
 
 /// This cannot fail, other than on a format error, and does not produce diagnostics.
@@ -24,6 +25,17 @@ impl Supergraph {
 
                     out.push_str("}\n");
                 }
+
+                DefinitionKind::Union => {
+                    write!(out, "union {} = ", &strings[*definition_name]).unwrap();
+                    let members = self
+                        .union_members
+                        .range((*definition_name, StringId::MIN)..(*definition_name, StringId::MAX))
+                        .map(|(_, member)| &strings[*member])
+                        .join(" | ");
+                    writeln!(out, "{members}").unwrap();
+                }
+
                 _ => todo!(),
             }
         }
