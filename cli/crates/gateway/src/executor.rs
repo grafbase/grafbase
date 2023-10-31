@@ -6,7 +6,7 @@ use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
 use engine::{registry::resolvers::graphql, RequestHeaders};
 use gateway_core::{RequestContext, StreamingFormat};
 use graphql_extensions::{authorization::AuthExtension, runtime_log::RuntimeLogExtension};
-use runtime_local::{Bridge, LocalSearchEngine, UdfInvokerImpl};
+use runtime_local::{Bridge, LocalPgTransportFactory, LocalSearchEngine, UdfInvokerImpl};
 
 pub struct Executor {
     #[allow(dead_code)]
@@ -112,6 +112,7 @@ impl Executor {
             .data(search_engine)
             .data(resolver_engine)
             .data(auth)
+            .data(LocalPgTransportFactory::runtime_factory())
             .data(RequestHeaders::from(&ctx.headers_as_map()))
             .data(runtime_ctx)
             .extension(RuntimeLogExtension::new(Box::new(
