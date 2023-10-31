@@ -13,6 +13,7 @@ keywords = ["graphql", "postgres", "grafbase"]
 Inflector = "0.11.4"
 async-trait = "0.1.74"
 async-stream = "0.3"
+async-runtime.workspace = true
 flexbuffers.workspace = true
 futures.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
@@ -24,15 +25,16 @@ thiserror.workspace = true
 url.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+percent-encoding = "2.3.0"
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
 # https://github.com/sfackler/rust-postgres/pull/1067
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase", features = ["js"], default-features = false }
+worker.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+rustls = "0.21.7"
+rustls-native-certs = "0.6.3"
 # https://github.com/sfackler/rust-postgres/pull/1067
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase" }
 tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls" }
-rustls = "0.21.7"
-rustls-native-certs = "0.6.3"
-async-runtime.workspace = true
