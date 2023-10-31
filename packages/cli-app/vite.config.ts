@@ -3,11 +3,10 @@ import { defineConfig } from 'vite'
 
 export default defineConfig(({ command }) => {
   return {
-    base:
-      command === 'serve' ? '/' : 'https://assets.grafbase.com/cli/pathfinder',
     build: {
       rollupOptions: {
         output: {
+          // this prevents vite from hashing assets (produces index.js rather than index-XXXXXXXX.js)
           entryFileNames: `assets/[name].js`,
           chunkFileNames: `assets/[name].js`,
           assetFileNames: `assets/[name].[ext]`
