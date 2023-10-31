@@ -1,3 +1,7 @@
+mod input_object;
+mod object;
+
+use self::input_object::*;
 use crate::{
     subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker},
     Context,
@@ -13,6 +17,7 @@ pub(crate) fn build_supergraph(ctx: &mut Context<'_>) {
         match first.kind() {
             DefinitionKind::Object => merge_object_definitions(ctx, first, definitions),
             DefinitionKind::Union => merge_union_definitions(ctx, first, definitions),
+            DefinitionKind::InputObject => merge_input_object_definitions(ctx, first, definitions),
             _ => todo!(),
         }
     });
@@ -70,6 +75,10 @@ fn merge_object_definitions<'a>(
 fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
     let Some(first) = fields.get(0) else { return };
 
+    if first.parent_definition().kind() != DefinitionKind::Object {
+        return;
+    }
+
     if fields.len() > 1 && fields.iter().any(|f| !(f.is_shareable() || f.is_key())) {
         let next = &fields[1];
 
@@ -106,10 +115,13 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
         ));
     }
 
+    let arguments = object::merge_field_arguments(*first, fields);
+
     ctx.supergraph.insert_field(
         first.parent_definition().name(),
         first.name(),
-        first.type_name(),
+        first.r#type().type_name(),
+        arguments,
     )
 }
 

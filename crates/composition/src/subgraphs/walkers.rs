@@ -14,7 +14,6 @@ impl<'a, Id> Walker<'a, Id> {
     }
 }
 
-pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;
 pub(crate) type SubgraphWalker<'a> = Walker<'a, SubgraphId>;
 
 impl<'a> SubgraphWalker<'a> {
@@ -24,49 +23,5 @@ impl<'a> SubgraphWalker<'a> {
 
     pub(crate) fn name_str(self) -> &'a str {
         self.subgraphs.strings.resolve(self.subgraph().name)
-    }
-}
-
-impl<'a> FieldWalker<'a> {
-    fn field(self) -> &'a Field {
-        &self.subgraphs.fields[self.id.0]
-    }
-
-    /// Returns true iff there is an `@key` directive containing exactly this field (no composite
-    /// key).
-    pub fn is_key(self) -> bool {
-        let field = self.field();
-        self.subgraphs.iter_object_keys(field.parent_id).any(|key| {
-            let mut key_fields = key.fields();
-            let Some(first_field) = key_fields.next() else {
-                return false;
-            };
-
-            if key_fields.next().is_some() || !first_field.subselection.is_empty() {
-                return false;
-            }
-
-            first_field.field == field.name
-        })
-    }
-
-    pub fn is_shareable(self) -> bool {
-        self.field().is_shareable
-    }
-
-    pub fn parent_definition(self) -> DefinitionWalker<'a> {
-        self.walk(self.field().parent_id)
-    }
-
-    pub fn name(self) -> StringId {
-        self.field().name
-    }
-
-    pub fn name_str(self) -> &'a str {
-        self.subgraphs.strings.resolve(self.name())
-    }
-
-    pub fn type_name(self) -> StringId {
-        self.field().type_name
     }
 }

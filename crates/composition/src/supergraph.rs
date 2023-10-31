@@ -10,8 +10,8 @@ pub(crate) struct Supergraph {
     // We use BTreeMaps here in order to have a consistent ordering when rendering the supergraph
     // schema.
     definitions: BTreeMap<StringId, DefinitionKind>,
-    // (definition_name, field_name) -> field_type
-    fields: BTreeMap<(StringId, StringId), StringId>,
+    // (definition_name, field_name) -> (arguments, field_type)
+    fields: BTreeMap<(StringId, StringId), (Vec<(StringId, StringId)>, StringId)>,
     // (union_name, member_name)
     union_members: BTreeSet<(StringId, StringId)>,
 }
@@ -34,10 +34,11 @@ impl Supergraph {
         parent_type_name: StringId,
         field_name: StringId,
         field_type: StringId,
+        arguments: Vec<(StringId, StringId)>,
     ) {
         if self
             .fields
-            .insert((parent_type_name, field_name), field_type)
+            .insert((parent_type_name, field_name), (arguments, field_type))
             .is_some()
         {
             panic!("Invariant broken: Supergraph::insert_field() was called twice with the same parent type and field name.");

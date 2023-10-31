@@ -19,7 +19,7 @@ pub(crate) enum DefinitionKind {
     Object,
     Interface,
     Union,
-    // InputObject,
+    InputObject,
     // CustomScalar,
 }
 

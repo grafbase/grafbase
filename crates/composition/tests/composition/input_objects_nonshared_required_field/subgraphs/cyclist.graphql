@@ -1,0 +1,16 @@
+type Mutation {
+  createCyclist(input: CyclistInput): Cyclist
+}
+
+type Cyclist {
+  id: ID!
+  name: String!
+  team: String
+  category: String
+}
+
+input CyclistInput {
+  name: String!
+  team: String
+  category: String
+}

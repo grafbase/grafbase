@@ -1,0 +1,17 @@
+type Query {
+  getPersonInfo(input: InputPerson!): Person
+}
+
+type Person @federation__shareable {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  age: Int!
+  email: String!
+}
+
+input InputPerson {
+  firstName: String!
+  lastName: String!
+  age: Int
+}

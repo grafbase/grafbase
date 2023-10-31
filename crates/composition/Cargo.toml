@@ -17,4 +17,3 @@ miette = { version = "5.10.0", features = ["fancy"] }
 [[test]]
 name = "composition_tests"
 harness = false
-

@@ -1,10 +1,14 @@
 mod definitions;
+mod field_types;
+mod fields;
 mod keys;
 mod unions;
 mod walkers;
 
 pub(crate) use self::{
     definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
+    field_types::*,
+    fields::*,
     walkers::*,
 };
 
@@ -17,11 +21,9 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct Subgraphs {
     pub(crate) strings: Strings,
     subgraphs: Vec<Subgraph>,
-
     definitions: definitions::Definitions,
-
-    // Invariant: `fields` is sorted by `Field::object_id`. We rely on it for binary search.
-    fields: Vec<Field>,
+    fields: fields::Fields,
+    field_types: field_types::FieldTypes,
 
     /// All the keys (`@key(...)`) in all the subgraphs in one container.
     keys: keys::Keys,
@@ -101,26 +103,6 @@ impl Subgraphs {
         push_and_return_id(&mut self.subgraphs, subgraph, SubgraphId)
     }
 
-    pub(crate) fn push_field(
-        &mut self,
-        parent_id: DefinitionId,
-        field_name: &str,
-        type_name: &str,
-        is_shareable: bool,
-    ) -> FieldId {
-        let name = self.strings.intern(field_name);
-        let field = Field {
-            parent_id,
-            name,
-            type_name: self.strings.intern(type_name),
-            is_shareable,
-        };
-        let id = push_and_return_id(&mut self.fields, field, FieldId);
-        let parent_object_name = self.walk(parent_id).name();
-        self.field_names.insert((parent_object_name, name, id));
-        id
-    }
-
     pub(crate) fn walk<Id>(&self, id: Id) -> Walker<'_, Id> {
         Walker {
             id,
@@ -135,20 +117,8 @@ pub(crate) struct Subgraph {
     name: StringId,
 }
 
-/// A field in an object, interface or input object type.
-pub(crate) struct Field {
-    parent_id: DefinitionId,
-    name: StringId,
-    type_name: StringId,
-    is_shareable: bool,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct SubgraphId(usize);
-
-/// The unique identifier for a field in an object, interface or input object field.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct FieldId(usize);
 
 fn push_and_return_id<T, Id>(elems: &mut Vec<T>, new_elem: T, make_id: fn(usize) -> Id) -> Id {
     let id = make_id(elems.len());
