@@ -3,13 +3,14 @@ import { defineConfig } from 'vite'
 
 export default defineConfig(({ command }) => {
   return {
+    base: command === 'serve' ? '/' : '/static',
     build: {
       rollupOptions: {
         output: {
           // this prevents vite from hashing assets (produces index.js rather than index-XXXXXXXX.js)
-          entryFileNames: 'static/assets/[name].js',
-          chunkFileNames: 'static/assets/[name].js',
-          assetFileNames: 'static/assets/[name].[ext]'
+          entryFileNames: `assets/[name].js`,
+          chunkFileNames: `assets/[name].js`,
+          assetFileNames: `assets/[name].[ext]`
         }
       }
     },
