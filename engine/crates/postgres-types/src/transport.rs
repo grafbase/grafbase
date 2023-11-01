@@ -2,7 +2,7 @@ mod ext;
 mod tcp;
 
 pub use ext::TransportExt;
-pub use tcp::TcpTransport;
+pub use tcp::{TcpTransport, Transaction};
 
 use crate::database_definition::ScalarType;
 use crate::error::Error;
