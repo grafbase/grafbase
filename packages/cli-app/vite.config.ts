@@ -7,9 +7,9 @@ export default defineConfig(({ command }) => {
       rollupOptions: {
         output: {
           // this prevents vite from hashing assets (produces index.js rather than index-XXXXXXXX.js)
-          entryFileNames: `assets/[name].js`,
-          chunkFileNames: `assets/[name].js`,
-          assetFileNames: `assets/[name].[ext]`
+          entryFileNames: 'static/assets/[name].js',
+          chunkFileNames: 'static/assets/[name].js',
+          assetFileNames: 'static/assets/[name].[ext]'
         }
       }
     },
