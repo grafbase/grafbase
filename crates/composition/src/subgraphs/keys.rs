@@ -1,6 +1,7 @@
 use super::*;
 use async_graphql_parser::types as ast;
 
+/// All the keys (`@key(...)`) in all the subgraphs in one container.
 #[derive(Default)]
 pub(crate) struct Keys(Vec<(DefinitionId, Key)>);
 

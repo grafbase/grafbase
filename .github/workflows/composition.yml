@@ -1,3 +1,5 @@
+name: grafbase-composition
+
 on:
   pull_request:
     paths:

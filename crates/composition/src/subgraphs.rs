@@ -1,4 +1,5 @@
 mod definitions;
+mod enums;
 mod field_types;
 mod fields;
 mod keys;
@@ -22,13 +23,10 @@ pub struct Subgraphs {
     pub(crate) strings: Strings,
     subgraphs: Vec<Subgraph>,
     definitions: definitions::Definitions,
+    enums: enums::Enums,
     fields: fields::Fields,
     field_types: field_types::FieldTypes,
-
-    /// All the keys (`@key(...)`) in all the subgraphs in one container.
     keys: keys::Keys,
-
-    /// All the unions in all subgraphs.
     unions: unions::Unions,
 
     // Secondary indexes.

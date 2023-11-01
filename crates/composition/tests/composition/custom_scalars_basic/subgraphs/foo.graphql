@@ -1,0 +1,8 @@
+
+scalar Yan
+scalar Tan
+scalar Tethera
+
+type Sheep {
+  sheepIdx: Tethera
+}

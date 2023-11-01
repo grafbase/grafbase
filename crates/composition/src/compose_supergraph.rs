@@ -1,4 +1,6 @@
+mod enums;
 mod input_object;
+mod interface;
 mod object;
 
 use self::input_object::*;
@@ -18,7 +20,14 @@ pub(crate) fn build_supergraph(ctx: &mut Context<'_>) {
             DefinitionKind::Object => merge_object_definitions(ctx, first, definitions),
             DefinitionKind::Union => merge_union_definitions(ctx, first, definitions),
             DefinitionKind::InputObject => merge_input_object_definitions(ctx, first, definitions),
-            _ => todo!(),
+            DefinitionKind::Interface => {
+                interface::merge_interface_definitions(ctx, first, definitions)
+            }
+            DefinitionKind::Scalar => {
+                ctx.supergraph
+                    .insert_definition(first.name(), DefinitionKind::Scalar);
+            }
+            DefinitionKind::Enum => enums::merge_enum_definitions(first, definitions, ctx),
         }
     });
 

@@ -1,0 +1,20 @@
+type Activity {
+  name: String!
+  description: String!
+  participatingTeletubby: Teletubby!
+}
+
+type Teletubby @federation__key(fields: "name") {
+  name: String!
+  activities: [Activity]
+  favoriteToy: FavoriteToy @federation__shareable
+}
+
+type Query {
+  getActivity(name: String!): Activity
+}
+
+enum FavoriteToy {
+  PLUSHTOY
+  TOBOGGAN
+}

@@ -8,7 +8,7 @@ pub(super) fn merge_field_arguments(
     first: FieldWalker<'_>,
     fields: &[FieldWalker<'_>],
 ) -> Vec<(StringId, StringId)> {
-    let mut intersection: HashSet<_> = first.arguments().map(|arg| arg.argument_name()).collect();
+    let mut intersection: Vec<_> = first.arguments().map(|arg| arg.argument_name()).collect();
     let mut buf = HashSet::new();
 
     for field in &fields[1..] {
