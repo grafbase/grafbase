@@ -1,11 +1,12 @@
 //! This is a separate module because we want to use only the public API of [Subgraphs] and avoid
 //! mixing GraphQL parser logic and types with our internals.
 
+mod enums;
 mod field;
 mod object;
 mod schema_definitions;
 
-use self::{field::*, schema_definitions::*};
+use self::schema_definitions::*;
 use crate::{
     subgraphs::{DefinitionKind, SubgraphId},
     Subgraphs,
@@ -28,7 +29,12 @@ pub(crate) fn ingest_subgraph(
         &federation_directives_matcher,
     );
 
-    ingest_definition_bodies(subgraph_id, document, subgraphs);
+    ingest_definition_bodies(
+        subgraph_id,
+        document,
+        subgraphs,
+        &federation_directives_matcher,
+    );
 }
 
 fn ingest_top_level_definitions(
@@ -42,7 +48,7 @@ fn ingest_top_level_definitions(
             ast::TypeSystemDefinition::Type(type_definition) => {
                 let type_name = &type_definition.node.name.node;
                 match &type_definition.node.kind {
-                    ast::TypeKind::Object(object_type) => {
+                    ast::TypeKind::Object(_) => {
                         let definition_id = subgraphs.push_definition(
                             subgraph_id,
                             type_name,
@@ -54,24 +60,6 @@ fn ingest_top_level_definitions(
                             subgraphs,
                             federation_directives_matcher,
                         );
-                        let object_is_shareable = subgraphs.walk(definition_id).is_shareable();
-
-                        for field in &object_type.fields {
-                            let is_shareable = object_is_shareable
-                                || field.node.directives.iter().any(|directive| {
-                                    federation_directives_matcher
-                                        .is_shareable(directive.node.name.node.as_str())
-                                });
-                            let type_id = subgraphs.intern_field_type(&field.node.ty.node);
-                            let field_id = subgraphs.push_field(
-                                definition_id,
-                                &field.node.name.node,
-                                type_id,
-                                is_shareable,
-                            );
-
-                            ingest_field_arguments(field_id, &field.node.arguments, subgraphs);
-                        }
                     }
                     ast::TypeKind::Interface(_interface_type) => {
                         subgraphs.push_definition(
@@ -90,7 +78,16 @@ fn ingest_top_level_definitions(
                             DefinitionKind::InputObject,
                         );
                     }
-                    _ => (), // TODO
+
+                    ast::TypeKind::Scalar => {
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Scalar);
+                    }
+
+                    ast::TypeKind::Enum(enum_type) => {
+                        let definition_id =
+                            subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Enum);
+                        enums::ingest_enum(definition_id, enum_type, subgraphs);
+                    }
                 }
             }
             ast::TypeSystemDefinition::Schema(_) => (),
@@ -103,6 +100,7 @@ fn ingest_definition_bodies(
     subgraph_id: SubgraphId,
     document: &ast::ServiceDocument,
     subgraphs: &mut Subgraphs,
+    federation_directives_matcher: &FederationDirectivesMatcher<'_>,
 ) {
     let type_definitions = document.definitions.iter().filter_map(|def| match def {
         ast::TypeSystemDefinition::Type(ty) => Some(ty),
@@ -127,6 +125,25 @@ fn ingest_definition_bodies(
                     let ty = subgraphs.intern_field_type(&field.node.ty.node);
                     subgraphs.push_field(definition_id, &field.node.name.node, ty, false);
                 }
+            }
+            ast::TypeKind::Interface(interface) => {
+                let definition_id =
+                    subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+
+                for field in &interface.fields {
+                    let ty = subgraphs.intern_field_type(&field.node.ty.node);
+                    subgraphs.push_field(definition_id, &field.node.name.node, ty, false);
+                }
+            }
+            ast::TypeKind::Object(object_type) => {
+                let definition_id =
+                    subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+                object::ingest_fields(
+                    definition_id,
+                    object_type,
+                    federation_directives_matcher,
+                    subgraphs,
+                );
             }
             _ => (),
         }

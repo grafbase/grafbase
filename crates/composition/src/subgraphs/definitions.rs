@@ -20,7 +20,8 @@ pub(crate) enum DefinitionKind {
     Interface,
     Union,
     InputObject,
-    // CustomScalar,
+    Scalar,
+    Enum,
 }
 
 impl Subgraphs {

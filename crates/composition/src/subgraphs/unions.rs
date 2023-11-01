@@ -2,6 +2,7 @@ use super::DefinitionId;
 use crate::Subgraphs;
 use std::collections::BTreeSet;
 
+/// All the unions in all subgraphs.
 #[derive(Default)]
 pub(crate) struct Unions(
     /// (union, member)

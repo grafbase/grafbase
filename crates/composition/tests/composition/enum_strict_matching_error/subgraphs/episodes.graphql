@@ -1,0 +1,23 @@
+type Episode {
+  title: String!
+  duration: Int! # Duration in seconds
+  featuredTeletubby: Teletubby!
+  featuredToys: [FavoriteToy!]
+}
+
+type Teletubby @federation__key(fields: "name") {
+  name: String!
+  episodesFeatured: [Episode]
+  favoriteToy: FavoriteToy @federation__shareable
+}
+
+type Query {
+  getEpisode(title: String!): Episode
+  episodesFeaturingToys(toys: [FavoriteToy!]): [Episode!]
+}
+
+enum FavoriteToy {
+  SCOOTER
+  BAG
+  HAT
+}

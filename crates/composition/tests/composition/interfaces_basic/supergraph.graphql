@@ -1,0 +1,22 @@
+interface FurbyType {
+    id: ID
+    batteryType: String
+    connectivity: String
+    sensorTypes: String
+    color: String
+    height: Float
+    weight: Float
+    languages: String
+    canSing: Boolean
+    canDance: Boolean
+}
+type Furby {
+    id: ID
+    languages: String
+    canSing: Boolean
+    canDance: Boolean
+    friends: Furby
+}
+interface SocialFurby {
+    friends: Furby
+}

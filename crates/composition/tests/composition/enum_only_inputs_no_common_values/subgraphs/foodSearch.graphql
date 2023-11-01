@@ -1,0 +1,9 @@
+type Query {
+  searchFood(filterName: FilterName, filterValue: String): [String!]
+}
+
+enum FilterName {
+  CALORIES
+  MAGNESIUM
+  DOESITTASTEGOOD
+}

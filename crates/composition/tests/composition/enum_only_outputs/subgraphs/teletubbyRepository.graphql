@@ -1,0 +1,21 @@
+type Teletubby @federation__key(fields: "name") {
+  name: String!
+  color: String!
+  favoriteToy: FavoriteToy @federation__shareable
+  mood: Mood
+}
+
+enum Mood {
+  HAPPY
+  SAD
+}
+
+type Query {
+  getTeletubby(name: String!): Teletubby
+}
+
+enum FavoriteToy {
+  BAG
+  HAT
+  BALL
+}

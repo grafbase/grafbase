@@ -11,24 +11,15 @@ impl Supergraph {
                 DefinitionKind::Object => {
                     writeln!(out, "type {} {{", &strings[*definition_name]).unwrap();
 
-                    for ((_, field_name), (args, field_type)) in self
+                    for ((_, field_name), field) in self
                         .fields
                         .range((*definition_name, StringId::MIN)..(*definition_name, StringId::MAX))
                     {
-                        let args = if args.is_empty() {
-                            String::new()
-                        } else {
-                            let inner = args
-                                .iter()
-                                .map(|(name, ty)| (strings.resolve(*name), strings.resolve(*ty)))
-                                .map(|(name, ty)| format!("{name}: {ty}"))
-                                .join(", ");
-                            format!("({inner})")
-                        };
+                        let args = render_field_arguments(&field.arguments, strings);
                         writeln!(
                             out,
                             "    {}{args}: {}",
-                            &strings[*field_name], &strings[*field_type]
+                            &strings[*field_name], &strings[field.field_type]
                         )
                         .unwrap();
                     }
@@ -52,11 +43,11 @@ impl Supergraph {
                     let fields = self.fields.range(
                         (*definition_name, StringId::MIN)..(*definition_name, StringId::MAX),
                     );
-                    for ((_, field_name), (_, field_type)) in fields {
+                    for ((_, field_name), field) in fields {
                         writeln!(
                             out,
                             "    {}: {}",
-                            &strings[*field_name], &strings[*field_type]
+                            &strings[*field_name], &strings[field.field_type]
                         )
                         .unwrap();
                     }
@@ -64,9 +55,55 @@ impl Supergraph {
                     out.push_str("}\n");
                 }
 
-                _ => todo!(),
+                DefinitionKind::Interface => {
+                    writeln!(out, "interface {} {{", &strings[*definition_name]).unwrap();
+
+                    for ((_, field_name), field) in self
+                        .fields
+                        .range((*definition_name, StringId::MIN)..(*definition_name, StringId::MAX))
+                    {
+                        let args = render_field_arguments(&field.arguments, strings);
+                        writeln!(
+                            out,
+                            "    {}{args}: {}",
+                            &strings[*field_name], &strings[field.field_type]
+                        )
+                        .unwrap();
+                    }
+                    out.push_str("}\n");
+                }
+
+                DefinitionKind::Scalar => {
+                    writeln!(out, "scalar {}", strings.resolve(*definition_name)).unwrap();
+                }
+
+                DefinitionKind::Enum => {
+                    writeln!(out, "enum {} {{", strings.resolve(*definition_name)).unwrap();
+
+                    for (_, value) in self
+                        .enum_values
+                        .range((*definition_name, StringId::MIN)..(*definition_name, StringId::MAX))
+                    {
+                        writeln!(out, "  {}", strings.resolve(*value)).unwrap();
+                    }
+
+                    out.push_str("}\n");
+                }
             }
         }
         out
+    }
+}
+
+fn render_field_arguments(args: &[(StringId, StringId)], strings: &Strings) -> String {
+    if args.is_empty() {
+        String::new()
+    } else {
+        let inner = args
+            .iter()
+            .map(|(name, ty)| (strings.resolve(*name), strings.resolve(*ty)))
+            .map(|(name, ty)| format!("{name}: {ty}"))
+            .join(", ");
+        format!("({inner})")
     }
 }

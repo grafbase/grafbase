@@ -5,3 +5,7 @@ type Customer {
     newsletterSubscribed: Boolean
     subscriptionPlan: Plan
 }
+enum Plan {
+  Hobby
+  Pro
+}
