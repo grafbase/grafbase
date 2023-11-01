@@ -6,8 +6,8 @@ fn update_expect() -> bool {
 }
 
 #[allow(clippy::unnecessary_wraps)] // we can't change the signature expected by datatest_stable
-fn run_test(supergraph_path: &Path) -> datatest_stable::Result<()> {
-    let subgraphs_dir = supergraph_path.with_file_name("").join("subgraphs");
+fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
+    let subgraphs_dir = federated_graph_path.with_file_name("").join("subgraphs");
 
     if !subgraphs_dir.is_dir() {
         return Err(miette::miette!("{} is not a directory.", subgraphs_dir.display()).into());
@@ -30,10 +30,10 @@ fn run_test(supergraph_path: &Path) -> datatest_stable::Result<()> {
         subgraphs.ingest(&parsed, path.file_stem().unwrap().to_str().unwrap());
     }
 
-    let expected = fs::read_to_string(supergraph_path)
-        .map_err(|err| miette::miette!("Error trying to read supergraph.graphql: {}", err))?;
+    let expected = fs::read_to_string(federated_graph_path)
+        .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
     let actual = match grafbase_composition::compose(&subgraphs).into_result() {
-        Ok(sdl) => sdl,
+        Ok(sdl) => grafbase_federated_graph::render_sdl(&sdl).unwrap(),
         Err(diagnostics) => format!(
             "{}\n",
             diagnostics
@@ -49,7 +49,7 @@ fn run_test(supergraph_path: &Path) -> datatest_stable::Result<()> {
     }
 
     if update_expect() {
-        return fs::write(supergraph_path, actual).map_err(From::from);
+        return fs::write(federated_graph_path, actual).map_err(From::from);
     }
 
     Err(miette::miette!(
@@ -65,4 +65,4 @@ fn run_test(supergraph_path: &Path) -> datatest_stable::Result<()> {
     .into())
 }
 
-datatest_stable::harness! { run_test, "./tests/composition", r"^.*supergraph.graphql$" }
+datatest_stable::harness! { run_test, "./tests/composition", r"^.*federated.graphql$" }

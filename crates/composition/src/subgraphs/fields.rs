@@ -43,8 +43,8 @@ impl Subgraphs {
             is_shareable,
             arguments: Vec::new(),
         };
-        let id = push_and_return_id(&mut self.fields.0, field, FieldId);
-        let parent_object_name = self.walk(parent_definition_id).name();
+        let id = FieldId(self.fields.0.push_return_idx(field));
+        let parent_object_name = self.walk(parent_definition_id).name().id;
         self.field_names.insert((parent_object_name, name, id));
         id
     }
@@ -111,16 +111,8 @@ impl<'a> FieldWalker<'a> {
     /// id: ID!
     /// ^^
     /// ```
-    pub fn name(self) -> StringId {
-        self.field().name
-    }
-
-    /// ```graphql,ignore
-    /// id: ID!
-    /// ^^
-    /// ```
-    pub fn name_str(self) -> &'a str {
-        self.subgraphs.strings.resolve(self.name())
+    pub fn name(self) -> StringWalker<'a> {
+        self.walk(self.field().name)
     }
 
     /// ```ignore,graphql
@@ -141,8 +133,8 @@ impl<'a> ArgumentWalker<'a> {
     ///                ^^^^^^^
     /// }
     /// ```
-    pub(crate) fn argument_name(&self) -> StringId {
-        self.id.0
+    pub(crate) fn argument_name(&self) -> StringWalker<'a> {
+        self.walk(self.id.0)
     }
 
     /// ```graphql,ignore

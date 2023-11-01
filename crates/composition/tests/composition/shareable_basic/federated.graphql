@@ -1,11 +1,12 @@
 type Customer {
-    id: ID
+    id: ID!
     name: String
     other: Int
     newsletterSubscribed: Boolean
-    subscriptionPlan: Plan
+    subscriptionPlan: Plan!
 }
+
 enum Plan {
-  Hobby
-  Pro
+    Hobby
+    Pro
 }

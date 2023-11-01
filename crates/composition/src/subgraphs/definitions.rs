@@ -50,7 +50,7 @@ impl Subgraphs {
             kind,
             is_shareable: false,
         };
-        let id = push_and_return_id(&mut self.definitions.0, definition, DefinitionId);
+        let id = DefinitionId(self.definitions.0.push_return_idx(definition));
         self.definition_names.insert((name, subgraph_id), id);
         id
     }
@@ -63,12 +63,8 @@ impl<'a> DefinitionWalker<'a> {
         &self.subgraphs.definitions.0[self.id.0]
     }
 
-    pub fn name_str(self) -> &'a str {
-        self.subgraphs.strings.resolve(self.name())
-    }
-
-    pub fn name(self) -> StringId {
-        self.definition().name
+    pub fn name(self) -> StringWalker<'a> {
+        self.walk(self.definition().name)
     }
 
     pub fn kind(self) -> DefinitionKind {

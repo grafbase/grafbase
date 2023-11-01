@@ -1,21 +1,22 @@
 use crate::Diagnostics;
+use grafbase_federated_graph::FederatedGraph;
 
 /// The result of a [`compose()`](crate::compose()) invocation.
 pub struct CompositionResult {
-    pub(crate) supergraph_sdl: String,
+    pub(crate) federated_graph: FederatedGraph,
     pub(crate) diagnostics: Diagnostics,
 }
 
 impl CompositionResult {
     /// Simplify the result data to a yes-no answer: did composition succeed?
     ///
-    /// `Ok()` contains the supergraph SDL.
-    /// `Err()` contains all diagnostics.
-    pub fn into_result(self) -> Result<String, Diagnostics> {
+    /// `Ok()` contains the [FederatedGraph].
+    /// `Err()` contains all [Diagnostics].
+    pub fn into_result(self) -> Result<FederatedGraph, Diagnostics> {
         if self.diagnostics.any_fatal() {
             Err(self.diagnostics)
         } else {
-            Ok(self.supergraph_sdl)
+            Ok(self.federated_graph)
         }
     }
 
