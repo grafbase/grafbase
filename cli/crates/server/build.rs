@@ -12,7 +12,7 @@ fn find_pathfinder_bundle_location() -> String {
     if let Ok(location) = env::var(GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH) {
         assert!(
             fs::metadata(&location).is_ok(),
-            "The location specified in {GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH} ({location} does ont exist."
+            "The location specified in {GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH} ({location} does not exist."
         );
         return location;
     }
@@ -80,7 +80,7 @@ fn main() -> io::Result<()> {
     eprintln!("Copying bundled pathfinder to the assets dir...");
     let target_path = tmp_assets.path().join("static/assets");
     fs::create_dir_all(&target_path)?;
-    for file in fs::read_dir(Path::new(&bundle_location).join("assets"))? {
+    for file in fs::read_dir(Path::new(&bundle_location).join("static/assets"))? {
         let file_path = file?.path();
         let dest_path = target_path.join(file_path.file_name().unwrap());
         eprintln!("    {file_path:?} -> {dest_path:?}");
