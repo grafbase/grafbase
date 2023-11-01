@@ -80,7 +80,7 @@ fn main() -> io::Result<()> {
     eprintln!("Copying bundled pathfinder to the assets dir...");
     let target_path = tmp_assets.path().join("static/assets");
     fs::create_dir_all(&target_path)?;
-    for file in fs::read_dir(Path::new(&bundle_location).join("static/assets"))? {
+    for file in fs::read_dir(Path::new(&bundle_location).join("assets"))? {
         let file_path = file?.path();
         let dest_path = target_path.join(file_path.file_name().unwrap());
         eprintln!("    {file_path:?} -> {dest_path:?}");
