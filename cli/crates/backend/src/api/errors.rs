@@ -139,6 +139,12 @@ pub enum ApiError {
     /// returned if the project does not exist
     #[error("could not find the project")]
     ProjectDoesNotExist,
+
+    #[error("{0}")]
+    PublishError(String),
+
+    #[error("{0}")]
+    SubgraphsError(String),
 }
 
 #[derive(Error, Debug)]

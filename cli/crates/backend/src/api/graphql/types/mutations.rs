@@ -180,3 +180,39 @@ pub enum DeploymentCreatePayload {
     #[cynic(fallback)]
     Unknown(String),
 }
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct PublishSuccess {
+    pub __typename: String,
+}
+
+#[derive(cynic::InlineFragments, Debug)]
+pub enum PublishPayload {
+    PublishSuccess(PublishSuccess),
+    #[cynic(fallback)]
+    Unknown(String),
+}
+
+cynic::impl_scalar!(url::Url, schema::Url);
+
+#[derive(cynic::QueryVariables)]
+pub struct SubgraphCreateArguments<'a> {
+    pub input: PublishInput<'a>,
+}
+
+#[derive(cynic::InputObject, Debug)]
+pub struct PublishInput<'a> {
+    pub account_slug: &'a str,
+    pub project_slug: &'a str,
+    pub branch: Option<&'a str>,
+    pub subgraph: &'a str,
+    pub url: &'a str,
+    pub schema: &'a str,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Mutation", variables = "SubgraphCreateArguments")]
+pub struct SubgraphPublish {
+    #[arguments(input: $input)]
+    pub publish: Option<PublishPayload>,
+}

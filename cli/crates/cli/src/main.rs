@@ -8,6 +8,7 @@ mod deploy;
 mod dev;
 mod errors;
 mod init;
+mod introspect;
 mod link;
 mod login;
 mod logout;
@@ -15,9 +16,11 @@ mod logs;
 mod output;
 mod panic_hook;
 mod prompts;
+mod publish;
 mod reset;
+mod schema;
 mod start;
-mod subgraph;
+mod subgraphs;
 mod unlink;
 mod watercolor;
 
@@ -37,7 +40,6 @@ use crate::{
     logs::logs,
     reset::reset,
     start::start,
-    subgraph::subgraph,
     unlink::unlink,
 };
 use clap::Parser;
@@ -137,6 +139,10 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
             build(cmd.parallelism(), args.trace >= 2)
         }
-        SubCommand::Subgraph(cmd) => subgraph(cmd),
+
+        SubCommand::Subgraphs(cmd) => subgraphs::subgraphs(cmd),
+        SubCommand::Schema(cmd) => schema::schema(cmd),
+        SubCommand::Publish(cmd) => publish::publish(cmd),
+        SubCommand::Introspect(cmd) => introspect::introspect(&cmd),
     }
 }

@@ -409,6 +409,39 @@ pub fn create_success(name: &str, urls: &[String]) {
     }
 }
 
+pub fn subgraphs_command_success<'a>(subgraphs: impl ExactSizeIterator<Item = &'a str>) {
+    if subgraphs.len() == 0 {
+        println!("🈳 There are no published subgraphs in this branch\n");
+        return;
+    }
+
+    println!("👑 Found the subgraphs 👑\n");
+
+    let emojis = "🌠🎐🌌🗺️🧘🔆🪁";
+
+    for (name, emoji) in subgraphs.zip(emojis.chars().cycle()) {
+        println!("- {emoji} {name}");
+    }
+
+    println!();
+}
+
+pub(crate) fn schema_command_success(schema: Option<&str>) {
+    if let Some(schema) = schema {
+        print!("{schema}");
+    } else {
+        eprintln!("🤲 Found no schema");
+    }
+}
+
+pub(crate) fn publishing() {
+    println!("⏳ Publishing...");
+}
+
+pub(crate) fn publish_command_success(subgraph_name: &str) {
+    println!("🌐 {subgraph_name} successfully published!!! 🙌✨🎉🥳💃🕺🚀🎊");
+}
+
 pub fn print_log_entry(
     LogEvent {
         created_at,
