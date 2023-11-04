@@ -21,7 +21,7 @@ runtime = { workspace = true }
 graph-entities = { workspace = true }
 log = { workspace = true, features = ["with-worker"] }
 search-protocol = { workspace = true }
-postgres-types = { path = "../postgres-types" }
+postgres-connector-types = { path = "../postgres-connector-types" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json"] }

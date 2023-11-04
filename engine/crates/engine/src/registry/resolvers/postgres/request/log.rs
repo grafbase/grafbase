@@ -9,7 +9,7 @@ use super::RowData;
 
 pub(super) async fn query<F>(ctx: &PostgresContext<'_>, sql: &str, operation: F) -> crate::Result<Vec<RowData>>
 where
-    F: Future<Output = postgres_types::Result<Vec<RowData>>>,
+    F: Future<Output = postgres_connector_types::Result<Vec<RowData>>>,
 {
     let Some(log_endpoint_url) = ctx.fetch_log_endpoint_url()? else {
         return operation.await.map_err(|error| Error::new(error.to_string()));
@@ -45,7 +45,7 @@ where
 
 pub(super) async fn execute<F>(ctx: &PostgresContext<'_>, sql: &str, operation: F) -> crate::Result<i64>
 where
-    F: Future<Output = postgres_types::Result<i64>>,
+    F: Future<Output = postgres_connector_types::Result<i64>>,
 {
     let Some(log_endpoint_url) = ctx.fetch_log_endpoint_url()? else {
         return operation.await.map_err(|error| Error::new(error.to_string()));

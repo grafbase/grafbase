@@ -1194,7 +1194,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "pin-project-lite",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "regex",
  "reqwest",
  "rstest",
@@ -2058,7 +2058,7 @@ dependencies = [
  "parser-openapi",
  "parser-postgres",
  "parser-sdl",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "reqwest",
  "runtime",
  "runtime-local",
@@ -2720,7 +2720,7 @@ dependencies = [
  "engine",
  "itertools",
  "parser-sdl",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "serde",
  "serde_json",
 ]
@@ -2921,25 +2921,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
 
 [[package]]
-name = "postgres-protocol"
-version = "0.6.6"
-source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#a7731024191390654f89721df2396277b9f9cca1"
-dependencies = [
- "base64 0.21.4",
- "byteorder",
- "bytes",
- "fallible-iterator",
- "getrandom 0.2.10",
- "hmac 0.12.1",
- "md-5 0.10.6",
- "memchr",
- "rand 0.8.5",
- "sha2 0.10.8",
- "stringprep",
-]
-
-[[package]]
-name = "postgres-types"
+name = "postgres-connector-types"
 version = "0.1.0"
 dependencies = [
  "Inflector",
@@ -2962,6 +2944,24 @@ dependencies = [
  "tokio-postgres-rustls",
  "url",
  "worker",
+]
+
+[[package]]
+name = "postgres-protocol"
+version = "0.6.6"
+source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#a7731024191390654f89721df2396277b9f9cca1"
+dependencies = [
+ "base64 0.21.4",
+ "byteorder",
+ "bytes",
+ "fallible-iterator",
+ "getrandom 0.2.10",
+ "hmac 0.12.1",
+ "md-5 0.10.6",
+ "memchr",
+ "rand 0.8.5",
+ "sha2 0.10.8",
+ "stringprep",
 ]
 
 [[package]]
@@ -3434,7 +3434,7 @@ dependencies = [
  "futures-util",
  "headers",
  "http",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "search-protocol",
  "serde",
  "serde_json",
@@ -3452,7 +3452,7 @@ dependencies = [
  "futures-util",
  "graph-entities",
  "log 0.1.0",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "reqwest",
  "runtime",
  "search-protocol",
@@ -4362,7 +4362,7 @@ dependencies = [
  "phf",
  "pin-project-lite",
  "postgres-protocol",
- "postgres-types 0.2.6",
+ "postgres-types",
  "rand 0.8.5",
  "socket2 0.5.4",
  "tokio",

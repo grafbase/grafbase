@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use grafbase_sql_ast::ast::{Column, Comparable, ConditionTree, Expression, Row, Select};
-use postgres_types::database_definition::TableColumnWalker;
+use postgres_connector_types::database_definition::TableColumnWalker;
 use serde_json::{Map, Value};
 
 use crate::registry::{resolvers::postgres::context::PostgresContext, type_kinds::InputType};

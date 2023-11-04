@@ -5,7 +5,7 @@ mod update_input;
 
 pub(super) use create_input::{CreateInputItem, CreateInputIterator};
 pub(super) use filter::FilterIterator;
-use postgres_types::{
+use postgres_connector_types::{
     database_definition::{DatabaseDefinition, TableWalker},
     transport::Transport,
 };

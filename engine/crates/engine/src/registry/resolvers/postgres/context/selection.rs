@@ -6,7 +6,7 @@ use crate::{
     Error, Lookahead, SelectionField,
 };
 pub use collection_args::CollectionArgs;
-use postgres_types::database_definition::{RelationWalker, TableColumnWalker, TableWalker};
+use postgres_connector_types::database_definition::{RelationWalker, TableColumnWalker, TableWalker};
 
 pub enum TableSelection<'a> {
     /// Selects a single column.

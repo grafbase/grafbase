@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use inflector::Inflector;
-use postgres_types::database_definition::DatabaseDefinition;
+use postgres_connector_types::database_definition::DatabaseDefinition;
 
 pub struct InputContext<'a> {
     namespace: Option<&'a str>,

@@ -33,7 +33,7 @@ use engine_value::ConstValue;
 use graph_entities::NodeID;
 use indexmap::{map::IndexMap, set::IndexSet};
 use inflector::Inflector;
-use postgres_types::database_definition::DatabaseDefinition;
+use postgres_connector_types::database_definition::DatabaseDefinition;
 use serde::{Deserialize, Serialize};
 
 pub use self::{

@@ -4,7 +4,7 @@ use engine::Response;
 use futures::FutureExt;
 use graphql_parser::parse_schema;
 use indoc::formatdoc;
-use postgres_types::transport::{TcpTransport, Transport, TransportExt};
+use postgres_connector_types::transport::{TcpTransport, Transport, TransportExt};
 use serde::de::DeserializeOwned;
 use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::Arc};
 

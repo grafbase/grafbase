@@ -4,7 +4,7 @@ use common_types::UdfKind;
 use engine::registry::Registry;
 use itertools::Itertools;
 use parser_sdl::{GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective};
-use postgres_types::transport::TcpTransport;
+use postgres_connector_types::transport::TcpTransport;
 
 use crate::errors::ServerError;
 
