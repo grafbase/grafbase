@@ -194,7 +194,8 @@ jobs:
             cli/target/x86_64-pc-windows-msvc/release/grafbase.exe
 
   linux:
-    needs: [lint]
+    needs: [lint, detect-change-type]
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     strategy:
       fail-fast: false
       matrix:
@@ -273,7 +274,8 @@ jobs:
             cli/target/${{ matrix.archs.target }}/release/grafbase
 
   darwin:
-    needs: [lint]
+    needs: [lint, detect-change-type]
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: macos-latest-xlarge
     strategy:
       fail-fast: false
