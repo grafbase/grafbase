@@ -3,7 +3,7 @@ use crate::Engine;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::BoxFuture;
 use parser_sdl::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective, Registry};
-use postgres_types::transport::TcpTransport;
+use postgres_connector_types::transport::TcpTransport;
 use runtime::udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker};
 use std::{collections::HashMap, sync::Arc};
 

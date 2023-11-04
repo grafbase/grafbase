@@ -4,7 +4,7 @@ use engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     Constraint, InputObjectType, MetaField, MetaInputValue, ObjectType,
 };
-use postgres_types::database_definition::{DatabaseType, RelationWalker, TableColumnWalker, TableWalker};
+use postgres_connector_types::database_definition::{DatabaseType, RelationWalker, TableColumnWalker, TableWalker};
 
 use crate::registry::context::{InputContext, ObjectTypeBuilder, OutputContext};
 

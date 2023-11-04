@@ -10,7 +10,7 @@ use engine::{
         MetaField, MetaInputValue,
     },
 };
-use postgres_types::database_definition::TableWalker;
+use postgres_connector_types::database_definition::TableWalker;
 
 use crate::registry::context::{InputContext, OutputContext};
 

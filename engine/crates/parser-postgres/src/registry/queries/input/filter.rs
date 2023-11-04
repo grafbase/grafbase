@@ -1,5 +1,5 @@
 use engine::registry::MetaInputValue;
-use postgres_types::database_definition::{RelationWalker, TableColumnWalker, TableWalker};
+use postgres_connector_types::database_definition::{RelationWalker, TableColumnWalker, TableWalker};
 
 use crate::registry::context::{InputContext, InputTypeBuilder, OutputContext};
 

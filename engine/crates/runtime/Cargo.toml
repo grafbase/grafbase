@@ -21,7 +21,7 @@ http = { workspace = true }
 headers = { workspace = true }
 
 search-protocol = { path = "../search-protocol" }
-postgres-types = { path = "../postgres-types" }
+postgres-connector-types = { path = "../postgres-connector-types" }
 common-types = { workspace = true }
 
 [features]

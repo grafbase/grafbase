@@ -10,7 +10,7 @@ use http::{
     header::{AsHeaderName, IntoHeaderName},
     HeaderValue,
 };
-use postgres_types::database_definition::DatabaseDefinition;
+use postgres_connector_types::database_definition::DatabaseDefinition;
 
 use crate::{
     deferred::DeferredWorkloadSender,

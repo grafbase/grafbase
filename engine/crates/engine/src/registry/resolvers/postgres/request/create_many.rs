@@ -1,5 +1,5 @@
 use grafbase_sql_ast::renderer::{self, Renderer};
-use postgres_types::transport::TransportExt;
+use postgres_connector_types::transport::TransportExt;
 
 use super::{log, query};
 use crate::registry::resolvers::{postgres::context::PostgresContext, ResolvedValue};

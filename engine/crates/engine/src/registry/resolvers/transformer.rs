@@ -4,7 +4,7 @@ use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase_sql_ast::ast::Order;
 use indexmap::IndexMap;
-use postgres_types::{cursor::SQLCursor, database_definition::TableId};
+use postgres_connector_types::{cursor::SQLCursor, database_definition::TableId};
 use runtime::search::GraphqlCursor;
 use serde_json::Value;
 use std::hash::Hash;
