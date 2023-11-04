@@ -1,5 +1,5 @@
 [package]
-name = "postgres-types"
+name = "postgres-connector-types"
 description = "Shared types for Postgres connector"
 version = "0.1.0"
 edition = "2021"

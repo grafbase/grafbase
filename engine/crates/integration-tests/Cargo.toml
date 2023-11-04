@@ -49,8 +49,8 @@ path = "../parser-sdl"
 [dependencies.parser-postgres]
 path = "../parser-postgres"
 
-[dependencies.postgres-types]
-path = "../postgres-types"
+[dependencies.postgres-connector-types]
+path = "../postgres-connector-types"
 
 [dependencies.runtime]
 path = "../runtime"

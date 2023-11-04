@@ -2,7 +2,7 @@ use crate::{Error, SelectionField};
 use engine_value::{Name, Value};
 use grafbase_sql_ast::ast::{Aliasable, Column, Comparable, ConditionTree, Expression, Order, OrderDefinition};
 use indexmap::IndexMap;
-use postgres_types::{
+use postgres_connector_types::{
     cursor::{OrderDirection, SQLCursor},
     database_definition::{DatabaseDefinition, TableWalker},
 };

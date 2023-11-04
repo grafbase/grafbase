@@ -7,7 +7,7 @@ mod unique_constraints;
 
 use std::sync::OnceLock;
 
-use postgres_types::{database_definition::DatabaseDefinition, transport::Transport};
+use postgres_connector_types::{database_definition::DatabaseDefinition, transport::Transport};
 use serde_json::Value;
 
 /// A list of schemas to filter out automatically on every introspection.
