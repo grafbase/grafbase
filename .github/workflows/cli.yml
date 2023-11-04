@@ -194,8 +194,7 @@ jobs:
             cli/target/x86_64-pc-windows-msvc/release/grafbase.exe
 
   linux:
-    needs: [lint, detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    needs: [lint]
     strategy:
       fail-fast: false
       matrix:
@@ -212,7 +211,10 @@ jobs:
               platform: linux-arm
             }
           ]
+        include:
+          - should_run: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ${{ matrix.archs.runner }}
+    if: ${{ matrix.should_run }}
     steps:
       - name: Get sources
         uses: actions/checkout@v3
