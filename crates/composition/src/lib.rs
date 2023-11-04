@@ -1,4 +1,5 @@
 #![deny(unsafe_code, missing_docs, rust_2018_idioms)]
+//test
 
 //! GraphQL schema composition.
 
