@@ -274,18 +274,20 @@ jobs:
 
   darwin:
     needs: [lint]
+    if: always()
     runs-on: macos-latest-xlarge
     strategy:
       fail-fast: false
       matrix:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
         should_run: "${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}"
-    if: matrix.should_run
     steps:
       - name: Get sources
+        if: matrix.should_run
         uses: actions/checkout@v3
 
       - name: Rust job init
+        if: matrix.should_run
         uses: ./.github/actions/init_rust_job
         with:
           platform: macos
@@ -293,35 +295,38 @@ jobs:
           restore-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}
 
       - name: Prepare CLI assets
+        if: matrix.should_run
         uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
 
-      - if: ${{ !startsWith(github.ref, 'refs/tags/') && matrix.target == 'x86_64-apple-darwin' }}
+      - if: ${{ !startsWith(github.ref, 'refs/tags/') && matrix.target == 'x86_64-apple-darwin' && matrix.should_run }}
         name: Sanitize
         uses: ./.github/actions/sanitize
         with:
           lint: false
 
       - name: Build ${{ matrix.target }} release
+        if: matrix.should_run
         run: |
           cd cli
           cargo build --release --target ${{ matrix.target }} --timings
 
       - uses: actions/upload-artifact@v3
+        if: matrix.should_run
         with:
           name: ${{ matrix.target }}-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
 
       - name: Parse version tag
-        if: startsWith(github.ref, 'refs/tags/')
+        if: matrix.should_run && startsWith(github.ref, 'refs/tags/')
         run: |
           VERSION_BUMP="${{ github.ref_name }}"
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' && matrix.should_run }}
         name: Upload the binary of the change to R2
         run: |
           curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
@@ -335,7 +340,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
-      - if: startsWith(github.ref, 'refs/tags/')
+      - if: startsWith(github.ref, 'refs/tags/') && matrix.should_run
         name: Upload ${{ matrix.target }} binary
         uses: actions/upload-artifact@v3
         with:
