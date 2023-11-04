@@ -1,5 +1,5 @@
 use parser_sdl::Registry;
-use postgres_types::{transport::Transport, Result};
+use postgres_connector_types::{transport::Transport, Result};
 
 mod introspection;
 mod registry;

@@ -1,4 +1,4 @@
-use postgres_types::{
+use postgres_connector_types::{
     database_definition::DatabaseDefinition,
     transport::{Transport, TransportExt},
 };

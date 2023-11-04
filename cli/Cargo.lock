@@ -1835,7 +1835,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "pin-project-lite",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "regex",
  "reqwest",
  "runtime",
@@ -2563,7 +2563,7 @@ dependencies = [
  "parser-postgres",
  "parser-sdl",
  "path-slash",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "reqwest",
  "runtime",
  "serde",
@@ -4164,7 +4164,7 @@ dependencies = [
  "engine",
  "itertools 0.11.0",
  "parser-sdl",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "serde",
  "serde_json",
 ]
@@ -4453,25 +4453,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "767eb9f07d4a5ebcb39bbf2d452058a93c011373abf6832e24194a1c3f004794"
 
 [[package]]
-name = "postgres-protocol"
-version = "0.6.6"
-source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#a7731024191390654f89721df2396277b9f9cca1"
-dependencies = [
- "base64 0.21.2",
- "byteorder",
- "bytes",
- "fallible-iterator",
- "getrandom 0.2.10",
- "hmac",
- "md-5",
- "memchr",
- "rand 0.8.5",
- "sha2",
- "stringprep",
-]
-
-[[package]]
-name = "postgres-types"
+name = "postgres-connector-types"
 version = "0.1.0"
 dependencies = [
  "Inflector",
@@ -4494,6 +4476,24 @@ dependencies = [
  "tokio-postgres-rustls",
  "url",
  "worker",
+]
+
+[[package]]
+name = "postgres-protocol"
+version = "0.6.6"
+source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#a7731024191390654f89721df2396277b9f9cca1"
+dependencies = [
+ "base64 0.21.2",
+ "byteorder",
+ "bytes",
+ "fallible-iterator",
+ "getrandom 0.2.10",
+ "hmac",
+ "md-5",
+ "memchr",
+ "rand 0.8.5",
+ "sha2",
+ "stringprep",
 ]
 
 [[package]]
@@ -5073,7 +5073,7 @@ dependencies = [
  "futures-util",
  "headers",
  "http",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "search-protocol",
  "serde",
  "serde_json",
@@ -5091,7 +5091,7 @@ dependencies = [
  "futures-util",
  "graph-entities",
  "log 0.1.0",
- "postgres-types 0.1.0",
+ "postgres-connector-types",
  "reqwest",
  "runtime",
  "search-protocol",
@@ -6710,7 +6710,7 @@ dependencies = [
  "phf",
  "pin-project-lite",
  "postgres-protocol",
- "postgres-types 0.2.6",
+ "postgres-types",
  "rand 0.8.5",
  "socket2 0.5.4",
  "tokio",

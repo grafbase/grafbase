@@ -2,7 +2,7 @@ use grafbase_sql_ast::{
     ast::Order,
     renderer::{self, Renderer},
 };
-use postgres_types::transport::TransportExt;
+use postgres_connector_types::transport::TransportExt;
 use serde_json::Value;
 
 use super::{

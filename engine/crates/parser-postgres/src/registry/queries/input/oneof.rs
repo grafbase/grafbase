@@ -1,7 +1,7 @@
 use engine::registry::MetaInputValue;
 use inflector::Inflector;
 use itertools::Itertools;
-use postgres_types::database_definition::TableWalker;
+use postgres_connector_types::database_definition::TableWalker;
 
 use crate::registry::context::{InputContext, OutputContext};
 

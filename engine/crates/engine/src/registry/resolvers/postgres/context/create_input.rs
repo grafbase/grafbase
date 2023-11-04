@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use postgres_types::database_definition::{
+use postgres_connector_types::database_definition::{
     DatabaseDefinition, DatabaseType, EnumWalker, TableColumnWalker, TableWalker,
 };
 use serde_json::Value;

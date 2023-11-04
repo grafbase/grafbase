@@ -1,11 +1,11 @@
 use std::ops::Deref;
 
-use postgres_types::{database_definition::DatabaseDefinition, transport::Transport};
+use postgres_connector_types::{database_definition::DatabaseDefinition, transport::Transport};
 
 #[derive(Debug, thiserror::Error)]
 pub enum PgTransportFactoryError {
     #[error("Transport creation error: {0}")]
-    TransportCreation(#[from] postgres_types::error::Error),
+    TransportCreation(#[from] postgres_connector_types::error::Error),
 }
 
 pub type PgTransportFactoryResult<T> = std::result::Result<T, PgTransportFactoryError>;

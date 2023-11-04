@@ -1,7 +1,7 @@
 use crate::registry::type_kinds::InputType;
 use grafbase_sql_ast::ast::{Comparable, Compare};
 use indexmap::IndexSet;
-use postgres_types::database_definition::{DatabaseDefinition, TableColumnId};
+use postgres_connector_types::database_definition::{DatabaseDefinition, TableColumnId};
 use serde_json::Value;
 use std::{collections::VecDeque, iter::Iterator};
 

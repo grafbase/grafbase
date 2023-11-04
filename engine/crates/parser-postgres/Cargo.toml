@@ -11,7 +11,7 @@ keywords = ["graphql", "parser", "postgres", "grafbase"]
 
 [dependencies]
 parser-sdl = { path = "../parser-sdl" }
-postgres-types = { path = "../postgres-types" }
+postgres-connector-types = { path = "../postgres-connector-types" }
 engine = { path = "../engine" }
 serde_json.workspace = true
 serde.workspace = true

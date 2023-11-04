@@ -7,7 +7,7 @@ use engine::registry::{
     MetaField, MetaInputValue,
 };
 use inflector::Inflector;
-use postgres_types::database_definition::TableWalker;
+use postgres_connector_types::database_definition::TableWalker;
 
 use crate::registry::context::{InputContext, OutputContext};
 

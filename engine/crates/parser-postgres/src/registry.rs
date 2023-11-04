@@ -4,7 +4,7 @@ mod types;
 
 use context::InputContext;
 use parser_sdl::Registry;
-use postgres_types::database_definition::DatabaseDefinition;
+use postgres_connector_types::database_definition::DatabaseDefinition;
 
 use self::context::OutputContext;
 
