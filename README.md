@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://grafbase.com/docs/quickstart/get-started"><strong>Quickstart</strong></a> ·
+  <a href="https://grafbase.com/docs/config"><strong>Quickstart</strong></a> ·
   <a href="/examples"><strong>Examples</strong></a> ·
   <a href="/templates"><strong>Templates</strong></a> ·
   <a href="https://grafbase.com/docs"><strong>Docs</strong></a> ·
