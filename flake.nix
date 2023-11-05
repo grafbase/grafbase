@@ -12,6 +12,11 @@
   description = "Grafbase CLI development environment";
 
   inputs = {
+    pnpm2nix = {
+      url = "github:nzbr/pnpm2nix-nzbr";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -19,6 +24,7 @@
   outputs = {
     nixpkgs,
     flake-utils,
+    pnpm2nix,
     ...
   }: let
     inherit (nixpkgs.lib) optional concatStringsSep;
@@ -29,7 +35,7 @@
         inherit system;
       };
 
-      aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8"];
+      aarch64DarwinExternalCargoCrates = concatStringsSep " " [ "cargo-instruments@0.4.8" ];
 
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
@@ -84,7 +90,12 @@
           fi
         '';
       };
-    in {
+
+      mkPnpmPackage = pnpm2nix.packages."${system}".mkPnpmPackage;
+
+    in
+    {
       devShells.default = pkgs.mkShell defaultShellConf;
+      packages.cli-app = import ./nix/cli-app.nix { inherit mkPnpmPackage pkgs; };
     });
 }

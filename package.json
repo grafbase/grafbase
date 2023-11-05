@@ -9,6 +9,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
+    "build-cli-app": "cd packages/cli-app && pnpm run cli-app:build",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
