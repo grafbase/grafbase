@@ -102,8 +102,10 @@ type AccountResourcesUsage {
   dbWrites: TimeSeries!
   dbSize: TimeSeries!
   buildDuration: TimeSeries!
-  execUnits: TimeSeries!
+  udfExecUnits: TimeSeries!
+  udfRequestCount: TimeSeries!
   granularity: TimeAggregationGranularity!
+  execUnits: TimeSeries!
 }
 
 """
@@ -158,6 +160,7 @@ type Branch {
   deployments(after: String, before: String, first: Int, last: Int): DeploymentConnection!
   project: Project!
   environment: BranchEnvironment!
+  subgraphs: [Subgraph!]!
 }
 
 type BranchConnection {
@@ -281,13 +284,8 @@ type DatabaseUsage {
   dbSize: Distribution!
   buildDuration: Distribution!
   execUnits: Distribution!
+  udfRequestCount: Distribution!
   granularity: DatabaseUsageGranularity!
-}
-
-input DatabaseUsageFilter {
-  environment: BranchEnvironment
-  startDate: DateTime
-  endDate: DateTime
 }
 
 enum DatabaseUsageGranularity {
@@ -357,6 +355,10 @@ type DeploymentCreateSuccess {
   query: Query!
 }
 
+type DeploymentDoesNotExistError {
+  query: Query!
+}
+
 """
 An edge in a connection.
 """
@@ -385,6 +387,16 @@ type DeploymentLogEntry {
 enum DeploymentLogLevel {
   ERROR
   INFO
+}
+
+union DeploymentRedeployPayload =
+    DeploymentRedeploySuccess
+  | DeploymentDoesNotExistError
+  | DailyDeploymentCountLimitExceededError
+
+type DeploymentRedeploySuccess {
+  deployment: Deployment!
+  query: Query!
 }
 
 enum DeploymentStatus {
@@ -661,6 +673,10 @@ type InvalidEnvironmentVariablesError {
   errors: [InvalidEnvironmentVariableError!]!
 }
 
+type InvalidProjectRootPathError {
+  query: Query!
+}
+
 type Invite {
   id: ID!
   role: MemberRole!
@@ -895,13 +911,6 @@ type MissingStripeCustomerError {
   query: Query!
 }
 
-type MonthlyLimits {
-  reads: Int
-  writes: Int
-  apiRequests: Int
-  size: Int
-}
-
 type MustLeaveAtLeastOneKeyForEnvironmentError {
   query: Query!
 }
@@ -942,6 +951,15 @@ type Mutation {
   Create a new deployment for an existing project.
   """
   deploymentCreate(input: DeploymentCreateInput!): DeploymentCreatePayload!
+  """
+  Create a new deployment for an existing project.
+  """
+  deploymentRedeploy(
+    """
+    ID of the deployment
+    """
+    id: ID!
+  ): DeploymentRedeployPayload!
   """
   Create a new environment variable.
   """
@@ -1490,8 +1508,6 @@ type Project {
   environmentVariables(after: String, before: String, first: Int, last: Int): EnvironmentVariableConnection!
   deployments(after: String, before: String, first: Int, last: Int, filter: DeploymentFilter): DeploymentConnection!
   databaseRegions: [DatabaseRegion!]!
-  usage(filter: DatabaseUsageFilter): DatabaseUsage!
-  plan: ProjectPlan!
   status: ProjectStatus!
   databaseRegionChangeStatus: DatabaseRegionChangeStatus!
   customDomains: [String!]!
@@ -1597,6 +1613,7 @@ input ProjectCreateFromRepositoryInput {
   productionBranch: String!
   databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
+  projectRootPath: String! = "grafbase"
 }
 
 union ProjectCreateFromRepositoryPayload =
@@ -1613,6 +1630,7 @@ union ProjectCreateFromRepositoryPayload =
   | InvalidDatabaseRegionsError
   | EnvironmentVariableCountLimitExceededError
   | InvalidEnvironmentVariablesError
+  | InvalidProjectRootPathError
 
 type ProjectCreateFromRepositorySuccess {
   project: Project!
@@ -1655,6 +1673,7 @@ input ProjectCreateFromTemplateInput {
   repoPrivate: Boolean!
   databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
+  projectRootPath: String! = "grafbase"
 }
 
 union ProjectCreateFromTemplatePayload =
@@ -1672,6 +1691,7 @@ union ProjectCreateFromTemplatePayload =
   | InvalidDatabaseRegionsError
   | EnvironmentVariableCountLimitExceededError
   | InvalidEnvironmentVariablesError
+  | InvalidProjectRootPathError
   | GithubInstallationInsufficientPermissionsError
 
 type ProjectCreateFromTemplateSuccess {
@@ -1682,8 +1702,9 @@ type ProjectCreateFromTemplateSuccess {
 input ProjectCreateInput {
   accountId: ID!
   projectSlug: String!
-  databaseRegions: [String!]!
+  databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
+  projectRootPath: String! = "grafbase"
 }
 
 union ProjectCreatePayload =
@@ -1699,6 +1720,7 @@ union ProjectCreatePayload =
   | InvalidDatabaseRegionsError
   | EnvironmentVariableCountLimitExceededError
   | InvalidEnvironmentVariablesError
+  | InvalidProjectRootPathError
 
 type ProjectCreateSuccess {
   project: Project!
@@ -1737,11 +1759,6 @@ type ProjectNotDeployed {
   query: Query!
 }
 
-type ProjectPlan {
-  name: String!
-  monthlyLimits: MonthlyLimits!
-}
-
 input ProjectRequestAnalyticsFilter {
   branch: String = null
   period: ProjectRequestAnalyticsPeriod!
@@ -1764,6 +1781,7 @@ input ProjectUpdateInput {
   id: ID!
   projectSlug: String
   productionBranch: String
+  projectRootPath: String
 }
 
 union ProjectUpdatePayload =
@@ -1888,6 +1906,27 @@ type Query {
     """
     id: ID!
   ): Project
+  """
+  Get subgraph.
+  """
+  subgraph(
+    """
+    account slug
+    """
+    accountSlug: String!
+    """
+    project slug
+    """
+    projectSlug: String!
+    """
+    name of the branch
+    """
+    branch: String
+    """
+    name of the subgraph
+    """
+    subgraphName: String!
+  ): Subgraph
   """
   Give the actual connected user.
   """
@@ -2072,6 +2111,14 @@ union StripeSetupIntentCreatePayload = StripeSetupIntentCreateSuccess
 type StripeSetupIntentCreateSuccess {
   setupIntent: StripeSetupIntent!
   query: Query!
+}
+
+type Subgraph {
+  name: String!
+  url: String!
+  schema: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type TemplateDoesNotExistError {
