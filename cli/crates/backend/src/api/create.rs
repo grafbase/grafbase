@@ -67,6 +67,7 @@ pub async fn create(
     account_id: &str,
     project_slug: &str,
     database_regions: &[String],
+    project_root_path: Option<&str>,
 ) -> Result<Vec<String>, ApiError> {
     let project = Project::get();
 
@@ -85,6 +86,7 @@ pub async fn create(
             account_id: Id::new(account_id),
             database_regions,
             project_slug,
+            project_root_path,
         },
     });
 

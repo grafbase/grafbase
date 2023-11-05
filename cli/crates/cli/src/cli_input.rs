@@ -181,6 +181,9 @@ pub struct CreateCommand {
     /// The regions in which the database for the new project should be created
     #[arg(short, long, value_name = "REGION")]
     pub regions: Option<Vec<String>>,
+    /// The relative path to the directory containing the configuration or the schema SDL.
+    #[arg(short = 'p', long, value_name = "ROOT_PATH")]
+    pub root_path: Option<String>,
 }
 
 impl CreateCommand {
@@ -193,6 +196,7 @@ impl CreateCommand {
                 account_slug,
                 name,
                 regions,
+                project_root_path: self.root_path.as_deref(),
             })
     }
 }

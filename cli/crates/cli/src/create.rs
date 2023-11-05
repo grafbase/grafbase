@@ -20,6 +20,7 @@ pub struct CreateArguments<'a> {
     pub account_slug: &'a str,
     pub name: &'a str,
     pub regions: &'a [String],
+    pub project_root_path: Option<&'a str>,
 }
 
 #[tokio::main]
@@ -44,9 +45,14 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .ok_or(CliError::NoAccountFound)?
         .id;
 
-    let domains = create::create(&account_id, arguments.name, arguments.regions)
-        .await
-        .map_err(CliError::BackendApiError)?;
+    let domains = create::create(
+        &account_id,
+        arguments.name,
+        arguments.regions,
+        arguments.project_root_path.as_deref(),
+    )
+    .await
+    .map_err(CliError::BackendApiError)?;
 
     report::create_success(arguments.name, &domains);
 
@@ -79,6 +85,22 @@ async fn interactive() -> Result<(), CliError> {
         .prompt()
         .map_err(handle_inquire_error)?;
 
+    // FIXME: Add automated path search?
+    let root_path = Text::new("What directory is your configuration located in?")
+        .with_default("grafbase")
+        .with_validator(|value: &str| {
+            let path = std::path::Path::new(value);
+            if path.is_relative() && !path.starts_with("../") {
+                Ok(Validation::Valid)
+            } else {
+                Ok(Validation::Invalid(
+                    format!("Directory path must be relative and not outside the current directory").into(),
+                ))
+            }
+        })
+        .prompt()
+        .map_err(handle_inquire_error)?;
+
     let AccountSelection(selected_account) = Select::new("In which account should the project be created?", options)
         .prompt()
         .map_err(handle_inquire_error)?;
@@ -89,7 +111,7 @@ async fn interactive() -> Result<(), CliError> {
         .map_err(handle_inquire_error)?;
 
     if confirm {
-        let domains = create::create(&selected_account.id, &project_name, &[])
+        let domains = create::create(&selected_account.id, &project_name, &[], Some(&root_path))
             .await
             .map_err(CliError::BackendApiError)?;
 
