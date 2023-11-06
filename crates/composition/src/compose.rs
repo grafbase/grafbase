@@ -46,8 +46,8 @@ fn merge_object_definitions<'a>(
         let first_kind = first.kind();
         let second_kind = incompatible.kind();
         let name = first.name().as_str();
-        let first_subgraph = first.subgraph().name_str();
-        let second_subgraph = incompatible.subgraph().name_str();
+        let first_subgraph = first.subgraph().name().as_str();
+        let second_subgraph = incompatible.subgraph().name().as_str();
         ctx.diagnostics.push_fatal(format!(
             "Cannot merge {first_kind:?} with {second_kind:?} (`{name}` in `{first_subgraph}` and `{second_subgraph}`)",
         ));
@@ -67,16 +67,24 @@ fn merge_object_definitions<'a>(
             "The `{name}` object is an entity in subgraphs {} but not in subgraphs {}.",
             entity_subgraphs
                 .into_iter()
-                .map(|d| d.subgraph().name_str())
+                .map(|d| d.subgraph().name().as_str())
                 .join(", "),
             non_entity_subgraphs
                 .into_iter()
-                .map(|d| d.subgraph().name_str())
+                .map(|d| d.subgraph().name().as_str())
                 .join(", "),
         ));
     }
 
-    ctx.insert_object(first.name());
+    let object_id = ctx.insert_object(first.name());
+
+    for key in definitions
+        .iter()
+        .flat_map(|def| def.entity_keys())
+        .filter(|key| key.is_resolvable())
+    {
+        ctx.insert_resolvable_key(object_id, key.id);
+    }
 }
 
 fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
@@ -93,8 +101,8 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
             "The field `{}` on `{}` is defined in two subgraphs (`{}` and `{}`).",
             first.name().as_str(),
             first.parent_definition().name().as_str(),
-            first.parent_definition().subgraph().name_str(),
-            next.parent_definition().subgraph().name_str(),
+            first.parent_definition().subgraph().name().as_str(),
+            next.parent_definition().subgraph().name().as_str(),
         ));
     }
 
@@ -113,11 +121,11 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
             "The field `{name}` is part of `@key` in {} but not in {}",
             key_subgraphs
                 .into_iter()
-                .map(|f| f.parent_definition().subgraph().name_str())
+                .map(|f| f.parent_definition().subgraph().name().as_str())
                 .join(", "),
             non_key_subgraphs
                 .into_iter()
-                .map(|f| f.parent_definition().subgraph().name_str())
+                .map(|f| f.parent_definition().subgraph().name().as_str())
                 .join(", "),
         ));
     }

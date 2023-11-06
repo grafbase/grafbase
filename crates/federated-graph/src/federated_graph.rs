@@ -67,7 +67,7 @@ pub struct ObjectField {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Key {
-    /// The subgraph that can resolve the entity with these fields.
+    /// The subgraph that can resolve the entity with the fields in [Key::fields].
     pub subgraph_id: SubgraphId,
 
     /// Corresponds to the fields in an `@key` directive.

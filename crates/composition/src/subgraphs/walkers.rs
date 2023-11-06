@@ -21,7 +21,11 @@ impl<'a> SubgraphWalker<'a> {
         &self.subgraphs.subgraphs[self.id.0]
     }
 
-    pub(crate) fn name_str(self) -> &'a str {
-        self.subgraphs.strings.resolve(self.subgraph().name)
+    pub(crate) fn name(self) -> StringWalker<'a> {
+        self.walk(self.subgraph().name)
+    }
+
+    pub(crate) fn url(self) -> StringWalker<'a> {
+        self.walk(self.subgraph().name) // TODO: take the url as input
     }
 }

@@ -21,6 +21,15 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for (idx, object) in graph.objects.iter().enumerate() {
         let object_name = &graph[object.name];
+
+        for resolvable_key in &object.resolvable_keys {
+            sdl.push_str("# Entity with key (");
+            render_selection_set(&resolvable_key.fields, graph, &mut sdl);
+            sdl.push_str(") in `");
+            sdl.push_str(&graph[graph[resolvable_key.subgraph_id].name]);
+            sdl.push_str("`\n");
+        }
+
         writeln!(sdl, "type {object_name} {{")?;
 
         for field in graph
@@ -132,6 +141,25 @@ fn render_field_type(field_type: &FieldType, graph: &FederatedGraph) -> String {
     }
 
     out
+}
+
+fn render_selection_set(selection: &SelectionSet, graph: &FederatedGraph, sdl: &mut String) {
+    let mut selection = selection.iter().peekable();
+    while let Some(field) = selection.next() {
+        let name = &graph[graph[field.field].name];
+
+        sdl.push_str(name);
+
+        if !field.subselection.is_empty() {
+            sdl.push_str(" { ");
+            render_selection_set(&field.subselection, graph, sdl);
+            sdl.push_str(" }");
+        }
+
+        if selection.peek().is_some() {
+            sdl.push(' ');
+        }
+    }
 }
 
 fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraph) -> String {

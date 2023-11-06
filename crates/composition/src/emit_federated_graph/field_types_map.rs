@@ -51,3 +51,11 @@ impl FieldTypesMap {
         })
     }
 }
+
+impl std::ops::Index<federated::FieldTypeId> for FieldTypesMap {
+    type Output = federated::FieldType;
+
+    fn index(&self, index: federated::FieldTypeId) -> &Self::Output {
+        &self.field_types[index.0]
+    }
+}
