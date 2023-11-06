@@ -3,6 +3,9 @@ name: engine
 on:
   workflow_dispatch:
   pull_request:
+    paths-ignore:
+      - 'crates/**/*'
+      - 'packages/**/*'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
