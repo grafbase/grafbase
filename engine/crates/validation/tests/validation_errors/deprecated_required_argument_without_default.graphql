@@ -1,0 +1,7 @@
+type Query {
+  describeCarrot(
+      color: String @deprecated, 
+      length: Int! @deprecated
+      circumference: Int! = 3 @deprecated
+  ): String
+}

@@ -1,0 +1,7 @@
+type Mutation {
+  sayHi: String
+}
+
+schema {
+  mutation: Mutation
+}

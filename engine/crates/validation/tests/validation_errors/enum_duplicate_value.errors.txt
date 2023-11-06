@@ -1,0 +1,1 @@
+  × Duplicate enum value "Test.ONE"

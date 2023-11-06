@@ -1,0 +1,32 @@
+  × `Float` is a reserved name.
+   ╭─[1:1]
+ 1 │ type Float {
+   ·      ─────
+ 2 │   beforeComma: String!
+   ╰────
+
+
+  × `String` is a reserved name.
+   ╭─[5:1]
+ 5 │ 
+ 6 │ enum String {
+   ·      ──────
+ 7 │   MEEP
+   ╰────
+
+
+  × `Int` is a reserved name.
+    ╭─[10:1]
+ 10 │ 
+ 11 │ scalar Int
+    ·        ───
+ 12 │ scalar Boolean
+    ╰────
+
+
+  × `Boolean` is a reserved name.
+    ╭─[11:1]
+ 11 │ scalar Int
+ 12 │ scalar Boolean
+    ·        ───────
+    ╰────

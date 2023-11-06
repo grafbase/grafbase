@@ -1,0 +1,11 @@
+input Request {
+  please: Boolean!
+}
+
+type Yi {
+  req: Request
+}
+
+interface Er {
+  req: Request
+}

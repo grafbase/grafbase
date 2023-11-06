@@ -1,0 +1,6 @@
+  × Syntax error:  --> 9:28
+  │   |
+  │ 9 | union AnyThing = Test | Wow!
+  │   |                            ^---
+  │   |
+  │   = expected EOI or type_system_definition

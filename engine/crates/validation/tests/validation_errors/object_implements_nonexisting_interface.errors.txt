@@ -1,0 +1,10 @@
+  × "Test cannot implement unknown type "AND".
+
+
+  × Type "Test2" can only implement "B" once.
+
+
+  × Type "Test2" can only implement "A" once.
+
+
+  × "Test3" cannot implement non-interface type "Test".

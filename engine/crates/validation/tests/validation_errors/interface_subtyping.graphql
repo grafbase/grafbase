@@ -1,0 +1,110 @@
+interface HasColors {
+  red: Int!
+  green: Int!
+  blue: Int!
+}
+
+type AI {
+  id: ID!
+}
+
+type Human {
+  id: ID!
+}
+
+union Author = Human | AI
+
+interface HasAuthor {
+  author: Author
+}
+
+interface Rgba implements HasColors {
+  red: Int!
+  green: Int!
+  blue: Int!
+  transparency: Float
+}
+
+type RgbWithOptionalRed implements HasColors {
+  # Error: it is required in the interface.
+  red: Int
+  green: Int!
+  blue: Int!
+}
+
+type Png implements HasColors {
+  filename: String
+  green: Int!
+  # Error: type mismatch
+  red: Float!
+  blue: Int!
+}
+
+interface NullabilityMismatch implements HasColors & Rgba {
+  red: Int!
+  green: Int!
+  blue: Int!
+  # This is fine: an implementer can be stricter than the interface.
+  transparency: Float!
+}
+
+type Photo implements HasAuthor {
+  id: ID!
+  # This is fine: an implementer can refine the union to one of its members.
+  author: Human
+}
+
+type Pixel implements HasAuthor {
+  id: ID!
+  # Error: type mismatch
+  author: Png
+}
+
+interface Canvas {
+  pixels: [[Pixel!]!]
+}
+
+interface Canvas3D implements Canvas {
+  # Error: lists have to have the same level of nesting.
+  pixels: [[[Pixel!]!]]
+}
+
+interface NamedCanvas implements Canvas {
+  name: String!
+  pixels: [[Pixel!]!]
+}
+
+
+interface NullableCanvas implements Canvas {
+  name: String!
+  # Error: the implementer is less strict with nullability than the interface.
+  pixels: [[Pixel!]]
+}
+
+interface Grandparent {
+  name: String!
+}
+
+interface Parent implements Grandparent {
+  name: String!
+  age: Int
+}
+
+type ParentType implements Grandparent {
+  name: String!
+  age: Int
+}
+
+interface HasGrandparent {
+  grandparent: Grandparent
+}
+
+type A implements HasGrandparent {
+  # This is fine: Parent implements Grandparent.
+  grandparent: Parent
+}
+
+interface B implements HasGrandparent {
+  # This is fine: ParentType implements Grandparent.
+  grandparent: ParentType
+}

@@ -1,0 +1,37 @@
+interface Searchable {
+  search(query: String, filter: String): SearchResult
+  fetch(id: ID!): FetchResult
+}
+
+type SearchResult {
+  id: ID!
+}
+
+type FetchResult {
+  id: ID!
+}
+
+type Book implements Searchable {
+  # Implements the search field from Searchable and adds an additional, optional argument. This is ok.
+  search(query: String, filter: String, genre: String): SearchResult
+  
+  # Error: Implements the fetch field from Searchable, but with a different type.
+  fetch(id: String!): FetchResult
+}
+
+# Implement the interface with a type that adds a required argument - invalid
+type Video implements Searchable {
+  # Implements the search field from Searchable, which is valid
+  search(query: String, filter: String): SearchResult
+  
+  # Attempts to implement the fetch field but adds a required 'region' argument
+  # This is invalid as it adds a required argument which the interface does not specify
+  fetch(id: ID!, region: String!): FetchResult
+}
+
+# Implement the interface with a type that is missing an argument from the interface. Invalid.
+type Coffee implements Searchable {
+  # Missing `filter`
+  search(query: String): SearchResult
+  fetch(id: ID!): FetchResult
+}

@@ -1,0 +1,3 @@
+type Query {
+  names(__someFlag: Boolean!): [String!]
+}

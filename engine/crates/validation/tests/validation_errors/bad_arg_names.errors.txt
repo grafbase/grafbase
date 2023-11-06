@@ -1,0 +1,8 @@
+  × Argument names can't start with __
+   ╭─[1:1]
+ 1 │ type Query {
+ 2 │   names(__someFlag: Boolean!): [String!]
+   ·         ─────┬────
+   ·              ╰── here
+ 3 │ }
+   ╰────

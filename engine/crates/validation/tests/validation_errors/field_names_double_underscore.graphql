@@ -1,0 +1,6 @@
+type Stuff {
+  id: ID!
+  __things: Illegal
+}
+
+scalar Illegal

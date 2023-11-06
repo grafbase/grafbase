@@ -9,7 +9,6 @@ fn update_expect() -> bool {
     *UPDATE_EXPECT.get_or_init(|| std::env::var("UPDATE_EXPECT").is_ok())
 }
 
-#[allow(clippy::unnecessary_wraps)] // we can't change the signature expected by datatest_stable
 fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
     let subgraphs_dir = federated_graph_path.with_file_name("").join("subgraphs");
 

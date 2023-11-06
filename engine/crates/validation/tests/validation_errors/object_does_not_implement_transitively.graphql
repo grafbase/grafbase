@@ -1,0 +1,17 @@
+interface HasId {
+  id: ID!
+}
+
+interface Cat implements HasId {
+  id: ID!
+  name: String!
+}
+
+type Siamese implements Cat {
+  id: ID!
+  name: String!
+}
+
+interface MeowingCat implements Cat {
+  volumeDb: Float
+}

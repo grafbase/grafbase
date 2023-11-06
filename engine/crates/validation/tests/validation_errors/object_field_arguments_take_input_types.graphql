@@ -1,0 +1,7 @@
+type Shuchu {
+    id: ID!
+}
+
+type Query {
+  doSomething(arg: Shuchu): String
+}

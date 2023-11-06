@@ -1,0 +1,14 @@
+  × Duplicate definition. There can only be one typed name "Test"
+   ╭─[1:1]
+ 1 │ type Test {
+   ·      ──┬─
+   ·        ╰── Previous definition
+ 2 │   id: ID!
+   ╰────
+   ╭─[4:1]
+ 4 │ 
+ 5 │ type Test {
+   ·      ──┬─
+   ·        ╰── Second definition
+ 6 │   name: String!
+   ╰────

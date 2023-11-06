@@ -1,0 +1,1 @@
+  × The type of "Query.doSomething(arg:)" must be an input type, but got "Shuchu", an output type.

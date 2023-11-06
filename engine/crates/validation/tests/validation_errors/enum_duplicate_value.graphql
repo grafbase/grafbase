@@ -1,0 +1,7 @@
+enum Test {
+    ONE
+    TWO
+    THREE
+    ONE
+    FOUR
+}

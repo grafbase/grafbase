@@ -1,0 +1,13 @@
+directive @once on OBJECT
+
+type Test @once @once {
+  id: ID!
+}
+
+type Test2 @once {
+  id: ID!
+}
+
+extend type Test2 @once {
+  flags: [Boolean!]
+}

@@ -1,0 +1,8 @@
+type Root {
+  sayHi: String
+}
+
+schema {
+  query: Root
+  mutation: Root
+}

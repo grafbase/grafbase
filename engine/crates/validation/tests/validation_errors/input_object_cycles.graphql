@@ -1,0 +1,21 @@
+input A {
+    otherA: A!
+}
+
+input B {
+  other: [B!]!
+  yetAnother: B
+}
+
+input Transitively {
+  other: Intermediate1!
+}
+
+input Intermediate1 {
+  name: String!
+  second: Intermediate2!
+}
+
+input Intermediate2 {
+  back: Transitively!
+}

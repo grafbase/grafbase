@@ -1,0 +1,12 @@
+type Test {
+  a: String!
+  b: String!
+  b: String!
+  a: Float!
+  
+  c: Boolean
+}
+
+extend type Test {
+  c: String
+}

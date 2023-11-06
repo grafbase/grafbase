@@ -1,0 +1,12 @@
+type Float {
+  beforeComma: String!
+  afterComma: String
+}
+
+enum String {
+  MEEP
+  MEEPMEEP
+}
+
+scalar Int
+scalar Boolean

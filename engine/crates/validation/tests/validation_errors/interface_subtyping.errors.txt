@@ -1,0 +1,13 @@
+  × Interface field HasColors.red expects type Int! but RgbWithOptionalRed.red of type Int is not a proper subtype.`
+
+
+  × Interface field HasColors.red expects type Int! but Png.red of type Float! is not a proper subtype.`
+
+
+  × Interface field HasAuthor.author expects type Author but Pixel.author of type Png is not a proper subtype.`
+
+
+  × Interface field Canvas.pixels expects type [[Pixel!]!] but Canvas3D.pixels of type [[[Pixel!]!]] is not a proper subtype.`
+
+
+  × Interface field Canvas.pixels expects type [[Pixel!]!] but NullableCanvas.pixels of type [[Pixel!]] is not a proper subtype.`

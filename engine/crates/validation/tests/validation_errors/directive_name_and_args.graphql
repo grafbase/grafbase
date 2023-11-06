@@ -1,0 +1,11 @@
+type Test {
+  id: ID!
+}
+
+input Test2 {
+  id: ID!
+}
+
+directive @myDirective(firstArg: Test) on FIELD_DEFINITION
+directive @myDirective2(firstArg: Test2) repeatable on FIELD_DEFINITION
+directive @__myDirective3 on FIELD_DEFINITION

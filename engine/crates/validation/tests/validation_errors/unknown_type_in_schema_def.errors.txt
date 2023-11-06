@@ -1,0 +1,22 @@
+  × Cannot set schema query root to unknown type type `Dunno`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Dunno
+   ╰────
+
+
+  × Cannot set schema mutation root to unknown type type `WhatdoIknow`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Dunno
+   ╰────
+
+
+  × Cannot set schema subscription root to unknown type type `ToWhat`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Dunno
+   ╰────

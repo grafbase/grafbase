@@ -1,0 +1,12 @@
+type A { id: ID! }
+type B { id: ID! }
+type C { id: ID! }
+type D { id: ID! }
+
+union Test = B | C
+
+extend union Test = A
+
+extend union Test = B
+
+extend union Membership = A
