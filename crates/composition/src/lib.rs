@@ -12,6 +12,7 @@ mod strings;
 mod subgraphs;
 
 pub use self::{diagnostics::Diagnostics, result::CompositionResult, subgraphs::Subgraphs};
+pub use grafbase_federated_graph::render_sdl;
 
 use self::{
     compose::{compose_subgraphs, ComposeContext},
