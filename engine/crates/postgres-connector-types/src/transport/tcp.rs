@@ -19,6 +19,8 @@ pub struct TcpTransport {
 impl TcpTransport {
     #[cfg(not(target_arch = "wasm32"))]
     pub async fn new(connection_string: &str) -> crate::Result<Self> {
+        use std::str::FromStr;
+
         let mut roots = rustls::RootCertStore::empty();
 
         for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
@@ -33,6 +35,11 @@ impl TcpTransport {
             .with_no_client_auth();
 
         let tls = tokio_postgres_rustls::MakeRustlsConnect::new(config);
+
+        let mut config = tokio_postgres::config::Config::from_str(connection_string)
+            .map_err(|error| crate::error::Error::Connection(error.to_string()))?;
+
+        config.transaction_pool_mode(true);
 
         let (client, connection) = tokio_postgres::connect(connection_string, tls)
             .await
@@ -54,26 +61,15 @@ impl TcpTransport {
 
     #[cfg(target_arch = "wasm32")]
     pub async fn new(connection_string: &str) -> crate::Result<Self> {
+        use std::str::FromStr;
+
         let url = url::Url::parse(connection_string)
             .map_err(|error| crate::error::Error::InvalidConnectionString(error.to_string()))?;
 
-        let username = percent_encoding::percent_decode_str(url.username())
-            .decode_utf8()
-            .unwrap_or_default();
+        let mut config = tokio_postgres::config::Config::from_str(connection_string)
+            .map_err(|error| crate::error::Error::Connection(error.to_string()))?;
 
-        let password = percent_encoding::percent_decode_str(url.password().unwrap_or_default())
-            .decode_utf8()
-            .unwrap_or_default();
-
-        let dbname = match url.path_segments() {
-            Some(mut segments) => segments.next().unwrap_or("postgres"),
-            None => "postgres",
-        };
-
-        let mut config = tokio_postgres::config::Config::new();
-        config.user(&username);
-        config.password(password.as_ref());
-        config.dbname(dbname);
+        config.transaction_pool_mode(true);
 
         let hostname = url.host_str().ok_or_else(|| {
             crate::error::Error::InvalidConnectionString(String::from(
