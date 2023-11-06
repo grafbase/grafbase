@@ -662,6 +662,7 @@ pub struct ObjectType {
     pub is_node: bool,
     pub rust_typename: String,
     pub constraints: Vec<Constraint>,
+    pub external: bool,
 }
 
 impl ObjectType {
@@ -678,6 +679,7 @@ impl ObjectType {
             is_subscription: false,
             is_node: false,
             constraints: vec![],
+            external: false,
         }
     }
 
@@ -690,6 +692,10 @@ impl ObjectType {
 
     pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
         ObjectType { cache_control, ..self }
+    }
+
+    pub fn with_external(self, external: bool) -> Self {
+        ObjectType { external, ..self }
     }
 
     #[inline]
@@ -916,6 +922,7 @@ impl Hash for MetaType {
                 is_node,
                 rust_typename,
                 constraints,
+                external,
             }) => {
                 name.hash(state);
                 description.hash(state);
@@ -926,6 +933,7 @@ impl Hash for MetaType {
                 is_node.hash(state);
                 rust_typename.hash(state);
                 constraints.hash(state);
+                external.hash(state);
             }
             Self::Interface(InterfaceType {
                 name,
@@ -1017,6 +1025,7 @@ impl PartialEq for MetaType {
                     is_node,
                     rust_typename,
                     constraints,
+                    external,
                 }),
                 Self::Object(ObjectType {
                     name: o_name,
@@ -1029,6 +1038,7 @@ impl PartialEq for MetaType {
                     is_node: o_is_node,
                     rust_typename: o_rust_typename,
                     constraints: o_constraints,
+                    external: o_external,
                 }),
             ) => {
                 name.eq(o_name)
@@ -1040,6 +1050,7 @@ impl PartialEq for MetaType {
                     && is_node.eq(o_is_node)
                     && rust_typename.eq(o_rust_typename)
                     && constraints.eq(o_constraints)
+                    && external.eq(o_external)
             }
             (
                 Self::Interface(InterfaceType {

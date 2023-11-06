@@ -47,6 +47,7 @@ Registry {
                 is_node: false,
                 rust_typename: "Mutation",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstoreApiResponse": Object(
@@ -154,6 +155,7 @@ Registry {
                 is_node: false,
                 rust_typename: "PetstoreApiResponse",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstoreCategory": Object(
@@ -232,6 +234,7 @@ Registry {
                 is_node: false,
                 rust_typename: "PetstoreCategory",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstoreCategoryInput": InputObject(
@@ -608,6 +611,7 @@ Registry {
                 is_node: false,
                 rust_typename: "PetstoreMutation",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstoreOrder": Object(
@@ -809,6 +813,7 @@ Registry {
                 is_node: false,
                 rust_typename: "PetstoreOrder",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstoreOrderInput": InputObject(
@@ -1113,6 +1118,7 @@ Registry {
                 is_node: false,
                 rust_typename: "PetstorePet",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstorePetInput": InputObject(
@@ -1629,6 +1635,7 @@ Registry {
                 is_node: false,
                 rust_typename: "PetstoreQuery",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstoreTag": Object(
@@ -1707,6 +1714,7 @@ Registry {
                 is_node: false,
                 rust_typename: "PetstoreTag",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstoreTagInput": InputObject(
@@ -1989,6 +1997,7 @@ Registry {
                 is_node: false,
                 rust_typename: "PetstoreUser",
                 constraints: [],
+                external: false,
             },
         ),
         "PetstoreUserInput": InputObject(
@@ -2124,6 +2133,7 @@ Registry {
                 is_node: false,
                 rust_typename: "Query",
                 constraints: [],
+                external: false,
             },
         ),
     },
