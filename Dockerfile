@@ -19,7 +19,6 @@ RUN npx --yes pnpm run cli-app:build
 
 WORKDIR /grafbase/cli
 
-
 RUN cargo build --release
 
 # Run
