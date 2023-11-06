@@ -398,6 +398,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         is_node: true,
                         rust_typename: type_name.clone(),
                         constraints: unique_directives.iter().map(UniqueDirective::to_constraint).collect(),
+                        external: false,
                     })
                 },
                 &type_name,

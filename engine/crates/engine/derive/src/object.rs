@@ -487,6 +487,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             is_subscription: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
+                            external: false
                         })
                     );
                     ty
@@ -527,6 +528,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             is_subscription: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
+                            external: false
                         })
                     );
                     ty

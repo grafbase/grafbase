@@ -6,6 +6,7 @@ use engine::registry::{
 use engine_parser::types::TypeKind;
 
 use super::{
+    federation::ExternalDirective,
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     visitor::{Visitor, VisitorContext},
@@ -41,6 +42,8 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
 
                 let mut requires =
                     RequiresDirective::from_directives(&field.directives, ctx).map(RequiresDirective::into_fields);
+
+                let external = ExternalDirective::from_directives(&field.directives, ctx).is_some();
 
                 let resolver = match (join_directive, resolver_name) {
                     (None, None) => {
@@ -84,6 +87,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                     ty: field.ty.clone().node.to_string().into(),
                     requires,
                     resolver,
+                    external,
                     ..MetaField::default()
                 })
             })
