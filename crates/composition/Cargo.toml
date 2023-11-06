@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+grafbase-federated-graph.path = "../federated-graph"
+
 async-graphql-parser = "6"
 async-graphql-value = "6"
 indexmap = "2"

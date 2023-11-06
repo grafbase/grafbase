@@ -1,6 +1,6 @@
 type User {
-    id: ID
+    id: ID!
     score: Float
-    name: String
+    name: String!
     age: Int
 }

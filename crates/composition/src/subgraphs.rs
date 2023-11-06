@@ -3,6 +3,7 @@ mod enums;
 mod field_types;
 mod fields;
 mod keys;
+mod strings;
 mod unions;
 mod walkers;
 
@@ -10,10 +11,12 @@ pub(crate) use self::{
     definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
     field_types::*,
     fields::*,
+    strings::StringWalker,
     walkers::*,
 };
+pub(crate) use crate::strings::StringId;
 
-use crate::strings::{StringId, Strings};
+use crate::{strings::Strings, VecExt};
 use itertools::Itertools;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -98,7 +101,7 @@ impl Subgraphs {
         let subgraph = Subgraph {
             name: self.strings.intern(name),
         };
-        push_and_return_id(&mut self.subgraphs, subgraph, SubgraphId)
+        SubgraphId(self.subgraphs.push_return_idx(subgraph))
     }
 
     pub(crate) fn walk<Id>(&self, id: Id) -> Walker<'_, Id> {
@@ -106,6 +109,14 @@ impl Subgraphs {
             id,
             subgraphs: self,
         }
+    }
+
+    /// Iterates all builtin scalars _that are in use in at least one subgraph_.
+    pub(crate) fn iter_builtin_scalars(&self) -> impl Iterator<Item = StringWalker<'_>> + '_ {
+        ["ID", "String", "Boolean", "Int", "Float"]
+            .into_iter()
+            .filter_map(|name| self.strings.lookup(name))
+            .map(|string| self.walk(string))
     }
 }
 
@@ -117,9 +128,3 @@ pub(crate) struct Subgraph {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct SubgraphId(usize);
-
-fn push_and_return_id<T, Id>(elems: &mut Vec<T>, new_elem: T, make_id: fn(usize) -> Id) -> Id {
-    let id = make_id(elems.len());
-    elems.push(new_elem);
-    id
-}

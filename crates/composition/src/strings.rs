@@ -30,6 +30,11 @@ impl Strings {
     pub(crate) fn resolve(&self, id: StringId) -> &str {
         self.0.get_index(id.0).unwrap().as_ref()
     }
+
+    /// Try to look up an interned string. Returns `None` if the string has not been interned.
+    pub(crate) fn lookup(&self, string: &str) -> Option<StringId> {
+        self.0.get_index_of(string).map(StringId)
+    }
 }
 
 // Sugar for [Strings::resolve()].

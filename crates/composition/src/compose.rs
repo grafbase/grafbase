@@ -1,16 +1,16 @@
+mod context;
 mod enums;
 mod input_object;
 mod interface;
 mod object;
 
-use self::input_object::*;
-use crate::{
-    subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker},
-    Context,
-};
+pub(crate) use self::context::Context as ComposeContext;
+
+use self::{context::Context, input_object::*};
+use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker};
 use itertools::Itertools;
 
-pub(crate) fn build_supergraph(ctx: &mut Context<'_>) {
+pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     ctx.subgraphs.iter_definition_groups(|definitions| {
         let Some(first) = definitions.get(0) else {
             return;
@@ -24,8 +24,7 @@ pub(crate) fn build_supergraph(ctx: &mut Context<'_>) {
                 interface::merge_interface_definitions(ctx, first, definitions)
             }
             DefinitionKind::Scalar => {
-                ctx.supergraph
-                    .insert_definition(first.name(), DefinitionKind::Scalar);
+                ctx.insert_scalar(first.name());
             }
             DefinitionKind::Enum => enums::merge_enum_definitions(first, definitions, ctx),
         }
@@ -46,7 +45,7 @@ fn merge_object_definitions<'a>(
     {
         let first_kind = first.kind();
         let second_kind = incompatible.kind();
-        let name = first.name_str();
+        let name = first.name().as_str();
         let first_subgraph = first.subgraph().name_str();
         let second_subgraph = incompatible.subgraph().name_str();
         ctx.diagnostics.push_fatal(format!(
@@ -59,7 +58,7 @@ fn merge_object_definitions<'a>(
         .iter()
         .any(|object| object.is_entity() != first_is_entity)
     {
-        let name = first.name_str();
+        let name = first.name().as_str();
         let (entity_subgraphs, non_entity_subgraphs) = definitions
             .iter()
             .partition::<Vec<DefinitionWalker<'_>>, _>(|definition| definition.is_entity());
@@ -77,8 +76,7 @@ fn merge_object_definitions<'a>(
         ));
     }
 
-    ctx.supergraph
-        .insert_definition(first.name(), DefinitionKind::Object);
+    ctx.insert_object(first.name());
 }
 
 fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
@@ -93,8 +91,8 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
 
         ctx.diagnostics.push_fatal(format!(
             "The field `{}` on `{}` is defined in two subgraphs (`{}` and `{}`).",
-            first.name_str(),
-            first.parent_definition().name_str(),
+            first.name().as_str(),
+            first.parent_definition().name().as_str(),
             first.parent_definition().subgraph().name_str(),
             next.parent_definition().subgraph().name_str(),
         ));
@@ -104,8 +102,8 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
     if fields.iter().any(|field| field.is_key() != first_is_key) {
         let name = format!(
             "{}.{}",
-            first.parent_definition().name_str(),
-            first.name_str()
+            first.parent_definition().name().as_str(),
+            first.name().as_str()
         );
         let (key_subgraphs, non_key_subgraphs) = fields
             .iter()
@@ -126,10 +124,10 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
 
     let arguments = object::merge_field_arguments(*first, fields);
 
-    ctx.supergraph.insert_field(
-        first.parent_definition().name(),
-        first.name(),
-        first.r#type().type_name(),
+    ctx.insert_field(
+        first.parent_definition().name().id,
+        first.name().id,
+        first.r#type().id,
         arguments,
     )
 }
@@ -140,15 +138,13 @@ fn merge_union_definitions(
     definitions: &[DefinitionWalker<'_>],
 ) {
     let union_name = first_union.name();
-    ctx.supergraph
-        .insert_definition(union_name, DefinitionKind::Union);
+    ctx.insert_union(union_name);
 
     for member in definitions
         .iter()
         .flat_map(|def| ctx.subgraphs.iter_union_members(def.id))
     {
         let member = first_union.walk(member);
-        ctx.supergraph
-            .insert_union_member(union_name, member.name());
+        ctx.insert_union_member(union_name.id, member.name().id);
     }
 }
