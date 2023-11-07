@@ -10,8 +10,9 @@ export class ReferenceDefinition {
   private referencedType: string
   private isOptional: boolean
 
-  constructor(referencedType: Type) {
-    this.referencedType = referencedType.name
+  constructor(referencedType: Type | string) {
+    this.referencedType =
+      typeof referencedType === 'string' ? referencedType : referencedType.name
     this.isOptional = false
   }
 

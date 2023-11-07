@@ -384,7 +384,8 @@ describe('Type generator', () => {
       id: g.id().join('foo(id: $id)'),
       str: g.string().join('bar(id: $id)'),
       num: g.boolean().join('baz(id: $id)'),
-      list: g.boolean().list().join('bing(id: $id)')
+      list: g.boolean().list().join('bing(id: $id)'),
+      generatedType: g.ref('Whatever').join('bazinga(id: $id)')
     })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
@@ -393,6 +394,7 @@ describe('Type generator', () => {
         str: String! @join(select: "bar(id: $id)")
         num: Boolean! @join(select: "baz(id: $id)")
         list: [Boolean!]! @join(select: "bing(id: $id)")
+        generatedType: Whatever! @join(select: "bazinga(id: $id)")
       }"
     `)
   })
