@@ -408,7 +408,7 @@ jobs:
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
       - name: Comment PR
         uses: thollander/actions-comment-pull-request@v2
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ github.event_name == 'pull_request' && contains(needs.*.result, 'success') }}
         with:
           message: |
             ### Built binaries:
