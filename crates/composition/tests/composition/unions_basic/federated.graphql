@@ -1,34 +1,47 @@
 type Pizza {
+    # Resolvable in `pizza`
     id: ID!
+    # Resolvable in `pizza`
     nameEn: String
+    # Resolvable in `pizza`
     nameIt: String!
+    # Resolvable in `pizza`
     toppings: [Topping!]!
 }
 
 type Onion {
+    # Resolvable in `pizza`
     variety: String
 }
 
 type Cheese {
+    # Resolvable in `pizza`
     type: String!
+    # Resolvable in `pizza`
     quantity: Int!
 }
 
 type Pineapple {
+    # Resolvable in `pizza`
     isAnanas: Boolean!
 }
 
 type Sushi {
+    # Resolvable in `sushi`
     id: ID!
+    # Resolvable in `sushi`
     topping: Topping
 }
 
 type Salmon {
+    # Resolvable in `sushi`
     id: ID!
+    # Resolvable in `sushi`
     raw: Boolean
 }
 
 type Omelet {
+    # Resolvable in `sushi`
     isRectangular: Boolean
 }
 

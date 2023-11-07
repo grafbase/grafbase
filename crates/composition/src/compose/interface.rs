@@ -21,6 +21,7 @@ pub(super) fn merge_interface_definitions(
             field.name().id,
             field.r#type().id,
             Vec::new(),
+            Vec::new(),
         );
     }
 }

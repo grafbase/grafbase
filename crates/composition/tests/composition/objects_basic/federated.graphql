@@ -1,6 +1,10 @@
 type User {
+    # Resolvable in `a`
     id: ID!
+    # Resolvable in `a`
     score: Float
+    # Resolvable in `b`
     name: String!
+    # Resolvable in `b`
     age: Int
 }

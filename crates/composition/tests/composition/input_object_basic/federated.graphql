@@ -1,14 +1,26 @@
 type Query {
+    # Resolvable in `emailbook`
     getPersonInfo(input: InputPerson!): Person
+    # Resolvable in `phonebook`
     searchPerson(input: InputPerson!): [Person]
 }
 
 type Person {
+    # Resolvable in `emailbook`
+    # Resolvable in `phonebook`
     id: ID!
+    # Resolvable in `emailbook`
+    # Resolvable in `phonebook`
     firstName: String!
+    # Resolvable in `emailbook`
+    # Resolvable in `phonebook`
     lastName: String!
+    # Resolvable in `emailbook`
+    # Resolvable in `phonebook`
     age: Int!
+    # Resolvable in `emailbook`
     email: String!
+    # Resolvable in `phonebook`
     phoneNumber: String
 }
 

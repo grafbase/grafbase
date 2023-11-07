@@ -39,14 +39,6 @@ impl Strings {
     }
 }
 
-// Sugar for [Strings::resolve()].
-impl std::ops::Index<StringId> for Strings {
-    type Output = str;
-
-    fn index(&self, index: StringId) -> &Self::Output {
-        self.resolve(index)
-    }
-}
 pub(crate) type StringWalker<'a> = Walker<'a, StringId>;
 
 impl<'a> StringWalker<'a> {

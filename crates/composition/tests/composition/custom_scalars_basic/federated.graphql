@@ -7,6 +7,8 @@ scalar Texture
 scalar Tethera
 
 type Sheep {
+    # Resolvable in `baz`
     texture: Texture!
+    # Resolvable in `foo`
     sheepIdx: Tethera
 }
