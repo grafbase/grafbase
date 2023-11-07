@@ -4,6 +4,9 @@ type Activity {
     participatingTeletubby: Teletubby!
 }
 
+# Entity with key (name) in `activities`
+# Entity with key (name) in `episodes`
+# Entity with key (name) in `teletubbyRepository`
 type Teletubby {
     activities: [Activity]
     name: String!

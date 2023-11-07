@@ -83,20 +83,19 @@ impl<'a> FieldWalker<'a> {
     /// key).
     pub fn is_key(self) -> bool {
         let field = self.field();
-        self.subgraphs
-            .iter_object_keys(field.parent_definition_id)
-            .any(|key| {
-                let mut key_fields = key.fields();
-                let Some(first_field) = key_fields.next() else {
-                    return false;
-                };
+        self.parent_definition().entity_keys().any(|key| {
+            let mut key_fields = key.fields().iter();
 
-                if key_fields.next().is_some() || !first_field.subselection.is_empty() {
-                    return false;
-                }
+            let Some(first_field) = key_fields.next() else {
+                return false;
+            };
 
-                first_field.field == field.name
-            })
+            if key_fields.next().is_some() || !first_field.subselection.is_empty() {
+                return false;
+            }
+
+            first_field.field == field.name
+        })
     }
 
     pub fn is_shareable(self) -> bool {

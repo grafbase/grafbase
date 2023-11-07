@@ -3,7 +3,7 @@ use crate::{
     subgraphs::{self, StringWalker},
     Diagnostics,
 };
-use grafbase_federated_graph as out;
+use grafbase_federated_graph as federated;
 
 /// Context for [`compose`](crate::compose::compose).
 pub(crate) struct Context<'a> {
@@ -37,11 +37,15 @@ impl<'a> Context<'a> {
         self.ir
     }
 
-    pub(crate) fn insert_enum(&mut self, name: StringWalker<'_>) -> out::EnumId {
+    pub(crate) fn insert_enum(&mut self, name: StringWalker<'_>) -> federated::EnumId {
         self.ir.insert_enum(name)
     }
 
-    pub(crate) fn insert_enum_value(&mut self, enum_id: out::EnumId, value: StringWalker<'_>) {
+    pub(crate) fn insert_enum_value(
+        &mut self,
+        enum_id: federated::EnumId,
+        value: StringWalker<'_>,
+    ) {
         self.ir.insert_enum_value(enum_id, value)
     }
 
@@ -56,15 +60,18 @@ impl<'a> Context<'a> {
             .insert_field(parent_name, field_name, field_type, arguments)
     }
 
-    pub(crate) fn insert_input_object(&mut self, name: StringWalker<'_>) -> out::InputObjectId {
+    pub(crate) fn insert_input_object(
+        &mut self,
+        name: StringWalker<'_>,
+    ) -> federated::InputObjectId {
         self.ir.insert_input_object(name)
     }
 
-    pub(crate) fn insert_interface(&mut self, name: StringWalker<'_>) -> out::InterfaceId {
+    pub(crate) fn insert_interface(&mut self, name: StringWalker<'_>) -> federated::InterfaceId {
         self.ir.insert_interface(name)
     }
 
-    pub(crate) fn insert_object(&mut self, name: StringWalker<'_>) {
+    pub(crate) fn insert_object(&mut self, name: StringWalker<'_>) -> federated::ObjectId {
         self.ir.insert_object(name)
     }
 
@@ -72,7 +79,7 @@ impl<'a> Context<'a> {
         self.ir.insert_scalar(name)
     }
 
-    pub(crate) fn insert_union(&mut self, name: StringWalker<'_>) -> out::UnionId {
+    pub(crate) fn insert_union(&mut self, name: StringWalker<'_>) -> federated::UnionId {
         self.ir.insert_union(name)
     }
 
@@ -82,6 +89,14 @@ impl<'a> Context<'a> {
         member_name: subgraphs::StringId,
     ) {
         self.ir.insert_union_member(union_name, member_name)
+    }
+
+    pub(crate) fn insert_resolvable_key(
+        &mut self,
+        object_id: federated::ObjectId,
+        key_id: subgraphs::KeyId,
+    ) {
+        self.ir.insert_resolvable_key(object_id, key_id)
     }
 }
 

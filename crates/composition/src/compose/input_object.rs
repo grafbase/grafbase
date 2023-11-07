@@ -31,7 +31,7 @@ pub(super) fn merge_input_object_definitions(
                 "The {input_type_name}.{field_name} field is not defined in all subgraphs, but it is required in {bad_subgraph}",
                 input_type_name = first.name().as_str(),
                 field_name = field.name().as_str(),
-                bad_subgraph = field.parent_definition().subgraph().name_str(),
+                bad_subgraph = field.parent_definition().subgraph().name().as_str(),
             ));
         }
     }

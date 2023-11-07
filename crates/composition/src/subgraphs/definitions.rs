@@ -72,7 +72,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn is_entity(self) -> bool {
-        self.subgraphs.iter_object_keys(self.id).next().is_some()
+        self.entity_keys().next().is_some()
     }
 
     pub fn is_shareable(self) -> bool {

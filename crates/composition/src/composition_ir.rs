@@ -27,6 +27,7 @@ pub(crate) struct CompositionIr {
     pub(crate) strings: StringsIr,
     pub(crate) fields: Vec<FieldIr>,
     pub(crate) union_members: BTreeSet<(subgraphs::StringId, subgraphs::StringId)>,
+    pub(crate) resolvable_keys: Vec<KeyIr>,
 }
 
 impl CompositionIr {
@@ -85,7 +86,15 @@ impl CompositionIr {
         id
     }
 
-    pub(crate) fn insert_object(&mut self, object_name: StringWalker<'_>) {
+    pub(crate) fn insert_resolvable_key(
+        &mut self,
+        object_id: federated::ObjectId,
+        key_id: subgraphs::KeyId,
+    ) {
+        self.resolvable_keys.push(KeyIr { object_id, key_id });
+    }
+
+    pub(crate) fn insert_object(&mut self, object_name: StringWalker<'_>) -> federated::ObjectId {
         let name = self.insert_string(object_name);
         let object = federated::Object {
             name,
@@ -96,6 +105,7 @@ impl CompositionIr {
         let id = federated::ObjectId(self.objects.push_return_idx(object));
         self.definitions_by_name
             .insert(object_name.id, federated::Definition::Object(id));
+        id
     }
 
     pub(crate) fn insert_union(&mut self, union_name: StringWalker<'_>) -> federated::UnionId {
@@ -176,4 +186,9 @@ impl StringsIr {
             federated::StringId(self.strings.push_return_idx(string.as_str().to_owned()))
         })
     }
+}
+
+pub(crate) struct KeyIr {
+    pub(crate) object_id: federated::ObjectId,
+    pub(crate) key_id: subgraphs::KeyId,
 }

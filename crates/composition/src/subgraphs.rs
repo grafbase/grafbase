@@ -11,6 +11,7 @@ pub(crate) use self::{
     definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
     field_types::*,
     fields::*,
+    keys::*,
     strings::StringWalker,
     walkers::*,
 };
@@ -118,6 +119,10 @@ impl Subgraphs {
             .filter_map(|name| self.strings.lookup(name))
             .map(|string| self.walk(string))
     }
+
+    pub(crate) fn iter_subgraphs(&self) -> impl Iterator<Item = SubgraphWalker<'_>> {
+        (0..self.subgraphs.len()).map(|idx| self.walk(SubgraphId(idx)))
+    }
 }
 
 pub(crate) struct Subgraph {
@@ -128,3 +133,9 @@ pub(crate) struct Subgraph {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct SubgraphId(usize);
+
+impl SubgraphId {
+    pub(crate) fn idx(self) -> usize {
+        self.0
+    }
+}
