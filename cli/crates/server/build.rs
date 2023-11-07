@@ -12,7 +12,7 @@ fn find_pathfinder_bundle_location() -> String {
     if let Ok(location) = env::var(GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH) {
         assert!(
             fs::metadata(&location).is_ok(),
-            "The location specified in {GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH} ({location} does ont exist."
+            "The location specified in {GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH} ({location} does not exist."
         );
         return location;
     }
