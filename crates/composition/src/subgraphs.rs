@@ -12,19 +12,18 @@ pub(crate) use self::{
     field_types::*,
     fields::*,
     keys::*,
-    strings::StringWalker,
+    strings::{StringId, StringWalker},
     walkers::*,
 };
-pub(crate) use crate::strings::StringId;
 
-use crate::{strings::Strings, VecExt};
+use crate::VecExt;
 use itertools::Itertools;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A set of subgraphs to be composed.
 #[derive(Default)]
 pub struct Subgraphs {
-    pub(crate) strings: Strings,
+    pub(super) strings: strings::Strings,
     subgraphs: Vec<Subgraph>,
     definitions: definitions::Definitions,
     enums: enums::Enums,

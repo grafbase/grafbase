@@ -1,5 +1,5 @@
 use super::*;
-use crate::{strings::StringId, subgraphs::FieldId};
+use crate::subgraphs::{FieldId, StringId};
 
 pub(super) fn merge_interface_definitions(
     ctx: &mut Context<'_>,

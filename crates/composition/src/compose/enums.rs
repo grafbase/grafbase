@@ -1,5 +1,5 @@
 use super::*;
-use crate::{strings::StringId, Subgraphs};
+use crate::subgraphs::{StringId, Subgraphs};
 use std::collections::HashSet;
 
 pub(super) fn merge_enum_definitions(
