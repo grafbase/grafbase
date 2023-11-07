@@ -82,6 +82,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     relation: None,
                     required_operation,
                     auth: None,
+                    shareable: false,
                 });
             }
         }

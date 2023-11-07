@@ -165,6 +165,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     deprecation: #field_deprecation,
                     cache_control: #cache_control,
                     external: #external,
+                    shareable: false,
                     provides: #provides,
                     requires: #requires,
                     visible: #visible,
@@ -327,7 +328,8 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                             is_node: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
-                            external: false
+                            external: false,
+                            shareable: false
                         })
                     )
                 }
@@ -398,7 +400,8 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                             required_operation: None,
                             auth: None,
                             constraints: vec![],
-                            external: false
+                            external: false,
+                            shareable: false
                         })
                     )
                 }

@@ -331,6 +331,7 @@ pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> 
                     deprecation: #field_deprecation,
                     cache_control: #cache_control,
                     external: #external,
+                    shareable: false,
                     provides: #provides,
                     requires: #requires,
                     visible: #visible,

@@ -253,6 +253,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 deprecation: #deprecation,
                 cache_control: ::std::default::Default::default(),
                 external: #external,
+                shareable: false,
                 provides: #provides,
                 requires: #requires,
                 visible: #visible,

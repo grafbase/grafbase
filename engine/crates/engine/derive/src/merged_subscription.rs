@@ -70,7 +70,8 @@ pub fn generate(object_args: &args::MergedSubscription) -> GeneratorResult<Token
                         is_subscription: true,
                         rust_typename: ::std::any::type_name::<Self>(),
                         constraints: vec![],
-                        external: false
+                        external: false,
+                        shareable: false,
                     })
                 })
             }

@@ -344,6 +344,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                         deprecation: #field_deprecation,
                         cache_control: #cache_control,
                         external: #external,
+                        shareable: false,
                         provides: #provides,
                         requires: #requires,
                         visible: #visible,
@@ -487,7 +488,8 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             is_subscription: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
-                            external: false
+                            external: false,
+                            shareable: false,
                         })
                     );
                     ty
@@ -528,7 +530,8 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             is_subscription: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
-                            external: false
+                            external: false,
+                            shareable: false
                         })
                     );
                     ty

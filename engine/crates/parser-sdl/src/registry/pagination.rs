@@ -235,6 +235,7 @@ pub fn add_query_paginated_collection(
         }),
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),
+        shareable: false,
     });
 }
 

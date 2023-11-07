@@ -104,6 +104,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         constraints: vec![],
                         external: false
+                        shareable: false,
                     })
                 })
             }

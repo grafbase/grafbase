@@ -136,6 +136,7 @@ fn insert_metadata_field(
             relation: None,
             required_operation: None,
             auth: auth.cloned(),
+            shareable: false,
         },
     )
 }
@@ -399,6 +400,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         rust_typename: type_name.clone(),
                         constraints: unique_directives.iter().map(UniqueDirective::to_constraint).collect(),
                         external: false,
+                        shareable: false,
                     })
                 },
                 &type_name,

@@ -68,6 +68,9 @@ impl Registry {
                 if field.external {
                     write!(sdl, " @external").ok();
                 }
+                if field.shareable {
+                    write!(sdl, " @shareable").ok();
+                }
                 if let Some(requires) = &field.requires {
                     write!(sdl, " @requires(fields: \"{requires}\")").ok();
                 }
@@ -102,6 +105,7 @@ impl Registry {
                 extends,
                 description,
                 external,
+                shareable,
                 ..
             }) => {
                 if Some(name.as_str()) == self.subscription_type.as_deref()
@@ -144,6 +148,9 @@ impl Registry {
                     }
                     if *external {
                         write!(sdl, "@external ").ok();
+                    }
+                    if *shareable {
+                        write!(sdl, "@shareable ").ok();
                     }
                 }
 

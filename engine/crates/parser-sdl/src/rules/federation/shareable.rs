@@ -4,23 +4,23 @@ use crate::rules::{directive::Directive, visitor::VisitorContext};
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ExternalDirective;
+pub struct ShareableDirective;
 
-impl ExternalDirective {
+impl ShareableDirective {
     pub fn from_directives(
         directives: &[Positioned<ConstDirective>],
         _ctx: &mut VisitorContext<'_>,
-    ) -> Option<ExternalDirective> {
-        directives.iter().find(|directive| directive.name.node == "external")?;
+    ) -> Option<ShareableDirective> {
+        directives.iter().find(|directive| directive.name.node == "shareable")?;
 
-        Some(ExternalDirective)
+        Some(ShareableDirective)
     }
 }
 
-impl Directive for ExternalDirective {
+impl Directive for ShareableDirective {
     fn definition() -> String {
         r#"
-        directive @external on OBJECT | FIELD_DEFINITION
+        directive @shareable on OBJECT | FIELD_DEFINITION
         "#
         .to_string()
     }
@@ -31,12 +31,12 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
-    fn external_field_on_basic_type() {
+    fn shareable_field_on_basic_type() {
         let schema = r#"
             extend schema @federation(version: "2.3")
 
             type User @key(fields: "id", resolvable: false) {
-                id: ID! @external
+                id: ID! @shareable
             }
         "#;
 
@@ -46,17 +46,17 @@ mod tests {
 
         insta::assert_display_snapshot!(registry.export_sdl(true), @r###"
         type User @key(fields: "id" resolvable: false) {
-        	id: ID! @external
+        	id: ID! @shareable
         }
         "###);
     }
 
     #[test]
-    fn external_on_basic_type() {
+    fn shareable_on_basic_type() {
         let schema = r#"
             extend schema @federation(version: "2.3")
 
-            type User @key(fields: "id", resolvable: false) @external {
+            type User @key(fields: "id", resolvable: false) @shareable {
                 id: ID!
             }
         "#;
@@ -66,7 +66,7 @@ mod tests {
             .registry;
 
         insta::assert_display_snapshot!(registry.export_sdl(true), @r###"
-        type User @key(fields: "id" resolvable: false) @external {
+        type User @key(fields: "id" resolvable: false) @shareable {
         	id: ID!
         }
         "###);
