@@ -6,7 +6,7 @@ on:
       - 'crates/composition/**/*'
 
 jobs:
-  composition:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -19,11 +19,17 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('crates/composition/Cargo.toml') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
-      - run: cargo clippy
-        working-directory: 'crates/composition'
+      - name: Lint
+        run: |
+          cargo clippy --manifest-path=crates/composition/Cargo.toml
+          cargo clippy --manifest-path=crates/federated-graph/Cargo.toml
 
-      - run: cargo test
-        working-directory: 'crates/composition'
+      - name: Test
+        run: |
+          cargo test --manifest-path=crates/composition/Cargo.toml
+          cargo test --manifest-path=crates/federated-graph/Cargo.toml
       
-      - run: cargo fmt --check
-        working-directory: 'crates/composition'
+      - name: Check formatting
+        run: |
+          cargo fmt --check --manifest-path=crates/composition/Cargo.toml
+          cargo fmt --check --manifest-path=crates/federated-graph/Cargo.toml

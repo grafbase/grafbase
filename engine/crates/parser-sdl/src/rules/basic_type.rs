@@ -17,7 +17,7 @@ use engine_parser::{
 use itertools::Itertools;
 
 use super::{
-    federation::KeyDirective,
+    federation::{ExternalDirective, KeyDirective},
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
@@ -61,6 +61,8 @@ impl<'a> Visitor<'a> for BasicType {
                 let mut requires =
                     RequiresDirective::from_directives(&field.directives, ctx).map(RequiresDirective::into_fields);
 
+                let external = ExternalDirective::from_directives(&field.directives, ctx).is_some();
+
                 if let Some(join_directive) = JoinDirective::from_directives(&field.node.directives, ctx) {
                     if resolver.is_custom() {
                         ctx.report_error(vec![field.pos], "A field can't have a join and a custom resolver on it");
@@ -82,18 +84,20 @@ impl<'a> Visitor<'a> for BasicType {
                     cache_control: CacheDirective::parse(&field.node.directives),
                     resolver,
                     requires,
+                    external,
                     ..Default::default()
                 }
             })
             .collect::<Vec<_>>();
 
-        // If it's a modeled Type, we create the associated type into the registry.
-        // Without more data, we infer it's from our modelization.
+        let external = ExternalDirective::from_directives(&type_definition.directives, ctx).is_some();
+
         ctx.registry.get_mut().create_type(
             |_| {
                 registry::ObjectType::new(type_name.clone(), fields)
                     .with_description(type_definition.node.description.clone().map(|x| x.node))
                     .with_cache_control(CacheDirective::parse(&type_definition.node.directives))
+                    .with_external(external)
                     .into()
             },
             &type_name,

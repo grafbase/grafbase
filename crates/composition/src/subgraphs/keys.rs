@@ -5,21 +5,10 @@ use async_graphql_parser::types as ast;
 #[derive(Default)]
 pub(crate) struct Keys(Vec<(DefinitionId, Key)>);
 
-impl Subgraphs {
-    pub(crate) fn iter_object_keys(
-        &self,
-        object_id: DefinitionId,
-    ) -> impl Iterator<Item = KeyWalker<'_>> + '_ {
-        let start = self
-            .keys
-            .0
-            .partition_point(|(parent, _)| *parent < object_id);
-        self.keys.0[start..]
-            .iter()
-            .take_while(move |(parent, _)| *parent == object_id)
-            .map(move |(_, key)| self.walk(key))
-    }
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct KeyId(usize);
 
+impl Subgraphs {
     pub(crate) fn push_key(
         &mut self,
         object_id: DefinitionId,
@@ -90,14 +79,37 @@ pub(crate) struct Selection {
     pub(crate) subselection: Vec<Selection>,
 }
 
-pub(crate) type KeyWalker<'a> = Walker<'a, &'a Key>;
+pub(crate) type KeyWalker<'a> = Walker<'a, KeyId>;
 
 impl<'a> KeyWalker<'a> {
-    pub(crate) fn fields(&self) -> impl Iterator<Item = &'a Selection> {
-        self.id.selection_set.iter()
+    fn key(self) -> &'a (DefinitionId, Key) {
+        &self.subgraphs.keys.0[self.id.0]
     }
 
-    pub(crate) fn is_resolvable(&self) -> bool {
-        self.id.resolvable
+    pub(crate) fn fields(self) -> &'a [Selection] {
+        &self.key().1.selection_set
+    }
+
+    pub(crate) fn is_resolvable(self) -> bool {
+        self.key().1.resolvable
+    }
+
+    pub(crate) fn parent_definition(self) -> DefinitionWalker<'a> {
+        self.walk(self.key().0)
+    }
+}
+
+impl<'a> DefinitionWalker<'a> {
+    pub fn entity_keys(self) -> impl Iterator<Item = KeyWalker<'a>> {
+        let start = self
+            .subgraphs
+            .keys
+            .0
+            .partition_point(|(parent, _)| *parent < self.id);
+        self.subgraphs.keys.0[start..]
+            .iter()
+            .take_while(move |(parent, _)| *parent == self.id)
+            .enumerate()
+            .map(move |(idx, _)| self.walk(KeyId(start + idx)))
     }
 }

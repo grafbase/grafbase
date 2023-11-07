@@ -2,33 +2,53 @@
 
 //! GraphQL schema composition.
 
-mod compose_supergraph;
-mod context;
+mod compose;
+mod composition_ir;
 mod diagnostics;
+mod emit_federated_graph;
 mod ingest_subgraph;
 mod result;
 mod strings;
 mod subgraphs;
-mod supergraph;
 
 pub use self::{diagnostics::Diagnostics, result::CompositionResult, subgraphs::Subgraphs};
+pub use grafbase_federated_graph::render_sdl;
 
-use self::{context::Context, strings::StringId, supergraph::Supergraph};
+use self::{
+    compose::{compose_subgraphs, ComposeContext},
+    emit_federated_graph::emit_federated_graph,
+};
 
-/// Compose subgraphs into a supergraph
+/// Compose subgraphs into a federated graph.
 pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
-    let mut context = Context {
-        subgraphs,
-        supergraph: Supergraph::default(),
-        diagnostics: Diagnostics::default(),
-    };
+    let mut diagnostics = Diagnostics::default();
+    let mut context = ComposeContext::new(subgraphs, &mut diagnostics);
 
-    compose_supergraph::build_supergraph(&mut context);
+    compose_subgraphs(&mut context);
 
-    let supergraph_sdl = context.supergraph.render(&context.subgraphs.strings);
+    if context.diagnostics.any_fatal() {
+        return CompositionResult {
+            diagnostics,
+            federated_graph: Default::default(),
+        };
+    }
+
+    let federated_graph = emit_federated_graph(context.into_ir(), subgraphs);
 
     CompositionResult {
-        supergraph_sdl,
-        diagnostics: context.diagnostics,
+        federated_graph,
+        diagnostics,
+    }
+}
+
+trait VecExt<T> {
+    fn push_return_idx(&mut self, elem: T) -> usize;
+}
+
+impl<T> VecExt<T> for Vec<T> {
+    fn push_return_idx(&mut self, elem: T) -> usize {
+        let idx = self.len();
+        self.push(elem);
+        idx
     }
 }

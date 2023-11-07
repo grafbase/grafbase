@@ -10,7 +10,7 @@ pub(super) struct FieldTypes {
     wrappers: IndexSet<WrapperType>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct FieldTypeId(usize);
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
@@ -89,8 +89,8 @@ impl<'a> FieldTypeWalker<'a> {
     ///            ^^^^^^
     /// }
     /// ```
-    pub(crate) fn type_name(self) -> StringId {
-        self.inner().name
+    pub(crate) fn type_name(self) -> StringWalker<'a> {
+        self.walk(self.inner().name)
     }
 
     /// Iterate wrapper types from the innermost to the outermost.
@@ -102,6 +102,10 @@ impl<'a> FieldTypeWalker<'a> {
             wrapper = next.outer;
             Some(next.kind)
         })
+    }
+
+    pub(crate) fn inner_is_required(self) -> bool {
+        self.inner().is_required
     }
 
     pub(crate) fn is_required(self) -> bool {

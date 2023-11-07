@@ -1,0 +1,10 @@
+type Query {
+    searchFood(filterName: FilterName, filterValue: String): [String!]!
+    searchProduct(filterName: FilterName, filterValue: String): [String!]!
+    searchUser(filterName: FilterName, filterValue: String): [String!]!
+}
+
+enum FilterName {
+    NAME
+    CREATED_AT
+}

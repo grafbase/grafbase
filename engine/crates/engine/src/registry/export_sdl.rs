@@ -101,6 +101,7 @@ impl Registry {
                 fields,
                 extends,
                 description,
+                external,
                 ..
             }) => {
                 if Some(name.as_str()) == self.subscription_type.as_deref()
@@ -140,6 +141,9 @@ impl Registry {
                             let resolvable = if key.is_resolvable() { "" } else { " resolvable: false" };
                             write!(sdl, "@key(fields: \"{key}\"{resolvable}) ").ok();
                         }
+                    }
+                    if *external {
+                        write!(sdl, "@external ").ok();
                     }
                 }
 

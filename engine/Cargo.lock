@@ -2932,7 +2932,6 @@ dependencies = [
  "futures",
  "indexmap 2.0.0-pre",
  "itertools",
- "percent-encoding",
  "reqwest",
  "rustls",
  "rustls-native-certs",
@@ -2949,7 +2948,7 @@ dependencies = [
 [[package]]
 name = "postgres-protocol"
 version = "0.6.6"
-source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#a7731024191390654f89721df2396277b9f9cca1"
+source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#823efcf4aaf887940b49894f94f47ca45bd470dd"
 dependencies = [
  "base64 0.21.4",
  "byteorder",
@@ -2967,7 +2966,7 @@ dependencies = [
 [[package]]
 name = "postgres-types"
 version = "0.2.6"
-source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#a7731024191390654f89721df2396277b9f9cca1"
+source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#823efcf4aaf887940b49894f94f47ca45bd470dd"
 dependencies = [
  "bytes",
  "fallible-iterator",
@@ -4348,7 +4347,7 @@ dependencies = [
 [[package]]
 name = "tokio-postgres"
 version = "0.7.10"
-source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#a7731024191390654f89721df2396277b9f9cca1"
+source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#823efcf4aaf887940b49894f94f47ca45bd470dd"
 dependencies = [
  "async-trait",
  "byteorder",

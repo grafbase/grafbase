@@ -7,7 +7,7 @@ pub(super) fn merge_enum_definitions(
     definitions: &[DefinitionWalker<'_>],
     ctx: &mut Context<'_>,
 ) {
-    let enum_name = first.name();
+    let enum_name = first.name().id;
 
     match (
         enum_is_used_in_input(enum_name, ctx.subgraphs),
@@ -17,7 +17,7 @@ pub(super) fn merge_enum_definitions(
         (false, true) => merge_union(first, definitions, ctx),
         (true, true) => merge_exactly_matching(first, definitions, ctx),
         (false, false) => {
-            // The enum isn't used at all, omit it from the supergraph.
+            // The enum isn't used at all, omit it from the federated graph
         }
     }
 }
@@ -28,13 +28,13 @@ fn enum_is_used_in_input(enum_name: StringId, subgraphs: &Subgraphs) -> bool {
         subgraphs
             .iter_fields()
             .flat_map(|field| field.arguments())
-            .any(|arg| arg.argument_type().type_name() == enum_name)
+            .any(|arg| arg.argument_type().type_name().id == enum_name)
     };
     let in_input_type_fields = || {
         subgraphs
             .iter_fields()
             .filter(|field| field.parent_definition().kind() == DefinitionKind::InputObject)
-            .any(|field| field.r#type().type_name() == enum_name)
+            .any(|field| field.r#type().type_name().id == enum_name)
     };
     in_field_arguments() || in_input_type_fields()
 }
@@ -49,7 +49,7 @@ fn enum_is_used_in_return_position(enum_name: StringId, subgraphs: &Subgraphs) -
                 DefinitionKind::Object | DefinitionKind::Interface
             )
         })
-        .any(|field| field.r#type().type_name() == enum_name)
+        .any(|field| field.r#type().type_name().id == enum_name)
 }
 
 fn merge_intersection(
@@ -69,15 +69,14 @@ fn merge_intersection(
     if intersection.is_empty() {
         ctx.diagnostics.push_fatal(format!(
             "Values for enum {} are empty (intersection)",
-            first.name_str(),
+            first.name().as_str(),
         ));
     }
 
-    ctx.supergraph
-        .insert_definition(first.name(), DefinitionKind::Enum);
+    let enum_id = ctx.insert_enum(first.name());
 
     for value in intersection {
-        ctx.supergraph.insert_enum_value(first.name(), value)
+        ctx.insert_enum_value(enum_id, first.walk(value))
     }
 }
 
@@ -86,11 +85,10 @@ fn merge_union(
     definitions: &[DefinitionWalker<'_>],
     ctx: &mut Context<'_>,
 ) {
-    ctx.supergraph
-        .insert_definition(first.name(), DefinitionKind::Enum);
+    let enum_id = ctx.insert_enum(first.name());
 
     for value in definitions.iter().flat_map(|def| def.enum_values()) {
-        ctx.supergraph.insert_enum_value(first.name(), value)
+        ctx.insert_enum_value(enum_id, first.walk(value))
     }
 }
 
@@ -105,17 +103,16 @@ fn merge_exactly_matching(
         if !is_slice_match(&expected, definition.enum_values()) {
             ctx.diagnostics.push_fatal(format!(
                 "The enum {} should match exactly in all subgraphs, but it does not",
-                first.name_str()
+                first.name().as_str()
             ));
             return;
         }
     }
 
-    ctx.supergraph
-        .insert_definition(first.name(), DefinitionKind::Enum);
+    let enum_id = ctx.insert_enum(first.name());
 
     for value in expected {
-        ctx.supergraph.insert_enum_value(first.name(), value)
+        ctx.insert_enum_value(enum_id, first.walk(value))
     }
 }
 

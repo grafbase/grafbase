@@ -9,18 +9,17 @@ pub(super) fn merge_interface_definitions(
     let mut all_fields: indexmap::IndexMap<StringId, FieldId> = indexmap::IndexMap::new();
 
     for field in definitions.iter().flat_map(|def| def.fields()) {
-        all_fields.entry(field.name()).or_insert(field.id);
+        all_fields.entry(field.name().id).or_insert(field.id);
     }
 
-    ctx.supergraph
-        .insert_definition(first.name(), DefinitionKind::Interface);
+    ctx.insert_interface(first.name());
 
     for field in all_fields.values() {
         let field = first.walk(*field);
-        ctx.supergraph.insert_field(
-            first.name(),
-            field.name(),
-            field.r#type().type_name(),
+        ctx.insert_field(
+            first.name().id,
+            field.name().id,
+            field.r#type().id,
             Vec::new(),
         );
     }

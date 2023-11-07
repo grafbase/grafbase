@@ -25,7 +25,6 @@ thiserror.workspace = true
 url.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-percent-encoding = "2.3.0"
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
 # https://github.com/sfackler/rust-postgres/pull/1067
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase", features = ["js"], default-features = false }

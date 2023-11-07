@@ -28,7 +28,7 @@ use rules::{
     enum_type::EnumType,
     extend_connector_types::ExtendConnectorTypes,
     extend_query_and_mutation_types::ExtendQueryAndMutationTypes,
-    federation::{FederationDirective, FederationDirectiveVisitor, KeyDirective},
+    federation::{ExternalDirective, FederationDirective, FederationDirectiveVisitor, KeyDirective},
     graphql_directive::GraphqlVisitor,
     input_object::InputObjectVisitor,
     join_directive::JoinDirective,
@@ -141,7 +141,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<FederationDirective>()
         .with::<RequiresDirective>()
         .with::<KeyDirective>()
-        .with::<JoinDirective>();
+        .with::<JoinDirective>()
+        .with::<ExternalDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",

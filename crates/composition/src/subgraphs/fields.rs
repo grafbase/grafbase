@@ -43,8 +43,8 @@ impl Subgraphs {
             is_shareable,
             arguments: Vec::new(),
         };
-        let id = push_and_return_id(&mut self.fields.0, field, FieldId);
-        let parent_object_name = self.walk(parent_definition_id).name();
+        let id = FieldId(self.fields.0.push_return_idx(field));
+        let parent_object_name = self.walk(parent_definition_id).name().id;
         self.field_names.insert((parent_object_name, name, id));
         id
     }
@@ -83,20 +83,19 @@ impl<'a> FieldWalker<'a> {
     /// key).
     pub fn is_key(self) -> bool {
         let field = self.field();
-        self.subgraphs
-            .iter_object_keys(field.parent_definition_id)
-            .any(|key| {
-                let mut key_fields = key.fields();
-                let Some(first_field) = key_fields.next() else {
-                    return false;
-                };
+        self.parent_definition().entity_keys().any(|key| {
+            let mut key_fields = key.fields().iter();
 
-                if key_fields.next().is_some() || !first_field.subselection.is_empty() {
-                    return false;
-                }
+            let Some(first_field) = key_fields.next() else {
+                return false;
+            };
 
-                first_field.field == field.name
-            })
+            if key_fields.next().is_some() || !first_field.subselection.is_empty() {
+                return false;
+            }
+
+            first_field.field == field.name
+        })
     }
 
     pub fn is_shareable(self) -> bool {
@@ -111,16 +110,8 @@ impl<'a> FieldWalker<'a> {
     /// id: ID!
     /// ^^
     /// ```
-    pub fn name(self) -> StringId {
-        self.field().name
-    }
-
-    /// ```graphql,ignore
-    /// id: ID!
-    /// ^^
-    /// ```
-    pub fn name_str(self) -> &'a str {
-        self.subgraphs.strings.resolve(self.name())
+    pub fn name(self) -> StringWalker<'a> {
+        self.walk(self.field().name)
     }
 
     /// ```ignore,graphql
@@ -141,8 +132,8 @@ impl<'a> ArgumentWalker<'a> {
     ///                ^^^^^^^
     /// }
     /// ```
-    pub(crate) fn argument_name(&self) -> StringId {
-        self.id.0
+    pub(crate) fn argument_name(&self) -> StringWalker<'a> {
+        self.walk(self.id.0)
     }
 
     /// ```graphql,ignore

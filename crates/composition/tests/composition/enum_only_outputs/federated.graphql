@@ -1,0 +1,44 @@
+type Activity {
+    name: String!
+    description: String!
+    participatingTeletubby: Teletubby!
+}
+
+# Entity with key (name) in `activities`
+# Entity with key (name) in `episodes`
+# Entity with key (name) in `teletubbyRepository`
+type Teletubby {
+    activities: [Activity]
+    name: String!
+    favoriteToy: FavoriteToy
+    episodesFeatured: [Episode]
+    color: String!
+    mood: Mood
+}
+
+type Query {
+    getActivity(name: String!): Activity
+    getEpisode(title: String!): Episode
+    getTeletubby(name: String!): Teletubby
+}
+
+type Episode {
+    title: String!
+    duration: Int!
+    featuredTeletubby: Teletubby!
+    featuredToys: [FavoriteToy!]!
+}
+
+enum FavoriteToy {
+    PLUSHTOY
+    TOBOGGAN
+    SCOOTER
+    BAG
+    HAT
+    BALL
+}
+
+enum Mood {
+    HAPPY
+    SAD
+}
