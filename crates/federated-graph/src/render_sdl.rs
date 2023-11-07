@@ -113,6 +113,12 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
     let field_name = &graph[field.name];
     let field_type = render_field_type(&graph[field.field_type_id], graph);
     let args = render_field_arguments(&field.arguments, graph);
+
+    for subgraph in &field.resolvable_in {
+        let subgraph_name = &graph[graph[*subgraph].name];
+        writeln!(sdl, "{INDENT}# Resolvable in `{subgraph_name}`",)?;
+    }
+
     writeln!(sdl, "{INDENT}{field_name}{args}: {field_type}")
 }
 

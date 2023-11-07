@@ -29,7 +29,7 @@ pub(crate) fn emit_federated_graph(
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
 
     emit_subgraphs(&mut ctx);
-    emit_fields(&ir.fields, &mut ctx);
+    emit_fields(mem::take(&mut ir.fields), &mut ctx);
 
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.resolvable_keys, &mut ctx);
@@ -37,16 +37,17 @@ pub(crate) fn emit_federated_graph(
     out
 }
 
-fn emit_fields(ir_fields: &[FieldIr], ctx: &mut Context<'_>) {
+fn emit_fields(ir_fields: Vec<FieldIr>, ctx: &mut Context<'_>) {
     for FieldIr {
         parent_name,
         field_name,
         field_type,
         arguments,
+        resolvable_in,
     } in ir_fields
     {
-        let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(*field_type));
-        let field_name = ctx.insert_string(ctx.subgraphs.walk(*field_name));
+        let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
+        let field_name = ctx.insert_string(ctx.subgraphs.walk(field_name));
         let arguments = arguments
             .iter()
             .map(|(arg_name, arg_type)| federated::FieldArgument {
@@ -63,14 +64,14 @@ fn emit_fields(ir_fields: &[FieldIr], ctx: &mut Context<'_>) {
 
                 provides: Vec::new(),
                 requires: Vec::new(),
-                resolvable_in: Vec::new(),
+                resolvable_in,
                 composed_directives: Vec::new(),
             };
 
             federated::FieldId(out.push_return_idx(field))
         };
 
-        match ctx.definitions[parent_name] {
+        match ctx.definitions[&parent_name] {
             federated::Definition::Object(object_id) => {
                 let field_id = push_field(&mut ctx.out.fields);
                 ctx.push_object_field(object_id, field_id);

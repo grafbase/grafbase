@@ -1,5 +1,3 @@
-use crate::strings::StringId;
-
 use super::*;
 use std::collections::{HashMap, HashSet};
 
@@ -46,6 +44,7 @@ pub(super) fn merge_input_object_definitions(
             first.name().id,
             field.name().id,
             field.r#type().id,
+            Default::default(),
             Default::default(),
         );
     }

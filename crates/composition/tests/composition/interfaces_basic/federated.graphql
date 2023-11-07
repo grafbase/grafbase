@@ -1,8 +1,13 @@
 type Furby {
+    # Resolvable in `social`
     id: ID!
+    # Resolvable in `social`
     languages: [String!]!
+    # Resolvable in `social`
     canSing: Boolean!
+    # Resolvable in `social`
     canDance: Boolean!
+    # Resolvable in `social`
     friends: [Furby!]!
 }
 

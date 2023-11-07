@@ -1,6 +1,9 @@
 type Query {
+    # Resolvable in `foodSearch`
     searchFood(filterName: FilterName, filterValue: String): [String!]!
+    # Resolvable in `productSearch`
     searchProduct(filterName: FilterName, filterValue: String): [String!]!
+    # Resolvable in `userSearch`
     searchUser(filterName: FilterName, filterValue: String): [String!]!
 }
 

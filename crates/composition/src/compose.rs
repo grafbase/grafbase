@@ -7,7 +7,7 @@ mod object;
 pub(crate) use self::context::Context as ComposeContext;
 
 use self::{context::Context, input_object::*};
-use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker};
+use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId};
 use itertools::Itertools;
 
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
@@ -131,12 +131,19 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
     }
 
     let arguments = object::merge_field_arguments(*first, fields);
+    let resolvable_in = fields
+        .iter()
+        .map(|field| {
+            grafbase_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx())
+        })
+        .collect();
 
     ctx.insert_field(
         first.parent_definition().name().id,
         first.name().id,
         first.r#type().id,
         arguments,
+        resolvable_in,
     )
 }
 

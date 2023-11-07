@@ -1,8 +1,17 @@
 type Customer {
+    # Resolvable in `accounts`
+    # Resolvable in `marketing`
+    # Resolvable in `subscriptions`
     id: ID!
+    # Resolvable in `accounts`
+    # Resolvable in `marketing`
+    # Resolvable in `subscriptions`
     name: String
+    # Resolvable in `accounts`
     other: Int
+    # Resolvable in `marketing`
     newsletterSubscribed: Boolean
+    # Resolvable in `subscriptions`
     subscriptionPlan: Plan!
 }
 

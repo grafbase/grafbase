@@ -1,4 +1,6 @@
 type User {
+    # Resolvable in `theschema`
     id: ID!
+    # Resolvable in `theschema`
     name: String!
 }

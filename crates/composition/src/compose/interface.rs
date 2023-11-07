@@ -1,5 +1,5 @@
 use super::*;
-use crate::{strings::StringId, subgraphs::FieldId};
+use crate::subgraphs::{FieldId, StringId};
 
 pub(super) fn merge_interface_definitions(
     ctx: &mut Context<'_>,
@@ -20,6 +20,7 @@ pub(super) fn merge_interface_definitions(
             first.name().id,
             field.name().id,
             field.r#type().id,
+            Vec::new(),
             Vec::new(),
         );
     }

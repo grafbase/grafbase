@@ -8,7 +8,6 @@ mod diagnostics;
 mod emit_federated_graph;
 mod ingest_subgraph;
 mod result;
-mod strings;
 mod subgraphs;
 
 pub use self::{diagnostics::Diagnostics, result::CompositionResult, subgraphs::Subgraphs};

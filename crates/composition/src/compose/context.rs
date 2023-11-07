@@ -55,9 +55,15 @@ impl<'a> Context<'a> {
         field_name: subgraphs::StringId,
         field_type: subgraphs::FieldTypeId,
         arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
+        resolvable_in: Vec<federated::SubgraphId>,
     ) {
-        self.ir
-            .insert_field(parent_name, field_name, field_type, arguments)
+        self.ir.insert_field(
+            parent_name,
+            field_name,
+            field_type,
+            arguments,
+            resolvable_in,
+        )
     }
 
     pub(crate) fn insert_input_object(

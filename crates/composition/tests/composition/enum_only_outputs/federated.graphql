@@ -1,6 +1,9 @@
 type Activity {
+    # Resolvable in `activities`
     name: String!
+    # Resolvable in `activities`
     description: String!
+    # Resolvable in `activities`
     participatingTeletubby: Teletubby!
 }
 
@@ -8,24 +11,41 @@ type Activity {
 # Entity with key (name) in `episodes`
 # Entity with key (name) in `teletubbyRepository`
 type Teletubby {
+    # Resolvable in `activities`
     activities: [Activity]
+    # Resolvable in `activities`
+    # Resolvable in `episodes`
+    # Resolvable in `teletubbyRepository`
     name: String!
+    # Resolvable in `activities`
+    # Resolvable in `episodes`
+    # Resolvable in `teletubbyRepository`
     favoriteToy: FavoriteToy
+    # Resolvable in `episodes`
     episodesFeatured: [Episode]
+    # Resolvable in `teletubbyRepository`
     color: String!
+    # Resolvable in `teletubbyRepository`
     mood: Mood
 }
 
 type Query {
+    # Resolvable in `activities`
     getActivity(name: String!): Activity
+    # Resolvable in `episodes`
     getEpisode(title: String!): Episode
+    # Resolvable in `teletubbyRepository`
     getTeletubby(name: String!): Teletubby
 }
 
 type Episode {
+    # Resolvable in `episodes`
     title: String!
+    # Resolvable in `episodes`
     duration: Int!
+    # Resolvable in `episodes`
     featuredTeletubby: Teletubby!
+    # Resolvable in `episodes`
     featuredToys: [FavoriteToy!]!
 }
 
