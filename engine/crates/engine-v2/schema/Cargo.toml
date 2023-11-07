@@ -1,8 +1,8 @@
 [package]
-name = "engine-v2-graph"
+name = "engine-v2-schema"
 version = "3.0.31"
 authors = ["Grafbase"]
-description = "The Engine Graph"
+description = "The engine schema graph"
 edition = "2021"
 readme = "README.md"
 license = "MPL-2.0"

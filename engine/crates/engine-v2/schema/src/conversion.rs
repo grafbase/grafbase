@@ -1,10 +1,13 @@
+use std::{collections::HashMap, num::NonZeroU32};
+
+// All of that should be in federated_graph actually.
 use super::*;
 
-impl From<federated_graph::FederatedGraph> for Graph {
+impl From<federated_graph::FederatedGraph> for Schema {
     fn from(graph: federated_graph::FederatedGraph) -> Self {
-        let mut out = Graph {
+        let mut out = Schema {
             data_sources: (0..graph.subgraphs.len())
-                .map(|id| DataSource::SubGraph(SubgraphId(id)))
+                .map(|i| DataSource::Subgraph(SubgraphId(NonZeroU32::new(i as u32 + 1).unwrap())))
                 .collect(),
             subgraphs: graph.subgraphs.into_iter().map(Into::into).collect(),
             root_operation_types: RootOperationTypes {
@@ -14,7 +17,7 @@ impl From<federated_graph::FederatedGraph> for Graph {
             },
             objects: graph.objects.into_iter().map(Into::into).collect(),
             object_fields: graph.object_fields.into_iter().map(Into::into).collect(),
-            fields: graph.fields.into_iter().map(Into::into).collect(),
+            fields: vec![],
             field_types: graph.field_types.into_iter().map(Into::into).collect(),
             interfaces: graph.interfaces.into_iter().map(Into::into).collect(),
             interface_fields: graph.interface_fields.into_iter().map(Into::into).collect(),
@@ -23,9 +26,45 @@ impl From<federated_graph::FederatedGraph> for Graph {
             scalars: graph.scalars.into_iter().map(Into::into).collect(),
             input_objects: graph.input_objects.into_iter().map(Into::into).collect(),
             strings: graph.strings,
+            resolvers: vec![],
         };
-        out.object_fields.sort_unstable_by_key(|field| field.object_id);
+        out.object_fields.sort_unstable();
         out.interface_fields.sort_unstable_by_key(|field| field.interface_id);
+
+        // Yeah it's ugly, conversion should be cleaned up once we got it working I guess.
+        let mut resolvers = HashMap::<Resolver, ResolverId>::new();
+        for field in graph.fields {
+            let mut field_resolvers = vec![];
+            let mut field_requires = field
+                .requires
+                .into_iter()
+                .map(|federated_graph::FieldRequires { subgraph_id, fields }| (subgraph_id, fields))
+                .collect::<HashMap<_, _>>();
+            for subgraph_id in field.resolvable_in {
+                let n = resolvers.len();
+                let resolver_id = *resolvers
+                    .entry(Resolver::Subgraph(SubgraphResolver {
+                        subgraph_id: subgraph_id.into(),
+                    }))
+                    .or_insert_with(|| ResolverId(NonZeroU32::new(n as u32 + 1).unwrap()));
+                let requires = field_requires.remove(&subgraph_id).unwrap_or_default();
+                field_resolvers.push(FieldResolver {
+                    resolver_id,
+                    requires: requires.into_iter().map(Into::into).collect(),
+                });
+            }
+            out.fields.push(Field {
+                name: field.name.into(),
+                field_type_id: field.field_type_id.into(),
+                resolvers: field_resolvers,
+                provides: field.provides.into_iter().map(Into::into).collect(),
+                arguments: field.arguments.into_iter().map(Into::into).collect(),
+                composed_directives: field.composed_directives.into_iter().map(Into::into).collect(),
+            });
+        }
+        let mut resolvers = resolvers.into_iter().collect::<Vec<_>>();
+        resolvers.sort_unstable_by_key(|(_, resolver_id)| *resolver_id);
+        out.resolvers = resolvers.into_iter().map(|(resolver, _)| resolver).collect();
         out
     }
 }
@@ -72,34 +111,11 @@ impl From<federated_graph::ObjectField> for ObjectField {
     }
 }
 
-impl From<federated_graph::Field> for Field {
-    fn from(field: federated_graph::Field) -> Self {
-        Field {
-            name: field.name.into(),
-            field_type_id: field.field_type_id.into(),
-            resolvable_in: field.resolvable_in.into_iter().map(|id| DataSourceId(id.0)).collect(),
-            provides: field.provides.into_iter().map(Into::into).collect(),
-            requires: field.requires.into_iter().map(Into::into).collect(),
-            arguments: field.arguments.into_iter().map(Into::into).collect(),
-            composed_directives: field.composed_directives.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
 impl From<federated_graph::FieldProvides> for FieldProvides {
     fn from(provides: federated_graph::FieldProvides) -> Self {
         FieldProvides {
-            data_source_id: DataSourceId(provides.subgraph_id.0),
+            data_source_id: DataSourceId::from_subgraph_id(provides.subgraph_id),
             fields: provides.fields.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<federated_graph::FieldRequires> for FieldRequires {
-    fn from(requires: federated_graph::FieldRequires) -> Self {
-        FieldRequires {
-            data_source_id: DataSourceId(requires.subgraph_id.0),
-            fields: requires.fields.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -149,17 +165,19 @@ impl From<federated_graph::FieldType> for FieldType {
     fn from(field_type: federated_graph::FieldType) -> Self {
         FieldType {
             kind: field_type.kind.into(),
-            inner_is_required: field_type.inner_is_required,
-            list_wrappers: field_type.list_wrappers.into_iter().map(Into::into).collect(),
+            wrapping: Wrapping {
+                inner_is_required: field_type.inner_is_required,
+                list_wrapping: field_type.list_wrappers.into_iter().rev().map(Into::into).collect(),
+            },
         }
     }
 }
 
-impl From<federated_graph::ListWrapper> for ListWrapper {
+impl From<federated_graph::ListWrapper> for ListWrapping {
     fn from(wrapper: federated_graph::ListWrapper) -> Self {
         match wrapper {
-            federated_graph::ListWrapper::RequiredList => ListWrapper::RequiredList,
-            federated_graph::ListWrapper::NullableList => ListWrapper::NullableList,
+            federated_graph::ListWrapper::RequiredList => ListWrapping::RequiredList,
+            federated_graph::ListWrapper::NullableList => ListWrapping::NullableList,
         }
     }
 }
@@ -262,7 +280,7 @@ macro_rules! from_id_newtypes {
         $(
             impl From<federated_graph::$from> for $name {
                 fn from(id: federated_graph::$from) -> Self {
-                    $name(id.0)
+                    $name(std::num::NonZeroU32::new((id.0 as u32) + 1).unwrap())
                 }
             }
         )*
@@ -280,4 +298,10 @@ from_id_newtypes! {
     StringId => StringId,
     SubgraphId => SubgraphId,
     UnionId => UnionId,
+}
+
+impl DataSourceId {
+    fn from_subgraph_id(id: federated_graph::SubgraphId) -> Self {
+        Self(NonZeroU32::new(id.0 as u32 + 1).unwrap())
+    }
 }
