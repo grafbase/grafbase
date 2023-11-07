@@ -348,11 +348,8 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                         requires: #requires,
                         visible: #visible,
                         compute_complexity: #complexity,
-                        edges: Vec::new(),
-                        relation: None,
                         resolver: #crate_name::registry::resolvers::Resolver::Parent,
-                        required_operation: None,
-                        auth: None,
+                        ..Default::default()
                     });
                 });
 
@@ -487,7 +484,8 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             is_subscription: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
-                            external: false
+                            external: false,
+                            shareable: false,
                         })
                     );
                     ty
@@ -528,7 +526,8 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             is_subscription: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
-                            external: false
+                            external: false,
+                            shareable: false
                         })
                     );
                     ty

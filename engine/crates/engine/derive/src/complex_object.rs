@@ -335,6 +335,7 @@ pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> 
                     requires: #requires,
                     visible: #visible,
                     compute_complexity: #complexity,
+                    ..Default::default()
                 }));
             });
 

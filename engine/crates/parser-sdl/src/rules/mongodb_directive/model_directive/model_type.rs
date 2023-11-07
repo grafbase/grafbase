@@ -87,6 +87,7 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
         rust_typename,
         constraints,
         external: false,
+        shareable: false,
     });
 
     visitor_ctx

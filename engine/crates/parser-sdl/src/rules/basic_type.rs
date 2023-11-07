@@ -17,7 +17,7 @@ use engine_parser::{
 use itertools::Itertools;
 
 use super::{
-    federation::{ExternalDirective, KeyDirective},
+    federation::{ExternalDirective, KeyDirective, OverrideDirective, ProvidesDirective, ShareableDirective},
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
@@ -62,6 +62,11 @@ impl<'a> Visitor<'a> for BasicType {
                     RequiresDirective::from_directives(&field.directives, ctx).map(RequiresDirective::into_fields);
 
                 let external = ExternalDirective::from_directives(&field.directives, ctx).is_some();
+                let shareable = ShareableDirective::from_directives(&field.directives, ctx).is_some();
+                let r#override =
+                    OverrideDirective::from_directives(&field.directives, ctx).map(|directive| directive.from);
+                let provides =
+                    ProvidesDirective::from_directives(&field.directives, ctx).map(|directive| directive.fields);
 
                 if let Some(join_directive) = JoinDirective::from_directives(&field.node.directives, ctx) {
                     if resolver.is_custom() {
@@ -85,12 +90,16 @@ impl<'a> Visitor<'a> for BasicType {
                     resolver,
                     requires,
                     external,
+                    shareable,
+                    provides,
+                    r#override,
                     ..Default::default()
                 }
             })
             .collect::<Vec<_>>();
 
         let external = ExternalDirective::from_directives(&type_definition.directives, ctx).is_some();
+        let shareable = ShareableDirective::from_directives(&type_definition.directives, ctx).is_some();
 
         ctx.registry.get_mut().create_type(
             |_| {
@@ -98,6 +107,7 @@ impl<'a> Visitor<'a> for BasicType {
                     .with_description(type_definition.node.description.clone().map(|x| x.node))
                     .with_cache_control(CacheDirective::parse(&type_definition.node.directives))
                     .with_external(external)
+                    .with_shareable(shareable)
                     .into()
             },
             &type_name,

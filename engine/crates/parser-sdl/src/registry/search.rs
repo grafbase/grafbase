@@ -262,6 +262,7 @@ pub fn add_query_search(
         deprecation: engine::registry::Deprecation::NoDeprecated,
         cache_control: CacheDirective::parse(&model_type_definition.directives),
         external: false,
+        r#override: None,
         provides: None,
         requires: None,
         visible: None,
@@ -281,6 +282,7 @@ pub fn add_query_search(
         }),
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),
+        shareable: false,
     });
 }
 

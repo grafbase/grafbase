@@ -6,7 +6,7 @@ use engine::registry::{
 use engine_parser::types::TypeKind;
 
 use super::{
-    federation::ExternalDirective,
+    federation::{ExternalDirective, OverrideDirective, ProvidesDirective, ShareableDirective},
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     visitor::{Visitor, VisitorContext},
@@ -44,6 +44,11 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                     RequiresDirective::from_directives(&field.directives, ctx).map(RequiresDirective::into_fields);
 
                 let external = ExternalDirective::from_directives(&field.directives, ctx).is_some();
+                let shareable = ShareableDirective::from_directives(&field.directives, ctx).is_some();
+                let r#override =
+                    OverrideDirective::from_directives(&field.directives, ctx).map(|directive| directive.from);
+                let provides =
+                    ProvidesDirective::from_directives(&field.directives, ctx).map(|directive| directive.fields);
 
                 let resolver = match (join_directive, resolver_name) {
                     (None, None) => {
@@ -88,6 +93,9 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                     requires,
                     resolver,
                     external,
+                    shareable,
+                    r#override,
+                    provides,
                     ..MetaField::default()
                 })
             })

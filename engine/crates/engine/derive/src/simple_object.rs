@@ -169,11 +169,8 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     requires: #requires,
                     visible: #visible,
                     compute_complexity: ::std::option::Option::None,
-                    edges: Vec::new(),
-                    relation: None,
                     resolver: #crate_name::registry::resolvers::Resolver::Parent,
-                    required_operation: None,
-                    auth: None,
+                    ..Default::default()
                 });
             });
         }
@@ -327,7 +324,8 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                             is_node: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
-                            external: false
+                            external: false,
+                            shareable: false
                         })
                     )
                 }
@@ -398,7 +396,8 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                             required_operation: None,
                             auth: None,
                             constraints: vec![],
-                            external: false
+                            external: false,
+                            shareable: false
                         })
                     )
                 }

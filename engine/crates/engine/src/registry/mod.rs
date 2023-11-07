@@ -304,6 +304,7 @@ pub struct MetaField {
     pub deprecation: Deprecation,
     pub cache_control: CacheControl,
     pub external: bool,
+    pub shareable: bool,
     pub requires: Option<FieldSet>,
     pub provides: Option<String>,
     #[serde(skip)]
@@ -326,6 +327,7 @@ pub struct MetaField {
     pub resolver: Resolver,
     pub required_operation: Option<Operations>,
     pub auth: Option<AuthConfig>,
+    pub r#override: Option<String>,
 }
 
 impl MetaField {
@@ -663,6 +665,7 @@ pub struct ObjectType {
     pub rust_typename: String,
     pub constraints: Vec<Constraint>,
     pub external: bool,
+    pub shareable: bool,
 }
 
 impl ObjectType {
@@ -680,6 +683,7 @@ impl ObjectType {
             is_node: false,
             constraints: vec![],
             external: false,
+            shareable: false,
         }
     }
 
@@ -696,6 +700,10 @@ impl ObjectType {
 
     pub fn with_external(self, external: bool) -> Self {
         ObjectType { external, ..self }
+    }
+
+    pub fn with_shareable(self, shareable: bool) -> Self {
+        ObjectType { shareable, ..self }
     }
 
     #[inline]
@@ -923,6 +931,7 @@ impl Hash for MetaType {
                 rust_typename,
                 constraints,
                 external,
+                shareable,
             }) => {
                 name.hash(state);
                 description.hash(state);
@@ -934,6 +943,7 @@ impl Hash for MetaType {
                 rust_typename.hash(state);
                 constraints.hash(state);
                 external.hash(state);
+                shareable.hash(state);
             }
             Self::Interface(InterfaceType {
                 name,
@@ -1026,6 +1036,7 @@ impl PartialEq for MetaType {
                     rust_typename,
                     constraints,
                     external,
+                    shareable,
                 }),
                 Self::Object(ObjectType {
                     name: o_name,
@@ -1039,6 +1050,7 @@ impl PartialEq for MetaType {
                     rust_typename: o_rust_typename,
                     constraints: o_constraints,
                     external: o_external,
+                    shareable: o_shareable,
                 }),
             ) => {
                 name.eq(o_name)
@@ -1051,6 +1063,7 @@ impl PartialEq for MetaType {
                     && rust_typename.eq(o_rust_typename)
                     && constraints.eq(o_constraints)
                     && external.eq(o_external)
+                    && shareable.eq(o_shareable)
             }
             (
                 Self::Interface(InterfaceType {

@@ -213,6 +213,7 @@ pub fn add_query_paginated_collection(
         external: false,
         provides: None,
         requires: None,
+        r#override: None,
         visible: None,
         compute_complexity: None,
         edges: Vec::new(),
@@ -235,6 +236,7 @@ pub fn add_query_paginated_collection(
         }),
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),
+        shareable: false,
     });
 }
 
