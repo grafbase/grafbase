@@ -110,10 +110,7 @@ impl BridgeState for Arc<HandlerState> {
     }
 
     async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>, parallelism: NonZeroUsize) -> Result<(), ServerError> {
-        self.udf_runtime
-            .build_all(udfs, parallelism)
-            .await
-            .map_err(|_| ServerError::NodeInPath)
+        Ok(self.udf_runtime.build_all(udfs, parallelism).await?)
     }
 }
 

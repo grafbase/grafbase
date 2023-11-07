@@ -184,6 +184,9 @@ pub enum ServerError {
 
     #[error("Could not release the lock for the wrangler installation: {0}")]
     Unlock(fslock::Error),
+
+    #[error(transparent)]
+    UdfBuildError(#[from] UdfBuildError),
 }
 
 #[derive(Debug, Error)]
