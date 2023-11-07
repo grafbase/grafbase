@@ -1244,6 +1244,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-v2"
+version = "3.0.31"
+dependencies = [
+ "engine",
+ "engine-parser",
+ "engine-v2-graph",
+ "engine-value",
+]
+
+[[package]]
+name = "engine-v2-graph"
+version = "3.0.31"
+dependencies = [
+ "grafbase-federated-graph",
+]
+
+[[package]]
 name = "engine-value"
 version = "3.0.31"
 dependencies = [
@@ -1611,6 +1628,13 @@ dependencies = [
  "futures-core",
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "grafbase-federated-graph"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

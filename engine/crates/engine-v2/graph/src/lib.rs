@@ -1,60 +1,56 @@
-/// A composed federated graph.
-///
-/// ## API contract
-///
-/// Guarantees:
-///
-/// - All the identifiers are correct.
-///
-/// Does not guarantee:
-///
-/// - The ordering of items inside each `Vec`.
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct FederatedGraph {
-    pub subgraphs: Vec<Subgraph>,
+mod conversion;
 
-    pub root_operation_types: RootOperationTypes,
-    pub objects: Vec<Object>,
-    pub object_fields: Vec<ObjectField>,
+/// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
+/// the source of truth. If the cache is stale we would just re-create this Graph from its source:
+/// federated_graph::FederatedGraph.
+pub struct Graph {
+    data_sources: Vec<DataSource>,
+    subgraphs: Vec<Subgraph>,
 
-    pub interfaces: Vec<Interface>,
-    pub interface_fields: Vec<InterfaceField>,
+    root_operation_types: RootOperationTypes,
+    objects: Vec<Object>,
+    // Sorted by object_id
+    object_fields: Vec<ObjectField>,
 
-    pub fields: Vec<Field>,
+    interfaces: Vec<Interface>,
+    // Sorted by interface_id
+    interface_fields: Vec<InterfaceField>,
 
-    pub enums: Vec<Enum>,
-    pub unions: Vec<Union>,
-    pub scalars: Vec<Scalar>,
-    pub input_objects: Vec<InputObject>,
+    fields: Vec<Field>,
+
+    enums: Vec<Enum>,
+    unions: Vec<Union>,
+    scalars: Vec<Scalar>,
+    input_objects: Vec<InputObject>,
 
     /// All the strings in the supergraph, deduplicated.
-    pub strings: Vec<String>,
+    strings: Vec<String>,
 
     /// All the field types in the supergraph, deduplicated.
-    pub field_types: Vec<FieldType>,
+    field_types: Vec<FieldType>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct RootOperationTypes {
     pub query: ObjectId,
     pub mutation: Option<ObjectId>,
     pub subscription: Option<ObjectId>,
 }
 
-impl std::fmt::Debug for FederatedGraph {
+impl std::fmt::Debug for Graph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<FederatedGraph>())
-            .finish()
+        f.debug_struct(std::any::type_name::<Graph>()).finish_non_exhaustive()
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+pub enum DataSource {
+    SubGraph(SubgraphId),
+}
+
 pub struct Subgraph {
     pub name: StringId,
     pub url: StringId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Object {
     pub name: StringId,
 
@@ -67,15 +63,13 @@ pub struct Object {
     pub composed_directives: Vec<Directive>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct ObjectField {
     pub object_id: ObjectId,
     pub field_id: FieldId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Key {
-    /// The subgraph that can resolve the entity with the fields in [Key::fields].
+    /// The subgraph that can resolve the entity with these fields.
     pub subgraph_id: SubgraphId,
 
     /// Corresponds to the fields in an `@key` directive.
@@ -84,13 +78,11 @@ pub struct Key {
 
 pub type SelectionSet = Vec<Selection>;
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Selection {
     pub field: FieldId,
     pub subselection: SelectionSet,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Field {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
@@ -99,7 +91,7 @@ pub struct Field {
     ///
     /// - One subgraph, where the field is defined, without directives.
     /// - One or more subgraphs where the field is shareable or part of the key.
-    pub resolvable_in: Vec<SubgraphId>,
+    pub resolvable_in: Vec<DataSourceId>,
 
     /// See [FieldProvides].
     pub provides: Vec<FieldProvides>,
@@ -113,19 +105,16 @@ pub struct Field {
     pub composed_directives: Vec<Directive>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct FieldArgument {
     pub name: StringId,
     pub type_id: FieldTypeId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Directive {
     pub name: StringId,
     pub arguments: Vec<(StringId, Value)>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub enum Value {
     String(StringId),
     Int(i64),
@@ -136,7 +125,6 @@ pub enum Value {
     List(Vec<Value>),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Definition {
     Scalar(ScalarId),
     Object(ObjectId),
@@ -146,7 +134,6 @@ pub enum Definition {
     InputObject(InputObjectId),
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct FieldType {
     pub kind: Definition,
 
@@ -164,27 +151,24 @@ pub struct FieldType {
     pub list_wrappers: Vec<ListWrapper>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum ListWrapper {
     RequiredList,
     NullableList,
 }
 
 /// Represents an `@provides` directive on a field in a subgraph.
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct FieldProvides {
-    pub subgraph_id: SubgraphId,
+    pub data_source_id: DataSourceId,
     pub fields: SelectionSet,
 }
 
 /// Represents an `@requires` directive on a field in a subgraph.
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct FieldRequires {
-    pub subgraph_id: SubgraphId,
+    pub data_source_id: DataSourceId,
     pub fields: SelectionSet,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Interface {
     pub name: StringId,
 
@@ -192,13 +176,11 @@ pub struct Interface {
     pub composed_directives: Vec<Directive>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct InterfaceField {
     pub interface_id: InterfaceId,
     pub field_id: FieldId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Enum {
     pub name: StringId,
     pub values: Vec<EnumValue>,
@@ -207,7 +189,6 @@ pub struct Enum {
     pub composed_directives: Vec<Directive>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct EnumValue {
     pub value: StringId,
 
@@ -215,7 +196,6 @@ pub struct EnumValue {
     pub composed_directives: Vec<Directive>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Union {
     pub name: StringId,
     pub members: Vec<ObjectId>,
@@ -224,7 +204,6 @@ pub struct Union {
     pub composed_directives: Vec<Directive>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Scalar {
     pub name: StringId,
 
@@ -232,7 +211,6 @@ pub struct Scalar {
     pub composed_directives: Vec<Directive>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct InputObject {
     pub name: StringId,
     pub fields: Vec<InputObjectField>,
@@ -241,7 +219,6 @@ pub struct InputObject {
     pub composed_directives: Vec<Directive>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct InputObjectField {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
@@ -250,20 +227,14 @@ pub struct InputObjectField {
 macro_rules! id_newtypes {
     ($($name:ident + $storage:ident + $out:ident,)*) => {
         $(
-            #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-            pub struct $name(pub usize);
+            #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
+            pub struct $name(usize);
 
-            impl std::ops::Index<$name> for FederatedGraph {
+            impl std::ops::Index<$name> for Graph {
                 type Output = $out;
 
                 fn index(&self, index: $name) -> &$out {
                     &self.$storage[index.0]
-                }
-            }
-
-            impl std::ops::IndexMut<$name> for FederatedGraph {
-                fn index_mut(&mut self, index: $name) -> &mut $out {
-                    &mut self.$storage[index.0]
                 }
             }
         )*
@@ -271,6 +242,7 @@ macro_rules! id_newtypes {
 }
 
 id_newtypes! {
+    DataSourceId + data_sources + DataSource,
     EnumId + enums + Enum,
     FieldId + fields + Field,
     FieldTypeId + field_types + FieldType,
@@ -281,4 +253,44 @@ id_newtypes! {
     StringId + strings + String,
     SubgraphId + subgraphs + Subgraph,
     UnionId + unions + Union,
+}
+
+impl Graph {
+    pub fn object_fields(&self, target: ObjectId) -> impl Iterator<Item = FieldId> + '_ {
+        let start = self
+            .object_fields
+            .partition_point(|object_field| object_field.object_id < target);
+        self.object_fields[start..].iter().map_while(move |object_field| {
+            if object_field.object_id == target {
+                Some(object_field.field_id)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn interface_fields(&self, target: InterfaceId) -> impl Iterator<Item = FieldId> + '_ {
+        let start = self
+            .interface_fields
+            .partition_point(|interface_field| interface_field.interface_id < target);
+        self.interface_fields[start..].iter().map_while(move |interface_field| {
+            if interface_field.interface_id == target {
+                Some(interface_field.field_id)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn query_fields(&self) -> impl Iterator<Item = FieldId> + '_ {
+        self.object_fields(self.root_operation_types.query)
+    }
+
+    pub fn mutation_fields(&self) -> Box<dyn Iterator<Item = FieldId> + '_> {
+        if let Some(mutation_object_id) = self.root_operation_types.mutation {
+            Box::new(self.object_fields(mutation_object_id))
+        } else {
+            Box::new(std::iter::empty())
+        }
+    }
 }

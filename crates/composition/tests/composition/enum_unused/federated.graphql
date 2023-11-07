@@ -4,3 +4,8 @@ type User {
     # Resolvable in `theschema`
     name: String!
 }
+
+type Query {
+    # Resolvable in `theschema`
+    user: User
+}

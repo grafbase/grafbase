@@ -26,17 +26,17 @@ pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
     compose_subgraphs(&mut context);
 
     if context.diagnostics.any_fatal() {
-        return CompositionResult {
+        CompositionResult {
+            federated_graph: None,
             diagnostics,
-            federated_graph: Default::default(),
-        };
-    }
+        }
+    } else {
+        let federated_graph = emit_federated_graph(context.into_ir(), subgraphs);
 
-    let federated_graph = emit_federated_graph(context.into_ir(), subgraphs);
-
-    CompositionResult {
-        federated_graph,
-        diagnostics,
+        CompositionResult {
+            federated_graph: Some(federated_graph),
+            diagnostics,
+        }
     }
 }
 

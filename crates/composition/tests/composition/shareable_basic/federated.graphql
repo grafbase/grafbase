@@ -15,6 +15,11 @@ type Customer {
     subscriptionPlan: Plan!
 }
 
+type Query {
+    # Resolvable in `accounts`
+    customer(id: ID!): Customer
+}
+
 enum Plan {
     Hobby
     Pro

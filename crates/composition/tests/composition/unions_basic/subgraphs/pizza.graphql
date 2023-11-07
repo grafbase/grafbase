@@ -19,3 +19,7 @@ type Cheese {
 type Pineapple {
     isAnanas: Boolean!
 }
+
+type Query {
+    pizza(id: ID!): Pizza
+}

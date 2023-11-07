@@ -7,3 +7,7 @@ enum UserType {
   ADMIN
   REGULAR
 }
+
+type Query {
+  user: User
+}

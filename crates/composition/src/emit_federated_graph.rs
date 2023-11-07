@@ -6,6 +6,7 @@ use crate::{
     composition_ir::{CompositionIr, FieldIr, KeyIr},
     subgraphs, Subgraphs, VecExt,
 };
+use federated::RootOperationTypes;
 use grafbase_federated_graph as federated;
 use itertools::Itertools;
 use std::{collections::BTreeSet, mem};
@@ -15,6 +16,19 @@ pub(crate) fn emit_federated_graph(
     mut ir: CompositionIr,
     subgraphs: &Subgraphs,
 ) -> federated::FederatedGraph {
+    let find_object = |name: &str| {
+        ir.objects.iter().enumerate().find_map(|(id, object)| {
+            if ir.strings.strings[object.name.0] == name {
+                Some(federated::ObjectId(id))
+            } else {
+                None
+            }
+        })
+    };
+    // FIXME: Those roots probably shouldn't be hardcoded.
+    let query_object_id = find_object("Query").expect("Query root operation type not found");
+    let mutation_object_id = find_object("Mutation");
+    let subscription_object_id = find_object("Subscription");
     let mut out = federated::FederatedGraph {
         enums: mem::take(&mut ir.enums),
         objects: mem::take(&mut ir.objects),
@@ -23,7 +37,16 @@ pub(crate) fn emit_federated_graph(
         scalars: mem::take(&mut ir.scalars),
         input_objects: mem::take(&mut ir.input_objects),
         strings: mem::take(&mut ir.strings.strings),
-        ..Default::default()
+        subgraphs: vec![],
+        root_operation_types: RootOperationTypes {
+            query: query_object_id,
+            mutation: mutation_object_id,
+            subscription: subscription_object_id,
+        },
+        object_fields: vec![],
+        interface_fields: vec![],
+        fields: vec![],
+        field_types: vec![],
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
