@@ -17,7 +17,7 @@ use engine_parser::{
 use itertools::Itertools;
 
 use super::{
-    federation::{ExternalDirective, KeyDirective, ShareableDirective},
+    federation::{ExternalDirective, KeyDirective, OverrideDirective, ShareableDirective},
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
@@ -63,6 +63,8 @@ impl<'a> Visitor<'a> for BasicType {
 
                 let external = ExternalDirective::from_directives(&field.directives, ctx).is_some();
                 let shareable = ShareableDirective::from_directives(&field.directives, ctx).is_some();
+                let r#override =
+                    OverrideDirective::from_directives(&field.directives, ctx).map(|directive| directive.from);
 
                 if let Some(join_directive) = JoinDirective::from_directives(&field.node.directives, ctx) {
                     if resolver.is_custom() {
@@ -87,6 +89,7 @@ impl<'a> Visitor<'a> for BasicType {
                     requires,
                     external,
                     shareable,
+                    r#override,
                     ..Default::default()
                 }
             })

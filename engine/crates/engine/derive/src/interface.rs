@@ -253,7 +253,6 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 deprecation: #deprecation,
                 cache_control: ::std::default::Default::default(),
                 external: #external,
-                shareable: false,
                 provides: #provides,
                 requires: #requires,
                 visible: #visible,
@@ -261,8 +260,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 relation: None,
                 compute_complexity: ::std::option::Option::None,
                 resolver: #crate_name::registry::resolvers::Resolver::Parent,
-                required_operation: None,
-                auth: None,
+                ..Default::default()
             });
         });
 

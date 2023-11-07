@@ -118,25 +118,13 @@ fn insert_metadata_field(
         field_name.to_owned(),
         MetaField {
             name: field_name.to_owned(),
-            mapped_name: None,
             description,
-            args: Default::default(),
             ty: ty.into(),
-            deprecation: Default::default(),
-            cache_control: Default::default(),
-            external: false,
-            requires: None,
-            provides: None,
-            visible: None,
-            compute_complexity: None,
             resolver: Transformer::select(type_name).and_then(Transformer::DynamoSelect {
                 key: dynamo_property_name.to_owned(),
             }),
-            edges: Vec::new(),
-            relation: None,
-            required_operation: None,
             auth: auth.cloned(),
-            shareable: false,
+            ..MetaField::default()
         },
     )
 }

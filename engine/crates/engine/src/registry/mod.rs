@@ -327,6 +327,7 @@ pub struct MetaField {
     pub resolver: Resolver,
     pub required_operation: Option<Operations>,
     pub auth: Option<AuthConfig>,
+    pub r#override: Option<String>,
 }
 
 impl MetaField {

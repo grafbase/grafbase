@@ -29,7 +29,8 @@ use rules::{
     extend_connector_types::ExtendConnectorTypes,
     extend_query_and_mutation_types::ExtendQueryAndMutationTypes,
     federation::{
-        ExternalDirective, FederationDirective, FederationDirectiveVisitor, KeyDirective, ShareableDirective,
+        ExternalDirective, FederationDirective, FederationDirectiveVisitor, KeyDirective, OverrideDirective,
+        ShareableDirective,
     },
     graphql_directive::GraphqlVisitor,
     input_object::InputObjectVisitor,
@@ -145,7 +146,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<KeyDirective>()
         .with::<JoinDirective>()
         .with::<ExternalDirective>()
-        .with::<ShareableDirective>();
+        .with::<ShareableDirective>()
+        .with::<OverrideDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",

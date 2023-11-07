@@ -165,16 +165,12 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     deprecation: #field_deprecation,
                     cache_control: #cache_control,
                     external: #external,
-                    shareable: false,
                     provides: #provides,
                     requires: #requires,
                     visible: #visible,
                     compute_complexity: ::std::option::Option::None,
-                    edges: Vec::new(),
-                    relation: None,
                     resolver: #crate_name::registry::resolvers::Resolver::Parent,
-                    required_operation: None,
-                    auth: None,
+                    ..Default::default()
                 });
             });
         }

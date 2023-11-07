@@ -71,6 +71,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     deprecation: Default::default(),
                     cache_control,
                     external: false,
+                    r#override: None,
                     requires: None,
                     provides: None,
                     visible: None,

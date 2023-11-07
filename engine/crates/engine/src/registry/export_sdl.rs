@@ -71,6 +71,9 @@ impl Registry {
                 if field.shareable {
                     write!(sdl, " @shareable").ok();
                 }
+                if let Some(from) = &field.r#override {
+                    write!(sdl, " @override(from: \"{from}\")").ok();
+                }
                 if let Some(requires) = &field.requires {
                     write!(sdl, " @requires(fields: \"{requires}\")").ok();
                 }

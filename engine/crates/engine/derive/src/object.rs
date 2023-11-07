@@ -344,16 +344,12 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                         deprecation: #field_deprecation,
                         cache_control: #cache_control,
                         external: #external,
-                        shareable: false,
                         provides: #provides,
                         requires: #requires,
                         visible: #visible,
                         compute_complexity: #complexity,
-                        edges: Vec::new(),
-                        relation: None,
                         resolver: #crate_name::registry::resolvers::Resolver::Parent,
-                        required_operation: None,
-                        auth: None,
+                        ..Default::default()
                     });
                 });
 
