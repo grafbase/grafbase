@@ -188,14 +188,6 @@ impl StringsIr {
     }
 }
 
-impl std::ops::Index<federated::StringId> for StringsIr {
-    type Output = String;
-
-    fn index(&self, index: federated::StringId) -> &Self::Output {
-        &self.strings[index.0]
-    }
-}
-
 pub(crate) struct KeyIr {
     pub(crate) object_id: federated::ObjectId,
     pub(crate) key_id: subgraphs::KeyId,
