@@ -6,3 +6,7 @@ scalar Tethera
 type Sheep {
   sheepIdx: Tethera
 }
+
+type Query {
+  sheep: Sheep
+}

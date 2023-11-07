@@ -8,3 +8,8 @@ type User {
     # Resolvable in `b`
     age: Int
 }
+
+type Query {
+    # Resolvable in `a`
+    user: User
+}

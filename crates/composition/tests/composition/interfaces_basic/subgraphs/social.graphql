@@ -16,3 +16,7 @@ type Furby implements FurbyType & SocialFurby {
 interface SocialFurby {
   friends: [Furby!]
 }
+
+type Query {
+  furby: Furby
+}

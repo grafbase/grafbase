@@ -3,7 +3,7 @@ use grafbase_federated_graph::FederatedGraph;
 
 /// The result of a [`compose()`](crate::compose()) invocation.
 pub struct CompositionResult {
-    pub(crate) federated_graph: FederatedGraph,
+    pub(crate) federated_graph: Option<FederatedGraph>,
     pub(crate) diagnostics: Diagnostics,
 }
 
@@ -13,10 +13,11 @@ impl CompositionResult {
     /// `Ok()` contains the [FederatedGraph].
     /// `Err()` contains all [Diagnostics].
     pub fn into_result(self) -> Result<FederatedGraph, Diagnostics> {
-        if self.diagnostics.any_fatal() {
-            Err(self.diagnostics)
+        if let Some(federated_graph) = self.federated_graph {
+            Ok(federated_graph)
         } else {
-            Ok(self.federated_graph)
+            // means a fatal error occured
+            Err(self.diagnostics)
         }
     }
 

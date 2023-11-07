@@ -26,6 +26,11 @@ type Pineapple {
     isAnanas: Boolean!
 }
 
+type Query {
+    # Resolvable in `pizza`
+    pizza(id: ID!): Pizza
+}
+
 type Sushi {
     # Resolvable in `sushi`
     id: ID!

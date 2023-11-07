@@ -9,3 +9,7 @@ type Customer {
     name: String @shareable
     other: Int
 }
+
+type Query {
+  customer(id: ID!): Customer
+}

@@ -12,3 +12,8 @@ type Sheep {
     # Resolvable in `foo`
     sheepIdx: Tethera
 }
+
+type Query {
+    # Resolvable in `foo`
+    sheep: Sheep
+}

@@ -1,0 +1,15 @@
+[package]
+name = "engine-v2-graph"
+version = "3.0.31"
+authors = ["Grafbase"]
+description = "The Engine Graph"
+edition = "2021"
+readme = "README.md"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "engine", "grafbase"]
+
+[dependencies]
+federated-graph = { package = "grafbase-federated-graph", path = "../../../../crates/federated-graph" }
+

@@ -2,3 +2,7 @@ type User {
   id: ID!
   score: Float
 }
+
+type Query {
+  user: User
+}

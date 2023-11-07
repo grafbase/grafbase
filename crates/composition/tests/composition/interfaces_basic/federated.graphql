@@ -11,6 +11,11 @@ type Furby {
     friends: [Furby!]!
 }
 
+type Query {
+    # Resolvable in `social`
+    furby: Furby
+}
+
 interface FurbyType {
     id: ID!
     batteryType: String!
