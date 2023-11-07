@@ -8,6 +8,7 @@ g.datasource(openapi, { namespace: false });
 
 export default config({
   schema: g,
+  federation: { version: "2.3" }
   auth: {
     rules: (rules) => {
       rules.public();
