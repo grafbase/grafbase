@@ -374,7 +374,7 @@ export class GrafbaseSchema {
    *
    * @param type - A type to be referred.
    */
-  public ref(type: Type): ReferenceDefinition {
+  public ref(type: Type | string): ReferenceDefinition {
     return new ReferenceDefinition(type)
   }
 
