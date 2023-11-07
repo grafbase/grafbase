@@ -128,7 +128,7 @@ pub enum Value {
     List(Vec<Value>),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Definition {
     Scalar(ScalarId),
     Object(ObjectId),

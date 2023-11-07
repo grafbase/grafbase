@@ -1,39 +1,32 @@
 mod context;
 mod field_types_map;
 
-use self::{context::Context, field_types_map::FieldTypesMap};
+use self::context::Context;
 use crate::{
     composition_ir::{CompositionIr, FieldIr, KeyIr},
     subgraphs, Subgraphs, VecExt,
 };
 use grafbase_federated_graph as federated;
 use itertools::Itertools;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, mem};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(
-    ir: CompositionIr,
+    mut ir: CompositionIr,
     subgraphs: &Subgraphs,
 ) -> federated::FederatedGraph {
-    let mut field_types_map = FieldTypesMap::default();
     let mut out = federated::FederatedGraph {
-        enums: ir.enums,
-        objects: ir.objects,
-        interfaces: ir.interfaces,
-        unions: ir.unions,
-        scalars: ir.scalars,
-        input_objects: ir.input_objects,
-        strings: ir.strings.strings,
+        enums: mem::take(&mut ir.enums),
+        objects: mem::take(&mut ir.objects),
+        interfaces: mem::take(&mut ir.interfaces),
+        unions: mem::take(&mut ir.unions),
+        scalars: mem::take(&mut ir.scalars),
+        input_objects: mem::take(&mut ir.input_objects),
+        strings: mem::take(&mut ir.strings.strings),
         ..Default::default()
     };
 
-    let mut ctx = Context {
-        definitions: ir.definitions_by_name,
-        strings_map: ir.strings.map,
-        field_types_map: &mut field_types_map,
-        out: &mut out,
-        subgraphs,
-    };
+    let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
 
     emit_subgraphs(&mut ctx);
     emit_fields(&ir.fields, &mut ctx);
@@ -80,17 +73,11 @@ fn emit_fields(ir_fields: &[FieldIr], ctx: &mut Context<'_>) {
         match ctx.definitions[parent_name] {
             federated::Definition::Object(object_id) => {
                 let field_id = push_field(&mut ctx.out.fields);
-                ctx.out.object_fields.push(federated::ObjectField {
-                    object_id,
-                    field_id,
-                })
+                ctx.push_object_field(object_id, field_id);
             }
             federated::Definition::Interface(interface_id) => {
                 let field_id = push_field(&mut ctx.out.fields);
-                ctx.out.interface_fields.push(federated::InterfaceField {
-                    interface_id,
-                    field_id,
-                })
+                ctx.push_interface_field(interface_id, field_id);
             }
             federated::Definition::InputObject(input_object_id) => {
                 ctx.out[input_object_id]
@@ -146,32 +133,8 @@ fn attach_selection(
     selection_set
         .iter()
         .map(|selection| {
-            let field = match parent_id {
-                federated::Definition::Object(object_id) => ctx
-                    .out
-                    .object_fields
-                    .iter()
-                    .find(|object_field| {
-                        let field_name = ctx.out[object_field.field_id].name;
-                        object_field.object_id == object_id
-                            && ctx.out[field_name] == ctx.subgraphs.walk(selection.field).as_str()
-                    })
-                    .map(|of| of.field_id)
-                    .unwrap(),
-                federated::Definition::Interface(interface_id) => ctx
-                    .out
-                    .interface_fields
-                    .iter()
-                    .find(|interface_field| {
-                        interface_field.interface_id == interface_id
-                            && ctx.out[ctx.out[interface_field.field_id].name]
-                                == ctx.subgraphs.walk(selection.field).as_str()
-                    })
-                    .map(|of| of.field_id)
-                    .unwrap(),
-                _ => unreachable!(),
-            };
-
+            let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
+            let field = ctx.selection_map[&(parent_id, selection_field)];
             let field_ty = ctx.out[ctx.out[field].field_type_id].kind;
             federated::Selection {
                 field,
