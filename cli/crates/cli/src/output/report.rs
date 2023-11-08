@@ -51,7 +51,7 @@ pub fn start_dev_server(resolvers_reported: bool, port: u16, start_port: u16) {
     );
 }
 
-pub fn project_created(name: Option<&str>, config_type: ConfigType /*template: Template<'_>*/) {
+pub fn project_created(name: Option<&str>, config_type: ConfigType) {
     let slash = std::path::MAIN_SEPARATOR.to_string();
 
     let schema_file_name = match config_type {
