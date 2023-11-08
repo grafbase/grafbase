@@ -19,8 +19,8 @@ pub fn init(name: Option<&str>, template: Option<&str>, config_format: Option<Co
         }
     };
 
-    project::init(name, template).map_err(CliError::BackendError)?;
-    report::project_created(name, template);
+    let config_type = project::init(name, template).map_err(CliError::BackendError)?;
+    report::project_created(name, config_type);
 
     Ok(())
 }
