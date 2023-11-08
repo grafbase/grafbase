@@ -33,6 +33,10 @@ impl<'a> Context<'a> {
         }
     }
 
+    pub(crate) fn has_query_type(&self) -> bool {
+        self.ir.query_type.is_some()
+    }
+
     pub(crate) fn into_ir(self) -> CompositionIr {
         self.ir
     }

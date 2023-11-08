@@ -1,3 +1,7 @@
+type Query {
+  cyclistByStartNumber(number: Int): Cyclist
+}
+
 type Mutation {
   createCyclist(input: CyclistInput): Cyclist
 }
