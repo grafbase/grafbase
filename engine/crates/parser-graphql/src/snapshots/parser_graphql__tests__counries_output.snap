@@ -1,5 +1,5 @@
 ---
-source: common/parser-graphql/src/lib.rs
+source: crates/parser-graphql/src/lib.rs
 expression: result
 ---
 enum FooBarAccelerationUnit {
@@ -282,103 +282,103 @@ type FooBarCar {
 	"""
 	ID provided by a car data source as the row ID
 	"""
-	externalId: String
+	externalId: String @deprecated(reason: "Will be removed in the future")
 	"""
 	Car manufacturer
 	"""
-	make: String
+	make: String @deprecated(reason: "In favor of naming.make")
 	"""
 	Car model
 	"""
-	carModel: String
+	carModel: String @deprecated(reason: "In favor of naming.model")
 	"""
 	Car edition
 	"""
-	edition: String
+	edition: String @deprecated(reason: "In favor of naming.version")
 	"""
 	Car model edition. Added by Chargetrip as an alternative for when a car manufacturer does not provide an edition name, or uses the same edition name across all trims or consecutive years
 	"""
-	chargetripEdition: String
+	chargetripEdition: String @deprecated(reason: "In favor of naming.chargetrip_version")
 	"""
 	Car version
 	"""
-	version: String
+	version: String @deprecated(reason: "In favor of naming.edition")
 	"""
 	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
 	"""
-	chargetripRange: FooBarChargetripRange
+	chargetripRange: FooBarChargetripRange @deprecated(reason: "In favor of range.chargetrip_range")
 	"""
 	Cars that support fast charging have a minimum charging speed of 43 kWh
 	"""
-	fastChargingSupport: Boolean
+	fastChargingSupport: Boolean @deprecated(reason: "In favor of routing.fast_charging_support")
 	"""
 	Current production mode of a car
 	"""
-	mode: FooBarCarMode
+	mode: FooBarCarMode @deprecated(reason: "In favor of availability.status")
 	"""
 	Number of seats
 	"""
-	seats: Int
+	seats: Int @deprecated(reason: "In favor of body.seats")
 	"""
 	Weight in kg
 	"""
-	weight: Float
+	weight: Float @deprecated(reason: "In favor of body.weight")
 	"""
 	Height in mm
 	"""
-	height: Int
+	height: Int @deprecated(reason: "In favor of body.height")
 	"""
 	Width in mm
 	"""
-	width: Int
+	width: Int @deprecated(reason: "In favor of body.width")
 	"""
 	Usable battery capacity in kWh
 	"""
-	batteryUsableKwh: Float
+	batteryUsableKwh: Float @deprecated(reason: "In favor of battery.usable_kwh")
 	"""
 	Full battery capacity in kWh
 	"""
-	batteryFullKwh: Float
+	batteryFullKwh: Float @deprecated(reason: "In favor of battery.full_kwh")
 	"""
 	Battery efficiency in the city, highway and combined depending on weather conditions
 	"""
-	batteryEfficiency: FooBarCarBatteryEfficiency
+	batteryEfficiency: FooBarCarBatteryEfficiency @deprecated(reason: "In favor of efficiency")
 	"""
 	Acceleration time from 0 to 100 km/h
 	"""
-	acceleration: Float
+	acceleration: Float @deprecated(reason: "In favor of performance.acceleration")
 	"""
 	Maximum car speed in km/h
 	"""
-	topSpeed: Float
+	topSpeed: Float @deprecated(reason: "In favor of performance.top_speed")
 	"""
 	Power of a car in Kw
 	"""
-	power: Float
+	power: Float @deprecated(reason: "In favor of drivetrain.power")
 	"""
 	Engine torque
 	"""
-	torque: Float
+	torque: Float @deprecated(reason: "In favor of drivetrain.torque")
 	"""
 	Extra consumption model
 	"""
-	consumption: FooBarCarExtraConsumption
+	consumption: FooBarCarExtraConsumption @deprecated(reason: "In favor of routing.consumption")
 	"""
 	Amount of petrol a similar petrol car would consume per 100 km
 	"""
-	petrolConsumption: Float
+	petrolConsumption: Float @deprecated(reason: "In favor of routing.petrol_consumption")
 	"""
 	A list of offset data for different charging speeds
 	"""
-	chargingOffset: FooBarJSON
+	chargingOffset: FooBarJSON @deprecated(reason: "You will receive null values")
 	"""
 	Images of a car
 	"""
-	images: [FooBarCarImage]
+	images: [FooBarCarImage] @deprecated(reason: "In favor of media.image_list")
 	"""
 	Images of a car in structured data
 	"""
-	imagesData: FooBarCarImageData
+	imagesData: FooBarCarImageData @deprecated(reason: "In favor of media.image or media.brand")
 }
 type FooBarCarAvailability {
 	"""
@@ -650,74 +650,74 @@ type FooBarCarList {
 	"""
 	ID provided by a car data source as the row ID
 	"""
-	externalId: String
+	externalId: String @deprecated(reason: "Will be removed in the future")
 	"""
 	Car manufacturer
 	"""
-	make: String
+	make: String @deprecated(reason: "In favor of naming.make")
 	"""
 	Car model
 	"""
-	carModel: String
+	carModel: String @deprecated(reason: "In favor of naming.model")
 	"""
 	Car edition
 	"""
-	edition: String
+	edition: String @deprecated(reason: "In favor of naming.version")
 	"""
 	Car model edition. Added by Chargetrip as an alternative for when a car manufacturer does not provide an edition name, or uses the same edition name across all trims or consecutive years
 	"""
-	chargetripEdition: String
+	chargetripEdition: String @deprecated(reason: "In favor of naming.chargetrip_version")
 	"""
 	Car version
 	"""
-	version: String
+	version: String @deprecated(reason: "In favor of naming.edition")
 	"""
 	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
 	"""
-	chargetripRange: FooBarChargetripRange
+	chargetripRange: FooBarChargetripRange @deprecated(reason: "In favor of range.chargetrip_range")
 	"""
 	Cars that support fast charging have a minimum charging speed of 43 kWh
 	"""
-	fastChargingSupport: Boolean
+	fastChargingSupport: Boolean @deprecated(reason: "In favor of routing.fast_charging_support")
 	"""
 	Current production mode of a car
 	"""
-	mode: FooBarCarMode
+	mode: FooBarCarMode @deprecated(reason: "In favor of availability.status")
 	"""
 	Number of seats
 	"""
-	seats: Int
+	seats: Int @deprecated(reason: "In favor of body.seats")
 	"""
 	Usable battery capacity in kWh
 	"""
-	batteryUsableKwh: Float
+	batteryUsableKwh: Float @deprecated(reason: "In favor of battery.usable_kwh")
 	"""
 	Full battery capacity in kWh
 	"""
-	batteryFullKwh: Float
+	batteryFullKwh: Float @deprecated(reason: "In favor of battery.full_kwh")
 	"""
 	Images of a car in structured data
 	"""
-	imagesData: FooBarCarImageData
-	power: Float
-	acceleration: Float
-	topSpeed: Float
-	torque: Float
-	batteryEfficiency: FooBarCarBatteryEfficiency
-	weight: Float
-	height: Int
-	width: Int
-	consumption: FooBarCarExtraConsumption
-	petrolConsumption: Float
-	chargingOffset: FooBarJSON
-	auxConsumption: Float
-	bmsConsumption: Float
-	dragCoefficient: Float
-	tirePressure: Float
-	motorEfficiency: Float
-	drivelineEfficiency: Float
-	regenEfficiency: Float
-	images: [FooBarCarImage]
+	imagesData: FooBarCarImageData @deprecated(reason: "In favor of media.image and media.brand")
+	power: Float @deprecated(reason: "You will receive null values")
+	acceleration: Float @deprecated(reason: "You will receive null values")
+	topSpeed: Float @deprecated(reason: "You will receive null values")
+	torque: Float @deprecated(reason: "You will receive null values")
+	batteryEfficiency: FooBarCarBatteryEfficiency @deprecated(reason: "You will receive null values")
+	weight: Float @deprecated(reason: "You will receive null values")
+	height: Int @deprecated(reason: "You will receive null values")
+	width: Int @deprecated(reason: "You will receive null values")
+	consumption: FooBarCarExtraConsumption @deprecated(reason: "You will receive null values")
+	petrolConsumption: Float @deprecated(reason: "You will receive null values")
+	chargingOffset: FooBarJSON @deprecated(reason: "You will receive null values")
+	auxConsumption: Float @deprecated(reason: "You will receive null values")
+	bmsConsumption: Float @deprecated(reason: "You will receive null values")
+	dragCoefficient: Float @deprecated(reason: "You will receive null values")
+	tirePressure: Float @deprecated(reason: "You will receive null values")
+	motorEfficiency: Float @deprecated(reason: "You will receive null values")
+	drivelineEfficiency: Float @deprecated(reason: "You will receive null values")
+	regenEfficiency: Float @deprecated(reason: "You will receive null values")
+	images: [FooBarCarImage] @deprecated(reason: "You will receive null values")
 }
 type FooBarCarListAvailability {
 	"""
@@ -840,9 +840,9 @@ type FooBarCarListRange {
 	(Comparable to Range_Real from EV Database.) It is essentially a normalized range to display in the front-end.
 	"""
 	chargetrip_range: FooBarChargetripRange
-	wltp: Float
-	worst: FooBarCarEstimationData
-	best: FooBarCarEstimationData
+	wltp: Float @deprecated(reason: "You will receive null values")
+	worst: FooBarCarEstimationData @deprecated(reason: "You will receive null values")
+	best: FooBarCarEstimationData @deprecated(reason: "You will receive null values")
 }
 type FooBarCarListRouting {
 	"""
@@ -878,7 +878,7 @@ type FooBarCarMedia {
 	"""
 	URL to detail page on EV database
 	"""
-	evdb_detail_url: String
+	evdb_detail_url: String @deprecated(reason: "Will be removed in the future. Please use evdb_details_url")
 }
 """
 Mode (state) of the current production
@@ -1193,7 +1193,7 @@ type FooBarCarPremiumBody {
 	"""
 	Indicates whether a car has roof rails as a standard
 	"""
-	rooftrails: Boolean
+	rooftrails: Boolean @deprecated(reason: "In favor of has_roofrails")
 }
 type FooBarCarPremiumCharge {
 	"""
@@ -1609,7 +1609,7 @@ type FooBarCarPremiumMedia {
 	"""
 	URL to detail page on EV database
 	"""
-	evdb_detail_url: String
+	evdb_detail_url: String @deprecated(reason: "Will be removed in the future. Please use evdb_details_url")
 }
 type FooBarCarPremiumNaming {
 	"""
@@ -1681,7 +1681,7 @@ type FooBarCarPremiumPriceValue {
 	"""
 	Indicates if price value is based on estimates
 	"""
-	estimated: Boolean
+	estimated: Boolean @deprecated(reason: "In favor of is_estimated")
 }
 type FooBarCarPremiumPriceValueWithGrant {
 	"""
@@ -1703,7 +1703,7 @@ type FooBarCarPremiumPriceValueWithGrant {
 	"""
 	Indicates if price value is based on estimates
 	"""
-	estimated: Boolean
+	estimated: Boolean @deprecated(reason: "In favor of is_estimated")
 }
 type FooBarCarPremiumRange {
 	"""
@@ -1872,7 +1872,7 @@ type FooBarCarRange {
 	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
 	"""
 	chargetrip_range: FooBarChargetripRange
-	wltp: Float
+	wltp: Float @deprecated(reason: "You will receive null values")
 }
 type FooBarCarRangeValue {
 	"""
@@ -2259,7 +2259,7 @@ type FooBarConnector {
 	"""
 	Charging prices
 	"""
-	pricing: FooBarPricing
+	pricing: FooBarPricing @deprecated(reason: "In favor of custom_properties.pricing")
 	"""
 	Custom properties of a connector. These are vendor specific and will return null values on the fields that are not supported by your station database
 	"""
@@ -4451,7 +4451,7 @@ type FooBarRequestEv {
 	"""
 	The number of passengers on board
 	"""
-	numberOfPassengers: Int
+	numberOfPassengers: Int @deprecated(reason: "In favor of occupants")
 	"""
 	Number of occupants
 	"""
@@ -4633,7 +4633,7 @@ type FooBarRequestRoute {
 	"""
 	Requested amenities near the stations, within a 1 kilometer radius
 	"""
-	amenities: [String]
+	amenities: [String] @deprecated(reason: "Will be removed. Use the amenity preferences instead")
 	"""
 	Amenity preferences for a route
 	"""
@@ -4641,15 +4641,15 @@ type FooBarRequestRoute {
 	"""
 	Requested operators
 	"""
-	operatorIds: [String]
+	operatorIds: [String] @deprecated(reason: "Will be removed. Use the operators property instead")
 	"""
 	Preferred operators are required. In case there are no preferred operators the route cannot be calculated
 	"""
-	operatorRequired: Boolean
+	operatorRequired: Boolean @deprecated(reason: "Will be removed. Use the operators property instead")
 	"""
 	Encourage the route to use preferred operators. In case there are no preferred operators the route can still be calculated
 	"""
-	operatorPrefer: Boolean
+	operatorPrefer: Boolean @deprecated(reason: "Will be removed. Use the operators property instead")
 	"""
 	Operator prioritization for a route
 	"""
@@ -4916,15 +4916,15 @@ type FooBarReviewUser {
 	"""
 	User ID
 	"""
-	id: ID
+	id: ID @deprecated(reason: "Not sent back anymore, will be null")
 	"""
 	First name
 	"""
-	firstName: String
+	firstName: String @deprecated(reason: "Please use name instead")
 	"""
 	Last name
 	"""
-	lastName: String
+	lastName: String @deprecated(reason: "Please use name instead")
 }
 type FooBarRoute {
 	"""
@@ -4943,7 +4943,7 @@ type FooBarRoute {
 	Route telemetry data
 	"""
 	telemetry: FooBarJSON
-	user: FooBarRequestUser
+	user: FooBarRequestUser @deprecated(reason: "You will receive null values")
 	"""
 	Route request data
 	"""
@@ -5005,7 +5005,7 @@ type FooBarRouteAlternative {
 	"""
 	Amenity ranking for an alternative
 	"""
-	amenityRanking: Int
+	amenityRanking: Int @deprecated(reason: "Will be removed in the future")
 	"""
 	Range, in meters, available at the beginning of a trip
 	"""
@@ -5045,7 +5045,7 @@ type FooBarRouteAlternative {
 	"""
 	Elevation values. Each elevationPlot has a hundred points, independent of the length of a route
 	"""
-	elevationPlot: [Float]
+	elevationPlot: [Float] @deprecated(reason: "Will be removed in the future; Use the pathPlot property")
 	"""
 	Total number of meters which are going up on a route
 	"""
@@ -5812,11 +5812,11 @@ type FooBarStation {
 	"""
 	Station availability
 	"""
-	predicted_availability: [FooBarStationPredictedAvailability]
+	predicted_availability: [FooBarStationPredictedAvailability] @deprecated(reason: "predicted_availability, no value will be sent. Deprecated in favor of predicted_occupancy")
 	"""
 	Predicted station occupancy
 	"""
-	predicted_occupancy: [FooBarStationPredictedOccupancy]
+	predicted_occupancy: [FooBarStationPredictedOccupancy] @deprecated(reason: "In favor of custom_properties.predicted_occupancy")
 	"""
 	Charging speed for a station
 	"""

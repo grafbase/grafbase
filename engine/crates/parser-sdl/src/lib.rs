@@ -24,6 +24,7 @@ use rules::{
     connector_transforms::run_transforms,
     default_directive::DefaultDirective,
     default_directive_types::DefaultDirectiveTypes,
+    deprecated_directive::DeprecatedDirective,
     directive::Directives,
     enum_type::EnumType,
     extend_connector_types::ExtendConnectorTypes,
@@ -148,7 +149,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<ExternalDirective>()
         .with::<ShareableDirective>()
         .with::<OverrideDirective>()
-        .with::<ProvidesDirective>();
+        .with::<ProvidesDirective>()
+        .with::<DeprecatedDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",

@@ -17,6 +17,7 @@ use engine_parser::{
 use itertools::Itertools;
 
 use super::{
+    deprecated_directive::DeprecatedDirective,
     federation::{ExternalDirective, KeyDirective, OverrideDirective, ProvidesDirective, ShareableDirective},
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
@@ -67,6 +68,7 @@ impl<'a> Visitor<'a> for BasicType {
                     OverrideDirective::from_directives(&field.directives, ctx).map(|directive| directive.from);
                 let provides =
                     ProvidesDirective::from_directives(&field.directives, ctx).map(|directive| directive.fields);
+                let deprecation = DeprecatedDirective::from_directives(&field.directives, ctx);
 
                 if let Some(join_directive) = JoinDirective::from_directives(&field.node.directives, ctx) {
                     if resolver.is_custom() {
@@ -93,6 +95,7 @@ impl<'a> Visitor<'a> for BasicType {
                     shareable,
                     provides,
                     r#override,
+                    deprecation,
                     ..Default::default()
                 }
             })

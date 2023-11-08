@@ -10,6 +10,7 @@ mod connector_headers;
 pub mod connector_transforms;
 pub mod default_directive;
 pub mod default_directive_types;
+pub mod deprecated_directive;
 pub mod directive;
 pub mod enum_type;
 pub mod experimental;

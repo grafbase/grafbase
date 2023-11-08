@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use super::{EnumType, InputObjectType, InterfaceType, ObjectType, ScalarType, UnionType};
+use super::{Deprecation, EnumType, InputObjectType, InterfaceType, ObjectType, ScalarType, UnionType};
 use crate::registry::{MetaField, MetaInputValue, MetaType, Registry};
 
 impl Registry {
@@ -62,6 +62,13 @@ impl Registry {
                 write!(sdl, "): {}", field.ty).ok();
             } else {
                 write!(sdl, "\t{}: {}", field.name, field.ty).ok();
+            }
+
+            if let Deprecation::Deprecated { reason } = &field.deprecation {
+                write!(sdl, " @deprecated").ok();
+                if let Some(reason) = reason {
+                    write!(sdl, "(reason: \"{}\")", reason.escape_default()).ok();
+                }
             }
 
             if federation {
@@ -201,7 +208,15 @@ impl Registry {
                 write!(sdl, "enum {name} ").ok();
                 writeln!(sdl, "{{").ok();
                 for value in enum_values.values() {
-                    writeln!(sdl, "\t{}", value.name).ok();
+                    write!(sdl, "\t{}", value.name).ok();
+
+                    if let Deprecation::Deprecated { reason } = &value.deprecation {
+                        write!(sdl, " @deprecated").ok();
+                        if let Some(reason) = reason {
+                            write!(sdl, "(reason: \"{}\")", reason.escape_default()).ok();
+                        }
+                    }
+                    writeln!(sdl).ok();
                 }
                 writeln!(sdl, "}}").ok();
             }
