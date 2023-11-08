@@ -32,6 +32,11 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
 
     ctx.subgraphs
         .iter_field_groups(|fields| merge_field_definitions(ctx, fields));
+
+    if !ctx.has_query_type() {
+        ctx.diagnostics
+            .push_fatal("The root `Query` object is not defined in any subgraph.".to_owned());
+    }
 }
 
 fn merge_object_definitions<'a>(

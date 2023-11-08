@@ -3,3 +3,6 @@ type Customer {
     name: String!
 }
 
+type Query {
+  getCustomer(name: String): Customer
+}

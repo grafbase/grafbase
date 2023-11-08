@@ -16,19 +16,6 @@ pub(crate) fn emit_federated_graph(
     mut ir: CompositionIr,
     subgraphs: &Subgraphs,
 ) -> federated::FederatedGraph {
-    let find_object = |name: &str| {
-        ir.objects.iter().enumerate().find_map(|(id, object)| {
-            if ir.strings.strings[object.name.0] == name {
-                Some(federated::ObjectId(id))
-            } else {
-                None
-            }
-        })
-    };
-    // FIXME: Those roots probably shouldn't be hardcoded.
-    let query_object_id = find_object("Query").expect("Query root operation type not found");
-    let mutation_object_id = find_object("Mutation");
-    let subscription_object_id = find_object("Subscription");
     let mut out = federated::FederatedGraph {
         enums: mem::take(&mut ir.enums),
         objects: mem::take(&mut ir.objects),
@@ -39,9 +26,9 @@ pub(crate) fn emit_federated_graph(
         strings: mem::take(&mut ir.strings.strings),
         subgraphs: vec![],
         root_operation_types: RootOperationTypes {
-            query: query_object_id,
-            mutation: mutation_object_id,
-            subscription: subscription_object_id,
+            query: ir.query_type.unwrap(),
+            mutation: ir.mutation_type,
+            subscription: ir.subscription_type,
         },
         object_fields: vec![],
         interface_fields: vec![],

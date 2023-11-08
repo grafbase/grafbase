@@ -24,6 +24,15 @@ pub(crate) struct CompositionIr {
     pub(crate) scalars: Vec<federated::Scalar>,
     pub(crate) input_objects: Vec<federated::InputObject>,
 
+    /// The root `Query` type
+    pub(crate) query_type: Option<federated::ObjectId>,
+
+    /// The root `Mutation` type
+    pub(crate) mutation_type: Option<federated::ObjectId>,
+
+    /// The root `Subscription` type
+    pub(crate) subscription_type: Option<federated::ObjectId>,
+
     pub(crate) strings: StringsIr,
     pub(crate) fields: Vec<FieldIr>,
     pub(crate) union_members: BTreeSet<(subgraphs::StringId, subgraphs::StringId)>,
@@ -105,6 +114,15 @@ impl CompositionIr {
         let id = federated::ObjectId(self.objects.push_return_idx(object));
         self.definitions_by_name
             .insert(object_name.id, federated::Definition::Object(id));
+
+        // FIXME: Those roots probably shouldn't be hardcoded.
+        match object_name.as_str() {
+            "Query" => self.query_type = Some(id),
+            "Mutation" => self.mutation_type = Some(id),
+            "Subscription" => self.subscription_type = Some(id),
+            _ => (),
+        }
+
         id
     }
 
