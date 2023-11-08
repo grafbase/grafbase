@@ -51,3 +51,6 @@ yarn-error.log*
 .envrc
 .env
 .direnv/
+
+# Nix
+/result

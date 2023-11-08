@@ -116,3 +116,8 @@ jobs:
 
       - name: Run tests
         run: pnpm turbo test
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Check the nix build
+        run: nix build .#cli-app
