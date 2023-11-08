@@ -328,6 +328,8 @@ pub struct MetaField {
     pub required_operation: Option<Operations>,
     pub auth: Option<AuthConfig>,
     pub r#override: Option<String>,
+    pub tags: Vec<String>,
+    pub inaccessible: bool,
 }
 
 impl MetaField {

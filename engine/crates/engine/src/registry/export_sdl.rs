@@ -87,6 +87,12 @@ impl Registry {
                 if let Some(provides) = field.provides.as_deref() {
                     write!(sdl, " @provides(fields: \"{provides}\")").ok();
                 }
+                if field.inaccessible {
+                    write!(sdl, " @inaccessible").ok();
+                }
+                for tag in &field.tags {
+                    write!(sdl, " @tag(name: \"{}\")", tag.escape_default()).ok();
+                }
             }
 
             writeln!(sdl).ok();

@@ -7,6 +7,7 @@ use engine_parser::types::{ObjectType, TypeKind};
 
 use super::{
     deprecated_directive::DeprecatedDirective,
+    federation::{InaccessibleDirective, TagDirective},
     visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE},
 };
 use crate::rules::{cache_directive::CacheDirective, resolver_directive::ResolverDirective};
@@ -52,6 +53,8 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     continue;
                 };
                 let deprecation = DeprecatedDirective::from_directives(&field.directives, ctx);
+                let inaccessible = InaccessibleDirective::from_directives(&field.directives, ctx);
+                let tags = TagDirective::from_directives(&field.directives, ctx);
 
                 let (field_collection, cache_control) = match entry_point {
                     EntryPoint::Query => (&mut ctx.queries, CacheDirective::parse(&field.node.directives)),
@@ -90,6 +93,8 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     required_operation,
                     auth: None,
                     shareable: false,
+                    inaccessible,
+                    tags,
                 });
             }
         }

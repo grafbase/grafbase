@@ -18,7 +18,10 @@ use itertools::Itertools;
 
 use super::{
     deprecated_directive::DeprecatedDirective,
-    federation::{ExternalDirective, KeyDirective, OverrideDirective, ProvidesDirective, ShareableDirective},
+    federation::{
+        ExternalDirective, InaccessibleDirective, KeyDirective, OverrideDirective, ProvidesDirective,
+        ShareableDirective, TagDirective,
+    },
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
@@ -69,6 +72,8 @@ impl<'a> Visitor<'a> for BasicType {
                 let provides =
                     ProvidesDirective::from_directives(&field.directives, ctx).map(|directive| directive.fields);
                 let deprecation = DeprecatedDirective::from_directives(&field.directives, ctx);
+                let inaccessible = InaccessibleDirective::from_directives(&field.directives, ctx);
+                let tags = TagDirective::from_directives(&field.directives, ctx);
 
                 if let Some(join_directive) = JoinDirective::from_directives(&field.node.directives, ctx) {
                     if resolver.is_custom() {
@@ -96,6 +101,8 @@ impl<'a> Visitor<'a> for BasicType {
                     provides,
                     r#override,
                     deprecation,
+                    inaccessible,
+                    tags,
                     ..Default::default()
                 }
             })
