@@ -96,7 +96,6 @@ pub enum Template<'a> {
 /// - returns [`BackendError::GetRepositoryInformation`] if the request to get the information for a repository returned a non 200-299 status
 ///
 /// - returns [`BackendError::ReadRepositoryInformation`] if the request to get the information for a repository returned a response that could not be parsed
-// #[tokio::main]
 pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, BackendError> {
     let project_path = to_project_path(name)?;
     let grafbase_path = project_path.join(GRAFBASE_DIRECTORY_NAME);
