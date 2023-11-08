@@ -5,7 +5,7 @@ use crate::{
     watercolor::{self, watercolor},
 };
 use backend::{
-    project::{ConfigType, Template},
+    project::ConfigType,
     types::{NestedRequestScopedMessage, RequestCompletedOutcome},
 };
 use colored::Colorize;
@@ -51,12 +51,12 @@ pub fn start_dev_server(resolvers_reported: bool, port: u16, start_port: u16) {
     );
 }
 
-pub fn project_created(name: Option<&str>, template: Template<'_>) {
+pub fn project_created(name: Option<&str>, config_type: ConfigType) {
     let slash = std::path::MAIN_SEPARATOR.to_string();
 
-    let schema_file_name = match template {
-        Template::FromDefault(ConfigType::TypeScript) => GRAFBASE_TS_CONFIG_FILE_NAME,
-        _ => GRAFBASE_SCHEMA_FILE_NAME,
+    let schema_file_name = match config_type {
+        ConfigType::TypeScript => GRAFBASE_TS_CONFIG_FILE_NAME,
+        ConfigType::GraphQL => GRAFBASE_SCHEMA_FILE_NAME,
     };
 
     if let Some(name) = name {
@@ -74,12 +74,12 @@ pub fn project_created(name: Option<&str>, template: Template<'_>) {
         let schema_path = &[".", GRAFBASE_DIRECTORY_NAME, schema_file_name].join(&slash);
 
         println!(
-            "Your new schema can be found at {}",
+            "Your new configuration can be found at {}",
             watercolor!("{schema_path}", @BrightBlue)
         );
     }
 
-    if let Template::FromDefault(ConfigType::TypeScript) = template {
+    if let ConfigType::TypeScript = config_type {
         println!(
             "We've added our SDK to your {}, make sure to install dependencies before continuing.",
             watercolor!("package.json", @BrightBlue)
