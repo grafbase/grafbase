@@ -292,7 +292,7 @@ impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition
 }
 
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl)]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, Deprecation)]
 #[derive(Clone, Default, derivative::Derivative, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug)]
 pub struct MetaField {
@@ -546,6 +546,10 @@ impl MetaEnumValue {
 
     pub fn with_description(self, description: Option<String>) -> Self {
         MetaEnumValue { description, ..self }
+    }
+
+    pub fn with_deprecation(self, deprecation: Deprecation) -> Self {
+        MetaEnumValue { deprecation, ..self }
     }
 }
 

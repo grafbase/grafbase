@@ -36,50 +36,43 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "FilmCharactersConnection",
-            "D": "N"
+            "t": "FilmCharactersConnection"
           },
           "created": {
             "n": "created",
             "d": "The ISO 8601 date format of the time that this resource was created.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "director": {
             "n": "director",
             "d": "The name of the director of this film.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "edited": {
             "n": "edited",
             "d": "The ISO 8601 date format of the time that this resource was edited.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "episodeID": {
             "n": "episodeID",
             "d": "The episode number of this film.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "id": {
             "n": "id",
             "d": "The ID of an object",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "openingCrawl": {
             "n": "openingCrawl",
             "d": "The opening paragraphs at the beginning of this film.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "planetConnection": {
             "n": "planetConnection",
@@ -101,22 +94,19 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "FilmPlanetsConnection",
-            "D": "N"
+            "t": "FilmPlanetsConnection"
           },
           "producers": {
             "n": "producers",
             "d": "The name(s) of the producer(s) of this film.",
             "a": {},
-            "t": "[String]",
-            "D": "N"
+            "t": "[String]"
           },
           "releaseDate": {
             "n": "releaseDate",
             "d": "The ISO 8601 date format of film release at original creator country.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "speciesConnection": {
             "n": "speciesConnection",
@@ -138,8 +128,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "FilmSpeciesConnection",
-            "D": "N"
+            "t": "FilmSpeciesConnection"
           },
           "starshipConnection": {
             "n": "starshipConnection",
@@ -161,15 +150,13 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "FilmStarshipsConnection",
-            "D": "N"
+            "t": "FilmStarshipsConnection"
           },
           "title": {
             "n": "title",
             "d": "The title of this film.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "vehicleConnection": {
             "n": "vehicleConnection",
@@ -191,8 +178,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "FilmVehiclesConnection",
-            "D": "N"
+            "t": "FilmVehiclesConnection"
           }
         },
         "r": "Film"
@@ -207,29 +193,25 @@ expression: registry_from_introspection(schema)
             "n": "characters",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Person]",
-            "D": "N"
+            "t": "[Person]"
           },
           "edges": {
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[FilmCharactersEdge]",
-            "D": "N"
+            "t": "[FilmCharactersEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "FilmCharactersConnection"
@@ -244,15 +226,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Person",
-            "D": "N"
+            "t": "Person"
           }
         },
         "r": "FilmCharactersEdge"
@@ -267,29 +247,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[FilmPlanetsEdge]",
-            "D": "N"
+            "t": "[FilmPlanetsEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "planets": {
             "n": "planets",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Planet]",
-            "D": "N"
+            "t": "[Planet]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "FilmPlanetsConnection"
@@ -304,15 +280,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Planet",
-            "D": "N"
+            "t": "Planet"
           }
         },
         "r": "FilmPlanetsEdge"
@@ -327,29 +301,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[FilmSpeciesEdge]",
-            "D": "N"
+            "t": "[FilmSpeciesEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "species": {
             "n": "species",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Species]",
-            "D": "N"
+            "t": "[Species]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "FilmSpeciesConnection"
@@ -364,15 +334,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Species",
-            "D": "N"
+            "t": "Species"
           }
         },
         "r": "FilmSpeciesEdge"
@@ -387,29 +355,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[FilmStarshipsEdge]",
-            "D": "N"
+            "t": "[FilmStarshipsEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "starships": {
             "n": "starships",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Starship]",
-            "D": "N"
+            "t": "[Starship]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "FilmStarshipsConnection"
@@ -424,15 +388,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Starship",
-            "D": "N"
+            "t": "Starship"
           }
         },
         "r": "FilmStarshipsEdge"
@@ -447,29 +409,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[FilmVehiclesEdge]",
-            "D": "N"
+            "t": "[FilmVehiclesEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "vehicles": {
             "n": "vehicles",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Vehicle]",
-            "D": "N"
+            "t": "[Vehicle]"
           }
         },
         "r": "FilmVehiclesConnection"
@@ -484,15 +442,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Vehicle",
-            "D": "N"
+            "t": "Vehicle"
           }
         },
         "r": "FilmVehiclesEdge"
@@ -507,29 +463,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[FilmsEdge]",
-            "D": "N"
+            "t": "[FilmsEdge]"
           },
           "films": {
             "n": "films",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Film]",
-            "D": "N"
+            "t": "[Film]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "FilmsConnection"
@@ -544,15 +496,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Film",
-            "D": "N"
+            "t": "Film"
           }
         },
         "r": "FilmsEdge"
@@ -588,8 +538,7 @@ expression: registry_from_introspection(schema)
             "n": "id",
             "d": "The id of the object.",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           }
         },
         "p": [
@@ -612,29 +561,25 @@ expression: registry_from_introspection(schema)
             "n": "endCursor",
             "d": "When paginating forwards, the cursor to continue.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "hasNextPage": {
             "n": "hasNextPage",
             "d": "When paginating forwards, are there more items?",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           },
           "hasPreviousPage": {
             "n": "hasPreviousPage",
             "d": "When paginating backwards, are there more items?",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           },
           "startCursor": {
             "n": "startCursor",
             "d": "When paginating backwards, the cursor to continue.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           }
         },
         "r": "PageInfo"
@@ -649,29 +594,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[PeopleEdge]",
-            "D": "N"
+            "t": "[PeopleEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "people": {
             "n": "people",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Person]",
-            "D": "N"
+            "t": "[Person]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "PeopleConnection"
@@ -686,15 +627,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Person",
-            "D": "N"
+            "t": "Person"
           }
         },
         "r": "PeopleEdge"
@@ -709,29 +648,25 @@ expression: registry_from_introspection(schema)
             "n": "birthYear",
             "d": "The birth year of the person, using the in-universe standard of BBY or ABY -\nBefore the Battle of Yavin or After the Battle of Yavin. The Battle of Yavin is\na battle that occurs at the end of Star Wars episode IV: A New Hope.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "created": {
             "n": "created",
             "d": "The ISO 8601 date format of the time that this resource was created.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "edited": {
             "n": "edited",
             "d": "The ISO 8601 date format of the time that this resource was edited.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "eyeColor": {
             "n": "eyeColor",
             "d": "The eye color of this person. Will be \"unknown\" if not known or \"n/a\" if the\nperson does not have an eye.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "filmConnection": {
             "n": "filmConnection",
@@ -753,71 +688,61 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "PersonFilmsConnection",
-            "D": "N"
+            "t": "PersonFilmsConnection"
           },
           "gender": {
             "n": "gender",
             "d": "The gender of this person. Either \"Male\", \"Female\" or \"unknown\",\n\"n/a\" if the person does not have a gender.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "hairColor": {
             "n": "hairColor",
             "d": "The hair color of this person. Will be \"unknown\" if not known or \"n/a\" if the\nperson does not have hair.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "height": {
             "n": "height",
             "d": "The height of the person in centimeters.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "homeworld": {
             "n": "homeworld",
             "d": "A planet that this person was born on or inhabits.",
             "a": {},
-            "t": "Planet",
-            "D": "N"
+            "t": "Planet"
           },
           "id": {
             "n": "id",
             "d": "The ID of an object",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "mass": {
             "n": "mass",
             "d": "The mass of the person in kilograms.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "name": {
             "n": "name",
             "d": "The name of this person.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "skinColor": {
             "n": "skinColor",
             "d": "The skin color of this person.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "species": {
             "n": "species",
             "d": "The species that this person belongs to, or null if unknown.",
             "a": {},
-            "t": "Species",
-            "D": "N"
+            "t": "Species"
           },
           "starshipConnection": {
             "n": "starshipConnection",
@@ -839,8 +764,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "PersonStarshipsConnection",
-            "D": "N"
+            "t": "PersonStarshipsConnection"
           },
           "vehicleConnection": {
             "n": "vehicleConnection",
@@ -862,8 +786,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "PersonVehiclesConnection",
-            "D": "N"
+            "t": "PersonVehiclesConnection"
           }
         },
         "r": "Person"
@@ -878,29 +801,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[PersonFilmsEdge]",
-            "D": "N"
+            "t": "[PersonFilmsEdge]"
           },
           "films": {
             "n": "films",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Film]",
-            "D": "N"
+            "t": "[Film]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "PersonFilmsConnection"
@@ -915,15 +834,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Film",
-            "D": "N"
+            "t": "Film"
           }
         },
         "r": "PersonFilmsEdge"
@@ -938,29 +855,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[PersonStarshipsEdge]",
-            "D": "N"
+            "t": "[PersonStarshipsEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "starships": {
             "n": "starships",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Starship]",
-            "D": "N"
+            "t": "[Starship]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "PersonStarshipsConnection"
@@ -975,15 +888,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Starship",
-            "D": "N"
+            "t": "Starship"
           }
         },
         "r": "PersonStarshipsEdge"
@@ -998,29 +909,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[PersonVehiclesEdge]",
-            "D": "N"
+            "t": "[PersonVehiclesEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "vehicles": {
             "n": "vehicles",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Vehicle]",
-            "D": "N"
+            "t": "[Vehicle]"
           }
         },
         "r": "PersonVehiclesConnection"
@@ -1035,15 +942,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Vehicle",
-            "D": "N"
+            "t": "Vehicle"
           }
         },
         "r": "PersonVehiclesEdge"
@@ -1058,29 +963,25 @@ expression: registry_from_introspection(schema)
             "n": "climates",
             "d": "The climates of this planet.",
             "a": {},
-            "t": "[String]",
-            "D": "N"
+            "t": "[String]"
           },
           "created": {
             "n": "created",
             "d": "The ISO 8601 date format of the time that this resource was created.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "diameter": {
             "n": "diameter",
             "d": "The diameter of this planet in kilometers.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "edited": {
             "n": "edited",
             "d": "The ISO 8601 date format of the time that this resource was edited.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "filmConnection": {
             "n": "filmConnection",
@@ -1102,43 +1003,37 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "PlanetFilmsConnection",
-            "D": "N"
+            "t": "PlanetFilmsConnection"
           },
           "gravity": {
             "n": "gravity",
             "d": "A number denoting the gravity of this planet, where \"1\" is normal or 1 standard\nG. \"2\" is twice or 2 standard Gs. \"0.5\" is half or 0.5 standard Gs.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "id": {
             "n": "id",
             "d": "The ID of an object",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "name": {
             "n": "name",
             "d": "The name of this planet.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "orbitalPeriod": {
             "n": "orbitalPeriod",
             "d": "The number of standard days it takes for this planet to complete a single orbit\nof its local star.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "population": {
             "n": "population",
             "d": "The average population of sentient beings inhabiting this planet.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "residentConnection": {
             "n": "residentConnection",
@@ -1160,29 +1055,25 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "PlanetResidentsConnection",
-            "D": "N"
+            "t": "PlanetResidentsConnection"
           },
           "rotationPeriod": {
             "n": "rotationPeriod",
             "d": "The number of standard hours it takes for this planet to complete a single\nrotation on its axis.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "surfaceWater": {
             "n": "surfaceWater",
             "d": "The percentage of the planet surface that is naturally occurring water or bodies\nof water.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "terrains": {
             "n": "terrains",
             "d": "The terrains of this planet.",
             "a": {},
-            "t": "[String]",
-            "D": "N"
+            "t": "[String]"
           }
         },
         "r": "Planet"
@@ -1197,29 +1088,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[PlanetFilmsEdge]",
-            "D": "N"
+            "t": "[PlanetFilmsEdge]"
           },
           "films": {
             "n": "films",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Film]",
-            "D": "N"
+            "t": "[Film]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "PlanetFilmsConnection"
@@ -1234,15 +1121,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Film",
-            "D": "N"
+            "t": "Film"
           }
         },
         "r": "PlanetFilmsEdge"
@@ -1257,29 +1142,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[PlanetResidentsEdge]",
-            "D": "N"
+            "t": "[PlanetResidentsEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "residents": {
             "n": "residents",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Person]",
-            "D": "N"
+            "t": "[Person]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "PlanetResidentsConnection"
@@ -1294,15 +1175,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Person",
-            "D": "N"
+            "t": "Person"
           }
         },
         "r": "PlanetResidentsEdge"
@@ -1317,29 +1196,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[PlanetsEdge]",
-            "D": "N"
+            "t": "[PlanetsEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "planets": {
             "n": "planets",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Planet]",
-            "D": "N"
+            "t": "[Planet]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "PlanetsConnection"
@@ -1354,15 +1229,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Planet",
-            "D": "N"
+            "t": "Planet"
           }
         },
         "r": "PlanetsEdge"
@@ -1392,8 +1265,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "FilmsConnection",
-            "D": "N"
+            "t": "FilmsConnection"
           },
           "allPeople": {
             "n": "allPeople",
@@ -1415,8 +1287,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "PeopleConnection",
-            "D": "N"
+            "t": "PeopleConnection"
           },
           "allPlanets": {
             "n": "allPlanets",
@@ -1438,8 +1309,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "PlanetsConnection",
-            "D": "N"
+            "t": "PlanetsConnection"
           },
           "allSpecies": {
             "n": "allSpecies",
@@ -1461,8 +1331,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "SpeciesConnection",
-            "D": "N"
+            "t": "SpeciesConnection"
           },
           "allStarships": {
             "n": "allStarships",
@@ -1484,8 +1353,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "StarshipsConnection",
-            "D": "N"
+            "t": "StarshipsConnection"
           },
           "allVehicles": {
             "n": "allVehicles",
@@ -1507,8 +1375,7 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "VehiclesConnection",
-            "D": "N"
+            "t": "VehiclesConnection"
           },
           "film": {
             "n": "film",
@@ -1522,8 +1389,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID"
               }
             },
-            "t": "Film",
-            "D": "N"
+            "t": "Film"
           },
           "node": {
             "n": "node",
@@ -1535,8 +1401,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID!"
               }
             },
-            "t": "Node",
-            "D": "N"
+            "t": "Node"
           },
           "person": {
             "n": "person",
@@ -1550,8 +1415,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID"
               }
             },
-            "t": "Person",
-            "D": "N"
+            "t": "Person"
           },
           "planet": {
             "n": "planet",
@@ -1565,8 +1429,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID"
               }
             },
-            "t": "Planet",
-            "D": "N"
+            "t": "Planet"
           },
           "species": {
             "n": "species",
@@ -1580,8 +1443,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID"
               }
             },
-            "t": "Species",
-            "D": "N"
+            "t": "Species"
           },
           "starship": {
             "n": "starship",
@@ -1595,8 +1457,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID"
               }
             },
-            "t": "Starship",
-            "D": "N"
+            "t": "Starship"
           },
           "vehicle": {
             "n": "vehicle",
@@ -1610,8 +1471,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID"
               }
             },
-            "t": "Vehicle",
-            "D": "N"
+            "t": "Vehicle"
           }
         },
         "r": "Root"
@@ -1626,50 +1486,43 @@ expression: registry_from_introspection(schema)
             "n": "averageHeight",
             "d": "The average height of this species in centimeters.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "averageLifespan": {
             "n": "averageLifespan",
             "d": "The average lifespan of this species in years, null if unknown.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "classification": {
             "n": "classification",
             "d": "The classification of this species, such as \"mammal\" or \"reptile\".",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "created": {
             "n": "created",
             "d": "The ISO 8601 date format of the time that this resource was created.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "designation": {
             "n": "designation",
             "d": "The designation of this species, such as \"sentient\".",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "edited": {
             "n": "edited",
             "d": "The ISO 8601 date format of the time that this resource was edited.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "eyeColors": {
             "n": "eyeColors",
             "d": "Common eye colors for this species, null if this species does not typically\nhave eyes.",
             "a": {},
-            "t": "[String]",
-            "D": "N"
+            "t": "[String]"
           },
           "filmConnection": {
             "n": "filmConnection",
@@ -1691,43 +1544,37 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "SpeciesFilmsConnection",
-            "D": "N"
+            "t": "SpeciesFilmsConnection"
           },
           "hairColors": {
             "n": "hairColors",
             "d": "Common hair colors for this species, null if this species does not typically\nhave hair.",
             "a": {},
-            "t": "[String]",
-            "D": "N"
+            "t": "[String]"
           },
           "homeworld": {
             "n": "homeworld",
             "d": "A planet that this species originates from.",
             "a": {},
-            "t": "Planet",
-            "D": "N"
+            "t": "Planet"
           },
           "id": {
             "n": "id",
             "d": "The ID of an object",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "language": {
             "n": "language",
             "d": "The language commonly spoken by this species.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "name": {
             "n": "name",
             "d": "The name of this species.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "personConnection": {
             "n": "personConnection",
@@ -1749,15 +1596,13 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "SpeciesPeopleConnection",
-            "D": "N"
+            "t": "SpeciesPeopleConnection"
           },
           "skinColors": {
             "n": "skinColors",
             "d": "Common skin colors for this species, null if this species does not typically\nhave skin.",
             "a": {},
-            "t": "[String]",
-            "D": "N"
+            "t": "[String]"
           }
         },
         "r": "Species"
@@ -1772,29 +1617,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[SpeciesEdge]",
-            "D": "N"
+            "t": "[SpeciesEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "species": {
             "n": "species",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Species]",
-            "D": "N"
+            "t": "[Species]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "SpeciesConnection"
@@ -1809,15 +1650,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Species",
-            "D": "N"
+            "t": "Species"
           }
         },
         "r": "SpeciesEdge"
@@ -1832,29 +1671,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[SpeciesFilmsEdge]",
-            "D": "N"
+            "t": "[SpeciesFilmsEdge]"
           },
           "films": {
             "n": "films",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Film]",
-            "D": "N"
+            "t": "[Film]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "SpeciesFilmsConnection"
@@ -1869,15 +1704,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Film",
-            "D": "N"
+            "t": "Film"
           }
         },
         "r": "SpeciesFilmsEdge"
@@ -1892,29 +1725,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[SpeciesPeopleEdge]",
-            "D": "N"
+            "t": "[SpeciesPeopleEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "people": {
             "n": "people",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Person]",
-            "D": "N"
+            "t": "[Person]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "SpeciesPeopleConnection"
@@ -1929,15 +1758,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Person",
-            "D": "N"
+            "t": "Person"
           }
         },
         "r": "SpeciesPeopleEdge"
@@ -1952,50 +1779,43 @@ expression: registry_from_introspection(schema)
             "n": "MGLT",
             "d": "The Maximum number of Megalights this starship can travel in a standard hour.\nA \"Megalight\" is a standard unit of distance and has never been defined before\nwithin the Star Wars universe. This figure is only really useful for measuring\nthe difference in speed of starships. We can assume it is similar to AU, the\ndistance between our Sun (Sol) and Earth.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "cargoCapacity": {
             "n": "cargoCapacity",
             "d": "The maximum number of kilograms that this starship can transport.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "consumables": {
             "n": "consumables",
             "d": "The maximum length of time that this starship can provide consumables for its\nentire crew without having to resupply.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "costInCredits": {
             "n": "costInCredits",
             "d": "The cost of this starship new, in galactic credits.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "created": {
             "n": "created",
             "d": "The ISO 8601 date format of the time that this resource was created.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "crew": {
             "n": "crew",
             "d": "The number of personnel needed to run or pilot this starship.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "edited": {
             "n": "edited",
             "d": "The ISO 8601 date format of the time that this resource was edited.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "filmConnection": {
             "n": "filmConnection",
@@ -2017,64 +1837,55 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "StarshipFilmsConnection",
-            "D": "N"
+            "t": "StarshipFilmsConnection"
           },
           "hyperdriveRating": {
             "n": "hyperdriveRating",
             "d": "The class of this starships hyperdrive.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "id": {
             "n": "id",
             "d": "The ID of an object",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "length": {
             "n": "length",
             "d": "The length of this starship in meters.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "manufacturers": {
             "n": "manufacturers",
             "d": "The manufacturers of this starship.",
             "a": {},
-            "t": "[String]",
-            "D": "N"
+            "t": "[String]"
           },
           "maxAtmospheringSpeed": {
             "n": "maxAtmospheringSpeed",
             "d": "The maximum speed of this starship in atmosphere. null if this starship is\nincapable of atmosphering flight.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "model": {
             "n": "model",
             "d": "The model or official name of this starship. Such as \"T-65 X-wing\" or \"DS-1\nOrbital Battle Station\".",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "name": {
             "n": "name",
             "d": "The name of this starship. The common name, such as \"Death Star\".",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "passengers": {
             "n": "passengers",
             "d": "The number of non-essential people this starship can transport.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "pilotConnection": {
             "n": "pilotConnection",
@@ -2096,15 +1907,13 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "StarshipPilotsConnection",
-            "D": "N"
+            "t": "StarshipPilotsConnection"
           },
           "starshipClass": {
             "n": "starshipClass",
             "d": "The class of this starship, such as \"Starfighter\" or \"Deep Space Mobile\nBattlestation\"",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           }
         },
         "r": "Starship"
@@ -2119,29 +1928,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[StarshipFilmsEdge]",
-            "D": "N"
+            "t": "[StarshipFilmsEdge]"
           },
           "films": {
             "n": "films",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Film]",
-            "D": "N"
+            "t": "[Film]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "StarshipFilmsConnection"
@@ -2156,15 +1961,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Film",
-            "D": "N"
+            "t": "Film"
           }
         },
         "r": "StarshipFilmsEdge"
@@ -2179,29 +1982,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[StarshipPilotsEdge]",
-            "D": "N"
+            "t": "[StarshipPilotsEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "pilots": {
             "n": "pilots",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Person]",
-            "D": "N"
+            "t": "[Person]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "StarshipPilotsConnection"
@@ -2216,15 +2015,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Person",
-            "D": "N"
+            "t": "Person"
           }
         },
         "r": "StarshipPilotsEdge"
@@ -2239,29 +2036,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[StarshipsEdge]",
-            "D": "N"
+            "t": "[StarshipsEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "starships": {
             "n": "starships",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Starship]",
-            "D": "N"
+            "t": "[Starship]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "StarshipsConnection"
@@ -2276,15 +2069,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Starship",
-            "D": "N"
+            "t": "Starship"
           }
         },
         "r": "StarshipsEdge"
@@ -2306,43 +2097,37 @@ expression: registry_from_introspection(schema)
             "n": "cargoCapacity",
             "d": "The maximum number of kilograms that this vehicle can transport.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "consumables": {
             "n": "consumables",
             "d": "The maximum length of time that this vehicle can provide consumables for its\nentire crew without having to resupply.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "costInCredits": {
             "n": "costInCredits",
             "d": "The cost of this vehicle new, in Galactic Credits.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "created": {
             "n": "created",
             "d": "The ISO 8601 date format of the time that this resource was created.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "crew": {
             "n": "crew",
             "d": "The number of personnel needed to run or pilot this vehicle.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "edited": {
             "n": "edited",
             "d": "The ISO 8601 date format of the time that this resource was edited.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "filmConnection": {
             "n": "filmConnection",
@@ -2364,57 +2149,49 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "VehicleFilmsConnection",
-            "D": "N"
+            "t": "VehicleFilmsConnection"
           },
           "id": {
             "n": "id",
             "d": "The ID of an object",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "length": {
             "n": "length",
             "d": "The length of this vehicle in meters.",
             "a": {},
-            "t": "Float",
-            "D": "N"
+            "t": "Float"
           },
           "manufacturers": {
             "n": "manufacturers",
             "d": "The manufacturers of this vehicle.",
             "a": {},
-            "t": "[String]",
-            "D": "N"
+            "t": "[String]"
           },
           "maxAtmospheringSpeed": {
             "n": "maxAtmospheringSpeed",
             "d": "The maximum speed of this vehicle in atmosphere.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "model": {
             "n": "model",
             "d": "The model or official name of this vehicle. Such as \"All-Terrain Attack\nTransport\".",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "name": {
             "n": "name",
             "d": "The name of this vehicle. The common name, such as \"Sand Crawler\" or \"Speeder\nbike\".",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "passengers": {
             "n": "passengers",
             "d": "The number of non-essential people this vehicle can transport.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "pilotConnection": {
             "n": "pilotConnection",
@@ -2436,15 +2213,13 @@ expression: registry_from_introspection(schema)
                 "t": "Int"
               }
             },
-            "t": "VehiclePilotsConnection",
-            "D": "N"
+            "t": "VehiclePilotsConnection"
           },
           "vehicleClass": {
             "n": "vehicleClass",
             "d": "The class of this vehicle, such as \"Wheeled\" or \"Repulsorcraft\".",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           }
         },
         "r": "Vehicle"
@@ -2459,29 +2234,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[VehicleFilmsEdge]",
-            "D": "N"
+            "t": "[VehicleFilmsEdge]"
           },
           "films": {
             "n": "films",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Film]",
-            "D": "N"
+            "t": "[Film]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "VehicleFilmsConnection"
@@ -2496,15 +2267,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Film",
-            "D": "N"
+            "t": "Film"
           }
         },
         "r": "VehicleFilmsEdge"
@@ -2519,29 +2288,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[VehiclePilotsEdge]",
-            "D": "N"
+            "t": "[VehiclePilotsEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "pilots": {
             "n": "pilots",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Person]",
-            "D": "N"
+            "t": "[Person]"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           }
         },
         "r": "VehiclePilotsConnection"
@@ -2556,15 +2321,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Person",
-            "D": "N"
+            "t": "Person"
           }
         },
         "r": "VehiclePilotsEdge"
@@ -2579,29 +2342,25 @@ expression: registry_from_introspection(schema)
             "n": "edges",
             "d": "A list of edges.",
             "a": {},
-            "t": "[VehiclesEdge]",
-            "D": "N"
+            "t": "[VehiclesEdge]"
           },
           "pageInfo": {
             "n": "pageInfo",
             "d": "Information to aid in pagination.",
             "a": {},
-            "t": "PageInfo!",
-            "D": "N"
+            "t": "PageInfo!"
           },
           "totalCount": {
             "n": "totalCount",
             "d": "A count of the total number of objects in this connection, ignoring pagination.\nThis allows a client to fetch the first five objects by passing \"5\" as the\nargument to \"first\", then fetch the total count so it could display \"5 of 83\",\nfor example.",
             "a": {},
-            "t": "Int",
-            "D": "N"
+            "t": "Int"
           },
           "vehicles": {
             "n": "vehicles",
             "d": "A list of all of the objects returned in the connection. This is a convenience\nfield provided for quickly exploring the API; rather than querying for\n\"{ edges { node } }\" when no edge data is needed, this field can be be used\ninstead. Note that when clients like Relay need to fetch the \"cursor\" field on\nthe edge to enable efficient pagination, this shortcut cannot be used, and the\nfull \"{ edges { node } }\" version should be used instead.",
             "a": {},
-            "t": "[Vehicle]",
-            "D": "N"
+            "t": "[Vehicle]"
           }
         },
         "r": "VehiclesConnection"
@@ -2616,15 +2375,13 @@ expression: registry_from_introspection(schema)
             "n": "cursor",
             "d": "A cursor for use in pagination",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "node": {
             "n": "node",
             "d": "The item at the end of the edge",
             "a": {},
-            "t": "Vehicle",
-            "D": "N"
+            "t": "Vehicle"
           }
         },
         "r": "VehiclesEdge"
@@ -2638,26 +2395,22 @@ expression: registry_from_introspection(schema)
           "args": {
             "n": "args",
             "a": {},
-            "t": "[__InputValue!]!",
-            "D": "N"
+            "t": "[__InputValue!]!"
           },
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "locations": {
             "n": "locations",
             "a": {},
-            "t": "[__DirectiveLocation!]!",
-            "D": "N"
+            "t": "[__DirectiveLocation!]!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           }
         },
         "r": "__Directive"
@@ -2756,26 +2509,22 @@ expression: registry_from_introspection(schema)
           "deprecationReason": {
             "n": "deprecationReason",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "isDeprecated": {
             "n": "isDeprecated",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           }
         },
         "r": "__EnumValue"
@@ -2789,38 +2538,32 @@ expression: registry_from_introspection(schema)
           "args": {
             "n": "args",
             "a": {},
-            "t": "[__InputValue!]!",
-            "D": "N"
+            "t": "[__InputValue!]!"
           },
           "deprecationReason": {
             "n": "deprecationReason",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "isDeprecated": {
             "n": "isDeprecated",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "type": {
             "n": "type",
             "a": {},
-            "t": "__Type!",
-            "D": "N"
+            "t": "__Type!"
           }
         },
         "r": "__Field"
@@ -2835,26 +2578,22 @@ expression: registry_from_introspection(schema)
             "n": "defaultValue",
             "d": "A GraphQL-formatted string representing the default value for this input value.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "type": {
             "n": "type",
             "a": {},
-            "t": "__Type!",
-            "D": "N"
+            "t": "__Type!"
           }
         },
         "r": "__InputValue"
@@ -2869,36 +2608,31 @@ expression: registry_from_introspection(schema)
             "n": "directives",
             "d": "A list of all directives supported by this server.",
             "a": {},
-            "t": "[__Directive!]!",
-            "D": "N"
+            "t": "[__Directive!]!"
           },
           "mutationType": {
             "n": "mutationType",
             "d": "If this server supports mutation, the type that mutation operations will be rooted at.",
             "a": {},
-            "t": "__Type",
-            "D": "N"
+            "t": "__Type"
           },
           "queryType": {
             "n": "queryType",
             "d": "The type that query operations will be rooted at.",
             "a": {},
-            "t": "__Type!",
-            "D": "N"
+            "t": "__Type!"
           },
           "subscriptionType": {
             "n": "subscriptionType",
             "d": "If this server support subscription, the type that subscription operations will be rooted at.",
             "a": {},
-            "t": "__Type",
-            "D": "N"
+            "t": "__Type"
           },
           "types": {
             "n": "types",
             "d": "A list of all types supported by this server.",
             "a": {},
-            "t": "[__Type!]!",
-            "D": "N"
+            "t": "[__Type!]!"
           }
         },
         "r": "__Schema"
@@ -2912,8 +2646,7 @@ expression: registry_from_introspection(schema)
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "enumValues": {
             "n": "enumValues",
@@ -2924,8 +2657,7 @@ expression: registry_from_introspection(schema)
                 "D": "false"
               }
             },
-            "t": "[__EnumValue!]",
-            "D": "N"
+            "t": "[__EnumValue!]"
           },
           "fields": {
             "n": "fields",
@@ -2936,44 +2668,37 @@ expression: registry_from_introspection(schema)
                 "D": "false"
               }
             },
-            "t": "[__Field!]",
-            "D": "N"
+            "t": "[__Field!]"
           },
           "inputFields": {
             "n": "inputFields",
             "a": {},
-            "t": "[__InputValue!]",
-            "D": "N"
+            "t": "[__InputValue!]"
           },
           "interfaces": {
             "n": "interfaces",
             "a": {},
-            "t": "[__Type!]",
-            "D": "N"
+            "t": "[__Type!]"
           },
           "kind": {
             "n": "kind",
             "a": {},
-            "t": "__TypeKind!",
-            "D": "N"
+            "t": "__TypeKind!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "ofType": {
             "n": "ofType",
             "a": {},
-            "t": "__Type",
-            "D": "N"
+            "t": "__Type"
           },
           "possibleTypes": {
             "n": "possibleTypes",
             "a": {},
-            "t": "[__Type!]",
-            "D": "N"
+            "t": "[__Type!]"
           }
         },
         "r": "__Type"

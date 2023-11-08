@@ -18,20 +18,17 @@ expression: registry_from_introspection(schema)
           "code": {
             "n": "code",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "countries": {
             "n": "countries",
             "a": {},
-            "t": "[Country!]!",
-            "D": "N"
+            "t": "[Country!]!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           }
         },
         "r": "Continent"
@@ -56,56 +53,47 @@ expression: registry_from_introspection(schema)
           "awsRegion": {
             "n": "awsRegion",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "capital": {
             "n": "capital",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "code": {
             "n": "code",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "continent": {
             "n": "continent",
             "a": {},
-            "t": "Continent!",
-            "D": "N"
+            "t": "Continent!"
           },
           "currencies": {
             "n": "currencies",
             "a": {},
-            "t": "[String!]!",
-            "D": "N"
+            "t": "[String!]!"
           },
           "currency": {
             "n": "currency",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "emoji": {
             "n": "emoji",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "emojiU": {
             "n": "emojiU",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "languages": {
             "n": "languages",
             "a": {},
-            "t": "[Language!]!",
-            "D": "N"
+            "t": "[Language!]!"
           },
           "name": {
             "n": "name",
@@ -115,38 +103,32 @@ expression: registry_from_introspection(schema)
                 "t": "String"
               }
             },
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "native": {
             "n": "native",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "phone": {
             "n": "phone",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "phones": {
             "n": "phones",
             "a": {},
-            "t": "[String!]!",
-            "D": "N"
+            "t": "[String!]!"
           },
           "states": {
             "n": "states",
             "a": {},
-            "t": "[State!]!",
-            "D": "N"
+            "t": "[State!]!"
           },
           "subdivisions": {
             "n": "subdivisions",
             "a": {},
-            "t": "[Subdivision!]!",
-            "D": "N"
+            "t": "[Subdivision!]!"
           }
         },
         "r": "Country"
@@ -200,26 +182,22 @@ expression: registry_from_introspection(schema)
           "code": {
             "n": "code",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "native": {
             "n": "native",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "rtl": {
             "n": "rtl",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           }
         },
         "r": "Language"
@@ -249,8 +227,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID!"
               }
             },
-            "t": "Continent",
-            "D": "N"
+            "t": "Continent"
           },
           "continents": {
             "n": "continents",
@@ -261,8 +238,7 @@ expression: registry_from_introspection(schema)
                 "D": "{}"
               }
             },
-            "t": "[Continent!]!",
-            "D": "N"
+            "t": "[Continent!]!"
           },
           "countries": {
             "n": "countries",
@@ -273,8 +249,7 @@ expression: registry_from_introspection(schema)
                 "D": "{}"
               }
             },
-            "t": "[Country!]!",
-            "D": "N"
+            "t": "[Country!]!"
           },
           "country": {
             "n": "country",
@@ -284,8 +259,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID!"
               }
             },
-            "t": "Country",
-            "D": "N"
+            "t": "Country"
           },
           "language": {
             "n": "language",
@@ -295,8 +269,7 @@ expression: registry_from_introspection(schema)
                 "t": "ID!"
               }
             },
-            "t": "Language",
-            "D": "N"
+            "t": "Language"
           },
           "languages": {
             "n": "languages",
@@ -307,8 +280,7 @@ expression: registry_from_introspection(schema)
                 "D": "{}"
               }
             },
-            "t": "[Language!]!",
-            "D": "N"
+            "t": "[Language!]!"
           }
         },
         "r": "Query"
@@ -321,20 +293,17 @@ expression: registry_from_introspection(schema)
           "code": {
             "n": "code",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "country": {
             "n": "country",
             "a": {},
-            "t": "Country!",
-            "D": "N"
+            "t": "Country!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           }
         },
         "r": "State"
@@ -382,20 +351,17 @@ expression: registry_from_introspection(schema)
           "code": {
             "n": "code",
             "a": {},
-            "t": "ID!",
-            "D": "N"
+            "t": "ID!"
           },
           "emoji": {
             "n": "emoji",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           }
         },
         "r": "Subdivision"
@@ -415,32 +381,27 @@ expression: registry_from_introspection(schema)
                 "D": "false"
               }
             },
-            "t": "[__InputValue!]!",
-            "D": "N"
+            "t": "[__InputValue!]!"
           },
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "isRepeatable": {
             "n": "isRepeatable",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           },
           "locations": {
             "n": "locations",
             "a": {},
-            "t": "[__DirectiveLocation!]!",
-            "D": "N"
+            "t": "[__DirectiveLocation!]!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           }
         },
         "r": "__Directive"
@@ -539,26 +500,22 @@ expression: registry_from_introspection(schema)
           "deprecationReason": {
             "n": "deprecationReason",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "isDeprecated": {
             "n": "isDeprecated",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           }
         },
         "r": "__EnumValue"
@@ -578,38 +535,32 @@ expression: registry_from_introspection(schema)
                 "D": "false"
               }
             },
-            "t": "[__InputValue!]!",
-            "D": "N"
+            "t": "[__InputValue!]!"
           },
           "deprecationReason": {
             "n": "deprecationReason",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "isDeprecated": {
             "n": "isDeprecated",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "type": {
             "n": "type",
             "a": {},
-            "t": "__Type!",
-            "D": "N"
+            "t": "__Type!"
           }
         },
         "r": "__Field"
@@ -624,38 +575,32 @@ expression: registry_from_introspection(schema)
             "n": "defaultValue",
             "d": "A GraphQL-formatted string representing the default value for this input value.",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "deprecationReason": {
             "n": "deprecationReason",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "isDeprecated": {
             "n": "isDeprecated",
             "a": {},
-            "t": "Boolean!",
-            "D": "N"
+            "t": "Boolean!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String!",
-            "D": "N"
+            "t": "String!"
           },
           "type": {
             "n": "type",
             "a": {},
-            "t": "__Type!",
-            "D": "N"
+            "t": "__Type!"
           }
         },
         "r": "__InputValue"
@@ -669,43 +614,37 @@ expression: registry_from_introspection(schema)
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "directives": {
             "n": "directives",
             "d": "A list of all directives supported by this server.",
             "a": {},
-            "t": "[__Directive!]!",
-            "D": "N"
+            "t": "[__Directive!]!"
           },
           "mutationType": {
             "n": "mutationType",
             "d": "If this server supports mutation, the type that mutation operations will be rooted at.",
             "a": {},
-            "t": "__Type",
-            "D": "N"
+            "t": "__Type"
           },
           "queryType": {
             "n": "queryType",
             "d": "The type that query operations will be rooted at.",
             "a": {},
-            "t": "__Type!",
-            "D": "N"
+            "t": "__Type!"
           },
           "subscriptionType": {
             "n": "subscriptionType",
             "d": "If this server support subscription, the type that subscription operations will be rooted at.",
             "a": {},
-            "t": "__Type",
-            "D": "N"
+            "t": "__Type"
           },
           "types": {
             "n": "types",
             "d": "A list of all types supported by this server.",
             "a": {},
-            "t": "[__Type!]!",
-            "D": "N"
+            "t": "[__Type!]!"
           }
         },
         "r": "__Schema"
@@ -719,8 +658,7 @@ expression: registry_from_introspection(schema)
           "description": {
             "n": "description",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "enumValues": {
             "n": "enumValues",
@@ -731,8 +669,7 @@ expression: registry_from_introspection(schema)
                 "D": "false"
               }
             },
-            "t": "[__EnumValue!]",
-            "D": "N"
+            "t": "[__EnumValue!]"
           },
           "fields": {
             "n": "fields",
@@ -743,8 +680,7 @@ expression: registry_from_introspection(schema)
                 "D": "false"
               }
             },
-            "t": "[__Field!]",
-            "D": "N"
+            "t": "[__Field!]"
           },
           "inputFields": {
             "n": "inputFields",
@@ -755,44 +691,37 @@ expression: registry_from_introspection(schema)
                 "D": "false"
               }
             },
-            "t": "[__InputValue!]",
-            "D": "N"
+            "t": "[__InputValue!]"
           },
           "interfaces": {
             "n": "interfaces",
             "a": {},
-            "t": "[__Type!]",
-            "D": "N"
+            "t": "[__Type!]"
           },
           "kind": {
             "n": "kind",
             "a": {},
-            "t": "__TypeKind!",
-            "D": "N"
+            "t": "__TypeKind!"
           },
           "name": {
             "n": "name",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           },
           "ofType": {
             "n": "ofType",
             "a": {},
-            "t": "__Type",
-            "D": "N"
+            "t": "__Type"
           },
           "possibleTypes": {
             "n": "possibleTypes",
             "a": {},
-            "t": "[__Type!]",
-            "D": "N"
+            "t": "[__Type!]"
           },
           "specifiedByURL": {
             "n": "specifiedByURL",
             "a": {},
-            "t": "String",
-            "D": "N"
+            "t": "String"
           }
         },
         "r": "__Type"

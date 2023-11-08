@@ -5,9 +5,11 @@
 //! TODO: Manage deprecation
 use engine::{registry, registry::MetaEnumValue};
 use engine_parser::types::TypeKind;
-use if_chain::if_chain;
 
-use super::visitor::{Visitor, VisitorContext};
+use super::{
+    deprecated_directive::DeprecatedDirective,
+    visitor::{Visitor, VisitorContext},
+};
 
 pub struct EnumType;
 
@@ -17,23 +19,31 @@ impl<'a> Visitor<'a> for EnumType {
         ctx: &mut VisitorContext<'a>,
         type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
-        if_chain! {
-            if let TypeKind::Enum(enum_ty) = &type_definition.node.kind;
-            then {
-                let type_name = type_definition.node.name.node.to_string();
-                ctx.registry.get_mut().create_type(|_| {
-                    registry::EnumType::new(
-                        type_name.clone(),
-                        enum_ty.values.iter().map(|value| {
-                            MetaEnumValue::new(value.node.value.node.to_string())
-                                .with_description(value.node.description.clone().map(|x| x.node))
-                        }))
-                    .with_description(
-                        type_definition.node.description.clone().map(|x| x.node)
-                    ).into()
-                },
-                &type_name, &type_name);
-            }
-        }
+        let TypeKind::Enum(enum_ty) = &type_definition.node.kind else {
+            return;
+        };
+
+        let type_name = type_definition.node.name.node.to_string();
+
+        let values = enum_ty
+            .values
+            .iter()
+            .map(|value| {
+                let deprecation = DeprecatedDirective::from_directives(&value.node.directives, ctx);
+                MetaEnumValue::new(value.node.value.node.to_string())
+                    .with_description(value.node.description.clone().map(|x| x.node))
+                    .with_deprecation(deprecation.clone())
+            })
+            .collect::<Vec<_>>();
+
+        ctx.registry.get_mut().create_type(
+            |_| {
+                registry::EnumType::new(type_name.clone(), values)
+                    .with_description(type_definition.node.description.clone().map(|x| x.node))
+                    .into()
+            },
+            &type_name,
+            &type_name,
+        );
     }
 }

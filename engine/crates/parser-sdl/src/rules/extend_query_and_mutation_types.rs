@@ -5,7 +5,10 @@ use engine::registry::{
 };
 use engine_parser::types::{ObjectType, TypeKind};
 
-use super::visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE};
+use super::{
+    deprecated_directive::DeprecatedDirective,
+    visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE},
+};
 use crate::rules::{cache_directive::CacheDirective, resolver_directive::ResolverDirective};
 
 pub struct ExtendQueryAndMutationTypes;
@@ -48,10 +51,13 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     );
                     continue;
                 };
+                let deprecation = DeprecatedDirective::from_directives(&field.directives, ctx);
+
                 let (field_collection, cache_control) = match entry_point {
                     EntryPoint::Query => (&mut ctx.queries, CacheDirective::parse(&field.node.directives)),
                     EntryPoint::Mutation => (&mut ctx.mutations, Default::default()),
                 };
+
                 field_collection.push(MetaField {
                     name: name.clone(),
                     mapped_name: None,
@@ -68,7 +74,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                         })
                         .collect(),
                     ty: field.node.ty.clone().node.to_string().into(),
-                    deprecation: Default::default(),
+                    deprecation,
                     cache_control,
                     external: false,
                     r#override: None,

@@ -145,7 +145,6 @@ expression: req_string_a
       "O": {
         "f": {
           "userCreate": {
-            "D": "N",
             "_r": 1,
             "a": {
               "input": {
@@ -168,7 +167,6 @@ expression: req_string_a
             "t": "UserCreatePayload"
           },
           "userCreateMany": {
-            "D": "N",
             "_r": 1,
             "a": {
               "input": {
@@ -191,7 +189,6 @@ expression: req_string_a
             "t": "UserCreateManyPayload"
           },
           "userDelete": {
-            "D": "N",
             "_r": 16,
             "a": {
               "by": {
@@ -214,7 +211,6 @@ expression: req_string_a
             "t": "UserDeletePayload"
           },
           "userDeleteMany": {
-            "D": "N",
             "_r": 16,
             "a": {
               "input": {
@@ -237,7 +233,6 @@ expression: req_string_a
             "t": "UserDeleteManyPayload"
           },
           "userUpdate": {
-            "D": "N",
             "_r": 8,
             "a": {
               "by": {
@@ -267,7 +262,6 @@ expression: req_string_a
             "t": "UserUpdatePayload"
           },
           "userUpdateMany": {
-            "D": "N",
             "_r": 8,
             "a": {
               "input": {
@@ -298,7 +292,6 @@ expression: req_string_a
       "O": {
         "f": {
           "requiredField": {
-            "D": "N",
             "a": {},
             "n": "requiredField",
             "r_": {
@@ -346,7 +339,6 @@ expression: req_string_a
       "O": {
         "f": {
           "endCursor": {
-            "D": "N",
             "_r": 4,
             "a": {},
             "n": "endCursor",
@@ -367,7 +359,6 @@ expression: req_string_a
             "t": "String"
           },
           "hasNextPage": {
-            "D": "N",
             "_r": 4,
             "a": {},
             "n": "hasNextPage",
@@ -388,7 +379,6 @@ expression: req_string_a
             "t": "Boolean!"
           },
           "hasPreviousPage": {
-            "D": "N",
             "_r": 4,
             "a": {},
             "n": "hasPreviousPage",
@@ -409,7 +399,6 @@ expression: req_string_a
             "t": "Boolean!"
           },
           "startCursor": {
-            "D": "N",
             "_r": 4,
             "a": {},
             "n": "startCursor",
@@ -438,14 +427,12 @@ expression: req_string_a
       "O": {
         "f": {
           "__schema": {
-            "D": "N",
             "a": {},
             "d": "Access the current type schema of this server.",
             "n": "__schema",
             "t": "__Schema!"
           },
           "__type": {
-            "D": "N",
             "a": {
               "name": {
                 "n": "name",
@@ -457,7 +444,6 @@ expression: req_string_a
             "t": "__Type!"
           },
           "user": {
-            "D": "N",
             "_r": 2,
             "a": {
               "by": {
@@ -481,7 +467,6 @@ expression: req_string_a
             "t": "User"
           },
           "userCollection": {
-            "D": "N",
             "R": {
               "birectional": false,
               "kind": "OneToMany",
@@ -567,7 +552,6 @@ expression: req_string_a
         "I": true,
         "f": {
           "createdAt": {
-            "D": "N",
             "a": {},
             "d": "when the model was created",
             "n": "createdAt",
@@ -592,7 +576,6 @@ expression: req_string_a
             "t": "DateTime!"
           },
           "id": {
-            "D": "N",
             "a": {},
             "d": "Unique identifier",
             "n": "id",
@@ -617,7 +600,6 @@ expression: req_string_a
             "t": "ID!"
           },
           "nested": {
-            "D": "N",
             "a": {},
             "n": "nested",
             "r_": {
@@ -641,7 +623,6 @@ expression: req_string_a
             "t": "Nested"
           },
           "updatedAt": {
-            "D": "N",
             "a": {},
             "d": "when the model was updated",
             "n": "updatedAt",
@@ -699,14 +680,12 @@ expression: req_string_a
       "O": {
         "f": {
           "edges": {
-            "D": "N",
             "_r": 4,
             "a": {},
             "n": "edges",
             "t": "[UserEdge]"
           },
           "pageInfo": {
-            "D": "N",
             "_r": 4,
             "a": {},
             "d": "Information to aid in pagination",
@@ -747,7 +726,6 @@ expression: req_string_a
       "O": {
         "f": {
           "userCollection": {
-            "D": "N",
             "_r": 1,
             "a": {},
             "n": "userCollection",
@@ -772,7 +750,6 @@ expression: req_string_a
       "O": {
         "f": {
           "user": {
-            "D": "N",
             "_r": 1,
             "a": {},
             "n": "user",
@@ -812,7 +789,6 @@ expression: req_string_a
       "O": {
         "f": {
           "deletedIds": {
-            "D": "N",
             "_r": 16,
             "a": {},
             "n": "deletedIds",
@@ -834,7 +810,6 @@ expression: req_string_a
       "O": {
         "f": {
           "deletedId": {
-            "D": "N",
             "_r": 16,
             "a": {},
             "n": "deletedId",
@@ -856,7 +831,6 @@ expression: req_string_a
       "O": {
         "f": {
           "cursor": {
-            "D": "N",
             "_r": 4,
             "a": {},
             "n": "cursor",
@@ -884,7 +858,6 @@ expression: req_string_a
             "t": "String!"
           },
           "node": {
-            "D": "N",
             "_r": 4,
             "a": {},
             "n": "node",
@@ -941,7 +914,6 @@ expression: req_string_a
       "O": {
         "f": {
           "userCollection": {
-            "D": "N",
             "_r": 8,
             "a": {},
             "n": "userCollection",
@@ -966,7 +938,6 @@ expression: req_string_a
       "O": {
         "f": {
           "user": {
-            "D": "N",
             "_r": 8,
             "a": {},
             "n": "user",
@@ -995,31 +966,26 @@ expression: req_string_a
         "d": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
         "f": {
           "args": {
-            "D": "N",
             "a": {},
             "n": "args",
             "t": "[__InputValue!]!"
           },
           "description": {
-            "D": "N",
             "a": {},
             "n": "description",
             "t": "String"
           },
           "isRepeatable": {
-            "D": "N",
             "a": {},
             "n": "isRepeatable",
             "t": "Boolean!"
           },
           "locations": {
-            "D": "N",
             "a": {},
             "n": "locations",
             "t": "[__DirectiveLocation!]!"
           },
           "name": {
-            "D": "N",
             "a": {},
             "n": "name",
             "t": "String!"
@@ -1119,25 +1085,21 @@ expression: req_string_a
         "d": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
         "f": {
           "deprecationReason": {
-            "D": "N",
             "a": {},
             "n": "deprecationReason",
             "t": "String"
           },
           "description": {
-            "D": "N",
             "a": {},
             "n": "description",
             "t": "String"
           },
           "isDeprecated": {
-            "D": "N",
             "a": {},
             "n": "isDeprecated",
             "t": "Boolean!"
           },
           "name": {
-            "D": "N",
             "a": {},
             "n": "name",
             "t": "String!"
@@ -1152,37 +1114,31 @@ expression: req_string_a
         "d": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
         "f": {
           "args": {
-            "D": "N",
             "a": {},
             "n": "args",
             "t": "[__InputValue!]!"
           },
           "deprecationReason": {
-            "D": "N",
             "a": {},
             "n": "deprecationReason",
             "t": "String"
           },
           "description": {
-            "D": "N",
             "a": {},
             "n": "description",
             "t": "String"
           },
           "isDeprecated": {
-            "D": "N",
             "a": {},
             "n": "isDeprecated",
             "t": "Boolean!"
           },
           "name": {
-            "D": "N",
             "a": {},
             "n": "name",
             "t": "String!"
           },
           "type": {
-            "D": "N",
             "a": {},
             "n": "type",
             "t": "__Type!"
@@ -1197,25 +1153,21 @@ expression: req_string_a
         "d": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
         "f": {
           "defaultValue": {
-            "D": "N",
             "a": {},
             "n": "defaultValue",
             "t": "String"
           },
           "description": {
-            "D": "N",
             "a": {},
             "n": "description",
             "t": "String"
           },
           "name": {
-            "D": "N",
             "a": {},
             "n": "name",
             "t": "String!"
           },
           "type": {
-            "D": "N",
             "a": {},
             "n": "type",
             "t": "__Type!"
@@ -1230,41 +1182,35 @@ expression: req_string_a
         "d": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
         "f": {
           "description": {
-            "D": "N",
             "a": {},
             "n": "description",
             "t": "String"
           },
           "directives": {
-            "D": "N",
             "a": {},
             "d": "A list of all directives supported by this server.",
             "n": "directives",
             "t": "[__Directive!]!"
           },
           "mutationType": {
-            "D": "N",
             "a": {},
             "d": "If this server supports mutation, the type that mutation operations will be rooted at.",
             "n": "mutationType",
             "t": "__Type"
           },
           "queryType": {
-            "D": "N",
             "a": {},
             "d": "The type that query operations will be rooted at.",
             "n": "queryType",
             "t": "__Type!"
           },
           "subscriptionType": {
-            "D": "N",
             "a": {},
             "d": "If this server support subscription, the type that subscription operations will be rooted at.",
             "n": "subscriptionType",
             "t": "__Type"
           },
           "types": {
-            "D": "N",
             "a": {},
             "d": "A list of all types supported by this server.",
             "n": "types",
@@ -1280,13 +1226,11 @@ expression: req_string_a
         "d": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
         "f": {
           "description": {
-            "D": "N",
             "a": {},
             "n": "description",
             "t": "String"
           },
           "enumValues": {
-            "D": "N",
             "a": {
               "includeDeprecated": {
                 "D": false,
@@ -1298,7 +1242,6 @@ expression: req_string_a
             "t": "[__EnumValue!]"
           },
           "fields": {
-            "D": "N",
             "a": {
               "includeDeprecated": {
                 "D": false,
@@ -1310,49 +1253,41 @@ expression: req_string_a
             "t": "[__Field!]"
           },
           "inputFields": {
-            "D": "N",
             "a": {},
             "n": "inputFields",
             "t": "[__InputValue!]"
           },
           "interfaces": {
-            "D": "N",
             "a": {},
             "n": "interfaces",
             "t": "[__Type!]"
           },
           "isOneOf": {
-            "D": "N",
             "a": {},
             "n": "isOneOf",
             "t": "Boolean"
           },
           "kind": {
-            "D": "N",
             "a": {},
             "n": "kind",
             "t": "__TypeKind!"
           },
           "name": {
-            "D": "N",
             "a": {},
             "n": "name",
             "t": "String"
           },
           "ofType": {
-            "D": "N",
             "a": {},
             "n": "ofType",
             "t": "__Type"
           },
           "possibleTypes": {
-            "D": "N",
             "a": {},
             "n": "possibleTypes",
             "t": "[__Type!]"
           },
           "specifiedByURL": {
-            "D": "N",
             "a": {},
             "n": "specifiedByURL",
             "t": "String"
