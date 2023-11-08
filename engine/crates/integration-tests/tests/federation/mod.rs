@@ -1,5 +1,6 @@
 mod errors;
 mod introspection;
+mod keys;
 mod openapi;
 mod requires;
 
