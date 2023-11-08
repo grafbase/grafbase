@@ -2,7 +2,7 @@ mod project_ref;
 
 use self::project_ref::ProjectRef;
 use crate::create::CreateArguments;
-use clap::{arg, command, CommandFactory, Parser, ValueEnum};
+use clap::{arg, command, ArgGroup, CommandFactory, Parser, ValueEnum};
 use clap_complete::{shells, Generator};
 use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
@@ -14,8 +14,10 @@ use std::{
     path::PathBuf,
 };
 use ulid::Ulid;
+use url::Url;
 
-const DEFAULT_PORT: u16 = 4000;
+const DEFAULT_SUBGRAPH_PORT: u16 = 4000;
+const DEFAULT_FEDERATION_PORT: u16 = 4500;
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, PartialOrd, serde::Deserialize, clap::ValueEnum)]
 #[clap(rename_all = "snake_case")]
@@ -49,10 +51,11 @@ pub struct LogLevelFilters {
 }
 
 #[derive(Debug, Parser)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct DevCommand {
     /// Use a specific port
-    #[arg(short, long, default_value_t = DEFAULT_PORT)]
-    pub port: u16,
+    #[arg(short, long)]
+    pub port: Option<u16>,
     /// If a given port is unavailable, search for another
     #[arg(short, long)]
     pub search: bool,
@@ -74,6 +77,9 @@ pub struct DevCommand {
     /// A shortcut to enable fairly detailed logging
     #[arg(short, long, conflicts_with = "log_level")]
     pub verbose: bool,
+    /// Federated graph development service
+    #[arg(short, long)]
+    pub federated: bool,
 }
 
 impl DevCommand {
@@ -100,6 +106,14 @@ impl DevCommand {
                 .log_level_fetch_requests
                 .unwrap_or(default_log_levels.fetch_requests),
         }
+    }
+
+    pub fn subgraph_port(&self) -> u16 {
+        self.port.unwrap_or(DEFAULT_SUBGRAPH_PORT)
+    }
+
+    pub fn federation_port(&self) -> u16 {
+        self.port.unwrap_or(DEFAULT_FEDERATION_PORT)
     }
 }
 
@@ -244,7 +258,7 @@ impl BuildCommand {
 #[derive(Debug, clap::Args)]
 pub struct StartCommand {
     /// Use a specific port
-    #[arg(short, long, default_value_t = DEFAULT_PORT)]
+    #[arg(short, long, default_value_t = DEFAULT_SUBGRAPH_PORT)]
     pub port: u16,
     /// Log level to print from function invocations, defaults to 'log-level'
     #[arg(long, value_name = "FUNCTION_LOG_LEVEL")]
@@ -340,24 +354,60 @@ pub struct SchemaCommand {
 
 /// Publish a subgraph
 #[derive(Debug, Parser)]
+#[clap(
+    group(
+        ArgGroup::new("dev-or-production")
+            .required(true)
+            .args(&["dev", "project_ref"])
+    ),
+    group(
+        ArgGroup::new("dev-or-schema")
+            .required(true)
+            .args(&["dev", "schema_path"])
+    )
+)]
 pub struct PublishCommand {
     #[arg(help = ProjectRef::ARG_DESCRIPTION)]
-    pub(crate) project_ref: ProjectRef,
+    pub(crate) project_ref: Option<ProjectRef>,
 
+    /// Publish to a running development server
+    #[arg(long)]
+    pub(crate) dev: bool,
+
+    /// The name of the subgraph
     #[arg(long("name"))]
     pub(crate) subgraph_name: String,
 
+    /// The path to the schema file
     #[arg(long("schema"))]
-    pub(crate) schema_path: String,
+    pub(crate) schema_path: Option<String>,
 
+    /// The URL to the GraphQL endpoint
     #[arg(long)]
-    pub(crate) url: String,
+    pub(crate) url: Url,
+
+    /// The listening port of the federated dev
+    #[arg(long, default_value_t = 4500)]
+    pub(crate) dev_api_port: u16,
+
+    /// Add a header to the introspection request
+    #[clap(short = 'H', long, value_parser, num_args = 0..)]
+    header: Vec<String>,
+}
+
+impl PublishCommand {
+    pub(crate) fn headers(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.header.iter().map(|header| {
+            let mut splitted = header.split(':');
+            (splitted.next().unwrap_or(""), splitted.next().unwrap_or("").trim())
+        })
+    }
 }
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum SubCommand {
-    /// Run your Grafbase project locally
+    /// Local development
     Dev(DevCommand),
     /// Output completions for the chosen shell to use, write the output to the
     /// appropriate location for your shell
@@ -385,7 +435,6 @@ pub enum SubCommand {
     /// Build the Grafbase project in advance to avoid the resolver build step in the start
     /// command.
     Build(BuildCommand),
-
     /// Introspect a subgraph endpoint and print its schema
     Introspect(IntrospectCommand),
     /// List subgraphs
@@ -394,7 +443,7 @@ pub enum SubCommand {
     /// Fetch a federated graph or a subgraph
     #[clap(hide = true)]
     Schema(SchemaCommand),
-    /// Publish a subgraph
+    /// Publish a subgraph to a federated graph
     #[clap(hide = true)]
     Publish(PublishCommand),
 }
@@ -421,9 +470,13 @@ fn filter_existing_arguments(arguments: &[(bool, &'static str)]) -> Option<Vec<&
 impl ArgumentNames for DevCommand {
     fn argument_names(&self) -> Option<Vec<&'static str>> {
         filter_existing_arguments(&[
-            (self.port != DEFAULT_PORT, "port"),
+            (
+                self.subgraph_port() != DEFAULT_SUBGRAPH_PORT || self.federation_port() != DEFAULT_FEDERATION_PORT,
+                "port",
+            ),
             (self.search, "search"),
             (self.disable_watch, "disable-watch"),
+            (self.federated, "federated"),
         ])
     }
 }
@@ -479,7 +532,7 @@ impl SubCommand {
             self,
             Self::Create(_)
                 | Self::Deploy
-                | Self::Dev(_)
+                | Self::Dev(DevCommand { federated: false, .. })
                 | Self::Link(_)
                 | Self::Logs(LogsCommand {
                     project_branch: None,

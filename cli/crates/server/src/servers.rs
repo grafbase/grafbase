@@ -326,7 +326,7 @@ async fn spawn_servers(
     Ok(())
 }
 
-fn export_embedded_files() -> Result<(), ServerError> {
+pub fn export_embedded_files() -> Result<(), ServerError> {
     let environment = Environment::get();
 
     let current_version = env!("CARGO_PKG_VERSION");

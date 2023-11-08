@@ -78,7 +78,7 @@ where
 #[async_trait::async_trait]
 impl SchemaSource for MockGraphQlServer {
     async fn sdl(&self) -> String {
-        grafbase_graphql_introspection::introspect(&self.url(), &[])
+        grafbase_graphql_introspection::introspect(&self.url(), &[] as &[(&str, &str)])
             .await
             .expect("introspection to succeed")
     }

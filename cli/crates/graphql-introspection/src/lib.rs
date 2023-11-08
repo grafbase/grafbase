@@ -1,7 +1,7 @@
 mod standard;
 mod subgraph;
 
-pub async fn introspect(url: &str, headers: &[(&str, &str)]) -> Result<String, String> {
+pub async fn introspect(url: &str, headers: &[(impl AsRef<str>, impl AsRef<str>)]) -> Result<String, String> {
     if let Ok(result) = subgraph::introspect(url, headers).await {
         return Ok(prettify(result));
     };

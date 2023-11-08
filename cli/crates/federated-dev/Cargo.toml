@@ -1,0 +1,26 @@
+[package]
+name = "federated-dev"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-graphql = { version = "6.0.10", features = ["url"] }
+async-graphql-axum = "6.0.10"
+graphql-composition.workspace = true
+axum = { workspace = true, features = ["headers"] }
+tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
+async-graphql-parser = "6.0.10"
+grafbase-graphql-introspection = { path = "../graphql-introspection" }
+url = "2.4.1"
+indoc = "2.0.4"
+reqwest = { version = "0.11.22", default-features = false, features = ["json", "rustls"] }
+serde_json.workspace = true
+serde = "1.0.192"
+thiserror = "1.0.50"
+handlebars = "4.5.0"
