@@ -5,7 +5,7 @@ import urql, {
   ssrExchange
 } from '@urql/vue'
 import { devtoolsExchange } from '@urql/devtools'
-import { defineNuxtPlugin, useRuntimeConfig } from '#app'
+import { defineNuxtPlugin, useRuntimeConfig } from '#imports'
 import { cacheExchange } from '@/graphql/urql.exchange'
 
 export default defineNuxtPlugin((nuxtApp) => {
