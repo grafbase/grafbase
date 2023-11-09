@@ -42,7 +42,7 @@ impl<'a> Context<'a> {
         self.selection_map.insert(key, field_id);
         self.out
             .object_fields
-            .push(federated::ObjectField { object_id, field_id })
+            .push(federated::ObjectField { object_id, field_id });
     }
 
     pub(crate) fn push_interface_field(&mut self, interface_id: federated::InterfaceId, field_id: federated::FieldId) {
@@ -50,6 +50,6 @@ impl<'a> Context<'a> {
         self.selection_map.insert(key, field_id);
         self.out
             .interface_fields
-            .push(federated::InterfaceField { interface_id, field_id })
+            .push(federated::InterfaceField { interface_id, field_id });
     }
 }

@@ -142,7 +142,7 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
         first.r#type().id,
         arguments,
         resolvable_in,
-    )
+    );
 }
 
 fn merge_union_definitions(

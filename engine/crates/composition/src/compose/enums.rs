@@ -72,7 +72,7 @@ fn merge_intersection(first: &DefinitionWalker<'_>, definitions: &[DefinitionWal
     let enum_id = ctx.insert_enum(first.name());
 
     for value in intersection {
-        ctx.insert_enum_value(enum_id, first.walk(value))
+        ctx.insert_enum_value(enum_id, first.walk(value));
     }
 }
 
@@ -80,7 +80,7 @@ fn merge_union(first: &DefinitionWalker<'_>, definitions: &[DefinitionWalker<'_>
     let enum_id = ctx.insert_enum(first.name());
 
     for value in definitions.iter().flat_map(|def| def.enum_values()) {
-        ctx.insert_enum_value(enum_id, first.walk(value))
+        ctx.insert_enum_value(enum_id, first.walk(value));
     }
 }
 
@@ -100,7 +100,7 @@ fn merge_exactly_matching(first: &DefinitionWalker<'_>, definitions: &[Definitio
     let enum_id = ctx.insert_enum(first.name());
 
     for value in expected {
-        ctx.insert_enum_value(enum_id, first.walk(value))
+        ctx.insert_enum_value(enum_id, first.walk(value));
     }
 }
 

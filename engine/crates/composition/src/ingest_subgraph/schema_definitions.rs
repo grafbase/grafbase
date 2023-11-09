@@ -135,10 +135,14 @@ fn read_imports<'a>(ast_imports: &'a [ConstValue], out: &mut Vec<(&'a str, &'a s
 mod federation_directives_matcher_tests {
     use super::*;
 
+    use miette as _;  
+    use similar as _;
+    use datatest_stable as _;
+
     fn with_matcher_for_schema(graphql_sdl: &str, test: impl FnOnce(FederationDirectivesMatcher<'_>)) {
         let ast = async_graphql_parser::parse_schema(graphql_sdl).unwrap();
         let matcher = ingest_schema_definitions(&ast);
-        test(matcher)
+        test(matcher);
     }
 
     #[test]

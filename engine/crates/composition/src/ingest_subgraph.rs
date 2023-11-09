@@ -63,8 +63,7 @@ fn ingest_top_level_definitions(
                     }
                 }
             }
-            ast::TypeSystemDefinition::Schema(_) => (),
-            ast::TypeSystemDefinition::Directive(_) => (),
+            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
         }
     }
 }

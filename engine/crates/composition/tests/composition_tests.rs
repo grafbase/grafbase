@@ -1,5 +1,9 @@
 use std::{fs, path::Path, sync::OnceLock};
 
+use async_graphql_value as _;
+use indexmap as _;
+use itertools as _;
+
 fn update_expect() -> bool {
     static UPDATE_EXPECT: OnceLock<bool> = OnceLock::new();
     *UPDATE_EXPECT.get_or_init(|| std::env::var("UPDATE_EXPECT").is_ok())

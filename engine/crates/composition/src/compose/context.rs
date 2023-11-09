@@ -43,7 +43,7 @@ impl<'a> Context<'a> {
     }
 
     pub(crate) fn insert_enum_value(&mut self, enum_id: federated::EnumId, value: StringWalker<'_>) {
-        self.ir.insert_enum_value(enum_id, value)
+        self.ir.insert_enum_value(enum_id, value);
     }
 
     pub(crate) fn insert_field(
@@ -55,7 +55,7 @@ impl<'a> Context<'a> {
         resolvable_in: Vec<federated::SubgraphId>,
     ) {
         self.ir
-            .insert_field(parent_name, field_name, field_type, arguments, resolvable_in)
+            .insert_field(parent_name, field_name, field_type, arguments, resolvable_in);
     }
 
     pub(crate) fn insert_input_object(&mut self, name: StringWalker<'_>) -> federated::InputObjectId {
@@ -71,7 +71,7 @@ impl<'a> Context<'a> {
     }
 
     pub(crate) fn insert_scalar(&mut self, name: StringWalker<'_>) {
-        self.ir.insert_scalar(name)
+        self.ir.insert_scalar(name);
     }
 
     pub(crate) fn insert_union(&mut self, name: StringWalker<'_>) -> federated::UnionId {
@@ -79,11 +79,11 @@ impl<'a> Context<'a> {
     }
 
     pub(crate) fn insert_union_member(&mut self, union_name: subgraphs::StringId, member_name: subgraphs::StringId) {
-        self.ir.insert_union_member(union_name, member_name)
+        self.ir.insert_union_member(union_name, member_name);
     }
 
     pub(crate) fn insert_resolvable_key(&mut self, object_id: federated::ObjectId, key_id: subgraphs::KeyId) {
-        self.ir.insert_resolvable_key(object_id, key_id)
+        self.ir.insert_resolvable_key(object_id, key_id);
     }
 }
 

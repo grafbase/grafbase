@@ -50,7 +50,7 @@ impl Subgraphs {
     pub(crate) fn push_field_argument(&mut self, field: FieldId, argument_name: &str, argument_type: FieldTypeId) {
         let argument_name = self.strings.intern(argument_name);
         let field = &mut self.fields.0[field.0];
-        field.arguments.push((argument_name, argument_type))
+        field.arguments.push((argument_name, argument_type));
     }
 }
 

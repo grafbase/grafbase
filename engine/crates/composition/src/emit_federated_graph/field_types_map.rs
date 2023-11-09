@@ -1,3 +1,5 @@
+#![allow(clippy::panic)]
+
 use super::Context;
 use crate::{subgraphs, VecExt};
 use grafbase_federated_graph as federated;

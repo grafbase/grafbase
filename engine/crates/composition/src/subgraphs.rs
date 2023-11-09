@@ -51,7 +51,7 @@ pub struct Subgraphs {
 impl Subgraphs {
     /// Add a subgraph to compose.
     pub fn ingest(&mut self, subgraph_schema: &async_graphql_parser::types::ServiceDocument, name: &str) {
-        crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, self)
+        crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, self);
     }
 
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The
