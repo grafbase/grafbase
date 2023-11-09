@@ -470,22 +470,31 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
         self.writeln_str("}\n")
     }
 
-    fn remove_prefix_from_type<'x>(&self, ty: &'x str) -> String {
+    fn remove_prefix_from_type(&self, ty: &str) -> String {
         // We remove the `prefix` from condition types, as these are local to Grafbase, and
         // should not be sent to the upstream server.
         let wrappers = WrappingType::all_for(ty);
-        let ty = MetaTypeName::concrete_typename(ty);
-        let mut ty = ty
+        let mut out = String::with_capacity(ty.len());
+        for wrapper in &wrappers {
+            if let WrappingType::List = wrapper {
+                write!(&mut out, "[").ok();
+            }
+        }
+
+        let stripped_type = MetaTypeName::concrete_typename(ty);
+        let stripped_type = stripped_type
             .strip_prefix(self.prefix.unwrap_or_default())
-            .unwrap_or(ty)
+            .unwrap_or(stripped_type)
             .to_string();
-        for wrapper in wrappers {
-            ty = match wrapper {
-                WrappingType::List => format!("[{}]", ty),
-                WrappingType::NonNull => format!("{}!", ty),
+        write!(&mut out, "{stripped_type}",).ok();
+
+        for wrapper in wrappers.iter().rev() {
+            match wrapper {
+                WrappingType::List => write!(&mut out, "]").ok(),
+                WrappingType::NonNull => write!(&mut out, "!").ok(),
             };
         }
-        ty
+        out
     }
 }
 
