@@ -1,8 +1,10 @@
-use crate::error::Error;
+use std::str::FromStr;
+
 use search_protocol::query::GraphqlCursor;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::str::FromStr;
+
+use crate::error::Error;
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 #[repr(u8)]

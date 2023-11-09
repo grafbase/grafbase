@@ -1,8 +1,10 @@
-use super::ResolvedPaginationInfo;
-use crate::QueryPathSegment;
+use std::{borrow::Borrow, sync::Arc};
+
 use internment::ArcIntern;
 use serde_json::Value;
-use std::{borrow::Borrow, sync::Arc};
+
+use super::ResolvedPaginationInfo;
+use crate::QueryPathSegment;
 
 /// ResolvedValue are values passed arround between resolvers, it contains the actual Resolver data
 /// but will also contain other informations wich may be use later by custom resolvers, like for

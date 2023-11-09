@@ -1,5 +1,6 @@
 use serde::Serialize;
 
+use super::AtlasQuery;
 use crate::{
     registry::{
         resolvers::{
@@ -10,8 +11,6 @@ use crate::{
     },
     ContextField, Error,
 };
-
-use super::AtlasQuery;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

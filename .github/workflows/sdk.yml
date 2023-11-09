@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'sdk-*'
+defaults:
+  run:
+    shell: bash
+    working-directory: ./packages
 
 permissions:
   contents: read

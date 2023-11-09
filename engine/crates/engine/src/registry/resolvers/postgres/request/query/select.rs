@@ -3,9 +3,8 @@ use grafbase_sql_ast::ast::{
     Select, Table,
 };
 
-use crate::registry::resolvers::postgres::context::TableSelection;
-
 use super::SelectBuilder;
+use crate::registry::resolvers::postgres::context::TableSelection;
 
 /// Builds the outermost query of the selection. Gathers all the data from the nested
 /// queries into a JSON array, which is serialized in the database.

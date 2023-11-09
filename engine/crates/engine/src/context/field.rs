@@ -8,6 +8,7 @@ use engine_value::ConstValue;
 use serde::de::DeserializeOwned;
 use ulid::Ulid;
 
+use super::ContextExt;
 use crate::{
     parser::types::{Field, SelectionSet},
     query_path::QueryPath,
@@ -21,8 +22,6 @@ use crate::{
     Context, ContextSelectionSet, LegacyInputType, Lookahead, Pos, Positioned, QueryEnv, QueryPathSegment,
     SelectionField, ServerError, ServerResult,
 };
-
-use super::ContextExt;
 
 /// Context when we're resolving a `Field`
 #[derive(Clone)]

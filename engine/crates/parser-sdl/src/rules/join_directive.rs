@@ -5,9 +5,8 @@ use engine_parser::{parse_field, types::ConstDirective, Positioned};
 use engine_value::{Name, Value};
 use serde::de::Error;
 
-use crate::directive_de::parse_directive;
-
 use super::{directive::Directive, visitor::VisitorContext};
+use crate::directive_de::parse_directive;
 
 #[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -109,9 +108,8 @@ mod tests {
     use serde::Deserialize;
     use serde_json::json;
 
-    use crate::tests::assert_validation_error;
-
     use super::*;
+    use crate::tests::assert_validation_error;
 
     #[test]
     fn join_happy_path() {

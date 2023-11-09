@@ -2,14 +2,14 @@ mod conversion;
 mod executor;
 mod transaction;
 
+use async_trait::async_trait;
+use futures::stream::BoxStream;
+use serde_json::Value;
 pub use tokio_postgres::Transaction;
 
 use self::conversion::json_to_string;
 use super::Transport;
 use crate::error::Error;
-use async_trait::async_trait;
-use futures::stream::BoxStream;
-use serde_json::Value;
 
 pub struct TcpTransport {
     client: tokio_postgres::Client,

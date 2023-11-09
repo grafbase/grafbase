@@ -1,5 +1,6 @@
-use crate::registry::resolvers::postgres::context::{FilterIterator, PostgresContext, TableSelection};
 use grafbase_sql_ast::ast::{json_build_object, Aliasable, Column, ConditionTree, Delete, Table};
+
+use crate::registry::resolvers::postgres::context::{FilterIterator, PostgresContext, TableSelection};
 
 pub fn build<'a>(ctx: &'a PostgresContext<'a>, filter: FilterIterator<'a>) -> Result<Delete<'a>, crate::Error> {
     let sql_table = Table::from((ctx.table().schema(), ctx.table().database_name())).alias(ctx.table().database_name());

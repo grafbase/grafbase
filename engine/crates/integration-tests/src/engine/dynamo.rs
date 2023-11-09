@@ -2,7 +2,6 @@ use std::{collections::HashMap, sync::Arc};
 
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
 use engine::SchemaBuilder;
-
 use rusoto_core::{credential::StaticProvider, HttpClient, RusotoError};
 use rusoto_dynamodb::{
     AttributeDefinition, CreateTableError, CreateTableInput, DynamoDb, DynamoDbClient, GlobalSecondaryIndex,

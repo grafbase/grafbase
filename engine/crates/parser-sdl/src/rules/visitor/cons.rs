@@ -1,4 +1,3 @@
-use super::{Visitor, VisitorContext};
 use engine_parser::{
     types::{
         ConstDirective, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition, ServiceDocument,
@@ -7,6 +6,8 @@ use engine_parser::{
     Positioned,
 };
 use engine_value::{ConstValue, Name};
+
+use super::{Visitor, VisitorContext};
 
 /// Concat rule
 pub struct VisitorCons<A, B>(pub A, pub B);

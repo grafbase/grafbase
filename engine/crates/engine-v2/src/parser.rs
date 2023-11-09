@@ -1,7 +1,5 @@
-use engine_parser::{Pos, Positioned};
-
 use engine::{ServerError, ServerResult};
-
+use engine_parser::{Pos, Positioned};
 use graph::{FieldId, FieldTypeId, Graph, InterfaceId, ObjectId, StringId, UnionId};
 
 #[allow(dead_code)]

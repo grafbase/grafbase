@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 use engine_parser::types::{OperationDefinition, OperationType, Selection};
 use graph_entities::QueryResponse;
@@ -8,11 +8,9 @@ use http::{
 };
 use runtime::cache::Cacheable;
 use serde::{ser::SerializeMap, Deserialize, Serialize};
-use std::time::Duration;
+pub use streaming::*;
 
 use crate::{CacheControl, Result, ServerError, Value};
-
-pub use streaming::*;
 
 mod streaming;
 

@@ -1,4 +1,3 @@
-use super::VisitorContext;
 use engine_parser::{
     types::{
         ConstDirective, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition, ServiceDocument,
@@ -7,6 +6,8 @@ use engine_parser::{
     Positioned,
 };
 use engine_value::{ConstValue, Name};
+
+use super::VisitorContext;
 
 pub trait Visitor<'a> {
     fn enter_document(&mut self, _ctx: &mut VisitorContext<'a>, _doc: &'a ServiceDocument) {}

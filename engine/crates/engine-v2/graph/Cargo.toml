@@ -11,5 +11,5 @@ repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
 
 [dependencies]
-federated-graph = { package = "grafbase-federated-graph", path = "../../../../crates/federated-graph" }
+federated-graph = { package = "grafbase-federated-graph", path = "../../federated-graph" }
 

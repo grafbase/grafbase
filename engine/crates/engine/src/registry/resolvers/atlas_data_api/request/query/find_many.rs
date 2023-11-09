@@ -1,3 +1,8 @@
+use indexmap::IndexMap;
+use runtime::search::GraphqlCursor;
+use serde::Serialize;
+use serde_json::Value;
+
 use super::AtlasQuery;
 use crate::{
     names::OUTPUT_EDGE_CURSOR,
@@ -15,10 +20,6 @@ use crate::{
     },
     Context, ContextField, Error,
 };
-use indexmap::IndexMap;
-use runtime::search::GraphqlCursor;
-use serde::Serialize;
-use serde_json::Value;
 
 #[derive(Debug, Clone)]
 struct Metadata {

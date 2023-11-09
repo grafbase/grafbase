@@ -1,9 +1,10 @@
-use crate::error::Error;
 use serde_json::{Map, Value};
 use tokio_postgres::{
     types::{Kind, Type},
     Row,
 };
+
+use crate::error::Error;
 
 pub(super) fn json_to_string(json: Vec<Value>) -> Vec<Option<String>> {
     json.iter()

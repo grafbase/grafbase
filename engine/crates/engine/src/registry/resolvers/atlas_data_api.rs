@@ -8,12 +8,14 @@ mod projection;
 mod request;
 mod value;
 
-use super::{ResolvedValue, ResolverContext};
-use crate::{ContextExt, ContextField, Error};
+use std::pin::Pin;
+
 use async_runtime::make_send_on_wasm;
 use futures_util::Future;
 pub use operation::OperationType;
-use std::pin::Pin;
+
+use super::{ResolvedValue, ResolverContext};
+use crate::{ContextExt, ContextField, Error};
 
 type JsonMap = serde_json::Map<String, serde_json::Value>;
 

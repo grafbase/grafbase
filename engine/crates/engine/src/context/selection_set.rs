@@ -2,6 +2,7 @@ use std::fmt::{self, Formatter};
 
 use ulid::Ulid;
 
+use super::ext::Context;
 use crate::{
     parser::types::{Field, SelectionSet},
     query_path::QueryPath,
@@ -9,8 +10,6 @@ use crate::{
     schema::SchemaEnv,
     ContextField, Positioned, QueryEnv,
 };
-
-use super::ext::Context;
 
 #[derive(Clone)]
 pub struct ContextSelectionSet<'a> {

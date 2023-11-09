@@ -2,12 +2,11 @@ use futures_util::future::join_all;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+use super::{dynamo_querying::DynamoResolver, ResolvedValue, ResolverContext};
 use crate::{
     registry::{federation::FederationResolver, variables::VariableResolveDefinition, NamedType},
     Context, ContextExt, ContextField, Error,
 };
-
-use super::{dynamo_querying::DynamoResolver, ResolvedValue, ResolverContext};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 struct Representation {

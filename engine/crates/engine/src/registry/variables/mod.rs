@@ -13,12 +13,11 @@ use runtime::search::GraphqlCursor;
 use serde::{de::DeserializeOwned, Serialize};
 
 use self::oneof::OneOf;
+use super::InputValueType;
 use crate::{
     resolver_utils::{apply_input_transforms, InputResolveMode},
     ContextField, Error, ServerError, ServerResult, Value,
 };
-
-use super::InputValueType;
 
 pub mod id;
 pub mod oneof;

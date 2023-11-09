@@ -1,5 +1,13 @@
 mod query;
 
+use http::{
+    header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
+    StatusCode,
+};
+use query::{AtlasQuery, DeleteMany, DeleteOne, FindMany, FindOne, InsertMany, InsertOne, UpdateMany, UpdateOne};
+use serde::Serialize;
+use serde_json::Value;
+
 use super::OperationType;
 use crate::{
     registry::{
@@ -8,13 +16,6 @@ use crate::{
     },
     ContextExt, ContextField, Error,
 };
-use http::{
-    header::{ACCEPT, CONTENT_TYPE, USER_AGENT},
-    StatusCode,
-};
-use query::{AtlasQuery, DeleteMany, DeleteOne, FindMany, FindOne, InsertMany, InsertOne, UpdateMany, UpdateOne};
-use serde::Serialize;
-use serde_json::Value;
 
 mod headers {
     pub const API_KEY_HEADER_NAME: &str = "apiKey";

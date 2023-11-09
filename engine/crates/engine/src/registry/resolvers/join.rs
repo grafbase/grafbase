@@ -3,9 +3,8 @@ use std::collections::BTreeMap;
 use engine_parser::{types::Field, Positioned};
 use engine_value::{argument_set::ArgumentSet, ConstValue, Name, Value};
 
-use crate::{Context, ContextField, Error};
-
 use super::{ResolvedValue, ResolverContext};
+use crate::{Context, ContextField, Error};
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]

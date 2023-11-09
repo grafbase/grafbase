@@ -1,0 +1,23 @@
+{
+  "name": "grafbase",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": ["*"],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "build-cli-app": "cd cli-app && pnpm run cli-app:build",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "eslint-config-grafbase": "workspace:*",
+    "prettier": "latest",
+    "turbo": "latest"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.6.12"
+}

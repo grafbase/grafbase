@@ -1,14 +1,13 @@
 mod ext;
 mod tcp;
 
-pub use ext::TransportExt;
-pub use tcp::{TcpTransport, Transaction};
-
-use crate::database_definition::ScalarType;
-use crate::error::Error;
 use async_trait::async_trait;
+pub use ext::TransportExt;
 use futures::stream::BoxStream;
 use serde_json::Value;
+pub use tcp::{TcpTransport, Transaction};
+
+use crate::{database_definition::ScalarType, error::Error};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Column {

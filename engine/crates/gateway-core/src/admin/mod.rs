@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use super::{CacheConfig, RequestContext};
 use async_graphql::{EmptySubscription, Schema};
 use runtime::cache::Cache;
 use tracing::Instrument;
+
+use super::{CacheConfig, RequestContext};
 
 mod error;
 mod graphql;

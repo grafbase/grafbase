@@ -35,7 +35,7 @@
         inherit system;
       };
 
-      aarch64DarwinExternalCargoCrates = concatStringsSep " " [ "cargo-instruments@0.4.8" ];
+      aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8"];
 
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
@@ -92,10 +92,8 @@
       };
 
       mkPnpmPackage = pnpm2nix.packages."${system}".mkPnpmPackage;
-
-    in
-    {
+    in {
       devShells.default = pkgs.mkShell defaultShellConf;
-      packages.cli-app = import ./nix/cli-app.nix { inherit mkPnpmPackage pkgs; };
+      packages.cli-app = import ./packages/nix/cli-app.nix {inherit mkPnpmPackage pkgs;};
     });
 }

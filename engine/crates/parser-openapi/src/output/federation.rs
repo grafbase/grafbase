@@ -6,9 +6,8 @@ use engine::registry::{
     variables::VariableResolveDefinition,
 };
 
-use crate::graph::{Arity, DebugNode, OpenApiGraph, OutputType, Resource, ResourceOperation};
-
 use super::OutputFieldKind;
+use crate::graph::{Arity, DebugNode, OpenApiGraph, OutputType, Resource, ResourceOperation};
 
 /// Creates all the federation entities for our API
 pub fn federation_entities(graph: &OpenApiGraph) -> BTreeMap<String, FederationEntity> {
