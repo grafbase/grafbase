@@ -70,5 +70,5 @@ jobs:
         shell: bash
         run: |
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
-          cd packages/grafbase-sdk
+          cd grafbase-sdk
           npm publish
