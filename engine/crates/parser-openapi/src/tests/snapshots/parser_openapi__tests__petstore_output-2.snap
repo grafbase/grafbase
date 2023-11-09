@@ -35,6 +35,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -88,6 +90,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "type": MetaField {
                         name: "type",
@@ -119,6 +123,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "code": MetaField {
                         name: "code",
@@ -150,6 +156,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -203,6 +211,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "id": MetaField {
                         name: "id",
@@ -234,6 +244,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -376,6 +388,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "addPet": MetaField {
                         name: "addPet",
@@ -433,6 +447,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "uploadFile": MetaField {
                         name: "uploadFile",
@@ -508,6 +524,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "placeOrder": MetaField {
                         name: "placeOrder",
@@ -565,6 +583,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "createUsersWithListInput": MetaField {
                         name: "createUsersWithListInput",
@@ -622,6 +642,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -675,6 +697,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "status": MetaField {
                         name: "status",
@@ -713,6 +737,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "shipDate": MetaField {
                         name: "shipDate",
@@ -744,6 +770,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "quantity": MetaField {
                         name: "quantity",
@@ -775,6 +803,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "petId": MetaField {
                         name: "petId",
@@ -806,6 +836,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "id": MetaField {
                         name: "id",
@@ -837,6 +869,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -1000,6 +1034,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "tags": MetaField {
                         name: "tags",
@@ -1031,6 +1067,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "photoUrls": MetaField {
                         name: "photoUrls",
@@ -1062,6 +1100,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "category": MetaField {
                         name: "category",
@@ -1093,6 +1133,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "name": MetaField {
                         name: "name",
@@ -1124,6 +1166,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "id": MetaField {
                         name: "id",
@@ -1155,6 +1199,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -1344,6 +1390,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "findPetsByTags": MetaField {
                         name: "findPetsByTags",
@@ -1402,6 +1450,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "pet": MetaField {
                         name: "pet",
@@ -1459,6 +1509,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "inventory": MetaField {
                         name: "inventory",
@@ -1498,6 +1550,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "order": MetaField {
                         name: "order",
@@ -1555,6 +1609,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "loginUser": MetaField {
                         name: "loginUser",
@@ -1630,6 +1686,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "user": MetaField {
                         name: "user",
@@ -1687,6 +1745,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -1740,6 +1800,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "id": MetaField {
                         name: "id",
@@ -1771,6 +1833,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -1854,6 +1918,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "phone": MetaField {
                         name: "phone",
@@ -1885,6 +1951,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "password": MetaField {
                         name: "password",
@@ -1916,6 +1984,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "email": MetaField {
                         name: "email",
@@ -1947,6 +2017,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "lastName": MetaField {
                         name: "lastName",
@@ -1978,6 +2050,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "firstName": MetaField {
                         name: "firstName",
@@ -2009,6 +2083,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "username": MetaField {
                         name: "username",
@@ -2040,6 +2116,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                     "id": MetaField {
                         name: "id",
@@ -2071,6 +2149,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {
@@ -2210,6 +2290,8 @@ Registry {
                         required_operation: None,
                         auth: None,
                         r#override: None,
+                        tags: [],
+                        inaccessible: false,
                     },
                 },
                 cache_control: CacheControl {

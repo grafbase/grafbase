@@ -7,7 +7,10 @@ use engine_parser::types::TypeKind;
 
 use super::{
     deprecated_directive::DeprecatedDirective,
-    federation::{ExternalDirective, OverrideDirective, ProvidesDirective, ShareableDirective},
+    federation::{
+        ExternalDirective, InaccessibleDirective, OverrideDirective, ProvidesDirective, ShareableDirective,
+        TagDirective,
+    },
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     visitor::{Visitor, VisitorContext},
@@ -51,6 +54,8 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                 let provides =
                     ProvidesDirective::from_directives(&field.directives, ctx).map(|directive| directive.fields);
                 let deprecation = DeprecatedDirective::from_directives(&field.directives, ctx);
+                let inaccessible = InaccessibleDirective::from_directives(&field.directives, ctx);
+                let tags = TagDirective::from_directives(&field.directives, ctx);
 
                 let resolver = match (join_directive, resolver_name) {
                     (None, None) => {
@@ -99,6 +104,8 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                     r#override,
                     provides,
                     deprecation,
+                    inaccessible,
+                    tags,
                     ..MetaField::default()
                 })
             })
