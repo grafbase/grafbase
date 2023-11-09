@@ -1,6 +1,8 @@
-{ pkgs, mkPnpmPackage, ... }:
-
-let
+{
+  pkgs,
+  mkPnpmPackage,
+  ...
+}: let
   extraIgnores = ''
     /crates
     /engine
@@ -8,12 +10,12 @@ let
     /nix
     *.nix
   '';
-  src = pkgs.nix-gitignore.gitignoreSource extraIgnores ../.;
+  src = pkgs.nix-gitignore.gitignoreSource extraIgnores ../../.;
 in
-mkPnpmPackage {
-  inherit src;
-  name = "cli-app";
-  installInPlace = true;
-  distDir = "packages/cli-app/dist";
-  script = "build-cli-app";
-}
+  mkPnpmPackage {
+    inherit src;
+    name = "cli-app";
+    installInPlace = true;
+    distDir = "packages/cli-app/dist";
+    script = "build-cli-app";
+  }
