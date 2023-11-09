@@ -64,7 +64,7 @@ sha2 = "0.10"
 # Same version as Tantivy
 tantivy-fst = "0.4.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.42.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.43.0" }
 gateway = { path = "../gateway" }
 typed-resolvers = { path = "../typed-resolvers" }
 engine = { path = "../../../engine/crates/engine" }
