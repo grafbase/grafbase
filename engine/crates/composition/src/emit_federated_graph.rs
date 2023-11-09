@@ -12,10 +12,7 @@ use itertools::Itertools;
 use std::{collections::BTreeSet, mem};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
-pub(crate) fn emit_federated_graph(
-    mut ir: CompositionIr,
-    subgraphs: &Subgraphs,
-) -> federated::FederatedGraph {
+pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
     let mut out = federated::FederatedGraph {
         enums: mem::take(&mut ir.enums),
         objects: mem::take(&mut ir.objects),
@@ -91,22 +88,17 @@ fn emit_fields(ir_fields: Vec<FieldIr>, ctx: &mut Context<'_>) {
                 ctx.push_interface_field(interface_id, field_id);
             }
             federated::Definition::InputObject(input_object_id) => {
-                ctx.out[input_object_id]
-                    .fields
-                    .push(federated::InputObjectField {
-                        name: field_name,
-                        field_type_id,
-                    });
+                ctx.out[input_object_id].fields.push(federated::InputObjectField {
+                    name: field_name,
+                    field_type_id,
+                });
             }
             _ => unreachable!(),
         }
     }
 }
 
-fn emit_union_members(
-    ir_members: &BTreeSet<(subgraphs::StringId, subgraphs::StringId)>,
-    ctx: &mut Context<'_>,
-) {
+fn emit_union_members(ir_members: &BTreeSet<(subgraphs::StringId, subgraphs::StringId)>, ctx: &mut Context<'_>) {
     for (union_name, members) in &ir_members.iter().group_by(|(union_name, _)| union_name) {
         let federated::Definition::Union(union_id) = ctx.definitions[union_name] else {
             continue;

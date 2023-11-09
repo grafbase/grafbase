@@ -32,11 +32,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
         writeln!(sdl, "type {object_name} {{")?;
 
-        for field in graph
-            .object_fields
-            .iter()
-            .filter(|field| field.object_id.0 == idx)
-        {
+        for field in graph.object_fields.iter().filter(|field| field.object_id.0 == idx) {
             write_field(field.field_id, graph, &mut sdl)?;
         }
 
@@ -123,11 +119,7 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
 }
 
 fn render_field_type(field_type: &FieldType, graph: &FederatedGraph) -> String {
-    let maybe_bang = if field_type.inner_is_required {
-        "!"
-    } else {
-        ""
-    };
+    let maybe_bang = if field_type.inner_is_required { "!" } else { "" };
     let name_id = match field_type.kind {
         Definition::Scalar(scalar_id) => graph[scalar_id].name,
         Definition::Object(object_id) => graph[object_id].name,
@@ -174,12 +166,7 @@ fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraph) -> Str
     } else {
         let mut inner = args
             .iter()
-            .map(|arg| {
-                (
-                    &graph[arg.name],
-                    render_field_type(&graph[arg.type_id], graph),
-                )
-            })
+            .map(|arg| (&graph[arg.name], render_field_type(&graph[arg.type_id], graph)))
             .peekable();
         let mut out = String::from('(');
 

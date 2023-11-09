@@ -2,9 +2,7 @@ use async_graphql_parser::types as ast;
 use async_graphql_value::ConstValue;
 use std::borrow::Cow;
 
-pub(super) fn ingest_schema_definitions(
-    document: &ast::ServiceDocument,
-) -> FederationDirectivesMatcher<'_> {
+pub(super) fn ingest_schema_definitions(document: &ast::ServiceDocument) -> FederationDirectivesMatcher<'_> {
     document
         .definitions
         .iter()
@@ -137,10 +135,7 @@ fn read_imports<'a>(ast_imports: &'a [ConstValue], out: &mut Vec<(&'a str, &'a s
 mod federation_directives_matcher_tests {
     use super::*;
 
-    fn with_matcher_for_schema(
-        graphql_sdl: &str,
-        test: impl FnOnce(FederationDirectivesMatcher<'_>),
-    ) {
+    fn with_matcher_for_schema(graphql_sdl: &str, test: impl FnOnce(FederationDirectivesMatcher<'_>)) {
         let ast = async_graphql_parser::parse_schema(graphql_sdl).unwrap();
         let matcher = ingest_schema_definitions(&ast);
         test(matcher)

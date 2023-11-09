@@ -29,9 +29,7 @@ pub(super) fn ingest_directives(
                     _ => None,
                 })
                 .unwrap_or(true); // defaults to true
-            subgraphs
-                .push_key(definition_id, fields_arg, is_resolvable)
-                .ok();
+            subgraphs.push_key(definition_id, fields_arg, is_resolvable).ok();
         }
     }
 }
@@ -47,9 +45,10 @@ pub(super) fn ingest_fields(
     for field in &object_type.fields {
         let field = &field.node;
         let is_shareable = object_is_shareable
-            || field.directives.iter().any(|directive| {
-                federation_directives_matcher.is_shareable(directive.node.name.node.as_str())
-            });
+            || field
+                .directives
+                .iter()
+                .any(|directive| federation_directives_matcher.is_shareable(directive.node.name.node.as_str()));
 
         let type_id = subgraphs.intern_field_type(&field.ty.node);
         let field_id = subgraphs.push_field(definition_id, &field.name.node, type_id, is_shareable);

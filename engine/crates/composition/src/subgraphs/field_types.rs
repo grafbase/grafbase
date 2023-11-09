@@ -52,9 +52,7 @@ impl Subgraphs {
                         outer: wrapper_type_id,
                     };
 
-                    wrapper_type_id = Some(WrapperTypeId(
-                        self.field_types.wrappers.insert_full(wrapper).0,
-                    ));
+                    wrapper_type_id = Some(WrapperTypeId(self.field_types.wrappers.insert_full(wrapper).0));
                     ty = inner.as_ref();
                 }
 
@@ -75,11 +73,7 @@ pub(crate) type FieldTypeWalker<'a> = Walker<'a, FieldTypeId>;
 
 impl<'a> FieldTypeWalker<'a> {
     fn inner(self) -> &'a InnerFieldType {
-        self.subgraphs
-            .field_types
-            .inner_types
-            .get_index(self.id.0)
-            .unwrap()
+        self.subgraphs.field_types.inner_types.get_index(self.id.0).unwrap()
     }
 
     /// ```ignore,graphql

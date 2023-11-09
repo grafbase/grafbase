@@ -10,10 +10,7 @@ pub(crate) struct Unions(
 );
 
 impl Subgraphs {
-    pub(crate) fn iter_union_members(
-        &self,
-        union_id: DefinitionId,
-    ) -> impl Iterator<Item = DefinitionId> + '_ {
+    pub(crate) fn iter_union_members(&self, union_id: DefinitionId) -> impl Iterator<Item = DefinitionId> + '_ {
         self.unions
             .0
             .range((union_id, DefinitionId(usize::MIN))..(union_id, DefinitionId(usize::MAX)))

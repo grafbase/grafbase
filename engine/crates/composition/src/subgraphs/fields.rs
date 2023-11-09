@@ -19,9 +19,7 @@ struct Field {
 
 impl Subgraphs {
     pub(crate) fn iter_fields(&self) -> impl Iterator<Item = FieldWalker<'_>> {
-        (0..self.fields.0.len())
-            .map(FieldId)
-            .map(|id| self.walk(id))
+        (0..self.fields.0.len()).map(FieldId).map(|id| self.walk(id))
     }
 
     pub(crate) fn push_field(
@@ -49,12 +47,7 @@ impl Subgraphs {
         id
     }
 
-    pub(crate) fn push_field_argument(
-        &mut self,
-        field: FieldId,
-        argument_name: &str,
-        argument_type: FieldTypeId,
-    ) {
+    pub(crate) fn push_field_argument(&mut self, field: FieldId, argument_name: &str, argument_type: FieldTypeId) {
         let argument_name = self.strings.intern(argument_name);
         let field = &mut self.fields.0[field.0];
         field.arguments.push((argument_name, argument_type))

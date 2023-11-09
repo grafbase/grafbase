@@ -25,11 +25,7 @@ pub(crate) enum DefinitionKind {
 }
 
 impl Subgraphs {
-    pub(crate) fn definition_by_name(
-        &mut self,
-        name: &str,
-        subgraph_id: SubgraphId,
-    ) -> DefinitionId {
+    pub(crate) fn definition_by_name(&mut self, name: &str, subgraph_id: SubgraphId) -> DefinitionId {
         let interned_name = self.strings.intern(name);
         self.definition_names[&(interned_name, subgraph_id)]
     }

@@ -20,9 +20,7 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
             DefinitionKind::Object => merge_object_definitions(ctx, first, definitions),
             DefinitionKind::Union => merge_union_definitions(ctx, first, definitions),
             DefinitionKind::InputObject => merge_input_object_definitions(ctx, first, definitions),
-            DefinitionKind::Interface => {
-                interface::merge_interface_definitions(ctx, first, definitions)
-            }
+            DefinitionKind::Interface => interface::merge_interface_definitions(ctx, first, definitions),
             DefinitionKind::Scalar => {
                 ctx.insert_scalar(first.name());
             }
@@ -59,10 +57,7 @@ fn merge_object_definitions<'a>(
     }
 
     let first_is_entity = first.is_entity();
-    if definitions
-        .iter()
-        .any(|object| object.is_entity() != first_is_entity)
-    {
+    if definitions.iter().any(|object| object.is_entity() != first_is_entity) {
         let name = first.name().as_str();
         let (entity_subgraphs, non_entity_subgraphs) = definitions
             .iter()
@@ -138,9 +133,7 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
     let arguments = object::merge_field_arguments(*first, fields);
     let resolvable_in = fields
         .iter()
-        .map(|field| {
-            grafbase_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx())
-        })
+        .map(|field| grafbase_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()))
         .collect();
 
     ctx.insert_field(

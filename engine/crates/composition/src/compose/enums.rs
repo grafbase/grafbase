@@ -52,11 +52,7 @@ fn enum_is_used_in_return_position(enum_name: StringId, subgraphs: &Subgraphs) -
         .any(|field| field.r#type().type_name().id == enum_name)
 }
 
-fn merge_intersection(
-    first: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
-    ctx: &mut Context<'_>,
-) {
+fn merge_intersection(first: &DefinitionWalker<'_>, definitions: &[DefinitionWalker<'_>], ctx: &mut Context<'_>) {
     let mut intersection: Vec<StringId> = first.enum_values().collect();
     let mut scratch = HashSet::new();
 
@@ -80,11 +76,7 @@ fn merge_intersection(
     }
 }
 
-fn merge_union(
-    first: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
-    ctx: &mut Context<'_>,
-) {
+fn merge_union(first: &DefinitionWalker<'_>, definitions: &[DefinitionWalker<'_>], ctx: &mut Context<'_>) {
     let enum_id = ctx.insert_enum(first.name());
 
     for value in definitions.iter().flat_map(|def| def.enum_values()) {
@@ -92,11 +84,7 @@ fn merge_union(
     }
 }
 
-fn merge_exactly_matching(
-    first: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
-    ctx: &mut Context<'_>,
-) {
+fn merge_exactly_matching(first: &DefinitionWalker<'_>, definitions: &[DefinitionWalker<'_>], ctx: &mut Context<'_>) {
     let expected: Vec<_> = first.enum_values().collect();
 
     for definition in definitions {

@@ -53,10 +53,7 @@ impl CompositionIr {
         id
     }
 
-    pub(crate) fn insert_interface(
-        &mut self,
-        iface_name: StringWalker<'_>,
-    ) -> federated::InterfaceId {
+    pub(crate) fn insert_interface(&mut self, iface_name: StringWalker<'_>) -> federated::InterfaceId {
         let name = self.insert_string(iface_name);
         let iface = federated::Interface {
             name,
@@ -79,10 +76,7 @@ impl CompositionIr {
             .insert(scalar_name.id, federated::Definition::Scalar(id));
     }
 
-    pub(crate) fn insert_input_object(
-        &mut self,
-        input_object_name: StringWalker<'_>,
-    ) -> federated::InputObjectId {
+    pub(crate) fn insert_input_object(&mut self, input_object_name: StringWalker<'_>) -> federated::InputObjectId {
         let name = self.insert_string(input_object_name);
         let object = federated::InputObject {
             name,
@@ -95,11 +89,7 @@ impl CompositionIr {
         id
     }
 
-    pub(crate) fn insert_resolvable_key(
-        &mut self,
-        object_id: federated::ObjectId,
-        key_id: subgraphs::KeyId,
-    ) {
+    pub(crate) fn insert_resolvable_key(&mut self, object_id: federated::ObjectId, key_id: subgraphs::KeyId) {
         self.resolvable_keys.push(KeyIr { object_id, key_id });
     }
 
@@ -139,11 +129,7 @@ impl CompositionIr {
         id
     }
 
-    pub(crate) fn insert_enum_value(
-        &mut self,
-        enum_id: federated::EnumId,
-        value: StringWalker<'_>,
-    ) {
+    pub(crate) fn insert_enum_value(&mut self, enum_id: federated::EnumId, value: StringWalker<'_>) {
         let value = self.insert_string(value);
         let r#enum = &mut self.enums[enum_id.0];
 
@@ -174,11 +160,7 @@ impl CompositionIr {
         });
     }
 
-    pub(crate) fn insert_union_member(
-        &mut self,
-        union_name: subgraphs::StringId,
-        member_name: subgraphs::StringId,
-    ) {
+    pub(crate) fn insert_union_member(&mut self, union_name: subgraphs::StringId, member_name: subgraphs::StringId) {
         self.union_members.insert((union_name, member_name));
     }
 
@@ -203,9 +185,10 @@ pub(crate) struct StringsIr {
 
 impl StringsIr {
     pub(crate) fn insert(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
-        *self.map.entry(string.id).or_insert_with(|| {
-            federated::StringId(self.strings.push_return_idx(string.as_str().to_owned()))
-        })
+        *self
+            .map
+            .entry(string.id)
+            .or_insert_with(|| federated::StringId(self.strings.push_return_idx(string.as_str().to_owned())))
     }
 }
 

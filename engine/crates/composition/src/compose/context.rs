@@ -16,10 +16,7 @@ pub(crate) struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
-    pub(crate) fn new(
-        subgraphs: &'a subgraphs::Subgraphs,
-        diagnostics: &'a mut Diagnostics,
-    ) -> Self {
+    pub(crate) fn new(subgraphs: &'a subgraphs::Subgraphs, diagnostics: &'a mut Diagnostics) -> Self {
         let mut ir = CompositionIr::default();
 
         for builtin_scalar in subgraphs.iter_builtin_scalars() {
@@ -45,11 +42,7 @@ impl<'a> Context<'a> {
         self.ir.insert_enum(name)
     }
 
-    pub(crate) fn insert_enum_value(
-        &mut self,
-        enum_id: federated::EnumId,
-        value: StringWalker<'_>,
-    ) {
+    pub(crate) fn insert_enum_value(&mut self, enum_id: federated::EnumId, value: StringWalker<'_>) {
         self.ir.insert_enum_value(enum_id, value)
     }
 
@@ -61,19 +54,11 @@ impl<'a> Context<'a> {
         arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
         resolvable_in: Vec<federated::SubgraphId>,
     ) {
-        self.ir.insert_field(
-            parent_name,
-            field_name,
-            field_type,
-            arguments,
-            resolvable_in,
-        )
+        self.ir
+            .insert_field(parent_name, field_name, field_type, arguments, resolvable_in)
     }
 
-    pub(crate) fn insert_input_object(
-        &mut self,
-        name: StringWalker<'_>,
-    ) -> federated::InputObjectId {
+    pub(crate) fn insert_input_object(&mut self, name: StringWalker<'_>) -> federated::InputObjectId {
         self.ir.insert_input_object(name)
     }
 
@@ -93,19 +78,11 @@ impl<'a> Context<'a> {
         self.ir.insert_union(name)
     }
 
-    pub(crate) fn insert_union_member(
-        &mut self,
-        union_name: subgraphs::StringId,
-        member_name: subgraphs::StringId,
-    ) {
+    pub(crate) fn insert_union_member(&mut self, union_name: subgraphs::StringId, member_name: subgraphs::StringId) {
         self.ir.insert_union_member(union_name, member_name)
     }
 
-    pub(crate) fn insert_resolvable_key(
-        &mut self,
-        object_id: federated::ObjectId,
-        key_id: subgraphs::KeyId,
-    ) {
+    pub(crate) fn insert_resolvable_key(&mut self, object_id: federated::ObjectId, key_id: subgraphs::KeyId) {
         self.ir.insert_resolvable_key(object_id, key_id)
     }
 }

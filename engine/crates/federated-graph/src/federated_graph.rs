@@ -43,8 +43,7 @@ pub struct RootOperationTypes {
 
 impl std::fmt::Debug for FederatedGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<FederatedGraph>())
-            .finish()
+        f.debug_struct(std::any::type_name::<FederatedGraph>()).finish()
     }
 }
 

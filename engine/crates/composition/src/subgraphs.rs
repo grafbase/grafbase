@@ -50,21 +50,14 @@ pub struct Subgraphs {
 
 impl Subgraphs {
     /// Add a subgraph to compose.
-    pub fn ingest(
-        &mut self,
-        subgraph_schema: &async_graphql_parser::types::ServiceDocument,
-        name: &str,
-    ) {
+    pub fn ingest(&mut self, subgraph_schema: &async_graphql_parser::types::ServiceDocument, name: &str) {
         crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, self)
     }
 
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The
     /// argument is a closure that receives each group as argument. The order of iteration is
     /// deterministic but unspecified.
-    pub(crate) fn iter_definition_groups<'a>(
-        &'a self,
-        mut compose_fn: impl FnMut(&[DefinitionWalker<'a>]),
-    ) {
+    pub(crate) fn iter_definition_groups<'a>(&'a self, mut compose_fn: impl FnMut(&[DefinitionWalker<'a>])) {
         let mut buf = Vec::new();
         for (_, group) in &self.definition_names.iter().group_by(|((name, _), _)| name) {
             buf.clear();
@@ -88,11 +81,7 @@ impl Subgraphs {
             .group_by(|(parent_name, field_name, _)| (parent_name, field_name))
         {
             buf.clear();
-            buf.extend(
-                group
-                    .into_iter()
-                    .map(|(_, _, field_id)| self.walk(*field_id)),
-            );
+            buf.extend(group.into_iter().map(|(_, _, field_id)| self.walk(*field_id)));
             compose_fn(&buf);
         }
     }
@@ -105,10 +94,7 @@ impl Subgraphs {
     }
 
     pub(crate) fn walk<Id>(&self, id: Id) -> Walker<'_, Id> {
-        Walker {
-            id,
-            subgraphs: self,
-        }
+        Walker { id, subgraphs: self }
     }
 
     /// Iterates all builtin scalars _that are in use in at least one subgraph_.

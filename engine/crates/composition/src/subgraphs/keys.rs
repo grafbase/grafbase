@@ -48,12 +48,8 @@ impl Subgraphs {
                 .map(|item| match &item.node {
                     ast::Selection::Field(item) => {
                         let field = subgraphs.strings.intern(item.node.name.node.as_str());
-                        let subselection =
-                            build_selection_set(&item.node.selection_set.node.items, subgraphs)?;
-                        Ok(Selection {
-                            field,
-                            subselection,
-                        })
+                        let subselection = build_selection_set(&item.node.selection_set.node.items, subgraphs)?;
+                        Ok(Selection { field, subselection })
                     }
                     ast::Selection::FragmentSpread(_) | ast::Selection::InlineFragment(_) => {
                         Err("Fragments not allowed in key definitions.".to_owned())
@@ -101,11 +97,7 @@ impl<'a> KeyWalker<'a> {
 
 impl<'a> DefinitionWalker<'a> {
     pub fn entity_keys(self) -> impl Iterator<Item = KeyWalker<'a>> {
-        let start = self
-            .subgraphs
-            .keys
-            .0
-            .partition_point(|(parent, _)| *parent < self.id);
+        let start = self.subgraphs.keys.0.partition_point(|(parent, _)| *parent < self.id);
         self.subgraphs.keys.0[start..]
             .iter()
             .take_while(move |(parent, _)| *parent == self.id)
