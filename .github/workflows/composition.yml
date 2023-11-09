@@ -3,7 +3,7 @@ name: grafbase-composition
 on:
   pull_request:
     paths:
-      - 'crates/composition/**/*'
+      - 'federation/crates/composition/**/*'
 
 jobs:
   checks:
@@ -16,20 +16,20 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('crates/composition/Cargo.toml') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('federation/crates/composition/Cargo.toml') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Lint
         run: |
-          cargo clippy --manifest-path=crates/composition/Cargo.toml
-          cargo clippy --manifest-path=crates/federated-graph/Cargo.toml
+          cargo clippy --manifest-path=federation/crates/composition/Cargo.toml
+          cargo clippy --manifest-path=federation/crates/federated-graph/Cargo.toml
 
       - name: Test
         run: |
-          cargo test --manifest-path=crates/composition/Cargo.toml
-          cargo test --manifest-path=crates/federated-graph/Cargo.toml
-      
+          cargo test --manifest-path=federation/crates/composition/Cargo.toml
+          cargo test --manifest-path=federation/crates/federated-graph/Cargo.toml
+
       - name: Check formatting
         run: |
-          cargo fmt --check --manifest-path=crates/composition/Cargo.toml
-          cargo fmt --check --manifest-path=crates/federated-graph/Cargo.toml
+          cargo fmt --check --manifest-path=federation/crates/composition/Cargo.toml
+          cargo fmt --check --manifest-path=federation/crates/federated-graph/Cargo.toml
