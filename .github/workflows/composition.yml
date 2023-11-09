@@ -3,7 +3,7 @@ name: grafbase-composition
 on:
   pull_request:
     paths:
-      - 'federation/crates/composition/**/*'
+      - 'engine/crates/composition/**/*'
 
 jobs:
   checks:
@@ -21,15 +21,15 @@ jobs:
 
       - name: Lint
         run: |
-          cargo clippy --manifest-path=federation/crates/composition/Cargo.toml
-          cargo clippy --manifest-path=federation/crates/federated-graph/Cargo.toml
+          cargo clippy --manifest-path=engine/crates/composition/Cargo.toml
+          cargo clippy --manifest-path=engine/crates/federated-graph/Cargo.toml
 
       - name: Test
         run: |
-          cargo test --manifest-path=federation/crates/composition/Cargo.toml
-          cargo test --manifest-path=federation/crates/federated-graph/Cargo.toml
+          cargo test --manifest-path=engine/crates/composition/Cargo.toml
+          cargo test --manifest-path=engine/crates/federated-graph/Cargo.toml
 
       - name: Check formatting
         run: |
-          cargo fmt --check --manifest-path=federation/crates/composition/Cargo.toml
-          cargo fmt --check --manifest-path=federation/crates/federated-graph/Cargo.toml
+          cargo fmt --check --manifest-path=engine/crates/composition/Cargo.toml
+          cargo fmt --check --manifest-path=engine/crates/federated-graph/Cargo.toml
