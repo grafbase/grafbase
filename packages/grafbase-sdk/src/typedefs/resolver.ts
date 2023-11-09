@@ -5,6 +5,12 @@ import { DefaultDefinition } from './default'
 import { ReferenceDefinition } from './reference'
 import { ScalarDefinition } from './scalar'
 import { EnumDefinition } from './enum'
+import { TagDefinition } from './tag'
+import { InaccessibleDefinition } from './inaccessible'
+import { ShareableDefinition } from './shareable'
+import { OverrideDefinition } from './override'
+import { ProvidesDefinition } from './provides'
+import { DeprecatedDefinition } from './deprecated'
 
 /**
  * A list of field types that can hold a `@resolver` attribute.
@@ -15,6 +21,12 @@ export type Resolvable =
   | ReferenceDefinition
   | CacheDefinition
   | EnumDefinition<any, any>
+  | TagDefinition
+  | InaccessibleDefinition
+  | ShareableDefinition
+  | OverrideDefinition
+  | ProvidesDefinition
+  | DeprecatedDefinition
 
 export class ResolverDefinition {
   private field: Resolvable

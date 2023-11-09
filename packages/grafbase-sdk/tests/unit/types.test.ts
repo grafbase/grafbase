@@ -398,4 +398,46 @@ describe('Type generator', () => {
       }"
     `)
   })
+
+  it(`supports the deprecated directive`, () => {
+    g.type('User', {
+      id: g.id().deprecated(),
+      num: g.int().deprecated('numbers are for losers')
+    })
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User {
+        id: ID! @deprecated
+        num: Int! @deprecated(reason: "numbers are for losers")
+      }"
+    `)
+  })
+
+  it(`supports all the federation directives`, () => {
+    // There are so many combinations of these - this is not even close to exhaustive
+    g.type('User', {
+      id: g.id().tag('bloop').tag('bleep').inaccessible(),
+      foo: g.int().inaccessible().resolver('a_resolver'),
+      bar: g.string().shareable().tag('blah'),
+      baz: g.string().override('Products'),
+      bez: g.ref('Blah').provides('x y'),
+      zip: g.int().optional().inaccessible(),
+      zoop: g.int().optional().list().inaccessible(),
+      zap: g.int().optional().list().shareable(),
+      zoink: g.int().optional().list().tag('foo')
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User {
+        id: ID! @tag(name: "bloop") @tag(name: "bleep") @inaccessible
+        foo: Int! @inaccessible @resolver(name: "a_resolver")
+        bar: String! @shareable @tag(name: "blah")
+        baz: String! @override(from: "Products")
+        bez: Blah! @provides(fields: "x y")
+        zip: Int @inaccessible
+        zoop: [Int]! @inaccessible
+        zap: [Int]! @shareable
+        zoink: [Int]! @tag(name: foo)
+      }"
+`)
+  })
 })

@@ -8,6 +8,10 @@ import { ScalarDefinition } from './scalar'
 import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
 import { MapDefinition } from './map'
+import { InaccessibleDefinition } from './inaccessible'
+import { ShareableDefinition } from './shareable'
+import { OverrideDefinition } from './override'
+import { ProvidesDefinition } from './provides'
 
 export type DefaultValueType = string | number | Date | object | boolean
 
@@ -69,6 +73,34 @@ export class DefaultDefinition {
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  /**
+   * Set the field-level inaccessible directive.
+   */
+  public inaccessible(): InaccessibleDefinition {
+    return new InaccessibleDefinition(this)
+  }
+
+  /**
+   * Set the field-level shareable directive.
+   */
+  public shareable(): ShareableDefinition {
+    return new ShareableDefinition(this)
+  }
+
+  /**
+   * Set the field-level override directive.
+   */
+  public override(from: string): OverrideDefinition {
+    return new OverrideDefinition(this, from)
+  }
+
+  /**
+   * Set the field-level provides directive.
+   */
+  public provides(fields: string): ProvidesDefinition {
+    return new ProvidesDefinition(this, fields)
   }
 
   public toString(): string {

@@ -20,6 +20,7 @@ import { RequireAtLeastOne } from 'type-fest'
 import { FieldLength } from './length-limited-string'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { MapDefinition } from './map'
+import { escapeString } from '../utils'
 
 export type ListScalarType =
   | ScalarDefinition
@@ -35,10 +36,12 @@ export class ListDefinition {
   private authRules?: AuthRules
   private resolverName?: string
   private joinSelect?: string
+  private otherDirectives: string[]
 
   constructor(fieldDefinition: ListScalarType) {
     this.fieldDefinition = fieldDefinition
     this.isOptional = false
+    this.otherDirectives = []
   }
 
   /**
@@ -102,6 +105,48 @@ export class ListDefinition {
     return new MapDefinition(this, name)
   }
 
+  /**
+   * Adds a tag to this field
+   *
+   * @param tag - The tag to add
+   */
+  public tag(name: string): ListDefinition {
+    this.otherDirectives.push(`@tag(name: ${escapeString(name)})`)
+    return this
+  }
+
+  /**
+   * Set the field-level inaccessible directive.
+   */
+  public inaccessible(): ListDefinition {
+    this.otherDirectives.push(`@inaccessible`)
+    return this
+  }
+
+  /**
+   * Set the field-level shareable directive.
+   */
+  public shareable(): ListDefinition {
+    this.otherDirectives.push(`@shareable`)
+    return this
+  }
+
+  /**
+   * Set the field-level override directive.
+   */
+  public override(from: string): ListDefinition {
+    this.otherDirectives.push(`@override(from: ${from})`)
+    return this
+  }
+
+  /**
+   * Set the field-level provides directive.
+   */
+  public provides(fields: string): ListDefinition {
+    this.otherDirectives.push(`@provides(fields: ${fields})`)
+    return this
+  }
+
   public toString(): string {
     const required = this.isOptional ? '' : '!'
 
@@ -115,7 +160,12 @@ export class ListDefinition {
 
     const join = this.joinSelect ? ` @join(select: "${this.joinSelect}")` : ''
 
-    return `[${this.fieldDefinition}]${required}${rules}${resolver}${join}`
+    const otherDirectives =
+      this.otherDirectives.length != 0
+        ? ` ${this.otherDirectives.join(' ')}`
+        : ''
+
+    return `[${this.fieldDefinition}]${required}${rules}${resolver}${join}${otherDirectives}`
   }
 }
 

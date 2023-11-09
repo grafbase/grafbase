@@ -7,13 +7,19 @@ import {
 } from '../cache'
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
+import { DeprecatedDefinition } from './deprecated'
 import { EnumDefinition } from './enum'
+import { InaccessibleDefinition } from './inaccessible'
 import { JoinDefinition } from './join'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { MapDefinition } from './map'
+import { OverrideDefinition } from './override'
+import { ProvidesDefinition } from './provides'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { SearchDefinition } from './search'
+import { ShareableDefinition } from './shareable'
+import { TagDefinition } from './tag'
 import { UniqueDefinition } from './unique'
 
 export type Cacheable =
@@ -26,6 +32,12 @@ export type Cacheable =
   | UniqueDefinition
   | EnumDefinition<any, any>
   | JoinDefinition
+  | TagDefinition
+  | InaccessibleDefinition
+  | ShareableDefinition
+  | OverrideDefinition
+  | ProvidesDefinition
+  | DeprecatedDefinition
 
 export interface TypeCacheParams {
   maxAge: number

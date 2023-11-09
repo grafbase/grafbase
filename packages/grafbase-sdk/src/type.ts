@@ -15,6 +15,12 @@ import { Query } from './query'
 import { MapDefinition } from './typedefs/map'
 import { FederationKey, FederationKeyParameters } from './federation'
 import { JoinDefinition } from './typedefs/join'
+import { TagDefinition } from './typedefs/tag'
+import { InaccessibleDefinition } from './typedefs/inaccessible'
+import { ShareableDefinition } from './typedefs/shareable'
+import { OverrideDefinition } from './typedefs/override'
+import { ProvidesDefinition } from './typedefs/provides'
+import { DeprecatedDefinition } from './typedefs/deprecated'
 
 /**
  * A collection of fields in a model.
@@ -33,6 +39,12 @@ export type TypeFieldShape =
   | EnumDefinition<any, any>
   | ResolverDefinition
   | JoinDefinition
+  | TagDefinition
+  | InaccessibleDefinition
+  | ShareableDefinition
+  | OverrideDefinition
+  | ProvidesDefinition
+  | DeprecatedDefinition
 
 /**
  * A composite type definition (e.g. not a model).
