@@ -1,40 +1,41 @@
 import { AuthRuleF } from '../auth'
-import { ListDefinition } from './list'
-import { Type } from '../type'
 import { AuthDefinition } from './auth'
+import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
+import { DefaultDefinition } from './default'
+import { ReferenceDefinition } from './reference'
+import { ScalarDefinition } from './scalar'
+import { EnumDefinition } from './enum'
+import { escapeString } from '../utils'
 import { ResolverDefinition } from './resolver'
-import { MapDefinition } from './map'
 import { JoinDefinition } from './join'
-import { DeprecatedDefinition } from './deprecated'
 import { InaccessibleDefinition } from './inaccessible'
 import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
+import { DeprecatedDefinition } from './deprecated'
 
-export class ReferenceDefinition {
-  private referencedType: string
-  private isOptional: boolean
+/**
+ * A list of field types that can hold a `@tag` attribute.
+ */
+export type Taggable =
+  | ScalarDefinition
+  | DefaultDefinition
+  | ReferenceDefinition
+  | EnumDefinition<any, any>
+  | TagDefinition
+  | InaccessibleDefinition
+  | ShareableDefinition
+  | OverrideDefinition
+  | ProvidesDefinition
+  | DeprecatedDefinition
 
-  constructor(referencedType: Type | string) {
-    this.referencedType =
-      typeof referencedType === 'string' ? referencedType : referencedType.name
-    this.isOptional = false
-  }
+export class TagDefinition {
+  private field: Taggable
+  private name: string
 
-  /**
-   * Set the field optional.
-   */
-  public optional(): ReferenceDefinition {
-    this.isOptional = true
-
-    return this
-  }
-
-  /**
-   * Allow multiple scalars to be used as values for the field.
-   */
-  public list(): ListDefinition {
-    return new ListDefinition(this)
+  constructor(field: Taggable, name: string) {
+    this.field = field
+    this.name = name
   }
 
   /**
@@ -44,15 +45,6 @@ export class ReferenceDefinition {
    */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
-  }
-
-  /**
-   * Set the field-level deprecated directive.
-   *
-   * @param rules - A closure to build the authentication rules.
-   */
-  public deprecated(reason?: string): DeprecatedDefinition {
-    return new DeprecatedDefinition(this, reason ?? null)
   }
 
   /**
@@ -74,10 +66,21 @@ export class ReferenceDefinition {
   }
 
   /**
-   * Sets the name of the field in the database, if different than the name of the field.
+   * Adds a tag to this field
+   *
+   * @param tag - The tag to add
    */
-  public mapped(name: string): MapDefinition {
-    return new MapDefinition(this, name)
+  public tag(tag: string): TagDefinition {
+    return new TagDefinition(this, tag)
+  }
+
+  /**
+   * Set the field-level cache directive.
+   *
+   * @param params - The cache definition parameters.
+   */
+  public cache(params: FieldCacheParams): CacheDefinition {
+    return new CacheDefinition(this, new FieldLevelCache(params))
   }
 
   /**
@@ -109,8 +112,6 @@ export class ReferenceDefinition {
   }
 
   public toString(): string {
-    const required = this.isOptional ? '' : '!'
-
-    return `${this.referencedType}${required}`
+    return `${this.field} @tag(name: "${escapeString(this.name)}")`
   }
 }

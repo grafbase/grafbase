@@ -24,6 +24,12 @@ import { ResolverDefinition } from './resolver'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { MapDefinition } from './map'
 import { JoinDefinition } from './join'
+import { DeprecatedDefinition } from './deprecated'
+import { InaccessibleDefinition } from './inaccessible'
+import { ShareableDefinition } from './shareable'
+import { OverrideDefinition } from './override'
+import { ProvidesDefinition } from './provides'
+import { TagDefinition } from './tag'
 
 export class ScalarDefinition {
   private _fieldType: FieldType | Enum<any, any>
@@ -84,6 +90,15 @@ export class ScalarDefinition {
   }
 
   /**
+   * Set the field-level deprecated directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
+  public deprecated(reason?: string): DeprecatedDefinition {
+    return new DeprecatedDefinition(this, reason ?? null)
+  }
+
+  /**
    * Attach a resolver function to the field.
    *
    * @param name - The name of the resolver function file without the extension or directory.
@@ -117,6 +132,43 @@ export class ScalarDefinition {
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  /**
+   * Set the field-level inaccessible directive.
+   */
+  public inaccessible(): InaccessibleDefinition {
+    return new InaccessibleDefinition(this)
+  }
+
+  /**
+   * Set the field-level shareable directive.
+   */
+  public shareable(): ShareableDefinition {
+    return new ShareableDefinition(this)
+  }
+
+  /**
+   * Set the field-level override directive.
+   */
+  public override(from: string): OverrideDefinition {
+    return new OverrideDefinition(this, from)
+  }
+
+  /**
+   * Set the field-level provides directive.
+   */
+  public provides(fields: string): ProvidesDefinition {
+    return new ProvidesDefinition(this, fields)
+  }
+
+  /**
+   * Adds a tag to this field
+   *
+   * @param tag - The tag to add
+   */
+  public tag(tag: string): TagDefinition {
+    return new TagDefinition(this, tag)
   }
 
   fieldTypeVal(): FieldType | Enum<any, any> {

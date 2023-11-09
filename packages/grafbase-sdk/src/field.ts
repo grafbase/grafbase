@@ -1,9 +1,24 @@
 import { FieldShape as DynamoFieldShape } from './connector/dynamodb/model'
 import { FieldShape as MongoFieldShape } from './connector/mongodb/model'
+import { DeprecatedDefinition } from './typedefs/deprecated'
+import { InaccessibleDefinition } from './typedefs/inaccessible'
 import { JoinDefinition } from './typedefs/join'
+import { OverrideDefinition } from './typedefs/override'
+import { ProvidesDefinition } from './typedefs/provides'
+import { ShareableDefinition } from './typedefs/shareable'
+import { TagDefinition } from './typedefs/tag'
 import { validateIdentifier } from './validation'
 
-type FieldShape = DynamoFieldShape | MongoFieldShape | JoinDefinition
+type FieldShape =
+  | DynamoFieldShape
+  | MongoFieldShape
+  | JoinDefinition
+  | TagDefinition
+  | InaccessibleDefinition
+  | ShareableDefinition
+  | OverrideDefinition
+  | ProvidesDefinition
+  | DeprecatedDefinition
 
 export class Field {
   private _name: string

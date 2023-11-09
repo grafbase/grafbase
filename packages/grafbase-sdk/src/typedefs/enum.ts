@@ -3,11 +3,16 @@ import { Enum, EnumShape } from '../enum'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
+import { DeprecatedDefinition } from './deprecated'
+import { InaccessibleDefinition } from './inaccessible'
 import { JoinDefinition } from './join'
 import { ListDefinition } from './list'
 import { MapDefinition } from './map'
+import { OverrideDefinition } from './override'
+import { ProvidesDefinition } from './provides'
 import { ResolverDefinition } from './resolver'
 import { SearchDefinition } from './search'
+import { ShareableDefinition } from './shareable'
 import { UniqueDefinition } from './unique'
 
 export class EnumDefinition<T extends string, U extends EnumShape<T>> {
@@ -72,6 +77,15 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
   }
 
   /**
+   * Set the field-level deprecated directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
+  public deprecated(reason?: string): DeprecatedDefinition {
+    return new DeprecatedDefinition(this, reason ?? null)
+  }
+
+  /**
    * Attach a resolver function to the field.
    *
    * @param name - The name of the resolver function file without the extension or directory.
@@ -105,6 +119,34 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  /**
+   * Set the field-level inaccessible directive.
+   */
+  public inaccessible(): InaccessibleDefinition {
+    return new InaccessibleDefinition(this)
+  }
+
+  /**
+   * Set the field-level shareable directive.
+   */
+  public shareable(): ShareableDefinition {
+    return new ShareableDefinition(this)
+  }
+
+  /**
+   * Set the field-level override directive.
+   */
+  public override(from: string): OverrideDefinition {
+    return new OverrideDefinition(this, from)
+  }
+
+  /**
+   * Set the field-level provides directive.
+   */
+  public provides(fields: string): ProvidesDefinition {
+    return new ProvidesDefinition(this, fields)
   }
 
   public toString(): string {

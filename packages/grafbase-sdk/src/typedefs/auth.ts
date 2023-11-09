@@ -11,6 +11,12 @@ import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
 import { MapDefinition } from './map'
 import { JoinDefinition } from './join'
+import { TagDefinition } from './tag'
+import { InaccessibleDefinition } from './inaccessible'
+import { ShareableDefinition } from './shareable'
+import { OverrideDefinition } from './override'
+import { ProvidesDefinition } from './provides'
+import { DeprecatedDefinition } from './deprecated'
 
 export type Authenticable =
   | ScalarDefinition
@@ -24,6 +30,12 @@ export type Authenticable =
   | ResolverDefinition
   | EnumDefinition<any, any>
   | JoinDefinition
+  | TagDefinition
+  | InaccessibleDefinition
+  | ShareableDefinition
+  | OverrideDefinition
+  | ProvidesDefinition
+  | DeprecatedDefinition
 
 export class AuthDefinition {
   private field: Authenticable

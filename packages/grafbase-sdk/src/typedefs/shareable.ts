@@ -5,36 +5,25 @@ import { DefaultDefinition } from './default'
 import { ReferenceDefinition } from './reference'
 import { ScalarDefinition } from './scalar'
 import { EnumDefinition } from './enum'
+import { ResolverDefinition } from './resolver'
+import { JoinDefinition } from './join'
 import { TagDefinition } from './tag'
-import { InaccessibleDefinition } from './inaccessible'
-import { ShareableDefinition } from './shareable'
-import { OverrideDefinition } from './override'
-import { ProvidesDefinition } from './provides'
-import { DeprecatedDefinition } from './deprecated'
 
 /**
- * A list of field types that can hold a `@join` attribute.
+ * A list of field types that can hold a `@shareable` attribute.
  */
-export type Joinable =
+export type Shareable =
   | ScalarDefinition
   | DefaultDefinition
   | ReferenceDefinition
-  | CacheDefinition
   | EnumDefinition<any, any>
   | TagDefinition
-  | InaccessibleDefinition
-  | ShareableDefinition
-  | OverrideDefinition
-  | ProvidesDefinition
-  | DeprecatedDefinition
 
-export class JoinDefinition {
-  private field: Joinable
-  private select: string
+export class ShareableDefinition {
+  private field: Shareable
 
-  constructor(field: Joinable, select: string) {
+  constructor(field: Shareable) {
     this.field = field
-    this.select = select
   }
 
   /**
@@ -47,6 +36,33 @@ export class JoinDefinition {
   }
 
   /**
+   * Attach a resolver function to the field.
+   *
+   * @param name - The name of the resolver function file without the extension or directory.
+   */
+  public resolver(name: string): ResolverDefinition {
+    return new ResolverDefinition(this, name)
+  }
+
+  /**
+   * Attach a join function to the field.
+   *
+   * @param select - The field selection string to join onto this field
+   */
+  public join(select: string): JoinDefinition {
+    return new JoinDefinition(this, select)
+  }
+
+  /**
+   * Attach a join function to the field.
+   *
+   * @param select - The field selection string to join onto this field
+   */
+  public tag(tag: string): TagDefinition {
+    return new TagDefinition(this, tag)
+  }
+
+  /**
    * Set the field-level cache directive.
    *
    * @param params - The cache definition parameters.
@@ -56,6 +72,6 @@ export class JoinDefinition {
   }
 
   public toString(): string {
-    return `${this.field} @join(select: "${this.select}")`
+    return `${this.field} @shareable`
   }
 }
