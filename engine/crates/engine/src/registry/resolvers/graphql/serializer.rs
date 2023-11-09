@@ -12,9 +12,10 @@ use engine_parser::{
     Positioned,
 };
 use engine_value::{Name, Value};
+use type_names::WrappingType;
 
 use super::Target;
-use crate::registry::{type_kinds::SelectionSetTarget, type_names, MetaField, Registry};
+use crate::registry::{type_kinds::SelectionSetTarget, type_names, MetaField, MetaTypeName, Registry};
 
 /// Serialize a list of [`Selection`]s into a GraphQL query string.
 ///
@@ -469,10 +470,22 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
         self.writeln_str("}\n")
     }
 
-    fn remove_prefix_from_type<'x>(&self, ty: &'x str) -> &'x str {
+    fn remove_prefix_from_type<'x>(&self, ty: &'x str) -> String {
         // We remove the `prefix` from condition types, as these are local to Grafbase, and
         // should not be sent to the upstream server.
-        ty.strip_prefix(self.prefix.unwrap_or_default()).unwrap_or(ty)
+        let wrappers = WrappingType::all_for(ty);
+        let ty = MetaTypeName::concrete_typename(ty);
+        let mut ty = ty
+            .strip_prefix(self.prefix.unwrap_or_default())
+            .unwrap_or(ty)
+            .to_string();
+        for wrapper in wrappers {
+            ty = match wrapper {
+                WrappingType::List => format!("[{}]", ty),
+                WrappingType::NonNull => format!("{}!", ty),
+            };
+        }
+        ty
     }
 }
 

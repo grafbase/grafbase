@@ -244,6 +244,12 @@ pub enum WrappingType {
     List,
 }
 
+impl WrappingType {
+    pub fn all_for(ty: &str) -> Vec<WrappingType> {
+        WrappingTypeIter(ty.chars()).collect()
+    }
+}
+
 pub struct WrappingTypeIter<'a>(std::str::Chars<'a>);
 
 impl Iterator for WrappingTypeIter<'_> {
