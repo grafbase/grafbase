@@ -1,6 +1,7 @@
-use super::*;
 use async_graphql_parser::types as ast;
 use indexmap::IndexSet;
+
+use super::*;
 
 /// All the field types in the schema. Interned. Comparing two field's type has the same cost as
 /// comparing two `usize`s.

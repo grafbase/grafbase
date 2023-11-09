@@ -1,9 +1,11 @@
+use std::collections::{BTreeSet, HashMap};
+
+use grafbase_federated_graph as federated;
+
 use crate::{
     subgraphs::{self, StringWalker},
     VecExt,
 };
-use grafbase_federated_graph as federated;
-use std::collections::{BTreeSet, HashMap};
 
 /// The intermediate representation of the schema that is produced by composition. This data
 /// structure is distinct from [FederatedGraph](grafbase_federated_graph::FederatedGraph) because

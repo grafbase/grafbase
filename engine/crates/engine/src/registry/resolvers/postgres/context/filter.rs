@@ -2,9 +2,8 @@ mod complex;
 mod simple;
 
 pub(super) use complex::ComplexFilterIterator;
-pub(super) use simple::ByFilterIterator;
-
 use grafbase_sql_ast::ast::ConditionTree;
+pub(super) use simple::ByFilterIterator;
 
 #[derive(Clone)]
 pub enum FilterIterator<'a> {

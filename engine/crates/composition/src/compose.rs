@@ -4,11 +4,11 @@ mod input_object;
 mod interface;
 mod object;
 
-pub(crate) use self::context::Context as ComposeContext;
+use itertools::Itertools;
 
+pub(crate) use self::context::Context as ComposeContext;
 use self::{context::Context, input_object::*};
 use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId};
-use itertools::Itertools;
 
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     ctx.subgraphs.iter_definition_groups(|definitions| {

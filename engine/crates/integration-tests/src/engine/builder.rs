@@ -1,11 +1,13 @@
-use super::{dynamo::enable_local_dynamo, Inner};
-use crate::Engine;
+use std::{collections::HashMap, sync::Arc};
+
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::BoxFuture;
 use parser_sdl::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective, Registry};
 use postgres_connector_types::transport::TcpTransport;
 use runtime::udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker};
-use std::{collections::HashMap, sync::Arc};
+
+use super::{dynamo::enable_local_dynamo, Inner};
+use crate::Engine;
 
 #[must_use]
 pub struct EngineBuilder {

@@ -5,16 +5,13 @@ mod nil;
 mod r#trait;
 mod warnings;
 
-pub(crate) use self::cons::VisitorCons;
-pub(crate) use self::context::VisitorContext;
-pub(crate) use self::error::RuleError;
-pub(crate) use self::nil::VisitorNil;
-pub(crate) use self::r#trait::Visitor;
-pub(crate) use self::warnings::Warning;
-
 use engine::Positioned;
 use engine_parser::types::{
     ConstDirective, FieldDefinition, ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
+};
+
+pub(crate) use self::{
+    cons::VisitorCons, context::VisitorContext, error::RuleError, nil::VisitorNil, r#trait::Visitor, warnings::Warning,
 };
 
 type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;

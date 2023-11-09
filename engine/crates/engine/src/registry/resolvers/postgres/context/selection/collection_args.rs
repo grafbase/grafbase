@@ -1,4 +1,3 @@
-use crate::{Error, SelectionField};
 use engine_value::{Name, Value};
 use grafbase_sql_ast::ast::{Aliasable, Column, Comparable, ConditionTree, Expression, Order, OrderDefinition};
 use indexmap::IndexMap;
@@ -8,6 +7,8 @@ use postgres_connector_types::{
 };
 use runtime::search::GraphqlCursor;
 use serde::Deserialize;
+
+use crate::{Error, SelectionField};
 
 #[derive(Debug, Clone, Default)]
 pub struct CollectionOrdering {

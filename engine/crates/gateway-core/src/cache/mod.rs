@@ -5,7 +5,6 @@ use common_types::auth::ExecutionAuth;
 use futures_util::{FutureExt, TryFutureExt};
 use headers::HeaderMapExt;
 use http::status::StatusCode;
-
 use runtime::cache::{Cache, Cacheable, Entry, EntryState};
 use tracing::{info_span, Instrument};
 
@@ -14,7 +13,6 @@ mod key;
 
 pub const X_GRAFBASE_CACHE: &str = "x-grafbase-cache";
 pub use build_key::{build_cache_key, BuildKeyError};
-
 use engine::registry::CachePartialRegistry;
 
 use super::RequestContext;
@@ -387,23 +385,29 @@ async fn update_stale<Value, Error, ValueFut>(
 
 #[cfg(test)]
 mod tests {
-    use super::key::{CacheAccess, CacheKey};
-    use super::*;
-    use crate::Error;
-    use engine::parser::types::OperationType;
-    use engine::registry::{CacheAccessScope, MetaField, MetaFieldType, MetaType, ObjectType, Registry};
-    use tokio::sync::{Mutex, RwLock};
-
-    use std::collections::hash_map::DefaultHasher;
-    use std::collections::{BTreeMap, BTreeSet, HashSet};
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::sync::Arc;
+    use std::{
+        collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet, HashSet},
+        sync::{
+            atomic::{AtomicBool, AtomicUsize, Ordering},
+            Arc,
+        },
+    };
 
     use common_types::auth::ExecutionAuth;
-    use engine::Request;
+    use engine::{
+        parser::types::OperationType,
+        registry::{CacheAccessScope, MetaField, MetaFieldType, MetaType, ObjectType, Registry},
+        Request,
+    };
     use futures_util::future::BoxFuture;
-    use runtime::cache;
-    use runtime::cache::test_utils::FakeCache;
+    use runtime::{cache, cache::test_utils::FakeCache};
+    use tokio::sync::{Mutex, RwLock};
+
+    use super::{
+        key::{CacheAccess, CacheKey},
+        *,
+    };
+    use crate::Error;
 
     const TEST: &str = "Test";
     const QUERY: &str = "query { Test { id } }";

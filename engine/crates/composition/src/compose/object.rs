@@ -1,6 +1,7 @@
+use std::collections::HashSet;
+
 use super::*;
 use crate::subgraphs::{FieldTypeId, StringId};
-use std::collections::HashSet;
 
 /// The arguments of a federated graph's fields are the interseciton of the subgraph's arguments for
 /// that field.

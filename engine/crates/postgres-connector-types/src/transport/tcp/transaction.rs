@@ -1,10 +1,10 @@
-use crate::{error::Error, transport::Transport};
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::Value;
 use tokio_postgres::Transaction;
 
 use super::executor;
+use crate::{error::Error, transport::Transport};
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]

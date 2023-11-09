@@ -10,13 +10,13 @@ mod ingest_subgraph;
 mod result;
 mod subgraphs;
 
-pub use self::{diagnostics::Diagnostics, result::CompositionResult, subgraphs::Subgraphs};
 pub use grafbase_federated_graph::render_sdl;
 
 use self::{
     compose::{compose_subgraphs, ComposeContext},
     emit_federated_graph::emit_federated_graph,
 };
+pub use self::{diagnostics::Diagnostics, result::CompositionResult, subgraphs::Subgraphs};
 
 /// Compose subgraphs into a federated graph.
 pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {

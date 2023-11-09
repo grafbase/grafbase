@@ -1,5 +1,6 @@
-use crate::Diagnostics;
 use grafbase_federated_graph::FederatedGraph;
+
+use crate::Diagnostics;
 
 /// The result of a [`compose()`](crate::compose()) invocation.
 pub struct CompositionResult {

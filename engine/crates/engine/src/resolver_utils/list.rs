@@ -8,7 +8,10 @@ use crate::{
     extensions::ResolveInfo,
     parser::types::Field,
     registry::{
-        resolvers::ResolvedValue, scalars::DynamicScalar, scalars::PossibleScalar, type_kinds::OutputType, MetaType,
+        resolvers::ResolvedValue,
+        scalars::{DynamicScalar, PossibleScalar},
+        type_kinds::OutputType,
+        MetaType,
     },
     resolver_utils::resolve_container,
     Context, ContextExt, ContextField, ContextList, ContextSelectionSetLegacy, ContextWithIndex, Error,

@@ -1,13 +1,13 @@
-use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use common_types::{auth::ExecutionAuth, UdfKind};
 use engine::{AuthConfig, AuthProvider, AuthorizerProvider};
 use futures_util::TryFutureExt;
 use jwt_verifier::{VerificationError, VerifiedToken};
-
-use runtime::kv::KvManager;
-use runtime::udf::{AuthorizerRequestPayload, CustomResolverResponse, UdfInvoker};
+use runtime::{
+    kv::KvManager,
+    udf::{AuthorizerRequestPayload, CustomResolverResponse, UdfInvoker},
+};
 
 use super::RequestContext;
 

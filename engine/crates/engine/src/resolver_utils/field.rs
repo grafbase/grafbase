@@ -3,6 +3,7 @@ use engine_value::ConstValue;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use serde_json::Value;
 
+use super::{introspection, resolve_container, resolve_list};
 use crate::{
     registry::{
         resolvers::{ResolvedValue, ResolverContext},
@@ -12,8 +13,6 @@ use crate::{
     },
     Context, ContextExt, ContextField, Error, QueryPathSegment, ServerError,
 };
-
-use super::{introspection, resolve_container, resolve_list};
 
 /// Resolves the field inside `ctx` within the type `root`
 pub async fn resolve_field(

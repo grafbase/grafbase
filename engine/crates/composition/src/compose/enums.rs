@@ -1,6 +1,7 @@
+use std::collections::HashSet;
+
 use super::*;
 use crate::subgraphs::{StringId, Subgraphs};
-use std::collections::HashSet;
 
 pub(super) fn merge_enum_definitions(
     first: &DefinitionWalker<'_>,

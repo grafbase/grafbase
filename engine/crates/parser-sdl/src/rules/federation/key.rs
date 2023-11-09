@@ -1,8 +1,7 @@
 use std::collections::BTreeSet;
 
-use crate::rules::{directive::Directive, join_directive::FieldSelection};
-
 use super::field_set::FieldSet;
+use crate::rules::{directive::Directive, join_directive::FieldSelection};
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

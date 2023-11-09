@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 use super::{value::MongoValue, JsonMap};
 use crate::{
     registry::{
@@ -5,7 +7,6 @@ use crate::{
     },
     ContextField,
 };
-use serde_json::Value;
 
 /// Given the input keys, converts them to the names on MongoDB.
 ///

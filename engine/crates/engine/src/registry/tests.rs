@@ -1,6 +1,8 @@
-use super::*;
-use sha2::{Digest, Sha256};
 use std::borrow::Cow;
+
+use sha2::{Digest, Sha256};
+
+use super::*;
 
 const EXPECTED_SHA: &str = "86586b4bbc667719c8b977a7f587691fc43c68937937c255c0fcd6de267f89f6";
 

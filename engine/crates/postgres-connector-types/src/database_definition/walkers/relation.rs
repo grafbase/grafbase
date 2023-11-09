@@ -3,9 +3,8 @@ use std::borrow::Cow;
 use inflector::Inflector;
 use itertools::Itertools;
 
-use crate::database_definition::RelationId;
-
 use super::{ForeignKeyWalker, TableColumnWalker, TableWalker, Walker};
+use crate::database_definition::RelationId;
 
 pub type RelationWalker<'a> = Walker<'a, RelationId>;
 

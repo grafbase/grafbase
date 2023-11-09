@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
+use grafbase_federated_graph as federated;
+
 use super::field_types_map::FieldTypesMap;
 use crate::{composition_ir::CompositionIr, subgraphs, VecExt};
-use grafbase_federated_graph as federated;
-use std::collections::HashMap;
 
 pub(super) struct Context<'a> {
     pub(super) out: &'a mut federated::FederatedGraph,

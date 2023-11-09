@@ -3,9 +3,8 @@ use std::future::Future;
 use common_types::LogEventType;
 use runtime::log::LogEvent;
 
-use crate::{registry::resolvers::postgres::context::PostgresContext, Error};
-
 use super::RowData;
+use crate::{registry::resolvers::postgres::context::PostgresContext, Error};
 
 pub(super) async fn query<F>(ctx: &PostgresContext<'_>, sql: &str, operation: F) -> crate::Result<Vec<RowData>>
 where

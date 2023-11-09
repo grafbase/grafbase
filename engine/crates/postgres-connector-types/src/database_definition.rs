@@ -13,6 +13,8 @@ mod unique_constraint_column;
 mod vectorize;
 mod walkers;
 
+use std::collections::HashMap;
+
 pub use enum_variant::EnumVariant;
 pub use foreign_key::ForeignKey;
 pub use foreign_key_column::ForeignKeyColumn;
@@ -20,8 +22,12 @@ pub use ids::{
     BackRelationId, EnumId, EnumVariantId, ForeignKeyColumnId, ForeignKeyId, ForwardRelationId, RelationId, SchemaId,
     TableColumnId, TableId, UniqueConstraintColumnId, UniqueConstraintId,
 };
+use inflector::Inflector;
+use names::{Names, StringId};
 pub use postgres_type::{ColumnType, DatabaseType, ScalarType};
 pub use r#enum::Enum;
+use relations::Relations;
+use serde::{Deserialize, Serialize};
 pub use table::Table;
 pub use table_column::TableColumn;
 pub use unique_constraint::{ConstraintType, UniqueConstraint};
@@ -30,12 +36,6 @@ pub use walkers::{
     EnumVariantWalker, EnumWalker, RelationWalker, TableColumnWalker, TableWalker, UniqueConstraintColumnWalker,
     UniqueConstraintWalker, Walker,
 };
-
-use inflector::Inflector;
-use names::{Names, StringId};
-use relations::Relations;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Definition of a PostgreSQL database. Contains all the
 /// tables, enums, columns, constraints etc. for us to render

@@ -1,5 +1,6 @@
-use crate::federated_graph::*;
 use std::fmt::{self, Write as _};
+
+use crate::federated_graph::*;
 
 const INDENT: &str = "    ";
 const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];

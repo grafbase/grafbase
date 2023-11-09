@@ -1,5 +1,7 @@
 #![allow(deprecated)]
 
+use std::hash::Hash;
+
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase_sql_ast::ast::Order;
@@ -7,7 +9,6 @@ use indexmap::IndexMap;
 use postgres_connector_types::{cursor::SQLCursor, database_definition::TableId};
 use runtime::search::GraphqlCursor;
 use serde_json::Value;
-use std::hash::Hash;
 
 use super::{
     dynamo_querying::{DynamoResolver, IdCursor},

@@ -1,9 +1,11 @@
-use crate::Engine;
+use std::{fmt, future::Future, panic::AssertUnwindSafe, sync::Arc};
+
 use engine::Response;
 use futures::FutureExt;
 use indoc::formatdoc;
 use serde_json::json;
-use std::{fmt, future::Future, panic::AssertUnwindSafe, sync::Arc};
+
+use crate::Engine;
 
 pub(super) static DATA_API_URL: &str = "http://localhost:3000/app/data-test/endpoint/data/v1";
 

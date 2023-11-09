@@ -1,4 +1,5 @@
-use crate::{Engine, EngineBuilder};
+use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::Arc};
+
 use async_once_cell::OnceCell;
 use engine::Response;
 use futures::FutureExt;
@@ -6,7 +7,8 @@ use graphql_parser::parse_schema;
 use indoc::formatdoc;
 use postgres_connector_types::transport::{TcpTransport, Transport, TransportExt};
 use serde::de::DeserializeOwned;
-use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::Arc};
+
+use crate::{Engine, EngineBuilder};
 
 // this is for creating/dropping databases, which _should not be done_ over pgbouncer.
 static ADMIN_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/postgres";

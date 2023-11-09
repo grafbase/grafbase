@@ -1,12 +1,13 @@
 pub mod collection_args;
 
+pub use collection_args::CollectionArgs;
+use postgres_connector_types::database_definition::{RelationWalker, TableColumnWalker, TableWalker};
+
 use super::PostgresContext;
 use crate::{
     registry::type_kinds::{OutputType, SelectionSetTarget},
     Error, Lookahead, SelectionField,
 };
-pub use collection_args::CollectionArgs;
-use postgres_connector_types::database_definition::{RelationWalker, TableColumnWalker, TableWalker};
 
 pub enum TableSelection<'a> {
     /// Selects a single column.

@@ -4,6 +4,7 @@ use engine_parser::Positioned;
 use futures_util::FutureExt;
 use graph_entities::{CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
 
+use super::{field::resolve_field, fragment::FragmentDetails};
 use crate::{
     deferred::DeferredWorkload,
     extensions::ResolveInfo,
@@ -15,8 +16,6 @@ use crate::{
     relations_edges, Context, ContextExt, ContextField, ContextSelectionSet, ContextSelectionSetLegacy, Error,
     LegacyOutputType, Name, ServerError, ServerResult, Value,
 };
-
-use super::{field::resolve_field, fragment::FragmentDetails};
 
 /// Represents a GraphQL container object.
 ///

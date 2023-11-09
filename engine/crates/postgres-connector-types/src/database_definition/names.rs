@@ -1,13 +1,14 @@
 mod interner;
 
-pub(super) use self::interner::{StringId, StringInterner};
+use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
+pub(super) use self::interner::{StringId, StringInterner};
 use super::{
     Enum, EnumId, EnumVariant, EnumVariantId, ForeignKey, ForeignKeyId, RelationId, SchemaId, Table, TableColumn,
     TableColumnId, TableId, UniqueConstraint, UniqueConstraintId,
 };
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub(super) struct Names {

@@ -1,8 +1,10 @@
-use super::{warnings::Warnings, RuleError, TypeStackType, Warning, MUTATION_TYPE, QUERY_TYPE};
-use crate::{
-    rules::federation::FederationVersion, GlobalCacheRules, GlobalCacheTarget, GraphqlDirective, MongoDBDirective,
-    OpenApiDirective, ParseResult, PostgresDirective,
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    collections::{hash_map::Entry, HashMap, HashSet},
+    sync::RwLock,
 };
+
 use common_types::UdfKind;
 use engine::{
     model::{__Schema, __Type},
@@ -16,11 +18,11 @@ use engine_parser::{
     Pos, Positioned,
 };
 use engine_value::{indexmap::IndexMap, Name};
-use std::{
-    borrow::Cow,
-    cell::RefCell,
-    collections::{hash_map::Entry, HashMap, HashSet},
-    sync::RwLock,
+
+use super::{warnings::Warnings, RuleError, TypeStackType, Warning, MUTATION_TYPE, QUERY_TYPE};
+use crate::{
+    rules::federation::FederationVersion, GlobalCacheRules, GlobalCacheTarget, GraphqlDirective, MongoDBDirective,
+    OpenApiDirective, ParseResult, PostgresDirective,
 };
 
 /// The VisitorContext to visit every types from the Schema.

@@ -10,8 +10,12 @@ mod table_column;
 mod unique_constraint;
 mod unique_constraint_column;
 
+use std::ops::Range;
+
 pub use back_relation::BackRelationWalker;
 pub use enum_variant::EnumVariantWalker;
+pub(crate) use foreign_key::ForeignKeyWalker;
+pub(crate) use foreign_key_column::ForeignKeyColumnWalker;
 pub use forward_relation::ForwardRelationWalker;
 pub use r#enum::EnumWalker;
 pub use relation::RelationWalker;
@@ -20,13 +24,8 @@ pub use table_column::TableColumnWalker;
 pub use unique_constraint::UniqueConstraintWalker;
 pub use unique_constraint_column::UniqueConstraintColumnWalker;
 
-pub(crate) use foreign_key::ForeignKeyWalker;
-pub(crate) use foreign_key_column::ForeignKeyColumnWalker;
-
-use crate::database_definition::DatabaseDefinition;
-use std::ops::Range;
-
 use super::names::StringId;
+use crate::database_definition::DatabaseDefinition;
 
 /// An abstraction to iterate over an introspected PostgreSQL database.
 ///

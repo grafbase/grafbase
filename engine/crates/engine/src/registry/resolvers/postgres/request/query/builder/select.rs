@@ -1,6 +1,8 @@
-use crate::registry::resolvers::postgres::context::{CollectionArgs, FilterIterator, SelectionIterator};
-use postgres_connector_types::database_definition::{RelationWalker, TableWalker};
 use std::borrow::Cow;
+
+use postgres_connector_types::database_definition::{RelationWalker, TableWalker};
+
+use crate::registry::resolvers::postgres::context::{CollectionArgs, FilterIterator, SelectionIterator};
 
 /// A builder for building a PostgreSQL `SELECT` statement.
 #[derive(Clone)]

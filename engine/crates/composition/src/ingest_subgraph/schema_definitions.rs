@@ -1,6 +1,7 @@
+use std::borrow::Cow;
+
 use async_graphql_parser::types as ast;
 use async_graphql_value::ConstValue;
-use std::borrow::Cow;
 
 pub(super) fn ingest_schema_definitions(document: &ast::ServiceDocument) -> FederationDirectivesMatcher<'_> {
     document
@@ -133,11 +134,11 @@ fn read_imports<'a>(ast_imports: &'a [ConstValue], out: &mut Vec<(&'a str, &'a s
 
 #[cfg(test)]
 mod federation_directives_matcher_tests {
-    use super::*;
-
-    use miette as _;  
-    use similar as _;
     use datatest_stable as _;
+    use miette as _;
+    use similar as _;
+
+    use super::*;
 
     fn with_matcher_for_schema(graphql_sdl: &str, test: impl FnOnce(FederationDirectivesMatcher<'_>)) {
         let ast = async_graphql_parser::parse_schema(graphql_sdl).unwrap();

@@ -2,11 +2,10 @@ use chrono::{Duration, NaiveDate};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use super::JsonMap;
 use crate::registry::resolvers::atlas_data_api::consts::{
     BASE64, OP_BINARY, OP_DATE, OP_DECIMAL, OP_LONG, OP_OID, OP_TIMESTAMP, SUBTYPE,
 };
-
-use super::JsonMap;
 
 /// A value representation in MongoDB. Extends over JSON with a few special types.
 #[derive(Debug, Clone, Serialize, Deserialize)]

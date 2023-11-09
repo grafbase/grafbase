@@ -1,5 +1,6 @@
-use super::*;
 use std::collections::{HashMap, HashSet};
+
+use super::*;
 
 pub(super) fn merge_input_object_definitions(
     ctx: &mut Context<'_>,

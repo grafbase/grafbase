@@ -16,6 +16,13 @@ use fnv::FnvHashMap;
 use graph_entities::QueryResponse;
 use http::header::HeaderMap;
 
+pub use self::selection_set::ContextSelectionSet;
+pub(crate) use self::{
+    ext::{Context, ContextExt},
+    field::ContextField,
+    legacy::ContextSelectionSetLegacy,
+    list::{ContextList, ContextWithIndex},
+};
 use crate::{
     deferred::DeferredWorkloadSender,
     extensions::Extensions,
@@ -24,14 +31,6 @@ use crate::{
     registry::{relations::MetaRelation, type_kinds::SelectionSetTarget},
     schema::SchemaEnv,
     CacheInvalidation, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
-};
-
-pub use self::selection_set::ContextSelectionSet;
-pub(crate) use self::{
-    ext::{Context, ContextExt},
-    field::ContextField,
-    legacy::ContextSelectionSetLegacy,
-    list::{ContextList, ContextWithIndex},
 };
 
 mod ext;

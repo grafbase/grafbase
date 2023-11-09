@@ -1,6 +1,5 @@
-use crate::{Context, ContextField, Error};
-
 use super::ResolvedValue;
+use crate::{Context, ContextField, Error};
 
 /// Some resolvers for implementing introspection
 ///

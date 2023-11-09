@@ -1,7 +1,6 @@
 use std::{any::Any, ops::Deref, sync::Arc};
 
 use dynamodb::CurrentDateTime;
-
 use futures_util::stream::{self, Stream, StreamExt};
 use graph_entities::CompactValue;
 use indexmap::map::IndexMap;

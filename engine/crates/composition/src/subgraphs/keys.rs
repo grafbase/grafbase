@@ -1,5 +1,6 @@
-use super::*;
 use async_graphql_parser::types as ast;
+
+use super::*;
 
 /// All the keys (`@key(...)`) in all the subgraphs in one container.
 #[derive(Default)]

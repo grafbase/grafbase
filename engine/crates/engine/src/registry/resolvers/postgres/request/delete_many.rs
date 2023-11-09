@@ -1,10 +1,11 @@
+use grafbase_sql_ast::renderer::{self, Renderer};
+use postgres_connector_types::transport::TransportExt;
+
 use super::{log, query};
 use crate::{
     registry::resolvers::{postgres::context::PostgresContext, ResolvedValue},
     Error,
 };
-use grafbase_sql_ast::renderer::{self, Renderer};
-use postgres_connector_types::transport::TransportExt;
 
 pub(crate) async fn execute(ctx: PostgresContext<'_>) -> Result<ResolvedValue, Error> {
     let (sql, params) = renderer::Postgres::build(query::delete::build(&ctx, ctx.filter()?)?);

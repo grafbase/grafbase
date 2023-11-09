@@ -1,6 +1,7 @@
+use async_graphql_parser::Positioned;
+
 use super::*;
 use crate::subgraphs::FieldId;
-use async_graphql_parser::Positioned;
 
 pub(crate) fn ingest_field_arguments(
     field_id: FieldId,

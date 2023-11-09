@@ -1,6 +1,7 @@
+use std::collections::BTreeSet;
+
 use super::DefinitionId;
 use crate::Subgraphs;
-use std::collections::BTreeSet;
 
 /// All the unions in all subgraphs.
 #[derive(Default)]

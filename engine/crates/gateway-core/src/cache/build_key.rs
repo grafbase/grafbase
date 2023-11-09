@@ -1,6 +1,5 @@
 use std::collections::{hash_map::DefaultHasher, BTreeSet};
 
-use crate::RequestContext;
 use common_types::auth::ExecutionAuth;
 use engine::registry::CacheAccessScope;
 
@@ -8,6 +7,7 @@ use super::{
     key::{CacheAccess, CacheKey},
     CacheConfig,
 };
+use crate::RequestContext;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BuildKeyError {

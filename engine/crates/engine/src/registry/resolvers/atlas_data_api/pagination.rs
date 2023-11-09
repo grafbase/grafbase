@@ -1,9 +1,10 @@
+use runtime::search::GraphqlCursor;
+
 use super::{cursor::AtlasCursor, input::first, JsonMap};
 use crate::{
     registry::resolvers::{ResolvedPaginationInfo, ResolverContext},
     ContextField, Error,
 };
-use runtime::search::GraphqlCursor;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct PaginationContext<'a> {

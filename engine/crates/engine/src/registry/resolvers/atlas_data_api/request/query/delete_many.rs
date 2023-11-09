@@ -1,11 +1,10 @@
 use serde::Serialize;
 
+use super::AtlasQuery;
 use crate::{
     registry::resolvers::atlas_data_api::{input, JsonMap},
     ContextField, Error,
 };
-
-use super::AtlasQuery;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

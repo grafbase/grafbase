@@ -2,9 +2,8 @@ use std::collections::HashMap;
 
 use engine_parser::{types::ConstDirective, Positioned};
 
-use crate::{directive_de::parse_directive, rules::directive::Directive};
-
 use super::{federation::FieldSet, visitor::VisitorContext};
+use crate::{directive_de::parse_directive, rules::directive::Directive};
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
