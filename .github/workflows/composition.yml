@@ -16,7 +16,7 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('federation/crates/composition/Cargo.toml') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('engine/crates/composition/Cargo.toml') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Lint
