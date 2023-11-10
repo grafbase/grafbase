@@ -9,7 +9,8 @@ fn update_expect() -> bool {
 
 #[allow(clippy::unnecessary_wraps)] // we can't change the signature expected by datatest_stable
 fn run_test(path: &Path) -> datatest_stable::Result<()> {
-    let graphql = fs::read_to_string(path).unwrap();
+    // TODO: remove this once codegen is no longer experimental
+    let graphql = fs::read_to_string(path).unwrap() + "extend schema @experimental(codegen: true)";
     let expected_file_path = path.with_extension("expected.ts");
     let mut expected = fs::read_to_string(&expected_file_path).unwrap_or_default();
     let generated = {

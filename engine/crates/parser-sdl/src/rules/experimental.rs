@@ -23,6 +23,7 @@ pub enum ExperimentalDirectiveError {
 pub struct ExperimentalDirective {
     pub kv: Option<bool>,
     pub ai: Option<bool>,
+    pub codegen: Option<bool>,
 }
 
 pub struct ExperimentalDirectiveVisitor;
@@ -63,6 +64,10 @@ impl Directive for ExperimentalDirective {
           Enable experimental usage of AI in resolvers.
           """
           ai: Boolean
+          """
+          Enable experimental typed resolver code generation.
+          """
+          codegen: Boolean
         ) on SCHEMA
         "#
         .to_string()
@@ -82,7 +87,7 @@ mod tests {
     #[rstest::rstest]
     #[case::error_parsing_unknown_field(r#"
         extend schema @experimental(random: true)
-    "#, &["Unable to parse @experimental - [2:37] unknown field `random`, expected `kv` or `ai`"], "", false)]
+    "#, &["Unable to parse @experimental - [2:37] unknown field `random`, expected one of `kv`, `ai`, `codegen`"], "", false)]
     #[case::successful_parsing_kv_enabled(r#"
         extend schema @experimental(kv: true)
     "#, &[], "kv", true)]
