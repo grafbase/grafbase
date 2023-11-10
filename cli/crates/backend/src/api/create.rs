@@ -85,6 +85,7 @@ pub async fn create(
             account_id: Id::new(account_id),
             database_regions,
             project_slug,
+            project_root_path: ".",
         },
     });
 

@@ -99,6 +99,10 @@ pub enum BackendError {
     #[error("could not read the repository information for {0}")]
     ReadRepositoryInformation(String),
 
+    /// returned if creating a temporary directory for the template stream fails
+    #[error("could not create a temporary directory to download the template archive: {0}")]
+    CouldNotCreateTemporaryDirectory(std::io::Error),
+
     // wraps a [`CommonError`]
     #[error(transparent)]
     CommonError(#[from] CommonError),

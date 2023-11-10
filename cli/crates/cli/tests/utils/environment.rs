@@ -5,7 +5,7 @@ use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
 use backend::project::ConfigType;
 use cfg_if::cfg_if;
-use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
+use common::consts::GRAFBASE_SCHEMA_FILE_NAME;
 use duct::{cmd, Handle};
 use std::env::VarError;
 use std::path::Path;
@@ -18,7 +18,7 @@ use tempfile::{tempdir, TempDir};
 pub struct Environment {
     pub endpoint: String,
     pub playground_endpoint: String,
-    pub directory: PathBuf,
+    pub directory_path: PathBuf,
     pub port: u16,
     temp_dir: Option<Arc<TempDir>>,
     schema_path: PathBuf,
@@ -88,12 +88,9 @@ impl Environment {
         let temp_dir = tempdir().unwrap();
         env::set_current_dir(temp_dir.path()).unwrap();
 
-        let schema_path = temp_dir
-            .path()
-            .join(GRAFBASE_DIRECTORY_NAME)
-            .join(GRAFBASE_SCHEMA_FILE_NAME);
-        let directory = temp_dir.path().to_owned();
-        println!("Using temporary directory {:?}", directory.as_os_str());
+        let schema_path = temp_dir.path().join(GRAFBASE_SCHEMA_FILE_NAME);
+        let directory_path = temp_dir.path().to_owned();
+        println!("Using temporary directory {:?}", directory_path.as_os_str());
         let commands = vec![];
         let endpoint = format!("http://127.0.0.1:{port}/graphql");
         let playground_endpoint = format!("http://127.0.0.1:{port}");
@@ -109,7 +106,7 @@ impl Environment {
         Self {
             endpoint,
             playground_endpoint,
-            directory,
+            directory_path,
             port,
             temp_dir,
             schema_path,
@@ -130,7 +127,7 @@ impl Environment {
         let commands = vec![];
 
         Self {
-            directory: other.directory.clone(),
+            directory_path: other.directory_path.clone(),
             commands,
             endpoint,
             playground_endpoint,
@@ -204,14 +201,14 @@ impl Environment {
     #[track_caller]
     pub fn write_json_file_to_project(&self, path: impl AsRef<Path>, contents: &serde_json::Value) {
         let contents = serde_json::to_string_pretty(contents).unwrap();
-        let target_path = self.directory.join(path.as_ref());
+        let target_path = self.directory_path.join(path.as_ref());
         fs::create_dir_all(target_path.parent().unwrap()).unwrap();
         fs::write(target_path, contents).unwrap();
     }
 
     #[track_caller]
     pub fn load_file_from_project(&self, path: impl AsRef<Path>) -> String {
-        fs::read_to_string(self.directory.join(path.as_ref())).unwrap()
+        fs::read_to_string(self.directory_path.join(path.as_ref())).unwrap()
     }
 
     #[track_caller]
@@ -224,7 +221,7 @@ impl Environment {
         }
 
         duct::cmd(cargo_bin("grafbase"), args)
-            .dir(&self.directory)
+            .dir(&self.directory_path)
             .stdout_capture()
             .stderr_capture()
             .unchecked()
@@ -242,7 +239,7 @@ impl Environment {
             "-c",
             config_format.as_ref()
         )
-        .dir(&self.directory)
+        .dir(&self.directory_path)
         .run()
         .unwrap();
     }
@@ -257,7 +254,7 @@ impl Environment {
             "-c",
             config_format.as_ref()
         )
-        .dir(&self.directory)
+        .dir(&self.directory_path)
         .stdout_capture()
         .stderr_capture()
         .unchecked()
@@ -271,7 +268,7 @@ impl Environment {
         } else {
             cmd!(cargo_bin("grafbase"), "init", "--template", template)
         }
-        .dir(&self.directory)
+        .dir(&self.directory_path)
         .stderr_capture()
         .unchecked()
         .run()
@@ -280,7 +277,7 @@ impl Environment {
 
     pub fn grafbase_link_non_interactive(&self, project: &str) -> Output {
         cmd!(cargo_bin("grafbase"), "link", "--project", project)
-            .dir(&self.directory)
+            .dir(&self.directory_path)
             .stdout_capture()
             .stderr_capture()
             .unchecked()
@@ -294,18 +291,13 @@ impl Environment {
         } else {
             cmd!(cargo_bin("grafbase"), "init", "--template", template)
         }
-        .dir(&self.directory)
+        .dir(&self.directory_path)
         .run()
         .unwrap();
     }
 
-    pub fn remove_grafbase_dir(&self, name: Option<&str>) {
-        let directory = name.map_or_else(|| self.directory.join("grafbase"), |name| self.directory.join(name));
-        fs::remove_dir_all(directory).unwrap();
-    }
-
     pub fn with_home(mut self, path: PathBuf) -> Self {
-        fs::create_dir_all(self.directory.join(&path)).unwrap();
+        fs::create_dir_all(self.directory_path.join(&path)).unwrap();
         self.home = Some(path);
         self
     }
@@ -320,7 +312,7 @@ impl Environment {
             "--port",
             self.port.to_string()
         )
-        .dir(&self.directory);
+        .dir(&self.directory_path);
         #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
@@ -337,7 +329,7 @@ impl Environment {
             "--port",
             self.port.to_string()
         )
-        .dir(&self.directory);
+        .dir(&self.directory_path);
         #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
@@ -361,7 +353,7 @@ impl Environment {
             "--port",
             self.port.to_string()
         )
-        .dir(&self.directory)
+        .dir(&self.directory_path)
         .start()
         .unwrap();
 
@@ -376,7 +368,7 @@ impl Environment {
             "--port",
             self.port.to_string()
         )
-        .dir(&self.directory);
+        .dir(&self.directory_path);
         #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         command.start()?.into_output()
@@ -401,7 +393,10 @@ impl Environment {
     }
 
     pub fn grafbase_reset(&mut self) {
-        cmd!(cargo_bin("grafbase"), "reset").dir(&self.directory).run().unwrap();
+        cmd!(cargo_bin("grafbase"), "reset")
+            .dir(&self.directory_path)
+            .run()
+            .unwrap();
     }
 
     pub fn grafbase_dev_watch(&mut self) {
@@ -413,7 +408,7 @@ impl Environment {
             "--port",
             self.port.to_string()
         )
-        .dir(&self.directory);
+        .dir(&self.directory_path);
         #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
@@ -440,7 +435,7 @@ impl Environment {
     }
 
     pub fn has_database_directory(&mut self) -> bool {
-        fs::metadata(self.directory.join(".grafbase/database")).is_ok()
+        fs::metadata(self.directory_path.join(".grafbase/database")).is_ok()
     }
 }
 

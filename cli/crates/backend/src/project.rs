@@ -98,16 +98,18 @@ pub enum Template<'a> {
 /// - returns [`BackendError::ReadRepositoryInformation`] if the request to get the information for a repository returned a response that could not be parsed
 pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, BackendError> {
     let project_path = to_project_path(name)?;
-    let grafbase_path = project_path.join(GRAFBASE_DIRECTORY_NAME);
-
-    if grafbase_path.exists() {
-        return Err(BackendError::AlreadyAProject(grafbase_path));
-    }
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap();
+
+    if project_path.join(GRAFBASE_SCHEMA_FILE_NAME).exists() || project_path.join(GRAFBASE_TS_CONFIG_FILE_NAME).exists()
+    {
+        return Err(BackendError::AlreadyAProject(project_path));
+    }
+
+    std::fs::create_dir_all(&project_path).map_err(BackendError::CreateProjectDirectory)?;
 
     runtime.block_on(async move {
         match template {
@@ -118,7 +120,7 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, Ba
                 if template.contains('/') {
                     if let Ok(repo_url) = Url::parse(template) {
                         match repo_url.host_str() {
-                            Some("github.com") => handle_github_repo_url(&grafbase_path, &repo_url).await?,
+                            Some("github.com") => handle_github_repo_url(&project_path, &repo_url).await?,
                             _ => return Err(BackendError::UnsupportedTemplateURL(template.to_string())),
                         }
                     } else {
@@ -126,13 +128,13 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, Ba
                     }
                 } else {
                     download_github_template(
-                        &grafbase_path,
+                        &project_path,
                         GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template }),
                     )
                     .await?;
                 }
 
-                if std::fs::read_dir(&grafbase_path)
+                if std::fs::read_dir(&project_path)
                     .expect("We must have a valid directory in this point.")
                     .any(|item| {
                         item.ok()
@@ -152,15 +154,11 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, Ba
                 Ok(ConfigType::GraphQL)
             }
             Template::FromDefault(config_type) => {
-                tokio::fs::create_dir_all(&grafbase_path)
-                    .await
-                    .map_err(BackendError::CreateGrafbaseDirectory)?;
-
-                let dot_env_path = grafbase_path.join(GRAFBASE_ENV_FILE_NAME);
+                let dot_env_path = project_path.join(GRAFBASE_ENV_FILE_NAME);
 
                 let schema_write_result = match config_type {
                     ConfigType::TypeScript => {
-                        let schema_path = grafbase_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
+                        let schema_path = project_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
 
                         let add_sdk = environment::add_dev_dependency_to_package_json(
                             &project_path,
@@ -174,18 +172,12 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, Ba
                         add_sdk.and(write_schema)
                     }
                     ConfigType::GraphQL => {
-                        let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
+                        let schema_path = project_path.join(GRAFBASE_SCHEMA_FILE_NAME);
                         fs::write(schema_path, DEFAULT_SCHEMA_SDL).map_err(BackendError::WriteSchema)
                     }
                 };
 
                 let dot_env_write_result = fs::write(dot_env_path, DEFAULT_DOT_ENV).map_err(BackendError::WriteSchema);
-
-                if schema_write_result.is_err() || dot_env_write_result.is_err() {
-                    tokio::fs::remove_dir_all(&grafbase_path)
-                        .await
-                        .map_err(BackendError::DeleteGrafbaseDirectory)?;
-                }
 
                 schema_write_result?;
                 dot_env_write_result?;
@@ -328,7 +320,7 @@ impl<'a> GitHubTemplate<'a> {
     }
 }
 
-async fn download_github_template(grafbase_path: &Path, template: GitHubTemplate<'_>) -> Result<(), BackendError> {
+async fn download_github_template(project_path: &Path, template: GitHubTemplate<'_>) -> Result<(), BackendError> {
     let ExternalGitHubTemplate {
         org,
         repo,
@@ -337,32 +329,18 @@ async fn download_github_template(grafbase_path: &Path, template: GitHubTemplate
     } = template.into_external_github_template();
 
     let org_and_repo = format!("{org}/{repo}");
-
-    let extraction_dir = PathBuf::from(format!("{repo}-{branch}"));
-
-    let mut template_path: PathBuf = PathBuf::from(&extraction_dir);
-
+    let extraction_directory_path = PathBuf::from(format!("{repo}-{branch}"));
+    let mut template_path: PathBuf = PathBuf::from(&extraction_directory_path);
     if let Some(path) = path {
         template_path.push(path);
     }
-
-    template_path.push("grafbase");
-
-    let extraction_result = stream_github_archive(grafbase_path, &org_and_repo, template_path, branch).await;
-
-    if extraction_dir.exists() {
-        tokio::fs::remove_dir_all(extraction_dir)
-            .await
-            .map_err(BackendError::CleanExtractedFiles)?;
-    }
-
-    extraction_result
+    stream_github_archive(project_path, &org_and_repo, &template_path, branch).await
 }
 
 async fn stream_github_archive<'a>(
-    grafbase_path: &Path,
+    project_path: &Path,
     org_and_repo: &'a str,
-    template_path: PathBuf,
+    template_path: &Path,
     branch: &'a str,
 ) -> Result<(), BackendError> {
     // not using the common environment since it's not initialized here
@@ -401,44 +379,54 @@ async fn stream_github_archive<'a>(
 
     let mut entries = archive.entries().map_err(|_| BackendError::ReadArchiveEntries)?;
 
+    let temporary_directory = tempfile::tempdir().map_err(BackendError::MoveExtractedFiles)?;
+
     while let Some(entry) = entries.next().await {
         let mut entry = entry.map_err(BackendError::ExtractArchiveEntry)?;
 
         if entry
             .path()
             .ok()
-            .filter(|path| path.starts_with(&template_path))
+            .filter(|path| path.starts_with(template_path))
             .is_some()
         {
-            entry.unpack_in(".").await.map_err(BackendError::ExtractArchiveEntry)?;
+            entry
+                .unpack_in(temporary_directory.path())
+                .await
+                .map_err(BackendError::ExtractArchiveEntry)?;
         }
     }
 
-    if !template_path.exists() {
+    let final_path = temporary_directory.path().join(template_path);
+
+    if !final_path
+        .join(GRAFBASE_DIRECTORY_NAME)
+        .join(GRAFBASE_SCHEMA_FILE_NAME)
+        .exists()
+        && !final_path
+            .join(GRAFBASE_DIRECTORY_NAME)
+            .join(GRAFBASE_TS_CONFIG_FILE_NAME)
+            .exists()
+        && !final_path.join(GRAFBASE_SCHEMA_FILE_NAME).exists()
+        && !final_path.join(GRAFBASE_TS_CONFIG_FILE_NAME).exists()
+    {
         return Err(BackendError::TemplateNotFound);
     }
 
-    let project_folder = grafbase_path.parent().expect("must exist");
-
-    let named_project = !project_folder.exists();
-
-    if named_project {
-        tokio::fs::create_dir(project_folder)
-            .await
-            .map_err(BackendError::CreateProjectDirectory)?;
-    }
-
-    let rename_result = tokio::fs::rename(template_path, &grafbase_path)
+    // Move all contents.
+    let mut read_dir = tokio::fs::read_dir(&final_path)
         .await
-        .map_err(BackendError::MoveExtractedFiles);
+        .map_err(BackendError::MoveExtractedFiles)?;
 
-    if rename_result.is_err() {
-        tokio::fs::remove_dir_all(project_folder)
+    while let Some(dir_entry) = read_dir.next_entry().await.map_err(BackendError::MoveExtractedFiles)? {
+        let source_path = dir_entry.path();
+        let relative_path = source_path.strip_prefix(&final_path).expect("must be valid");
+        tokio::fs::rename(&source_path, project_path.join(relative_path))
             .await
-            .map_err(BackendError::CleanExtractedFiles)?;
+            .map_err(BackendError::MoveExtractedFiles)?;
     }
 
-    rename_result
+    Ok(())
 }
 
 /// resets the local data for the current project by removing the `.grafbase` directory

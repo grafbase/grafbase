@@ -11,7 +11,7 @@ use crate::{bridge, errors::ServerError};
 use crate::{error_server, proxy};
 use bridge::BridgeState;
 use common::consts::MAX_PORT;
-use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
+use common::consts::{GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project, SchemaLocation};
 use common::types::UdfKind;
 use engine::registry::Registry;
@@ -67,7 +67,7 @@ impl ProductionServer {
 
             let mut hasher = sha2::Sha256::new();
 
-            for entry in walkdir::WalkDir::new(&project.grafbase_directory_path)
+            for entry in walkdir::WalkDir::new(&project.path)
                 .sort_by_file_name()
                 .follow_links(true)
                 .into_iter()
@@ -162,7 +162,7 @@ pub async fn start(
             .expect("Invariant violation: codegen worker started twice.");
 
         tokio::select! {
-            result = start_watcher(project.grafbase_directory_path.clone(), move |path| {
+            result = start_watcher(project.path.clone(), move |path| {
                 let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
                 watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
             }) => { result }
@@ -256,7 +256,7 @@ async fn spawn_servers(
     // For this logic to become more fine-grained we would need to have an understanding of the module dependency graph
     // in resolvers, and that's a non-trivial problem.
     if path_changed
-        .map(|path| (Path::new(GRAFBASE_DIRECTORY_NAME), path))
+        .map(|path| (Path::new("./"), path))
         .filter(|(dir, path)| path != &dir.join(GRAFBASE_SCHEMA_FILE_NAME))
         .filter(|(dir, path)| path != &dir.join(GRAFBASE_TS_CONFIG_FILE_NAME))
         .is_some()

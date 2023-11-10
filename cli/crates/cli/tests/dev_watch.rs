@@ -48,7 +48,7 @@ fn dev_watch() {
 
     {
         // Check that the TS resolver types are being generated.
-        let generated_types_path = env.directory.join("grafbase/generated/index.ts");
+        let generated_types_path = env.directory_path.join("generated/index.ts");
         assert!(generated_types_path.is_file());
     }
 }

@@ -277,7 +277,7 @@ fn test_field_resolver(
 ) {
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
-    std::fs::write(env.directory.join("grafbase/.env"), "MY_OWN_VARIABLE=test_value").unwrap();
+    std::fs::write(env.directory_path.join(".env"), "MY_OWN_VARIABLE=test_value").unwrap();
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
     if let Some((package_manager, package_json)) = package_json {
@@ -286,10 +286,7 @@ fn test_field_resolver(
         // See https://github.com/rust-lang/rust/issues/37519.
         let program_path = which::which(package_manager.to_string()).expect("command must be found");
         let command = duct::cmd!(program_path, "install");
-        command
-            .dir(env.directory.join("grafbase"))
-            .run()
-            .expect("should have succeeded");
+        command.dir(&env.directory_path).run().expect("should have succeeded");
     }
     env.grafbase_dev();
     let client = env

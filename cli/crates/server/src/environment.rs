@@ -5,7 +5,7 @@ use crate::consts::DOT_ENV_FILE_NAME;
 #[allow(deprecated)] // https://github.com/dotenv-rs/dotenv/pull/54
 pub fn variables() -> impl Iterator<Item = (String, String)> {
     let project = Project::get();
-    let dot_env_file_path = project.grafbase_directory_path.join(DOT_ENV_FILE_NAME);
+    let dot_env_file_path = project.path.join(DOT_ENV_FILE_NAME);
     // We don't use dotenv::dotenv() as we don't want to pollute the process' environment.
     // Doing otherwise would make us unable to properly refresh it whenever any of the .env files
     // changes which is something we may want to do in the future.

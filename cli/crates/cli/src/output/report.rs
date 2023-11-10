@@ -12,7 +12,7 @@ use colored::Colorize;
 use common::consts::GRAFBASE_TS_CONFIG_FILE_NAME;
 use common::types::{LogLevel, UdfKind};
 use common::{
-    consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
+    consts::{GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
     environment::Warning,
 };
 use std::{net::IpAddr, path::Path};
@@ -62,7 +62,7 @@ pub fn project_created(name: Option<&str>, config_type: ConfigType) {
     if let Some(name) = name {
         watercolor::output!(r#"✨ {name} was successfully initialized!"#, @BrightBlue);
 
-        let schema_path = &[".", name, GRAFBASE_DIRECTORY_NAME, schema_file_name].join(&slash);
+        let schema_path = &[".", name, schema_file_name].join(&slash);
 
         println!(
             "The configuration for your new project can be found at {}",
@@ -71,7 +71,7 @@ pub fn project_created(name: Option<&str>, config_type: ConfigType) {
     } else {
         watercolor::output!(r#"✨ Your project was successfully set up for Grafbase!"#, @BrightBlue);
 
-        let schema_path = &[".", GRAFBASE_DIRECTORY_NAME, schema_file_name].join(&slash);
+        let schema_path = &[".", schema_file_name].join(&slash);
 
         println!(
             "Your new configuration can be found at {}",
