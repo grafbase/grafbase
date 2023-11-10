@@ -437,7 +437,6 @@ async fn spawn_miniflare(
             "--wrangler-config",
             wrangler_toml_path.to_str().unwrap(),
         ];
-        println!("{miniflare_arguments:?}");
         if tracing {
             miniflare_arguments.push("--debug");
         }
