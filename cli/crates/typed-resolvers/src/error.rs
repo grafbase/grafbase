@@ -1,33 +1,12 @@
 use engine_parser::Error as ParseError;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum CodegenError {
+    #[error("The `codegen` experimental feature is not enabled")]
     ExperimentalFeatureNotEnabled,
-    ParseError(ParseError),
-    FmtError(fmt::Error),
-}
-
-impl fmt::Display for CodegenError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CodegenError::ExperimentalFeatureNotEnabled => {
-                f.write_str("The `codegen` experimental feature is not enabled")
-            }
-            CodegenError::ParseError(err) => fmt::Display::fmt(err, f),
-            CodegenError::FmtError(err) => fmt::Display::fmt(err, f),
-        }
-    }
-}
-
-impl From<fmt::Error> for CodegenError {
-    fn from(value: fmt::Error) -> Self {
-        CodegenError::FmtError(value)
-    }
-}
-
-impl From<ParseError> for CodegenError {
-    fn from(value: ParseError) -> Self {
-        CodegenError::ParseError(value)
-    }
+    #[error(transparent)]
+    ParseError(#[from] ParseError),
+    #[error(transparent)]
+    FmtError(#[from] fmt::Error),
 }
