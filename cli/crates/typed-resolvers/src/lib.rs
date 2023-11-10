@@ -18,9 +18,14 @@ where
     O: fmt::Write,
 {
     let parsed_schema = parse_schema::<&str>(graphql_sdl)?;
-    let analyzed_schema = analyze::analyze(&parsed_schema);
-    codegen::generate_module(&analyzed_schema, out)?;
-    Ok(())
+
+    if experimental_codegen_is_enabled(&parsed_schema) {
+        let analyzed_schema = analyze::analyze(&parsed_schema);
+        codegen::generate_module(&analyzed_schema, out)?;
+        Ok(())
+    } else {
+        Err(CodegenError::ExperimentalFeatureNotEnabled)
+    }
 }
 
 #[must_use]
@@ -55,4 +60,24 @@ pub fn check_resolvers(resolvers_root: &Path, schema: &analyze::AnalyzedSchema<'
     }
 
     AnalyzedResolvers { errs }
+}
+
+fn experimental_codegen_is_enabled(parsed_schema: &engine_parser::types::ServiceDocument) -> bool {
+    const EXPERIMENTAL_DIRECTIVE: &str = "experimental";
+    const CODEGEN_ARGUMENT: &str = "codegen";
+
+    parsed_schema
+        .definitions
+        .iter()
+        .filter_map(|def| match def {
+            engine_parser::types::TypeSystemDefinition::Schema(schema_definition) => Some(schema_definition),
+            _ => None,
+        })
+        .flat_map(|def| def.node.directives.iter())
+        .any(|directive| {
+            directive.node.name.as_str() == EXPERIMENTAL_DIRECTIVE
+                && directive.node.arguments.iter().any(|(name, value)| {
+                    name.node == CODEGEN_ARGUMENT && matches!(value.node, engine_value::ConstValue::Boolean(true))
+                })
+        })
 }

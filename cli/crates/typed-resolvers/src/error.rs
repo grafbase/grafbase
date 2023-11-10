@@ -3,6 +3,7 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum CodegenError {
+    ExperimentalFeatureNotEnabled,
     ParseError(ParseError),
     FmtError(fmt::Error),
 }
@@ -10,6 +11,9 @@ pub enum CodegenError {
 impl fmt::Display for CodegenError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            CodegenError::ExperimentalFeatureNotEnabled => {
+                f.write_str("The `codegen` experimental feature is not enabled")
+            }
             CodegenError::ParseError(err) => fmt::Display::fmt(err, f),
             CodegenError::FmtError(err) => fmt::Display::fmt(err, f),
         }

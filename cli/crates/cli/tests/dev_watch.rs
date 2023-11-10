@@ -13,7 +13,7 @@ fn dev_watch() {
 
     env.grafbase_init(ConfigType::GraphQL);
 
-    env.write_schema(DEFAULT_SCHEMA);
+    env.write_schema(format!("extend schema @experimental(codegen: true)\n{DEFAULT_SCHEMA}"));
 
     env.grafbase_dev_watch();
 
