@@ -2,7 +2,7 @@
 
 pub mod engine;
 pub mod helpers;
-mod mocks;
+pub mod mocks;
 pub mod mongodb;
 pub mod postgres;
 pub mod types;

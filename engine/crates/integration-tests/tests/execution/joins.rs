@@ -1,6 +1,8 @@
 //! Tests of the join directive
 
-use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, MockGraphQlServer, ResponseExt};
+use integration_tests::{
+    mocks::graphql::FakeGithubSchema, runtime, udfs::RustUdfs, EngineBuilder, MockGraphQlServer, ResponseExt,
+};
 use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::{json, Value};
 
@@ -55,7 +57,7 @@ fn join_on_basic_type() {
 #[test]
 fn join_on_connector_type() {
     runtime().block_on(async {
-        let graphql_mock = MockGraphQlServer::new().await;
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
         let port = graphql_mock.port();
 
         let schema = format!(
