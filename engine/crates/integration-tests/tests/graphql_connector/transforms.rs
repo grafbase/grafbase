@@ -16,6 +16,10 @@ fn graphql_test_with_transforms() {
             .into_data::<IntrospectionQuery>();
 
         insta::assert_snapshot!(response.into_schema().unwrap().to_sdl(), @r###"
+        input BotInput {
+          id: ID!
+        }
+
         type Header {
           name: String!
           value: String!
@@ -39,6 +43,7 @@ fn graphql_test_with_transforms() {
         }
 
         type Query {
+          botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
           headers: [Header!]!
           pullRequestOrIssue(id: ID!): PullRequestOrIssue
           pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!

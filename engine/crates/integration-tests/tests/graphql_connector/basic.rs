@@ -75,6 +75,27 @@ fn graphql_test_with_namespace() {
                 .await
                 .into_value()
         );
+        insta::assert_json_snapshot!(
+            "namespaced-input-list",
+            engine
+                .execute(
+                    r#"
+                    query GetPullRequests($bots: [[GothubBotInput!]]!) {
+                        gothub {
+                            botPullRequests(bots: $bots) {
+                                checks
+                                author {
+                                    __typename
+                                }
+                            }
+                        }
+                    }
+                "#
+                )
+                .variables(json!({"bots": [[{"id": "2"}]]}))
+                .await
+                .into_value()
+        );
     });
 }
 
