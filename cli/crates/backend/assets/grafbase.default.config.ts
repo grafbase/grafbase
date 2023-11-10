@@ -1,54 +1,40 @@
-import { g, auth, config } from '@grafbase/sdk'
+import { g, config } from '@grafbase/sdk'
 
 // Welcome to Grafbase!
-// Define your data models, integrate auth, permission rules, custom resolvers, search, and more with Grafbase.
-// Integrate Auth
-// https://grafbase.com/docs/auth
 //
-// const authProvider = auth.OpenIDConnect({
-//   issuer: process.env.ISSUER_URL ?? ''
-// })
+// Configure authentication, data sources, resolvers and caching for your GraphQL API.
+
+// Data Sources - https://grafbase.com/docs/connectors
 //
-// Define Data Models
-// https://grafbase.com/docs/database
+// const pg = connector.Postgres('pg', { url: g.env('DATABASE_URL') })
+// g.datasource(pg)
 
-const post = g.model('Post', {
-  title: g.string(),
-  slug: g.string().unique(),
-  content: g.string().optional(),
-  publishedAt: g.datetime().optional(),
-  comments: g.relation(() => comment).optional().list().optional(),
-  likes: g.int().default(0),
-  tags: g.string().optional().list().length({ max: 5 }),
-  author: g.relation(() => user).optional()
-}).search()
-
-const comment = g.model('Comment', {
-  post: g.relation(post),
-  body: g.string(),
-  likes: g.int().default(0),
-  author: g.relation(() => user).optional()
-})
-
-const user = g.model('User', {
-  name: g.string(),
-  email: g.email().optional(),
-  posts: g.relation(post).optional().list(),
-  comments: g.relation(comment).optional().list()
-
-  // Extend models with resolvers
-  // https://grafbase.com/docs/edge-gateway/resolvers
-  // gravatar: g.url().resolver('user/gravatar')
+// Resolvers - https://grafbase.com/docs/resolvers
+//
+g.query('helloWorld', {
+  returns: g.string(),
+  resolver: 'hello-world',
 })
 
 export default config({
-  schema: g
-  // Integrate Auth
-  // https://grafbase.com/docs/auth
-  // auth: {
-  //   providers: [authProvider],
-  //   rules: (rules) => {
-  //     rules.private()
-  //   }
+  schema: g,
+  // Authentication - https://grafbase.com/docs/auth
+  auth: {
+    // OpenID Connect
+    // const oidc = auth.OpenIDConnect({ issuer: g.env('OIDC_ISSUER_URL') })
+    // providers: [oidc],
+    rules: (rules) => {
+      rules.public()
+    },
+  },
+  // Caching - https://grafbase.com/docs/graphql-edge-caching
+  // cache: {
+  //   rules: [
+  //     {
+  //       types: ['Query'], // Cache everything for 60 seconds
+  //       maxAge: 60,
+  //       staleWhileRevalidate: 60
+  //     }
+  //   ]
   // }
 })

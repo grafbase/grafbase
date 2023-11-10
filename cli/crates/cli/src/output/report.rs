@@ -65,7 +65,7 @@ pub fn project_created(name: Option<&str>, config_type: ConfigType) {
         let schema_path = &[".", name, GRAFBASE_DIRECTORY_NAME, schema_file_name].join(&slash);
 
         println!(
-            "The schema for your new project can be found at {}",
+            "The configuration for your new project can be found at {}",
             watercolor!("{schema_path}", @BrightBlue)
         );
     } else {
@@ -81,7 +81,7 @@ pub fn project_created(name: Option<&str>, config_type: ConfigType) {
 
     if let ConfigType::TypeScript = config_type {
         println!(
-            "We've added our SDK to your {}, make sure to install dependencies before continuing.",
+            "The Grafbase SDK was added to {}, make sure to install dependencies before continuing.",
             watercolor!("package.json", @BrightBlue)
         );
     }
