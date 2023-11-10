@@ -133,7 +133,7 @@ fn ingest_graph<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> 
                             "Broken invariant: object id behind object name.".to_owned(),
                         ));
                     };
-                    ingest_object(object_id, &typedef.node, object, state)?
+                    ingest_object(object_id, &typedef.node, object, state)?;
                 }
                 ast::TypeKind::Interface(iface) => {
                     let Definition::Interface(interface_id) = state.definition_names[typedef.node.name.node.as_str()]
@@ -142,7 +142,7 @@ fn ingest_graph<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> 
                             "Broken invariant: interface id behind interface name.".to_owned(),
                         ));
                     };
-                    ingest_interface(interface_id, iface, state)?
+                    ingest_interface(interface_id, iface, state);
                 }
                 ast::TypeKind::Union(union) => {
                     let Definition::Union(union_id) = state.definition_names[typedef.node.name.node.as_str()] else {
@@ -159,7 +159,7 @@ fn ingest_graph<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> 
                             "Broken invariant: InputObjectId behind input object name.".to_owned(),
                         ));
                     };
-                    ingest_input_object(input_object_id, input_object, state)
+                    ingest_input_object(input_object_id, input_object, state);
                 }
             },
         }
@@ -171,8 +171,7 @@ fn ingest_graph<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> 
 fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in &document.definitions {
         match definition {
-            ast::TypeSystemDefinition::Schema(_) => (),
-            ast::TypeSystemDefinition::Directive(_) => (),
+            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
             ast::TypeSystemDefinition::Type(typedef) => {
                 let type_name = typedef.node.name.node.as_str();
                 let type_name_id = state.insert_string(type_name);
@@ -219,7 +218,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         state.definition_names.insert(type_name, Definition::Union(union_id));
                     }
                     ast::TypeKind::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
-                        ingest_join_graph_enum(enm, state)?
+                        ingest_join_graph_enum(enm, state)?;
                     }
                     ast::TypeKind::Enum(enm) => {
                         let enum_id = EnumId(state.enums.push_return_idx(Enum {
@@ -268,17 +267,11 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
     }
 }
 
-fn ingest_interface<'a>(
-    interface_id: InterfaceId,
-    iface: &'a ast::InterfaceType,
-    state: &mut State<'a>,
-) -> Result<(), DomainError> {
+fn ingest_interface<'a>(interface_id: InterfaceId, iface: &'a ast::InterfaceType, state: &mut State<'a>) {
     for field in &iface.fields {
         let field_id = ingest_field(Definition::Interface(interface_id), &field.node, state);
         state.interface_fields.push(InterfaceField { interface_id, field_id });
     }
-
-    Ok(())
 }
 
 fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, state: &mut State<'a>) -> FieldId {
@@ -381,7 +374,7 @@ fn ingest_object<'a>(
             })
             .map(|fields| {
                 parse_selection_set(fields)
-                    .map(|fields| attach_selection(&fields, Definition::Object(object_id), state))
+                    .and_then(|fields| attach_selection(&fields, Definition::Object(object_id), state))
             })
             .transpose()?
             .unwrap_or_default();
@@ -420,20 +413,20 @@ fn attach_selection(
     selection_set: &[Positioned<ast::Selection>],
     parent_id: Definition,
     state: &mut State<'_>,
-) -> FieldSet {
+) -> Result<FieldSet, DomainError> {
     selection_set
         .iter()
         .map(|selection| {
             let ast::Selection::Field(ast_field) = &selection.node else {
-                panic!("todo")
+                return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
             let field = state.selection_map[&(parent_id, ast_field.node.name.node.as_str())];
             let field_ty = state.field_types[state.fields[field.0].field_type_id.0].kind;
             let subselection = &ast_field.node.selection_set.node.items;
-            FieldSetItem {
+            Ok(FieldSetItem {
                 field,
-                subselection: attach_selection(subselection, field_ty, state),
-            }
+                subselection: attach_selection(subselection, field_ty, state)?,
+            })
         })
         .collect()
 }

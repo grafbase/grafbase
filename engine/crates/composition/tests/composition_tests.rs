@@ -74,12 +74,13 @@ fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()
     let sdl = fs::read_to_string(federated_graph_path)
         .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
 
+    // Exclude tests with an empty schema. This is the case for composition error tests.
     if sdl.lines().all(|line| line.is_empty() || line.starts_with('#')) {
         return Ok(());
     }
 
-    let roundtripped = grafbase_federated_graph::render_sdl(
-        &grafbase_federated_graph::from_sdl(&sdl).map_err(|err| format!("Error ingesting SDL: {err}"))?,
+    let roundtripped = graphql_federated_graph::render_sdl(
+        &graphql_federated_graph::from_sdl(&sdl).map_err(|err| format!("Error ingesting SDL: {err}"))?,
     )?;
 
     if roundtripped == sdl {
