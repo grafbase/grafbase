@@ -10,6 +10,11 @@ keywords = ["graphql", "federation"]
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 
+async-graphql-parser = { version = "6", optional = true }
+async-graphql-value = { version = "6", optional = true }
+indexmap = "2"
+
 [features]
-default = ["render_sdl"]
+default = ["render_sdl", "from_sdl"]
 render_sdl = []
+from_sdl = ["async-graphql-parser", "async-graphql-value"]

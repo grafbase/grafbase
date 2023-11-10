@@ -1880,6 +1880,9 @@ dependencies = [
 name = "graphql-federated-graph"
 version = "0.1.0"
 dependencies = [
+ "async-graphql-parser",
+ "async-graphql-value",
+ "indexmap 2.0.2",
  "serde",
 ]
 
