@@ -18,9 +18,9 @@ extend schema
 
 # Resolvers - https://grafbase.com/docs/resolvers
 #
-type Query {
-  helloWorld: String @resolver(name: "hello-world")
-}
+# type Query {
+#   helloWorld: String @resolver(name: "hello-world")
+# }
 
 # Start the local development server - https://grafbase.com/docs/cli
 # npx grafbase dev
