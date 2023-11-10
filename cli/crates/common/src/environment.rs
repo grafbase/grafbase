@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
-use crate::consts::AUTHORIZERS_DIRECTORY_NAME;
+use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GRAFBASE_DIRECTORY_NAME};
 use crate::types::UdfKind;
 use crate::{
     consts::{
-        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
+        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
         GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_FILE_NAME, REGISTRY_FILE,
         RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
     },
@@ -103,7 +103,7 @@ impl Warning {
 #[derive(Debug)]
 pub struct Project {
     /// the path of the (assumed) user project root (`$PROJECT`), the nearest ancestor directory
-    /// with a `grafbase/schema.graphql` file
+    /// with a `schema.graphql` file or a `grafbase.config.ts` file
     pub path: PathBuf,
     /// the path of the Grafbase schema, in the nearest ancestor directory with
     /// said directory and file
@@ -111,15 +111,12 @@ pub struct Project {
     /// the path of `$PROJECT/.grafbase/`, the Grafbase local developer tool cache and database directory,
     /// in the nearest ancestor directory with `grafbase/schema.graphql`
     pub dot_grafbase_directory_path: PathBuf,
-    /// the path of `$PROJECT/grafbase/`, the Grafbase schema directory in the nearest ancestor directory
-    /// with `grafbase/schema.graphql`
-    pub grafbase_directory_path: PathBuf,
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file
     pub registry_path: PathBuf,
     /// the path within '$PROJECT/.grafbase' containing the database
     pub database_directory_path: PathBuf,
-    /// the location of package.json either in '$PROJECT/grafbase' or '$PROJECT'
+    /// the location of package.json in '$PROJECT' or its parent
     pub package_json_path: Option<PathBuf>,
 }
 
@@ -131,7 +128,7 @@ impl Project {
             UdfKind::Resolver => RESOLVERS_DIRECTORY_NAME,
             UdfKind::Authorizer => AUTHORIZERS_DIRECTORY_NAME,
         };
-        self.grafbase_directory_path.join(subdirectory_name)
+        self.path.join(subdirectory_name)
     }
 
     /// the path of the directory containing the build artifacts corresponding to the UDF type (resolvers, authorizers).
@@ -195,12 +192,7 @@ impl Project {
     fn try_init(warnings: &mut Vec<Warning>) -> Result<Self, CommonError> {
         let schema_path = get_project_grafbase_path(warnings)?.ok_or(CommonError::FindGrafbaseDirectory)?;
 
-        let grafbase_directory_path = schema_path
-            .parent()
-            .expect("the schema directory must have a parent by definiton")
-            .to_path_buf();
-
-        let path = grafbase_directory_path
+        let path = schema_path
             .parent()
             .expect("the grafbase directory must have a parent directory by definition")
             .to_path_buf();
@@ -208,7 +200,7 @@ impl Project {
         let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY);
         let registry_path = dot_grafbase_directory_path.join(REGISTRY_FILE);
         let database_directory_path = dot_grafbase_directory_path.join(DATABASE_DIRECTORY);
-        let package_json_path = [grafbase_directory_path.as_path(), path.as_path()]
+        let package_json_path = [path.as_path(), path.parent().expect("must have a parent")]
             .into_iter()
             .map(|candidate| candidate.join(PACKAGE_JSON_FILE_NAME))
             .find(|candidate| candidate.exists());
@@ -217,7 +209,6 @@ impl Project {
             path,
             schema_path,
             dot_grafbase_directory_path,
-            grafbase_directory_path,
             registry_path,
             database_directory_path,
             package_json_path,
@@ -305,58 +296,39 @@ impl Environment {
     }
 }
 
-/// searches for the closest ancestor directory named "grafbase" which
-/// contains either a "grafbase.config.ts" or a "schema.graphql" file. if
-/// already inside a `grafbase` directory, looks for `schema.graphql` inside
-/// the current ancestor as well
+/// searches for the closest ancestor directory which contains either
+/// a "grafbase.config.ts" or a "schema.graphql" file.
 ///
 /// # Errors
 ///
 /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
 fn get_project_grafbase_path(warnings: &mut Vec<Warning>) -> Result<Option<GrafbaseSchemaPath>, CommonError> {
-    let path_to_file = env::current_dir()
+    Ok(env::current_dir()
         .map_err(|_| CommonError::ReadCurrentDirectory)?
         .ancestors()
-        .find_map(|ancestor| {
-            let mut path = PathBuf::from(ancestor);
-
-            // if we're looking at a directory called `grafbase`,
-            // also check for the file in the current directory
-            let config = path
-                .components()
-                .next()
-                .filter(|first| Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME))
-                .and_then(|_| find_grafbase_configuration(&path, warnings));
-
-            if let Some(config) = config {
-                return Some(config);
-            }
-
-            path.push(GRAFBASE_DIRECTORY_NAME);
-
-            find_grafbase_configuration(&path, warnings)
-        });
-
-    Ok(path_to_file)
+        .find_map(|ancestor| find_grafbase_configuration(ancestor, warnings)))
 }
 
 fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Option<GrafbaseSchemaPath> {
-    let ts_config = path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
-    let gql = path.join(GRAFBASE_SCHEMA_FILE_NAME);
+    // FIXME: Deprecate the last look-up path and remove it.
+    let search_paths: [std::borrow::Cow<'_, Path>; 2] = [path.into(), path.join(GRAFBASE_DIRECTORY_NAME).into()];
 
-    match (ts_config.is_file(), gql.is_file()) {
-        (true, true) => {
-            let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
-                .with_hint("Delete one of them to avoid conflicts");
+    search_paths.into_iter().find_map(|search_path| {
+        let tsconfig_file_path = search_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
+        let schema_graphql_file_path = search_path.join(GRAFBASE_SCHEMA_FILE_NAME);
+        match (tsconfig_file_path.is_file(), schema_graphql_file_path.is_file()) {
+            (true, true) => {
+                let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
+                    .with_hint("Delete one of them to avoid conflicts");
 
-            warnings.push(warning);
-
-            Some(GrafbaseSchemaPath::ts_config(ts_config))
+                warnings.push(warning);
+                Some(GrafbaseSchemaPath::ts_config(tsconfig_file_path))
+            }
+            (true, false) => Some(GrafbaseSchemaPath::ts_config(tsconfig_file_path)),
+            (false, true) => Some(GrafbaseSchemaPath::graphql(schema_graphql_file_path)),
+            (false, false) => None,
         }
-        (true, false) => Some(GrafbaseSchemaPath::ts_config(ts_config)),
-        (false, true) => Some(GrafbaseSchemaPath::graphql(gql)),
-        (false, false) => None,
-    }
+    })
 }
 
 pub fn add_dev_dependency_to_package_json(project_dir: &Path, package: &str, version: &str) -> Result<(), CommonError> {

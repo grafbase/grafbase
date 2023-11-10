@@ -31,8 +31,7 @@ fn init_ts_existing_package_json() {
     );
     assert!(output.status.success());
 
-    assert!(env.directory.join("grafbase").exists());
-    assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
+    assert!(env.directory_path.join("grafbase.config.ts").exists());
 
     let package_json = serde_json::from_str::<Value>(&env.load_file_from_project("package.json")).expect("valid JSON");
 
@@ -68,9 +67,8 @@ fn init_ts_new_project() {
     );
     assert!(output.status.success());
 
-    assert!(env.directory.join("grafbase").exists());
-    assert!(env.directory.join("grafbase").join("grafbase.config.ts").exists());
-    assert!(env.directory.join("package.json").exists());
+    assert!(env.directory_path.join("grafbase.config.ts").exists());
+    assert!(env.directory_path.join("package.json").exists());
 
     let package_json: serde_json::Value = serde_json::from_str(&env.load_file_from_project("package.json")).unwrap();
     let package_json = package_json.as_object().unwrap().get("devDependencies").unwrap();

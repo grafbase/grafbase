@@ -17,16 +17,18 @@ fn link_success() {
     assert!(link_output.status.success());
 
     assert!(env
-        .directory
+        .directory_path
         .join(DOT_GRAFBASE_DIRECTORY)
         .join(PROJECT_METADATA_FILE)
         .exists());
 
-    assert!(
-        std::fs::read_to_string(env.directory.join(DOT_GRAFBASE_DIRECTORY).join(PROJECT_METADATA_FILE))
-            .unwrap()
-            .contains(correct_ulid)
-    );
+    assert!(std::fs::read_to_string(
+        env.directory_path
+            .join(DOT_GRAFBASE_DIRECTORY)
+            .join(PROJECT_METADATA_FILE)
+    )
+    .unwrap()
+    .contains(correct_ulid));
 }
 
 #[test]
