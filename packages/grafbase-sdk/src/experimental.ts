@@ -4,6 +4,7 @@
 export interface ExperimentalParams {
   kv?: boolean
   ai?: boolean
+  codegen?: boolean
 }
 
 export class Experimental {
