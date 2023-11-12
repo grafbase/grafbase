@@ -2,7 +2,7 @@
 mod utils;
 
 use backend::{api::consts::PROJECT_METADATA_FILE, project::ConfigType};
-use common::consts::DOT_GRAFBASE_DIRECTORY;
+use common::consts::DOT_GRAFBASE_DIRECTORY_NAME;
 use utils::environment::Environment;
 
 #[test]
@@ -18,13 +18,13 @@ fn link_success() {
 
     assert!(env
         .directory_path
-        .join(DOT_GRAFBASE_DIRECTORY)
+        .join(DOT_GRAFBASE_DIRECTORY_NAME)
         .join(PROJECT_METADATA_FILE)
         .exists());
 
     assert!(std::fs::read_to_string(
         env.directory_path
-            .join(DOT_GRAFBASE_DIRECTORY)
+            .join(DOT_GRAFBASE_DIRECTORY_NAME)
             .join(PROJECT_METADATA_FILE)
     )
     .unwrap()

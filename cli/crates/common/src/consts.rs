@@ -13,7 +13,7 @@ pub const GRAFBASE_TS_CONFIG_FILE_NAME: &str = "grafbase.config.ts";
 /// a file expected to be in the grafbase directory
 pub const GRAFBASE_ENV_FILE_NAME: &str = ".env";
 /// the name for the db / cache directory per project and the global cache directory for the user
-pub const DOT_GRAFBASE_DIRECTORY: &str = ".grafbase";
+pub const DOT_GRAFBASE_DIRECTORY_NAME: &str = ".grafbase";
 /// the registry.json file generated from schema.graphql
 pub const REGISTRY_FILE: &str = "registry.json";
 /// the /resolvers directory containing resolver implementations

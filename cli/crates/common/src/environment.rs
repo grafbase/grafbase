@@ -4,7 +4,7 @@ use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GRAFBASE_DIRECTORY_NAME};
 use crate::types::UdfKind;
 use crate::{
     consts::{
-        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
+        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
         GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_FILE_NAME, REGISTRY_FILE,
         RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
     },
@@ -171,19 +171,19 @@ static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
 
 #[must_use]
 pub fn get_default_user_dot_grafbase_path() -> Option<PathBuf> {
-    dirs::home_dir().map(|home| home.join(DOT_GRAFBASE_DIRECTORY))
+    dirs::home_dir().map(|home| home.join(DOT_GRAFBASE_DIRECTORY_NAME))
 }
 
 pub fn get_user_dot_grafbase_path_from_env() -> Option<PathBuf> {
     env::var(GRAFBASE_HOME)
         .ok()
         .map(PathBuf::from)
-        .map(|env_override| env_override.join(DOT_GRAFBASE_DIRECTORY))
+        .map(|env_override| env_override.join(DOT_GRAFBASE_DIRECTORY_NAME))
 }
 
 pub fn get_user_dot_grafbase_path(r#override: Option<PathBuf>) -> Option<PathBuf> {
     r#override
-        .map(|r#override| r#override.join(DOT_GRAFBASE_DIRECTORY))
+        .map(|r#override| r#override.join(DOT_GRAFBASE_DIRECTORY_NAME))
         .or_else(get_user_dot_grafbase_path_from_env)
         .or_else(get_default_user_dot_grafbase_path)
 }
@@ -197,7 +197,7 @@ impl Project {
             .expect("the grafbase directory must have a parent directory by definition")
             .to_path_buf();
 
-        let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY);
+        let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY_NAME);
         let registry_path = dot_grafbase_directory_path.join(REGISTRY_FILE);
         let database_directory_path = dot_grafbase_directory_path.join(DATABASE_DIRECTORY);
         let package_json_path = [path.as_path(), path.parent().expect("must have a parent")]

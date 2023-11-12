@@ -1,7 +1,7 @@
 use crate::consts::DOT_ENV_FILE_NAME;
 use crate::errors::ServerError;
 use crate::udf_builder::LOCK_FILE_NAMES;
-use common::consts::GRAFBASE_SCHEMA_FILE_NAME;
+use common::consts::{DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use notify::RecursiveMode;
 use notify_debouncer_mini::new_debouncer;
 use std::path::{Path, PathBuf};
@@ -59,7 +59,7 @@ const ROOT_FILE_WHITELIST: [&str; 2] = [GRAFBASE_SCHEMA_FILE_NAME, DOT_ENV_FILE_
 const EXTENSION_WHITELIST: [&str; 11] = [
     "js", "ts", "jsx", "tsx", "mjs", "mts", ".wasm", "cjs", "json", "yaml", "yml",
 ];
-const DIRECTORY_BLACKLIST: &[&str] = &["node_modules", "generated"];
+const DIRECTORY_BLACKLIST: &[&str] = &[DOT_GRAFBASE_DIRECTORY_NAME, "node_modules", "generated"];
 
 fn should_handle_change(path: &Path, root: &Path) -> bool {
     is_whitelisted_root_file(path, root)
