@@ -5,8 +5,8 @@ enum join__Graph {
 }
 
 type Customer {
-    id: ID! @join__field(graph: ACCOUNTS) @join__field(graph: MARKETING) @join__field(graph: SUBSCRIPTIONS)
-    name: String @join__field(graph: ACCOUNTS) @join__field(graph: MARKETING) @join__field(graph: SUBSCRIPTIONS)
+    id: ID!
+    name: String
     other: Int @join__field(graph: ACCOUNTS)
     newsletterSubscribed: Boolean @join__field(graph: MARKETING)
     subscriptionPlan: Plan! @join__field(graph: SUBSCRIPTIONS)

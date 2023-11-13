@@ -32,7 +32,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             sdl.push_str(" {\n");
         } else {
             for resolvable_key in &object.resolvable_keys {
-                let selection_set = SelectionSetDisplay(&resolvable_key.fields, graph);
+                let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
                 let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
                 writeln!(
                     sdl,
@@ -140,7 +140,7 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
 
     write!(sdl, "{INDENT}{field_name}{args}: {field_type}")?;
 
-    for subgraph in &field.resolvable_in {
+    if let Some(subgraph) = &field.resolvable_in {
         let subgraph_name = GraphEnumVariantName(&graph[graph[*subgraph].name]);
         write!(sdl, " @join__field(graph: {subgraph_name})")?;
     }
@@ -196,11 +196,11 @@ fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraph) -> Str
     }
 }
 
-struct SelectionSetDisplay<'a>(&'a FieldSet, &'a FederatedGraph);
+struct FieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraph);
 
-impl Display for SelectionSetDisplay<'_> {
+impl Display for FieldSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let SelectionSetDisplay(selection_set, graph) = self;
+        let FieldSetDisplay(selection_set, graph) = self;
         let mut selection = selection_set.iter().peekable();
 
         while let Some(field) = selection.next() {
@@ -210,7 +210,7 @@ impl Display for SelectionSetDisplay<'_> {
 
             if !field.subselection.is_empty() {
                 f.write_str(" { ")?;
-                SelectionSetDisplay::fmt(&SelectionSetDisplay(&field.subselection, graph), f)?;
+                FieldSetDisplay::fmt(&FieldSetDisplay(&field.subselection, graph), f)?;
                 f.write_str(" }")?;
             }
 

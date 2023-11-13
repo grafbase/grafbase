@@ -16,12 +16,6 @@ pub(super) fn merge_interface_definitions(
 
     for field in all_fields.values() {
         let field = first.walk(*field);
-        ctx.insert_field(
-            first.name().id,
-            field.name().id,
-            field.r#type().id,
-            Vec::new(),
-            Vec::new(),
-        );
+        ctx.insert_field(first.name().id, field.name().id, field.r#type().id, Vec::new(), None);
     }
 }

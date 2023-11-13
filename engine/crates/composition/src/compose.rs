@@ -4,11 +4,11 @@ mod input_object;
 mod interface;
 mod object;
 
-use itertools::Itertools;
-
 pub(crate) use self::context::Context as ComposeContext;
+
 use self::{context::Context, input_object::*};
 use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId};
+use itertools::Itertools;
 
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     ctx.subgraphs.iter_definition_groups(|definitions| {
@@ -131,10 +131,11 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
     }
 
     let arguments = object::merge_field_arguments(*first, fields);
+
     let resolvable_in = fields
-        .iter()
-        .map(|field| graphql_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()))
-        .collect();
+        .first()
+        .filter(|_| fields.len() == 1)
+        .map(|field| graphql_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()));
 
     ctx.insert_field(
         first.parent_definition().name().id,

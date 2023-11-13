@@ -5,15 +5,15 @@ enum join__Graph {
 }
 
 type Query {
-    getRollerCoaster(id: ID!): RollerCoaster @join__field(graph: HISTORY) @join__field(graph: INVENTORY) @join__field(graph: PERFORMANCE)
+    getRollerCoaster(id: ID!): RollerCoaster
 }
 
 type RollerCoaster {
-    id: ID! @join__field(graph: HISTORY) @join__field(graph: INVENTORY) @join__field(graph: PERFORMANCE)
-    name: String! @join__field(graph: HISTORY) @join__field(graph: INVENTORY) @join__field(graph: PERFORMANCE)
-    height: Float! @join__field(graph: HISTORY) @join__field(graph: INVENTORY) @join__field(graph: PERFORMANCE)
-    speed: Float! @join__field(graph: HISTORY) @join__field(graph: INVENTORY) @join__field(graph: PERFORMANCE)
-    manufacturer: String! @join__field(graph: HISTORY) @join__field(graph: INVENTORY)
+    id: ID!
+    name: String!
+    height: Float!
+    speed: Float!
+    manufacturer: String!
     historicalData: [HistoricalData] @join__field(graph: HISTORY)
     numberOfInversions: Int! @join__field(graph: PERFORMANCE)
 }
