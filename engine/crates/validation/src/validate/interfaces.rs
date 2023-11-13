@@ -35,10 +35,13 @@ pub(crate) fn validate_interface_extension<'a>(
     ctx: &mut Context<'a>,
 ) {
     validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Interface, ctx);
-    if !matches!(
-        ctx.definition_names.get(type_name).map(|t| &t.node.kind),
-        Some(ast::TypeKind::Interface(_))
-    ) {
+
+    if ctx.options.contains(Options::FORBID_EXTENDING_UNKNOWN_TYPES)
+        && !matches!(
+            ctx.definition_names.get(type_name).map(|t| &t.node.kind),
+            Some(ast::TypeKind::Interface(_))
+        )
+    {
         ctx.push_error(miette::miette!("Cannot extend unknown interface {type_name}"));
     }
 }

@@ -29,7 +29,10 @@ fn init_miette() {
 fn run_test(graphql_file_path: &Path) -> datatest_stable::Result<()> {
     init_miette();
     let schema = fs::read_to_string(graphql_file_path)?;
-    let diagnostics = grafbase_validation::validate(&schema);
+    let diagnostics = grafbase_validation::validate_with_options(
+        &schema,
+        grafbase_validation::Options::FORBID_EXTENDING_UNKNOWN_TYPES | grafbase_validation::Options::DRAFT_VALIDATIONS,
+    );
     let displayed = diagnostics
         .iter()
         .map(|d| format!("{d:?}"))

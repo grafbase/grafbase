@@ -7,6 +7,7 @@ edition = "2021"
 async-graphql-parser = "6"
 async-graphql-value = "6"
 miette = { version = "5.10.0" }
+bitflags.workspace = true
 
 [dev-dependencies]
 datatest-stable = "0.2.3"

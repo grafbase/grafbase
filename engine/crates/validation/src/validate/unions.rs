@@ -7,10 +7,12 @@ pub(crate) fn validate_union_extension<'a>(
 ) {
     validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Union, ctx);
 
-    if !matches!(
-        ctx.definition_names.get(type_name).map(|t| &t.node.kind),
-        Some(ast::TypeKind::Union(_))
-    ) {
+    if ctx.options.contains(Options::FORBID_EXTENDING_UNKNOWN_TYPES)
+        && !matches!(
+            ctx.definition_names.get(type_name).map(|t| &t.node.kind),
+            Some(ast::TypeKind::Union(_))
+        )
+    {
         ctx.push_error(miette::miette!("Cannot extend unknown union {type_name}"));
     }
 }

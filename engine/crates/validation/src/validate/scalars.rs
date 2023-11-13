@@ -7,7 +7,8 @@ pub(crate) fn validate_scalar_extension<'a>(
 ) {
     validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Scalar, ctx);
 
-    if !is_builtin_scalar(type_name)
+    if ctx.options.contains(Options::FORBID_EXTENDING_UNKNOWN_TYPES)
+        && !is_builtin_scalar(type_name)
         && !matches!(
             ctx.definition_names.get(type_name).map(|t| &t.node.kind),
             Some(ast::TypeKind::Scalar)

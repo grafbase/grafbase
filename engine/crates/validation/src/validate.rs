@@ -18,7 +18,7 @@ use self::{
     directive_definitions::*, enums::*, input_objects::*, input_types::*, interfaces::*, objects::*, scalars::*,
     schema_definition::*, type_definition::*, unions::*,
 };
-use crate::{diagnostics, Context};
+use crate::{diagnostics, Context, Options};
 use async_graphql_parser::{types as ast, Positioned};
 
 pub(crate) fn validate<'a>(parsed_ast: &'a ast::ServiceDocument, ctx: &mut Context<'a>) {

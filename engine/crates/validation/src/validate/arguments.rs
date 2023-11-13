@@ -38,14 +38,16 @@ pub(crate) fn validate_arguments<'a>(
             }
         }
 
-        let is_non_null_without_default = !arg.node.ty.node.nullable && arg.node.default_value.is_none();
-        if is_non_null_without_default && arg.node.directives.iter().any(|dir| dir.node.name.node == "deprecated") {
-            ctx.push_error(miette::miette!(
-                "Required argument {}.{}({}:) cannot be deprecated.",
-                parent_field.0,
-                parent_field.1,
-                arg.node.name.node,
-            ));
+        if ctx.options.contains(crate::Options::DRAFT_VALIDATIONS) {
+            let is_non_null_without_default = !arg.node.ty.node.nullable && arg.node.default_value.is_none();
+            if is_non_null_without_default && arg.node.directives.iter().any(|dir| dir.node.name.node == "deprecated") {
+                ctx.push_error(miette::miette!(
+                    "Required argument {}.{}({}:) cannot be deprecated.",
+                    parent_field.0,
+                    parent_field.1,
+                    arg.node.name.node,
+                ));
+            }
         }
     }
 }

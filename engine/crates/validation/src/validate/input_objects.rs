@@ -40,10 +40,12 @@ pub(crate) fn validate_input_object_extension<'a>(
         ctx,
     );
 
-    if !matches!(
-        ctx.definition_names.get(type_name).map(|t| &t.node.kind),
-        Some(ast::TypeKind::InputObject(_))
-    ) {
+    if ctx.options.contains(Options::FORBID_EXTENDING_UNKNOWN_TYPES)
+        && !matches!(
+            ctx.definition_names.get(type_name).map(|t| &t.node.kind),
+            Some(ast::TypeKind::InputObject(_))
+        )
+    {
         ctx.push_error(miette::miette!("Cannot extend unknown object {type_name}"));
     }
 }

@@ -18,6 +18,8 @@ pub(crate) struct Context<'a> {
     /// Validation errors and warnings. See [Diagnostics].
     pub(crate) diagnostics: Diagnostics,
 
+    pub(crate) options: crate::Options,
+
     /// The schema definition that was encountered, if any.
     ///
     /// Example schema definition:
@@ -50,11 +52,13 @@ impl<'a> Context<'a> {
         sdl: &'a str,
         definition_names: HashMap<&'a str, &'a Positioned<ast::TypeDefinition>>,
         diagnostics: Diagnostics,
+        options: crate::Options,
     ) -> Self {
         Context {
             sdl,
             definition_names,
             diagnostics,
+            options,
             schema_definition: None,
 
             strings_buf: HashMap::default(),

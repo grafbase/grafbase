@@ -1,1 +1,1 @@
-  × Directive likeAndSubscribe used at an invalid location: Enum
+  × Directive @likeAndSubscribe used at an invalid location: Enum

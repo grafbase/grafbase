@@ -24,10 +24,12 @@ pub(crate) fn validate_enum_extension<'a>(
 ) {
     validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Enum, ctx);
 
-    if !matches!(
-        ctx.definition_names.get(type_name).map(|t| &t.node.kind),
-        Some(ast::TypeKind::Enum(_))
-    ) {
+    if ctx.options.contains(Options::FORBID_EXTENDING_UNKNOWN_TYPES)
+        && !matches!(
+            ctx.definition_names.get(type_name).map(|t| &t.node.kind),
+            Some(ast::TypeKind::Enum(_))
+        )
+    {
         ctx.push_error(miette::miette!("Cannot extend unknown enum {type_name}"));
     }
 }

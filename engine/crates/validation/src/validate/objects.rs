@@ -47,10 +47,12 @@ pub(crate) fn validate_object_extension<'a>(
 ) {
     validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Object, ctx);
 
-    if !matches!(
-        ctx.definition_names.get(type_name).map(|t| &t.node.kind),
-        Some(ast::TypeKind::Object(_))
-    ) {
+    if ctx.options.contains(Options::FORBID_EXTENDING_UNKNOWN_TYPES)
+        && !matches!(
+            ctx.definition_names.get(type_name).map(|t| &t.node.kind),
+            Some(ast::TypeKind::Object(_))
+        )
+    {
         ctx.push_error(miette::miette!("Cannot extend unknown object {type_name}"));
     }
 }
