@@ -14,6 +14,6 @@ indoc = "2.0.4"
 reqwest = { version = "0.11.22", default-features = false, features = ["json", "rustls"] }
 cynic = { version = "3.2.2", features = ["http-reqwest"] }
 cynic-introspection = "3.2.2"
-serde = "1.0.189"
-apollo-parser = "0.7.1"
+serde = "1.0.192"
+apollo-parser = "0.7.3"
 apollo-encoder = "0.8.0"
