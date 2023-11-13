@@ -1,0 +1,7 @@
+interface Test {
+  id: ID!
+}
+
+schema {
+  query: Test
+}

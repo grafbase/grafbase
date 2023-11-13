@@ -1783,6 +1783,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "grafbase-validation"
+version = "0.1.0"
+dependencies = [
+ "async-graphql-parser",
+ "async-graphql-value",
+ "bitflags 2.4.1",
+ "datatest-stable",
+ "miette",
+ "similar",
+]
+
+[[package]]
 name = "graph-entities"
 version = "0.1.0"
 dependencies = [

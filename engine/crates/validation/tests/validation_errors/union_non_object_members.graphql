@@ -1,0 +1,13 @@
+type Test {
+  id: ID!
+}
+
+interface Wow {
+  a: Int
+}
+
+enum Pew {
+  PEW
+}
+
+union AnyThing = Test | Wow | Pew

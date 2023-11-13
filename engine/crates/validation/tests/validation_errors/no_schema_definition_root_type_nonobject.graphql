@@ -1,0 +1,13 @@
+
+interface Query {
+  persist: Boolean!
+}
+
+enum Subscription {
+  PAID
+  FREE
+}
+
+input Mutation {
+  wrong: Boolean
+}

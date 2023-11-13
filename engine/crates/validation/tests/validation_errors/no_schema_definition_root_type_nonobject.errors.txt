@@ -1,0 +1,7 @@
+  × Query should be an object
+
+
+  × Mutation should be an object
+
+
+  × Subscription should be an object

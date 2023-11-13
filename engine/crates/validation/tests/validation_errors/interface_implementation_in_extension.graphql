@@ -1,0 +1,24 @@
+
+interface Account {
+  id: ID!
+  email: String!
+}
+
+
+# Valid
+
+type User {
+  id: ID!
+}
+
+extend type User implements Account {
+  email: String!
+}
+
+# Invalid
+
+type Supplier {
+  id: ID!
+}
+
+extend type Supplier implements Account

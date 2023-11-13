@@ -1,0 +1,1 @@
+  × Syntax error: schema definition is missing query root

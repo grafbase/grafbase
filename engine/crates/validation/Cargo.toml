@@ -1,0 +1,19 @@
+[package]
+name = "grafbase-validation"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-graphql-parser = "6"
+async-graphql-value = "6"
+miette = { version = "5.10.0" }
+bitflags.workspace = true
+
+[dev-dependencies]
+datatest-stable = "0.2.3"
+similar = "2"
+miette = { version = "5.10.0", features = ["fancy"] }
+
+[[test]]
+name = "validation_errors"
+harness = false

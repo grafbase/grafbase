@@ -1,0 +1,9 @@
+type Test {
+  id: ID!
+}
+
+type Wow {
+  a: Int
+}
+
+union AnyThing = [Test] | Wow!

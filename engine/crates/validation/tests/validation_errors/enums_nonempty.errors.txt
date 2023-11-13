@@ -1,0 +1,6 @@
+  × Syntax error:  --> 1:16
+  │   |
+  │ 1 | enum TestEnum {}
+  │   |                ^---
+  │   |
+  │   = expected enum_value_definition

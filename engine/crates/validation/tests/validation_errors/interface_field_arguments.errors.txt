@@ -1,0 +1,7 @@
+  × Interface field argument Searchable.fetch(id:) expects type ID! but Book.fetch(id:) is type String!
+
+
+  × Field Video.fetch includes required argument region that is missing from the Interface field Searchable.fetch
+
+
+  × Interface field argument Searchable.search(filter:) expected but Coffee.search does not provide it.

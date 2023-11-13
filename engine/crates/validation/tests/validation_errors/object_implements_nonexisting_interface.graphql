@@ -1,0 +1,22 @@
+interface A {
+  id: ID!
+}
+
+interface B {
+  name: String
+}
+
+
+type Test implements A & AND & B {
+  id: ID!
+  name: String
+}
+
+type Test2 implements A & B & B & A {
+  id: ID!
+  name: String
+}
+
+type Test3 implements Test {
+  id: ID!
+}

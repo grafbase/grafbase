@@ -1,0 +1,6 @@
+  × Syntax error:  --> 2:1
+  │   |
+  │ 2 |
+  │   | ^---
+  │   |
+  │   = expected name

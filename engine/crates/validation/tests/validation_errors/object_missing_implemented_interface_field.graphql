@@ -1,0 +1,9 @@
+interface Human {
+  age: Int
+  name: String
+}
+
+type User implements Human {
+  id: ID!
+  name: String
+}
