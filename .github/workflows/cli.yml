@@ -416,3 +416,14 @@ jobs:
             * [Linux (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase)
             * [Mac (M1)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase)
             * [Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase)
+
+      - name: Report release failures
+        if: ${{ failure() &&  startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-') }}
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notification_title: "({workflow}) CLI release failed"
+          message_format: "Check the link below to see what failed."
+          footer: "<{run_url}|View Run>"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
