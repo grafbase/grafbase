@@ -18,6 +18,10 @@ impl<'a> InputContext<'a> {
         }
     }
 
+    pub(crate) fn namespace(&self) -> Option<&str> {
+        self.namespace
+    }
+
     pub(crate) fn directive_name(&self) -> &str {
         self.directive_name
     }

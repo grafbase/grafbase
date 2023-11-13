@@ -74,7 +74,7 @@ fn add_relation(input_ctx: &InputContext<'_>, relation: RelationWalker<'_>, buil
 
 fn add_column(input_ctx: &InputContext<'_>, column: TableColumnWalker<'_>, builder: &mut InputTypeBuilder) {
     let scalar = column
-        .graphql_base_type()
+        .graphql_base_type(None)
         .expect("unsupported types are filtered out at this point");
 
     let type_name = if column.is_array() {

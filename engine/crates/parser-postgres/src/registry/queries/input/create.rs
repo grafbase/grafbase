@@ -11,7 +11,7 @@ pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, out
     output_ctx.with_input_type(&input_type_name, table.id(), move |builder| {
         for column in table.columns() {
             let r#type = column
-                .graphql_type()
+                .graphql_type(input_ctx.namespace())
                 .expect("non-supported types are filtered out at this point");
 
             let r#type = if column.nullable() || column.has_default() {

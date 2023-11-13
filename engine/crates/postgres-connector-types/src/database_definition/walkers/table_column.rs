@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use inflector::Inflector;
+
 use super::{TableWalker, Walker};
 use crate::database_definition::{names::StringId, ColumnType, DatabaseType, TableColumn, TableColumnId};
 
@@ -31,24 +33,30 @@ impl<'a> TableColumnWalker<'a> {
     }
 
     /// The base type without possible array notation.
-    pub fn graphql_base_type(self) -> Option<String> {
-        self.graphql_type()
+    pub fn graphql_base_type(self, prefix: Option<&str>) -> Option<String> {
+        self.graphql_type(prefix)
             .map(|graphql_type| graphql_type.trim_start_matches('[').trim_end_matches(']').to_string())
     }
 
     /// The type of this column in the GraphQL APIs.
     ///
     /// Returns `None`, if we don't support the database type yet.
-    pub fn graphql_type(self) -> Option<Cow<'a, str>> {
+    pub fn graphql_type(self, prefix: Option<&str>) -> Option<Cow<'a, str>> {
         match self.database_type() {
             DatabaseType::Scalar(scalar) => scalar.client_type().map(Cow::from),
-            DatabaseType::Enum(r#enum) if self.is_array() => Some(Cow::from(format!("[{}]", r#enum.client_name()))),
-            DatabaseType::Enum(r#enum) => Some(Cow::from(r#enum.client_name())),
+            DatabaseType::Enum(r#enum) if self.is_array() => Some(Cow::from(match prefix {
+                Some(prefix) => format!("[{prefix}_{}]", r#enum.client_name()).to_pascal_case(),
+                None => format!("[{}]", r#enum.client_name()),
+            })),
+            DatabaseType::Enum(r#enum) => Some(match prefix {
+                Some(prefix) => Cow::from(format!("{prefix}_{}", r#enum.client_name()).to_pascal_case()),
+                None => Cow::from(r#enum.client_name()),
+            }),
         }
     }
 
     pub fn has_supported_type(self) -> bool {
-        self.graphql_type().is_some()
+        self.graphql_type(None).is_some()
     }
 
     /// True, if the column allows null values.

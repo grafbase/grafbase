@@ -407,3 +407,73 @@ fn by_compound_unique() {
 
     expected.assert_eq(&response);
 }
+
+#[test]
+fn cedalio_issue_november_2023() {
+    // this schema crashed for missing enum input types
+
+    let response = query_namespaced_postgres("pg", |api| async move {
+        let create = indoc! {r#"
+            CREATE TYPE access_mode AS ENUM ('PUBLIC', 'PUBLIC_READ', 'PRIVATE');
+        "#};
+
+        api.execute_sql(create).await;
+
+        let create = indoc! {r#"
+            CREATE TYPE project_status AS ENUM ('CREATED', 'READY', 'FAILED');
+        "#};
+
+        api.execute_sql(create).await;
+
+        let create = indoc! {r#"
+            CREATE TABLE networks (
+                id SERIAL PRIMARY KEY
+            );
+        "#};
+
+        api.execute_sql(create).await;
+
+        let create = indoc! {r#"
+            CREATE TABLE projects (
+                id SERIAL PRIMARY KEY,
+                access_mode access_mode NOT NULL,
+                status project_status DEFAULT 'CREATED' NOT NULL,
+                network_id INT REFERENCES networks(id)
+            );
+        "#};
+
+        api.execute_sql(create).await;
+
+        let query = indoc! {r#"
+            query Pg {
+              pg {
+                networksCollection(first: 10) {
+                  edges {
+                    node {
+                      id
+                      projects(first: 10) {
+                        edges { node { id } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "pg": {
+              "networksCollection": {
+                "edges": []
+              }
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}

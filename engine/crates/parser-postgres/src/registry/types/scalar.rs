@@ -1,4 +1,7 @@
+use std::{borrow::Cow, fmt};
+
 use engine::registry::{InputObjectType, MetaInputValue};
+use inflector::Inflector;
 
 use crate::registry::context::{InputContext, OutputContext};
 
@@ -36,17 +39,51 @@ static SCALAR_FILTERS: &[(&str, &str, &str)] = &[
     ("lte", "<=", "The value is less than, or equal to the one given"),
 ];
 
-pub(super) fn register(input_ctx: &InputContext<'_>, output_ctx: &mut OutputContext) {
-    for scalar in SCALARS {
-        create_filter_types(input_ctx, scalar, output_ctx);
-        create_scalar_update_type(input_ctx, scalar, output_ctx);
-        create_array_update_type(input_ctx, scalar, output_ctx);
+#[derive(Clone, Copy)]
+pub(super) enum TypeKind<'a> {
+    Scalar(&'a str),
+    Enum(&'a str),
+}
+
+impl<'a> TypeKind<'a> {
+    fn prefixed(&'a self, input_ctx: &InputContext<'_>) -> Cow<'a, str> {
+        match (self, input_ctx.namespace()) {
+            (Self::Enum(r#type), Some(namespace)) => Cow::Owned(format!("{namespace}_{type}").to_pascal_case()),
+            _ => Cow::Borrowed(self.as_ref()),
+        }
     }
 }
 
-fn create_array_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_ctx: &mut OutputContext) {
+impl<'a> AsRef<str> for TypeKind<'a> {
+    fn as_ref(&self) -> &str {
+        match self {
+            TypeKind::Enum(s) | TypeKind::Scalar(s) => s,
+        }
+    }
+}
+
+impl<'a> fmt::Display for TypeKind<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_ref().fmt(f)
+    }
+}
+
+pub(super) fn register(input_ctx: &InputContext<'_>, output_ctx: &mut OutputContext) {
+    for scalar in SCALARS {
+        create_filter_types(input_ctx, TypeKind::Scalar(scalar), output_ctx);
+        create_scalar_update_type(input_ctx, TypeKind::Scalar(scalar), output_ctx);
+        create_array_update_type(input_ctx, TypeKind::Scalar(scalar), output_ctx);
+    }
+}
+
+pub(super) fn create_array_update_type(
+    input_ctx: &InputContext<'_>,
+    scalar: TypeKind<'_>,
+    output_ctx: &mut OutputContext,
+) {
     let type_name = input_ctx.update_type_name(&format!("{scalar}Array"));
     let mut fields = Vec::new();
+    let scalar = scalar.prefixed(input_ctx);
 
     fields.push({
         let mut input = MetaInputValue::new("set", format!("[{scalar}]"));
@@ -74,19 +111,24 @@ fn create_array_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_c
     output_ctx.create_input_type(input_type);
 }
 
-fn create_scalar_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_ctx: &mut OutputContext) {
-    let type_name = input_ctx.update_type_name(scalar);
+pub(super) fn create_scalar_update_type(
+    input_ctx: &InputContext<'_>,
+    scalar: TypeKind<'_>,
+    output_ctx: &mut OutputContext,
+) {
+    let type_name = input_ctx.update_type_name(scalar.as_ref());
     let mut fields = Vec::new();
+    let scalar = scalar.prefixed(input_ctx);
 
     fields.push({
-        let mut input = MetaInputValue::new("set", scalar);
+        let mut input = MetaInputValue::new("set", scalar.as_ref());
         input.description = Some(String::from("Replaces the value of a field with the specified value."));
         input
     });
 
-    if NUMERIC_SCALARS.contains(&scalar) {
+    if NUMERIC_SCALARS.contains(&scalar.as_ref()) {
         fields.push({
-            let mut input = MetaInputValue::new("increment", scalar);
+            let mut input = MetaInputValue::new("increment", scalar.as_ref());
 
             input.description = Some(String::from(
                 "Increments the value of the field by the specified amount.",
@@ -96,7 +138,7 @@ fn create_scalar_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_
         });
 
         fields.push({
-            let mut input = MetaInputValue::new("decrement", scalar);
+            let mut input = MetaInputValue::new("decrement", scalar.as_ref());
 
             input.description = Some(String::from(
                 "Decrements the value of the field by the specified amount.",
@@ -106,7 +148,7 @@ fn create_scalar_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_
         });
 
         fields.push({
-            let mut input = MetaInputValue::new("multiply", scalar);
+            let mut input = MetaInputValue::new("multiply", scalar.as_ref());
 
             input.description = Some(String::from(
                 "Multiplies the value of the field by the specified amount.",
@@ -116,7 +158,7 @@ fn create_scalar_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_
         });
 
         fields.push({
-            let mut input = MetaInputValue::new("divide", scalar);
+            let mut input = MetaInputValue::new("divide", scalar.as_ref());
 
             input.description = Some(String::from("Divides the value of the field with the given value."));
 
@@ -126,14 +168,14 @@ fn create_scalar_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_
 
     if scalar == "JSON" {
         fields.push({
-            let mut input = MetaInputValue::new("append", scalar);
+            let mut input = MetaInputValue::new("append", scalar.as_ref());
             input.description = Some(String::from("Append JSON value to the column."));
 
             input
         });
 
         fields.push({
-            let mut input = MetaInputValue::new("prepend", scalar);
+            let mut input = MetaInputValue::new("prepend", scalar.as_ref());
             input.description = Some(String::from("Prepend JSON value to the column."));
 
             input
@@ -179,12 +221,13 @@ fn create_scalar_update_type(input_ctx: &InputContext<'_>, scalar: &str, output_
     output_ctx.create_input_type(input_type);
 }
 
-fn create_filter_types(input_ctx: &InputContext<'_>, scalar: &&str, output_ctx: &mut OutputContext) {
-    let type_name = input_ctx.filter_type_name(scalar);
+pub(super) fn create_filter_types(input_ctx: &InputContext<'_>, scalar: TypeKind<'_>, output_ctx: &mut OutputContext) {
+    let type_name = input_ctx.filter_type_name(scalar.as_ref());
     let mut fields = Vec::with_capacity(SCALAR_FILTERS.len() + 2);
+    let scalar = scalar.prefixed(input_ctx);
 
     for (filter, mapped_name, description) in SCALAR_FILTERS {
-        let mut input = MetaInputValue::new(*filter, *scalar);
+        let mut input = MetaInputValue::new(*filter, scalar.as_ref());
         input.description = Some(String::from(*description));
         input.rename = Some((*mapped_name).to_string());
 

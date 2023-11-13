@@ -5,6 +5,8 @@ mod table;
 
 use engine::registry::MetaEnumValue;
 
+use self::scalar::{create_array_update_type, create_filter_types, create_scalar_update_type, TypeKind};
+
 use super::context::{InputContext, OutputContext};
 
 pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputContext) {
@@ -33,5 +35,9 @@ pub(super) fn generate(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
                 builder.push_variant(meta_value);
             }
         });
+
+        create_filter_types(input_ctx, TypeKind::Enum(r#enum.client_name()), output_ctx);
+        create_scalar_update_type(input_ctx, TypeKind::Enum(r#enum.client_name()), output_ctx);
+        create_array_update_type(input_ctx, TypeKind::Enum(r#enum.client_name()), output_ctx);
     }
 }
