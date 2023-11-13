@@ -6,4 +6,4 @@ FROM pg_type
 JOIN pg_enum ON pg_type.oid = pg_enum.enumtypid
 JOIN pg_namespace ON pg_namespace.oid = pg_type.typnamespace
 WHERE pg_namespace.nspname <> ALL ( $1 )
-ORDER BY pg_enum.enumsortorder;
+ORDER BY pg_namespace.nspname, pg_type.typname, pg_enum.enumsortorder;

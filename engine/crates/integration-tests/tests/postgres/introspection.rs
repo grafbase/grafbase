@@ -425,6 +425,46 @@ fn table_with_enum_field() {
           GREEN
         }
 
+        """
+          Search filter input for StreetLight type.
+        """
+        input StreetLightSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: StreetLight
+          """
+            The value is not the one given
+          """ ne: StreetLight
+          """
+            The value is greater than the one given
+          """ gt: StreetLight
+          """
+            The value is less than the one given
+          """ lt: StreetLight
+          """
+            The value is greater than, or equal to the one given
+          """ gte: StreetLight
+          """
+            The value is less than, or equal to the one given
+          """ lte: StreetLight
+          """
+            The value is in the given array of values
+          """ in: [StreetLight]
+          """
+            The value is not in the given array of values
+          """ nin: [StreetLight]
+          not: StreetLightSearchFilterInput
+        }
+
+        """
+          Update input for StreetLight type.
+        """
+        input StreetLightUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: StreetLight
+        }
+
         schema {
           query: Query
           mutation: Mutation
@@ -3053,6 +3093,478 @@ fn two_tables_with_single_column_foreign_key() {
         input UserUpdateInput {
           id: IntUpdateInput
           name: StringUpdateInput
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+    "#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn cedalio_issue_november_2023() {
+    let response = introspect_namespaced_postgres("pg", |api| async move {
+        let create = indoc! {r#"
+            CREATE TYPE access_mode AS ENUM ('PUBLIC', 'PUBLIC_READ', 'PRIVATE');
+        "#};
+
+        api.execute_sql(create).await;
+
+        let create = indoc! {r#"
+            CREATE TYPE project_status AS ENUM ('CREATED', 'READY', 'FAILED');
+        "#};
+
+        api.execute_sql(create).await;
+
+        let create = indoc! {r#"
+            CREATE TABLE networks (
+                id SERIAL PRIMARY KEY
+            );
+        "#};
+
+        api.execute_sql(create).await;
+
+        let create = indoc! {r#"
+            CREATE TABLE projects (
+                id SERIAL PRIMARY KEY,
+                access_mode access_mode NOT NULL,
+                status project_status DEFAULT 'CREATED' NOT NULL,
+                network_id INT REFERENCES networks(id)
+            );
+        "#};
+
+        api.execute_sql(create).await;
+    });
+
+    let expected = expect![[r#"
+        type Mutation {
+          pg: PgMutation
+        }
+
+        enum PgAccessMode {
+          PUBLIC
+          PUBLIC_READ
+          PRIVATE
+        }
+
+        """
+          Search filter input for PgAccessMode type.
+        """
+        input PgAccessModeSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: PgAccessMode
+          """
+            The value is not the one given
+          """ ne: PgAccessMode
+          """
+            The value is greater than the one given
+          """ gt: PgAccessMode
+          """
+            The value is less than the one given
+          """ lt: PgAccessMode
+          """
+            The value is greater than, or equal to the one given
+          """ gte: PgAccessMode
+          """
+            The value is less than, or equal to the one given
+          """ lte: PgAccessMode
+          """
+            The value is in the given array of values
+          """ in: [PgAccessMode]
+          """
+            The value is not in the given array of values
+          """ nin: [PgAccessMode]
+          not: PgAccessModeSearchFilterInput
+        }
+
+        """
+          Update input for PgAccessMode type.
+        """
+        input PgAccessModeUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: PgAccessMode
+        }
+
+        """
+          Search filter input for Int type.
+        """
+        input PgIntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: PgIntSearchFilterInput
+        }
+
+        """
+          Update input for Int type.
+        """
+        input PgIntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
+        type PgMutation {
+          """
+            Delete a unique Networks by a field or combination of fields
+          """
+          networksDelete(by: PgNetworksByInput!): PgNetworksMutation
+          """
+            Delete multiple rows of Networks by a filter
+          """
+          networksDeleteMany(filter: PgNetworksMutationCollection!): PgNetworksBatchMutation
+          """
+            Create a Networks
+          """
+          networksCreate(input: PgNetworksInput!): PgNetworksMutation
+          """
+            Create multiple Networkss
+          """
+          networksCreateMany(input: [PgNetworksInput!]!): PgNetworksBatchMutation
+          """
+            Update a unique Networks
+          """
+          networksUpdate(by: PgNetworksByInput!, input: PgNetworksUpdateInput!): PgNetworksMutation
+          """
+            Update multiple Networkss
+          """
+          networksUpdateMany(filter: PgNetworksMutationCollection!, input: PgNetworksUpdateInput!): PgNetworksBatchMutation
+          """
+            Delete a unique Projects by a field or combination of fields
+          """
+          projectsDelete(by: PgProjectsByInput!): PgProjectsMutation
+          """
+            Delete multiple rows of Projects by a filter
+          """
+          projectsDeleteMany(filter: PgProjectsMutationCollection!): PgProjectsBatchMutation
+          """
+            Create a Projects
+          """
+          projectsCreate(input: PgProjectsInput!): PgProjectsMutation
+          """
+            Create multiple Projectss
+          """
+          projectsCreateMany(input: [PgProjectsInput!]!): PgProjectsBatchMutation
+          """
+            Update a unique Projects
+          """
+          projectsUpdate(by: PgProjectsByInput!, input: PgProjectsUpdateInput!): PgProjectsMutation
+          """
+            Update multiple Projectss
+          """
+          projectsUpdateMany(filter: PgProjectsMutationCollection!, input: PgProjectsUpdateInput!): PgProjectsBatchMutation
+        }
+
+        type PgNetworks {
+          id: Int!
+          projects(first: Int, last: Int, before: String, after: String, orderBy: [PgProjectsOrderByInput!]): PgProjectsConnection
+        }
+
+        type PgNetworksBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgNetworksReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input PgNetworksByInput {
+          id: Int
+        }
+
+        input PgNetworksCollection {
+          id: PgIntSearchFilterInput
+          projects: PgProjectsCollectionContains
+          """
+            All of the filters must match
+          """ ALL: [PgNetworksCollection]
+          """
+            None of the filters must match
+          """ NONE: [PgNetworksCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PgNetworksCollection]
+        }
+
+        type PgNetworksConnection {
+          edges: [PgNetworksEdge]!
+          pageInfo: PgPageInfo!
+        }
+
+        type PgNetworksEdge {
+          node: PgNetworks!
+          cursor: String!
+        }
+
+        input PgNetworksInput {
+          id: Int
+        }
+
+        type PgNetworksMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgNetworksReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input PgNetworksMutationCollection {
+          id: PgIntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PgNetworksMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [PgNetworksMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PgNetworksMutationCollection]
+        }
+
+        input PgNetworksOrderByInput {
+          id: PgOrderByDirection
+        }
+
+        type PgNetworksReturning {
+          id: Int!
+        }
+
+        input PgNetworksUpdateInput {
+          id: PgIntUpdateInput
+        }
+
+        enum PgOrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PgPageInfo {
+          hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
+        enum PgProjectStatus {
+          CREATED
+          READY
+          FAILED
+        }
+
+        """
+          Search filter input for PgProjectStatus type.
+        """
+        input PgProjectStatusSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: PgProjectStatus
+          """
+            The value is not the one given
+          """ ne: PgProjectStatus
+          """
+            The value is greater than the one given
+          """ gt: PgProjectStatus
+          """
+            The value is less than the one given
+          """ lt: PgProjectStatus
+          """
+            The value is greater than, or equal to the one given
+          """ gte: PgProjectStatus
+          """
+            The value is less than, or equal to the one given
+          """ lte: PgProjectStatus
+          """
+            The value is in the given array of values
+          """ in: [PgProjectStatus]
+          """
+            The value is not in the given array of values
+          """ nin: [PgProjectStatus]
+          not: PgProjectStatusSearchFilterInput
+        }
+
+        """
+          Update input for PgProjectStatus type.
+        """
+        input PgProjectStatusUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: PgProjectStatus
+        }
+
+        type PgProjects {
+          id: Int!
+          accessMode: PgAccessMode!
+          status: PgProjectStatus!
+          networkId: Int
+          networks: PgNetworks
+        }
+
+        type PgProjectsBatchMutation {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgProjectsReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input PgProjectsByInput {
+          id: Int
+        }
+
+        input PgProjectsCollection {
+          id: PgIntSearchFilterInput
+          accessMode: PgAccessModeSearchFilterInput
+          status: PgProjectStatusSearchFilterInput
+          networkId: PgIntSearchFilterInput
+          networks: PgNetworksCollection
+          """
+            All of the filters must match
+          """ ALL: [PgProjectsCollection]
+          """
+            None of the filters must match
+          """ NONE: [PgProjectsCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PgProjectsCollection]
+        }
+
+        input PgProjectsCollectionContains {
+          contains: PgProjectsCollection
+        }
+
+        type PgProjectsConnection {
+          edges: [PgProjectsEdge]!
+          pageInfo: PgPageInfo!
+        }
+
+        type PgProjectsEdge {
+          node: PgProjects!
+          cursor: String!
+        }
+
+        input PgProjectsInput {
+          id: Int
+          accessMode: PgAccessMode!
+          status: PgProjectStatus
+          networkId: Int
+        }
+
+        type PgProjectsMutation {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgProjectsReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        input PgProjectsMutationCollection {
+          id: PgIntSearchFilterInput
+          accessMode: PgAccessModeSearchFilterInput
+          status: PgProjectStatusSearchFilterInput
+          networkId: PgIntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PgProjectsMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [PgProjectsMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PgProjectsMutationCollection]
+        }
+
+        input PgProjectsOrderByInput {
+          id: PgOrderByDirection
+          accessMode: PgOrderByDirection
+          status: PgOrderByDirection
+          networkId: PgOrderByDirection
+        }
+
+        type PgProjectsReturning {
+          id: Int!
+          accessMode: PgAccessMode!
+          status: PgProjectStatus!
+          networkId: Int
+        }
+
+        input PgProjectsUpdateInput {
+          id: PgIntUpdateInput
+          accessMode: PgAccessModeUpdateInput
+          status: PgProjectStatusUpdateInput
+          networkId: PgIntUpdateInput
+        }
+
+        type PgQuery {
+          """
+            Query a single PgNetworks by a field
+          """
+          networks(by: PgNetworksByInput!): PgNetworks
+          """
+            Paginated query to fetch the whole list of Networks
+          """
+          networksCollection(filter: PgNetworksCollection, first: Int, last: Int, before: String, after: String, orderBy: [PgNetworksOrderByInput]): PgNetworksConnection
+          """
+            Query a single PgProjects by a field
+          """
+          projects(by: PgProjectsByInput!): PgProjects
+          """
+            Paginated query to fetch the whole list of Projects
+          """
+          projectsCollection(filter: PgProjectsCollection, first: Int, last: Int, before: String, after: String, orderBy: [PgProjectsOrderByInput]): PgProjectsConnection
+        }
+
+        type Query {
+          pg: PgQuery
         }
 
         schema {

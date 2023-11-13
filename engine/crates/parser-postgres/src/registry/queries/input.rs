@@ -10,7 +10,7 @@ use postgres_connector_types::database_definition::TableColumnWalker;
 
 fn input_value_from_column(column: TableColumnWalker<'_>, oneof: bool) -> MetaInputValue {
     let mut client_type = column
-        .graphql_type()
+        .graphql_type(None)
         .expect("unsupported types are filtered out at this point");
 
     // Oneof types can't enforce arguments, the runtime expects one of the arguments to be

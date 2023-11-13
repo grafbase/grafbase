@@ -23,7 +23,7 @@ pub(super) fn generate(
     // The full type with relations
     output_ctx.with_object_type(&type_name, table.id(), |builder| {
         for column in table.columns() {
-            add_column(column, builder);
+            add_column(input_ctx, column, builder);
         }
 
         for relation in table.relations() {
@@ -45,7 +45,7 @@ pub(super) fn generate(
     // a simple type, which does not have relations in it (e.g. for deletions)
     output_ctx.with_object_type(&returning_type_name, table.id(), |builder| {
         for column in table.columns() {
-            add_column(column, builder);
+            add_column(input_ctx, column, builder);
         }
     });
 
@@ -86,9 +86,9 @@ pub(super) fn generate(
     });
 }
 
-fn add_column(column: TableColumnWalker<'_>, builder: &mut ObjectTypeBuilder) {
+fn add_column(input_ctx: &InputContext<'_>, column: TableColumnWalker<'_>, builder: &mut ObjectTypeBuilder) {
     let client_type = column
-        .graphql_type()
+        .graphql_type(input_ctx.namespace())
         .expect("forgot to filter unsupported types before generating");
 
     let client_type = if column.nullable() {
