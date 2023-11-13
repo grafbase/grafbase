@@ -6,7 +6,11 @@ pub(crate) fn validate_input_object<'a>(
     input_object: &'a ast::InputObjectType,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(
+        &type_definition.node.directives,
+        ast::DirectiveLocation::InputObject,
+        ctx,
+    );
 
     for field in &input_object.fields {
         let field_name = &field.node.name.node;
@@ -30,7 +34,11 @@ pub(crate) fn validate_input_object_extension<'a>(
     _obj: &'a ast::InputObjectType,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(
+        &type_definition.node.directives,
+        ast::DirectiveLocation::InputObject,
+        ctx,
+    );
 
     if !matches!(
         ctx.definition_names.get(type_name).map(|t| &t.node.kind),

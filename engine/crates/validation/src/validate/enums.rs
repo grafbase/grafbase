@@ -6,7 +6,7 @@ pub(crate) fn validate_enum_members<'a>(
     enm: &'a ast::EnumType,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Enum, ctx);
 
     ctx.with_enum_values(type_name, &enm.values, |ctx, values| {
         let value_names = values.iter().map(|v| v.node.value.node.as_str());
@@ -22,7 +22,7 @@ pub(crate) fn validate_enum_extension<'a>(
     type_definition: &'a Positioned<ast::TypeDefinition>,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Enum, ctx);
 
     if !matches!(
         ctx.definition_names.get(type_name).map(|t| &t.node.kind),

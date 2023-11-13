@@ -5,7 +5,7 @@ pub(crate) fn validate_scalar_extension<'a>(
     type_definition: &'a Positioned<ast::TypeDefinition>,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Scalar, ctx);
 
     if !is_builtin_scalar(type_name)
         && !matches!(

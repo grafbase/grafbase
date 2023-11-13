@@ -6,7 +6,7 @@ pub(crate) fn validate_object<'a>(
     obj: &'a ast::ObjectType,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Object, ctx);
 
     ctx.with_implements(parent_type_name, &obj.implements, |ctx, implements| {
         interface_implementers::validate_implements_list(parent_type_name, implements, &obj.fields, ctx);
@@ -45,7 +45,7 @@ pub(crate) fn validate_object_extension<'a>(
     _obj: &'a ast::ObjectType,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Object, ctx);
 
     if !matches!(
         ctx.definition_names.get(type_name).map(|t| &t.node.kind),

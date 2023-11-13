@@ -27,7 +27,11 @@ pub(crate) fn validate_directive_definition<'a>(
         .insert(definition.node.name.node.as_str(), definition);
 }
 
-pub(crate) fn validate_directives<'a>(directives: &'a [Positioned<ast::ConstDirective>], ctx: &mut Context<'a>) {
+pub(crate) fn validate_directives<'a>(
+    directives: &'a [Positioned<ast::ConstDirective>],
+    location: ast::DirectiveLocation,
+    ctx: &mut Context<'a>,
+) {
     let names = directives.iter().map(|d| d.node.name.node.as_str());
     ctx.find_duplicates(names, |ctx, first, _| {
         let directive_name = directives[first].node.name.node.as_str();
@@ -42,4 +46,16 @@ pub(crate) fn validate_directives<'a>(directives: &'a [Positioned<ast::ConstDire
 
         ctx.push_error(miette::miette!("{directive_name} is not repeatable"));
     });
+
+    for directive in directives {
+        let directive_name = directive.node.name.node.as_str();
+        if let Some(definition) = ctx.directive_names.get(directive_name) {
+            if !definition.node.locations.iter().any(|loc| loc.node == location) {
+                ctx.push_error(miette::miette!(
+                    "Directive @{directive_name} used at an invalid location: {:?}",
+                    location
+                ));
+            }
+        }
+    }
 }

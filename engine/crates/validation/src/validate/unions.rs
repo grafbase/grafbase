@@ -5,7 +5,7 @@ pub(crate) fn validate_union_extension<'a>(
     type_definition: &'a Positioned<ast::TypeDefinition>,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Union, ctx);
 
     if !matches!(
         ctx.definition_names.get(type_name).map(|t| &t.node.kind),
@@ -21,7 +21,7 @@ pub(crate) fn validate_union_members<'a>(
     union: &'a ast::UnionType,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Union, ctx);
 
     ctx.with_union_members(type_name, &union.members, |ctx, members| {
         for member in members {

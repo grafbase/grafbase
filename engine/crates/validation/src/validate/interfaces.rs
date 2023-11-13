@@ -6,7 +6,7 @@ pub(crate) fn validate_interface<'a>(
     iface: &'a ast::InterfaceType,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Interface, ctx);
     ctx.with_implements(parent_type_name, &iface.implements, |ctx, implements| {
         interface_implementers::validate_implements_list(parent_type_name, implements, &iface.fields, ctx);
     });
@@ -34,7 +34,7 @@ pub(crate) fn validate_interface_extension<'a>(
     _iface: &'a ast::InterfaceType,
     ctx: &mut Context<'a>,
 ) {
-    validate_directives(&type_definition.node.directives, ctx);
+    validate_directives(&type_definition.node.directives, ast::DirectiveLocation::Interface, ctx);
     if !matches!(
         ctx.definition_names.get(type_name).map(|t| &t.node.kind),
         Some(ast::TypeKind::Interface(_))
