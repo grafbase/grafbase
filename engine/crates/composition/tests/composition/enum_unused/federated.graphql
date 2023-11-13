@@ -1,11 +1,12 @@
+enum join__Graph {
+    THESCHEMA @join__graph(name: "theschema", url: "theschema")
+}
+
 type User {
-    # Resolvable in `theschema`
-    id: ID!
-    # Resolvable in `theschema`
-    name: String!
+    id: ID! @join__field(graph: THESCHEMA)
+    name: String! @join__field(graph: THESCHEMA)
 }
 
 type Query {
-    # Resolvable in `theschema`
-    user: User
+    user: User @join__field(graph: THESCHEMA)
 }

@@ -1,14 +1,16 @@
-use std::fmt::{self, Write as _};
+use std::fmt::{self, Display, Write as _};
 
 use crate::federated_graph::*;
 
 const INDENT: &str = "    ";
 const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 
-/// Render a GraphQL SDL string for a federated graph. It only includes types and composed
-/// directives, the public API of the federated graph.
+/// Render a GraphQL SDL string for a federated graph. It includes [join spec
+/// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
 pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
+
+    write_subgraphs_enum(graph, &mut sdl)?;
 
     for scalar in &graph.scalars {
         let name = &graph[scalar.name];
@@ -23,15 +25,23 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     for (idx, object) in graph.objects.iter().enumerate() {
         let object_name = &graph[object.name];
 
-        for resolvable_key in &object.resolvable_keys {
-            sdl.push_str("# Entity with key (");
-            render_selection_set(&resolvable_key.fields, graph, &mut sdl);
-            sdl.push_str(") in `");
-            sdl.push_str(&graph[graph[resolvable_key.subgraph_id].name]);
-            sdl.push_str("`\n");
-        }
+        sdl.push_str("type ");
+        sdl.push_str(object_name);
 
-        writeln!(sdl, "type {object_name} {{")?;
+        if object.resolvable_keys.is_empty() {
+            sdl.push_str(" {\n");
+        } else {
+            for resolvable_key in &object.resolvable_keys {
+                let selection_set = SelectionSetDisplay(&resolvable_key.fields, graph);
+                let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
+                writeln!(
+                    sdl,
+                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
+                )?;
+            }
+
+            sdl.push_str("  {\n");
+        }
 
         for field in graph.object_fields.iter().filter(|field| field.object_id.0 == idx) {
             write_field(field.field_id, graph, &mut sdl)?;
@@ -105,18 +115,38 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     Ok(sdl)
 }
 
+fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    sdl.push_str("enum join__Graph {\n");
+
+    for subgraph in &graph.subgraphs {
+        let name_str = &graph[subgraph.name];
+        let url = &graph[subgraph.url];
+        let loud_name = GraphEnumVariantName(name_str);
+        writeln!(
+            sdl,
+            r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
+        )?;
+    }
+
+    sdl.push_str("}\n\n");
+    Ok(())
+}
+
 fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let field = &graph[field_id];
     let field_name = &graph[field.name];
     let field_type = render_field_type(&graph[field.field_type_id], graph);
     let args = render_field_arguments(&field.arguments, graph);
 
+    write!(sdl, "{INDENT}{field_name}{args}: {field_type}")?;
+
     for subgraph in &field.resolvable_in {
-        let subgraph_name = &graph[graph[*subgraph].name];
-        writeln!(sdl, "{INDENT}# Resolvable in `{subgraph_name}`",)?;
+        let subgraph_name = GraphEnumVariantName(&graph[graph[*subgraph].name]);
+        write!(sdl, " @join__field(graph: {subgraph_name})")?;
     }
 
-    writeln!(sdl, "{INDENT}{field_name}{args}: {field_type}")
+    sdl.push('\n');
+    Ok(())
 }
 
 fn render_field_type(field_type: &FieldType, graph: &FederatedGraph) -> String {
@@ -142,25 +172,6 @@ fn render_field_type(field_type: &FieldType, graph: &FederatedGraph) -> String {
     out
 }
 
-fn render_selection_set(selection: &FieldSet, graph: &FederatedGraph, sdl: &mut String) {
-    let mut selection = selection.iter().peekable();
-    while let Some(field) = selection.next() {
-        let name = &graph[graph[field.field].name];
-
-        sdl.push_str(name);
-
-        if !field.subselection.is_empty() {
-            sdl.push_str(" { ");
-            render_selection_set(&field.subselection, graph, sdl);
-            sdl.push_str(" }");
-        }
-
-        if selection.peek().is_some() {
-            sdl.push(' ');
-        }
-    }
-}
-
 fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraph) -> String {
     if args.is_empty() {
         String::new()
@@ -182,5 +193,46 @@ fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraph) -> Str
         }
         out.push(')');
         out
+    }
+}
+
+struct SelectionSetDisplay<'a>(&'a FieldSet, &'a FederatedGraph);
+
+impl Display for SelectionSetDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let SelectionSetDisplay(selection_set, graph) = self;
+        let mut selection = selection_set.iter().peekable();
+
+        while let Some(field) = selection.next() {
+            let name = &graph[graph[field.field].name];
+
+            f.write_str(name)?;
+
+            if !field.subselection.is_empty() {
+                f.write_str(" { ")?;
+                SelectionSetDisplay::fmt(&SelectionSetDisplay(&field.subselection, graph), f)?;
+                f.write_str(" }")?;
+            }
+
+            if selection.peek().is_some() {
+                f.write_char(' ')?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+struct GraphEnumVariantName<'a>(&'a str);
+
+impl Display for GraphEnumVariantName<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for char in self.0.chars() {
+            for upcased in char.to_uppercase() {
+                f.write_char(upcased)?;
+            }
+        }
+
+        Ok(())
     }
 }

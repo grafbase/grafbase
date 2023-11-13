@@ -1,23 +1,19 @@
+enum join__Graph {
+    ACCOUNTS @join__graph(name: "accounts", url: "accounts")
+    MARKETING @join__graph(name: "marketing", url: "marketing")
+    SUBSCRIPTIONS @join__graph(name: "subscriptions", url: "subscriptions")
+}
+
 type Customer {
-    # Resolvable in `accounts`
-    # Resolvable in `marketing`
-    # Resolvable in `subscriptions`
-    id: ID!
-    # Resolvable in `accounts`
-    # Resolvable in `marketing`
-    # Resolvable in `subscriptions`
-    name: String
-    # Resolvable in `accounts`
-    other: Int
-    # Resolvable in `marketing`
-    newsletterSubscribed: Boolean
-    # Resolvable in `subscriptions`
-    subscriptionPlan: Plan!
+    id: ID! @join__field(graph: ACCOUNTS) @join__field(graph: MARKETING) @join__field(graph: SUBSCRIPTIONS)
+    name: String @join__field(graph: ACCOUNTS) @join__field(graph: MARKETING) @join__field(graph: SUBSCRIPTIONS)
+    other: Int @join__field(graph: ACCOUNTS)
+    newsletterSubscribed: Boolean @join__field(graph: MARKETING)
+    subscriptionPlan: Plan! @join__field(graph: SUBSCRIPTIONS)
 }
 
 type Query {
-    # Resolvable in `accounts`
-    customer(id: ID!): Customer
+    customer(id: ID!): Customer @join__field(graph: ACCOUNTS)
 }
 
 enum Plan {

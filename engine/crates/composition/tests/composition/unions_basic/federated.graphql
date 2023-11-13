@@ -1,53 +1,44 @@
+enum join__Graph {
+    PIZZA @join__graph(name: "pizza", url: "pizza")
+    SUSHI @join__graph(name: "sushi", url: "sushi")
+}
+
 type Pizza {
-    # Resolvable in `pizza`
-    id: ID!
-    # Resolvable in `pizza`
-    nameEn: String
-    # Resolvable in `pizza`
-    nameIt: String!
-    # Resolvable in `pizza`
-    toppings: [Topping!]!
+    id: ID! @join__field(graph: PIZZA)
+    nameEn: String @join__field(graph: PIZZA)
+    nameIt: String! @join__field(graph: PIZZA)
+    toppings: [Topping!]! @join__field(graph: PIZZA)
 }
 
 type Onion {
-    # Resolvable in `pizza`
-    variety: String
+    variety: String @join__field(graph: PIZZA)
 }
 
 type Cheese {
-    # Resolvable in `pizza`
-    type: String!
-    # Resolvable in `pizza`
-    quantity: Int!
+    type: String! @join__field(graph: PIZZA)
+    quantity: Int! @join__field(graph: PIZZA)
 }
 
 type Pineapple {
-    # Resolvable in `pizza`
-    isAnanas: Boolean!
+    isAnanas: Boolean! @join__field(graph: PIZZA)
 }
 
 type Query {
-    # Resolvable in `pizza`
-    pizza(id: ID!): Pizza
+    pizza(id: ID!): Pizza @join__field(graph: PIZZA)
 }
 
 type Sushi {
-    # Resolvable in `sushi`
-    id: ID!
-    # Resolvable in `sushi`
-    topping: Topping
+    id: ID! @join__field(graph: SUSHI)
+    topping: Topping @join__field(graph: SUSHI)
 }
 
 type Salmon {
-    # Resolvable in `sushi`
-    id: ID!
-    # Resolvable in `sushi`
-    raw: Boolean
+    id: ID! @join__field(graph: SUSHI)
+    raw: Boolean @join__field(graph: SUSHI)
 }
 
 type Omelet {
-    # Resolvable in `sushi`
-    isRectangular: Boolean
+    isRectangular: Boolean @join__field(graph: SUSHI)
 }
 
 union Topping = Onion | Cheese | Pineapple | Salmon | Omelet
