@@ -3,26 +3,26 @@ pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
 use schema::{FieldId, Schema};
 
-use crate::response_graph::{Argument, NodeSelection, NodeSelectionSet, ResponseGraphEdges, ResponseGraphEdgesBuilder};
+use crate::response::{Argument, ResponseFields, ResponseFieldsBuilder, Selection, SelectionSet};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VariableId(usize);
 
 pub struct OperationDefinition {
     pub ty: OperationType,
-    pub selection_set: NodeSelectionSet,
-    pub response_graph_edges_builder: ResponseGraphEdgesBuilder,
+    pub selection_set: SelectionSet,
+    pub response_edges_builder: ResponseFieldsBuilder,
 }
 
 pub struct OperationBinder<'a> {
-    response_graph_edges_builder: ResponseGraphEdgesBuilder,
+    response_edges_builder: ResponseFieldsBuilder,
     schema: &'a Schema,
 }
 
 impl<'a> OperationBinder<'a> {
     pub fn new(schema: &'a Schema) -> Self {
         Self {
-            response_graph_edges_builder: ResponseGraphEdges::builder(),
+            response_edges_builder: ResponseFields::builder(),
             schema,
         }
     }
@@ -48,7 +48,7 @@ impl<'a> OperationBinder<'a> {
         Ok(OperationDefinition {
             ty: operation.ty,
             selection_set,
-            response_graph_edges_builder: self.response_graph_edges_builder,
+            response_edges_builder: self.response_edges_builder,
         })
     }
 
@@ -56,7 +56,7 @@ impl<'a> OperationBinder<'a> {
         &mut self,
         field_ids: Vec<FieldId>,
         selection_set: Positioned<engine_parser::types::SelectionSet>,
-    ) -> ServerResult<NodeSelectionSet> {
+    ) -> ServerResult<SelectionSet> {
         let Positioned {
             pos: _,
             node: selection_set,
@@ -111,24 +111,27 @@ impl<'a> OperationBinder<'a> {
                         )
                         .collect::<ServerResult<_>>()?;
 
-                    let subselection = self.bind_selection_set(
-                        match self.schema[schema_field.field_type_id].kind {
-                            schema::Definition::Object(object_id) => self.schema.object_fields(object_id).collect(),
-                            schema::Definition::Interface(interface_id) => {
-                                self.schema.interface_fields(interface_id).collect()
-                            }
-                            _ => {
-                                return Err(ServerError::new(
-                                    format!("Field {name} does not have any fields."),
-                                    Some(pos),
-                                ));
-                            }
-                        },
-                        field.selection_set,
-                    )?;
-
-                    Ok(NodeSelection {
-                        field: self.response_graph_edges_builder.push_field(
+                    let subselection = if field.selection_set.node.items.is_empty() {
+                        SelectionSet::empty()
+                    } else {
+                        self.bind_selection_set(
+                            match self.schema[schema_field.field_type_id].kind {
+                                schema::Definition::Object(object_id) => self.schema.object_fields(object_id).collect(),
+                                schema::Definition::Interface(interface_id) => {
+                                    self.schema.interface_fields(interface_id).collect()
+                                }
+                                _ => {
+                                    return Err(ServerError::new(
+                                        format!("Field {name} does not have any fields."),
+                                        Some(pos),
+                                    ));
+                                }
+                            },
+                            field.selection_set,
+                        )?
+                    };
+                    Ok(Selection {
+                        field: self.response_edges_builder.push_field(
                             &field
                                 .alias
                                 .map(|Positioned { node, .. }| node.to_string())

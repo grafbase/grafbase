@@ -1,7 +1,7 @@
-use super::ResponseGraph;
+use super::Response;
 
 struct JsonResponseGraph<'resp> {
-    response_graph: &'resp ResponseGraph,
+    response: &'resp Response,
 }
 
 impl<'resp> serde::Serialize for JsonResponseGraph<'resp> {

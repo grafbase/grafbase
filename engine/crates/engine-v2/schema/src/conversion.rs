@@ -1,4 +1,4 @@
-use std::{collections::HashMap, num::NonZeroU32};
+use std::collections::HashMap;
 
 // All of that should be in federated_graph actually.
 use super::*;
@@ -7,7 +7,7 @@ impl From<federated_graph::FederatedGraph> for Schema {
     fn from(graph: federated_graph::FederatedGraph) -> Self {
         let mut out = Schema {
             data_sources: (0..graph.subgraphs.len())
-                .map(|i| DataSource::Subgraph(SubgraphId(NonZeroU32::new(i as u32 + 1).unwrap())))
+                .map(|i| DataSource::Subgraph(SubgraphId::from(i)))
                 .collect(),
             subgraphs: graph.subgraphs.into_iter().map(Into::into).collect(),
             root_operation_types: RootOperationTypes {
@@ -46,7 +46,7 @@ impl From<federated_graph::FederatedGraph> for Schema {
                     .entry(Resolver::Subgraph(SubgraphResolver {
                         subgraph_id: subgraph_id.into(),
                     }))
-                    .or_insert_with(|| ResolverId(NonZeroU32::new(n as u32 + 1).unwrap()));
+                    .or_insert_with(|| ResolverId::from(n));
                 let requires = field_requires.remove(&subgraph_id).unwrap_or_default();
                 field_resolvers.push(FieldResolver {
                     resolver_id,
@@ -280,7 +280,7 @@ macro_rules! from_id_newtypes {
         $(
             impl From<federated_graph::$from> for $name {
                 fn from(id: federated_graph::$from) -> Self {
-                    $name(std::num::NonZeroU32::new((id.0 as u32) + 1).unwrap())
+                    $name::from(id.0)
                 }
             }
         )*
@@ -302,6 +302,6 @@ from_id_newtypes! {
 
 impl DataSourceId {
     fn from_subgraph_id(id: federated_graph::SubgraphId) -> Self {
-        Self(NonZeroU32::new(id.0 as u32 + 1).unwrap())
+        Self::from(id.0)
     }
 }

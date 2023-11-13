@@ -2,11 +2,9 @@
 
 use std::{borrow::Cow, cmp::Ordering};
 
-use translator::SchemaTranslator;
-pub use translator::Translator;
-
 mod conversion;
-mod translator;
+mod ids;
+pub use ids::*;
 
 /// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
@@ -215,16 +213,12 @@ pub struct SubgraphResolver {
 impl Resolver {
     pub fn data_source_id(&self) -> DataSourceId {
         match self {
-            Resolver::Subgraph(resolver) => DataSourceId(resolver.subgraph_id.0),
+            Resolver::Subgraph(resolver) => DataSourceId::from(resolver.subgraph_id),
         }
     }
 
     pub fn requires(&self) -> Cow<'_, SelectionSet> {
         Cow::Owned(SelectionSet::default())
-    }
-
-    pub fn translator<'a>(&'a self, schema: &'a Schema) -> Box<dyn Translator + 'a> {
-        Box::new(SchemaTranslator::new(schema))
     }
 }
 
@@ -343,48 +337,6 @@ pub struct InputObject {
 pub struct InputObjectField {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
-}
-
-macro_rules! id_newtypes {
-    ($($name:ident + $storage:ident + $out:ident,)*) => {
-        $(
-            #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
-            pub struct $name(std::num::NonZeroU32);
-
-            impl std::ops::Index<$name> for Schema {
-                type Output = $out;
-
-                fn index(&self, index: $name) -> &$out {
-                    &self.$storage[(index.0.get() - 1) as usize]
-                }
-            }
-
-        )*
-    }
-}
-
-pub struct KeyId(usize);
-
-// TODO: won't work with multiple sources.
-impl From<SubgraphId> for DataSourceId {
-    fn from(subgraph_id: SubgraphId) -> Self {
-        DataSourceId(subgraph_id.0)
-    }
-}
-
-id_newtypes! {
-    DataSourceId + data_sources + DataSource,
-    EnumId + enums + Enum,
-    FieldId + fields + Field,
-    FieldTypeId + field_types + FieldType,
-    InputObjectId + input_objects + InputObject,
-    InterfaceId + interfaces + Interface,
-    ObjectId + objects + Object,
-    ScalarId + scalars + Scalar,
-    StringId + strings + String,
-    SubgraphId + subgraphs + Subgraph,
-    UnionId + unions + Union,
-    ResolverId + resolvers + Resolver,
 }
 
 impl Schema {

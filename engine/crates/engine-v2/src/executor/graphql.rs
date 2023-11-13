@@ -1,13 +1,13 @@
 use schema::SubgraphResolver;
 
-use super::{Executor, ExecutorRequest, ResponseGraphProxy};
-use crate::{response_graph::ObjectNodeId, Engine};
+use super::{Executor, ExecutorRequest, ResponseProxy};
+use crate::{response::ResponseObjectId, Engine};
 
 pub(super) struct GraphqlExecutor {
     endpoint: String,
     query: String,
     variables: serde_json::Value,
-    object_node_id: ObjectNodeId,
+    response_object_id: ResponseObjectId,
 }
 
 impl GraphqlExecutor {
@@ -18,11 +18,11 @@ impl GraphqlExecutor {
             endpoint: engine.schema[subgraph.url].clone(),
             query: String::new(),
             variables: serde_json::Value::Null,
-            object_node_id: request.input.object_node_id(),
+            response_object_id: request.response_objects.id(),
         })
     }
 
-    pub(super) async fn execute(self, proxy: ResponseGraphProxy) {
+    pub(super) async fn execute(self, proxy: ResponseProxy) {
         let response = reqwest::Client::new()
             .post(self.endpoint)
             .json(&serde_json::json!({
@@ -33,10 +33,10 @@ impl GraphqlExecutor {
             .await
             .unwrap();
         let bytes = response.bytes().await.unwrap();
-        let object_node_id = self.object_node_id;
+        let object_node_id = self.response_object_id;
         proxy
-            .mutate(move |response_graph| {
-                response_graph
+            .mutate(move |response| {
+                response
                     .insert_any(object_node_id, &mut serde_json::Deserializer::from_slice(&bytes))
                     .unwrap();
             })

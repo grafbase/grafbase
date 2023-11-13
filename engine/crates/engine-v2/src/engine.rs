@@ -1,14 +1,19 @@
+use std::sync::Arc;
+
 use engine::ServerResult;
+use schema::Schema;
 
 use crate::{executor::ExecutorCoordinator, plan::RequestPlan, request::OperationBinder};
 
 pub struct Engine {
-    pub(crate) schema: schema::Schema,
+    pub(crate) schema: Arc<Schema>,
 }
 
 impl Engine {
-    pub fn new(schema: schema::Schema) -> Self {
-        Self { schema }
+    pub fn new(schema: Schema) -> Self {
+        Self {
+            schema: Arc::new(schema),
+        }
     }
 
     pub async fn execute(&self, request: engine_parser::types::OperationDefinition) -> ServerResult<serde_json::Value> {

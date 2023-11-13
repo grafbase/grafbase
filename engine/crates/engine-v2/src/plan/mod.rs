@@ -1,15 +1,15 @@
 use schema::ResolverId;
 
-use crate::response_graph::{InputNodeSelectionSet, NodePath, OutputNodeSelectionSet};
+use crate::response::{ReadSelectionSet, ResponsePath, WriteSelectionSet};
 
-mod graph;
 mod planner;
-pub use graph::{ExecutionPlanGraph, PlanId};
+mod plans;
 pub use planner::RequestPlan;
+pub use plans::{ExecutionPlans, PlanId};
 
 pub struct ExecutionPlan {
-    pub path: NodePath,
-    pub input: InputNodeSelectionSet,
-    pub output: OutputNodeSelectionSet,
+    pub path: ResponsePath,
+    pub input: ReadSelectionSet,
+    pub output: WriteSelectionSet,
     pub resolver_id: ResolverId,
 }

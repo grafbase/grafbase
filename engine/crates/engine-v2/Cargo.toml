@@ -23,7 +23,6 @@ reqwest = { version = "0.11", default-features = false, features = [
   "json",
   "rustls-tls",
 ] }
-slotmap = "1"
 
 engine-value = { path = "../engine/value" }
 engine-parser = { path = "../engine/parser" }

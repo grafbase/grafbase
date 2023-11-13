@@ -2,20 +2,17 @@ use std::collections::HashMap;
 
 use engine_parser::{types::OperationType, Pos};
 use itertools::Itertools;
-use schema::{DataSourceId, FieldId, FieldResolver, ResolverId, SelectionSet, Translator};
-use slotmap::{new_key_type, SecondaryMap, SlotMap};
+use schema::{DataSourceId, FieldId, FieldResolver, ResolverId};
 
-use super::{ExecutionPlan, ExecutionPlanGraph, PlanId};
+use super::{plans::ExecutionPlansBuilder, ExecutionPlan, ExecutionPlans, PlanId};
 use crate::{
     request::OperationDefinition,
-    response_graph::{
-        FieldName, InputNodeSelection, InputNodeSelectionSet, NodePath, NodeSelectionSet, OutputNodeSelection,
-        OutputNodeSelectionSet, ResponseGraphEdges, ResponseGraphEdgesBuilder, TypeCondition,
+    response::{
+        ReadSelection, ReadSelectionSet, ResponseFields, ResponseFieldsBuilder, ResponsePath, SelectionSet,
+        TypeCondition, WriteSelection, WriteSelectionSet,
     },
     Engine,
 };
-
-new_key_type! { struct PlanningId; }
 
 // This is the part that should be cached for a GraphQL query.
 // I suppose we might want to plan all query operations together if we support operation batching.
@@ -23,65 +20,42 @@ new_key_type! { struct PlanningId; }
 // If that doesn't make any sense, we should rename that to OperationPlan
 pub struct RequestPlan {
     pub operation_type: OperationType,
-    pub operation_selection_set: NodeSelectionSet,
-    pub response_graph_edges: ResponseGraphEdges,
-    pub execution_plan_graph: ExecutionPlanGraph,
+    pub operation_selection_set: SelectionSet,
+    pub response_fields: ResponseFields,
+    pub execution_plans: ExecutionPlans,
 }
 
 impl RequestPlan {
     pub fn builder(engine: &Engine) -> RequestPlanBuilder<'_> {
         RequestPlanBuilder {
             engine,
-            plans: SlotMap::with_key(),
-            reponse_graph_edges_builder: ResponseGraphEdges::builder(),
-            parent_to_children: SecondaryMap::new(),
+            plans: ExecutionPlans::builder(),
+            response_fields: ResponseFields::builder(),
         }
     }
 }
 
 pub struct RequestPlanBuilder<'a> {
     engine: &'a Engine,
-    reponse_graph_edges_builder: ResponseGraphEdgesBuilder,
-    // Currently, we could use ExecutionPlanGraph directly as I'm not deleting any plans. But I
-    // didn't start with that. Initially I intended to merge plans together. As it's not obvious
-    // for now wether we'll do it later or not for now, keeping the current structure which
-    // supports deletions.
-    // On second thought we probably should use ExecutionPlanGraph directly for performance at
-    // runtime.
-    plans: SlotMap<PlanningId, ExecutionPlan>,                     // nodes
-    parent_to_children: SecondaryMap<PlanningId, Vec<PlanningId>>, // outgoing edges
+    response_fields: ResponseFieldsBuilder,
+    plans: ExecutionPlansBuilder,
 }
 
 impl<'a> RequestPlanBuilder<'a> {
     pub fn build(mut self, operation: OperationDefinition) -> RequestPlan {
         let mut stack = vec![ToBePlanned {
             parent: None,
-            path: NodePath::empty(),
+            path: ResponsePath::empty(),
             selection_set: operation.selection_set.clone(),
         }];
         while let Some(to_be_planned) = stack.pop() {
             stack.extend(self.plan_next(to_be_planned));
         }
-        let mut graph_builder = ExecutionPlanGraph::builder();
-        let mut translation = HashMap::<PlanningId, PlanId>::new();
-        // Not guaranteed to be kept when remove keys from plans as far as I understood. Need to
-        // read how it the secondary map is implemented. ^^
-        let parent_to_children = self.parent_to_children.into_iter().collect::<HashMap<_, _>>();
-        for (plannin_id, plan) in self.plans {
-            let plan_id = graph_builder.push_plan(plan);
-            translation.insert(plannin_id, plan_id);
-        }
-
-        for (parent, children) in parent_to_children {
-            for child in children {
-                graph_builder.push_dependency(translation[&parent], translation[&child]);
-            }
-        }
         RequestPlan {
             operation_type: operation.ty,
             operation_selection_set: operation.selection_set,
-            response_graph_edges: self.reponse_graph_edges_builder.build(),
-            execution_plan_graph: graph_builder.build(),
+            response_fields: self.response_fields.build(),
+            execution_plans: self.plans.build(),
         }
     }
 
@@ -99,16 +73,16 @@ impl<'a> RequestPlanBuilder<'a> {
 
         #[derive(Default)]
         pub struct ResolverIO {
-            input: SelectionSet,
+            input: schema::SelectionSet,
             output: Vec<FieldId>,
         }
 
         let mut candidates = HashMap::<ResolverId, ResolverIO>::new();
         for selection in &selection_set {
-            let field_id = self.reponse_graph_edges_builder[selection.field].field_id;
+            let field_id = self.response_fields[selection.field].field_id;
             for FieldResolver { resolver_id, requires } in &self.engine.schema[field_id].resolvers {
                 let io = candidates.entry(*resolver_id).or_default();
-                io.input = SelectionSet::merge(&io.input, requires);
+                io.input = schema::SelectionSet::merge(&io.input, requires);
                 io.output.push(field_id);
             }
         }
@@ -126,9 +100,9 @@ impl<'a> RequestPlanBuilder<'a> {
             let (output, mut to_be_planned, rest) =
                 self.partition_selection_set(resolver.data_source_id(), io.output, &path, selection_set);
             selection_set = rest;
-            let plan_id = self.plans.insert(ExecutionPlan {
+            let plan_id = self.plans.push_plan(ExecutionPlan {
                 path: path.clone(),
-                input: InputNodeSelectionSet::empty(),
+                input: ReadSelectionSet::empty(),
                 output,
                 resolver_id,
             });
@@ -140,8 +114,8 @@ impl<'a> RequestPlanBuilder<'a> {
         }
 
         if let Some(parent) = parent {
-            for plan_id in &plan_ids {
-                self.add_child_edge(parent, *plan_id);
+            for child in &plan_ids {
+                self.plans.add_dependency(*child, parent);
             }
         }
 
@@ -149,28 +123,24 @@ impl<'a> RequestPlanBuilder<'a> {
         children
     }
 
-    fn add_child_edge(&mut self, parent: PlanningId, child: PlanningId) {
-        self.parent_to_children.entry(parent).unwrap().or_default().push(child);
-    }
-
     fn partition_selection_set(
         &self,
         data_source_id: DataSourceId,
         mut output: Vec<FieldId>,
-        path: &NodePath,
-        selection_set: NodeSelectionSet,
-    ) -> (OutputNodeSelectionSet, Vec<ToBePlanned>, NodeSelectionSet) {
+        path: &ResponsePath,
+        selection_set: SelectionSet,
+    ) -> (WriteSelectionSet, Vec<ToBePlanned>, SelectionSet) {
         output.sort_unstable();
         let mut to_be_planned = vec![];
 
         let (output_node_selection_set, rest) = selection_set
             .into_iter()
             .map(|selection| {
-                let edge = &self.reponse_graph_edges_builder[selection.field];
+                let edge = &self.response_fields[selection.field];
                 if output.binary_search(&edge.field_id).is_ok() {
                     let field = &self.engine.schema[edge.field_id];
 
-                    Ok(OutputNodeSelection {
+                    Ok(WriteSelection {
                         field: selection.field,
                         subselection: self.assign_provideable_output_node_selection_set(
                             data_source_id,
@@ -193,28 +163,28 @@ impl<'a> RequestPlanBuilder<'a> {
     fn assign_provideable_output_node_selection_set(
         &self,
         data_source_id: DataSourceId,
-        provideable: Option<SelectionSet>,
+        provideable: Option<schema::SelectionSet>,
         assign_without_resolvers: bool,
-        path: NodePath,
-        selection_set: NodeSelectionSet,
+        path: ResponsePath,
+        selection_set: SelectionSet,
         to_be_planned: &mut Vec<ToBePlanned>,
-    ) -> OutputNodeSelectionSet {
-        let (output, missing): (OutputNodeSelectionSet, NodeSelectionSet) = selection_set
+    ) -> WriteSelectionSet {
+        let (output, missing): (WriteSelectionSet, SelectionSet) = selection_set
             .into_iter()
             .map(|selection| {
-                let edge = &self.reponse_graph_edges_builder[selection.field];
+                let edge = &self.response_fields[selection.field];
                 let field = &self.engine.schema[edge.field_id];
 
                 let provideable_selection = provideable.as_ref().and_then(|s| s.selection(edge.field_id));
                 if provideable_selection.is_some() || (assign_without_resolvers && field.resolvers.is_empty()) {
                     let parent_provideable = provideable_selection.map(|s| &s.subselection);
                     let current_provideable = field.provides(data_source_id);
-                    let provideable: Option<SelectionSet> = match (parent_provideable, current_provideable) {
+                    let provideable: Option<schema::SelectionSet> = match (parent_provideable, current_provideable) {
                         (None, None) => None,
-                        (Some(a), Some(b)) => Some(SelectionSet::merge(a, b)),
+                        (Some(a), Some(b)) => Some(schema::SelectionSet::merge(a, b)),
                         (None, p) | (p, None) => p.cloned(),
                     };
-                    Ok(OutputNodeSelection {
+                    Ok(WriteSelection {
                         field: selection.field,
                         subselection: self.assign_provideable_output_node_selection_set(
                             data_source_id,
@@ -241,18 +211,17 @@ impl<'a> RequestPlanBuilder<'a> {
     // Here we need to ensure that the requires NodeSelectionSet uses existing fields when possible
     fn create_input(
         &mut self,
-        output_set: &mut OutputNodeSelectionSet,
+        output_set: &mut WriteSelectionSet,
         pos: Pos,
         type_condition: Option<TypeCondition>,
-        translator: &dyn Translator,
-        input_set: &SelectionSet,
-    ) -> InputNodeSelectionSet {
-        input_set
+        required_selection_set: &schema::SelectionSet,
+    ) -> ReadSelectionSet {
+        required_selection_set
             .into_iter()
-            .map(|input| {
+            .map(|required_selection| {
                 let maybe_output = output_set.iter_mut().find_map(|output| {
-                    let edge = &self.reponse_graph_edges_builder[output.field];
-                    if edge.field_id == input.field
+                    let edge = &self.response_fields[output.field];
+                    if edge.field_id == required_selection.field
                         && type_condition
                             .zip(edge.type_condition)
                             .map(|(a, b)| a == b)
@@ -264,43 +233,36 @@ impl<'a> RequestPlanBuilder<'a> {
                         None
                     }
                 });
-                let input_name: FieldName = self
-                    .reponse_graph_edges_builder
-                    .intern_field_name(translator.field(input.field));
                 match maybe_output {
-                    Some((name, output_selection)) => InputNodeSelection {
-                        field: output_selection.field,
+                    Some((name, output_selection)) => ReadSelection {
                         name,
-                        input_name,
                         subselection: self.create_input(
                             &mut output_selection.subselection,
                             pos,
                             None,
-                            translator,
-                            &input.subselection,
+                            &required_selection.subselection,
                         ),
                     },
                     None => {
-                        let schema_field = &self.engine.schema[input.field];
-                        let (field, name) = self.reponse_graph_edges_builder.push_internal_field(
+                        let schema_field = &self.engine.schema[required_selection.field];
+                        let (field, name) = self.response_fields.push_internal_field(
                             &self.engine.schema[schema_field.name],
                             pos,
-                            input.field,
+                            required_selection.field,
                             None,
                             vec![],
                         );
-                        let new_output = output_set.insert(OutputNodeSelection {
+                        let new_output = output_set.insert(WriteSelection {
                             field,
-                            subselection: OutputNodeSelectionSet::empty(),
+                            subselection: WriteSelectionSet::empty(),
                         });
-                        let subselection =
-                            self.create_input(&mut new_output.subselection, pos, None, translator, &input.subselection);
-                        InputNodeSelection {
-                            field,
-                            name,
-                            input_name,
-                            subselection,
-                        }
+                        let subselection = self.create_input(
+                            &mut new_output.subselection,
+                            pos,
+                            None,
+                            &required_selection.subselection,
+                        );
+                        ReadSelection { name, subselection }
                     }
                 }
             })
@@ -309,7 +271,7 @@ impl<'a> RequestPlanBuilder<'a> {
 }
 
 struct ToBePlanned {
-    parent: Option<PlanningId>,
-    path: NodePath,
-    selection_set: NodeSelectionSet,
+    parent: Option<PlanId>,
+    path: ResponsePath,
+    selection_set: SelectionSet,
 }

@@ -5,7 +5,7 @@ use futures_locks::Mutex;
 use schema::Resolver;
 
 use crate::{
-    response_graph::{Input, OutputNodeSelectionSet, ResponseGraph},
+    response::{Response, ResponseObjectsView, WriteSelectionSet},
     Engine,
 };
 
@@ -16,8 +16,8 @@ pub use coordinator::ExecutorCoordinator;
 
 struct ExecutorRequest<'a> {
     operation_type: OperationType,
-    input: Input<'a>,
-    output: &'a OutputNodeSelectionSet,
+    response_objects: ResponseObjectsView<'a>,
+    output: &'a WriteSelectionSet,
 }
 
 enum Executor {
@@ -31,21 +31,21 @@ impl Executor {
         }
     }
 
-    async fn execute(self, proxy: ResponseGraphProxy) {
+    async fn execute(self, response: ResponseProxy) {
         match self {
-            Executor::GraphQL(plan) => plan.execute(proxy).await,
+            Executor::GraphQL(executor) => executor.execute(response).await,
         }
     }
 }
 
-struct ResponseGraphProxy {
-    graph: Arc<Mutex<ResponseGraph>>,
+struct ResponseProxy {
+    inner: Arc<Mutex<Response>>,
 }
 
-impl ResponseGraphProxy {
+impl ResponseProxy {
     // Guaranteed to be executed before any children.
-    async fn mutate<T>(&self, func: impl FnOnce(&mut ResponseGraph) -> T) -> T {
-        let mut graph = self.graph.lock().await;
+    async fn mutate<T>(&self, func: impl FnOnce(&mut Response) -> T) -> T {
+        let mut graph = self.inner.lock().await;
         func(&mut graph)
     }
 }

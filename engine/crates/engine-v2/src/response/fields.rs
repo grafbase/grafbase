@@ -9,11 +9,11 @@ pub enum TypeCondition {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct FieldEdgeId(pub(super) u32);
+pub struct ResponseFieldId(pub(super) u32);
 
 // Maybe an enum? Need to support `__typename`
-pub struct FieldEdge {
-    pub name: FieldName,
+pub struct ResponseField {
+    pub name: ResponseStringId,
     // probably needs a better name. it's the position for requested fields. For added fields,
     // it's the position of the query field that needed it.
     pub pos: Pos,
@@ -31,48 +31,48 @@ pub struct Argument {
     pub value: engine_value::Value,
 }
 
-pub struct ResponseGraphEdges {
-    fields: Vec<FieldEdge>,
-    field_names: lasso::Rodeo<FieldName>,
+pub struct ResponseFields {
+    fields: Vec<ResponseField>,
+    strings: lasso::Rodeo<ResponseStringId>,
 }
 
-impl ResponseGraphEdges {
-    pub fn builder() -> ResponseGraphEdgesBuilder {
-        ResponseGraphEdgesBuilder {
-            field_names: lasso::Rodeo::new(),
+impl ResponseFields {
+    pub fn builder() -> ResponseFieldsBuilder {
+        ResponseFieldsBuilder {
+            strings: lasso::Rodeo::new(),
             fields: Vec::new(),
         }
     }
 
-    pub(super) fn intern_field_name(&mut self, value: &str) -> FieldName {
-        self.field_names.get_or_intern(value)
+    pub(super) fn intern_field_name(&mut self, value: &str) -> ResponseStringId {
+        self.strings.get_or_intern(value)
     }
 }
 
-impl std::ops::Index<FieldEdgeId> for ResponseGraphEdges {
-    type Output = FieldEdge;
+impl std::ops::Index<ResponseFieldId> for ResponseFields {
+    type Output = ResponseField;
 
-    fn index(&self, index: FieldEdgeId) -> &Self::Output {
+    fn index(&self, index: ResponseFieldId) -> &Self::Output {
         &self.fields[index.0 as usize]
     }
 }
 
-impl std::ops::Index<FieldName> for ResponseGraphEdges {
+impl std::ops::Index<ResponseStringId> for ResponseFields {
     type Output = str;
 
-    fn index(&self, index: FieldName) -> &Self::Output {
-        &self.field_names[index]
+    fn index(&self, index: ResponseStringId) -> &Self::Output {
+        &self.strings[index]
     }
 }
 
-pub struct ResponseGraphEdgesBuilder {
-    field_names: lasso::Rodeo<FieldName>,
-    fields: Vec<FieldEdge>,
+pub struct ResponseFieldsBuilder {
+    strings: lasso::Rodeo<ResponseStringId>,
+    fields: Vec<ResponseField>,
 }
 
-impl ResponseGraphEdgesBuilder {
-    pub fn intern_field_name(&mut self, value: &str) -> FieldName {
-        self.field_names.get_or_intern(value)
+impl ResponseFieldsBuilder {
+    pub fn intern_field_name(&mut self, value: &str) -> ResponseStringId {
+        self.strings.get_or_intern(value)
     }
 
     pub fn push_field(
@@ -82,16 +82,16 @@ impl ResponseGraphEdgesBuilder {
         field_id: FieldId,
         type_condition: Option<TypeCondition>,
         arguments: Vec<Argument>,
-    ) -> FieldEdgeId {
-        let name = self.field_names.get_or_intern(name);
-        self.fields.push(FieldEdge {
+    ) -> ResponseFieldId {
+        let name = self.strings.get_or_intern(name);
+        self.fields.push(ResponseField {
             name,
             pos,
             type_condition,
             field_id,
             arguments,
         });
-        FieldEdgeId((self.fields.len() - 1) as u32)
+        ResponseFieldId((self.fields.len() - 1) as u32)
     }
 
     pub fn push_internal_field(
@@ -101,41 +101,39 @@ impl ResponseGraphEdgesBuilder {
         field_id: FieldId,
         type_condition: Option<TypeCondition>,
         arguments: Vec<Argument>,
-    ) -> (FieldEdgeId, FieldName) {
-        let name = self.field_names.get_or_intern(name);
-        self.fields.push(FieldEdge {
+    ) -> (ResponseFieldId, ResponseStringId) {
+        let name = self.strings.get_or_intern(name);
+        self.fields.push(ResponseField {
             name,
             pos,
             type_condition,
             field_id,
             arguments,
         });
-        (FieldEdgeId((self.fields.len() - 1) as u32), name)
+        (ResponseFieldId((self.fields.len() - 1) as u32), name)
     }
 
-    pub fn build(self) -> ResponseGraphEdges {
-        let ResponseGraphEdgesBuilder {
-            field_names, fields, ..
-        } = self;
-        ResponseGraphEdges { fields, field_names }
+    pub fn build(self) -> ResponseFields {
+        let ResponseFieldsBuilder { strings, fields, .. } = self;
+        ResponseFields { fields, strings }
     }
 }
 
-impl std::ops::Index<FieldEdgeId> for ResponseGraphEdgesBuilder {
-    type Output = FieldEdge;
+impl std::ops::Index<ResponseFieldId> for ResponseFieldsBuilder {
+    type Output = ResponseField;
 
-    fn index(&self, index: FieldEdgeId) -> &Self::Output {
+    fn index(&self, index: ResponseFieldId) -> &Self::Output {
         &self.fields[index.0 as usize]
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FieldName(u32);
+pub struct ResponseStringId(u32);
 
 // Reserving the 4 upper bits for flags which still leaves 268 millions ids.
 const ID_MASK: usize = 0x0F_FF_FF_FF;
 
-unsafe impl lasso::Key for FieldName {
+unsafe impl lasso::Key for ResponseStringId {
     fn into_usize(self) -> usize {
         self.0 as usize
     }
@@ -157,19 +155,19 @@ mod tests {
 
     #[test]
     fn field_name_value_in_range() {
-        let key = FieldName::try_from_usize(0).unwrap();
+        let key = ResponseStringId::try_from_usize(0).unwrap();
         assert_eq!(key.into_usize(), 0);
 
-        let key = FieldName::try_from_usize(ID_MASK - 1).unwrap();
+        let key = ResponseStringId::try_from_usize(ID_MASK - 1).unwrap();
         assert_eq!(key.into_usize(), ID_MASK - 1);
     }
 
     #[test]
     fn field_name_value_out_of_range() {
-        let key = FieldName::try_from_usize(ID_MASK);
+        let key = ResponseStringId::try_from_usize(ID_MASK);
         assert!(key.is_none());
 
-        let key = FieldName::try_from_usize(u32::max_value() as usize);
+        let key = ResponseStringId::try_from_usize(u32::max_value() as usize);
         assert!(key.is_none());
     }
 }

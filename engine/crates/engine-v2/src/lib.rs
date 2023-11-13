@@ -3,6 +3,6 @@ mod engine;
 mod executor;
 mod plan;
 mod request;
-mod response_graph;
+mod response;
 
 pub use engine::Engine;
