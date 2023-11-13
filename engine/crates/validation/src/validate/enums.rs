@@ -14,6 +14,14 @@ pub(crate) fn validate_enum_members<'a>(
             let value_name = enm.values[idx].node.value.node.as_str();
             ctx.push_error(miette::miette!(r#"Duplicate enum value "{type_name}.{value_name}""#));
         });
+
+        for value in values {
+            validate_directives(
+                &value.node.directives,
+                ast::DirectiveLocation::InputFieldDefinition,
+                ctx,
+            );
+        }
     });
 }
 

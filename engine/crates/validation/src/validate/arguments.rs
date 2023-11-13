@@ -49,5 +49,7 @@ pub(crate) fn validate_arguments<'a>(
                 ));
             }
         }
+
+        validate_directives(&arg.node.directives, ast::DirectiveLocation::ArgumentDefinition, ctx);
     }
 }

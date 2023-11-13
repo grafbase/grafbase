@@ -1,5 +1,5 @@
-use crate::{context::SchemaDefinition, Context};
-use async_graphql_parser::{types as ast, Positioned};
+use super::*;
+use crate::context::SchemaDefinition;
 
 pub(crate) fn validate_schema_definition<'a>(def: &'a Positioned<ast::SchemaDefinition>, ctx: &mut Context<'a>) {
     if let Some(previous_def) = ctx.schema_definition.take() {
@@ -25,6 +25,7 @@ pub(crate) fn validate_schema_definition<'a>(def: &'a Positioned<ast::SchemaDefi
 
     ctx.schema_definition = Some(SchemaDefinition {
         pos: def.pos,
+        directives: &def.node.directives,
         query: def.node.query.as_ref().unwrap().node.as_str(),
         mutation: def.node.mutation.as_ref().map(|node| node.node.as_str()),
         subscription: def.node.subscription.as_ref().map(|node| node.node.as_str()),
@@ -32,10 +33,12 @@ pub(crate) fn validate_schema_definition<'a>(def: &'a Positioned<ast::SchemaDefi
 }
 
 pub(crate) fn validate_schema_definition_references(ctx: &mut Context<'_>) {
-    let Some(def) = ctx.schema_definition.as_ref() else {
+    let Some(def) = ctx.schema_definition.as_ref().cloned() else {
         return;
     };
     let pos = def.pos;
+
+    validate_directives(def.directives, ast::DirectiveLocation::Schema, ctx);
 
     let names = [
         (Some(def.query), "Query"),

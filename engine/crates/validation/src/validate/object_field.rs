@@ -1,5 +1,4 @@
-use crate::Context;
-use async_graphql_parser::{types as ast, Positioned};
+use super::*;
 
 pub(crate) fn validate_object_field<'a>(
     parent_type_name: &str,
@@ -7,6 +6,8 @@ pub(crate) fn validate_object_field<'a>(
     ctx: &mut Context<'a>,
 ) {
     let field_name = field.node.name.node.as_str();
+
+    validate_directives(&field.node.directives, ast::DirectiveLocation::FieldDefinition, ctx);
 
     // http://spec.graphql.org/draft/#sel-IAHZhCFDBDBABDl4L
     if field_name.starts_with("__") {

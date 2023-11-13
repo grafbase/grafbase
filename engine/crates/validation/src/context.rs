@@ -178,9 +178,10 @@ impl<'a> Context<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct SchemaDefinition<'a> {
     pub(crate) pos: Pos,
+    pub(crate) directives: &'a [Positioned<ast::ConstDirective>],
     pub(crate) query: &'a str,
     pub(crate) mutation: Option<&'a str>,
     pub(crate) subscription: Option<&'a str>,

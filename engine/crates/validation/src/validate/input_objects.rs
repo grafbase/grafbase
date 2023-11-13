@@ -13,6 +13,11 @@ pub(crate) fn validate_input_object<'a>(
     );
 
     for field in &input_object.fields {
+        validate_directives(
+            &field.node.directives,
+            ast::DirectiveLocation::InputFieldDefinition,
+            ctx,
+        );
         let field_name = &field.node.name.node;
         let type_name = extract_type_name(&field.node.ty.node.base);
         let location = || format!("{parent_type_name}.{field_name}");
