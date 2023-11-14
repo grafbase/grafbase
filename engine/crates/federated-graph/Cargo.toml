@@ -1,7 +1,11 @@
 [package]
-name = "grafbase-federated-graph"
+name = "graphql-federated-graph"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
+description = "A serializable federated GraphQL graph representation"
+repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/federated-graph"
+keywords = ["graphql", "federation"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

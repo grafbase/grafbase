@@ -1,10 +1,9 @@
-use grafbase_federated_graph as federated;
-
 use crate::{
     composition_ir::CompositionIr,
     subgraphs::{self, StringWalker},
     Diagnostics,
 };
+use graphql_federated_graph as federated;
 
 /// Context for [`compose`](crate::compose::compose).
 pub(crate) struct Context<'a> {

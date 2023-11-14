@@ -10,7 +10,7 @@ mod ingest_subgraph;
 mod result;
 mod subgraphs;
 
-pub use grafbase_federated_graph::render_sdl;
+pub use graphql_federated_graph::render_sdl;
 
 use self::{
     compose::{compose_subgraphs, ComposeContext},

@@ -25,7 +25,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
     // (inconsistencies observed in CI).
     subgraphs_sdl.sort_by_key(|(_, path)| path.file_name().unwrap().to_owned());
 
-    let mut subgraphs = grafbase_composition::Subgraphs::default();
+    let mut subgraphs = graphql_composition::Subgraphs::default();
 
     for (sdl, path) in subgraphs_sdl {
         let parsed = async_graphql_parser::parse_schema(&sdl)
@@ -35,8 +35,8 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
 
     let expected = fs::read_to_string(federated_graph_path)
         .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
-    let actual = match grafbase_composition::compose(&subgraphs).into_result() {
-        Ok(sdl) => grafbase_federated_graph::render_sdl(&sdl).unwrap(),
+    let actual = match graphql_composition::compose(&subgraphs).into_result() {
+        Ok(sdl) => graphql_federated_graph::render_sdl(&sdl).unwrap(),
         Err(diagnostics) => format!(
             "{}\n",
             diagnostics

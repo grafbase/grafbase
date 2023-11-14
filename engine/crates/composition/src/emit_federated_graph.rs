@@ -4,7 +4,7 @@ mod field_types_map;
 use std::{collections::BTreeSet, mem};
 
 use federated::RootOperationTypes;
-use grafbase_federated_graph as federated;
+use graphql_federated_graph as federated;
 use itertools::Itertools;
 
 use self::context::Context;

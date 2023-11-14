@@ -1387,7 +1387,7 @@ dependencies = [
 name = "engine-v2-schema"
 version = "3.0.31"
 dependencies = [
- "grafbase-federated-graph",
+ "graphql-federated-graph",
 ]
 
 [[package]]
@@ -1772,27 +1772,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "grafbase-composition"
-version = "0.1.0"
-dependencies = [
- "async-graphql-parser",
- "async-graphql-value",
- "datatest-stable",
- "grafbase-federated-graph",
- "indexmap 2.0.2",
- "itertools",
- "miette",
- "similar",
-]
-
-[[package]]
-name = "grafbase-federated-graph"
-version = "0.1.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "grafbase-sql-ast"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1831,6 +1810,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "graphql-composition"
+version = "0.1.1"
+dependencies = [
+ "async-graphql-parser",
+ "async-graphql-value",
+ "datatest-stable",
+ "graphql-federated-graph",
+ "indexmap 2.0.2",
+ "itertools",
+ "miette",
+ "similar",
+]
+
+[[package]]
 name = "graphql-extensions"
 version = "0.1.0"
 dependencies = [
@@ -1842,6 +1835,13 @@ dependencies = [
  "log 0.1.0",
  "runtime",
  "web-time",
+]
+
+[[package]]
+name = "graphql-federated-graph"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

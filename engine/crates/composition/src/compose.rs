@@ -133,7 +133,7 @@ fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
     let arguments = object::merge_field_arguments(*first, fields);
     let resolvable_in = fields
         .iter()
-        .map(|field| grafbase_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()))
+        .map(|field| graphql_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()))
         .collect();
 
     ctx.insert_field(
