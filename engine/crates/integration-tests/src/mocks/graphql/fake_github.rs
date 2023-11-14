@@ -85,6 +85,24 @@ impl Query {
         ]
     }
 
+    async fn all_bot_pull_requests(&self) -> Vec<PullRequest> {
+        vec![
+            PullRequest {
+                title: "Creating the thing".into(),
+                checks: vec!["Success!".into()],
+                author: UserOrBot::User(User {
+                    name: "Jim".into(),
+                    email: "jim@example.com".into(),
+                }),
+            },
+            PullRequest {
+                title: "Some bot PR".into(),
+                checks: vec!["Success!".into()],
+                author: UserOrBot::Bot(Bot { id: "123".into() }),
+            },
+        ]
+    }
+
     async fn pull_request_or_issue(&self, id: ID) -> Option<PullRequestOrIssue> {
         if id == "1" {
             return Some(PullRequestOrIssue::PullRequest(PullRequest {

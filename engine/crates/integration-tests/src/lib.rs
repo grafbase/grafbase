@@ -1,6 +1,7 @@
 #![allow(unused_crate_dependencies, clippy::panic)]
 
 pub mod engine;
+pub mod federation;
 pub mod helpers;
 pub mod mocks;
 pub mod mongodb;
