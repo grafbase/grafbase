@@ -41,6 +41,7 @@ pub(super) fn ingest_schema_definitions(document: &ast::ServiceDocument) -> Fede
 pub(crate) struct FederationDirectivesMatcher<'a> {
     shareable: Cow<'a, str>,
     key: Cow<'a, str>,
+    external: Cow<'a, str>,
 }
 
 const DEFAULT_FEDERATION_PREFIX: &str = "federation__";
@@ -50,6 +51,7 @@ impl Default for FederationDirectivesMatcher<'_> {
         FederationDirectivesMatcher {
             shareable: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}shareable")),
             key: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}key")),
+            external: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}external")),
         }
     }
 }
@@ -96,7 +98,12 @@ impl<'a> FederationDirectivesMatcher<'a> {
         FederationDirectivesMatcher {
             shareable: final_name("shareable"),
             key: final_name("key"),
+            external: final_name("external"),
         }
+    }
+
+    pub(crate) fn is_external(&self, directive_name: &str) -> bool {
+        self.external == directive_name
     }
 
     pub(crate) fn is_shareable(&self, directive_name: &str) -> bool {

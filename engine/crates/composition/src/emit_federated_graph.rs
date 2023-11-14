@@ -1,17 +1,15 @@
 mod context;
 mod field_types_map;
 
-use std::{collections::BTreeSet, mem};
-
-use federated::RootOperationTypes;
-use graphql_federated_graph as federated;
-use itertools::Itertools;
-
 use self::context::Context;
 use crate::{
     composition_ir::{CompositionIr, FieldIr, KeyIr},
     subgraphs, Subgraphs, VecExt,
 };
+use federated::RootOperationTypes;
+use graphql_federated_graph as federated;
+use itertools::Itertools;
+use std::{collections::BTreeSet, mem};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {

@@ -29,7 +29,7 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     });
 
     ctx.subgraphs
-        .iter_field_groups(|fields| merge_field_definitions(ctx, fields));
+        .iter_field_groups(|fields| merge_field_definitions(fields, ctx));
 
     if !ctx.has_query_type() {
         ctx.diagnostics
@@ -87,63 +87,13 @@ fn merge_object_definitions<'a>(
     }
 }
 
-fn merge_field_definitions(ctx: &mut Context<'_>, fields: &[FieldWalker<'_>]) {
+fn merge_field_definitions<'a>(fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
     let Some(first) = fields.get(0) else { return };
 
-    if first.parent_definition().kind() != DefinitionKind::Object {
-        return;
+    match first.parent_definition().kind() {
+        DefinitionKind::Object => object::compose_object_fields(*first, fields, ctx),
+        _ => (),
     }
-
-    if fields.len() > 1 && fields.iter().any(|f| !(f.is_shareable() || f.is_key())) {
-        let next = &fields[1];
-
-        ctx.diagnostics.push_fatal(format!(
-            "The field `{}` on `{}` is defined in two subgraphs (`{}` and `{}`).",
-            first.name().as_str(),
-            first.parent_definition().name().as_str(),
-            first.parent_definition().subgraph().name().as_str(),
-            next.parent_definition().subgraph().name().as_str(),
-        ));
-    }
-
-    let first_is_key = first.is_key();
-    if fields.iter().any(|field| field.is_key() != first_is_key) {
-        let name = format!(
-            "{}.{}",
-            first.parent_definition().name().as_str(),
-            first.name().as_str()
-        );
-        let (key_subgraphs, non_key_subgraphs) = fields
-            .iter()
-            .partition::<Vec<FieldWalker<'_>>, _>(|field| field.is_key());
-
-        ctx.diagnostics.push_fatal(format!(
-            "The field `{name}` is part of `@key` in {} but not in {}",
-            key_subgraphs
-                .into_iter()
-                .map(|f| f.parent_definition().subgraph().name().as_str())
-                .join(", "),
-            non_key_subgraphs
-                .into_iter()
-                .map(|f| f.parent_definition().subgraph().name().as_str())
-                .join(", "),
-        ));
-    }
-
-    let arguments = object::merge_field_arguments(*first, fields);
-
-    let resolvable_in = fields
-        .first()
-        .filter(|_| fields.len() == 1)
-        .map(|field| graphql_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()));
-
-    ctx.insert_field(
-        first.parent_definition().name().id,
-        first.name().id,
-        first.r#type().id,
-        arguments,
-        resolvable_in,
-    );
 }
 
 fn merge_union_definitions(

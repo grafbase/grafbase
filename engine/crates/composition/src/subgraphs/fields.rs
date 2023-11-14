@@ -15,6 +15,7 @@ struct Field {
     field_type: FieldTypeId,
     arguments: Vec<(StringId, FieldTypeId)>,
     is_shareable: bool,
+    is_external: bool,
 }
 
 impl Subgraphs {
@@ -28,6 +29,7 @@ impl Subgraphs {
         field_name: &str,
         field_type: FieldTypeId,
         is_shareable: bool,
+        is_external: bool,
     ) -> FieldId {
         if let Some(last_field) = self.fields.0.last() {
             assert!(last_field.parent_definition_id <= parent_definition_id); // this should stay sorted
@@ -39,6 +41,7 @@ impl Subgraphs {
             name,
             field_type,
             is_shareable,
+            is_external,
             arguments: Vec::new(),
         };
         let id = FieldId(self.fields.0.push_return_idx(field));
@@ -89,6 +92,10 @@ impl<'a> FieldWalker<'a> {
 
             first_field.field == field.name
         })
+    }
+
+    pub fn is_external(self) -> bool {
+        self.field().is_external
     }
 
     pub fn is_shareable(self) -> bool {
