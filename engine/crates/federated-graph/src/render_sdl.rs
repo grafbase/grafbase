@@ -142,7 +142,7 @@ fn render_field_type(field_type: &FieldType, graph: &FederatedGraph) -> String {
     out
 }
 
-fn render_selection_set(selection: &SelectionSet, graph: &FederatedGraph, sdl: &mut String) {
+fn render_selection_set(selection: &FieldSet, graph: &FederatedGraph, sdl: &mut String) {
     let mut selection = selection.iter().peekable();
     while let Some(field) = selection.next() {
         let name = &graph[graph[field.field].name];

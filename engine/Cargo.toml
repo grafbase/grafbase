@@ -1,7 +1,7 @@
 [workspace]
 members = [
   "crates/*",
-  "crates/engine-v2/graph",
+  "crates/engine-v2/schema",
   "crates/engine/derive",
   "crates/engine/parser",
   "crates/engine/value",

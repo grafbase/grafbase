@@ -134,14 +134,14 @@ fn attach_selection(
     selection_set: &[subgraphs::Selection],
     parent_id: federated::Definition,
     ctx: &mut Context<'_>,
-) -> federated::SelectionSet {
+) -> federated::FieldSet {
     selection_set
         .iter()
         .map(|selection| {
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
             let field = ctx.selection_map[&(parent_id, selection_field)];
             let field_ty = ctx.out[ctx.out[field].field_type_id].kind;
-            federated::Selection {
+            federated::FieldSetItem {
                 field,
                 subselection: attach_selection(&selection.subselection, field_ty, ctx),
             }
