@@ -1,11 +1,9 @@
 #![allow(clippy::panic)]
 
-use std::collections::HashMap;
-
-use grafbase_federated_graph as federated;
-
 use super::Context;
 use crate::{subgraphs, VecExt};
+use graphql_federated_graph as federated;
+use std::collections::HashMap;
 
 /// Responsible for mapping field types between the subgraphs and the federated graph. See
 /// [Context::insert_field_type()].

@@ -1,14 +1,12 @@
-use std::collections::{BTreeSet, HashMap};
-
-use grafbase_federated_graph as federated;
-
 use crate::{
     subgraphs::{self, StringWalker},
     VecExt,
 };
+use graphql_federated_graph as federated;
+use std::collections::{BTreeSet, HashMap};
 
 /// The intermediate representation of the schema that is produced by composition. This data
-/// structure is distinct from [FederatedGraph](grafbase_federated_graph::FederatedGraph) because
+/// structure is distinct from [FederatedGraph](graphql_federated_graph::FederatedGraph) because
 /// it is accumulated out of order during composition. Only after all composed top-level
 /// definitions (objects, interfaces, scalars, enums, unions) are known can we construct
 /// [federated::FieldTypeId]s and [federated::ObjectId]s for union members for the federated graph.

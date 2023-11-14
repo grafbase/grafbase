@@ -1,4 +1,4 @@
-use grafbase_federated_graph::FederatedGraph;
+use graphql_federated_graph::FederatedGraph;
 
 use crate::Diagnostics;
 
