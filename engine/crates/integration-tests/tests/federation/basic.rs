@@ -14,9 +14,9 @@ use integration_tests::{
 fn single_field_from_single_server() {
     let schema = async_graphql_parser::parse_schema(FakeGithubSchema.sdl()).unwrap();
 
-    let mut subgraphs = grafbase_composition::Subgraphs::default();
+    let mut subgraphs = graphql_composition::Subgraphs::default();
     subgraphs.ingest(&schema, "schema");
-    let graph = grafbase_composition::compose(&subgraphs).into_result().unwrap();
+    let graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
 
     let engine = Engine::new(graph.into());
 

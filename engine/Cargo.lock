@@ -2243,7 +2243,7 @@ dependencies = [
  "engine-v2",
  "expect-test",
  "futures",
- "grafbase-composition",
+ "graphql-composition",
  "graphql-parser",
  "http",
  "indoc",
