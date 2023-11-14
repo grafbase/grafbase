@@ -1368,19 +1368,19 @@ dependencies = [
 name = "engine-v2"
 version = "3.0.31"
 dependencies = [
- "async-runtime",
  "engine",
  "engine-parser",
  "engine-v2-schema",
  "engine-value",
- "futures-channel",
  "futures-locks",
  "futures-util",
+ "im",
  "itertools",
  "lasso",
  "reqwest",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

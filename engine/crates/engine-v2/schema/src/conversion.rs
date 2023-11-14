@@ -186,6 +186,7 @@ impl From<federated_graph::Interface> for Interface {
     fn from(interface: federated_graph::Interface) -> Self {
         Interface {
             name: interface.name.into(),
+            implementations: vec![],
             composed_directives: interface.composed_directives.into_iter().map(Into::into).collect(),
         }
     }

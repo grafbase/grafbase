@@ -1,6 +1,6 @@
 use super::ExecutionPlan;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub struct PlanId(usize);
 
 pub struct ExecutionPlans {
@@ -88,7 +88,7 @@ impl ExecutionPlansBuilder {
         }
     }
 
-    pub fn push_plan(&mut self, plan: ExecutionPlan) -> PlanId {
+    pub fn push(&mut self, plan: ExecutionPlan) -> PlanId {
         self.plans.push(plan);
         self.parent_count.push(0);
         PlanId(self.plans.len() - 1)
@@ -97,5 +97,13 @@ impl ExecutionPlansBuilder {
     pub fn add_dependency(&mut self, child: PlanId, parent: PlanId) {
         self.parent_to_child.push((parent, child));
         self.parent_count[child.0] += 1;
+    }
+}
+
+impl std::ops::Index<PlanId> for ExecutionPlansBuilder {
+    type Output = ExecutionPlan;
+
+    fn index(&self, index: PlanId) -> &Self::Output {
+        &self.plans[index.0]
     }
 }
