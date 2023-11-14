@@ -68,10 +68,13 @@ dynamodb = { path = "crates/dynamodb" }
 engine = { path = "crates/engine" }
 gateway-core = { path = "crates/gateway-core" }
 common-types = { path = "crates/common-types" }
+engine-parser = { path = "crates/engine/parser" }
+engine-v2 = { path = "crates/engine-v2" }
 engine-value = { path = "crates/engine/value" }
 gateway-adapter = { path = "crates/gateway-adapter" }
 gateway-adapter-local = { path = "crates/gateway-adapter-local" }
 gateway-types = { path = "crates/gateway-types" }
+grafbase-composition = { path = "crates/composition" }
 graphql-extensions = { path = "crates/graphql-extensions" }
 log = { path = "crates/log" }
 dataloader = { path = "crates/dataloader", features = ["tracing"] }

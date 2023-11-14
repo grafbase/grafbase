@@ -88,6 +88,8 @@ struct AppState {
 pub trait Schema: Send + Sync {
     async fn execute(&self, headers: Vec<(String, String)>, request: async_graphql::Request)
         -> async_graphql::Response;
+
+    fn sdl(&self) -> String;
 }
 
 #[async_trait::async_trait]
@@ -103,5 +105,9 @@ where
         request: async_graphql::Request,
     ) -> async_graphql::Response {
         async_graphql::Schema::execute(self, request).await
+    }
+
+    fn sdl(&self) -> String {
+        self.sdl_with_options(async_graphql::SDLExportOptions::new())
     }
 }
