@@ -7,14 +7,14 @@ use futures_util::StreamExt;
 use super::{Executor, ExecutorRequest, ResponseProxy};
 use crate::{
     plan::{ExecutionPlans, PlanId, RequestPlan},
-    response::{Response, SelectionSet},
+    response::{OperationSelectionSet, Response},
     Engine,
 };
 
 pub struct ExecutorCoordinator<'a> {
     engine: &'a Engine,
     operation_type: OperationType,
-    operation_selection_set: SelectionSet,
+    operation_selection_set: OperationSelectionSet,
     plans: ExecutionPlans,
     response: Arc<Mutex<Response>>,
 }

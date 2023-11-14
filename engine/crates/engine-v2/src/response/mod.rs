@@ -12,7 +12,9 @@ pub use fields::{
     Argument, Pos, ResponseField, ResponseFieldId, ResponseFields, ResponseFieldsBuilder, ResponseStringId,
     TypeCondition,
 };
-pub use selection_set::{ReadSelection, ReadSelectionSet, Selection, SelectionSet, WriteSelection, WriteSelectionSet};
+pub use selection_set::{
+    OperationSelection, OperationSelectionSet, ReadSelection, ReadSelectionSet, WriteSelection, WriteSelectionSet,
+};
 pub use view::ResponseObjectsView;
 
 #[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord)]

@@ -8,7 +8,7 @@ use super::{plans::ExecutionPlansBuilder, ExecutionPlan, ExecutionPlans, PlanId}
 use crate::{
     request::OperationDefinition,
     response::{
-        ReadSelection, ReadSelectionSet, ResponseFields, ResponseFieldsBuilder, ResponsePath, SelectionSet,
+        OperationSelectionSet, ReadSelection, ReadSelectionSet, ResponseFields, ResponseFieldsBuilder, ResponsePath,
         TypeCondition, WriteSelection, WriteSelectionSet,
     },
     Engine,
@@ -20,7 +20,7 @@ use crate::{
 // If that doesn't make any sense, we should rename that to OperationPlan
 pub struct RequestPlan {
     pub operation_type: OperationType,
-    pub operation_selection_set: SelectionSet,
+    pub operation_selection_set: OperationSelectionSet,
     pub response_fields: ResponseFields,
     pub execution_plans: ExecutionPlans,
 }
@@ -128,8 +128,8 @@ impl<'a> RequestPlanBuilder<'a> {
         data_source_id: DataSourceId,
         mut output: Vec<FieldId>,
         path: &ResponsePath,
-        selection_set: SelectionSet,
-    ) -> (WriteSelectionSet, Vec<ToBePlanned>, SelectionSet) {
+        selection_set: OperationSelectionSet,
+    ) -> (WriteSelectionSet, Vec<ToBePlanned>, OperationSelectionSet) {
         output.sort_unstable();
         let mut to_be_planned = vec![];
 
@@ -166,10 +166,10 @@ impl<'a> RequestPlanBuilder<'a> {
         provideable: Option<schema::SelectionSet>,
         assign_without_resolvers: bool,
         path: ResponsePath,
-        selection_set: SelectionSet,
+        selection_set: OperationSelectionSet,
         to_be_planned: &mut Vec<ToBePlanned>,
     ) -> WriteSelectionSet {
-        let (output, missing): (WriteSelectionSet, SelectionSet) = selection_set
+        let (output, missing): (WriteSelectionSet, OperationSelectionSet) = selection_set
             .into_iter()
             .map(|selection| {
                 let edge = &self.response_fields[selection.field];
@@ -211,7 +211,7 @@ impl<'a> RequestPlanBuilder<'a> {
     // Here we need to ensure that the requires NodeSelectionSet uses existing fields when possible
     fn create_input(
         &mut self,
-        output_set: &mut WriteSelectionSet,
+        parent_output_set: &mut WriteSelectionSet,
         pos: Pos,
         type_condition: Option<TypeCondition>,
         required_selection_set: &schema::SelectionSet,
@@ -219,7 +219,7 @@ impl<'a> RequestPlanBuilder<'a> {
         required_selection_set
             .into_iter()
             .map(|required_selection| {
-                let maybe_output = output_set.iter_mut().find_map(|output| {
+                let maybe_output = parent_output_set.iter_mut().find_map(|output| {
                     let edge = &self.response_fields[output.field];
                     if edge.field_id == required_selection.field
                         && type_condition
@@ -252,7 +252,7 @@ impl<'a> RequestPlanBuilder<'a> {
                             None,
                             vec![],
                         );
-                        let new_output = output_set.insert(WriteSelection {
+                        let new_output = parent_output_set.insert(WriteSelection {
                             field,
                             subselection: WriteSelectionSet::empty(),
                         });
@@ -273,5 +273,5 @@ impl<'a> RequestPlanBuilder<'a> {
 struct ToBePlanned {
     parent: Option<PlanId>,
     path: ResponsePath,
-    selection_set: SelectionSet,
+    selection_set: OperationSelectionSet,
 }

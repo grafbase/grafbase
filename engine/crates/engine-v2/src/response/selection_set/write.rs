@@ -1,4 +1,4 @@
-use super::{Selection, SelectionSet};
+use super::{OperationSelection, OperationSelectionSet};
 use crate::response::ResponseFieldId;
 
 /// Selection set used to write data into the response.
@@ -47,15 +47,15 @@ impl WriteSelectionSet {
     }
 }
 
-impl From<&WriteSelectionSet> for SelectionSet {
+impl From<&WriteSelectionSet> for OperationSelectionSet {
     fn from(selection_set: &WriteSelectionSet) -> Self {
         selection_set.items.iter().map(Into::into).collect()
     }
 }
 
-impl From<&WriteSelection> for Selection {
+impl From<&WriteSelection> for OperationSelection {
     fn from(selection: &WriteSelection) -> Self {
-        Selection {
+        OperationSelection {
             field: selection.field,
             subselection: (&selection.subselection).into(),
         }

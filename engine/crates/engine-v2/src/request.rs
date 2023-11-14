@@ -3,14 +3,14 @@ pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
 use schema::{FieldId, Schema};
 
-use crate::response::{Argument, ResponseFields, ResponseFieldsBuilder, Selection, SelectionSet};
+use crate::response::{Argument, OperationSelection, OperationSelectionSet, ResponseFields, ResponseFieldsBuilder};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VariableId(usize);
 
 pub struct OperationDefinition {
     pub ty: OperationType,
-    pub selection_set: SelectionSet,
+    pub selection_set: OperationSelectionSet,
     pub response_edges_builder: ResponseFieldsBuilder,
 }
 
@@ -56,7 +56,7 @@ impl<'a> OperationBinder<'a> {
         &mut self,
         field_ids: Vec<FieldId>,
         selection_set: Positioned<engine_parser::types::SelectionSet>,
-    ) -> ServerResult<SelectionSet> {
+    ) -> ServerResult<OperationSelectionSet> {
         let Positioned {
             pos: _,
             node: selection_set,
@@ -112,7 +112,7 @@ impl<'a> OperationBinder<'a> {
                         .collect::<ServerResult<_>>()?;
 
                     let subselection = if field.selection_set.node.items.is_empty() {
-                        SelectionSet::empty()
+                        OperationSelectionSet::empty()
                     } else {
                         self.bind_selection_set(
                             match self.schema[schema_field.field_type_id].kind {
@@ -130,7 +130,7 @@ impl<'a> OperationBinder<'a> {
                             field.selection_set,
                         )?
                     };
-                    Ok(Selection {
+                    Ok(OperationSelection {
                         field: self.response_edges_builder.push_field(
                             &field
                                 .alias
