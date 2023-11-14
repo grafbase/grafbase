@@ -1,4 +1,4 @@
-use integration_tests::{runtime, EngineBuilder, MockGraphQlServer, ResponseExt};
+use integration_tests::{mocks::graphql::FakeGithubSchema, runtime, EngineBuilder, MockGraphQlServer, ResponseExt};
 use serde_json::json;
 
 const NAMESPACED_QUERY: &str = "
@@ -39,7 +39,7 @@ const NAMESPACED_QUERY: &str = "
 #[test]
 fn graphql_test_with_namespace() {
     runtime().block_on(async {
-        let graphql_mock = MockGraphQlServer::new().await;
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = EngineBuilder::new(schema(graphql_mock.port(), true)).build().await;
 
@@ -135,7 +135,7 @@ const UNNAMESPACED_QUERY: &str = "
 #[test]
 fn graphql_test_without_namespace() {
     runtime().block_on(async {
-        let graphql_mock = MockGraphQlServer::new().await;
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = EngineBuilder::new(schema(graphql_mock.port(), false)).build().await;
 
@@ -177,7 +177,7 @@ fn graphql_test_without_namespace() {
 #[test]
 fn test_nested_variable_forwarding() {
     runtime().block_on(async {
-        let graphql_mock = MockGraphQlServer::new().await;
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = EngineBuilder::new(schema(graphql_mock.port(), false)).build().await;
 

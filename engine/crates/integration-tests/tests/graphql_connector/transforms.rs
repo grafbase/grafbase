@@ -1,11 +1,11 @@
 use cynic::QueryBuilder;
 use cynic_introspection::IntrospectionQuery;
-use integration_tests::{runtime, EngineBuilder, MockGraphQlServer, ResponseExt};
+use integration_tests::{mocks::graphql::FakeGithubSchema, runtime, EngineBuilder, MockGraphQlServer, ResponseExt};
 
 #[test]
 fn graphql_test_with_transforms() {
     runtime().block_on(async {
-        let graphql_mock = MockGraphQlServer::new().await;
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = EngineBuilder::new(schema(graphql_mock.port())).build().await;
 
