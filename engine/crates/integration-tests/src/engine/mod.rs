@@ -119,9 +119,9 @@ impl<'a> StreamExecutionRequest<'a> {
 }
 
 pub struct GraphQlRequest {
-    query: String,
-    operation_name: Option<String>,
-    variables: Option<Variables>,
+    pub query: String,
+    pub operation_name: Option<String>,
+    pub variables: Option<Variables>,
 }
 
 impl From<&str> for GraphQlRequest {

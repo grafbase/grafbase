@@ -5,9 +5,10 @@ use std::{net::TcpListener, sync::Arc, time::Duration};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{extract::State, http::HeaderMap, routing::post, Router};
 
+mod echo;
 mod fake_github;
 
-pub use fake_github::FakeGithubSchema;
+pub use {echo::EchoSchema, fake_github::FakeGithubSchema};
 
 pub struct MockGraphQlServer {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
