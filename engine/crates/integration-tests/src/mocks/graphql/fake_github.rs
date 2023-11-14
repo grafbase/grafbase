@@ -14,6 +14,19 @@ impl super::Schema for FakeGithubSchema {
             .execute(request)
             .await
     }
+
+    fn sdl(&self) -> String {
+        let schema = async_graphql::Schema::build(
+            Query {
+                headers: Default::default(),
+            },
+            EmptyMutation,
+            EmptySubscription,
+        )
+        .finish();
+
+        schema.sdl_with_options(async_graphql::SDLExportOptions::new())
+    }
 }
 
 struct Query {

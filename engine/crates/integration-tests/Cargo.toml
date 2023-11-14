@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 async-graphql = "6"
 async-graphql-axum = "6"
+async-graphql-parser = "6"
 async-once-cell = "0.5.3"
 async-trait = "0.1"
 axum = "0.6"
@@ -13,8 +14,11 @@ common-types.workspace = true
 cynic = "3"
 cynic-introspection = "3"
 dynamodb.workspace = true
+engine-parser.workspace = true
+engine-v2.workspace = true
 expect-test = "1.4"
 futures = "0.3"
+grafbase-composition.workspace = true
 graphql-parser = "0.4.0"
 http = { workspace = true }
 indoc = "2"

@@ -1,5 +1,5 @@
 /// Warnings and errors produced by composition.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Diagnostics(Vec<Diagnostic>);
 
 impl Diagnostics {
@@ -21,6 +21,7 @@ impl Diagnostics {
 }
 
 /// A composition diagnostic.
+#[derive(Debug)]
 pub(crate) struct Diagnostic {
     message: String,
     /// Should this diagnostic be interpreted as a composition failure?

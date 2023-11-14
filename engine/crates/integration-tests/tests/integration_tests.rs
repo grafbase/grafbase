@@ -9,3 +9,4 @@ mod graphql_connector;
 mod mongodb;
 mod openapi;
 mod postgres;
+mod subgraph;
