@@ -40,7 +40,7 @@ impl From<federated_graph::FederatedGraph> for Schema {
                 .into_iter()
                 .map(|federated_graph::FieldRequires { subgraph_id, fields }| (subgraph_id, fields))
                 .collect::<HashMap<_, _>>();
-            for subgraph_id in field.resolvable_in {
+            if let Some(subgraph_id) = field.resolvable_in {
                 let n = resolvers.len();
                 let resolver_id = *resolvers
                     .entry(Resolver::Subgraph(SubgraphResolver {

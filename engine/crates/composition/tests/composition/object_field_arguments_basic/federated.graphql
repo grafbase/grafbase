@@ -1,41 +1,25 @@
+enum join__Graph {
+    HISTORY @join__graph(name: "history", url: "history")
+    INVENTORY @join__graph(name: "inventory", url: "inventory")
+    PERFORMANCE @join__graph(name: "performance", url: "performance")
+}
+
 type Query {
-    # Resolvable in `history`
-    # Resolvable in `inventory`
-    # Resolvable in `performance`
     getRollerCoaster(id: ID!): RollerCoaster
 }
 
 type RollerCoaster {
-    # Resolvable in `history`
-    # Resolvable in `inventory`
-    # Resolvable in `performance`
     id: ID!
-    # Resolvable in `history`
-    # Resolvable in `inventory`
-    # Resolvable in `performance`
     name: String!
-    # Resolvable in `history`
-    # Resolvable in `inventory`
-    # Resolvable in `performance`
     height: Float!
-    # Resolvable in `history`
-    # Resolvable in `inventory`
-    # Resolvable in `performance`
     speed: Float!
-    # Resolvable in `history`
-    # Resolvable in `inventory`
     manufacturer: String!
-    # Resolvable in `history`
-    historicalData: [HistoricalData]
-    # Resolvable in `performance`
-    numberOfInversions: Int!
+    historicalData: [HistoricalData] @join__field(graph: HISTORY)
+    numberOfInversions: Int! @join__field(graph: PERFORMANCE)
 }
 
 type HistoricalData {
-    # Resolvable in `history`
-    year: Int!
-    # Resolvable in `history`
-    visitors: Int!
-    # Resolvable in `history`
-    incidents: Int!
+    year: Int! @join__field(graph: HISTORY)
+    visitors: Int! @join__field(graph: HISTORY)
+    incidents: Int! @join__field(graph: HISTORY)
 }

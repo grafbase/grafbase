@@ -1,19 +1,19 @@
+enum join__Graph {
+    ELECTRONICS @join__graph(name: "electronics", url: "electronics")
+    PHYSICAL @join__graph(name: "physical", url: "physical")
+    SOCIAL @join__graph(name: "social", url: "social")
+}
+
 type Furby {
-    # Resolvable in `social`
-    id: ID!
-    # Resolvable in `social`
-    languages: [String!]!
-    # Resolvable in `social`
-    canSing: Boolean!
-    # Resolvable in `social`
-    canDance: Boolean!
-    # Resolvable in `social`
-    friends: [Furby!]!
+    id: ID! @join__field(graph: SOCIAL)
+    languages: [String!]! @join__field(graph: SOCIAL)
+    canSing: Boolean! @join__field(graph: SOCIAL)
+    canDance: Boolean! @join__field(graph: SOCIAL)
+    friends: [Furby!]! @join__field(graph: SOCIAL)
 }
 
 type Query {
-    # Resolvable in `social`
-    furby: Furby
+    furby: Furby @join__field(graph: SOCIAL)
 }
 
 interface FurbyType {

@@ -1,3 +1,9 @@
+enum join__Graph {
+    BAR @join__graph(name: "bar", url: "bar")
+    BAZ @join__graph(name: "baz", url: "baz")
+    FOO @join__graph(name: "foo", url: "foo")
+}
+
 scalar Yan
 
 scalar Tan
@@ -7,13 +13,10 @@ scalar Texture
 scalar Tethera
 
 type Sheep {
-    # Resolvable in `baz`
-    texture: Texture!
-    # Resolvable in `foo`
-    sheepIdx: Tethera
+    texture: Texture! @join__field(graph: BAZ)
+    sheepIdx: Tethera @join__field(graph: FOO)
 }
 
 type Query {
-    # Resolvable in `foo`
-    sheep: Sheep
+    sheep: Sheep @join__field(graph: FOO)
 }

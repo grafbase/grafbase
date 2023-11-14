@@ -94,11 +94,10 @@ pub struct Field {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
 
-    /// Includes one of:
-    ///
-    /// - One subgraph, where the field is defined, without directives.
-    /// - One or more subgraphs where the field is shareable or part of the key.
-    pub resolvable_in: Vec<SubgraphId>,
+    /// Includes the subgraph the field can be resolved in (= the subgraph that defines it), except
+    /// where the field is shareable or part of the key, in which case `resolvable_in` will be
+    /// `None`.
+    pub resolvable_in: Option<SubgraphId>,
 
     /// See [FieldProvides].
     pub provides: Vec<FieldProvides>,

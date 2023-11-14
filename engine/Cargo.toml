@@ -74,7 +74,7 @@ engine-value = { path = "crates/engine/value" }
 gateway-adapter = { path = "crates/gateway-adapter" }
 gateway-adapter-local = { path = "crates/gateway-adapter-local" }
 gateway-types = { path = "crates/gateway-types" }
-grafbase-composition = { path = "crates/composition" }
+graphql-composition = { path = "crates/composition" }
 graphql-extensions = { path = "crates/graphql-extensions" }
 log = { path = "crates/log" }
 dataloader = { path = "crates/dataloader", features = ["tracing"] }

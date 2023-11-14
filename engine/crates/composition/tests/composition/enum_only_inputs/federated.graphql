@@ -1,10 +1,13 @@
+enum join__Graph {
+    FOODSEARCH @join__graph(name: "foodSearch", url: "foodSearch")
+    PRODUCTSEARCH @join__graph(name: "productSearch", url: "productSearch")
+    USERSEARCH @join__graph(name: "userSearch", url: "userSearch")
+}
+
 type Query {
-    # Resolvable in `foodSearch`
-    searchFood(filterName: FilterName, filterValue: String): [String!]!
-    # Resolvable in `productSearch`
-    searchProduct(filterName: FilterName, filterValue: String): [String!]!
-    # Resolvable in `userSearch`
-    searchUser(filterName: FilterName, filterValue: String): [String!]!
+    searchFood(filterName: FilterName, filterValue: String): [String!]! @join__field(graph: FOODSEARCH)
+    searchProduct(filterName: FilterName, filterValue: String): [String!]! @join__field(graph: PRODUCTSEARCH)
+    searchUser(filterName: FilterName, filterValue: String): [String!]! @join__field(graph: USERSEARCH)
 }
 
 enum FilterName {
