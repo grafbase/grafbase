@@ -73,7 +73,6 @@ async fn graphql_handler(State(state): State<AppState>, headers: HeaderMap, req:
             )
         })
         .collect();
-    // let schema = Schema::build(Query { headers }, EmptyMutation, EmptySubscription).finish();
 
     state.schema.execute(headers, req.into_inner()).await.into()
 }
