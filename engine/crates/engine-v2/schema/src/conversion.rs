@@ -229,9 +229,9 @@ impl From<federated_graph::Key> for Key {
     }
 }
 
-impl From<federated_graph::Selection> for Selection {
-    fn from(selection: federated_graph::Selection) -> Self {
-        Selection {
+impl From<federated_graph::FieldSetItem> for FieldSetItem {
+    fn from(selection: federated_graph::FieldSetItem) -> Self {
+        FieldSetItem {
             field: selection.field.into(),
             subselection: selection.subselection.into_iter().map(Into::into).collect(),
         }

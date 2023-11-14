@@ -78,15 +78,15 @@ pub struct Key {
     pub subgraph_id: SubgraphId,
 
     /// Corresponds to the fields in an `@key` directive.
-    pub fields: SelectionSet,
+    pub fields: FieldSet,
 }
 
-pub type SelectionSet = Vec<Selection>;
+pub type FieldSet = Vec<FieldSetItem>;
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct Selection {
+pub struct FieldSetItem {
     pub field: FieldId,
-    pub subselection: SelectionSet,
+    pub subselection: FieldSet,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -173,14 +173,14 @@ pub enum ListWrapper {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct FieldProvides {
     pub subgraph_id: SubgraphId,
-    pub fields: SelectionSet,
+    pub fields: FieldSet,
 }
 
 /// Represents an `@requires` directive on a field in a subgraph.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct FieldRequires {
     pub subgraph_id: SubgraphId,
-    pub fields: SelectionSet,
+    pub fields: FieldSet,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

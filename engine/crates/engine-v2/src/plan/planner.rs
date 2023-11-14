@@ -73,7 +73,7 @@ impl<'a> RequestPlanBuilder<'a> {
 
         #[derive(Default)]
         pub struct ResolverIO {
-            input: schema::SelectionSet,
+            input: schema::FieldSet,
             output: Vec<FieldId>,
         }
 
@@ -82,7 +82,7 @@ impl<'a> RequestPlanBuilder<'a> {
             let field_id = self.response_fields[selection.field].field_id;
             for FieldResolver { resolver_id, requires } in &self.engine.schema[field_id].resolvers {
                 let io = candidates.entry(*resolver_id).or_default();
-                io.input = schema::SelectionSet::merge(&io.input, requires);
+                io.input = schema::FieldSet::merge(&io.input, requires);
                 io.output.push(field_id);
             }
         }
@@ -163,7 +163,7 @@ impl<'a> RequestPlanBuilder<'a> {
     fn assign_provideable_output_node_selection_set(
         &self,
         data_source_id: DataSourceId,
-        provideable: Option<schema::SelectionSet>,
+        provideable: Option<schema::FieldSet>,
         assign_without_resolvers: bool,
         path: ResponsePath,
         selection_set: OperationSelectionSet,
@@ -179,9 +179,9 @@ impl<'a> RequestPlanBuilder<'a> {
                 if provideable_selection.is_some() || (assign_without_resolvers && field.resolvers.is_empty()) {
                     let parent_provideable = provideable_selection.map(|s| &s.subselection);
                     let current_provideable = field.provides(data_source_id);
-                    let provideable: Option<schema::SelectionSet> = match (parent_provideable, current_provideable) {
+                    let provideable: Option<schema::FieldSet> = match (parent_provideable, current_provideable) {
                         (None, None) => None,
-                        (Some(a), Some(b)) => Some(schema::SelectionSet::merge(a, b)),
+                        (Some(a), Some(b)) => Some(schema::FieldSet::merge(a, b)),
                         (None, p) | (p, None) => p.cloned(),
                     };
                     Ok(WriteSelection {
@@ -214,7 +214,7 @@ impl<'a> RequestPlanBuilder<'a> {
         parent_output_set: &mut WriteSelectionSet,
         pos: Pos,
         type_condition: Option<TypeCondition>,
-        required_selection_set: &schema::SelectionSet,
+        required_selection_set: &schema::FieldSet,
     ) -> ReadSelectionSet {
         required_selection_set
             .into_iter()

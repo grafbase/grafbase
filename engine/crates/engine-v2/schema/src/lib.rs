@@ -82,53 +82,53 @@ pub struct Key {
     pub subgraph_id: SubgraphId,
 
     /// Corresponds to the fields in an `@key` directive.
-    pub fields: SelectionSet,
+    pub fields: FieldSet,
 }
 
 #[derive(Default, Clone)]
-pub struct SelectionSet {
+pub struct FieldSet {
     // sorted by field id
-    items: Vec<Selection>,
+    items: Vec<FieldSetItem>,
 }
 
-impl FromIterator<Selection> for SelectionSet {
-    fn from_iter<T: IntoIterator<Item = Selection>>(iter: T) -> Self {
+impl FromIterator<FieldSetItem> for FieldSet {
+    fn from_iter<T: IntoIterator<Item = FieldSetItem>>(iter: T) -> Self {
         let mut items = iter.into_iter().collect::<Vec<_>>();
         items.sort_unstable_by_key(|selection| selection.field);
         Self { items }
     }
 }
 
-impl IntoIterator for SelectionSet {
-    type Item = Selection;
+impl IntoIterator for FieldSet {
+    type Item = FieldSetItem;
 
-    type IntoIter = <Vec<Selection> as IntoIterator>::IntoIter;
+    type IntoIter = <Vec<FieldSetItem> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.items.into_iter()
     }
 }
 
-impl<'a> IntoIterator for &'a SelectionSet {
-    type Item = &'a Selection;
+impl<'a> IntoIterator for &'a FieldSet {
+    type Item = &'a FieldSetItem;
 
-    type IntoIter = <&'a Vec<Selection> as IntoIterator>::IntoIter;
+    type IntoIter = <&'a Vec<FieldSetItem> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.items.iter()
     }
 }
 
-impl SelectionSet {
+impl FieldSet {
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Selection> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = &FieldSetItem> + '_ {
         self.items.iter()
     }
 
-    pub fn selection(&self, field: FieldId) -> Option<&Selection> {
+    pub fn selection(&self, field: FieldId) -> Option<&FieldSetItem> {
         let index = self
             .items
             .binary_search_by_key(&field, |selection| selection.field)
@@ -136,7 +136,7 @@ impl SelectionSet {
         Some(&self.items[index])
     }
 
-    pub fn merge(left_set: &SelectionSet, right_set: &SelectionSet) -> SelectionSet {
+    pub fn merge(left_set: &FieldSet, right_set: &FieldSet) -> FieldSet {
         let mut items = vec![];
         let mut l = 0;
         let mut r = 0;
@@ -153,7 +153,7 @@ impl SelectionSet {
                     r += 1;
                 }
                 Ordering::Greater => {
-                    items.push(Selection {
+                    items.push(FieldSetItem {
                         field: left.field,
                         subselection: Self::merge(&left.subselection, &right.subselection),
                     });
@@ -162,14 +162,14 @@ impl SelectionSet {
                 }
             }
         }
-        SelectionSet { items }
+        FieldSet { items }
     }
 }
 
 #[derive(Clone)]
-pub struct Selection {
+pub struct FieldSetItem {
     pub field: FieldId,
-    pub subselection: SelectionSet,
+    pub subselection: FieldSet,
 }
 
 pub struct Field {
@@ -187,7 +187,7 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn provides(&self, data_source_id: DataSourceId) -> Option<&SelectionSet> {
+    pub fn provides(&self, data_source_id: DataSourceId) -> Option<&FieldSet> {
         self.provides
             .iter()
             .find(|provides| provides.data_source_id == data_source_id)
@@ -197,7 +197,7 @@ impl Field {
 
 pub struct FieldResolver {
     pub resolver_id: ResolverId,
-    pub requires: SelectionSet,
+    pub requires: FieldSet,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -217,8 +217,8 @@ impl Resolver {
         }
     }
 
-    pub fn requires(&self) -> Cow<'_, SelectionSet> {
-        Cow::Owned(SelectionSet::default())
+    pub fn requires(&self) -> Cow<'_, FieldSet> {
+        Cow::Owned(FieldSet::default())
     }
 }
 
@@ -281,7 +281,7 @@ pub enum ListWrapping {
 /// Represents an `@provides` directive on a field in a subgraph.
 pub struct FieldProvides {
     pub data_source_id: DataSourceId,
-    pub fields: SelectionSet,
+    pub fields: FieldSet,
 }
 
 pub struct Interface {
