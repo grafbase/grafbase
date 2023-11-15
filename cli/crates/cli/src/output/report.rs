@@ -439,7 +439,7 @@ pub(crate) fn publishing() {
 }
 
 pub(crate) fn publish_command_success(subgraph_name: &str) {
-    println!("🌐 {subgraph_name} successfully published!!! 🙌✨🎉🥳💃🕺🚀🎊");
+    println!("🌐 {subgraph_name} published successfully!");
 }
 
 pub fn print_log_entry(
