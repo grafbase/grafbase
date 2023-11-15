@@ -36,8 +36,8 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
 
     emit_subgraphs(&mut ctx);
+    // TODO: split provides out of fields.
     emit_fields(mem::take(&mut ir.fields), &mut ctx);
-
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.resolvable_keys, &mut ctx);
 
@@ -64,28 +64,43 @@ fn emit_fields(ir_fields: Vec<FieldIr>, ctx: &mut Context<'_>) {
             })
             .collect();
 
-        let push_field = |out: &mut Vec<_>| {
+        let push_field = |ctx: &mut Context<'_>| {
             let field = federated::Field {
                 name: field_name,
                 field_type_id,
                 arguments,
 
-                provides: Vec::new(),
+                provides: provides
+                    .iter()
+                    .flat_map(|field_id| {
+                        let field = ctx.subgraphs.walk(*field_id);
+                        field.provides().map(|provides| (field, provides))
+                    })
+                    .map(|(field, provides)| {
+                        dbg!(&provides);
+                        dbg!(field.r#type().type_name().as_str());
+                        let parent = ctx.definitions[&field.r#type().type_name().id];
+                        federated::FieldProvides {
+                            subgraph_id: federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
+                            fields: attach_selection(provides, parent, ctx),
+                        }
+                    })
+                    .collect(),
                 requires: Vec::new(),
                 resolvable_in,
                 composed_directives: Vec::new(),
             };
 
-            federated::FieldId(out.push_return_idx(field))
+            federated::FieldId(ctx.out.fields.push_return_idx(field))
         };
 
         match ctx.definitions[&parent_name] {
             federated::Definition::Object(object_id) => {
-                let field_id = push_field(&mut ctx.out.fields);
+                let field_id = push_field(ctx);
                 ctx.push_object_field(object_id, field_id);
             }
             federated::Definition::Interface(interface_id) => {
-                let field_id = push_field(&mut ctx.out.fields);
+                let field_id = push_field(ctx);
                 ctx.push_interface_field(interface_id, field_id);
             }
             federated::Definition::InputObject(input_object_id) => {

@@ -14,7 +14,7 @@ struct Field {
     name: StringId,
     field_type: FieldTypeId,
     arguments: Vec<(StringId, FieldTypeId)>,
-    provides: Vec<Selection>,
+    provides: Option<Vec<Selection>>,
     is_shareable: bool,
     is_external: bool,
 }
@@ -31,12 +31,17 @@ impl Subgraphs {
         field_type: FieldTypeId,
         is_shareable: bool,
         is_external: bool,
-    ) -> FieldId {
+        provides: Option<&str>,
+    ) -> Result<FieldId, String> {
+        let provides = provides
+            .map(|provides| self.selection_set_from_str(provides))
+            .transpose()?;
+        let name = self.strings.intern(field_name);
+
         if let Some(last_field) = self.fields.0.last() {
             assert!(last_field.parent_definition_id <= parent_definition_id); // this should stay sorted
         }
 
-        let name = self.strings.intern(field_name);
         let field = Field {
             parent_definition_id,
             name,
@@ -49,7 +54,7 @@ impl Subgraphs {
         let id = FieldId(self.fields.0.push_return_idx(field));
         let parent_object_name = self.walk(parent_definition_id).name().id;
         self.field_names.insert((parent_object_name, name, id));
-        id
+        Ok(id)
     }
 
     pub(crate) fn push_field_argument(&mut self, field: FieldId, argument_name: &str, argument_type: FieldTypeId) {
@@ -124,7 +129,7 @@ impl<'a> FieldWalker<'a> {
     /// }
     /// ```
     pub(crate) fn provides(self) -> Option<&'a [Selection]> {
-        Some(self.field().provides.as_slice()).filter(|selection| !selection.is_empty())
+        self.field().provides.as_deref()
     }
 
     /// ```ignore,graphql

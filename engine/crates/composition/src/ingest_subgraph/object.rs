@@ -65,8 +65,27 @@ pub(super) fn ingest_fields(
                 .iter()
                 .any(|directive| federation_directives_matcher.is_external(directive.node.name.node.as_str()));
 
+        let provides = field
+            .directives
+            .iter()
+            .find(|directive| federation_directives_matcher.is_provides(directive.node.name.node.as_str()))
+            .and_then(|directive| directive.node.get_argument("fields"))
+            .and_then(|v| match &v.node {
+                ConstValue::String(s) => Some(s.as_str()),
+                _ => None,
+            });
+
         let type_id = subgraphs.intern_field_type(&field.ty.node);
-        let field_id = subgraphs.push_field(definition_id, &field.name.node, type_id, is_shareable, is_external);
+        let field_id = subgraphs
+            .push_field(
+                definition_id,
+                &field.name.node,
+                type_id,
+                is_shareable,
+                is_external,
+                provides,
+            )
+            .unwrap();
 
         super::field::ingest_field_arguments(field_id, &field.arguments, subgraphs);
     }
