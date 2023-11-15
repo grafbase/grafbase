@@ -12,8 +12,6 @@ resolver = "2"
 again = { git = "https://github.com/grafbase/again", branch = "cloudflare-workers-compatibility" }
 # Use our fork of dynomite that uses the 0.48 version of rusoto.
 dynomite = { git = "https://github.com/grafbase/dynomite", branch = "rusoto-0_48" }
-# FIXME: Drop on next release.
-reqwest = { git = "https://github.com/seanmonstar/reqwest.git", rev = "839623312f8359b173437fb01b1932f204449cca" }
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "00b1e328bf4ce750e01ea2450dcfe83e4955f2af" }
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db3216f058cbfadd4923df2c7" }
 
