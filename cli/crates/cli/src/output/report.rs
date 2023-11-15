@@ -417,10 +417,8 @@ pub fn subgraphs_command_success<'a>(subgraphs: impl ExactSizeIterator<Item = &'
 
     println!("Subgraphs:\n");
 
-    let emojis = "🌠🎐🌌🗺️🧘🔆🪁";
-
-    for (name, emoji) in subgraphs.zip(emojis.chars().cycle()) {
-        println!("- {emoji} {name}");
+    for name in subgraphs {
+        println!("-  {name}");
     }
 
     println!();
@@ -439,7 +437,7 @@ pub(crate) fn publishing() {
 }
 
 pub(crate) fn publish_command_success(subgraph_name: &str) {
-    println!("🌐 {subgraph_name} published successfully!");
+    println!("🌐 {subgraph_name} published successfully");
 }
 
 pub fn print_log_entry(
