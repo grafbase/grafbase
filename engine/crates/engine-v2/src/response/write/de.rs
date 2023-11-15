@@ -1,13 +1,18 @@
+use std::collections::HashMap;
+
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 
-use crate::response::{Response, ResponseObject, ResponseStringId, ResponseValue};
+use crate::{
+    execution::ExecStringId,
+    response::{Response, ResponseSparseObject, ResponseValue},
+};
 
 pub struct AnyFieldsSeed<'resp> {
     pub(super) response: &'resp mut Response,
 }
 
 impl<'de, 'resp> DeserializeSeed<'de> for AnyFieldsSeed<'resp> {
-    type Value = Vec<(ResponseStringId, ResponseValue)>;
+    type Value = Vec<(ExecStringId, ResponseValue)>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -24,7 +29,7 @@ struct AnyFieldsVistor<'resp> {
 }
 
 impl<'de, 'resp> Visitor<'de> for AnyFieldsVistor<'resp> {
-    type Value = Vec<(ResponseStringId, ResponseValue)>;
+    type Value = Vec<(ExecStringId, ResponseValue)>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("an object")
@@ -37,7 +42,7 @@ impl<'de, 'resp> Visitor<'de> for AnyFieldsVistor<'resp> {
         let mut fields = vec![];
 
         while let Some(key) = visitor.next_key::<&str>()? {
-            let field_name = self.response.fields.intern_field_name(key);
+            let field_name = self.response.strings.get_or_intern(key);
             let value = visitor.next_value_seed(AnyNodeSeed {
                 response: self.response,
             })?;
@@ -149,17 +154,17 @@ impl<'de, 'resp> Visitor<'de> for AnyNodeVisitor<'resp> {
     where
         V: MapAccess<'de>,
     {
-        let mut fields = vec![];
+        let mut fields = HashMap::new();
 
         while let Some(key) = visitor.next_key::<&str>()? {
-            let field_name = self.response.fields.intern_field_name(key);
+            let field_name = self.response.strings.get_or_intern(key);
             let value = visitor.next_value_seed(AnyNodeSeed {
                 response: self.response,
             })?;
-            fields.push((field_name, value));
+            fields.insert(field_name, value);
         }
 
-        let object_node_id = self.response.push_object(ResponseObject {
+        let object_node_id = self.response.push_sparse_object(ResponseSparseObject {
             object_id: None,
             fields,
         });

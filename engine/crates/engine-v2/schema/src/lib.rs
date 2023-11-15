@@ -85,7 +85,7 @@ pub struct Key {
     pub fields: FieldSet,
 }
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct FieldSet {
     // sorted by field id
     items: Vec<FieldSetItem>,
@@ -136,6 +136,15 @@ impl FieldSet {
         Some(&self.items[index])
     }
 
+    pub fn merge_opt(left_set: Option<&FieldSet>, right_set: Option<&FieldSet>) -> FieldSet {
+        match (left_set, right_set) {
+            (Some(left_set), Some(right_set)) => Self::merge(left_set, right_set),
+            (Some(left_set), None) => left_set.clone(),
+            (None, Some(right_set)) => right_set.clone(),
+            (None, None) => FieldSet::default(),
+        }
+    }
+
     pub fn merge(left_set: &FieldSet, right_set: &FieldSet) -> FieldSet {
         let mut items = vec![];
         let mut l = 0;
@@ -166,7 +175,7 @@ impl FieldSet {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct FieldSetItem {
     pub field: FieldId,
     pub subselection: FieldSet,
@@ -200,12 +209,12 @@ pub struct FieldResolver {
     pub requires: FieldSet,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Resolver {
     Subgraph(SubgraphResolver),
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SubgraphResolver {
     pub subgraph_id: SubgraphId,
 }
@@ -286,6 +295,7 @@ pub struct FieldProvides {
 
 pub struct Interface {
     pub name: StringId,
+    pub implementations: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
