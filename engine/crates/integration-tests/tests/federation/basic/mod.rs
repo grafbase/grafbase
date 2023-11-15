@@ -10,7 +10,6 @@ use engine_v2::Engine;
 use integration_tests::{federation::EngineV2Ext, mocks::graphql::FakeGithubSchema, runtime, MockGraphQlServer};
 
 #[test]
-#[ignore]
 fn single_field_from_single_server() {
     let response = runtime()
         .block_on(async move {
@@ -22,7 +21,13 @@ fn single_field_from_single_server() {
         })
         .unwrap();
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "serverVersion": "1"
+      }
+    }
+    "###);
 }
 
 #[test]

@@ -2,7 +2,7 @@ use schema::ObjectId;
 
 use super::OperationFieldId;
 use crate::{
-    execution::ExecStringId,
+    execution::StrId,
     formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
 };
 
@@ -16,7 +16,7 @@ pub struct OperationPathSegment {
     // Actual needed fields.
     pub type_condition: Option<ResolvedTypeCondition>,
     pub position: usize,
-    pub name: ExecStringId,
+    pub name: StrId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

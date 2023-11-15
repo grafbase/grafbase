@@ -4,7 +4,9 @@ use std::{borrow::Cow, cmp::Ordering};
 
 mod conversion;
 mod ids;
+mod names;
 pub use ids::*;
+pub use names::Names;
 
 /// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:

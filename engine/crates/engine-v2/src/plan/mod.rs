@@ -2,19 +2,20 @@ use schema::ResolverId;
 
 use crate::{
     formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
-    request::OperationPath,
-    response::{ReadSelectionSet, WriteSelectionSet},
+    request::{OperationPath, OperationSelectionSet},
+    response::ReadSelectionSet,
 };
 
 mod planner;
 mod plans;
+
 pub use planner::PlannedOperation;
 pub use plans::{ExecutionPlans, PlanId};
 
 pub struct ExecutionPlan {
     pub path: OperationPath,
     pub input: ReadSelectionSet,
-    pub output: WriteSelectionSet,
+    pub selection_set: OperationSelectionSet,
     pub resolver_id: ResolverId,
 }
 
@@ -24,7 +25,7 @@ impl ContextAwareDebug for ExecutionPlan {
         f.debug_struct("ExecutionPlan")
             .field("path", &ctx.debug(&self.path))
             .field("input", &ctx.debug(&self.input))
-            .field("output", &ctx.debug(&self.output))
+            .field("selection_set", &ctx.debug(&self.selection_set))
             .field("resolver", &resolver)
             .finish()
     }

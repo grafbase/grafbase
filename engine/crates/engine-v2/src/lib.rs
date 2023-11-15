@@ -6,5 +6,6 @@ mod formatter;
 mod plan;
 mod request;
 mod response;
+mod schema_ext;
 
 pub use engine::Engine;

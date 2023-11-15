@@ -5,8 +5,8 @@ use futures_locks::Mutex;
 use schema::Resolver;
 
 use crate::{
-    request::OperationFields,
-    response::{Response, ResponseObjectsView, WriteSelectionSet},
+    request::{OperationFields, OperationSelectionSet},
+    response::{Response, ResponseObjectsView},
     Engine,
 };
 
@@ -17,11 +17,17 @@ pub use coordinator::ExecutorCoordinator;
 
 use self::graphql::GraphqlExecutor;
 
-struct ExecutorRequest<'a> {
+struct ExecutorContext<'a> {
+    // -- Common --
     operation_type: OperationType,
     operation_fields: &'a OperationFields,
-    response_objects: ResponseObjectsView<'a>,
-    output: &'a WriteSelectionSet,
+    response: &'a Response,
+    // -- Plan-specific --
+    // On which objects inside the response this selection_set applies to.
+    // All required fields will be available.
+    response_object_roots: ResponseObjectsView<'a>,
+    // Selection set that the executor is supposed to retrieve.
+    selection_set: &'a OperationSelectionSet,
 }
 
 enum Executor {
@@ -47,29 +53,15 @@ impl From<String> for ExecutorError {
 }
 
 impl Executor {
-    fn build(engine: &Engine, resolver: &schema::Resolver, request: ExecutorRequest<'_>) -> Self {
+    fn build(engine: &Engine, resolver: &schema::Resolver, ctx: ExecutorContext<'_>) -> Result<Self, ExecutorError> {
         match resolver {
-            Resolver::Subgraph(resolver) => GraphqlExecutor::build(engine, resolver, request),
+            Resolver::Subgraph(resolver) => GraphqlExecutor::build(engine, resolver, ctx),
         }
     }
 
-    async fn execute(self, response: ResponseProxy) -> Result<(), ExecutorError> {
+    async fn execute(self, response: Arc<Mutex<Response>>) -> Result<(), ExecutorError> {
         match self {
             Executor::GraphQL(executor) => executor.execute(response).await,
         }
-    }
-}
-
-struct ResponseProxy {
-    inner: Arc<Mutex<Response>>,
-}
-
-impl ResponseProxy {
-    // Need something cleaner here. Ideally I just want something that makes it not too easy
-    // to hold the lock indefinitely.
-    // Guaranteed to be executed before any children.
-    async fn mutate<T>(&self, func: impl FnOnce(&mut Response) -> T) -> T {
-        let mut graph = self.inner.lock().await;
-        func(&mut graph)
     }
 }

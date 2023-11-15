@@ -8,12 +8,9 @@ mod write;
 
 pub use error::GraphqlError;
 pub use read::{ReadSelection, ReadSelectionSet, ResponseObjectsView};
-pub use write::{WriteSelection, WriteSelectionSet};
+pub use write::WriteSelectionSet;
 
-use crate::{
-    execution::{ExecStringId, ExecutionStrings},
-    request::OperationPath,
-};
+use crate::execution::{StrId, Strings};
 
 const DENSE_BIT_FLAG: u32 = 1 << 31;
 const DENSE_BIT_MASK: u32 = DENSE_BIT_FLAG - 1;
@@ -22,7 +19,7 @@ const DENSE_BIT_MASK: u32 = DENSE_BIT_FLAG - 1;
 pub struct ResponseObjectId(u32);
 
 pub struct Response {
-    pub strings: ExecutionStrings,
+    pub strings: Strings,
     // will be None if an error propagated up to the root.
     root: Option<ResponseObjectId>,
     sparse_objects: Vec<ResponseSparseObject>,
@@ -36,7 +33,7 @@ pub struct Response {
 // least wait until we face actual problems. We're focused on OLTP workloads, so might never
 // happen.
 impl Response {
-    pub fn new(strings: ExecutionStrings) -> Self {
+    pub fn new(strings: Strings) -> Self {
         let root = ResponseSparseObject {
             object_id: None,
             fields: HashMap::new(),
@@ -59,47 +56,6 @@ impl Response {
         self.dense_objects.push(object);
         let id = (self.dense_objects.len() - 1) as u32;
         ResponseObjectId(id | DENSE_BIT_FLAG)
-    }
-
-    fn find_matching_object_node_ids(&self, path: &OperationPath) -> Vec<ResponseObjectId> {
-        let Some(root) = self.root else {
-            return vec![];
-        };
-        let mut nodes = vec![root];
-
-        for segment in path {
-            if let Some(ref type_condition) = segment.type_condition {
-                nodes = nodes
-                    .into_iter()
-                    .filter_map(|node_id| {
-                        let node = self.get(node_id);
-                        let object_id = node
-                            .object_id()
-                            .expect("Missing object_id on a node that is subject to a type condition.");
-                        if type_condition.matches(object_id) {
-                            node.field(segment.position, segment.name)
-                                .and_then(|node| node.as_object())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-            } else {
-                nodes = nodes
-                    .into_iter()
-                    .filter_map(|node_id| {
-                        self.get(node_id)
-                            .field(segment.position, segment.name)
-                            .and_then(|node| node.as_object())
-                    })
-                    .collect();
-            }
-            if nodes.is_empty() {
-                break;
-            }
-        }
-
-        nodes
     }
 
     pub fn get(&self, id: ResponseObjectId) -> ResponseObject<'_> {
@@ -133,7 +89,7 @@ impl<'a> ResponseObject<'a> {
         }
     }
 
-    fn field(&self, position: usize, name: ExecStringId) -> Option<&ResponseValue> {
+    fn field(&self, position: usize, name: StrId) -> Option<&ResponseValue> {
         match self {
             Self::Sparse(obj) => obj.fields.get(&name),
             Self::Dense(obj) => Some(&obj.fields[position]),
@@ -148,7 +104,7 @@ pub enum ResponseMutObject<'a> {
 }
 
 impl<'a> ResponseMutObject<'a> {
-    fn insert(&mut self, position: usize, name: ExecStringId, value: ResponseValue) {
+    fn insert(&mut self, position: usize, name: StrId, value: ResponseValue) {
         match self {
             Self::Sparse(obj) => {
                 obj.fields.insert(name, value);
@@ -165,7 +121,7 @@ pub struct ResponseSparseObject {
     // object_id will only be present if __typename was retrieved which always be the case
     // through proper planning when it's needed for unions/interfaces between plans.
     object_id: Option<ObjectId>,
-    fields: HashMap<ExecStringId, ResponseValue>,
+    fields: HashMap<StrId, ResponseValue>,
 }
 
 #[derive(Debug)]

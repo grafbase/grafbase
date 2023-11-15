@@ -1,5 +1,5 @@
 use crate::{
-    execution::ExecStringId,
+    execution::StrId,
     formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
 };
 
@@ -13,7 +13,7 @@ pub struct ReadSelectionSet {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadSelection {
     pub response_position: usize,
-    pub response_name: ExecStringId,
+    pub response_name: StrId,
     pub subselection: ReadSelectionSet,
 }
 
