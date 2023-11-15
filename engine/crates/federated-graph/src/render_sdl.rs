@@ -1,6 +1,5 @@
-use std::fmt::{self, Display, Write as _};
-
 use crate::federated_graph::*;
+use std::fmt::{self, Display, Write as _};
 
 const INDENT: &str = "    ";
 const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
@@ -31,6 +30,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
         if object.resolvable_keys.is_empty() {
             sdl.push_str(" {\n");
         } else {
+            sdl.push('\n');
             for resolvable_key in &object.resolvable_keys {
                 let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
                 let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
@@ -40,7 +40,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
                 )?;
             }
 
-            sdl.push_str("  {\n");
+            sdl.push_str("{\n");
         }
 
         for field in graph.object_fields.iter().filter(|field| field.object_id.0 == idx) {
