@@ -1,7 +1,7 @@
 enum join__Graph {
-    ACCOUNTS @join__graph(name: "accounts", url: "accounts")
-    MARKETING @join__graph(name: "marketing", url: "marketing")
-    SUBSCRIPTIONS @join__graph(name: "subscriptions", url: "subscriptions")
+    ACCOUNTS @join__graph(name: "accounts", url: "http://example.com/accounts")
+    MARKETING @join__graph(name: "marketing", url: "http://example.com/marketing")
+    SUBSCRIPTIONS @join__graph(name: "subscriptions", url: "http://example.com/subscriptions")
 }
 
 type Customer {

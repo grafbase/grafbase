@@ -1,7 +1,7 @@
 enum join__Graph {
-    ELECTRONICS @join__graph(name: "electronics", url: "electronics")
-    PHYSICAL @join__graph(name: "physical", url: "physical")
-    SOCIAL @join__graph(name: "social", url: "social")
+    ELECTRONICS @join__graph(name: "electronics", url: "http://example.com/electronics")
+    PHYSICAL @join__graph(name: "physical", url: "http://example.com/physical")
+    SOCIAL @join__graph(name: "social", url: "http://example.com/social")
 }
 
 type Furby {

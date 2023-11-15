@@ -7,7 +7,7 @@ use super::TestFederationEngine;
 
 #[must_use]
 pub struct FederationEngineBuilder {
-    schemas: Vec<(String, ServiceDocument)>,
+    schemas: Vec<(String, String, ServiceDocument)>,
 }
 
 pub trait EngineV2Ext {
@@ -25,9 +25,10 @@ pub trait SchemaSource {
 }
 
 impl FederationEngineBuilder {
-    pub async fn with_schema(mut self, _name: &str, schema: impl SchemaSource) -> Self {
+    pub async fn with_schema(mut self, name: &str, schema: impl SchemaSource) -> Self {
         self.schemas.push((
-            schema.url(), // Note: this is temporary while composition doesn't support urls properly.
+            name.to_string(),
+            schema.url(),
             async_graphql_parser::parse_schema(schema.sdl().await).expect("schema to be well formed"),
         ));
         self
@@ -35,8 +36,8 @@ impl FederationEngineBuilder {
 
     pub fn finish(self) -> TestFederationEngine {
         let mut subgraphs = graphql_composition::Subgraphs::default();
-        for (name, schema) in self.schemas {
-            subgraphs.ingest(&schema, &name);
+        for (name, url, schema) in self.schemas {
+            subgraphs.ingest(&schema, &name, &url);
         }
         let graph = graphql_composition::compose(&subgraphs)
             .into_result()

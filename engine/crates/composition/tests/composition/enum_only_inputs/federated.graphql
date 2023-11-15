@@ -1,7 +1,7 @@
 enum join__Graph {
-    FOODSEARCH @join__graph(name: "foodSearch", url: "foodSearch")
-    PRODUCTSEARCH @join__graph(name: "productSearch", url: "productSearch")
-    USERSEARCH @join__graph(name: "userSearch", url: "userSearch")
+    FOODSEARCH @join__graph(name: "foodSearch", url: "http://example.com/foodSearch")
+    PRODUCTSEARCH @join__graph(name: "productSearch", url: "http://example.com/productSearch")
+    USERSEARCH @join__graph(name: "userSearch", url: "http://example.com/userSearch")
 }
 
 type Query {

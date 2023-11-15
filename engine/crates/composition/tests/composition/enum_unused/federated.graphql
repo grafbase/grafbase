@@ -1,5 +1,5 @@
 enum join__Graph {
-    THESCHEMA @join__graph(name: "theschema", url: "theschema")
+    THESCHEMA @join__graph(name: "theschema", url: "http://example.com/theschema")
 }
 
 type User {

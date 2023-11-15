@@ -1,6 +1,6 @@
 enum join__Graph {
-    PIZZA @join__graph(name: "pizza", url: "pizza")
-    SUSHI @join__graph(name: "sushi", url: "sushi")
+    PIZZA @join__graph(name: "pizza", url: "http://example.com/pizza")
+    SUSHI @join__graph(name: "sushi", url: "http://example.com/sushi")
 }
 
 type Pizza {

@@ -1,7 +1,7 @@
 enum join__Graph {
-    ACTIVITIES @join__graph(name: "activities", url: "activities")
-    EPISODES @join__graph(name: "episodes", url: "episodes")
-    TELETUBBYREPOSITORY @join__graph(name: "teletubbyRepository", url: "teletubbyRepository")
+    ACTIVITIES @join__graph(name: "activities", url: "http://example.com/activities")
+    EPISODES @join__graph(name: "episodes", url: "http://example.com/episodes")
+    TELETUBBYREPOSITORY @join__graph(name: "teletubbyRepository", url: "http://example.com/teletubbyRepository")
 }
 
 type Activity {
