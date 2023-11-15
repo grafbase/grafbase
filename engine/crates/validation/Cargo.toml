@@ -3,7 +3,7 @@ name = "graphql-schema-validation"
 version = "0.1.2"
 edition = "2021"
 license = "Apache-2.0"
-description = "A spec compliant implementation of GraphQL SDL schema composition"
+description = "A spec compliant implementation of GraphQL SDL schema validation"
 repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/validation"
 keywords = ["graphql"]
 
