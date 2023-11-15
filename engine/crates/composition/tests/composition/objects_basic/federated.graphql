@@ -1,6 +1,6 @@
 enum join__Graph {
-    A @join__graph(name: "a", url: "a")
-    B @join__graph(name: "b", url: "b")
+    A @join__graph(name: "a", url: "http://example.com/a")
+    B @join__graph(name: "b", url: "http://example.com/b")
 }
 
 type User {

@@ -1,7 +1,7 @@
 enum join__Graph {
-    BAR @join__graph(name: "bar", url: "bar")
-    BAZ @join__graph(name: "baz", url: "baz")
-    FOO @join__graph(name: "foo", url: "foo")
+    BAR @join__graph(name: "bar", url: "http://example.com/bar")
+    BAZ @join__graph(name: "baz", url: "http://example.com/baz")
+    FOO @join__graph(name: "foo", url: "http://example.com/foo")
 }
 
 scalar Yan

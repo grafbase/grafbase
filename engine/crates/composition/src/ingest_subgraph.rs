@@ -13,8 +13,8 @@ use crate::{
 };
 use async_graphql_parser::types as ast;
 
-pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, subgraphs: &mut Subgraphs) {
-    let subgraph_id = subgraphs.push_subgraph(name);
+pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
+    let subgraph_id = subgraphs.push_subgraph(name, url);
 
     let federation_directives_matcher = ingest_schema_definitions(document);
 

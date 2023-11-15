@@ -1,7 +1,7 @@
 enum join__Graph {
-    HISTORY @join__graph(name: "history", url: "history")
-    INVENTORY @join__graph(name: "inventory", url: "inventory")
-    PERFORMANCE @join__graph(name: "performance", url: "performance")
+    HISTORY @join__graph(name: "history", url: "http://example.com/history")
+    INVENTORY @join__graph(name: "inventory", url: "http://example.com/inventory")
+    PERFORMANCE @join__graph(name: "performance", url: "http://example.com/performance")
 }
 
 type Query {

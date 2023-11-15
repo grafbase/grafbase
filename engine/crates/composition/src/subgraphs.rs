@@ -51,8 +51,8 @@ pub struct Subgraphs {
 
 impl Subgraphs {
     /// Add a subgraph to compose.
-    pub fn ingest(&mut self, subgraph_schema: &async_graphql_parser::types::ServiceDocument, name: &str) {
-        crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, self);
+    pub fn ingest(&mut self, subgraph_schema: &async_graphql_parser::types::ServiceDocument, name: &str, url: &str) {
+        crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, url, self);
     }
 
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The
@@ -87,9 +87,10 @@ impl Subgraphs {
         }
     }
 
-    pub(crate) fn push_subgraph(&mut self, name: &str) -> SubgraphId {
+    pub(crate) fn push_subgraph(&mut self, name: &str, url: &str) -> SubgraphId {
         let subgraph = Subgraph {
             name: self.strings.intern(name),
+            url: self.strings.intern(url),
         };
         SubgraphId(self.subgraphs.push_return_idx(subgraph))
     }
@@ -115,6 +116,7 @@ pub(crate) struct Subgraph {
     /// The name of the subgraph. It is not contained in the GraphQL schema of the subgraph, it
     /// only makes sense within a project.
     name: StringId,
+    url: StringId,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
