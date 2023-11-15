@@ -10,10 +10,11 @@ type Activity {
     participatingTeletubby: Teletubby! @join__field(graph: ACTIVITIES)
 }
 
-type Teletubby    @join__type(graph: ACTIVITIES, key: "name")
+type Teletubby
+    @join__type(graph: ACTIVITIES, key: "name")
     @join__type(graph: EPISODES, key: "name")
     @join__type(graph: TELETUBBYREPOSITORY, key: "name")
-  {
+{
     activities: [Activity] @join__field(graph: ACTIVITIES)
     name: String!
     favoriteToy: FavoriteToy
