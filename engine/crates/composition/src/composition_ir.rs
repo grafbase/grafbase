@@ -150,6 +150,7 @@ impl CompositionIr {
         field_type: subgraphs::FieldTypeId,
         arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
         resolvable_in: Option<federated::SubgraphId>,
+        provides: Vec<subgraphs::FieldId>,
     ) {
         self.fields.push(FieldIr {
             parent_name,
@@ -157,6 +158,7 @@ impl CompositionIr {
             field_type,
             arguments,
             resolvable_in,
+            provides,
         });
     }
 
@@ -175,6 +177,9 @@ pub(crate) struct FieldIr {
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
     pub(crate) resolvable_in: Option<federated::SubgraphId>,
+
+    /// Subgraph fields with an `@provides`.
+    pub(crate) provides: Vec<subgraphs::FieldId>,
 }
 
 #[derive(Default)]

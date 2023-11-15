@@ -59,15 +59,12 @@ pub(super) fn ingest_fields(
                 .iter()
                 .any(|directive| federation_directives_matcher.is_shareable(directive.node.name.node.as_str()));
 
-        dbg!(&field.name.node);
-        dbg!(&field.directives);
         let is_external = object_is_external
             || field
                 .directives
                 .iter()
                 .any(|directive| federation_directives_matcher.is_external(directive.node.name.node.as_str()));
 
-        dbg!(is_external);
         let type_id = subgraphs.intern_field_type(&field.ty.node);
         let field_id = subgraphs.push_field(definition_id, &field.name.node, type_id, is_shareable, is_external);
 

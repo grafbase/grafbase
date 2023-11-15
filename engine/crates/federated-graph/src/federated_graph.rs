@@ -100,7 +100,7 @@ pub struct Field {
     pub resolvable_in: Option<SubgraphId>,
 
     /// See [FieldProvides].
-    pub provides: Vec<FieldProvides>,
+    pub provides: Option<FieldProvides>,
 
     /// See [FieldRequires]
     pub requires: Vec<FieldRequires>,

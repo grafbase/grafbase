@@ -14,6 +14,7 @@ struct Field {
     name: StringId,
     field_type: FieldTypeId,
     arguments: Vec<(StringId, FieldTypeId)>,
+    provides: Vec<Selection>,
     is_shareable: bool,
     is_external: bool,
 }

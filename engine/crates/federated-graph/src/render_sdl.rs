@@ -142,7 +142,8 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
 
     if let Some(subgraph) = &field.resolvable_in {
         let subgraph_name = GraphEnumVariantName(&graph[graph[*subgraph].name]);
-        write!(sdl, " @join__field(graph: {subgraph_name})")?;
+        let provides = field.provides;
+        write!(sdl, " @join__field(graph: {subgraph_name}{provides})")?;
     }
 
     sdl.push('\n');

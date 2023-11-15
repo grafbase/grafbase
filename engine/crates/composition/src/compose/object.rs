@@ -26,10 +26,11 @@ pub(super) fn merge_field_arguments<'a>(
 }
 
 pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
-    if fields.len() > 1
-        && fields
-            .iter()
-            .any(|f| !(f.is_shareable() || f.is_external() || f.is_key()))
+    if fields
+        .iter()
+        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_key()))
+        .count()
+        > 1
     {
         let next = &fields[1];
 
@@ -71,6 +72,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         .first()
         .filter(|_| fields.len() == 1)
         .map(|field| graphql_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()));
+    let provides = fields.iter().filter(|f| f.provides().is_some()).map(|f| f.id).collect();
 
     ctx.insert_field(
         first.parent_definition().name().id,
@@ -78,5 +80,6 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         first.r#type().id,
         arguments,
         resolvable_in,
+        provides,
     );
 }
