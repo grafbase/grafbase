@@ -85,17 +85,17 @@ pub(super) fn ingest_fields(
                 _ => None,
             });
 
-        let type_id = subgraphs.intern_field_type(&field.ty.node);
+        let field_type = subgraphs.intern_field_type(&field.ty.node);
         let field_id = subgraphs
-            .push_field(
-                definition_id,
-                &field.name.node,
-                type_id,
+            .push_field(crate::subgraphs::FieldIngest {
+                parent_definition_id: definition_id,
+                field_name: &field.name.node,
+                field_type,
                 is_shareable,
                 is_external,
                 provides,
                 requires,
-            )
+            })
             .unwrap();
 
         super::field::ingest_field_arguments(field_id, &field.arguments, subgraphs);

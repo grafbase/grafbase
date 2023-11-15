@@ -27,13 +27,15 @@ impl Subgraphs {
 
     pub(crate) fn push_field(
         &mut self,
-        parent_definition_id: DefinitionId,
-        field_name: &str,
-        field_type: FieldTypeId,
-        is_shareable: bool,
-        is_external: bool,
-        provides: Option<&str>,
-        requires: Option<&str>,
+        FieldIngest {
+            parent_definition_id,
+            field_name,
+            field_type,
+            is_shareable,
+            is_external,
+            provides,
+            requires,
+        }: FieldIngest<'_>,
     ) -> Result<FieldId, String> {
         let provides = provides
             .map(|provides| self.selection_set_from_str(provides))
@@ -68,6 +70,16 @@ impl Subgraphs {
         let field = &mut self.fields.0[field.0];
         field.arguments.push((argument_name, argument_type));
     }
+}
+
+pub(crate) struct FieldIngest<'a> {
+    pub(crate) parent_definition_id: DefinitionId,
+    pub(crate) field_name: &'a str,
+    pub(crate) field_type: FieldTypeId,
+    pub(crate) is_shareable: bool,
+    pub(crate) is_external: bool,
+    pub(crate) provides: Option<&'a str>,
+    pub(crate) requires: Option<&'a str>,
 }
 
 pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;

@@ -46,25 +46,8 @@ impl<'a> Context<'a> {
         self.ir.insert_enum_value(enum_id, value);
     }
 
-    pub(crate) fn insert_field(
-        &mut self,
-        parent_name: subgraphs::StringId,
-        field_name: subgraphs::StringId,
-        field_type: subgraphs::FieldTypeId,
-        arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
-        resolvable_in: Option<federated::SubgraphId>,
-        provides: Vec<subgraphs::FieldId>,
-        requires: Vec<subgraphs::FieldId>,
-    ) {
-        self.ir.insert_field(
-            parent_name,
-            field_name,
-            field_type,
-            arguments,
-            resolvable_in,
-            provides,
-            requires,
-        );
+    pub(crate) fn insert_field(&mut self, ir: crate::composition_ir::FieldIr) {
+        self.ir.insert_field(ir);
     }
 
     pub(crate) fn insert_input_object(&mut self, name: StringWalker<'_>) -> federated::InputObjectId {
