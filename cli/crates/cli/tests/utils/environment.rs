@@ -213,7 +213,7 @@ impl Environment {
 
     #[track_caller]
     pub fn grafbase_introspect(&self, url: &str, headers: &[&str]) -> Output {
-        let mut args = vec!["subgraph", "introspect", url];
+        let mut args = vec!["introspect", url];
 
         for header in headers {
             args.push("--header");

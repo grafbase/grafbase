@@ -1,3 +1,6 @@
+mod project_ref;
+
+use self::project_ref::ProjectRef;
 use crate::create::CreateArguments;
 use clap::{arg, command, CommandFactory, Parser, ValueEnum};
 use clap_complete::{shells, Generator};
@@ -306,15 +309,49 @@ impl IntrospectCommand {
 }
 
 #[derive(Debug, Parser)]
-pub enum SubgraphCommandKind {
-    /// Introspect a subgraph endpoint and print its schema
-    Introspect(IntrospectCommand),
+pub enum FederatedGraphCommandKind {
+    /// Fetch the GraphQL schema of the federated graph
+    Fetch,
 }
 
 #[derive(Debug, Parser)]
-pub struct SubgraphCommand {
+struct FederatedGraphCommand {
     #[command(subcommand)]
-    pub kind: SubgraphCommandKind,
+    kind: FederatedGraphCommandKind,
+}
+
+/// List published subgraphs
+#[derive(Debug, Parser)]
+pub struct SubgraphsCommand {
+    #[arg(help = ProjectRef::ARG_DESCRIPTION)]
+    pub project_ref: ProjectRef,
+}
+
+/// Fetch the GraphQL schema of a published subgraph by name, or the federated graph schema.
+#[derive(Debug, Parser)]
+pub struct SchemaCommand {
+    #[arg(help = ProjectRef::ARG_DESCRIPTION)]
+    pub project_ref: ProjectRef,
+
+    /// The name of the subgraph to fetch. If this is left out, the federated graph is fetched.
+    #[arg(long("name"))]
+    pub subgraph_name: Option<String>,
+}
+
+/// Publish a subgraph
+#[derive(Debug, Parser)]
+pub struct PublishCommand {
+    #[arg(help = ProjectRef::ARG_DESCRIPTION)]
+    pub(crate) project_ref: ProjectRef,
+
+    #[arg(long("name"))]
+    pub(crate) subgraph_name: String,
+
+    #[arg(long("schema"))]
+    pub(crate) schema_path: String,
+
+    #[arg(long)]
+    pub(crate) url: String,
 }
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -348,8 +385,18 @@ pub enum SubCommand {
     /// Build the Grafbase project in advance to avoid the resolver build step in the start
     /// command.
     Build(BuildCommand),
-    /// Operations related to GraphQL subgraphs
-    Subgraph(SubgraphCommand),
+
+    /// Introspect a subgraph endpoint and print its schema
+    Introspect(IntrospectCommand),
+    /// List subgraphs
+    #[clap(hide = true)]
+    Subgraphs(SubgraphsCommand),
+    /// Fetch a federated graph or a subgraph
+    #[clap(hide = true)]
+    Schema(SchemaCommand),
+    /// Publish a subgraph
+    #[clap(hide = true)]
+    Publish(PublishCommand),
 }
 
 // TODO see if there's a way to do this automatically (https://github.com/clap-rs/clap/discussions/4921)
@@ -408,7 +455,11 @@ impl ArgumentNames for SubCommand {
             SubCommand::Dev(command) => command.argument_names(),
             SubCommand::Init(command) => command.argument_names(),
             SubCommand::Create(command) => command.argument_names(),
-            SubCommand::Reset
+            SubCommand::Schema(_)
+            | SubCommand::Publish(_)
+            | SubCommand::Subgraphs(_)
+            | SubCommand::Introspect(_)
+            | SubCommand::Reset
             | SubCommand::Login
             | SubCommand::Logout
             | SubCommand::Deploy
@@ -417,7 +468,6 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Start(_)
             | SubCommand::Build(_)
             | SubCommand::Completions(_)
-            | SubCommand::Subgraph(_)
             | SubCommand::Logs(_) => None,
         }
     }

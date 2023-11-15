@@ -10,5 +10,8 @@ pub mod link;
 pub mod login;
 pub mod logout;
 pub mod logs;
+pub mod publish;
+pub mod schema;
+pub mod subgraphs;
 pub mod types;
 pub mod unlink;

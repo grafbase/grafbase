@@ -52,6 +52,8 @@ pub enum CliError {
     LogsNoLinkedProject,
     #[error("error during graph introspection: {0}")]
     Introspection(String),
+    #[error("could not read the GraphQL schema")]
+    SchemaReadError(#[source] io::Error),
 }
 
 #[cfg(target_family = "windows")]
