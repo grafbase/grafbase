@@ -1,4 +1,4 @@
-use async_graphql::{InputObject, SimpleObject};
+use async_graphql::InputObject;
 use url::Url;
 
 #[derive(InputObject, Clone, Debug)]
@@ -22,17 +22,4 @@ pub(crate) struct PublishSubgraphInput {
     pub(crate) name: String,
     pub(crate) url: Url,
     pub(crate) headers: Vec<Header>,
-}
-
-#[derive(SimpleObject)]
-pub(crate) struct PublishSubgraphSuccess {
-    __typename: &'static str,
-}
-
-impl Default for PublishSubgraphSuccess {
-    fn default() -> Self {
-        Self {
-            __typename: "PublishSubgraphSuccess",
-        }
-    }
 }

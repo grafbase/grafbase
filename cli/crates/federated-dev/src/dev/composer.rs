@@ -1,4 +1,3 @@
-mod messages;
 mod subgraph;
 
 pub(crate) use self::subgraph::Subgraph;
@@ -91,11 +90,11 @@ impl Composer {
                 continue;
             }
 
-            subgraphs.ingest(subgraph.schema(), name);
+            subgraphs.ingest(subgraph.schema(), name, subgraph.url().as_str());
         }
 
         if let Some((name, subgraph)) = add_new {
-            subgraphs.ingest(subgraph.schema(), name);
+            subgraphs.ingest(subgraph.schema(), name, subgraph.url().as_str());
         }
 
         subgraphs

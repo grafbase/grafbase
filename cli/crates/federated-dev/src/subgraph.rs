@@ -2,36 +2,37 @@ use serde_json::json;
 use url::Url;
 
 #[derive(Debug, serde::Deserialize)]
-struct Error {
-    message: String,
-}
-
-#[derive(Debug, serde::Deserialize)]
 struct Response {
     data: Option<serde_json::Value>,
     errors: Option<Vec<Error>>,
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct Error {
+    message: String,
+}
+
 pub async fn add(name: &str, url: &Url, dev_api_port: u16, headers: Vec<(&str, &str)>) -> Result<(), crate::Error> {
     let headers = headers
         .into_iter()
-        .map(|(key, value)| format!(r#"{{ key: "{key}", value: "{value}" }}"#))
-        .collect::<Vec<_>>()
-        .join(", ");
+        .map(|(key, value)| json!({ "key": key, "value": value }))
+        .collect::<Vec<_>>();
 
     let mutation = indoc::formatdoc! {r#"
-        mutation {{
-          publishSubgraph(input: {{
-            name: "{name}"
-            url: "{url}",
-            headers: [{headers}]
-          }}) {{ typename }}
+        mutation ($input: PublishSubgraphInput!) {{
+          publishSubgraph(input: $input)
         }}
     "#};
 
     let request = json!({
         "query": mutation,
-        "variables": {}
+        "variables": {
+            "input": {
+                "name": name,
+                "url": url,
+                "headers": headers
+            }
+        }
     });
 
     let url = format!("http://localhost:{dev_api_port}/admin");
