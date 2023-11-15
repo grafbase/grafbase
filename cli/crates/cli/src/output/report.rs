@@ -415,7 +415,7 @@ pub fn subgraphs_command_success<'a>(subgraphs: impl ExactSizeIterator<Item = &'
         return;
     }
 
-    println!("👑 Found the subgraphs 👑\n");
+    println!("Subgraphs:\n");
 
     let emojis = "🌠🎐🌌🗺️🧘🔆🪁";
 
