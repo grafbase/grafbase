@@ -32,6 +32,6 @@ pub async fn publish(
 
     match result.data.as_ref().and_then(|data| data.publish.as_ref()) {
         Some(PublishPayload::PublishSuccess(_)) => Ok(()),
-        _ => Err(ApiError::PublishError(format!("bad luck this time:\n\n{result:#?}",))),
+        _ => Err(ApiError::PublishError(format!("API error:\n\n{result:#?}",))),
     }
 }
