@@ -1,5 +1,5 @@
 use engine_v2::Engine;
-use integration_tests::{federation::EngineV2Ext, mocks::graphql::EchoSchema, runtime};
+use integration_tests::{federation::EngineV2Ext, mocks::graphql::EchoSchema, runtime, MockGraphQlServer};
 use serde::Serialize;
 use serde_json::json;
 
@@ -62,15 +62,19 @@ fn input_objects() {
 #[test]
 #[ignore]
 fn list_coercion() {
-    let engine = Engine::build().with_schema("schema", EchoSchema::default()).finish();
-
     let query = "query(input: String!) { listOfListOfStrings(input: $input) }";
     let input = json!("hello");
 
     let response = runtime()
         .block_on({
             let input = input.clone();
-            async move { engine.execute(query).variables(json!({"input": input})).await }
+            async move {
+                let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+
+                let engine = Engine::build().with_schema("schema", echo_mock).await.finish();
+
+                engine.execute(query).variables(json!({"input": input})).await
+            }
         })
         .unwrap();
 
@@ -95,12 +99,16 @@ where
 }
 
 fn do_roundtrip_test(query: &str, input: serde_json::Value) {
-    let engine = Engine::build().with_schema("schema", EchoSchema::default()).finish();
-
     let response = runtime()
         .block_on({
             let input = input.clone();
-            async move { engine.execute(query).variables(json!({"input": input})).await }
+            async move {
+                let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+
+                let engine = Engine::build().with_schema("schema", echo_mock).await.finish();
+
+                engine.execute(query).variables(json!({"input": input})).await
+            }
         })
         .unwrap();
 
