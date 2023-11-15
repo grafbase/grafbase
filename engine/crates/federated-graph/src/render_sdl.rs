@@ -147,9 +147,19 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
                 .provides
                 .iter()
                 .find(|provides| provides.subgraph_id == *subgraph)
-                .map(|fieldset| FieldSetDisplay(&fieldset.fields, graph)),
+                .map(|fieldset| format!(", provides: \"{}\"", FieldSetDisplay(&fieldset.fields, graph))),
         );
         write!(sdl, " @join__field(graph: {subgraph_name}{provides})")?;
+    }
+
+    for provides in field
+        .provides
+        .iter()
+        .filter(|provide| Some(provide.subgraph_id) != field.resolvable_in)
+    {
+        let subgraph_name = GraphEnumVariantName(&graph[graph[provides.subgraph_id].name]);
+        let fields = FieldSetDisplay(&provides.fields, graph);
+        write!(sdl, " @join__field(graph: {subgraph_name}, key: \"{fields}\"")?;
     }
 
     sdl.push('\n');
