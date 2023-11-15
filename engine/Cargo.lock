@@ -1800,7 +1800,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.44.2"
+version = "0.44.3"
 dependencies = [
  "apollo-encoder",
  "apollo-parser",
@@ -5643,8 +5643,3 @@ dependencies = [
  "quote",
  "syn 2.0.38",
 ]
-
-[[patch.unused]]
-name = "reqwest"
-version = "0.11.18"
-source = "git+https://github.com/seanmonstar/reqwest.git?rev=839623312f8359b173437fb01b1932f204449cca#839623312f8359b173437fb01b1932f204449cca"
