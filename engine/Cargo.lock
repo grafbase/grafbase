@@ -1822,18 +1822,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "grafbase-validation"
-version = "0.1.0"
-dependencies = [
- "async-graphql-parser",
- "async-graphql-value",
- "bitflags 2.4.1",
- "datatest-stable",
- "miette",
- "similar",
-]
-
-[[package]]
 name = "graph-entities"
 version = "0.1.0"
 dependencies = [
@@ -1892,6 +1880,18 @@ checksum = "d2ebc8013b4426d5b81a4364c419a95ed0b404af2b82e2457de52d9348f0e474"
 dependencies = [
  "combine",
  "thiserror",
+]
+
+[[package]]
+name = "graphql-schema-validation"
+version = "0.1.2"
+dependencies = [
+ "async-graphql-parser",
+ "async-graphql-value",
+ "bitflags 2.4.1",
+ "datatest-stable",
+ "miette",
+ "similar",
 ]
 
 [[package]]
