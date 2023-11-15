@@ -44,6 +44,7 @@ impl Subgraphs {
             is_shareable,
             is_external,
             arguments: Vec::new(),
+            provides,
         };
         let id = FieldId(self.fields.0.push_return_idx(field));
         let parent_object_name = self.walk(parent_definition_id).name().id;
@@ -113,6 +114,17 @@ impl<'a> FieldWalker<'a> {
     /// ```
     pub fn name(self) -> StringWalker<'a> {
         self.walk(self.field().name)
+    }
+
+    /// ```ignore,graphql
+    /// type MyObject {
+    ///   id: ID!
+    ///   others: [OtherObject!] @provides("size weight")
+    ///                          ^^^^^^^^^^^^^^^^^^^^^^^^
+    /// }
+    /// ```
+    pub(crate) fn provides(self) -> Option<&'a [Selection]> {
+        Some(self.field().provides.as_slice()).filter(|selection| !selection.is_empty())
     }
 
     /// ```ignore,graphql

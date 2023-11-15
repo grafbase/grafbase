@@ -51,6 +51,7 @@ fn emit_fields(ir_fields: Vec<FieldIr>, ctx: &mut Context<'_>) {
         field_type,
         arguments,
         resolvable_in,
+        provides,
     } in ir_fields
     {
         let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));

@@ -38,6 +38,7 @@ pub(super) fn merge_input_object_definitions(
             field.r#type().id,
             Default::default(),
             Default::default(),
+            Vec::new(),
         );
     }
 }

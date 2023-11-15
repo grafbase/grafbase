@@ -142,7 +142,13 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
 
     if let Some(subgraph) = &field.resolvable_in {
         let subgraph_name = GraphEnumVariantName(&graph[graph[*subgraph].name]);
-        let provides = field.provides;
+        let provides = MaybeDisplay(
+            field
+                .provides
+                .iter()
+                .find(|provides| provides.subgraph_id == *subgraph)
+                .map(|fieldset| FieldSetDisplay(&fieldset.fields, graph)),
+        );
         write!(sdl, " @join__field(graph: {subgraph_name}{provides})")?;
     }
 
@@ -232,6 +238,18 @@ impl Display for GraphEnumVariantName<'_> {
             for upcased in char.to_uppercase() {
                 f.write_char(upcased)?;
             }
+        }
+
+        Ok(())
+    }
+}
+
+struct MaybeDisplay<T>(Option<T>);
+
+impl<T: Display> Display for MaybeDisplay<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(inner) = &self.0 {
+            Display::fmt(inner, f)?;
         }
 
         Ok(())
