@@ -39,6 +39,7 @@ pub(super) fn merge_input_object_definitions(
             Default::default(),
             Default::default(),
             Vec::new(),
+            Vec::new(),
         );
     }
 }

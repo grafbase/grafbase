@@ -15,6 +15,7 @@ struct Field {
     field_type: FieldTypeId,
     arguments: Vec<(StringId, FieldTypeId)>,
     provides: Option<Vec<Selection>>,
+    requires: Option<Vec<Selection>>,
     is_shareable: bool,
     is_external: bool,
 }
@@ -32,9 +33,13 @@ impl Subgraphs {
         is_shareable: bool,
         is_external: bool,
         provides: Option<&str>,
+        requires: Option<&str>,
     ) -> Result<FieldId, String> {
         let provides = provides
             .map(|provides| self.selection_set_from_str(provides))
+            .transpose()?;
+        let requires = requires
+            .map(|requires| self.selection_set_from_str(requires))
             .transpose()?;
         let name = self.strings.intern(field_name);
 
@@ -50,6 +55,7 @@ impl Subgraphs {
             is_external,
             arguments: Vec::new(),
             provides,
+            requires,
         };
         let id = FieldId(self.fields.0.push_return_idx(field));
         let parent_object_name = self.walk(parent_definition_id).name().id;
@@ -130,6 +136,18 @@ impl<'a> FieldWalker<'a> {
     /// ```
     pub(crate) fn provides(self) -> Option<&'a [Selection]> {
         self.field().provides.as_deref()
+    }
+
+    /// ```ignore.graphql
+    /// extend type Farm @federation__key(fields: "id") {
+    ///   id: ID! @federation__external
+    ///   chiliId: ID! @federation__external
+    ///   chiliDetails: ChiliVariety @federation__requires(fields: "chiliId")
+    ///                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    /// }
+    /// ```
+    pub(crate) fn requires(self) -> Option<&'a [Selection]> {
+        self.field().requires.as_deref()
     }
 
     /// ```ignore,graphql

@@ -23,6 +23,7 @@ pub(super) fn merge_interface_definitions(
             Vec::new(),
             None,
             Vec::new(),
+            Vec::new(),
         );
     }
 }

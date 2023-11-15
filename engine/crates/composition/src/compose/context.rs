@@ -54,9 +54,17 @@ impl<'a> Context<'a> {
         arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
         resolvable_in: Option<federated::SubgraphId>,
         provides: Vec<subgraphs::FieldId>,
+        requires: Vec<subgraphs::FieldId>,
     ) {
-        self.ir
-            .insert_field(parent_name, field_name, field_type, arguments, resolvable_in, provides);
+        self.ir.insert_field(
+            parent_name,
+            field_name,
+            field_type,
+            arguments,
+            resolvable_in,
+            provides,
+            requires,
+        );
     }
 
     pub(crate) fn insert_input_object(&mut self, name: StringWalker<'_>) -> federated::InputObjectId {

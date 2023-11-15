@@ -90,9 +90,8 @@ fn merge_object_definitions<'a>(
 fn merge_field_definitions<'a>(fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
     let Some(first) = fields.get(0) else { return };
 
-    match first.parent_definition().kind() {
-        DefinitionKind::Object => object::compose_object_fields(*first, fields, ctx),
-        _ => (),
+    if first.parent_definition().kind() == DefinitionKind::Object {
+        object::compose_object_fields(*first, fields, ctx);
     }
 }
 

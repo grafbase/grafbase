@@ -93,7 +93,9 @@ fn ingest_definition_bodies(
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
                 for field in &input_object.fields {
                     let ty = subgraphs.intern_field_type(&field.node.ty.node);
-                    subgraphs.push_field(definition_id, &field.node.name.node, ty, false, false, None).unwrap();
+                    subgraphs
+                        .push_field(definition_id, &field.node.name.node, ty, false, false, None, None)
+                        .unwrap();
                 }
             }
             ast::TypeKind::Interface(interface) => {
@@ -101,7 +103,9 @@ fn ingest_definition_bodies(
 
                 for field in &interface.fields {
                     let ty = subgraphs.intern_field_type(&field.node.ty.node);
-                    subgraphs.push_field(definition_id, &field.node.name.node, ty, false, false, None).unwrap();
+                    subgraphs
+                        .push_field(definition_id, &field.node.name.node, ty, false, false, None, None)
+                        .unwrap();
                 }
             }
             ast::TypeKind::Object(object_type) => {

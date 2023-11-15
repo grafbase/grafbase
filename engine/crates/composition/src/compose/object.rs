@@ -1,7 +1,6 @@
-use std::collections::HashSet;
-
 use super::*;
 use crate::subgraphs::{FieldTypeId, StringId};
+use std::collections::HashSet;
 
 /// The arguments of a federated graph's fields are the interseciton of the subgraph's arguments for
 /// that field.
@@ -73,6 +72,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         .filter(|_| fields.len() == 1)
         .map(|field| graphql_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()));
     let provides = fields.iter().filter(|f| f.provides().is_some()).map(|f| f.id).collect();
+    let requires = fields.iter().filter(|f| f.requires().is_some()).map(|f| f.id).collect();
 
     ctx.insert_field(
         first.parent_definition().name().id,
@@ -81,5 +81,6 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         arguments,
         resolvable_in,
         provides,
+        requires,
     );
 }

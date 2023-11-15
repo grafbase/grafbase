@@ -75,6 +75,16 @@ pub(super) fn ingest_fields(
                 _ => None,
             });
 
+        let requires = field
+            .directives
+            .iter()
+            .find(|directive| federation_directives_matcher.is_requires(directive.node.name.node.as_str()))
+            .and_then(|directive| directive.node.get_argument("fields"))
+            .and_then(|v| match &v.node {
+                ConstValue::String(s) => Some(s.as_str()),
+                _ => None,
+            });
+
         let type_id = subgraphs.intern_field_type(&field.ty.node);
         let field_id = subgraphs
             .push_field(
@@ -84,6 +94,7 @@ pub(super) fn ingest_fields(
                 is_shareable,
                 is_external,
                 provides,
+                requires,
             )
             .unwrap();
 

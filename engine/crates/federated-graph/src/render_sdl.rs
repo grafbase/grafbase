@@ -149,7 +149,14 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
                 .find(|provides| provides.subgraph_id == *subgraph)
                 .map(|fieldset| format!(", provides: \"{}\"", FieldSetDisplay(&fieldset.fields, graph))),
         );
-        write!(sdl, " @join__field(graph: {subgraph_name}{provides})")?;
+        let requires = MaybeDisplay(
+            field
+                .requires
+                .iter()
+                .find(|requires| requires.subgraph_id == *subgraph)
+                .map(|fieldset| format!(", requires: \"{}\"", FieldSetDisplay(&fieldset.fields, graph))),
+        );
+        write!(sdl, " @join__field(graph: {subgraph_name}{provides}{requires})")?;
     }
 
     for provides in field
@@ -159,7 +166,17 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[provides.subgraph_id].name]);
         let fields = FieldSetDisplay(&provides.fields, graph);
-        write!(sdl, " @join__field(graph: {subgraph_name}, key: \"{fields}\"")?;
+        write!(sdl, " @join__field(graph: {subgraph_name}, provides: \"{fields}\"")?;
+    }
+
+    for requires in field
+        .requires
+        .iter()
+        .filter(|require| Some(require.subgraph_id) != field.resolvable_in)
+    {
+        let subgraph_name = GraphEnumVariantName(&graph[graph[requires.subgraph_id].name]);
+        let fields = FieldSetDisplay(&requires.fields, graph);
+        write!(sdl, " @join__field(graph: {subgraph_name}, requires: \"{fields}\"")?;
     }
 
     sdl.push('\n');
