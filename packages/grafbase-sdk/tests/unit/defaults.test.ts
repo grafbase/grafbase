@@ -1,6 +1,8 @@
-import { g } from '../../src/index'
+import { graph } from '../../src/index'
 import { describe, expect, it } from '@jest/globals'
 import { renderGraphQL } from '../utils'
+
+const g = graph.Single()
 
 describe('Default value generation', () => {
   it('generates String default', () => {

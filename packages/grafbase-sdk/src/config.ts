@@ -1,6 +1,6 @@
 import { AuthParams, Authentication } from './auth'
 import { CacheParams, GlobalCache } from './cache'
-import { GrafbaseSchema } from './grafbase-schema'
+import { GrafbaseFederationSchema, GrafbaseSchema } from './grafbase-schema'
 import { Experimental, ExperimentalParams } from './experimental'
 import { Federation, FederationParams } from './federation'
 
@@ -8,6 +8,19 @@ import { Federation, FederationParams } from './federation'
  * An interface to create the complete config definition.
  */
 export interface ConfigInput {
+  graph: GrafbaseSchema
+  auth?: AuthParams
+  cache?: CacheParams
+  experimental?: ExperimentalParams
+  federation?: FederationParams
+}
+
+/**
+ * @deprecated use `graph` instead of `schema`
+ * An interface to create the complete config definition.
+ */
+export interface DeprecatedConfigInput {
+  /** @deprecated use `graph` instead */
   schema: GrafbaseSchema
   auth?: AuthParams
   cache?: CacheParams
@@ -16,17 +29,26 @@ export interface ConfigInput {
 }
 
 /**
+ * An interface to create the federation config definition.
+ */
+export interface FederationConfigInput {
+  graph: GrafbaseFederationSchema
+}
+
+/**
  * Defines the complete Grafbase configuration.
  */
 export class Config {
-  private schema: GrafbaseSchema
+  private graph: GrafbaseSchema
   private readonly auth?: Authentication
   private readonly cache?: GlobalCache
   private readonly experimental?: Experimental
   private readonly federation?: Federation
 
-  constructor(input: ConfigInput) {
-    this.schema = input.schema
+  constructor(input: ConfigInput)
+  constructor(input: DeprecatedConfigInput)
+  constructor(input: ConfigInput | DeprecatedConfigInput) {
+    this.graph = 'graph' in input ? input.graph : input.schema
 
     if (input.auth) {
       this.auth = new Authentication(input.auth)
@@ -46,12 +68,24 @@ export class Config {
   }
 
   public toString(): string {
-    const schema = this.schema.toString()
+    const graph = this.graph.toString()
     const auth = this.auth ? this.auth.toString() : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
     const federation = this.federation ? this.federation.toString() : ''
 
-    return `${experimental}${auth}${cache}${federation}${schema}`
+    return `${experimental}${auth}${cache}${federation}${graph}`
+  }
+}
+
+export class FederationConfig {
+  private graph: GrafbaseFederationSchema
+
+  constructor(input: FederationConfigInput) {
+    this.graph = input.graph
+  }
+
+  public toString(): string {
+    return this.graph.toString()
   }
 }

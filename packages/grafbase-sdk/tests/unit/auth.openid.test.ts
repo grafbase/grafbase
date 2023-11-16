@@ -1,6 +1,8 @@
-import { config, g, auth } from '../../src/index'
+import { config, graph, auth } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
 import { renderGraphQL } from '../utils'
+
+const g = graph.Single()
 
 describe('OpenID auth provider', () => {
   beforeEach(() => g.clear())

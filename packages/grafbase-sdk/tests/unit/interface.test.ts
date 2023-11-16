@@ -1,6 +1,8 @@
-import { config, g } from '../../src/index'
+import { config, graph } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
 import { renderGraphQL } from '../utils'
+
+const g = graph.Single()
 
 describe('Interface generator', () => {
   beforeEach(() => g.clear())
