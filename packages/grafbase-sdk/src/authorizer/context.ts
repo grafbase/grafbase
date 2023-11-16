@@ -1,8 +1,8 @@
 /**
- * The type of the `context` argument in a [Custom Authorizer](https://grafbase.com/docs/auth/providers#custom-authorizer). 
+ * The type of the `context` argument in a [Custom Authorizer](https://grafbase.com/docs/auth/providers#custom-authorizer).
  *
  * @example
- * 
+ *
  * // grafbase/authorizers/myJwt.ts
  *
  * import { AuthorizerContext, VerifiedIdentity } from '@grafbase/sdk'

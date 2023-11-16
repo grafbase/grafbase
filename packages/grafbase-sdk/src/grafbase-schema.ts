@@ -60,7 +60,7 @@ export interface IntrospectParams {
   namespace?: boolean
 }
 
-export class GrafbaseSchema {
+export class SingleGraph {
   private enums: Enum<any, any>[]
   private types: Type[]
   private unions: Union[]
@@ -488,5 +488,11 @@ export class GrafbaseSchema {
     ]
 
     return renderOrder.filter(Boolean).flat().map(String).join('\n\n')
+  }
+}
+
+export class FederatedGraph {
+  public toString(): string {
+    return `\nextend schema @graph(type: federated)\n`
   }
 }

@@ -1,5 +1,10 @@
-import { GrafbaseSchema } from './grafbase-schema'
-import { Config, ConfigInput } from './config'
+import {
+  SingleGraphConfig,
+  SingleGraphConfigInput,
+  DeprecatedSingleGraphConfigInput,
+  FederatedGraphConfig,
+  FederatedGraphConfigInput
+} from './config'
 import { OpenAPIParams, PartialOpenAPI } from './connector/openapi'
 import { GraphQLParams, PartialGraphQLAPI } from './connector/graphql'
 import { OpenIDAuth, OpenIDParams } from './auth/openid'
@@ -12,6 +17,8 @@ import { MongoDBParams, PartialMongoDBAPI } from './connector/mongodb'
 import path from 'path'
 import { validateIdentifier } from './validation'
 import { PostgresParams, PartialPostgresAPI } from './connector/postgres'
+import { graph } from './graph'
+import { SingleGraph } from './grafbase-schema'
 
 export { type ResolverContext as Context } from './resolver/context'
 export { type ResolverFn } from './resolver/resolverFn'
@@ -19,24 +26,46 @@ export { type ResolverInfo as Info } from './resolver/info'
 export { type VerifiedIdentity } from './authorizer/verifiedIdentity'
 export { type AuthorizerContext } from './authorizer/context'
 
+export { graph }
+
+/** @deprecated use `graph.Single()` instead */
+export const g = graph.Single()
+
 dotenv.config({
   // must exist, defined by "~/.grafbase/parser/parse-config.ts"
   path: path.join(process.env.GRAFBASE_PROJECT_GRAFBASE_DIR!, '.env'),
-  override: true,
+  override: true
 })
 
 export type AtLeastOne<T> = [T, ...T[]]
 
-/**
- * A builder for a Grafbase schema definition.
- */
-export const g = new GrafbaseSchema()
+const isFederatedGraphConfigInput = (
+  input:
+    | SingleGraphConfigInput
+    | DeprecatedSingleGraphConfigInput
+    | FederatedGraphConfigInput
+): input is FederatedGraphConfigInput =>
+  'graph' in input && input.graph instanceof SingleGraph
 
 /**
  * A constructor for a complete Grafbase configuration.
  */
-export function config(input: ConfigInput): Config {
-  return new Config(input)
+export function config(input: SingleGraphConfigInput): SingleGraphConfig
+/** @deprecated use `graph` instead of `schema` */
+export function config(
+  input: DeprecatedSingleGraphConfigInput
+): SingleGraphConfig
+export function config(input: FederatedGraphConfigInput): SingleGraphConfig
+export function config(
+  input:
+    | SingleGraphConfigInput
+    | DeprecatedSingleGraphConfigInput
+    | FederatedGraphConfigInput
+): SingleGraphConfig | FederatedGraphConfig {
+  if (isFederatedGraphConfigInput(input)) {
+    return new FederatedGraphConfig(input)
+  }
+  return new SingleGraphConfig(input)
 }
 
 export const connector = {
@@ -83,7 +112,7 @@ export const connector = {
     validateIdentifier(name)
 
     return new PartialPostgresAPI(name, params)
-  },
+  }
 }
 
 export const auth = {
@@ -108,7 +137,9 @@ export const auth = {
    *
    * @param params - The configuration parameters.
    */
-  JWKS: (params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>): JWKSAuth => {
+  JWKS: (
+    params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>
+  ): JWKSAuth => {
     return new JWKSAuth(params)
   },
   /**
@@ -118,5 +149,5 @@ export const auth = {
    */
   Authorizer: (params: AuthorizerParams): Authorizer => {
     return new Authorizer(params)
-  },
+  }
 }

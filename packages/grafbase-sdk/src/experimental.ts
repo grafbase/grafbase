@@ -16,8 +16,8 @@ export class Experimental {
 
   public toString(): string {
     const params = Object.keys(this.params)
-      .map(key => `${key}: ${(this.params as any)[key]}`)
-      .join(', ');
+      .map((key) => `${key}: ${(this.params as any)[key]}`)
+      .join(', ')
     return params ? `extend schema\n  @experimental(${params})\n\n` : ''
   }
 }

@@ -1,6 +1,8 @@
-import { config, g, connector } from '../../src/index'
+import { config, graph, connector } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
 import { renderGraphQL } from '../utils'
+
+const g = graph.Single()
 
 describe('MongoDB generator', () => {
   const mongoParams = {

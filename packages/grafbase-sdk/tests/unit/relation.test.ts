@@ -1,6 +1,8 @@
-import { g, config } from '../../src/index'
+import { graph, config } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
 import { renderGraphQL } from '../utils'
+
+const g = graph.Single()
 
 describe('Relations generator', () => {
   beforeEach(() => g.clear())
