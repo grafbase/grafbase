@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use json_dotpath::DotPaths;
 use serde_json::{json, Value};
 use utils::consts::{LENGTH_CREATE_MUTATION, LENGTH_SCHEMA, LENGTH_UPDATE_MUTATION};
@@ -11,7 +11,7 @@ use utils::environment::Environment;
 fn length() {
     let mut env = Environment::init();
 
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
 
     env.write_schema(LENGTH_SCHEMA);
 

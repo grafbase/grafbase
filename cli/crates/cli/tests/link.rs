@@ -1,14 +1,14 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::{api::consts::PROJECT_METADATA_FILE, project::ConfigType};
+use backend::{api::consts::PROJECT_METADATA_FILE, project::GraphType};
 use common::consts::DOT_GRAFBASE_DIRECTORY_NAME;
 use utils::environment::Environment;
 
 #[test]
 fn link_success() {
     let env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
 
     let correct_ulid = "11H70FF572W29JXMG77JAB4KK0";
 
@@ -34,7 +34,7 @@ fn link_success() {
 #[test]
 fn link_invalid_ulid() {
     let env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
 
     let link_output = env.grafbase_link_non_interactive("*1H70FF572W29JXMG77JAB4KK0");
 

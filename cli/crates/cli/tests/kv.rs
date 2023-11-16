@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use serde_json::Value;
 use utils::environment::Environment;
 
@@ -11,7 +11,7 @@ use utils::environment::Environment;
 fn test_kv_integration(#[case] enabled: bool) {
     // prepare
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(format!(
         r#"
                 extend schema @experimental(kv: {enabled})

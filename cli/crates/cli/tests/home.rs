@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use std::path::PathBuf;
 use utils::environment::Environment;
 
@@ -37,7 +37,7 @@ fn env_var(#[case] case_path: PathBuf) {
     std::env::set_var("GRAFBASE_HOME", case_path.as_os_str());
 
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(
         r#"
         type Post @model {

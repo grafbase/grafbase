@@ -3,7 +3,7 @@
 
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use serde_json::{json, Value};
 use utils::client::Client;
 use utils::consts::{
@@ -56,7 +56,7 @@ fn generate_todos(client: &Client, n: usize) -> Vec<Todo> {
 #[test]
 fn pagination() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(PAGINATION_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
@@ -221,7 +221,7 @@ macro_rules! assert_same_todos {
 #[test]
 fn pagination_order() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(PAGINATION_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
@@ -351,7 +351,7 @@ fn pagination_order() {
 #[test]
 fn collection_id_filter() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(PAGINATION_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

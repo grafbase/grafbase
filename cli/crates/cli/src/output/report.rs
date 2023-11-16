@@ -4,17 +4,11 @@ use crate::{
     logs::LogEvent,
     watercolor::{self, watercolor},
 };
-use backend::{
-    project::ConfigType,
-    types::{NestedRequestScopedMessage, RequestCompletedOutcome},
-};
+use backend::types::{NestedRequestScopedMessage, RequestCompletedOutcome};
 use colored::Colorize;
 use common::consts::GRAFBASE_TS_CONFIG_FILE_NAME;
 use common::types::{LogLevel, UdfKind};
-use common::{
-    consts::{GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
-    environment::Warning,
-};
+use common::{consts::LOCALHOST, environment::Warning};
 use std::{net::IpAddr, path::Path};
 
 /// reports to stdout that the server has started
@@ -68,13 +62,10 @@ pub fn start_federated_dev_server(port: u16) {
     );
 }
 
-pub fn project_created(name: Option<&str>, config_type: ConfigType) {
+pub fn project_created(name: Option<&str>) {
     let slash = std::path::MAIN_SEPARATOR.to_string();
 
-    let schema_file_name = match config_type {
-        ConfigType::TypeScript => GRAFBASE_TS_CONFIG_FILE_NAME,
-        ConfigType::GraphQL => GRAFBASE_SCHEMA_FILE_NAME,
-    };
+    let schema_file_name = GRAFBASE_TS_CONFIG_FILE_NAME;
 
     if let Some(name) = name {
         watercolor::output!(r"✨ {name} was successfully initialized!", @BrightBlue);
@@ -96,12 +87,10 @@ pub fn project_created(name: Option<&str>, config_type: ConfigType) {
         );
     }
 
-    if let ConfigType::TypeScript = config_type {
-        println!(
-            "The Grafbase SDK was added to {}, make sure to install dependencies before continuing.",
-            watercolor!("package.json", @BrightBlue)
-        );
-    }
+    println!(
+        "The Grafbase SDK was added to {}, make sure to install dependencies before continuing.",
+        watercolor!("package.json", @BrightBlue)
+    );
 }
 
 /// reports an error to stderr

@@ -117,7 +117,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 )
             }
         }
-        SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.config_format),
+        SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.graph),
         SubCommand::Reset => reset(),
         SubCommand::Login => login(),
         SubCommand::Logout => logout(),

@@ -1,4 +1,4 @@
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use cynic::{GraphQlResponse, QueryBuilder};
 use cynic_introspection::IntrospectionQuery;
 
@@ -48,7 +48,7 @@ async fn graphql_test_with_transforms() {
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);
     env.grafbase_dev_watch();

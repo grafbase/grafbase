@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use serde_json::{json, Value};
 use utils::environment::Environment;
 
@@ -22,7 +22,7 @@ fn init_ts_existing_package_json() {
         }),
     );
 
-    let output = env.grafbase_init_output(ConfigType::TypeScript);
+    let output = env.grafbase_init_output(GraphType::Single);
     println!("stdout: `{}`", String::from_utf8_lossy(&output.stdout));
     assert!(
         output.stderr.is_empty(),
@@ -58,7 +58,7 @@ fn init_ts_existing_package_json() {
 #[cfg_attr(target_os = "windows", ignore)]
 fn init_ts_new_project() {
     let env = Environment::init();
-    let output = env.grafbase_init_output(ConfigType::TypeScript);
+    let output = env.grafbase_init_output(GraphType::Single);
     println!("stdout: `{}`", String::from_utf8_lossy(&output.stdout));
     assert!(
         output.stderr.is_empty(),

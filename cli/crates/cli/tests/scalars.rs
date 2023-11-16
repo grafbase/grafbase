@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use regex::Regex;
 use serde_json::{json, Value};
 use utils::client::Client;
@@ -54,7 +54,7 @@ fn error_matching(pattern: &str) -> Result<Value, Regex> {
 #[test]
 fn scalars() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(SCALARS_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

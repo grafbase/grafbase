@@ -2,14 +2,14 @@
 mod utils;
 
 use crate::utils::consts::{DEFAULT_DIRECTIVE_CREATE_USER1, DEFAULT_DIRECTIVE_CREATE_USER2, DEFAULT_DIRECTIVE_SCHEMA};
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use serde_json::Value;
 use utils::environment::Environment;
 
 #[test]
 fn default_directive() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(DEFAULT_DIRECTIVE_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
