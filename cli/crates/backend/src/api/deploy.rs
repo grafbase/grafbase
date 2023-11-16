@@ -12,7 +12,7 @@ use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};
 use reqwest::{header, Body, Client};
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::Path;
 use tokio::fs::read_to_string;
 use tokio_util::codec::{BytesCodec, FramedRead};
 use tokio_util::compat::TokioAsyncReadCompatExt;
@@ -57,8 +57,10 @@ pub async fn deploy() -> Result<(), ApiError> {
             .map_err(ApiError::AppendToArchive)?;
     }
 
-    let walker = WalkDir::new(&project.path).into_iter();
-    for entry in walker.filter_entry(|entry| entry_not_in_blacklist(entry, &project.path)) {
+    println!("Project path: {}", project.path.to_string_lossy());
+
+    let walker = WalkDir::new(&project.path).min_depth(1).into_iter();
+    for entry in walker.filter_entry(|entry| should_traverse_entry(entry, &project.path)) {
         let entry = entry.map_err(ApiError::ReadProjectFile)?;
 
         let entry_path = entry.path().to_owned();
@@ -133,7 +135,7 @@ pub async fn deploy() -> Result<(), ApiError> {
     }
 }
 
-fn entry_not_in_blacklist(entry: &DirEntry, root_path: &PathBuf) -> bool {
+fn should_traverse_entry(entry: &DirEntry, root_path: &Path) -> bool {
     entry
         .path()
         .strip_prefix(root_path)
