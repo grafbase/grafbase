@@ -32,6 +32,44 @@ fn single_field_from_single_server() {
 
 #[test]
 #[ignore]
-fn test_introspection_matches() {
-    todo!("introspect fake server and introspect federation server - schemas should match")
+fn top_level_typename() {
+    let response = runtime()
+        .block_on(async move {
+            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+
+            engine.execute("query { __typename }").await
+        })
+        .unwrap();
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__typename": "Query"
+      }
+    }
+    "###);
+}
+
+#[test]
+#[ignore]
+fn response_with_lists() {
+    let response = runtime()
+        .block_on(async move {
+            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+
+            engine.execute("query { allBotPullRequests { title } }").await
+        })
+        .unwrap();
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__typename": "Query"
+      }
+    }
+    "###);
 }
