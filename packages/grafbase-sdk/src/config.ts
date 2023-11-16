@@ -46,6 +46,7 @@ export class SingleGraphConfig {
   private readonly federation?: Federation
 
   constructor(input: SingleGraphConfigInput)
+  /** @deprecated use `graph` instead of `schema` */
   constructor(input: DeprecatedSingleGraphConfigInput)
   constructor(
     input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput
