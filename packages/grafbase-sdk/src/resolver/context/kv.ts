@@ -26,7 +26,7 @@ export type KVGetOptions = {
    */
   ttl?: number
   /**  Type of the value. */
-  type?: "text" | "json" | "arraybuffer" | "stream"
+  type?: 'text' | 'json' | 'arraybuffer' | 'stream'
 }
 
 export type KVSetOptions = {

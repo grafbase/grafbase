@@ -15,7 +15,7 @@ import {
   DateDefinition,
   NumberDefinition,
   ObjectDefinition,
-  StringDefinition,
+  StringDefinition
 } from './typedefs/scalar'
 import { FieldType } from './typedefs'
 import { EnumDefinition } from './typedefs/enum'
@@ -25,7 +25,11 @@ import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
 import { DynamoDBModel, ModelFields } from './connector/dynamodb/model'
 import { PostgresAPI, PartialPostgresAPI } from './connector/postgres'
 
-export type PartialDatasource = PartialOpenAPI | PartialGraphQLAPI | PartialMongoDBAPI | PartialPostgresAPI
+export type PartialDatasource =
+  | PartialOpenAPI
+  | PartialGraphQLAPI
+  | PartialMongoDBAPI
+  | PartialPostgresAPI
 
 export type Datasource = OpenAPI | GraphQLAPI | MongoDBAPI | PostgresAPI
 
@@ -102,7 +106,7 @@ export class GrafbaseSchema {
   public model(name: string, fields: ModelFields): DynamoDBModel {
     const model = Object.entries(fields).reduce(
       (model, [name, definition]) => model.field(name, definition),
-      new DynamoDBModel(name),
+      new DynamoDBModel(name)
     )
 
     this.models.push(model)
@@ -119,7 +123,7 @@ export class GrafbaseSchema {
   public type(name: string, fields: TypeFields): Type {
     const type = Object.entries(fields).reduce(
       (type, [name, definition]) => type.field(name, definition),
-      new Type(name),
+      new Type(name)
     )
 
     this.types.push(type)
@@ -136,7 +140,7 @@ export class GrafbaseSchema {
   public interface(name: string, fields: InterfaceFields): Interface {
     const iface = Object.entries(fields).reduce(
       (iface, [name, definition]) => iface.field(name, definition),
-      new Interface(name),
+      new Interface(name)
     )
 
     this.interfaces.push(iface)
@@ -151,7 +155,10 @@ export class GrafbaseSchema {
    * @param types - The types to be included.
    */
   public union(name: string, types: Record<string, Type>): Union {
-    const union = Object.entries(types).reduce((model, [_, type]) => model.type(type), new Union(name))
+    const union = Object.entries(types).reduce(
+      (model, [_, type]) => model.type(type),
+      new Union(name)
+    )
 
     this.unions.push(union)
 
@@ -168,7 +175,9 @@ export class GrafbaseSchema {
     const query = new Query(name, definition.returns, definition.resolver)
 
     if (definition.args != null) {
-      Object.entries(definition.args).forEach(([name, type]) => query.argument(name, type))
+      Object.entries(definition.args).forEach(([name, type]) =>
+        query.argument(name, type)
+      )
     }
 
     if (!this.queries) {
@@ -190,7 +199,10 @@ export class GrafbaseSchema {
     const query = new Query(name, definition.returns, definition.resolver)
 
     if (definition.args != null) {
-      Object.entries(definition.args).forEach(([name, type]) => query.argument(name, type), query)
+      Object.entries(definition.args).forEach(
+        ([name, type]) => query.argument(name, type),
+        query
+      )
     }
 
     if (!this.mutations) {
@@ -226,7 +238,10 @@ export class GrafbaseSchema {
    * @param name - The name of the enum.
    * @param variants - A list of variants of the enum.
    */
-  public enum<T extends string, U extends EnumShape<T>>(name: string, variants: U): Enum<T, U> {
+  public enum<T extends string, U extends EnumShape<T>>(
+    name: string,
+    variants: U
+  ): Enum<T, U> {
     const e = new Enum(name, variants)
     this.enums.push(e)
 
@@ -368,7 +383,9 @@ export class GrafbaseSchema {
    *
    * @param e - An enum to be referred.
    */
-  public enumRef<T extends string, U extends EnumShape<T>>(e: Enum<T, U>): EnumDefinition<T, U> {
+  public enumRef<T extends string, U extends EnumShape<T>>(
+    e: Enum<T, U>
+  ): EnumDefinition<T, U> {
     return new EnumDefinition(e)
   }
 
@@ -396,7 +413,9 @@ export class GrafbaseSchema {
       const query = new Query(name, input.returns, input.resolver)
 
       if (input.args != null) {
-        Object.entries(input.args).forEach(([name, type]) => query.argument(name, type))
+        Object.entries(input.args).forEach(([name, type]) =>
+          query.argument(name, type)
+        )
       }
 
       extension.query(query)
@@ -465,7 +484,7 @@ export class GrafbaseSchema {
       queries,
       mutations,
       unions,
-      models,
+      models
     ]
 
     return renderOrder.filter(Boolean).flat().map(String).join('\n\n')

@@ -17,5 +17,16 @@ import { type ResolverInfo } from './info'
  * }
  *
  */
-export type ResolverFn<Parent, Args, Return> = ((parent: Parent, args: Args, context: ResolverContext, info: ResolverInfo) => Return) |
-    ((parent: Parent, args: Args, context: ResolverContext, pageInfo: ResolverInfo) => Promise<Return>)
+export type ResolverFn<Parent, Args, Return> =
+  | ((
+      parent: Parent,
+      args: Args,
+      context: ResolverContext,
+      info: ResolverInfo
+    ) => Return)
+  | ((
+      parent: Parent,
+      args: Args,
+      context: ResolverContext,
+      pageInfo: ResolverInfo
+    ) => Promise<Return>)
