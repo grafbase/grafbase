@@ -1,5 +1,8 @@
 use super::*;
-use crate::subgraphs::{FieldId, StringId};
+use crate::{
+    composition_ir as ir,
+    subgraphs::{FieldId, StringId},
+};
 
 pub(super) fn merge_interface_definitions(
     ctx: &mut Context<'_>,
@@ -16,6 +19,14 @@ pub(super) fn merge_interface_definitions(
 
     for field in all_fields.values() {
         let field = first.walk(*field);
-        ctx.insert_field(first.name().id, field.name().id, field.r#type().id, Vec::new(), None);
+        ctx.insert_field(ir::FieldIr {
+            parent_name: first.name().id,
+            field_name: field.name().id,
+            field_type: field.r#type().id,
+            arguments: Vec::new(),
+            resolvable_in: None,
+            provides: Vec::new(),
+            requires: Vec::new(),
+        });
     }
 }

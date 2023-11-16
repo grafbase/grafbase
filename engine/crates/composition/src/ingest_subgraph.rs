@@ -8,7 +8,7 @@ mod schema_definitions;
 
 use self::schema_definitions::*;
 use crate::{
-    subgraphs::{DefinitionKind, SubgraphId},
+    subgraphs::{self, DefinitionKind, SubgraphId},
     Subgraphs,
 };
 use async_graphql_parser::types as ast;
@@ -92,16 +92,36 @@ fn ingest_definition_bodies(
             ast::TypeKind::InputObject(input_object) => {
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
                 for field in &input_object.fields {
-                    let ty = subgraphs.intern_field_type(&field.node.ty.node);
-                    subgraphs.push_field(definition_id, &field.node.name.node, ty, false);
+                    let field_type = subgraphs.intern_field_type(&field.node.ty.node);
+                    subgraphs
+                        .push_field(subgraphs::FieldIngest {
+                            parent_definition_id: definition_id,
+                            field_name: &field.node.name.node,
+                            field_type,
+                            is_shareable: false,
+                            is_external: false,
+                            provides: None,
+                            requires: None,
+                        })
+                        .unwrap();
                 }
             }
             ast::TypeKind::Interface(interface) => {
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
 
                 for field in &interface.fields {
-                    let ty = subgraphs.intern_field_type(&field.node.ty.node);
-                    subgraphs.push_field(definition_id, &field.node.name.node, ty, false);
+                    let field_type = subgraphs.intern_field_type(&field.node.ty.node);
+                    subgraphs
+                        .push_field(subgraphs::FieldIngest {
+                            parent_definition_id: definition_id,
+                            field_name: &field.node.name.node,
+                            field_type,
+                            is_shareable: false,
+                            is_external: false,
+                            provides: None,
+                            requires: None,
+                        })
+                        .unwrap();
                 }
             }
             ast::TypeKind::Object(object_type) => {

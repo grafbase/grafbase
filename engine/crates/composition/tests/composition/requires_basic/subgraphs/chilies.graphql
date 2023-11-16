@@ -1,0 +1,17 @@
+extend type Farm @federation__key(fields: "id") {
+  id: ID! @federation__external
+  chiliId: ID! @federation__external
+  chiliDetails: ChiliVariety @federation__requires(fields: "chiliId")
+}
+
+type ChiliVariety {
+  id: ID!
+  name: String!
+  spicinessScale: Int!
+  description: String
+}
+
+type Query {
+  chiliVariety(id: ID!): ChiliVariety
+  chiliVarieties: [ChiliVariety]
+}

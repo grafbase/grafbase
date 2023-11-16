@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
-
 use super::*;
+use crate::composition_ir as ir;
+use std::collections::{HashMap, HashSet};
 
 pub(super) fn merge_input_object_definitions(
     ctx: &mut Context<'_>,
@@ -32,12 +32,14 @@ pub(super) fn merge_input_object_definitions(
     ctx.insert_input_object(first.name());
 
     for field in first.fields().filter(|f| common_fields.contains_key(&f.name().id)) {
-        ctx.insert_field(
-            first.name().id,
-            field.name().id,
-            field.r#type().id,
-            Default::default(),
-            Default::default(),
-        );
+        ctx.insert_field(ir::FieldIr {
+            parent_name: first.name().id,
+            field_name: field.name().id,
+            field_type: field.r#type().id,
+            arguments: Vec::new(),
+            resolvable_in: None,
+            provides: Vec::new(),
+            requires: Vec::new(),
+        });
     }
 }
