@@ -9,7 +9,7 @@ describe('Experimental generator', () => {
 
   it('renders experimental with kv enabled', async () => {
     const cfg = config({
-      schema: g,
+      graph: g,
       experimental: {
         kv: true
       }
@@ -25,7 +25,7 @@ describe('Experimental generator', () => {
 
   it('renders experimental with ai enabled', async () => {
     const cfg = config({
-      schema: g,
+      graph: g,
       experimental: {
         ai: true
       }
@@ -41,7 +41,7 @@ describe('Experimental generator', () => {
 
   it('renders experimental with ai and kv enabled', async () => {
     const cfg = config({
-      schema: g,
+      graph: g,
       experimental: {
         ai: true,
         kv: true
@@ -58,7 +58,7 @@ describe('Experimental generator', () => {
 
   it('renders experimental with kv disabled', async () => {
     const cfg = config({
-      schema: g,
+      graph: g,
       experimental: {
         kv: false
       }
@@ -74,7 +74,7 @@ describe('Experimental generator', () => {
 
   it('renders experimental with ai disabled', async () => {
     const cfg = config({
-      schema: g,
+      graph: g,
       experimental: {
         ai: false
       }
@@ -90,7 +90,7 @@ describe('Experimental generator', () => {
 
   it('doesnt render experimental', async () => {
     const cfg = config({
-      schema: g,
+      graph: g,
       cache: {
         rules: [
           {
@@ -102,7 +102,7 @@ describe('Experimental generator', () => {
     })
 
     const cfg2 = config({
-      schema: g,
+      graph: g,
       cache: {
         rules: [
           {
