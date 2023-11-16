@@ -39,7 +39,7 @@ dotenv.config({
 
 export type AtLeastOne<T> = [T, ...T[]]
 
-const isFederationConfigInput = (
+const isFederatedGraphConfigInput = (
   input:
     | SingleGraphConfigInput
     | DeprecatedSingleGraphConfigInput
@@ -62,7 +62,7 @@ export function config(
     | DeprecatedSingleGraphConfigInput
     | FederatedGraphConfigInput
 ): SingleGraphConfig | FederatedGraphConfig {
-  if (isFederationConfigInput(input)) {
+  if (isFederatedGraphConfigInput(input)) {
     return new FederatedGraphConfig(input)
   }
   return new SingleGraphConfig(input)
