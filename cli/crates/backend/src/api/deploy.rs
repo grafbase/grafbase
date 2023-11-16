@@ -57,8 +57,6 @@ pub async fn deploy() -> Result<(), ApiError> {
             .map_err(ApiError::AppendToArchive)?;
     }
 
-    println!("Project path: {}", project.path.to_string_lossy());
-
     let walker = WalkDir::new(&project.path).min_depth(1).into_iter();
     for entry in walker.filter_entry(|entry| should_traverse_entry(entry, &project.path)) {
         let entry = entry.map_err(ApiError::ReadProjectFile)?;
