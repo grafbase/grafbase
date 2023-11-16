@@ -2,11 +2,12 @@ use std::fmt::Debug;
 
 use schema::Schema;
 
-use crate::execution::ExecutionStrings;
+use crate::{execution::Strings, request::OperationFields};
 
 pub struct FormatterContext<'a> {
     pub schema: &'a Schema,
-    pub strings: &'a ExecutionStrings,
+    pub operation_fields: &'a OperationFields,
+    pub strings: &'a Strings,
 }
 
 pub trait FormatterContextHolder {
@@ -24,6 +25,7 @@ impl<'a> FormatterContextHolder for FormatterContext<'a> {
         FormatterContext {
             schema: self.schema,
             strings: self.strings,
+            operation_fields: self.operation_fields,
         }
     }
 }

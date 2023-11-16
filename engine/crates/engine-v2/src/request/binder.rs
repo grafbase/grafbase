@@ -3,30 +3,26 @@ pub use engine_parser::types::OperationType;
 use engine_parser::{types::OperationDefinition, Positioned};
 use schema::{FieldId, Schema};
 
-use super::{
-    fields::OperationField, OperationArgument, OperationFieldsBuilder, OperationSelection, OperationSelectionSet,
-};
+use super::{fields::OperationField, OperationArgument, OperationFields, OperationSelection, OperationSelectionSet};
+use crate::{execution::Strings, schema_ext::SchemaExt};
 
-pub struct OperationBinder<'a, 'b> {
-    pub(super) schema: &'a Schema,
-    pub(super) fields: &'a mut OperationFieldsBuilder<'b>,
+pub struct OperationBinder<'a, 'b, 'c> {
+    schema: &'a Schema,
+    fields: &'b mut OperationFields,
+    strings: &'c mut Strings,
 }
 
-impl<'a, 'b> OperationBinder<'a, 'b> {
+impl<'a, 'b, 'c> OperationBinder<'a, 'b, 'c> {
+    pub fn new(schema: &'a Schema, fields: &'b mut OperationFields, strings: &'c mut Strings) -> Self {
+        Self {
+            schema,
+            fields,
+            strings,
+        }
+    }
+
     pub fn bind(mut self, operation_definition: OperationDefinition) -> ServerResult<OperationSelectionSet> {
-        let root_object_id = match operation_definition.ty {
-            OperationType::Query => self.schema.root_operation_types.query,
-            OperationType::Mutation => self
-                .schema
-                .root_operation_types
-                .mutation
-                .expect("Mutation operation type not supported by schema."),
-            OperationType::Subscription => self
-                .schema
-                .root_operation_types
-                .subscription
-                .expect("Subscription operation type not supported by schema."),
-        };
+        let root_object_id = self.schema.get_root_object_id(operation_definition.ty);
         self.bind_selection_set(
             self.schema.object_fields(root_object_id).collect(),
             operation_definition.selection_set,
@@ -113,11 +109,12 @@ impl<'a, 'b> OperationBinder<'a, 'b> {
                             field.selection_set,
                         )?
                     };
+                    let name = &field
+                        .alias
+                        .map(|Positioned { node, .. }| node.to_string())
+                        .unwrap_or(name);
                     let response_field_id = self.fields.push(OperationField {
-                        name: &field
-                            .alias
-                            .map(|Positioned { node, .. }| node.to_string())
-                            .unwrap_or(name),
+                        name: self.strings.get_or_intern(name),
                         position,
                         pos,
                         field_id,
@@ -125,8 +122,7 @@ impl<'a, 'b> OperationBinder<'a, 'b> {
                         arguments,
                     });
                     Ok(OperationSelection {
-                        op_field_id: response_field_id,
-                        name: self.fields[response_field_id].name,
+                        operation_field_id: response_field_id,
                         subselection,
                     })
                 }

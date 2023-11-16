@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 
 use crate::{
-    execution::ExecStringId,
+    execution::StrId,
     response::{Response, ResponseSparseObject, ResponseValue},
 };
 
@@ -12,7 +12,7 @@ pub struct AnyFieldsSeed<'resp> {
 }
 
 impl<'de, 'resp> DeserializeSeed<'de> for AnyFieldsSeed<'resp> {
-    type Value = Vec<(ExecStringId, ResponseValue)>;
+    type Value = Vec<(StrId, ResponseValue)>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -29,7 +29,7 @@ struct AnyFieldsVistor<'resp> {
 }
 
 impl<'de, 'resp> Visitor<'de> for AnyFieldsVistor<'resp> {
-    type Value = Vec<(ExecStringId, ResponseValue)>;
+    type Value = Vec<(StrId, ResponseValue)>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("an object")

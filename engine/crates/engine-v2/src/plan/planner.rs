@@ -3,18 +3,19 @@ use std::{
     num::NonZeroUsize,
 };
 
+use engine_parser::types::OperationDefinition;
 use itertools::Itertools;
 use schema::{DataSourceId, FieldId, FieldResolver, ResolverId};
 
 use super::{plans::ExecutionPlansBuilder, ExecutionPlan, ExecutionPlans, PlanId};
 use crate::{
-    execution::ExecutionStrings,
+    execution::Strings,
     formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
     request::{
-        Operation, OperationFieldId, OperationFields, OperationFieldsBuilder, OperationPath, OperationPathSegment,
+        Operation, OperationFieldId, OperationFields, OperationPath, OperationPathSegment, OperationSelection,
         OperationSelectionSet, OperationType, ResolvedTypeCondition, TypeCondition,
     },
-    response::{ReadSelection, ReadSelectionSet, WriteSelection, WriteSelectionSet},
+    response::{ReadSelection, ReadSelectionSet},
     Engine,
 };
 
@@ -24,53 +25,54 @@ use crate::{
 // If that doesn't make any sense, we should rename that to OperationPlan
 pub struct PlannedOperation {
     pub ty: OperationType,
-    pub selection_set: ReadSelectionSet,
+    pub final_read_selection_set: ReadSelectionSet,
     pub fields: OperationFields,
-    pub strings: ExecutionStrings,
+    pub strings: Strings,
     pub plans: ExecutionPlans,
 }
 
 impl PlannedOperation {
-    pub fn build(engine: &Engine, operation: Operation) -> PlannedOperation {
+    pub fn build(engine: &Engine, operation_definition: OperationDefinition) -> PlannedOperation {
+        let mut strings = Strings::new();
         let Operation {
             ty,
             selection_set,
             fields,
-            mut strings,
-        } = operation;
-
+        } = Operation::bind(&engine.schema, operation_definition, &mut strings);
         let mut planner = Planner {
             engine,
+            strings: &mut strings,
             plans: ExecutionPlans::builder(),
-            fields: fields.into_builder(&mut strings),
+            fields,
         };
         planner.plan_operation(&selection_set);
-        let selection_set = planner.create_final_read_selection_set(&selection_set);
-        let fields = planner.fields.build();
-        let execution_plans = planner.plans.build();
+        let final_read_selection_set = planner.create_final_read_selection_set(&selection_set);
+        let fields = planner.fields;
+        let plans = planner.plans.build();
 
         PlannedOperation {
             ty,
-            selection_set,
+            final_read_selection_set,
             fields,
             strings,
-            plans: execution_plans,
+            plans,
         }
     }
 }
 
-pub struct Planner<'a> {
+pub struct Planner<'a, 'b> {
     engine: &'a Engine,
-    fields: OperationFieldsBuilder<'a>,
+    strings: &'b mut Strings,
+    fields: OperationFields,
     plans: ExecutionPlansBuilder,
 }
 
-impl<'a> Planner<'a> {
+impl<'a, 'b> Planner<'a, 'b> {
     fn create_final_read_selection_set(&self, selection_set: &OperationSelectionSet) -> ReadSelectionSet {
         selection_set
             .iter()
             .map(|selection| {
-                let op_field = &self.fields[selection.op_field_id];
+                let op_field = &self.fields[selection.operation_field_id];
                 ReadSelection {
                     response_position: op_field.position,
                     response_name: op_field.name,
@@ -111,7 +113,7 @@ impl<'a> Planner<'a> {
 
         let mut candidates = HashMap::<ResolverId, ResolverIO>::new();
         for selection in &selection_set {
-            let field_id = self.fields[selection.op_field_id].field_id;
+            let field_id = self.fields[selection.operation_field_id].field_id;
             for FieldResolver { resolver_id, requires } in &self.engine.schema[field_id].resolvers {
                 let io = candidates.entry(*resolver_id).or_default();
                 io.input = schema::FieldSet::merge(&io.input, requires);
@@ -126,19 +128,17 @@ impl<'a> Planner<'a> {
         // - plan it, and iterate until we planned everything.
         let mut plan_ids = vec![];
         let mut children = vec![];
-        // will need to reworked with inputs adding fields.
-        let dense_capacity = self.compute_dense_capacity(selection_set.iter().map(|selection| selection.op_field_id));
         for (resolver_id, io) in candidates {
             assert!(io.input.is_empty());
             let resolver = &self.engine.schema[resolver_id];
-            let (write_selections, mut to_be_planned, rest) =
+            let (plan_selection_set, mut to_be_planned, rest) =
                 self.partition_selection_set(resolver.data_source_id(), io.output, &path, selection_set);
             selection_set = rest;
 
             let plan_id = self.plans.push(ExecutionPlan {
                 path: path.clone(),
                 input: ReadSelectionSet::empty(),
-                output: WriteSelectionSet::new(dense_capacity, write_selections),
+                selection_set: plan_selection_set,
                 resolver_id,
             });
 
@@ -159,6 +159,7 @@ impl<'a> Planner<'a> {
         children
     }
 
+    // will be used in a later PR.
     fn compute_dense_capacity(&self, fields: impl IntoIterator<Item = OperationFieldId>) -> Option<NonZeroUsize> {
         let mut count: usize = 0;
         let mut type_conditions = HashSet::new();
@@ -182,26 +183,24 @@ impl<'a> Planner<'a> {
         mut output_fields: Vec<FieldId>,
         path: &OperationPath,
         selection_set: OperationSelectionSet,
-    ) -> (Vec<WriteSelection>, Vec<ToBePlanned>, OperationSelectionSet) {
+    ) -> (OperationSelectionSet, Vec<ToBePlanned>, OperationSelectionSet) {
         output_fields.sort_unstable();
         let mut to_be_planned = vec![];
 
-        let (write_selections, rest) = selection_set
+        let (selection_set, rest) = selection_set
             .into_iter()
             .map(|selection| {
-                let op_field = &self.fields[selection.op_field_id];
+                let op_field = &self.fields[selection.operation_field_id];
                 if output_fields.binary_search(&op_field.field_id).is_ok() {
                     let schema_field = &self.engine.schema[op_field.field_id];
 
-                    Ok(WriteSelection {
-                        operation_field_id: selection.op_field_id,
-                        response_position: op_field.position,
-                        response_name: op_field.name,
+                    Ok(OperationSelection {
+                        operation_field_id: selection.operation_field_id,
                         subselection: self.assign_provideable_write_selection_set(
                             data_source_id,
                             schema_field.provides(data_source_id).cloned().unwrap_or_default(),
                             true,
-                            self.make_path_child(path, selection.op_field_id),
+                            self.make_path_child(path, selection.operation_field_id),
                             selection.subselection,
                             &mut to_be_planned,
                         ),
@@ -212,7 +211,7 @@ impl<'a> Planner<'a> {
             })
             .partition_result();
 
-        (write_selections, to_be_planned, rest)
+        (selection_set, to_be_planned, rest)
     }
 
     fn assign_provideable_write_selection_set(
@@ -223,12 +222,11 @@ impl<'a> Planner<'a> {
         path: OperationPath,
         selection_set: OperationSelectionSet,
         to_be_planned: &mut Vec<ToBePlanned>,
-    ) -> WriteSelectionSet {
-        let dense_capacity = self.compute_dense_capacity(selection_set.iter().map(|selection| selection.op_field_id));
-        let (items, missing): (Vec<WriteSelection>, OperationSelectionSet) = selection_set
+    ) -> OperationSelectionSet {
+        let (found, missing): (OperationSelectionSet, OperationSelectionSet) = selection_set
             .into_iter()
             .map(|selection| {
-                let op_field = &self.fields[selection.op_field_id];
+                let op_field = &self.fields[selection.operation_field_id];
                 let schema_field = &self.engine.schema[op_field.field_id];
 
                 let provideable_field = provideable.selection(op_field.field_id);
@@ -237,15 +235,13 @@ impl<'a> Planner<'a> {
                         provideable_field.map(|s| &s.subselection),
                         schema_field.provides(data_source_id),
                     );
-                    Ok(WriteSelection {
-                        operation_field_id: selection.op_field_id,
-                        response_position: op_field.position,
-                        response_name: op_field.name,
+                    Ok(OperationSelection {
+                        operation_field_id: selection.operation_field_id,
                         subselection: self.assign_provideable_write_selection_set(
                             data_source_id,
                             provideable,
                             schema_field.resolvers.is_empty(),
-                            self.make_path_child(&path, selection.op_field_id),
+                            self.make_path_child(&path, selection.operation_field_id),
                             selection.subselection,
                             to_be_planned,
                         ),
@@ -262,7 +258,7 @@ impl<'a> Planner<'a> {
                 selection_set: missing,
             });
         }
-        WriteSelectionSet::new(dense_capacity, items)
+        found
     }
 
     fn make_path_child(&self, parent: &OperationPath, child: OperationFieldId) -> OperationPath {
@@ -280,68 +276,6 @@ impl<'a> Planner<'a> {
             name: reponse_field.name,
         })
     }
-
-    // // Here we need to ensure that the requires NodeSelectionSet uses existing fields when possible
-    // fn create_input(
-    //     &mut self,
-    //     parent_output_set: &mut WriteSelectionSet,
-    //     pos: Pos,
-    //     type_condition: Option<TypeCondition>,
-    //     required_selection_set: &schema::FieldSet,
-    // ) -> ReadSelectionSet {
-    //     required_selection_set
-    //         .into_iter()
-    //         .map(|required_selection| {
-    //             let maybe_existing_selection = parent_output_set.iter_mut().find_map(|output| {
-    //                 let response_field = &self.response_fields[output.field];
-    //                 if response_field.field_id == required_selection.field
-    //                     && type_condition
-    //                         .zip(response_field.type_condition)
-    //                         .map(|(a, b)| a == b)
-    //                         .unwrap_or(response_field.type_condition.is_none())
-    //                     && response_field.arguments.is_empty()
-    //                 {
-    //                     Some((response_field, output))
-    //                 } else {
-    //                     None
-    //                 }
-    //             });
-    //             match maybe_existing_selection {
-    //                 Some((response_field, output_selection)) => ReadSelection {
-    //                     name: response_field.name,
-    //                     position: response_field.position,
-    //                     subselection: self.create_input(
-    //                         &mut output_selection.subselection,
-    //                         pos,
-    //                         None,
-    //                         &required_selection.subselection,
-    //                     ),
-    //                 },
-    //                 None => {
-    //                     let schema_field = &self.engine.schema[required_selection.field];
-    //                     let (field, name) = self.response_fields.push_internal_field(
-    //                         &self.engine.schema[schema_field.name],
-    //                         pos,
-    //                         required_selection.field,
-    //                         None,
-    //                         vec![],
-    //                     );
-    //                     let new_output = parent_output_set.insert_internal(WriteSelection {
-    //                         field,
-    //                         subselection: WriteSelectionSet::empty(),
-    //                     });
-    //                     let subselection = self.create_input(
-    //                         &mut new_output.subselection,
-    //                         pos,
-    //                         None,
-    //                         &required_selection.subselection,
-    //                     );
-    //                     ReadSelection { name, subselection }
-    //                 }
-    //             }
-    //         })
-    //         .collect()
-    // }
 }
 
 #[derive(Debug)]
@@ -351,11 +285,12 @@ struct ToBePlanned {
     selection_set: OperationSelectionSet,
 }
 
-impl<'a> FormatterContextHolder for Planner<'a> {
+impl<'a, 'b> FormatterContextHolder for Planner<'a, 'b> {
     fn formatter_context(&self) -> FormatterContext<'_> {
         FormatterContext {
             schema: &self.engine.schema,
-            strings: self.fields.strings(),
+            strings: self.strings,
+            operation_fields: &self.fields,
         }
     }
 }

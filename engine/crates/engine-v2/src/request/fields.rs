@@ -1,7 +1,7 @@
 pub use engine_parser::Pos;
 use schema::{FieldId, FieldTypeId, InterfaceId, ObjectId, StringId, UnionId};
 
-use crate::execution::{ExecStringId, ExecutionStrings};
+use crate::execution::StrId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TypeCondition {
@@ -15,8 +15,8 @@ pub struct OperationFieldId(pub(super) u32);
 
 // Maybe an enum? Need to support `__typename`
 #[derive(Debug)]
-pub struct OperationField<Name = ExecStringId> {
-    pub name: Name,
+pub struct OperationField {
+    pub name: StrId,
     pub position: usize,
     // probably needs a better name. it's the position for requested fields. For added fields,
     // it's the position of the query field that needed it.
@@ -37,23 +37,16 @@ pub struct OperationArgument {
 }
 
 #[derive(Debug)]
-pub struct OperationFields {
-    fields: Vec<OperationField>,
-}
+pub struct OperationFields(Vec<OperationField>);
 
 impl OperationFields {
-    pub fn builder(strings: &mut ExecutionStrings) -> OperationFieldsBuilder<'_> {
-        OperationFieldsBuilder {
-            strings,
-            fields: Vec::new(),
-        }
+    pub fn new() -> Self {
+        Self(Vec::new())
     }
 
-    pub fn into_builder(self, strings: &mut ExecutionStrings) -> OperationFieldsBuilder<'_> {
-        OperationFieldsBuilder {
-            strings,
-            fields: self.fields,
-        }
+    pub fn push(&mut self, field: OperationField) -> OperationFieldId {
+        self.0.push(field);
+        OperationFieldId((self.0.len() - 1) as u32)
     }
 }
 
@@ -61,53 +54,6 @@ impl std::ops::Index<OperationFieldId> for OperationFields {
     type Output = OperationField;
 
     fn index(&self, index: OperationFieldId) -> &Self::Output {
-        &self.fields[index.0 as usize]
-    }
-}
-
-pub struct OperationFieldsBuilder<'a> {
-    strings: &'a mut ExecutionStrings,
-    fields: Vec<OperationField>,
-}
-
-impl<'a> OperationFieldsBuilder<'a> {
-    pub fn get_or_intern(&mut self, value: &str) -> ExecStringId {
-        self.strings.get_or_intern(value)
-    }
-
-    pub fn strings(&self) -> &ExecutionStrings {
-        self.strings
-    }
-
-    pub fn push(&mut self, field: OperationField<&str>) -> OperationFieldId {
-        let OperationField {
-            name,
-            position,
-            pos,
-            type_condition,
-            field_id,
-            arguments,
-        } = field;
-        self.fields.push(OperationField {
-            name: self.strings.get_or_intern(name),
-            position,
-            pos,
-            type_condition,
-            field_id,
-            arguments,
-        });
-        OperationFieldId((self.fields.len() - 1) as u32)
-    }
-
-    pub fn build(self) -> OperationFields {
-        OperationFields { fields: self.fields }
-    }
-}
-
-impl<'a> std::ops::Index<OperationFieldId> for OperationFieldsBuilder<'a> {
-    type Output = OperationField;
-
-    fn index(&self, index: OperationFieldId) -> &Self::Output {
-        &self.fields[index.0 as usize]
+        &self.0[index.0 as usize]
     }
 }

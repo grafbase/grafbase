@@ -1,32 +1,26 @@
 use std::fmt::Debug;
 
 use super::fields::OperationFieldId;
-use crate::{
-    execution::ExecStringId,
-    formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
-};
+use crate::formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder};
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct OperationSelectionSet {
     pub items: Vec<OperationSelection>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OperationSelection {
-    pub op_field_id: OperationFieldId,
-    // will be changed later
-    // not necessary, just avoids fetching it all the time during serialization
-    pub name: ExecStringId,
+    pub operation_field_id: OperationFieldId,
     pub subselection: OperationSelectionSet,
 }
 
 impl OperationSelectionSet {
-    pub fn len(&self) -> usize {
-        self.items.len()
+    pub fn empty() -> Self {
+        Self { items: vec![] }
     }
 
-    pub fn empty() -> Self {
-        Self::default()
+    pub fn len(&self) -> usize {
+        self.items.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -72,12 +66,6 @@ impl<'a> IntoIterator for &'a OperationSelectionSet {
     }
 }
 
-impl From<OperationSelection> for OperationSelectionSet {
-    fn from(selection: OperationSelection) -> Self {
-        Self { items: vec![selection] }
-    }
-}
-
 impl ContextAwareDebug for OperationSelectionSet {
     fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RequestSelectionSet")
@@ -88,8 +76,9 @@ impl ContextAwareDebug for OperationSelectionSet {
 
 impl ContextAwareDebug for OperationSelection {
     fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let field = &ctx.operation_fields[self.operation_field_id];
         f.debug_struct("RequestSelection")
-            .field("name", &ctx.strings[self.name].to_string())
+            .field("name", &ctx.strings[field.name].to_string())
             .field("subselection", &ctx.debug(&self.subselection))
             .finish()
     }

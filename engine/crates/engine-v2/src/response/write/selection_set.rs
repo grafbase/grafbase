@@ -1,7 +1,7 @@
 use core::num::NonZeroUsize;
 
 use crate::{
-    execution::ExecStringId,
+    execution::StrId,
     formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
     request::OperationFieldId,
 };
@@ -17,12 +17,17 @@ pub struct WriteSelectionSet {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WriteSelection {
     pub operation_field_id: OperationFieldId,
+    pub source_name: StrId,
     pub response_position: usize,
-    pub response_name: ExecStringId,
+    pub response_name: StrId,
     pub subselection: WriteSelectionSet,
 }
 
 impl WriteSelectionSet {
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
     pub fn len(&self) -> usize {
         self.items.len()
     }
@@ -32,6 +37,16 @@ impl WriteSelectionSet {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &WriteSelection> {
+        self.items.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a WriteSelectionSet {
+    type Item = &'a WriteSelection;
+
+    type IntoIter = <&'a Vec<WriteSelection> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
         self.items.iter()
     }
 }
