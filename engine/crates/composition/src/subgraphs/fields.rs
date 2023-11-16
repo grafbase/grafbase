@@ -5,13 +5,13 @@ use super::*;
 pub(crate) struct Fields(Vec<Field>);
 
 /// The unique identifier for a field in an object, interface or input object field.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct FieldId(usize);
 
 /// A field in an object, interface or input object type.
-struct Field {
-    parent_definition_id: DefinitionId,
-    name: StringId,
+pub(super) struct Field {
+    pub(super) parent_definition_id: DefinitionId,
+    pub(super) name: StringId,
     field_type: FieldTypeId,
     arguments: Vec<(StringId, FieldTypeId)>,
     provides: Option<Vec<Selection>>,
@@ -86,7 +86,7 @@ pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;
 pub(crate) type ArgumentWalker<'a> = Walker<'a, (StringId, FieldTypeId)>;
 
 impl<'a> FieldWalker<'a> {
-    fn field(self) -> &'a Field {
+    pub(super) fn field(self) -> &'a Field {
         &self.subgraphs.fields.0[self.id.0]
     }
 
@@ -98,25 +98,6 @@ impl<'a> FieldWalker<'a> {
     /// ```
     pub(crate) fn arguments(self) -> impl Iterator<Item = ArgumentWalker<'a>> {
         self.field().arguments.iter().map(move |id| self.walk(*id))
-    }
-
-    /// Returns true iff there is an `@key` directive containing exactly this field (no composite
-    /// key).
-    pub fn is_key(self) -> bool {
-        let field = self.field();
-        self.parent_definition().entity_keys().any(|key| {
-            let mut key_fields = key.fields().iter();
-
-            let Some(first_field) = key_fields.next() else {
-                return false;
-            };
-
-            if key_fields.next().is_some() || !first_field.subselection.is_empty() {
-                return false;
-            }
-
-            first_field.field == field.name
-        })
     }
 
     pub fn is_external(self) -> bool {
@@ -204,5 +185,9 @@ impl<'a> DefinitionWalker<'a> {
             .take_while(move |field| field.parent_definition_id == self.id)
             .enumerate()
             .map(move |(idx, _)| self.walk(FieldId(start + idx)))
+    }
+
+    pub(crate) fn find_field(self, name: StringId) -> Option<FieldWalker<'a>> {
+        self.fields().find(|f| f.name().id == name)
     }
 }

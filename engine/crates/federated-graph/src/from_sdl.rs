@@ -94,9 +94,9 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let parsed = async_graphql_parser::parse_schema(sdl).map_err(|err| DomainError(err.to_string()))?;
 
     ingest_definitions(&parsed, &mut state)?;
-    ingest_graph(&parsed, &mut state)?;
+    ingest_fields(&parsed, &mut state)?;
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
-    ingest_provides_requires(&parsed, &mut state)?;
+    ingest_selection_sets(&parsed, &mut state)?;
 
     Ok(FederatedGraph {
         subgraphs: state.subgraphs,
@@ -121,7 +121,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     })
 }
 
-fn ingest_graph<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
+fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in &parsed.definitions {
         match definition {
             ast::TypeSystemDefinition::Schema(_) => {
@@ -138,7 +138,7 @@ fn ingest_graph<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> 
                             "Broken invariant: object id behind object name.".to_owned(),
                         ));
                     };
-                    ingest_object(object_id, &typedef.node, object, state)?;
+                    ingest_object_fields(object_id, object, state);
                 }
                 ast::TypeKind::Interface(iface) => {
                     let Definition::Interface(interface_id) = state.definition_names[typedef.node.name.node.as_str()]
@@ -167,6 +167,56 @@ fn ingest_graph<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> 
                     ingest_input_object(input_object_id, input_object, state);
                 }
             },
+        }
+    }
+
+    Ok(())
+}
+
+fn ingest_selection_sets(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
+    ingest_provides_requires(parsed, state)?;
+    ingest_entity_keys(parsed, state)
+}
+
+fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
+    for typedef in parsed.definitions.iter().filter_map(|def| match def {
+        ast::TypeSystemDefinition::Type(ty) => Some(&ty.node),
+        _ => None,
+    }) {
+        let Some(Definition::Object(object_id)) = state.definition_names.get(typedef.name.node.as_str()).copied()
+        else {
+            continue;
+        };
+        for join_type in typedef
+            .directives
+            .iter()
+            .filter(|dir| dir.node.name.node == JOIN_TYPE_DIRECTIVE_NAME)
+        {
+            let subgraph_id = join_type
+                .node
+                .get_argument("graph")
+                .and_then(|arg| match &arg.node {
+                    async_graphql_value::ConstValue::Enum(s) => Some(state.graph_sdl_names[s.as_str()]),
+                    _ => None,
+                })
+                .expect("Missing graph argument in @join__type");
+            let fields = join_type
+                .node
+                .get_argument("key")
+                .and_then(|arg| match &arg.node {
+                    async_graphql_value::ConstValue::String(s) => Some(s),
+                    _ => None,
+                })
+                .map(|fields| {
+                    parse_selection_set(fields)
+                        .and_then(|fields| attach_selection(&fields, Definition::Object(object_id), state))
+                })
+                .transpose()?
+                .unwrap_or_default();
+
+            state.objects[object_id.0]
+                .resolvable_keys
+                .push(Key { subgraph_id, fields });
         }
     }
 
@@ -416,50 +466,11 @@ fn ingest_input_object<'a>(
     }
 }
 
-fn ingest_object<'a>(
-    object_id: ObjectId,
-    typedef: &ast::TypeDefinition,
-    object: &'a ast::ObjectType,
-    state: &mut State<'a>,
-) -> Result<(), DomainError> {
+fn ingest_object_fields<'a>(object_id: ObjectId, object: &'a ast::ObjectType, state: &mut State<'a>) {
     for field in &object.fields {
         let field_id = ingest_field(Definition::Object(object_id), &field.node, state);
         state.object_fields.push(ObjectField { object_id, field_id });
     }
-
-    for join_type in typedef
-        .directives
-        .iter()
-        .filter(|dir| dir.node.name.node == JOIN_TYPE_DIRECTIVE_NAME)
-    {
-        let subgraph_id = join_type
-            .node
-            .get_argument("graph")
-            .and_then(|arg| match &arg.node {
-                async_graphql_value::ConstValue::Enum(s) => Some(state.graph_sdl_names[s.as_str()]),
-                _ => None,
-            })
-            .expect("Missing graph argument in @join__type");
-        let fields = join_type
-            .node
-            .get_argument("key")
-            .and_then(|arg| match &arg.node {
-                async_graphql_value::ConstValue::String(s) => Some(s),
-                _ => None,
-            })
-            .map(|fields| {
-                parse_selection_set(fields)
-                    .and_then(|fields| attach_selection(&fields, Definition::Object(object_id), state))
-            })
-            .transpose()?
-            .unwrap_or_default();
-
-        state.objects[object_id.0]
-            .resolvable_keys
-            .push(Key { subgraph_id, fields });
-    }
-
-    Ok(())
 }
 
 fn parse_selection_set(fields: &str) -> Result<Vec<Positioned<ast::Selection>>, DomainError> {

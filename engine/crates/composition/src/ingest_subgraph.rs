@@ -3,10 +3,11 @@
 
 mod enums;
 mod field;
+mod nested_key_fields;
 mod object;
 mod schema_definitions;
 
-use self::schema_definitions::*;
+use self::{nested_key_fields::ingest_nested_key_fields, schema_definitions::*};
 use crate::{
     subgraphs::{self, DefinitionKind, SubgraphId},
     Subgraphs,
@@ -19,8 +20,8 @@ pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: 
     let federation_directives_matcher = ingest_schema_definitions(document);
 
     ingest_top_level_definitions(subgraph_id, document, subgraphs, &federation_directives_matcher);
-
     ingest_definition_bodies(subgraph_id, document, subgraphs, &federation_directives_matcher);
+    ingest_nested_key_fields(subgraph_id, subgraphs);
 }
 
 fn ingest_top_level_definitions(

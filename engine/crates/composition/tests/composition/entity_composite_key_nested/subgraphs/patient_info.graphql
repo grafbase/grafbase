@@ -1,0 +1,23 @@
+extend schema
+    @link(
+        url: "https://specs.apollo.dev/federation/v2.3",
+        import: ["@key", "@requires"]
+     )
+
+type Query {
+  patient(id: ID!): Patient
+  patients: [Patient]
+}
+
+type Patient @key(fields: "id") {
+  id: ID!
+  name: String
+  dateOfBirth: String
+}
+
+type PatientRecord @key(fields: "patient { id } recordId") {
+  patient: Patient
+  recordId: ID!
+  admissionDate: String
+  extendPatientRecord: PatientRecord @requires(fields: "patient { id } recordId")
+}
