@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use serde_json::Value;
 use utils::consts::{
     COMPILATION_ERROR_QUERY, COMPILATION_ERROR_RESOLVER_QUERY, COMPILATION_ERROR_RESOLVER_SCHEMA,
@@ -12,7 +12,7 @@ use utils::environment::Environment;
 #[test]
 fn compilation_error_schema() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(COMPILATION_ERROR_SCHEMA);
 
     env.grafbase_dev_watch();
@@ -42,7 +42,7 @@ fn compilation_error_schema() {
 #[test]
 fn compilation_error_resolvers() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(COMPILATION_ERROR_RESOLVER_SCHEMA);
     env.write_resolver(
         "return-title.js",

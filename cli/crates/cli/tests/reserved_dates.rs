@@ -4,7 +4,7 @@ mod utils;
 use crate::utils::consts::{
     RESERVED_DATES_CREATE_TODO, RESERVED_DATES_CREATE_TODO_LIST, RESERVED_DATES_NESTED_CREATION, RESERVED_DATES_SCHEMA,
 };
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use chrono::{DateTime, Duration, Utc};
 use serde_json::{json, Value};
 use utils::environment::Environment;
@@ -13,7 +13,7 @@ use utils::environment::Environment;
 fn reserved_dates() {
     // TODO: Create simpler client setup (one-line)
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(RESERVED_DATES_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

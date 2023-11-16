@@ -3,7 +3,7 @@ mod utils;
 
 use std::future::IntoFuture;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use serde_json::Value;
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
@@ -12,7 +12,7 @@ use utils::environment::Environment;
 async fn concurrency_thread() {
     let mut env = Environment::init_async().await;
 
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(CONCURRENCY_SCHEMA);
     env.grafbase_dev();
 

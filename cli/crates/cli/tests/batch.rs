@@ -4,7 +4,7 @@ mod utils;
 
 use std::collections::HashSet;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use serde_json::{json, Value};
 use utils::client::Client;
 use utils::consts::{BATCH_COLLECT, BATCH_CREATE, BATCH_DELETE, BATCH_SCHEMA, BATCH_UPDATE};
@@ -96,7 +96,7 @@ macro_rules! assert_content_equal {
 #[test]
 fn batch_create() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(BATCH_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
@@ -183,7 +183,7 @@ fn batch_create() {
 #[test]
 fn batch_update() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(BATCH_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
@@ -286,7 +286,7 @@ fn batch_update() {
 #[test]
 fn batch_delete() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(BATCH_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

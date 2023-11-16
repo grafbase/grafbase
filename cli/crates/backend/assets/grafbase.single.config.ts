@@ -25,8 +25,8 @@ export default config({
     // providers: [oidc],
     rules: (rules) => {
       rules.public()
-    },
-  },
+    }
+  }
   // Caching - https://grafbase.com/docs/graphql-edge-caching
   // cache: {
   //   rules: [

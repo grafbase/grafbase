@@ -3,7 +3,7 @@
 use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use cfg_if::cfg_if;
 use common::consts::GRAFBASE_SCHEMA_FILE_NAME;
 use duct::{cmd, Handle};
@@ -161,7 +161,10 @@ impl Environment {
     }
 
     // TODO: change this to set_schema
+    //
     pub fn write_schema(&self, schema: impl AsRef<str>) {
+        // TODO: this is temporary until we update all tests to use SDK
+        let _ = fs::remove_file("grafbase.config.ts");
         self.write_file("schema.graphql", schema);
     }
 
@@ -230,36 +233,22 @@ impl Environment {
     }
 
     #[track_caller]
-    pub fn grafbase_init(&self, config_format: ConfigType) {
-        cmd!(
-            cargo_bin("grafbase"),
-            "--trace",
-            "2",
-            "init",
-            "-c",
-            config_format.as_ref()
-        )
-        .dir(&self.directory_path)
-        .run()
-        .unwrap();
+    pub fn grafbase_init(&self, graph_type: GraphType) {
+        cmd!(cargo_bin("grafbase"), "--trace", "2", "init", "-g", graph_type.as_ref())
+            .dir(&self.directory_path)
+            .run()
+            .unwrap();
     }
 
     #[track_caller]
-    pub fn grafbase_init_output(&self, config_format: ConfigType) -> Output {
-        cmd!(
-            cargo_bin("grafbase"),
-            "--trace",
-            "2",
-            "init",
-            "-c",
-            config_format.as_ref()
-        )
-        .dir(&self.directory_path)
-        .stdout_capture()
-        .stderr_capture()
-        .unchecked()
-        .run()
-        .unwrap()
+    pub fn grafbase_init_output(&self, graph_type: GraphType) -> Output {
+        cmd!(cargo_bin("grafbase"), "--trace", "2", "init", "-g", graph_type.as_ref())
+            .dir(&self.directory_path)
+            .stdout_capture()
+            .stderr_capture()
+            .unchecked()
+            .run()
+            .unwrap()
     }
 
     pub fn grafbase_init_template_output(&self, name: Option<&str>, template: &str) -> Output {

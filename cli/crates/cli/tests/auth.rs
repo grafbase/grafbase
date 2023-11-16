@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use jwt_compact::alg::{Hs512, Hs512Key};
 use jwt_compact::alg::{Rsa, RsaPrivateKey, RsaPublicKey, StrongAlg, StrongKey};
 use jwt_compact::jwk::JsonWebKey;
@@ -34,7 +34,7 @@ const JWT_SECRET: &str = "topsecret";
 #[test]
 fn jwt_provider() {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTH_JWT_PROVIDER_SCHEMA);
     env.set_variables(HashMap::from([
         ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
@@ -225,7 +225,7 @@ async fn set_up_oidc_with_path(path: Option<&str>) -> SetUpOidc {
     };
     set_up_oidc_server(&issuer_url, &server, key_set).await;
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTH_OIDC_PROVIDER_SCHEMA);
     env.set_variables(HashMap::from([("ISSUER_URL".to_string(), issuer_url.to_string())]));
     env.grafbase_dev();
@@ -253,7 +253,7 @@ async fn set_up_jwks<F: Fn(&Url) -> HashMap<String, String>>(
     let jwks_uri = issuer_url.join(jwks_path).unwrap();
     set_up_jwks_server(jwks_uri.path(), &server, key_set).await;
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     env.set_variables(variables_fn(&issuer_url));
     env.grafbase_dev();
@@ -449,7 +449,7 @@ async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
 #[tokio::test(flavor = "multi_thread")]
 async fn public_global() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTH_PUBLIC_GLOBAL_SCHEMA);
     env.set_variables(HashMap::from([
         ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
@@ -465,7 +465,7 @@ async fn public_global() {
 #[tokio::test(flavor = "multi_thread")]
 async fn public_type() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTH_PUBLIC_TYPE_SCHEMA);
     env.set_variables(HashMap::from([
         ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
@@ -486,7 +486,7 @@ const RESOLVER_CONTENT: &str = r#"export default function Resolver(parent, args,
 #[tokio::test(flavor = "multi_thread")]
 async fn type_field_resolver_mixed() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTH_TYPE_FIELD_RESOLVER_SCHEMA);
     env.write_resolver(RESOLVER_FILE_NAME, RESOLVER_CONTENT);
     env.set_variables(HashMap::from([
@@ -526,7 +526,7 @@ async fn type_field_resolver_mixed() {
 #[tokio::test(flavor = "multi_thread")]
 async fn entrypoint_query_field_resolver() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA);
     env.write_resolver(RESOLVER_FILE_NAME, RESOLVER_CONTENT);
     env.set_variables(HashMap::from([
@@ -565,7 +565,7 @@ async fn entrypoint_query_field_resolver() {
 #[tokio::test(flavor = "multi_thread")]
 async fn entrypoint_mutation_field_resolver_mixed() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA);
     env.write_resolver(RESOLVER_FILE_NAME, RESOLVER_CONTENT);
     env.set_variables(HashMap::from([
@@ -605,7 +605,7 @@ async fn entrypoint_mutation_field_resolver_mixed() {
 #[tokio::test(flavor = "multi_thread")]
 async fn authorizer_with_no_headers_should_work() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
     let authorizer_content = r#"export default function(context) {
@@ -629,7 +629,7 @@ async fn authorizer_with_no_headers_should_work() {
 #[tokio::test(flavor = "multi_thread")]
 async fn authorizer_with_headers_should_work() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
     let authorizer_content = r#"export default function(context) {
@@ -653,7 +653,7 @@ async fn authorizer_with_headers_should_work() {
 #[tokio::test(flavor = "multi_thread")]
 async fn authorizer_with_public_access_should_work() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
     let authorizer_content = r#"export default function(context) {

@@ -21,7 +21,7 @@ pub(crate) use build::BuildCommand;
 pub(crate) use completions::CompletionsCommand;
 pub(crate) use create::CreateCommand;
 pub(crate) use dev::DevCommand;
-pub(crate) use init::{ConfigFormat, InitCommand};
+pub(crate) use init::{GraphType, InitCommand};
 pub(crate) use introspect::IntrospectCommand;
 pub(crate) use link::LinkCommand;
 pub(crate) use log_level_filter::{LogLevelFilter, LogLevelFilters};

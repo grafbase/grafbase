@@ -2,7 +2,7 @@
 #![allow(clippy::too_many_lines)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use rstest_reuse::{self, apply, template};
 use serde_json::Value;
 use utils::environment::Environment;
@@ -276,7 +276,7 @@ fn test_field_resolver(
     #[case] package_json: Option<(JavaScriptPackageManager, &str)>,
 ) {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     std::fs::write(env.directory_path.join(".env"), "MY_OWN_VARIABLE=test_value").unwrap();
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
@@ -474,7 +474,7 @@ fn test_query_mutation_resolver_dev(
     queries: &[(&str, &str)],
 ) {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     for (file_name, file_contents) in resolver_files {
         env.write_resolver(file_name, file_contents);
@@ -507,7 +507,7 @@ fn test_query_mutation_resolver_start(
     queries: &[(&str, &str)],
 ) {
     let mut env = Environment::init();
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     for (file_name, file_contents) in resolver_files {
         env.write_resolver(file_name, file_contents);

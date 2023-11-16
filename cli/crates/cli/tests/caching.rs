@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use headers::{CacheControl, HeaderMapExt};
 
 use serde_json::Value;
@@ -253,7 +253,7 @@ async fn no_cache_header_when_caching_is_not_used() {
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     env.grafbase_dev_watch();
 

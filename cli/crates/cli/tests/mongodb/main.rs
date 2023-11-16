@@ -14,7 +14,7 @@ mod utils;
 
 use std::{fmt, net::SocketAddr};
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use indoc::formatdoc;
 use reqwest::header::USER_AGENT;
 use serde_json::{json, Value};
@@ -282,7 +282,7 @@ impl Server {
             .await;
 
         let mut env = Environment::init_async().await;
-        env.grafbase_init(ConfigType::GraphQL);
+        env.grafbase_init(GraphType::Single);
         env.write_schema(&self.config);
         env.set_variables([("API_KEY", "BLAH")]);
         env.grafbase_dev_watch();

@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use std::collections::HashMap;
 use utils::consts::ENVIRONMENT_SCHEMA;
 use utils::environment::Environment;
@@ -10,7 +10,7 @@ use utils::environment::Environment;
 fn environment_file() {
     let mut env = Environment::init();
 
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
 
     env.write_schema(ENVIRONMENT_SCHEMA);
 
