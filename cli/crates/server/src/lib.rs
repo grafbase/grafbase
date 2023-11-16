@@ -37,4 +37,4 @@ mod udf_builder;
 pub mod errors;
 pub mod types;
 
-pub use servers::{start, ProductionServer};
+pub use servers::{export_embedded_files, start, ProductionServer};

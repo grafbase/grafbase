@@ -102,13 +102,20 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
-            dev(
-                cmd.search,
-                !cmd.disable_watch,
-                cmd.port,
-                cmd.log_levels(),
-                args.trace >= 2,
-            )
+            if cmd.federated {
+                let port = cmd.federation_port();
+
+                report::start_federated_dev_server(port);
+                federated_dev::run(port).map_err(|error| CliError::FederatedDev(error.to_string()))
+            } else {
+                dev(
+                    cmd.search,
+                    !cmd.disable_watch,
+                    cmd.subgraph_port(),
+                    cmd.log_levels(),
+                    args.trace >= 2,
+                )
+            }
         }
         SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.config_format),
         SubCommand::Reset => reset(),
@@ -139,10 +146,16 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
             build(cmd.parallelism(), args.trace >= 2)
         }
-
         SubCommand::Subgraphs(cmd) => subgraphs::subgraphs(cmd),
         SubCommand::Schema(cmd) => schema::schema(cmd),
-        SubCommand::Publish(cmd) => publish::publish(cmd),
+        SubCommand::Publish(cmd) => {
+            if cmd.dev {
+                federated_dev::add_subgraph(&cmd.subgraph_name, &cmd.url, cmd.dev_api_port, cmd.headers().collect())
+                    .map_err(|error| CliError::Publish(error.to_string()))
+            } else {
+                publish::publish(cmd)
+            }
+        }
         SubCommand::Introspect(cmd) => introspect::introspect(&cmd),
     }
 }

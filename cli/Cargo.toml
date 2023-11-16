@@ -30,6 +30,7 @@ tar = { git = "https://github.com/obmarg/tar-rs.git", rev = "bffee32190d531c03d8
 serde_json = "1"
 tokio = "1"
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db3216f058cbfadd4923df2c7" }
+graphql-composition = { path = "../engine/crates/composition" }
 
 [profile.release]
 strip = "symbols"

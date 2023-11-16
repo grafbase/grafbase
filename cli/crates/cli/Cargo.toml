@@ -45,6 +45,7 @@ server = { package = "grafbase-local-server", path = "../server", version = "0.4
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.44.4" }
 common = { package = "grafbase-local-common", path = "../common", version = "0.44.4" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
+federated-dev = { path = "../federated-dev" }
 atty = "0.2.14"
 
 [dev-dependencies]

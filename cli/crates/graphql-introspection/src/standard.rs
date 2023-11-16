@@ -2,11 +2,11 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 use cynic_introspection::IntrospectionQuery;
 use reqwest::header::USER_AGENT;
 
-pub(super) async fn introspect(url: &str, headers: &[(&str, &str)]) -> Result<String, String> {
+pub(super) async fn introspect(url: &str, headers: &[(impl AsRef<str>, impl AsRef<str>)]) -> Result<String, String> {
     let mut request_builder = reqwest::Client::new().post(url).header(USER_AGENT, "Grafbase");
 
     for (name, value) in headers {
-        request_builder = request_builder.header(*name, *value);
+        request_builder = request_builder.header(name.as_ref(), value.as_ref());
     }
 
     let result = match request_builder.run_graphql(IntrospectionQuery::build(())).await {
