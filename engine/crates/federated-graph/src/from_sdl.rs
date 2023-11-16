@@ -4,6 +4,9 @@ use indexmap::IndexSet;
 use std::{collections::HashMap, error::Error as StdError, fmt};
 
 const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
+const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
+const JOIN_FIELD_DIRECTIVE_NAME: &str = "join__field";
+const JOIN_TYPE_DIRECTIVE_NAME: &str = "join__type";
 
 #[derive(Debug)]
 pub struct DomainError(String);
@@ -92,6 +95,8 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
 
     ingest_definitions(&parsed, &mut state)?;
     ingest_graph(&parsed, &mut state)?;
+    // This needs to happen after all fields have been ingested, in order to attach selection sets.
+    ingest_provides_requires(&parsed, &mut state)?;
 
     Ok(FederatedGraph {
         subgraphs: state.subgraphs,
@@ -163,6 +168,76 @@ fn ingest_graph<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> 
                 }
             },
         }
+    }
+
+    Ok(())
+}
+
+fn ingest_provides_requires(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
+    let all_fields = parsed.definitions.iter().filter_map(|definition| match definition {
+        ast::TypeSystemDefinition::Type(typedef) => {
+            let type_name = typedef.node.name.node.as_str();
+            match &typedef.node.kind {
+                ast::TypeKind::Object(object) => Some((type_name, &object.fields)),
+                ast::TypeKind::Interface(iface) => Some((type_name, &iface.fields)),
+                _ => None,
+            }
+        }
+        _ => None,
+    });
+
+    for (parent_name, field) in
+        all_fields.flat_map(|(parent_name, fields)| fields.iter().map(move |field| (parent_name, &field.node)))
+    {
+        let Some(join_field_directive) = field
+            .directives
+            .iter()
+            .find(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
+        else {
+            continue;
+        };
+
+        let parent_id = state.definition_names[parent_name];
+        let field_id = state.selection_map[&(parent_id, field.name.node.as_str())];
+        let field_type_id = state.fields[field_id.0].field_type_id;
+
+        let Some(subgraph_id) = state.fields[field_id.0].resolvable_in else {
+            continue;
+        };
+
+        let provides = join_field_directive
+            .node
+            .get_argument("provides")
+            .and_then(|arg| match &arg.node {
+                async_graphql_value::ConstValue::String(s) => Some(s),
+                _ => None,
+            })
+            .map(|provides| {
+                parse_selection_set(provides)
+                    .and_then(|provides| attach_selection(&provides, state.field_types[field_type_id.0].kind, state))
+                    .map(|fields| vec![FieldProvides { subgraph_id, fields }])
+            })
+            .transpose()?
+            .unwrap_or_default();
+
+        let requires = join_field_directive
+            .node
+            .get_argument("requires")
+            .and_then(|arg| match &arg.node {
+                async_graphql_value::ConstValue::String(s) => Some(s),
+                _ => None,
+            })
+            .map(|provides| {
+                parse_selection_set(provides)
+                    .and_then(|provides| attach_selection(&provides, parent_id, state))
+                    .map(|fields| vec![FieldRequires { subgraph_id, fields }])
+            })
+            .transpose()?
+            .unwrap_or_default();
+
+        let field = &mut state.fields[field_id.0];
+        field.provides = provides;
+        field.requires = requires;
     }
 
     Ok(())
@@ -290,7 +365,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
     let resolvable_in = ast_field
         .directives
         .iter()
-        .find(|dir| dir.node.name.node == "join__field")
+        .find(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
         .and_then(|dir| dir.node.get_argument("graph"))
         .and_then(|arg| match &arg.node {
             async_graphql_value::ConstValue::Enum(s) => Some(state.graph_sdl_names[s.as_str()]),
@@ -355,7 +430,7 @@ fn ingest_object<'a>(
     for join_type in typedef
         .directives
         .iter()
-        .filter(|dir| dir.node.name.node == "join__type")
+        .filter(|dir| dir.node.name.node == JOIN_TYPE_DIRECTIVE_NAME)
     {
         let subgraph_id = join_type
             .node
@@ -438,7 +513,7 @@ fn ingest_join_graph_enum<'a>(enm: &'a ast::EnumType, state: &mut State<'a>) -> 
             .node
             .directives
             .iter()
-            .find(|directive| directive.node.name.node == "join__graph")
+            .find(|directive| directive.node.name.node == JOIN_GRAPH_DIRECTIVE_NAME)
             .ok_or_else(|| DomainError("Missing @join__graph directive on join__Graph enum value.".to_owned()))?;
         let name = directive
             .node
