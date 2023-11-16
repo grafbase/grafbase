@@ -1,6 +1,6 @@
 enum join__Graph {
-    PRODUCTS @join__graph(name: "products", url: "products")
-    USERS @join__graph(name: "users", url: "users")
+    PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
+    USERS @join__graph(name: "users", url: "http://example.com/users")
 }
 
 type Query {
