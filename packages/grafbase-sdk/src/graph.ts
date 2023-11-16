@@ -1,9 +1,9 @@
-import { GrafbaseFederationSchema, GrafbaseSchema } from './grafbase-schema'
+import { FederatedGraph, SingleGraph } from './grafbase-schema'
 
 /**
  * A builder for a Grafbase schema definition.
  */
 export const graph = {
-  Federation: () => new GrafbaseFederationSchema(),
-  Single: () => new GrafbaseSchema()
+  Federated: () => new FederatedGraph(),
+  Single: () => new SingleGraph()
 }

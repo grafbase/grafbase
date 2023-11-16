@@ -1,9 +1,9 @@
 import {
-  Config,
-  ConfigInput,
-  DeprecatedConfigInput,
-  FederationConfig,
-  FederationConfigInput
+  SingleGraphConfig,
+  SingleGraphConfigInput,
+  DeprecatedSingleGraphConfigInput,
+  FederatedGraphConfig,
+  FederatedGraphConfigInput
 } from './config'
 import { OpenAPIParams, PartialOpenAPI } from './connector/openapi'
 import { GraphQLParams, PartialGraphQLAPI } from './connector/graphql'
@@ -18,7 +18,7 @@ import path from 'path'
 import { validateIdentifier } from './validation'
 import { PostgresParams, PartialPostgresAPI } from './connector/postgres'
 import { graph } from './graph'
-import { GrafbaseSchema } from './grafbase-schema'
+import { SingleGraph } from './grafbase-schema'
 
 export { type ResolverContext as Context } from './resolver/context'
 export { type ResolverFn } from './resolver/resolverFn'
@@ -40,24 +40,32 @@ dotenv.config({
 export type AtLeastOne<T> = [T, ...T[]]
 
 const isFederationConfigInput = (
-  input: ConfigInput | DeprecatedConfigInput | FederationConfigInput
-): input is FederationConfigInput =>
-  'graph' in input && input.graph instanceof GrafbaseSchema
+  input:
+    | SingleGraphConfigInput
+    | DeprecatedSingleGraphConfigInput
+    | FederatedGraphConfigInput
+): input is FederatedGraphConfigInput =>
+  'graph' in input && input.graph instanceof SingleGraph
 
 /**
  * A constructor for a complete Grafbase configuration.
  */
-export function config(input: ConfigInput): Config
+export function config(input: SingleGraphConfigInput): SingleGraphConfig
 /** @deprecated use `graph` instead of `schema` */
-export function config(input: DeprecatedConfigInput): Config
-export function config(input: FederationConfigInput): Config
 export function config(
-  input: ConfigInput | DeprecatedConfigInput | FederationConfigInput
-): Config | FederationConfig {
+  input: DeprecatedSingleGraphConfigInput
+): SingleGraphConfig
+export function config(input: FederatedGraphConfigInput): SingleGraphConfig
+export function config(
+  input:
+    | SingleGraphConfigInput
+    | DeprecatedSingleGraphConfigInput
+    | FederatedGraphConfigInput
+): SingleGraphConfig | FederatedGraphConfig {
   if (isFederationConfigInput(input)) {
-    return new FederationConfig(input)
+    return new FederatedGraphConfig(input)
   }
-  return new Config(input)
+  return new SingleGraphConfig(input)
 }
 
 export const connector = {

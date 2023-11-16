@@ -1,14 +1,14 @@
 import { AuthParams, Authentication } from './auth'
 import { CacheParams, GlobalCache } from './cache'
-import { GrafbaseFederationSchema, GrafbaseSchema } from './grafbase-schema'
+import { FederatedGraph, SingleGraph } from './grafbase-schema'
 import { Experimental, ExperimentalParams } from './experimental'
 import { Federation, FederationParams } from './federation'
 
 /**
  * An interface to create the complete config definition.
  */
-export interface ConfigInput {
-  graph: GrafbaseSchema
+export interface SingleGraphConfigInput {
+  graph: SingleGraph
   auth?: AuthParams
   cache?: CacheParams
   experimental?: ExperimentalParams
@@ -19,9 +19,9 @@ export interface ConfigInput {
  * @deprecated use `graph` instead of `schema`
  * An interface to create the complete config definition.
  */
-export interface DeprecatedConfigInput {
+export interface DeprecatedSingleGraphConfigInput {
   /** @deprecated use `graph` instead */
-  schema: GrafbaseSchema
+  schema: SingleGraph
   auth?: AuthParams
   cache?: CacheParams
   experimental?: ExperimentalParams
@@ -31,23 +31,25 @@ export interface DeprecatedConfigInput {
 /**
  * An interface to create the federation config definition.
  */
-export interface FederationConfigInput {
-  graph: GrafbaseFederationSchema
+export interface FederatedGraphConfigInput {
+  graph: FederatedGraph
 }
 
 /**
  * Defines the complete Grafbase configuration.
  */
-export class Config {
-  private graph: GrafbaseSchema
+export class SingleGraphConfig {
+  private graph: SingleGraph
   private readonly auth?: Authentication
   private readonly cache?: GlobalCache
   private readonly experimental?: Experimental
   private readonly federation?: Federation
 
-  constructor(input: ConfigInput)
-  constructor(input: DeprecatedConfigInput)
-  constructor(input: ConfigInput | DeprecatedConfigInput) {
+  constructor(input: SingleGraphConfigInput)
+  constructor(input: DeprecatedSingleGraphConfigInput)
+  constructor(
+    input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput
+  ) {
     this.graph = 'graph' in input ? input.graph : input.schema
 
     if (input.auth) {
@@ -78,10 +80,10 @@ export class Config {
   }
 }
 
-export class FederationConfig {
-  private graph: GrafbaseFederationSchema
+export class FederatedGraphConfig {
+  private graph: FederatedGraph
 
-  constructor(input: FederationConfigInput) {
+  constructor(input: FederatedGraphConfigInput) {
     this.graph = input.graph
   }
 

@@ -60,7 +60,7 @@ export interface IntrospectParams {
   namespace?: boolean
 }
 
-export class GrafbaseSchema {
+export class SingleGraph {
   private enums: Enum<any, any>[]
   private types: Type[]
   private unions: Union[]
@@ -491,7 +491,7 @@ export class GrafbaseSchema {
   }
 }
 
-export class GrafbaseFederationSchema {
+export class FederatedGraph {
   public toString(): string {
     return `\nextend schema @graph(type: federated)\n`
   }
