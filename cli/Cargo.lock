@@ -1901,6 +1901,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-v2"
+version = "3.0.31"
+dependencies = [
+ "engine",
+ "engine-parser",
+ "engine-v2-schema",
+ "engine-value",
+ "futures-locks",
+ "futures-util",
+ "im",
+ "itertools 0.11.0",
+ "lasso",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "engine-v2-schema"
+version = "3.0.31"
+dependencies = [
+ "graphql-federated-graph",
+]
+
+[[package]]
 name = "engine-value"
 version = "3.0.31"
 dependencies = [
@@ -2069,6 +2095,10 @@ dependencies = [
  "async-graphql-axum 6.0.10",
  "async-graphql-parser 6.0.10",
  "axum",
+ "engine",
+ "engine-v2",
+ "futures-concurrency",
+ "futures-util",
  "grafbase-graphql-introspection",
  "graphql-composition",
  "handlebars",
@@ -2078,6 +2108,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "url",
 ]
 
@@ -2223,6 +2254,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-concurrency"
+version = "7.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef6712e11cdeed5c8cf21ea0b90fec40fbe64afc9bbf2339356197eeca829fc3"
+dependencies = [
+ "bitvec",
+ "futures-core",
+ "pin-project",
+ "slab",
+ "smallvec",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2269,6 +2313,17 @@ dependencies = [
  "parking",
  "pin-project-lite",
  "waker-fn",
+]
+
+[[package]]
+name = "futures-locks"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45ec6fe3675af967e67c5536c0b9d44e34e6c52f86bedc4ea49c5317b8e94d06"
+dependencies = [
+ "futures-channel",
+ "futures-task",
+ "tokio",
 ]
 
 [[package]]
@@ -3480,6 +3535,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0de8b303297635ad57c9f5059fd9cee7a47f8e8daa09df0fcd07dd39fb22977f"
 dependencies = [
  "log 0.4.19",
+]
+
+[[package]]
+name = "lasso"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4644821e1c3d7a560fe13d842d13f587c07348a1a05d3a797152d41c90c56df2"
+dependencies = [
+ "hashbrown 0.13.2",
 ]
 
 [[package]]

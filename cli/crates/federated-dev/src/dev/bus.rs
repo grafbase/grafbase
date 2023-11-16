@@ -5,6 +5,7 @@ mod refresh;
 
 pub(crate) use admin::AdminBus;
 pub(crate) use compose::ComposeBus;
+use engine::ServerResult;
 pub(crate) use message::*;
 pub(crate) use refresh::RefreshBus;
 
@@ -33,6 +34,15 @@ pub(crate) type ComposeSender = mpsc::Sender<ComposeMessage>;
 
 /// Receive channel for the composer to control its state and actions
 pub(crate) type ComposeReceiver = mpsc::Receiver<ComposeMessage>;
+
+/// Send half of channel for the server to send requests to the router actor
+pub(crate) type RequestSender = mpsc::Sender<(engine::Request, ResponseSender)>;
+
+/// Receive half of channel for the router actor to receive requests
+pub(crate) type RequestReceiver = mpsc::Receiver<(engine::Request, ResponseSender)>;
+
+/// Send half of channel for the router actor to send responses
+pub(crate) type ResponseSender = oneshot::Sender<ServerResult<serde_json::Value>>;
 
 async fn compose_graph(
     sender: &ComposeSender,
