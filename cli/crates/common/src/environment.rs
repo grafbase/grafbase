@@ -190,12 +190,7 @@ pub fn get_user_dot_grafbase_path(r#override: Option<PathBuf>) -> Option<PathBuf
 
 impl Project {
     fn try_init(warnings: &mut Vec<Warning>) -> Result<Self, CommonError> {
-        let schema_path = get_project_grafbase_path(warnings)?.ok_or(CommonError::FindGrafbaseDirectory)?;
-
-        let path = schema_path
-            .parent()
-            .expect("the grafbase directory must have a parent directory by definition")
-            .to_path_buf();
+        let (path, schema_path) = get_project_grafbase_path(warnings)?.ok_or(CommonError::FindGrafbaseDirectory)?;
 
         let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY_NAME);
         let registry_path = dot_grafbase_directory_path.join(REGISTRY_FILE);
@@ -302,11 +297,16 @@ impl Environment {
 /// # Errors
 ///
 /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
-fn get_project_grafbase_path(warnings: &mut Vec<Warning>) -> Result<Option<GrafbaseSchemaPath>, CommonError> {
+fn get_project_grafbase_path(
+    warnings: &mut Vec<Warning>,
+) -> Result<Option<(PathBuf, GrafbaseSchemaPath)>, CommonError> {
     Ok(env::current_dir()
         .map_err(|_| CommonError::ReadCurrentDirectory)?
         .ancestors()
-        .find_map(|ancestor| find_grafbase_configuration(ancestor, warnings)))
+        .find_map(|ancestor| {
+            find_grafbase_configuration(ancestor, warnings)
+                .map(|grafbase_schema_path| (ancestor.to_owned(), grafbase_schema_path))
+        }))
 }
 
 fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Option<GrafbaseSchemaPath> {
@@ -320,7 +320,6 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
             (true, true) => {
                 let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
                     .with_hint("Delete one of them to avoid conflicts");
-
                 warnings.push(warning);
                 Some(GrafbaseSchemaPath::ts_config(tsconfig_file_path))
             }

@@ -1,6 +1,6 @@
 enum join__Graph {
-    EMAILBOOK @join__graph(name: "emailbook", url: "emailbook")
-    PHONEBOOK @join__graph(name: "phonebook", url: "phonebook")
+    EMAILBOOK @join__graph(name: "emailbook", url: "http://example.com/emailbook")
+    PHONEBOOK @join__graph(name: "phonebook", url: "http://example.com/phonebook")
 }
 
 type Query {

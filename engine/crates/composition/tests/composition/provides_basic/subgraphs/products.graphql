@@ -1,0 +1,20 @@
+type Query {
+  product(id: ID!): Product
+}
+
+type Product @federation__key(fields: "id") {
+  id: ID!
+  name: String
+  reviews: [Review]
+}
+
+type Review @federation__key(fields: "id") {
+  id: ID!
+  content: String
+  author: User @federation__provides(fields: "name")
+}
+
+extend type User @federation__key(fields: "id") {
+  id: ID! @federation__external
+  name: String @federation__external
+}

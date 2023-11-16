@@ -12,12 +12,18 @@ pub(super) fn ingest_directives(
     federation_directives_matcher: &FederationDirectivesMatcher<'_>,
 ) {
     for directive in &type_definition.directives {
-        if federation_directives_matcher.is_shareable(&directive.node.name.node) {
+        let directive_name = &directive.node.name.node;
+        if federation_directives_matcher.is_shareable(directive_name) {
             subgraphs.set_shareable(definition_id);
             continue;
         }
 
-        if federation_directives_matcher.is_key(&directive.node.name.node) {
+        if federation_directives_matcher.is_external(directive_name) {
+            subgraphs.set_external(definition_id);
+            continue;
+        }
+
+        if federation_directives_matcher.is_key(directive_name) {
             let fields_arg = directive.node.get_argument("fields").map(|v| &v.node);
             let Some(ConstValue::String(fields_arg)) = fields_arg else {
                 continue;
@@ -41,7 +47,9 @@ pub(super) fn ingest_fields(
     federation_directives_matcher: &FederationDirectivesMatcher<'_>,
     subgraphs: &mut Subgraphs,
 ) {
-    let object_is_shareable = subgraphs.walk(definition_id).is_shareable();
+    let object = subgraphs.walk(definition_id);
+    let object_is_shareable = object.is_shareable();
+    let object_is_external = object.is_external();
 
     for field in &object_type.fields {
         let field = &field.node;
@@ -51,8 +59,44 @@ pub(super) fn ingest_fields(
                 .iter()
                 .any(|directive| federation_directives_matcher.is_shareable(directive.node.name.node.as_str()));
 
-        let type_id = subgraphs.intern_field_type(&field.ty.node);
-        let field_id = subgraphs.push_field(definition_id, &field.name.node, type_id, is_shareable);
+        let is_external = object_is_external
+            || field
+                .directives
+                .iter()
+                .any(|directive| federation_directives_matcher.is_external(directive.node.name.node.as_str()));
+
+        let provides = field
+            .directives
+            .iter()
+            .find(|directive| federation_directives_matcher.is_provides(directive.node.name.node.as_str()))
+            .and_then(|directive| directive.node.get_argument("fields"))
+            .and_then(|v| match &v.node {
+                ConstValue::String(s) => Some(s.as_str()),
+                _ => None,
+            });
+
+        let requires = field
+            .directives
+            .iter()
+            .find(|directive| federation_directives_matcher.is_requires(directive.node.name.node.as_str()))
+            .and_then(|directive| directive.node.get_argument("fields"))
+            .and_then(|v| match &v.node {
+                ConstValue::String(s) => Some(s.as_str()),
+                _ => None,
+            });
+
+        let field_type = subgraphs.intern_field_type(&field.ty.node);
+        let field_id = subgraphs
+            .push_field(crate::subgraphs::FieldIngest {
+                parent_definition_id: definition_id,
+                field_name: &field.name.node,
+                field_type,
+                is_shareable,
+                is_external,
+                provides,
+                requires,
+            })
+            .unwrap();
 
         super::field::ingest_field_arguments(field_id, &field.arguments, subgraphs);
     }

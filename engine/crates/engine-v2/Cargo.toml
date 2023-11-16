@@ -11,14 +11,14 @@ repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
 
 [dependencies]
+im = "15"
 lasso = "0.7"
 itertools.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 futures-locks = "0.7"
-futures-channel = "0.3"
 futures-util.workspace = true
-async-runtime.workspace = true
 reqwest = { version = "0.11", default-features = false, features = [
   "json",
   "rustls-tls",

@@ -8,8 +8,12 @@ pub(crate) async fn publish(
         project_ref,
         url,
         schema_path,
+        ..
     }: PublishCommand,
 ) -> Result<(), CliError> {
+    let project_ref = project_ref.ok_or_else(|| CliError::MissingArgument("PROJECT_REF"))?;
+    let schema_path = schema_path.ok_or_else(|| CliError::MissingArgument("schema"))?;
+
     let schema = fs::read_to_string(schema_path).map_err(CliError::SchemaReadError)?;
 
     report::publishing();
@@ -19,7 +23,7 @@ pub(crate) async fn publish(
         project_ref.project(),
         project_ref.branch(),
         &subgraph_name,
-        &url,
+        url.as_str(),
         &schema,
     )
     .await

@@ -29,6 +29,9 @@ pub enum CliError {
     /// returned if the login server panics
     #[error("{0}")]
     LoginPanic(String),
+    /// The CLI argument was missing
+    #[error("The following required argument was not provided: {_0}")]
+    MissingArgument(&'static str),
     /// returned if an interactive prompt fails due to the input device not being a TTY
     #[error("could not show an interactive prompt due to the input device not being a TTY")]
     PromptNotTTY,
@@ -54,6 +57,10 @@ pub enum CliError {
     Introspection(String),
     #[error("could not read the GraphQL schema")]
     SchemaReadError(#[source] io::Error),
+    #[error("error in federated dev: {0}")]
+    FederatedDev(String),
+    #[error("error in publish: {0}")]
+    Publish(String),
 }
 
 #[cfg(target_family = "windows")]

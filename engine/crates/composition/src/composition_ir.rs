@@ -143,21 +143,8 @@ impl CompositionIr {
         });
     }
 
-    pub(crate) fn insert_field(
-        &mut self,
-        parent_name: subgraphs::StringId,
-        field_name: subgraphs::StringId,
-        field_type: subgraphs::FieldTypeId,
-        arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
-        resolvable_in: Option<federated::SubgraphId>,
-    ) {
-        self.fields.push(FieldIr {
-            parent_name,
-            field_name,
-            field_type,
-            arguments,
-            resolvable_in,
-        });
+    pub(crate) fn insert_field(&mut self, ir: FieldIr) {
+        self.fields.push(ir);
     }
 
     pub(crate) fn insert_union_member(&mut self, union_name: subgraphs::StringId, member_name: subgraphs::StringId) {
@@ -175,6 +162,12 @@ pub(crate) struct FieldIr {
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
     pub(crate) resolvable_in: Option<federated::SubgraphId>,
+
+    /// Subgraph fields with an `@provides`.
+    pub(crate) provides: Vec<subgraphs::FieldId>,
+
+    /// Subgraph fields with an `@requires`.
+    pub(crate) requires: Vec<subgraphs::FieldId>,
 }
 
 #[derive(Default)]

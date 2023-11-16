@@ -14,7 +14,10 @@ struct Field {
     name: StringId,
     field_type: FieldTypeId,
     arguments: Vec<(StringId, FieldTypeId)>,
+    provides: Option<Vec<Selection>>,
+    requires: Option<Vec<Selection>>,
     is_shareable: bool,
+    is_external: bool,
 }
 
 impl Subgraphs {
@@ -24,27 +27,42 @@ impl Subgraphs {
 
     pub(crate) fn push_field(
         &mut self,
-        parent_definition_id: DefinitionId,
-        field_name: &str,
-        field_type: FieldTypeId,
-        is_shareable: bool,
-    ) -> FieldId {
+        FieldIngest {
+            parent_definition_id,
+            field_name,
+            field_type,
+            is_shareable,
+            is_external,
+            provides,
+            requires,
+        }: FieldIngest<'_>,
+    ) -> Result<FieldId, String> {
+        let provides = provides
+            .map(|provides| self.selection_set_from_str(provides))
+            .transpose()?;
+        let requires = requires
+            .map(|requires| self.selection_set_from_str(requires))
+            .transpose()?;
+        let name = self.strings.intern(field_name);
+
         if let Some(last_field) = self.fields.0.last() {
             assert!(last_field.parent_definition_id <= parent_definition_id); // this should stay sorted
         }
 
-        let name = self.strings.intern(field_name);
         let field = Field {
             parent_definition_id,
             name,
             field_type,
             is_shareable,
+            is_external,
             arguments: Vec::new(),
+            provides,
+            requires,
         };
         let id = FieldId(self.fields.0.push_return_idx(field));
         let parent_object_name = self.walk(parent_definition_id).name().id;
         self.field_names.insert((parent_object_name, name, id));
-        id
+        Ok(id)
     }
 
     pub(crate) fn push_field_argument(&mut self, field: FieldId, argument_name: &str, argument_type: FieldTypeId) {
@@ -52,6 +70,16 @@ impl Subgraphs {
         let field = &mut self.fields.0[field.0];
         field.arguments.push((argument_name, argument_type));
     }
+}
+
+pub(crate) struct FieldIngest<'a> {
+    pub(crate) parent_definition_id: DefinitionId,
+    pub(crate) field_name: &'a str,
+    pub(crate) field_type: FieldTypeId,
+    pub(crate) is_shareable: bool,
+    pub(crate) is_external: bool,
+    pub(crate) provides: Option<&'a str>,
+    pub(crate) requires: Option<&'a str>,
 }
 
 pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;
@@ -91,6 +119,10 @@ impl<'a> FieldWalker<'a> {
         })
     }
 
+    pub fn is_external(self) -> bool {
+        self.field().is_external
+    }
+
     pub fn is_shareable(self) -> bool {
         self.field().is_shareable
     }
@@ -105,6 +137,29 @@ impl<'a> FieldWalker<'a> {
     /// ```
     pub fn name(self) -> StringWalker<'a> {
         self.walk(self.field().name)
+    }
+
+    /// ```ignore,graphql
+    /// type MyObject {
+    ///   id: ID!
+    ///   others: [OtherObject!] @provides("size weight")
+    ///                          ^^^^^^^^^^^^^^^^^^^^^^^^
+    /// }
+    /// ```
+    pub(crate) fn provides(self) -> Option<&'a [Selection]> {
+        self.field().provides.as_deref()
+    }
+
+    /// ```ignore.graphql
+    /// extend type Farm @federation__key(fields: "id") {
+    ///   id: ID! @federation__external
+    ///   chiliId: ID! @federation__external
+    ///   chiliDetails: ChiliVariety @federation__requires(fields: "chiliId")
+    ///                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    /// }
+    /// ```
+    pub(crate) fn requires(self) -> Option<&'a [Selection]> {
+        self.field().requires.as_deref()
     }
 
     /// ```ignore,graphql

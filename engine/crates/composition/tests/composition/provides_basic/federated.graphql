@@ -1,0 +1,34 @@
+enum join__Graph {
+    PRODUCTS @join__graph(name: "products", url: "products")
+    USERS @join__graph(name: "users", url: "users")
+}
+
+type Query {
+    product(id: ID!): Product @join__field(graph: PRODUCTS)
+    user(id: ID!): User @join__field(graph: USERS)
+}
+
+type Product
+    @join__type(graph: PRODUCTS, key: "id")
+{
+    id: ID! @join__field(graph: PRODUCTS)
+    name: String @join__field(graph: PRODUCTS)
+    reviews: [Review] @join__field(graph: PRODUCTS)
+}
+
+type Review
+    @join__type(graph: PRODUCTS, key: "id")
+{
+    id: ID! @join__field(graph: PRODUCTS)
+    content: String @join__field(graph: PRODUCTS)
+    author: User @join__field(graph: PRODUCTS, provides: "name")
+}
+
+type User
+    @join__type(graph: PRODUCTS, key: "id")
+    @join__type(graph: USERS, key: "id")
+{
+    id: ID!
+    name: String
+    email: String @join__field(graph: USERS)
+}

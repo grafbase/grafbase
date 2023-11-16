@@ -18,6 +18,7 @@ engine-parser.workspace = true
 engine-v2.workspace = true
 expect-test = "1.4"
 futures = "0.3"
+grafbase-graphql-introspection = { path = "../../../cli/crates/graphql-introspection" }
 graphql-composition.workspace = true
 graphql-parser = "0.4.0"
 http = { workspace = true }
@@ -61,3 +62,6 @@ path = "../runtime"
 
 [dependencies.parser-openapi]
 path = "../parser-openapi"
+
+[dev-dependencies]
+similar-asserts = "1.5"

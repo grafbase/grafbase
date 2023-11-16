@@ -29,7 +29,10 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
     for (sdl, path) in subgraphs_sdl {
         let parsed = async_graphql_parser::parse_schema(&sdl)
             .map_err(|err| miette::miette!("Error parsing {}: {err}", path.display()))?;
-        subgraphs.ingest(&parsed, path.file_stem().unwrap().to_str().unwrap());
+
+        let name = path.file_stem().unwrap().to_str().unwrap();
+
+        subgraphs.ingest(&parsed, name, &format!("http://example.com/{name}"));
     }
 
     let expected = fs::read_to_string(federated_graph_path)

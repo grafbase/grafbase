@@ -1,34 +1,20 @@
 use engine::{ServerError, ServerResult};
 pub use engine_parser::types::OperationType;
-use engine_parser::Positioned;
+use engine_parser::{types::OperationDefinition, Positioned};
 use schema::{FieldId, Schema};
 
-use crate::response::{Argument, OperationSelection, OperationSelectionSet, ResponseFields, ResponseFieldsBuilder};
+use super::{
+    fields::OperationField, OperationArgument, OperationFieldsBuilder, OperationSelection, OperationSelectionSet,
+};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct VariableId(usize);
-
-pub struct OperationDefinition {
-    pub ty: OperationType,
-    pub selection_set: OperationSelectionSet,
-    pub response_edges_builder: ResponseFieldsBuilder,
+pub struct OperationBinder<'a, 'b> {
+    pub(super) schema: &'a Schema,
+    pub(super) fields: &'a mut OperationFieldsBuilder<'b>,
 }
 
-pub struct OperationBinder<'a> {
-    response_edges_builder: ResponseFieldsBuilder,
-    schema: &'a Schema,
-}
-
-impl<'a> OperationBinder<'a> {
-    pub fn new(schema: &'a Schema) -> Self {
-        Self {
-            response_edges_builder: ResponseFields::builder(),
-            schema,
-        }
-    }
-
-    pub fn bind(mut self, operation: engine_parser::types::OperationDefinition) -> ServerResult<OperationDefinition> {
-        let root_object_id = match operation.ty {
+impl<'a, 'b> OperationBinder<'a, 'b> {
+    pub fn bind(mut self, operation_definition: OperationDefinition) -> ServerResult<OperationSelectionSet> {
+        let root_object_id = match operation_definition.ty {
             OperationType::Query => self.schema.root_operation_types.query,
             OperationType::Mutation => self
                 .schema
@@ -41,15 +27,10 @@ impl<'a> OperationBinder<'a> {
                 .subscription
                 .expect("Subscription operation type not supported by schema."),
         };
-        let selection_set = self.bind_selection_set(
+        self.bind_selection_set(
             self.schema.object_fields(root_object_id).collect(),
-            operation.selection_set,
-        )?;
-        Ok(OperationDefinition {
-            ty: operation.ty,
-            selection_set,
-            response_edges_builder: self.response_edges_builder,
-        })
+            operation_definition.selection_set,
+        )
     }
 
     fn bind_selection_set(
@@ -61,10 +42,12 @@ impl<'a> OperationBinder<'a> {
             pos: _,
             node: selection_set,
         } = selection_set;
+        // Keeping the original ordering
         selection_set
             .items
             .into_iter()
-            .map(|Positioned { node: selection, .. }| match selection {
+            .enumerate()
+            .map(|(position, Positioned { node: selection, .. })| match selection {
                 engine_parser::types::Selection::Field(Positioned { pos, node: field }) => {
                     let name = field.name.node.to_string();
                     let (&field_id, schema_field) = field_ids
@@ -95,7 +78,7 @@ impl<'a> OperationBinder<'a> {
                             )| {
                                 let name = name.to_string();
                                 match schema_field.arguments.iter().find(|arg| self.schema[arg.name] == name) {
-                                    Some(schema::FieldArgument { name, type_id }) => Ok(Argument {
+                                    Some(schema::FieldArgument { name, type_id }) => Ok(OperationArgument {
                                         name_pos,
                                         name: *name,
                                         type_id: *type_id,
@@ -130,17 +113,20 @@ impl<'a> OperationBinder<'a> {
                             field.selection_set,
                         )?
                     };
+                    let response_field_id = self.fields.push(OperationField {
+                        name: &field
+                            .alias
+                            .map(|Positioned { node, .. }| node.to_string())
+                            .unwrap_or(name),
+                        position,
+                        pos,
+                        field_id,
+                        type_condition: None,
+                        arguments,
+                    });
                     Ok(OperationSelection {
-                        field: self.response_edges_builder.push_field(
-                            &field
-                                .alias
-                                .map(|Positioned { node, .. }| node.to_string())
-                                .unwrap_or(name),
-                            pos,
-                            field_id,
-                            None,
-                            arguments,
-                        ),
+                        op_field_id: response_field_id,
+                        name: self.fields[response_field_id].name,
                         subselection,
                     })
                 }

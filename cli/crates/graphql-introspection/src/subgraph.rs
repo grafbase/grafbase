@@ -23,7 +23,7 @@ struct Request {
     variables: HashMap<&'static str, String>,
 }
 
-pub(super) async fn introspect(url: &str, headers: &[(&str, &str)]) -> Result<String, ()> {
+pub(super) async fn introspect(url: &str, headers: &[(impl AsRef<str>, impl AsRef<str>)]) -> Result<String, ()> {
     let query = indoc::indoc! {r#"
         query {
           _service {
@@ -43,7 +43,7 @@ pub(super) async fn introspect(url: &str, headers: &[(&str, &str)]) -> Result<St
         .json(&request);
 
     for (name, value) in headers {
-        request_builder = request_builder.header(*name, *value);
+        request_builder = request_builder.header(name.as_ref(), value.as_ref());
     }
 
     let Ok(response) = request_builder.send().await else {

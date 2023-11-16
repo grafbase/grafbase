@@ -25,7 +25,7 @@ impl Subgraphs {
         Ok(())
     }
 
-    fn selection_set_from_str(&mut self, fields: &str) -> Result<Vec<Selection>, String> {
+    pub(crate) fn selection_set_from_str(&mut self, fields: &str) -> Result<Vec<Selection>, String> {
         // Cheating for now, we should port the parser from engines instead.
         let fields = format!("{{ {fields} }}");
         let parsed = async_graphql_parser::parse_query(fields).map_err(|err| err.to_string())?;

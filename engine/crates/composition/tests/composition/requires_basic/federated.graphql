@@ -1,0 +1,29 @@
+enum join__Graph {
+    CHILIES @join__graph(name: "chilies", url: "chilies")
+    FARMS @join__graph(name: "farms", url: "farms")
+}
+
+type Farm
+    @join__type(graph: CHILIES, key: "id")
+    @join__type(graph: FARMS, key: "id")
+{
+    id: ID!
+    chiliId: ID!
+    chiliDetails: ChiliVariety @join__field(graph: CHILIES, requires: "chiliId")
+    name: String! @join__field(graph: FARMS)
+    location: String! @join__field(graph: FARMS)
+}
+
+type ChiliVariety {
+    id: ID! @join__field(graph: CHILIES)
+    name: String! @join__field(graph: CHILIES)
+    spicinessScale: Int! @join__field(graph: CHILIES)
+    description: String @join__field(graph: CHILIES)
+}
+
+type Query {
+    chiliVariety(id: ID!): ChiliVariety @join__field(graph: CHILIES)
+    chiliVarieties: [ChiliVariety] @join__field(graph: CHILIES)
+    farms: [Farm] @join__field(graph: FARMS)
+    farm(id: ID!): Farm @join__field(graph: FARMS)
+}

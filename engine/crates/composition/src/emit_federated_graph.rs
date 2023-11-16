@@ -1,17 +1,15 @@
 mod context;
 mod field_types_map;
 
-use std::{collections::BTreeSet, mem};
-
-use federated::RootOperationTypes;
-use graphql_federated_graph as federated;
-use itertools::Itertools;
-
 use self::context::Context;
 use crate::{
     composition_ir::{CompositionIr, FieldIr, KeyIr},
     subgraphs, Subgraphs, VecExt,
 };
+use federated::RootOperationTypes;
+use graphql_federated_graph as federated;
+use itertools::Itertools;
+use std::{collections::BTreeSet, mem};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
@@ -39,20 +37,36 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     emit_subgraphs(&mut ctx);
     emit_fields(mem::take(&mut ir.fields), &mut ctx);
-
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.resolvable_keys, &mut ctx);
 
     out
 }
 
-fn emit_fields(ir_fields: Vec<FieldIr>, ctx: &mut Context<'_>) {
+fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
+    // We have to accumulate the `@provides` and `@requires` and delay emitting them because
+    // attach_selection() depends on all fields having been populated first.
+    let mut field_provides: Vec<(
+        federated::FieldId,
+        federated::SubgraphId,
+        federated::Definition,
+        &'a [subgraphs::Selection],
+    )> = Vec::new();
+    let mut field_requires: Vec<(
+        federated::FieldId,
+        federated::SubgraphId,
+        federated::Definition,
+        &'a [subgraphs::Selection],
+    )> = Vec::new();
+
     for FieldIr {
         parent_name,
         field_name,
         field_type,
         arguments,
         resolvable_in,
+        provides,
+        requires,
     } in ir_fields
     {
         let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
@@ -65,7 +79,7 @@ fn emit_fields(ir_fields: Vec<FieldIr>, ctx: &mut Context<'_>) {
             })
             .collect();
 
-        let push_field = |out: &mut Vec<_>| {
+        let push_field = |ctx: &mut Context<'a>, parent: federated::Definition| {
             let field = federated::Field {
                 name: field_name,
                 field_type_id,
@@ -77,16 +91,43 @@ fn emit_fields(ir_fields: Vec<FieldIr>, ctx: &mut Context<'_>) {
                 composed_directives: Vec::new(),
             };
 
-            federated::FieldId(out.push_return_idx(field))
+            let id = federated::FieldId(ctx.out.fields.push_return_idx(field));
+
+            for (subgraph_id, definition, provides) in provides.iter().filter_map(|field_id| {
+                let field = ctx.subgraphs.walk(*field_id);
+                field.provides().map(|provides| {
+                    (
+                        federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
+                        ctx.definitions[&field.r#type().type_name().id],
+                        provides,
+                    )
+                })
+            }) {
+                field_provides.push((id, subgraph_id, definition, provides));
+            }
+
+            for (subgraph_id, provides) in requires.iter().filter_map(|field_id| {
+                let field = ctx.subgraphs.walk(*field_id);
+                field.requires().map(|provides| {
+                    (
+                        federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
+                        provides,
+                    )
+                })
+            }) {
+                field_requires.push((id, subgraph_id, parent, provides));
+            }
+
+            id
         };
 
         match ctx.definitions[&parent_name] {
-            federated::Definition::Object(object_id) => {
-                let field_id = push_field(&mut ctx.out.fields);
+            parent @ federated::Definition::Object(object_id) => {
+                let field_id = push_field(ctx, parent);
                 ctx.push_object_field(object_id, field_id);
             }
-            federated::Definition::Interface(interface_id) => {
-                let field_id = push_field(&mut ctx.out.fields);
+            parent @ federated::Definition::Interface(interface_id) => {
+                let field_id = push_field(ctx, parent);
                 ctx.push_interface_field(interface_id, field_id);
             }
             federated::Definition::InputObject(input_object_id) => {
@@ -97,6 +138,20 @@ fn emit_fields(ir_fields: Vec<FieldIr>, ctx: &mut Context<'_>) {
             }
             _ => unreachable!(),
         }
+    }
+
+    for (field_id, subgraph_id, definition, provides) in field_provides {
+        let fields = attach_selection(provides, definition, ctx);
+        ctx.out.fields[field_id.0]
+            .provides
+            .push(federated::FieldProvides { subgraph_id, fields });
+    }
+
+    for (field_id, subgraph_id, definition, requires) in field_requires {
+        let fields = attach_selection(requires, definition, ctx);
+        ctx.out.fields[field_id.0]
+            .requires
+            .push(federated::FieldRequires { subgraph_id, fields });
     }
 }
 

@@ -11,7 +11,8 @@ pub(crate) struct Definition {
     subgraph_id: SubgraphId,
     name: StringId,
     kind: DefinitionKind,
-    pub(crate) is_shareable: bool,
+    is_shareable: bool,
+    is_external: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,6 +30,11 @@ impl Subgraphs {
         let interned_name = self.strings.intern(name);
         self.definition_names[&(interned_name, subgraph_id)]
     }
+
+    pub(crate) fn set_external(&mut self, definition_id: DefinitionId) {
+        self.definitions.0[definition_id.0].is_external = true;
+    }
+
     pub(crate) fn set_shareable(&mut self, definition_id: DefinitionId) {
         self.definitions.0[definition_id.0].is_shareable = true;
     }
@@ -45,6 +51,7 @@ impl Subgraphs {
             name,
             kind,
             is_shareable: false,
+            is_external: false,
         };
         let id = DefinitionId(self.definitions.0.push_return_idx(definition));
         self.definition_names.insert((name, subgraph_id), id);
@@ -73,6 +80,10 @@ impl<'a> DefinitionWalker<'a> {
 
     pub fn is_shareable(self) -> bool {
         self.definition().is_shareable
+    }
+
+    pub fn is_external(self) -> bool {
+        self.definition().is_external
     }
 
     pub fn subgraph(self) -> SubgraphWalker<'a> {

@@ -85,7 +85,15 @@ pub async fn create(
             account_id: Id::new(account_id),
             database_regions,
             project_slug,
-            project_root_path: ".",
+            project_root_path: project
+                .schema_path
+                .path()
+                .parent()
+                .expect("must have a parent")
+                .strip_prefix(&project.path)
+                .expect("must be a prefix")
+                .to_str()
+                .expect("must be a valid string"),
         },
     });
 

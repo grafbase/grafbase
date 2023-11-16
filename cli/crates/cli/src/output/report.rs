@@ -27,6 +27,7 @@ pub fn cli_header() {
 pub fn start_prod_server(ip: IpAddr, port: u16) {
     println!("📡 Listening on {}\n", watercolor!("{ip}:{port}", @BrightBlue));
 }
+
 /// reports to stdout that the server has started
 pub fn start_dev_server(resolvers_reported: bool, port: u16, start_port: u16) {
     if resolvers_reported {
@@ -45,6 +46,22 @@ pub fn start_dev_server(resolvers_reported: bool, port: u16, start_port: u16) {
         watercolor!("http://{LOCALHOST}:{port}", @BrightBlue)
     );
     // TODO: use proper formatting here
+    println!(
+        "- Endpoint:   {}\n",
+        watercolor!("http://{LOCALHOST}:{port}/graphql", @BrightBlue)
+    );
+}
+
+pub fn start_federated_dev_server(port: u16) {
+    println!("📡 Listening on port {}\n", watercolor!("{port}", @BrightBlue));
+    println!(
+        "Use {} to add subgraphs to the server\n",
+        watercolor!("gb publish --dev", @BrightBlue)
+    );
+    println!(
+        "- Pathfinder: {}",
+        watercolor!("http://{LOCALHOST}:{port}", @BrightBlue)
+    );
     println!(
         "- Endpoint:   {}\n",
         watercolor!("http://{LOCALHOST}:{port}/graphql", @BrightBlue)
