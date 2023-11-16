@@ -142,6 +142,8 @@ impl<'a, 'b> Planner<'a, 'b> {
                 resolver_id,
             });
 
+            println!("PLAN:\n{:#?}", self.debug(&self.plans[plan_id]));
+
             for plan in &mut to_be_planned {
                 plan.parent = Some(plan_id);
             }
@@ -155,7 +157,7 @@ impl<'a, 'b> Planner<'a, 'b> {
             }
         }
 
-        assert!(children.is_empty(), "{children:?}");
+        assert!(children.is_empty(), "CHILDREN:\n{:#?}", self.debug(&children));
         children
     }
 

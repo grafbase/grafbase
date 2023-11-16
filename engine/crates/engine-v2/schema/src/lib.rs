@@ -206,6 +206,7 @@ impl Field {
     }
 }
 
+#[derive(Debug)]
 pub struct FieldResolver {
     pub resolver_id: ResolverId,
     pub requires: FieldSet,
