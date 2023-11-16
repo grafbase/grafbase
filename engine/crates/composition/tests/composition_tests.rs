@@ -70,4 +70,37 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
     .into())
 }
 
-datatest_stable::harness! { run_test, "./tests/composition", r"^.*federated.graphql$" }
+fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()> {
+    let sdl = fs::read_to_string(federated_graph_path)
+        .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
+
+    // Exclude tests with an empty schema. This is the case for composition error tests.
+    if sdl.lines().all(|line| line.is_empty() || line.starts_with('#')) {
+        return Ok(());
+    }
+
+    let roundtripped = graphql_federated_graph::render_sdl(
+        &graphql_federated_graph::from_sdl(&sdl).map_err(|err| format!("Error ingesting SDL: {err}"))?,
+    )?;
+
+    if roundtripped == sdl {
+        return Ok(());
+    }
+
+    Err(miette::miette!(
+        "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
+        similar::udiff::unified_diff(
+            similar::Algorithm::default(),
+            &sdl,
+            &roundtripped,
+            5,
+            Some(("Expected", "Actual"))
+        )
+    )
+    .into())
+}
+
+datatest_stable::harness! {
+    run_test, "./tests/composition", r"^.*federated.graphql$",
+    test_sdl_roundtrip, "./tests/composition", r"^.*federated.graphql$",
+}
