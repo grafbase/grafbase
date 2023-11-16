@@ -18,7 +18,7 @@ import path from 'path'
 import { validateIdentifier } from './validation'
 import { PostgresParams, PartialPostgresAPI } from './connector/postgres'
 import { graph } from './graph'
-import { SingleGraph } from './grafbase-schema'
+import { FederatedGraph } from './grafbase-schema'
 
 export { type ResolverContext as Context } from './resolver/context'
 export { type ResolverFn } from './resolver/resolverFn'
@@ -45,7 +45,7 @@ const isFederatedGraphConfigInput = (
     | DeprecatedSingleGraphConfigInput
     | FederatedGraphConfigInput
 ): input is FederatedGraphConfigInput =>
-  'graph' in input && input.graph instanceof SingleGraph
+  'graph' in input && input.graph instanceof FederatedGraph
 
 /**
  * A constructor for a complete Grafbase configuration.
