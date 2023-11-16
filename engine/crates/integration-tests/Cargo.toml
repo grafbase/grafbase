@@ -62,3 +62,6 @@ path = "../runtime"
 
 [dependencies.parser-openapi]
 path = "../parser-openapi"
+
+[dev-dependencies]
+similar-asserts = "1.5"
