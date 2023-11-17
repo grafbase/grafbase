@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.44.5] - 2023-11-17
+
+[CHANGELOG](changelog/0.44.5.md)
+
 ## [0.44.4] - 2023-11-16
 
 [CHANGELOG](changelog/0.44.4.md)
@@ -11,6 +15,14 @@
 ## [0.44.2] - 2023-11-13
 
 [CHANGELOG](changelog/0.44.2.md)
+
+## [0.44.1] - 2023-11-13
+
+[CHANGELOG](changelog/0.44.1.md)
+
+## [0.44.0] - 2023-11-10
+
+[CHANGELOG](changelog/0.44.0.md)
 
 ## [0.43.0] - 2023-11-09
 

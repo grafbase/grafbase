@@ -1,6 +1,5 @@
 pub use colored;
 pub use colored::control::ShouldColorize;
-pub use hex_literal;
 use once_cell::sync::Lazy;
 
 #[allow(dead_code)]
