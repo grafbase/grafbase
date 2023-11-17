@@ -9,6 +9,8 @@ use async_graphql::{Context, Error, Object};
 #[Object]
 impl MutationRoot {
     pub(crate) async fn publish_subgraph(&self, ctx: &Context<'_>, input: PublishSubgraphInput) -> Result<bool, Error> {
+        log::trace!("publishing a new subgraph");
+
         let bus = ctx.data::<AdminBus>().expect("must be a bus");
         let schema = bus
             .introspect_schema(&input.name, input.url.clone(), input.headers.clone())

@@ -38,6 +38,8 @@ struct ProxyState {
 }
 
 pub(super) async fn run(port: u16) -> Result<(), crate::Error> {
+    log::trace!("starting the federated dev server");
+
     let (graph_sender, graph_receiver) = mpsc::channel(16);
     let (refresh_sender, refresh_receiver) = mpsc::channel(16);
     let (compose_sender, compose_receiver) = mpsc::channel(16);
