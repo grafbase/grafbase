@@ -1,5 +1,5 @@
 use engine::{ServerError, ServerResult};
-pub use engine_parser::types::OperationType;
+
 use engine_parser::{types::OperationDefinition, Positioned};
 use schema::{FieldId, Schema};
 

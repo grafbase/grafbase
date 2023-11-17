@@ -137,7 +137,7 @@ impl FederationEntityBuilder {
     }
 
     pub fn add_key(&mut self, key: FederationKey) {
-        self.0.keys.push(key)
+        self.0.keys.push(key);
     }
 
     pub fn build(self) -> FederationEntity {

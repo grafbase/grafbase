@@ -97,17 +97,17 @@ mod tests {
 
     #[rstest::rstest]
     #[case::schema(
-        r#"
+        r"
             extend schema @auth(rules: [ { allow: anonymous } ])
-        "#,
+        ",
         &["specifiedBy", "auth"]
     )]
     #[case::model(
-        r#"
+        r"
             type Post @model {
                 name: String
             }
-        "#,
+        ",
         &["specifiedBy", "model"]
     )]
     #[case::fields(

@@ -28,7 +28,7 @@ impl<'a> NoUnusedFragments<'a> {
 
         if let Some(spreads) = self.spreads.get(from) {
             for spread in spreads {
-                self.find_reachable_fragments(&Scope::Fragment(spread), result)
+                self.find_reachable_fragments(&Scope::Fragment(spread), result);
             }
         }
     }
@@ -94,7 +94,7 @@ mod tests {
     fn all_fragment_names_are_used() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           {
             human(id: 4) {
               ...HumanFields1
@@ -113,7 +113,7 @@ mod tests {
           fragment HumanFields3 on Human {
             name
           }
-        "#,
+        ",
         );
     }
 
@@ -121,7 +121,7 @@ mod tests {
     fn all_fragment_names_are_used_by_multiple_operations() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo {
             human(id: 4) {
               ...HumanFields1
@@ -142,7 +142,7 @@ mod tests {
           fragment HumanFields3 on Human {
             name
           }
-        "#,
+        ",
         );
     }
 
@@ -150,7 +150,7 @@ mod tests {
     fn contains_unknown_fragments() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo {
             human(id: 4) {
               ...HumanFields1
@@ -177,7 +177,7 @@ mod tests {
           fragment Unused2 on Human {
             name
           }
-        "#,
+        ",
         );
     }
 
@@ -185,7 +185,7 @@ mod tests {
     fn contains_unknown_fragments_with_ref_cycle() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo {
             human(id: 4) {
               ...HumanFields1
@@ -214,7 +214,7 @@ mod tests {
             name
             ...Unused1
           }
-        "#,
+        ",
         );
     }
 
@@ -222,7 +222,7 @@ mod tests {
     fn contains_unknown_and_undef_fragments() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo {
             human(id: 4) {
               ...bar
@@ -231,7 +231,7 @@ mod tests {
           fragment foo on Human {
             name
           }
-        "#,
+        ",
         );
     }
 }

@@ -83,7 +83,7 @@ fn single_pk_implicit_order_after() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges {
@@ -97,7 +97,7 @@ fn single_pk_implicit_order_after() {
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = &response.data.user_collection.edges[0].node.blogs.page_info;
@@ -197,7 +197,7 @@ fn single_pk_implicit_order_before() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges {
@@ -212,7 +212,7 @@ fn single_pk_implicit_order_before() {
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = &response.data.user_collection.edges[0].node.blogs.page_info;

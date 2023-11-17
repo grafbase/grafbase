@@ -23,7 +23,7 @@ fn simple_inferred_stripe_federation() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                    r#"
+                    r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -33,7 +33,7 @@ fn simple_inferred_stripe_federation() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "Product",
@@ -80,7 +80,7 @@ fn extending_openapi_type_with_key() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                    r#"
+                    r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -89,7 +89,7 @@ fn extending_openapi_type_with_key() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "Quote",

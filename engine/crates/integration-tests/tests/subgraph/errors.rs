@@ -11,13 +11,13 @@ fn unknown_entity() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "SomeUnknownType",
@@ -61,7 +61,7 @@ fn unknown_key() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -70,7 +70,7 @@ fn unknown_key() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "Todo",
@@ -116,7 +116,7 @@ fn partial_failures() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($reprs: [_Any!]!) {
                         _entities(representations: $reprs) {
                             __typename
@@ -125,7 +125,7 @@ fn partial_failures() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"reprs": [
                     { "__typename": "Todo", "id": todo_id },
@@ -173,7 +173,7 @@ fn totally_malformed_representation() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($reprs: [_Any!]!) {
                         _entities(representations: $reprs) {
                             __typename
@@ -182,7 +182,7 @@ fn totally_malformed_representation() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"reprs": [
                     "this is a string when it should be an object"
@@ -217,7 +217,7 @@ fn representation_missing_typename() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($reprs: [_Any!]!) {
                         _entities(representations: $reprs) {
                             __typename
@@ -226,7 +226,7 @@ fn representation_missing_typename() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"reprs": [
                     { "blah": "this is missing __typename" },

@@ -61,7 +61,7 @@ impl CustomResolver {
                     parent: Some(parent.data_resolved().clone()),
                     context: UdfRequestContext {
                         request: UdfRequestContextRequest {
-                            headers: serde_json::to_value(&runtime_ctx.headers_as_map()).expect("must be valid"),
+                            headers: serde_json::to_value(runtime_ctx.headers_as_map()).expect("must be valid"),
                         },
                     },
                     info: Some(serde_json::json!({

@@ -32,7 +32,7 @@ fn remote_unions_test() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                    r#"
+                    r"
                     query {
                         petstore {
                             pets {
@@ -49,7 +49,7 @@ fn remote_unions_test() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .await
                 .into_value(),
@@ -89,7 +89,7 @@ fn remote_unions_test() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                    r#"
+                    r"
                     query {
                         petstore {
                             owner {
@@ -103,7 +103,7 @@ fn remote_unions_test() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .await
                 .into_value(),

@@ -200,7 +200,7 @@ impl<T: LegacyInputType> LegacyInputType for Box<T> {
     }
 
     fn to_value(&self) -> ConstValue {
-        T::to_value(&self)
+        T::to_value(self)
     }
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {
@@ -244,7 +244,7 @@ impl<T: LegacyInputType> LegacyInputType for Arc<T> {
     }
 
     fn to_value(&self) -> ConstValue {
-        T::to_value(&self)
+        T::to_value(self)
     }
 
     fn as_raw_value(&self) -> Option<&Self::RawValueType> {

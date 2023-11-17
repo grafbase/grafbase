@@ -40,7 +40,7 @@ impl<'a> Lookahead<'a> {
                 &field.selection_set.node,
                 name,
                 self.context,
-            )
+            );
         }
 
         Self {
@@ -127,15 +127,15 @@ fn filter<'a>(
         match &item.node {
             Selection::Field(field) => {
                 if field.node.name.node == name {
-                    fields.push(&field.node)
+                    fields.push(&field.node);
                 }
             }
             Selection::InlineFragment(fragment) => {
-                filter(fields, fragments, &fragment.node.selection_set.node, name, _context)
+                filter(fields, fragments, &fragment.node.selection_set.node, name, _context);
             }
             Selection::FragmentSpread(spread) => {
                 if let Some(fragment) = fragments.get(&spread.node.fragment_name.node) {
-                    filter(fields, fragments, &fragment.node.selection_set.node, name, _context)
+                    filter(fields, fragments, &fragment.node.selection_set.node, name, _context);
                 }
             }
         }

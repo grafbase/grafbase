@@ -7,7 +7,7 @@ mod length;
 use length::LengthValidator;
 
 pub(crate) trait DynValidate<T> {
-    fn validate<'a>(&self, _ctx: &mut VisitorContext<'a>, meta: &MetaInputValue, pos: Pos, other: T);
+    fn validate(&self, _ctx: &mut VisitorContext<'_>, meta: &MetaInputValue, pos: Pos, other: T);
 }
 
 // Wrap Validators up in an enum to avoid having to box the context data
@@ -33,7 +33,7 @@ impl DynValidator {
 }
 
 impl DynValidate<&Value> for DynValidator {
-    fn validate<'a>(&self, ctx: &mut VisitorContext<'a>, meta: &MetaInputValue, pos: Pos, value: &Value) {
-        self.inner().validate(ctx, meta, pos, value)
+    fn validate(&self, ctx: &mut VisitorContext<'_>, meta: &MetaInputValue, pos: Pos, value: &Value) {
+        self.inner().validate(ctx, meta, pos, value);
     }
 }

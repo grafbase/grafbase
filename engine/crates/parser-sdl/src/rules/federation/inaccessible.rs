@@ -16,9 +16,9 @@ impl Directive for InaccessibleDirective {
     fn definition() -> String {
         // The real inaccessible is meant to be available in a lot more positions than this
         // but for now we're only supporting this one
-        r#"
+        r"
         directive @inaccessible on FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }

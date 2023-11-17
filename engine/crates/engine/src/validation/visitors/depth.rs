@@ -90,24 +90,24 @@ mod tests {
     #[test]
     fn depth() {
         check_depth(
-            r#"{
+            r"{
             value #1
-        }"#,
+        }",
             1,
         );
 
         check_depth(
-            r#"
+            r"
         {
             obj { #1
                 a b #2
             }
-        }"#,
+        }",
             2,
         );
 
         check_depth(
-            r#"
+            r"
         {
             obj { # 1
                 a b c { # 2
@@ -116,36 +116,36 @@ mod tests {
                     }
                 }
             }
-        }"#,
+        }",
             4,
         );
 
         check_depth(
-            r#"
+            r"
         fragment A on MyObj {
             a b ... A2 #2
         }
-        
+
         fragment A2 on MyObj {
             obj {
                 a #3
             }
         }
-            
+
         query {
             obj { # 1
                 ... A
             }
-        }"#,
+        }",
             3,
         );
 
         check_depth(
-            r#"
+            r"
         {
             obj { # 1
                 ... on MyObj {
-                    a b #2 
+                    a b #2
                     ... on MyObj {
                         obj {
                             a #3
@@ -153,7 +153,7 @@ mod tests {
                     }
                 }
             }
-        }"#,
+        }",
             3,
         );
     }

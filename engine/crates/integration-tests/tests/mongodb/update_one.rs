@@ -113,13 +113,13 @@ fn set() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

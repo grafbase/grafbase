@@ -372,7 +372,7 @@ impl PartialEq for MetaField {
     fn eq(&self, other: &Self) -> bool {
         self.name.eq(&other.name)
             && self.description.eq(&other.description)
-            && self.args.as_slice().eq(&other.args.as_slice())
+            && self.args.as_slice().eq(other.args.as_slice())
             && self.ty.eq(&other.ty)
             && self.deprecation.eq(&other.deprecation)
             && self.cache_control.eq(&other.cache_control)
@@ -1589,7 +1589,7 @@ impl Registry {
         self.types.get_mut(self.mutation_type.as_deref().unwrap()).unwrap()
     }
 
-    pub fn find_ty_with_id<'a>(&self, node_id: &NodeID<'a>) -> Option<&MetaType> {
+    pub fn find_ty_with_id(&self, node_id: &NodeID<'_>) -> Option<&MetaType> {
         let ty = node_id.ty();
         self.types
             .iter()
@@ -1817,11 +1817,10 @@ impl Registry {
                     names.extend(
                         fields
                             .values()
-                            .map(|field| {
+                            .flat_map(|field| {
                                 std::iter::once(field.name.clone())
                                     .chain(field.args.values().map(|arg| arg.name.to_string()))
-                            })
-                            .flatten(),
+                            }),
                     );
                 }
                 MetaType::Enum(EnumType { name, enum_values, .. }) => {
@@ -1896,12 +1895,12 @@ impl Registry {
                         for field in interface.fields.values() {
                             traverse_field(types, used_types, field);
                         }
-                        for type_name in interface.possible_types.iter() {
+                        for type_name in &interface.possible_types {
                             traverse_type(types, used_types, type_name);
                         }
                     }
                     MetaType::Union(union_type) => {
-                        for type_name in union_type.possible_types.iter() {
+                        for type_name in &union_type.possible_types {
                             traverse_type(types, used_types, type_name);
                         }
                     }
@@ -2003,12 +2002,12 @@ impl Registry {
                         for field in interface.fields.values() {
                             traverse_field(ctx, types, visible_types, field);
                         }
-                        for type_name in interface.possible_types.iter() {
+                        for type_name in &interface.possible_types {
                             traverse_type(ctx, types, visible_types, type_name);
                         }
                     }
                     MetaType::Union(union_type) => {
-                        for type_name in union_type.possible_types.iter() {
+                        for type_name in &union_type.possible_types {
                             traverse_type(ctx, types, visible_types, type_name);
                         }
                     }
@@ -2045,7 +2044,7 @@ impl Registry {
         for ty in self.types.values() {
             if let MetaType::Interface(interface) = ty {
                 if ty.is_visible(ctx) && !visible_types.contains(ty.name()) {
-                    for type_name in interface.possible_types.iter() {
+                    for type_name in &interface.possible_types {
                         if visible_types.contains(type_name.as_str()) {
                             traverse_type(ctx, &self.types, &mut visible_types, ty.name());
                             break;

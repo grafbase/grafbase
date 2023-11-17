@@ -19,9 +19,9 @@ impl ShareableDirective {
 
 impl Directive for ShareableDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @shareable on OBJECT | FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }

@@ -12,7 +12,7 @@ fn named_fragment_on_object() {
 
             engine
                 .execute(
-                    r#"
+                    r"
                     query {
                         allBotPullRequests {
                             ... PrFields
@@ -27,7 +27,7 @@ fn named_fragment_on_object() {
                             email
                         }
                     }
-                    "#,
+                    ",
                 )
                 .await
         })
@@ -47,7 +47,7 @@ fn inline_fragment_on_object() {
 
             engine
                 .execute(
-                    r#"
+                    r"
                     query {
                         allBotPullRequests {
                             ... {
@@ -60,7 +60,7 @@ fn inline_fragment_on_object() {
                             }
                         }
                     }
-                    "#,
+                    ",
                 )
                 .await
         })
@@ -80,7 +80,7 @@ fn inline_fragment_on_object_with_type_condition() {
 
             engine
                 .execute(
-                    r#"
+                    r"
                     query {
                         allBotPullRequests {
                             ... on PullRequest {
@@ -93,7 +93,7 @@ fn inline_fragment_on_object_with_type_condition() {
                             }
                         }
                     }
-                    "#,
+                    ",
                 )
                 .await
         })

@@ -12,11 +12,11 @@ fn only_implicit_fields() {
     "#};
 
     with_mongodb(schema, |api| async move {
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: {}) { insertedId }
             }         
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let inserted_id = result.get_string_opt("userCreate.insertedId");
@@ -36,13 +36,13 @@ fn namespacing() {
     "#};
 
     with_namespaced_mongodb("mongo", schema, |api| async move {
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               mongo {
                 userCreate(input: {}) { insertedId }
               }
             }         
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let inserted_id = result.get_string_opt("mongo.userCreate.insertedId");
@@ -62,13 +62,13 @@ fn capital_namespacing() {
     "#};
 
     with_namespaced_mongodb("Mongo", schema, |api| async move {
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               mongo {
                 userCreate(input: {}) { insertedId }
               }
             }         
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let inserted_id = result.get_string_opt("mongo.userCreate.insertedId");
@@ -137,11 +137,11 @@ fn binary() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { data } } }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -181,11 +181,11 @@ fn date() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { data } } }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -225,11 +225,11 @@ fn datetime() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { data } } }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -269,11 +269,11 @@ fn decimal() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { data } } }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -313,11 +313,11 @@ fn bigint() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { data } } }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -349,19 +349,19 @@ fn timestamp() {
     "#};
 
     let result = with_mongodb(schema, |api| async move {
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { data: 1565545664 }) { insertedId }
             }         
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { data } } }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -397,19 +397,19 @@ fn complex_array() {
     "#};
 
     let result = with_mongodb(schema, |api| async move {
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { data: [{ value: 123 }] }) { insertedId }
             }         
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { data { value } } } }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });

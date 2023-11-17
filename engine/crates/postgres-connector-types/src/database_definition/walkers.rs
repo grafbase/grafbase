@@ -12,11 +12,11 @@ mod unique_constraint_column;
 
 use std::ops::Range;
 
-pub use back_relation::BackRelationWalker;
+
 pub use enum_variant::EnumVariantWalker;
 pub(crate) use foreign_key::ForeignKeyWalker;
 pub(crate) use foreign_key_column::ForeignKeyColumnWalker;
-pub use forward_relation::ForwardRelationWalker;
+
 pub use r#enum::EnumWalker;
 pub use relation::RelationWalker;
 pub use table::TableWalker;

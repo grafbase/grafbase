@@ -115,26 +115,26 @@ mod tests {
     #[rstest::rstest]
     /// Type
     // errors
-    #[case::missing_max_age(r#"
+    #[case::missing_max_age(r"
         type Test @cache {
             balance: Int!
         }
-    "#, & ["@cache error: missing mandatory argument(s) - [\"maxAge\"]"])]
-    #[case::forbidden_usage_of_rules(r#"
+    ", & ["@cache error: missing mandatory argument(s) - [\"maxAge\"]"])]
+    #[case::forbidden_usage_of_rules(r"
         type Test @cache(maxAge: 10, rules: []) {
             balance: Int!
         }
-    "#, & ["@cache error: forbidden argument(s) used - [\"rules\"]"])]
-    #[case::single_directive(r#"
+    ", & ["@cache error: forbidden argument(s) used - [\"rules\"]"])]
+    #[case::single_directive(r"
         type Test @cache(maxAge: 10) @cache(maxAge: 10) {
             balance: Int!
         }
-    "#, & ["@cache error: only one directive is allowed"])]
-    #[case::invalid_mutation_invalidation_variant(r#"
+    ", & ["@cache error: only one directive is allowed"])]
+    #[case::invalid_mutation_invalidation_variant(r"
         type Test @cache(maxAge: 10, mutationInvalidation: test) {
             balance: Int!
         }
-    "#, & ["@cache error: Unable to parse - [2:60] invalid value: string \"test\", expected one of entity, list, type"])]
+    ", & ["@cache error: Unable to parse - [2:60] invalid value: string \"test\", expected one of entity, list, type"])]
     #[case::unknown_field_entity_mutation_invalidation(r#"
         type Test @cache(maxAge: 10, mutationInvalidation: {
             field: "random"
@@ -158,11 +158,11 @@ mod tests {
         }
     "#, & ["@cache error: mutation invalidation uses a field with an invalid type `test2`. Only primitives are allowed"])]
     // success
-    #[case::successfull_max_age(r#"
+    #[case::successfull_max_age(r"
         type Test @cache(maxAge: 60) {
             balance: Int!
         }
-    "#, & [])]
+    ", & [])]
     #[case::successfull_entity_mutation_invalidation(r#"
         type Test @cache(maxAge: 60, staleWhileRevalidate: 300, mutationInvalidation: {
             field: "balance"
@@ -170,11 +170,11 @@ mod tests {
             balance: Int!
         }
     "#, & [])]
-    #[case::successfull_swr(r#"
+    #[case::successfull_swr(r"
         type Test @cache(maxAge: 60, staleWhileRevalidate: 300) {
             balance: Int!
         }
-    "#, & [])]
+    ", & [])]
     fn test_type_parsing(#[case] schema: &str, #[case] expected_messages: &[&str]) {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new_for_tests(&schema);
@@ -187,37 +187,37 @@ mod tests {
     #[rstest::rstest]
     /// Fields
     // errors
-    #[case::missing_max_age(r#"
+    #[case::missing_max_age(r"
         type Test {
             balance: Int! @cache
         }
-    "#, & ["@cache error: missing mandatory argument(s) - [\"maxAge\"]"])]
-    #[case::forbidden_usage_of_rules(r#"
+    ", & ["@cache error: missing mandatory argument(s) - [\"maxAge\"]"])]
+    #[case::forbidden_usage_of_rules(r"
         type Test {
             balance: Int! @cache(maxAge: 10, rules: [])
         }
-    "#, & ["@cache error: forbidden argument(s) used - [\"rules\", \"mutationInvalidation\"]"])]
-    #[case::forbidden_usage_of_mutation_invalidation(r#"
+    ", & ["@cache error: forbidden argument(s) used - [\"rules\", \"mutationInvalidation\"]"])]
+    #[case::forbidden_usage_of_mutation_invalidation(r"
         type Test {
             balance: Int! @cache(maxAge: 10, mutationInvalidation: entity)
         }
-    "#, & ["@cache error: forbidden argument(s) used - [\"rules\", \"mutationInvalidation\"]"])]
-    #[case::single_directive(r#"
+    ", & ["@cache error: forbidden argument(s) used - [\"rules\", \"mutationInvalidation\"]"])]
+    #[case::single_directive(r"
         type Test {
             balance: Int! @cache(maxAge: 10) @cache(maxAge: 10)
         }
-    "#, & ["@cache error: only one directive is allowed"])]
+    ", & ["@cache error: only one directive is allowed"])]
     // success
-    #[case::successfull_max_age(r#"
+    #[case::successfull_max_age(r"
         type Test {
             balance: Int! @cache(maxAge: 60)
         }
-    "#, & [])]
-    #[case::successfull_swr(r#"
+    ", & [])]
+    #[case::successfull_swr(r"
         type Test {
             balance: Int! @cache(maxAge: 60, staleWhileRevalidate: 300)
         }
-    "#, & [])]
+    ", & [])]
     fn test_field_parsing(#[case] schema: &str, #[case] expected_messages: &[&str]) {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new_for_tests(&schema);
@@ -228,11 +228,11 @@ mod tests {
     }
 
     #[rstest::rstest]
-    #[case::successfull_api_key_access_scope(r#"
+    #[case::successfull_api_key_access_scope(r"
         type Test @cache(maxAge: 60, scopes: [apikey]) {
             balance: Int!
         }
-    "#, & [])]
+    ", & [])]
     #[case::successfull_jwt_access_scope(r#"
         type Test @cache(maxAge: 60, scopes: [{ claim: "claim_name" }]) {
             balance: Int!
@@ -243,11 +243,11 @@ mod tests {
             balance: Int!
         }
     "#, & [])]
-    #[case::successfull_public_access_scope(r#"
+    #[case::successfull_public_access_scope(r"
         type Test @cache(maxAge: 60, scopes: [public]) {
             balance: Int!
         }
-    "#, & [])]
+    ", & [])]
     #[case::successfull_multiple_access_scopes(r#"
         type Test @cache(maxAge: 60, scopes: [apikey, { claim: "sub" }, { header: "header_name" }]) {
             balance: Int!

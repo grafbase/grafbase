@@ -20,7 +20,7 @@ impl<'a> SDLDefinitionScalar<'a> for HexBytesScalar {
 impl DynamicParse for HexBytesScalar {
     fn parse(value: ConstValue) -> crate::InputValueResult<Value> {
         match value {
-            ConstValue::String(bytes_string) => match STANDARD_NO_PAD.decode(&bytes_string) {
+            ConstValue::String(bytes_string) => match STANDARD_NO_PAD.decode(bytes_string) {
                 Ok(bytes_vector) => Ok(Value::String(format!("\\x{}", hex::encode(bytes_vector)))),
                 Err(_) => Err(InputValueError::ty_custom("Bytes", "Invalid HexBytes value")),
             },

@@ -131,9 +131,9 @@ fn insert_metadata_field(
 
 impl Directive for ModelDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @model on OBJECT
-        "#
+        "
         .to_string()
     }
 }
@@ -505,12 +505,12 @@ mod tests {
 
     #[test]
     fn should_not_error_when_id() {
-        let schema = r#"
+        let schema = r"
             type Product @model {
                 id: ID!
                 test: String!
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -522,12 +522,12 @@ mod tests {
 
     #[test]
     fn should_warn_about_deprecated_models() {
-        let schema = r#"
+        let schema = r"
             type Product @model {
                 id: ID!
                 test: String!
             }
-        "#;
+        ";
 
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new_for_tests(&schema);
@@ -538,12 +538,12 @@ mod tests {
 
     #[test]
     fn should_reject_model_when_models_disabled() {
-        let schema = r#"
+        let schema = r"
             type Product @model {
                 id: ID!
                 test: String!
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -556,12 +556,12 @@ mod tests {
 
     #[test]
     fn should_handle_model_auth() {
-        let schema = r#"
+        let schema = r"
             type Todo @model @auth(rules: [ { allow: private } ]) {
                 id: ID!
                 title: String
             }
-            "#;
+            ";
 
         let variables = HashMap::new();
         let schema = parse_schema(schema).unwrap();
@@ -615,12 +615,12 @@ mod tests {
 
     #[test]
     fn should_handle_field_auth() {
-        let schema = r#"
+        let schema = r"
             type Todo @model {
                 id: ID!
                 title: String @auth(rules: [{ allow: owner }])
             }
-            "#;
+            ";
 
         let variables = HashMap::new();
         let schema = parse_schema(schema).unwrap();
@@ -653,12 +653,12 @@ mod tests {
 
     #[test]
     fn should_handle_model_and_field_auth() {
-        let schema = r#"
+        let schema = r"
             type Todo @model @auth(rules: [ { allow: private } ]) {
                 id: ID!
                 title: String @auth(rules: [{ allow: owner }])
             }
-            "#;
+            ";
 
         let variables = HashMap::new();
         let schema = parse_schema(schema).unwrap();

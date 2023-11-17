@@ -16,9 +16,9 @@ pub struct LengthDirective;
 
 impl Directive for LengthDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @length(min: Int, max: Int) on FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }
@@ -93,40 +93,40 @@ mod tests {
     use crate::rules::visitor::visit;
 
     #[rstest::rstest]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String @length(foo: 10)
         }
-        "#, &[
+        ", &[
         "Unexpected argument foo, @length directive only supports the following arguments: `max` and `min`"
     ])]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String @length
         }
-        "#, &[
+        ", &[
         "The @length directive expects at least one of the `max` and `min` arguments"
     ])]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID! @length(min: 0, max: 100)
             name: String
         }
-        "#, &[
+        ", &[
         "The @length directive is only accepted on Strings and Lists"
     ])]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String!
             category: Int @length(min:0)
         }
-        "#, &[
+        ", &[
         "The @length directive is only accepted on Strings and Lists"
     ])]
-    #[case(r#"
+    #[case(r"
         type Category @model {
             id: ID!
             name: String!
@@ -137,7 +137,7 @@ mod tests {
             name: String!
             category: Category @length(min: 0)
         }
-        "#, &[
+        ", &[
         "The @length directive is only accepted on Strings and Lists"
     ])]
     #[case(r#"
@@ -148,50 +148,50 @@ mod tests {
         "#, &[
         "The @length directive's min argument must be a positive number"
     ])]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String! @length(value: 10)
         }
-        "#, &[
+        ", &[
         "Unexpected argument value, @length directive only supports the following arguments: `max` and `min`"
     ])]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String! @length(min: 0, value: 10)
         }
-        "#, &[
+        ", &[
         "Unexpected argument value, @length directive only supports the following arguments: `max` and `min`"
     ])]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String! @length(min:10, max: 1)
         }
-        "#,
+        ",
         &["The `max` must be greater than the `min`"]
     )]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String! @length(min: 10, max: 100)
         }
-        "#, &[]
+        ", &[]
     )]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String! @length(min: 10)
         }
-        "#, &[]
+        ", &[]
     )]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String! @length(max: 10)
         }
-        "#, &[]
+        ", &[]
     )]
 
     fn test_parse_result(#[case] schema_string: &str, #[case] expected_messages: &[&str]) {

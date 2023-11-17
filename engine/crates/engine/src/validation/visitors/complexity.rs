@@ -152,34 +152,34 @@ mod tests {
     #[test]
     fn complex_object() {
         check_complex(
-            r#"
+            r"
         {
             value #1
-        }"#,
+        }",
             1,
         );
 
         check_complex(
-            r#"
+            r"
         {
             value #1
             d #3
-        }"#,
+        }",
             4,
         );
 
         check_complex(
-            r#"
+            r"
         {
             value obj { #2
                 a b #2
             }
-        }"#,
+        }",
             4,
         );
 
         check_complex(
-            r#"
+            r"
         {
             value obj { #2
                 a b obj { #3
@@ -188,12 +188,12 @@ mod tests {
                     }
                 }
             }
-        }"#,
+        }",
             9,
         );
 
         check_complex(
-            r#"
+            r"
         fragment A on MyObj {
             a b ... A2 #2
         }
@@ -208,12 +208,12 @@ mod tests {
             obj { # 1
                 ... A
             }
-        }"#,
+        }",
             5,
         );
 
         check_complex(
-            r#"
+            r"
         {
             obj { # 1
                 ... on MyObj {
@@ -225,32 +225,32 @@ mod tests {
                     }
                 }
             }
-        }"#,
+        }",
             5,
         );
 
         check_complex(
-            r#"
+            r"
         {
             objs(count: 10) {
                 a b
             }
-        }"#,
+        }",
             20,
         );
 
         check_complex(
-            r#"
+            r"
         {
             objs {
                 a b
             }
-        }"#,
+        }",
             10,
         );
 
         check_complex(
-            r#"
+            r"
         fragment A on MyObj {
             a b
         }
@@ -259,7 +259,7 @@ mod tests {
             objs(count: 10) {
                 ... A
             }
-        }"#,
+        }",
             20,
         );
     }

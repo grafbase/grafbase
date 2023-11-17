@@ -34,7 +34,7 @@ impl<'a> SDLDefinitionScalar<'a> for TimeScalar {
 impl DynamicParse for TimeScalar {
     fn is_valid(value: &ConstValue) -> bool {
         match value {
-            ConstValue::String(time) => Time::parse(&time, &Iso8601::TIME).is_ok(),
+            ConstValue::String(time) => Time::parse(time, &Iso8601::TIME).is_ok(),
             _ => false,
         }
     }

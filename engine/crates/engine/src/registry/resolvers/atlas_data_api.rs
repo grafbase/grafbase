@@ -44,7 +44,7 @@ impl AtlasDataApiResolver {
             .expect("directive must exist");
 
         Box::pin(make_send_on_wasm(async move {
-            request::execute(ctx, resolver_ctx, &config, &self.collection, self.operation_type).await
+            request::execute(ctx, resolver_ctx, config, &self.collection, self.operation_type).await
         }))
     }
 }

@@ -21,9 +21,9 @@ impl DefaultDirective {
 
 impl Directive for DefaultDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @default(value: String) on FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }

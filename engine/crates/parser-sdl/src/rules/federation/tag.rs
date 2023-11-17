@@ -34,9 +34,9 @@ impl Directive for TagDirective {
         //
         // These are also marked as repeatable in the actual definition but we
         // don't support that keyword at the moment
-        r#"
+        r"
         directive @tag(name: String!) on FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }

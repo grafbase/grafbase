@@ -79,7 +79,7 @@ fn graphql_test_with_namespace() {
             "namespaced-input-list",
             engine
                 .execute(
-                    r#"
+                    r"
                     query GetPullRequests($bots: [[GothubBotInput!]]!) {
                         gothub {
                             botPullRequests(bots: $bots) {
@@ -90,7 +90,7 @@ fn graphql_test_with_namespace() {
                             }
                         }
                     }
-                "#
+                "
                 )
                 .variables(json!({"bots": [[{"id": "2"}]]}))
                 .await
@@ -183,13 +183,13 @@ fn test_nested_variable_forwarding() {
 
         engine
             .execute(
-                r#"
+                r"
                     query ($search: String!) {
                         pullRequestsAndIssues(filter: {search: $search}) {
                             __typename
                         }
                     }
-                "#,
+                ",
             )
             .variables(json!({"search": "1"}))
             .await

@@ -20,11 +20,11 @@ fn char() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -60,11 +60,11 @@ fn name() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -100,11 +100,11 @@ fn text() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -140,11 +140,11 @@ fn xml() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -180,11 +180,11 @@ fn cidr() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -220,11 +220,11 @@ fn macaddr8() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -260,11 +260,11 @@ fn macaddr() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -300,11 +300,11 @@ fn bpchar() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -340,11 +340,11 @@ fn varchar() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -380,11 +380,11 @@ fn bit() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -420,11 +420,11 @@ fn varbit() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -460,11 +460,11 @@ fn xml_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -503,11 +503,11 @@ fn cidr_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -546,11 +546,11 @@ fn macaddr8_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -589,11 +589,11 @@ fn macaddr_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -632,11 +632,11 @@ fn char_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -675,11 +675,11 @@ fn name_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -718,11 +718,11 @@ fn text_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -761,11 +761,11 @@ fn bpchar_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -804,11 +804,11 @@ fn varchar_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -847,11 +847,11 @@ fn bit_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -890,11 +890,11 @@ fn varbit_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -933,11 +933,11 @@ fn int8() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -973,11 +973,11 @@ fn oid() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1013,11 +1013,11 @@ fn int2() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1053,11 +1053,11 @@ fn int4() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1093,11 +1093,11 @@ fn json() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1135,11 +1135,11 @@ fn jsonb() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1177,11 +1177,11 @@ fn json_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1224,11 +1224,11 @@ fn jsonb_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1271,11 +1271,11 @@ fn money() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1311,11 +1311,11 @@ fn numeric() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1351,11 +1351,11 @@ fn money_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1394,11 +1394,11 @@ fn numeric_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1437,11 +1437,11 @@ fn int2_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1480,11 +1480,11 @@ fn int4_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1523,11 +1523,11 @@ fn float4_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1566,11 +1566,11 @@ fn float8_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1609,11 +1609,11 @@ fn time() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1649,11 +1649,11 @@ fn timetz() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1689,11 +1689,11 @@ fn int8_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1732,11 +1732,11 @@ fn oid_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1775,11 +1775,11 @@ fn float4() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1815,11 +1815,11 @@ fn float8() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1855,11 +1855,11 @@ fn time_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1898,11 +1898,11 @@ fn timetz_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1941,11 +1941,11 @@ fn bool() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1981,11 +1981,11 @@ fn bytea() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2021,11 +2021,11 @@ fn inet() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2061,11 +2061,11 @@ fn bool_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2104,11 +2104,11 @@ fn bytea_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2147,11 +2147,11 @@ fn inet_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2190,11 +2190,11 @@ fn date() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2230,11 +2230,11 @@ fn timestamp() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2270,11 +2270,11 @@ fn timestamp_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2313,11 +2313,11 @@ fn date_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2356,11 +2356,11 @@ fn timestamptz() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2396,11 +2396,11 @@ fn timestamptz_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2439,11 +2439,11 @@ fn uuid() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2479,11 +2479,11 @@ fn uuid_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2506,9 +2506,9 @@ fn uuid_array() {
 #[test]
 fn r#enum() {
     let response = query_postgres(|api| async move {
-        let r#type = indoc! {r#"
+        let r#type = indoc! {r"
             CREATE TYPE street_light AS ENUM ('red', 'yellow', 'green');
-        "#};
+        "};
 
         api.execute_sql(r#type).await;
 
@@ -2527,11 +2527,11 @@ fn r#enum() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2552,9 +2552,9 @@ fn r#enum() {
 #[test]
 fn enum_array() {
     let response = query_postgres(|api| async move {
-        let r#type = indoc! {r#"
+        let r#type = indoc! {r"
             CREATE TYPE street_light AS ENUM ('red', 'yellow', 'green');
-        "#};
+        "};
 
         api.execute_sql(r#type).await;
 
@@ -2573,11 +2573,11 @@ fn enum_array() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               a(by: { id: 1 }) { id val }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

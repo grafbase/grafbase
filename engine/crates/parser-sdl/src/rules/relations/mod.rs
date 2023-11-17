@@ -19,7 +19,7 @@ mod tests {
 
     #[test]
     fn multiple_relations() {
-        let schema = r#"
+        let schema = r"
             type Author @model {
                 id: ID!
                 postsToday: [Post!]
@@ -30,7 +30,7 @@ mod tests {
                 id: ID!
                 publishedBy: [Author!]
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 

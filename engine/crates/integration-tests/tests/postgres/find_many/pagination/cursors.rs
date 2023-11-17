@@ -20,13 +20,13 @@ fn root_level_implicit_order_with_single_pk() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 2) {
                 edges { node { name } cursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -75,13 +75,13 @@ fn root_level_implicit_order_with_compound_pk() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 2) {
                 edges { node { name } cursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -130,13 +130,13 @@ fn root_level_implicit_order_with_nullable_compound_key() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 2) {
                 edges { node { name } cursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -184,13 +184,13 @@ fn root_level_explicit_order() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 2, orderBy: [{ name: DESC }]) {
                 edges { node { id } cursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -238,13 +238,13 @@ fn root_level_explicit_order_two_columns() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 2, orderBy: [{ name: DESC }, { id: DESC }]) {
                 edges { node { id } cursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -314,7 +314,7 @@ fn nested_ordering_cursors_implicit_order() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1000, filter: { id: { eq: 1 } }) {
                 edges {
@@ -325,7 +325,7 @@ fn nested_ordering_cursors_implicit_order() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -406,7 +406,7 @@ fn nested_ordering_cursors_explicit_order() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1000, filter: { id: { eq: 1 } }) {
                 edges {
@@ -417,7 +417,7 @@ fn nested_ordering_cursors_explicit_order() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

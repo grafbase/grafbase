@@ -28,7 +28,7 @@ impl<'a> Visitor<'a> for UniqueArgumentNames<'a> {
             ctx.report_error(
                 vec![name.pos],
                 format!("There can only be one argument named \"{name}\""),
-            )
+            );
         }
     }
 
@@ -49,11 +49,11 @@ mod tests {
     fn no_arguments_on_field() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           {
             field
           }
-        "#,
+        ",
         );
     }
 
@@ -61,11 +61,11 @@ mod tests {
     fn no_arguments_on_directive() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           {
             dog @directive
           }
-        "#,
+        ",
         );
     }
 
