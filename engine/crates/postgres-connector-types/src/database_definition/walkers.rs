@@ -12,7 +12,6 @@ mod unique_constraint_column;
 
 use std::ops::Range;
 
-
 pub use enum_variant::EnumVariantWalker;
 pub(crate) use foreign_key::ForeignKeyWalker;
 pub(crate) use foreign_key_column::ForeignKeyColumnWalker;

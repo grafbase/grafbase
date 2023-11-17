@@ -1814,14 +1814,9 @@ impl Registry {
                 MetaType::Object(ObjectType { name, fields, .. })
                 | MetaType::Interface(InterfaceType { name, fields, .. }) => {
                     names.insert(name.clone());
-                    names.extend(
-                        fields
-                            .values()
-                            .flat_map(|field| {
-                                std::iter::once(field.name.clone())
-                                    .chain(field.args.values().map(|arg| arg.name.to_string()))
-                            }),
-                    );
+                    names.extend(fields.values().flat_map(|field| {
+                        std::iter::once(field.name.clone()).chain(field.args.values().map(|arg| arg.name.to_string()))
+                    }));
                 }
                 MetaType::Enum(EnumType { name, enum_values, .. }) => {
                     names.insert(name.clone());

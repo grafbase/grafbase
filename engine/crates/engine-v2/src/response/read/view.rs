@@ -12,7 +12,8 @@ pub struct ResponseObjectsView<'a> {
 impl<'a> ResponseObjectsView<'a> {
     pub fn id(&self) -> ResponseObjectId {
         *self
-            .response_object_ids.first()
+            .response_object_ids
+            .first()
             .expect("At least one object node id must be present in a Input.")
     }
 

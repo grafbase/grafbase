@@ -12,7 +12,7 @@ mod build_key;
 mod key;
 
 pub const X_GRAFBASE_CACHE: &str = "x-grafbase-cache";
-pub use build_key::{build_cache_key};
+pub use build_key::build_cache_key;
 use engine::registry::CachePartialRegistry;
 
 use super::RequestContext;

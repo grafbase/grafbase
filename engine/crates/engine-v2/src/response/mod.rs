@@ -9,7 +9,6 @@ mod write;
 pub use error::GraphqlError;
 pub use read::{ReadSelection, ReadSelectionSet, ResponseObjectsView};
 
-
 use crate::execution::{StrId, Strings};
 
 const DENSE_BIT_FLAG: u32 = 1 << 31;
