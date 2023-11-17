@@ -25,36 +25,38 @@ impl Composer {
         }
     }
 
-    pub(crate) async fn handler(mut self) -> Result<(), crate::Error> {
+    pub(crate) async fn handler(mut self) {
         log::trace!("starting the composer handler");
 
         loop {
-            match self.bus.recv().await {
+            let result = match self.bus.recv().await {
                 Some(ComposeMessage::Introspect(message)) => {
                     log::trace!("composer handling introspection for subgraph '{}'", message.name());
-                    self.handle_introspect(message).await?;
+                    self.handle_introspect(message).await
                 }
                 Some(ComposeMessage::Compose(message)) => {
                     log::trace!("composer handling composition for subgraph '{}'", message.name());
-                    self.handle_compose(message).await?;
+                    self.handle_compose(message).await
                 }
                 Some(ComposeMessage::RemoveSubgraph(message)) => {
                     log::trace!("composer handling removing a subgraph '{}'", message.name());
-                    self.handle_remove_subgraph(message).await?;
+                    self.handle_remove_subgraph(message).await
                 }
                 Some(ComposeMessage::Recompose) => {
                     log::trace!("composer handling recomposition");
-                    self.handle_recompose().await?;
+                    self.handle_recompose().await
                 }
                 Some(ComposeMessage::InitializeRefresh) => {
                     log::trace!("composer initializing a refresh");
-                    self.handle_init_refresh().await?;
+                    self.handle_init_refresh().await
                 }
                 None => break,
+            };
+
+            if let Err(error) = result {
+                log::warn!("Error in composer: {error:?}");
             }
         }
-
-        Ok(())
     }
 
     async fn handle_introspect(&mut self, message: IntrospectSchema) -> Result<(), crate::Error> {
