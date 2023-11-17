@@ -102,6 +102,10 @@ impl IntrospectSchema {
         }
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub(crate) fn into_parts(self) -> (String, Url, Vec<Header>, ResponseSender<ServiceDocument>) {
         (self.name, self.url, self.headers, self.responder)
     }

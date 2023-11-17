@@ -24,6 +24,8 @@ impl Router {
     }
 
     pub async fn handler(mut self) -> Result<(), crate::Error> {
+        log::trace!("starting the router handler");
+
         let streams: [RouterStream; 2] = [
             Box::pin(ReceiverStream::new(self.graph_bus).map(RouterMessage::Graph)),
             Box::pin(ReceiverStream::new(self.request_bus).map(RouterMessage::request)),
@@ -34,12 +36,18 @@ impl Router {
         while let Some(message) = stream.next().await {
             match (message, self.engine.as_ref()) {
                 (RouterMessage::Graph(graph), _) => {
+                    log::trace!("router got a new graph");
+
                     self.engine = Some(new_engine(graph));
                 }
                 (RouterMessage::Request(request, response_sender), Some(engine)) => {
+                    log::trace!("router got a new request with an existing engine");
+
                     tokio::spawn(run_request(request, response_sender, Arc::clone(engine)));
                 }
                 (RouterMessage::Request(_, response_sender), None) => {
+                    log::trace!("router got a new request with a missingengine");
+
                     response_sender
                         .send(Err(ServerError::new(
                             "there are no subgraphs registered currently",

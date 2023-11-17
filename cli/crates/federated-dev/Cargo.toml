@@ -29,3 +29,4 @@ engine-v2 = { path = "../../../engine/crates/engine-v2" }
 futures-concurrency = "7"
 futures-util = "0.3"
 tokio-stream = "0.1"
+log = "0.4.20"

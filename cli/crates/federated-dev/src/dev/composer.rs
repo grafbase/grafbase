@@ -26,21 +26,28 @@ impl Composer {
     }
 
     pub(crate) async fn handler(mut self) -> Result<(), crate::Error> {
+        log::trace!("starting the composer handler");
+
         loop {
             match self.bus.recv().await {
                 Some(ComposeMessage::Introspect(message)) => {
+                    log::trace!("composer handling introspection for subgraph '{}'", message.name());
                     self.handle_introspect(message).await?;
                 }
                 Some(ComposeMessage::Compose(message)) => {
+                    log::trace!("composer handling composition for subgraph '{}'", message.name());
                     self.handle_compose(message).await?;
                 }
                 Some(ComposeMessage::RemoveSubgraph(message)) => {
+                    log::trace!("composer handling removing a subgraph '{}'", message.name());
                     self.handle_remove_subgraph(message).await?;
                 }
                 Some(ComposeMessage::Recompose) => {
+                    log::trace!("composer handling recomposition");
                     self.handle_recompose().await?;
                 }
                 Some(ComposeMessage::InitializeRefresh) => {
+                    log::trace!("composer initializing a refresh");
                     self.handle_init_refresh().await?;
                 }
                 None => break,
@@ -109,7 +116,7 @@ impl Composer {
             Err(error) => {
                 responder
                     .send(Err(Error::composition(&error)))
-                    .map_err(|_| Error::internal("oneshot channel is dead"))?;
+                    .map_err(|_| Error::internal("compose channel is dead"))?;
 
                 self.bus.send_composer(RemoveSubgraph::new(&name)).await?;
 
@@ -122,7 +129,7 @@ impl Composer {
 
         responder
             .send(Ok(()))
-            .map_err(|_| Error::internal("oneshot channel is dead"))?;
+            .map_err(|_| Error::internal("compose channel is dead"))?;
 
         Ok(())
     }

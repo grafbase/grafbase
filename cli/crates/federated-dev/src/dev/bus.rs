@@ -57,7 +57,9 @@ async fn compose_graph(
     let message = ComposeSchema::new(name, subgraph, request);
     sender.send(message.into()).await?;
 
-    response.await?
+    response
+        .await
+        .map_err(|_| Error::internal("compose channel closed".to_string()))?
 }
 
 async fn introspect_schema(
@@ -74,5 +76,7 @@ async fn introspect_schema(
         .await
         .map_err(|error| Error::internal(error.to_string()))?;
 
-    response.await?
+    response
+        .await
+        .map_err(|_| Error::internal("introspection channel closed".to_string()))?
 }

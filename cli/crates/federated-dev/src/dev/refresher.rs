@@ -23,6 +23,8 @@ impl Refresher {
     }
 
     pub(crate) async fn handler(mut self) -> Result<(), crate::Error> {
+        log::trace!("starting the refresher handler");
+
         while let Some(graphs) = self.bus.recv().await {
             for message in graphs {
                 let schema = match self
@@ -32,18 +34,21 @@ impl Refresher {
                 {
                     Ok(schema) if Subgraph::hash_schema(&schema) != message.hash => schema,
                     Ok(_) => continue,
-                    Err(_) => {
+                    Err(e) => {
+                        log::error!("error in introspection: {e}");
                         self.bus.send_composer(RemoveSubgraph::new(message.name)).await?;
                         continue;
                     }
                 };
+
+                log::trace!("subgraph changed, composing a new federated graph");
 
                 if let Err(e) = self
                     .bus
                     .compose_graph(message.name, message.url, message.headers, schema)
                     .await
                 {
-                    println!("error: {e}");
+                    log::error!("error in composition: {e}");
                 }
             }
         }

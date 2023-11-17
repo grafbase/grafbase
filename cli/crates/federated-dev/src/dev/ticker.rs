@@ -15,6 +15,8 @@ impl Ticker {
     }
 
     pub async fn handler(self) -> Result<(), crate::Error> {
+        log::trace!("starting the ticker handler");
+
         let mut interval = tokio::time::interval(self.tick_duration);
 
         loop {
