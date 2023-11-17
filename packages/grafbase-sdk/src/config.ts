@@ -15,12 +15,12 @@ export interface SingleGraphConfigInput {
   federation?: FederationParams
 }
 
-/**
- * @deprecated use `graph` instead of `schema`
- * An interface to create the complete config definition.
- */
+// /**
+//  * @deprecated use `graph` instead of `schema`
+//  * An interface to create the complete config definition.
+//  */
 export interface DeprecatedSingleGraphConfigInput {
-  /** @deprecated use `graph` instead */
+  // /** @deprecated use `graph` instead */
   schema: SingleGraph
   auth?: AuthParams
   cache?: CacheParams
@@ -46,11 +46,9 @@ export class SingleGraphConfig {
   private readonly federation?: Federation
 
   constructor(input: SingleGraphConfigInput)
-  /** @deprecated use `graph` instead of `schema` */
+  // /** @deprecated use `graph` instead of `schema` */
   constructor(input: DeprecatedSingleGraphConfigInput)
-  constructor(
-    input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput
-  ) {
+  constructor(input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput) {
     this.graph = 'graph' in input ? input.graph : input.schema
 
     if (input.auth) {
