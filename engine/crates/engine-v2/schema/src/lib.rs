@@ -4,7 +4,9 @@ use std::{borrow::Cow, cmp::Ordering};
 
 mod conversion;
 mod ids;
+mod introspection;
 mod names;
+
 pub use ids::*;
 pub use names::Names;
 
@@ -35,9 +37,30 @@ pub struct Schema {
 
     /// All the strings in the supergraph, deduplicated.
     strings: Vec<String>,
-
     /// All the field types in the supergraph, deduplicated.
     field_types: Vec<FieldType>,
+    // All definitions sorted by their name (actual string, not the id)
+    definitions: Vec<Definition>,
+}
+
+impl Schema {
+    fn ensure_proper_ordering(&mut self) {
+        self.object_fields.sort_unstable();
+        self.interface_fields.sort_unstable_by_key(|field| field.interface_id);
+        let mut definitions = std::mem::take(&mut self.definitions);
+        definitions.sort_unstable_by_key(|definition| {
+            let name = match definition {
+                Definition::Scalar(s) => self[*s].name,
+                Definition::Object(o) => self[*o].name,
+                Definition::Interface(i) => self[*i].name,
+                Definition::Union(u) => self[*u].name,
+                Definition::Enum(e) => self[*e].name,
+                Definition::InputObject(io) => self[*io].name,
+            };
+            &self[name]
+        });
+        self.definitions = definitions;
+    }
 }
 
 pub struct RootOperationTypes {
@@ -236,6 +259,7 @@ impl Resolver {
 
 pub struct FieldArgument {
     pub name: StringId,
+    pub default_value: Option<Value>,
     pub type_id: FieldTypeId,
 }
 
@@ -254,6 +278,7 @@ pub enum Value {
     List(Vec<Value>),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Definition {
     Scalar(ScalarId),
     Object(ObjectId),
@@ -261,6 +286,24 @@ pub enum Definition {
     Union(UnionId),
     Enum(EnumId),
     InputObject(InputObjectId),
+}
+
+impl From<ScalarId> for Definition {
+    fn from(id: ScalarId) -> Self {
+        Self::Scalar(id)
+    }
+}
+
+impl From<EnumId> for Definition {
+    fn from(id: EnumId) -> Self {
+        Self::Enum(id)
+    }
+}
+
+impl From<ObjectId> for Definition {
+    fn from(id: ObjectId) -> Self {
+        Self::Object(id)
+    }
 }
 
 pub struct FieldType {
@@ -282,6 +325,41 @@ pub struct Wrapping {
 
     /// Outermost to innermost.
     pub list_wrapping: Vec<ListWrapping>,
+}
+
+impl Wrapping {
+    fn nullable() -> Self {
+        Wrapping {
+            inner_is_required: false,
+            list_wrapping: vec![],
+        }
+    }
+
+    fn required() -> Self {
+        Wrapping {
+            inner_is_required: true,
+            list_wrapping: vec![],
+        }
+    }
+    fn nullable_list(self) -> Self {
+        Wrapping {
+            list_wrapping: [ListWrapping::NullableList]
+                .into_iter()
+                .chain(self.list_wrapping)
+                .collect(),
+            ..self
+        }
+    }
+
+    fn required_list(self) -> Self {
+        Wrapping {
+            list_wrapping: [ListWrapping::RequiredList]
+                .into_iter()
+                .chain(self.list_wrapping)
+                .collect(),
+            ..self
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -377,5 +455,22 @@ impl Schema {
                 None
             }
         })
+    }
+
+    pub fn definition_by_name(&self, name: &str) -> Option<Definition> {
+        self.definitions
+            .binary_search_by_key(&name, |definition| {
+                let name = match definition {
+                    Definition::Scalar(s) => self[*s].name,
+                    Definition::Object(o) => self[*o].name,
+                    Definition::Interface(i) => self[*i].name,
+                    Definition::Union(u) => self[*u].name,
+                    Definition::Enum(e) => self[*e].name,
+                    Definition::InputObject(io) => self[*io].name,
+                };
+                &self[name]
+            })
+            .map(|index| self.definitions[index])
+            .ok()
     }
 }

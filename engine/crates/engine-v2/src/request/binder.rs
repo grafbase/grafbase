@@ -74,7 +74,11 @@ impl<'a, 'b, 'c> OperationBinder<'a, 'b, 'c> {
                             )| {
                                 let name = name.to_string();
                                 match schema_field.arguments.iter().find(|arg| self.schema[arg.name] == name) {
-                                    Some(schema::FieldArgument { name, type_id }) => Ok(OperationArgument {
+                                    Some(schema::FieldArgument {
+                                        name,
+                                        type_id,
+                                        default_value: _,
+                                    }) => Ok(OperationArgument {
                                         name_pos,
                                         name: *name,
                                         type_id: *type_id,
