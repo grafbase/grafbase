@@ -1811,7 +1811,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.44.5"
+version = "0.44.6"
 dependencies = [
  "apollo-encoder",
  "apollo-parser",
