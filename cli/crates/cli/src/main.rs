@@ -43,7 +43,10 @@ use crate::{
     unlink::unlink,
 };
 use clap::Parser;
-use common::{analytics::Analytics, environment::Environment};
+use common::{
+    analytics::Analytics,
+    environment::{Environment, SchemaLocation},
+};
 use errors::CliError;
 use output::report;
 use std::process;
@@ -108,6 +111,26 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 report::start_federated_dev_server(port);
                 federated_dev::run(port).map_err(|error| CliError::FederatedDev(error.to_string()))
             } else {
+                let environment = Environment::get();
+
+                if let SchemaLocation::TsConfig(path) = environment
+                    .project
+                    .as_ref()
+                    .expect("DEMO: must be a project")
+                    .schema_path
+                    .location()
+                {
+                    let is_federated = std::fs::read_to_string(path)
+                        .expect("DEMO")
+                        .contains("graph.Federated()");
+                    if is_federated {
+                        let port = cmd.subgraph_port();
+
+                        report::start_federated_dev_server(port);
+                        return federated_dev::run(port).map_err(|error| CliError::FederatedDev(error.to_string()));
+                    }
+                }
+
                 dev(
                     cmd.search,
                     !cmd.disable_watch,
