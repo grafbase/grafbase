@@ -104,6 +104,7 @@ impl Warning {
 pub struct Project {
     /// the path of the (assumed) user project root (`$PROJECT`), the nearest ancestor directory
     /// with a `schema.graphql` file or a `grafbase.config.ts` file
+    // FIXME: Temporarily, it can also be the parent directory of the `grafbase` directory, until we phase that out.
     pub path: PathBuf,
     /// the path of the Grafbase schema, in the nearest ancestor directory with
     /// said directory and file
@@ -128,7 +129,10 @@ impl Project {
             UdfKind::Resolver => RESOLVERS_DIRECTORY_NAME,
             UdfKind::Authorizer => AUTHORIZERS_DIRECTORY_NAME,
         };
-        self.path.join(subdirectory_name)
+        self.schema_path
+            .parent()
+            .expect("must have a parent")
+            .join(subdirectory_name)
     }
 
     /// the path of the directory containing the build artifacts corresponding to the UDF type (resolvers, authorizers).
