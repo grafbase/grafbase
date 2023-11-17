@@ -251,7 +251,7 @@ impl Environment {
     #[track_caller]
     pub fn grafbase_init(&self, config_format: ConfigType) {
         let current_directory_path = self.schema_path.parent().expect("must be defined");
-        std::fs::create_dir_all(&current_directory_path).unwrap();
+        std::fs::create_dir_all(current_directory_path).unwrap();
         cmd!(
             cargo_bin("grafbase"),
             "--trace",
@@ -268,7 +268,7 @@ impl Environment {
     #[track_caller]
     pub fn grafbase_init_output(&self, config_format: ConfigType) -> Output {
         let current_directory_path = self.schema_path.parent().expect("must be defined");
-        std::fs::create_dir_all(&current_directory_path).unwrap();
+        std::fs::create_dir_all(current_directory_path).unwrap();
         cmd!(
             cargo_bin("grafbase"),
             "--trace",
