@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use super::fields::OperationFieldId;
+use super::OperationFieldId;
 use crate::formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
@@ -76,7 +76,7 @@ impl ContextAwareDebug for OperationSelectionSet {
 
 impl ContextAwareDebug for OperationSelection {
     fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let field = &ctx.operation_fields[self.operation_field_id];
+        let field = &ctx.opeartion[self.operation_field_id];
         f.debug_struct("RequestSelection")
             .field("name", &ctx.strings[field.name].to_string())
             .field("subselection", &ctx.debug(&self.subselection))

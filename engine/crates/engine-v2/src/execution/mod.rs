@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Strings(lasso::Rodeo<StrId>);
 
 impl Strings {

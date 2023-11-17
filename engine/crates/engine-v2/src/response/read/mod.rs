@@ -1,29 +1,28 @@
-use super::{GraphqlError, Response, ResponseObjectId};
+use super::{ResponseData, ResponseObjectId};
 use crate::request::OperationPath;
 
 mod selection_set;
 mod ser;
 mod view;
 
+use schema::Schema;
 pub use selection_set::{ReadSelection, ReadSelectionSet};
-use ser::SerializableObject;
+pub use ser::SerializableResponseData;
 pub use view::ResponseObjectsView;
 
-impl Response {
-    pub fn as_serializable<'s>(&'s self, selection_set: &'s ReadSelectionSet) -> impl serde::Serialize + 's {
-        SerializableResponse {
-            data: self.root.map(|root| SerializableObject {
-                response: self,
-                object: self.get(root),
-                selection_set,
-            }),
-            errors: &self.errors,
+impl ResponseData {
+    pub fn into_serializable(self, schema: &Schema, selection_set: ReadSelectionSet) -> SerializableResponseData<'_> {
+        SerializableResponseData {
+            schema,
+            data: self,
+            selection_set,
         }
     }
 
     /// Used to provide a view on the inputs objects of a plan.
     pub fn read_objects<'a>(
         &'a self,
+        schema: &'a Schema,
         path: &'a OperationPath,
         selection_set: &'a ReadSelectionSet,
     ) -> Option<ResponseObjectsView<'a>> {
@@ -32,6 +31,7 @@ impl Response {
             None
         } else {
             Some(ResponseObjectsView {
+                schema,
                 response_object_ids,
                 response: self,
                 selection_set,
@@ -79,11 +79,4 @@ impl Response {
 
         nodes
     }
-}
-
-#[derive(serde::Serialize)]
-struct SerializableResponse<'a, T> {
-    data: T,
-    #[serde(skip_serializing_if = "<[_]>::is_empty")]
-    errors: &'a [GraphqlError],
 }

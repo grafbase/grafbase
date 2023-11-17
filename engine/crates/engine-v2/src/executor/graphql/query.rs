@@ -1,10 +1,8 @@
 use std::{collections::HashSet, fmt::Write};
 
 use engine_parser::types::OperationType;
-use itertools::Itertools;
-use schema::{Names, Schema};
 
-use crate::request::{OperationArgument, OperationFields, OperationSelection, OperationSelectionSet, TypeCondition};
+use crate::request::{OperationFieldArgumentWalker, OperationFieldWalker, OperationSelectionSetWalker};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -12,26 +10,23 @@ pub enum Error {
     FmtError(#[from] std::fmt::Error),
 }
 
-pub struct QueryBuilder<'a> {
-    schema: &'a Schema,
-    names: &'a dyn Names,
-    fields: &'a OperationFields,
+pub struct QueryBuilder {
+    buffer: String,
     indent: usize,
+    variable_references: HashSet<String>,
 }
 
-impl<'a> QueryBuilder<'a> {
-    pub fn new(schema: &'a Schema, names: &'a dyn Names, fields: &'a OperationFields) -> Self {
-        Self {
-            schema,
-            names,
-            fields,
+impl QueryBuilder {
+    pub fn build(
+        operation_type: OperationType,
+        selection_set: OperationSelectionSetWalker<'_>,
+    ) -> Result<String, Error> {
+        let mut builder = QueryBuilder {
+            buffer: String::new(),
             indent: 0,
-        }
-    }
-
-    pub fn build(&self, operation_type: OperationType, selection_set: &OperationSelectionSet) -> Result<String, Error> {
-        let mut buffer = Buffer::new();
-        self.write_selection_set(&mut buffer, selection_set)?;
+            variable_references: HashSet::new(),
+        };
+        builder.write_selection_set(selection_set)?;
 
         let mut out = String::new();
         match operation_type {
@@ -42,98 +37,52 @@ impl<'a> QueryBuilder<'a> {
 
         let operation_name = "Subgraph"; // TODO: should re-use the real operation name
         out.push_str(operation_name);
-        out.push_str(&buffer.inner);
+        out.push_str(&builder.buffer);
 
         Ok(out)
     }
 
-    fn write_selection_set(&self, buffer: &mut Buffer, selection_set: &OperationSelectionSet) -> Result<(), Error> {
+    fn write_selection_set(&mut self, selection_set: OperationSelectionSetWalker<'_>) -> Result<(), Error> {
         if !selection_set.is_empty() {
-            buffer.write(" {\n")?;
-            buffer.indent += 1;
-            let gouped_by_type_condition = selection_set
-                .iter()
-                .map(|selection| (&self.fields[selection.operation_field_id].type_condition, selection))
-                .group_by(|(type_condition, _)| *type_condition);
-            for (type_condition, selections) in &gouped_by_type_condition {
-                let selections = selections.into_iter().map(|(_, selection)| selection);
-                if let Some(type_condition) = type_condition {
-                    self.write_inline_fragment(buffer, *type_condition, selections)?;
-                } else {
-                    for selection in selections {
-                        self.write_selection(buffer, selection)?;
-                    }
-                }
+            self.write(" {\n")?;
+            self.indent += 1;
+            for field in selection_set.all_fields() {
+                self.write_selection(field)?;
             }
-            buffer.indent -= 1;
-            buffer.indent_write("}\n")?;
+            self.indent -= 1;
+            self.indent_write("}\n")?;
         }
         Ok(())
     }
 
-    fn write_inline_fragment<'b>(
-        &self,
-        buffer: &mut Buffer,
-        type_condition: TypeCondition,
-        selections: impl IntoIterator<Item = &'b OperationSelection>,
+    fn write_selection(&mut self, field: OperationFieldWalker<'_>) -> Result<(), Error> {
+        self.indent_write(field.name())?;
+        self.write_arguments(field.arguments())?;
+        self.write_selection_set(field.subselection())?;
+        Ok(())
+    }
+
+    fn write_arguments<'a>(
+        &mut self,
+        arguments: impl ExactSizeIterator<Item = OperationFieldArgumentWalker<'a>>,
     ) -> Result<(), Error> {
-        buffer.indent_write("... on ")?;
-        buffer.write(match type_condition {
-            TypeCondition::Interface(interface_id) => self.names.interface(interface_id),
-            TypeCondition::Object(object_id) => self.names.object(object_id),
-            TypeCondition::Union(union_id) => self.names.union(union_id),
-        })?;
-        buffer.write(" {\n")?;
-        buffer.indent += 1;
-        for selection in selections {
-            self.write_selection(buffer, selection)?;
-        }
-        buffer.indent -= 1;
-        buffer.indent_write("}\n")?;
-        Ok(())
-    }
+        if arguments.len() != 0 {
+            self.write("(")?;
 
-    fn write_selection(&self, buffer: &mut Buffer, selection: &OperationSelection) -> Result<(), Error> {
-        let field = &self.fields[selection.operation_field_id];
-        let name = self.names.field(field.field_id);
-        buffer.indent_write(name)?;
-        self.write_selection_set(buffer, &selection.subselection)?;
-        Ok(())
-    }
-
-    fn write_arguments(&self, buffer: &mut Buffer, arguments: &Vec<OperationArgument>) -> Result<(), Error> {
-        if !arguments.is_empty() {
-            buffer.write("(")?;
-
-            let mut arguments = arguments.iter().peekable();
+            let mut arguments = arguments.peekable();
             while let Some(argument) = arguments.next() {
-                buffer.add_variable_references(argument.value.variables_used().map(|name| name.to_string()));
-                buffer.write(&self.schema[argument.name])?;
-                buffer.write(": ")?;
-                buffer.write(argument.value.to_string())?;
+                let value = argument.query_value();
+                self.add_variable_references(value.variables_used().map(|name| name.to_string()));
+                self.write(argument.name())?;
+                self.write(": ")?;
+                self.write(value.to_string())?;
                 if arguments.peek().is_some() {
-                    buffer.write(", ")?;
+                    self.write(", ")?;
                 }
             }
-            buffer.write(")")?;
+            self.write(")")?;
         }
         Ok(())
-    }
-}
-
-struct Buffer {
-    inner: String,
-    indent: usize,
-    variable_references: HashSet<String>,
-}
-
-impl Buffer {
-    fn new() -> Self {
-        Self {
-            inner: String::new(),
-            indent: 0,
-            variable_references: HashSet::new(),
-        }
     }
 
     fn add_variable_references(&mut self, names: impl IntoIterator<Item = String>) {
@@ -146,7 +95,7 @@ impl Buffer {
     }
 
     fn write(&mut self, s: impl AsRef<str>) -> Result<(), Error> {
-        self.inner.write_str(s.as_ref())?;
+        self.buffer.write_str(s.as_ref())?;
         Ok(())
     }
 }
