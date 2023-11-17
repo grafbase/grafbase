@@ -5,6 +5,7 @@ mod refresh;
 
 pub(crate) use admin::AdminBus;
 pub(crate) use compose::ComposeBus;
+use engine::ServerResult;
 pub(crate) use message::*;
 pub(crate) use refresh::RefreshBus;
 
@@ -17,10 +18,10 @@ use url::Url;
 use super::{admin::Header, refresher::RefreshMessage};
 
 /// A channel to send composed federated graph, typically to a router.
-pub(crate) type GraphSender = mpsc::Sender<FederatedGraph>;
+pub(crate) type GraphSender = mpsc::Sender<Option<FederatedGraph>>;
 
 /// A channel to receive a composed federated graph, typically for a router.
-pub(crate) type GraphReceiver = mpsc::Receiver<FederatedGraph>;
+pub(crate) type GraphReceiver = mpsc::Receiver<Option<FederatedGraph>>;
 
 /// A channel to send a refresh message with a collection of graphs.
 pub(crate) type RefreshSender = mpsc::Sender<Vec<RefreshMessage>>;
@@ -33,6 +34,15 @@ pub(crate) type ComposeSender = mpsc::Sender<ComposeMessage>;
 
 /// Receive channel for the composer to control its state and actions
 pub(crate) type ComposeReceiver = mpsc::Receiver<ComposeMessage>;
+
+/// Send half of channel for the server to send requests to the router actor
+pub(crate) type RequestSender = mpsc::Sender<(engine::Request, ResponseSender)>;
+
+/// Receive half of channel for the router actor to receive requests
+pub(crate) type RequestReceiver = mpsc::Receiver<(engine::Request, ResponseSender)>;
+
+/// Send half of channel for the router actor to send responses
+pub(crate) type ResponseSender = oneshot::Sender<ServerResult<serde_json::Value>>;
 
 async fn compose_graph(
     sender: &ComposeSender,
@@ -47,7 +57,9 @@ async fn compose_graph(
     let message = ComposeSchema::new(name, subgraph, request);
     sender.send(message.into()).await?;
 
-    response.await?
+    response
+        .await
+        .map_err(|_| Error::internal("compose channel closed".to_string()))?
 }
 
 async fn introspect_schema(
@@ -64,5 +76,7 @@ async fn introspect_schema(
         .await
         .map_err(|error| Error::internal(error.to_string()))?;
 
-    response.await?
+    response
+        .await
+        .map_err(|_| Error::internal("introspection channel closed".to_string()))?
 }

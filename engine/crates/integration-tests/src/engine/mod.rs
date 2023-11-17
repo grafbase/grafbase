@@ -69,13 +69,11 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
 
     fn into_future(self) -> Self::IntoFuture {
         Box::pin(async move {
-            let mut request = Request::new(self.graphql.query).data(RequestHeaders::from(&self.headers));
-            if let Some(name) = self.graphql.operation_name {
-                request = request.operation_name(name);
-            }
-            if let Some(variables) = self.graphql.variables {
-                request = request.variables(variables);
-            }
+            let request = self
+                .graphql
+                .into_engine_request()
+                .data(RequestHeaders::from(&self.headers));
+
             self.schema.execute(request).await
         })
     }
@@ -97,13 +95,11 @@ impl<'a> StreamExecutionRequest<'a> {
 
     /// Converts the execution request into a Stream
     pub fn into_stream(self) -> impl Stream<Item = StreamingPayload> + 'a {
-        let mut request = Request::new(self.graphql.query).data(RequestHeaders::from(&self.headers));
-        if let Some(name) = self.graphql.operation_name {
-            request = request.operation_name(name);
-        }
-        if let Some(variables) = self.graphql.variables {
-            request = request.variables(variables);
-        }
+        let request = self
+            .graphql
+            .into_engine_request()
+            .data(RequestHeaders::from(&self.headers));
+
         self.schema.execute_stream(request)
     }
 
@@ -122,6 +118,19 @@ pub struct GraphQlRequest {
     pub query: String,
     pub operation_name: Option<String>,
     pub variables: Option<Variables>,
+}
+
+impl GraphQlRequest {
+    pub fn into_engine_request(self) -> engine::Request {
+        let mut request = Request::new(self.query);
+        if let Some(name) = self.operation_name {
+            request = request.operation_name(name);
+        }
+        if let Some(variables) = self.variables {
+            request = request.variables(variables);
+        }
+        request
+    }
 }
 
 impl From<&str> for GraphQlRequest {

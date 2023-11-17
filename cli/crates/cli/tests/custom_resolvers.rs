@@ -274,14 +274,19 @@ fn test_field_resolver(
     #[case] resolver_contents: &str,
     #[case] queries: &[(&str, &str)],
     #[case] package_json: Option<(JavaScriptPackageManager, &str)>,
+    #[values(("./", "./"), ("./grafbase", "../"))] variant: (&str, &str),
 ) {
-    let mut env = Environment::init();
+    let (subdirectory_path, package_json_path) = variant;
+    let mut env = Environment::init_in_subdirectory(subdirectory_path);
     env.grafbase_init(ConfigType::GraphQL);
     std::fs::write(env.directory_path.join(".env"), "MY_OWN_VARIABLE=test_value").unwrap();
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
     if let Some((package_manager, package_json)) = package_json {
-        env.write_file("package.json", package_json);
+        env.write_file(
+            std::path::Path::new(package_json_path).join("package.json"),
+            package_json,
+        );
         // Use `which` to work-around weird path search issues on Windows.
         // See https://github.com/rust-lang/rust/issues/37519.
         let program_path = which::which(package_manager.to_string()).expect("command must be found");

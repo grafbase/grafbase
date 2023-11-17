@@ -25,29 +25,38 @@ impl Composer {
         }
     }
 
-    pub(crate) async fn handler(mut self) -> Result<(), crate::Error> {
+    pub(crate) async fn handler(mut self) {
+        log::trace!("starting the composer handler");
+
         loop {
-            match self.bus.recv().await {
+            let result = match self.bus.recv().await {
                 Some(ComposeMessage::Introspect(message)) => {
-                    self.handle_introspect(message).await?;
+                    log::trace!("composer handling introspection for subgraph '{}'", message.name());
+                    self.handle_introspect(message).await
                 }
                 Some(ComposeMessage::Compose(message)) => {
-                    self.handle_compose(message).await?;
+                    log::trace!("composer handling composition for subgraph '{}'", message.name());
+                    self.handle_compose(message).await
                 }
                 Some(ComposeMessage::RemoveSubgraph(message)) => {
-                    self.handle_remove_subgraph(message).await?;
+                    log::trace!("composer handling removing a subgraph '{}'", message.name());
+                    self.handle_remove_subgraph(message).await
                 }
                 Some(ComposeMessage::Recompose) => {
-                    self.handle_recompose().await?;
+                    log::trace!("composer handling recomposition");
+                    self.handle_recompose().await
                 }
                 Some(ComposeMessage::InitializeRefresh) => {
-                    self.handle_init_refresh().await?;
+                    log::trace!("composer initializing a refresh");
+                    self.handle_init_refresh().await
                 }
                 None => break,
+            };
+
+            if let Err(error) = result {
+                log::warn!("Error in composer: {error:?}");
             }
         }
-
-        Ok(())
     }
 
     async fn handle_introspect(&mut self, message: IntrospectSchema) -> Result<(), crate::Error> {
@@ -109,7 +118,7 @@ impl Composer {
             Err(error) => {
                 responder
                     .send(Err(Error::composition(&error)))
-                    .map_err(|_| Error::internal("oneshot channel is dead"))?;
+                    .map_err(|_| Error::internal("compose channel is dead"))?;
 
                 self.bus.send_composer(RemoveSubgraph::new(&name)).await?;
 
@@ -122,7 +131,7 @@ impl Composer {
 
         responder
             .send(Ok(()))
-            .map_err(|_| Error::internal("oneshot channel is dead"))?;
+            .map_err(|_| Error::internal("compose channel is dead"))?;
 
         Ok(())
     }
@@ -136,14 +145,21 @@ impl Composer {
     }
 
     async fn handle_recompose(&mut self) -> Result<(), crate::Error> {
+        if self.graphs.is_empty() {
+            // Composing an empty set of graphs is going to fail, so lets not do that.
+            self.bus.clear_graph().await?;
+            return Ok(());
+        }
+
         let subgraphs = self.ingest_subgraphs(None);
 
         match compose(&subgraphs).into_result() {
             Ok(graph) => self.bus.send_graph(graph).await?,
-            Err(_) => {
+            Err(error) => {
+                log::warn!("Recomposition failed: {error:?}");
                 return Err(crate::Error::internal(
                     "Fatal: couldn't recompose existing subgraphs".to_string(),
-                ))
+                ));
             }
         };
 

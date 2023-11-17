@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 // All of that should be in federated_graph actually.
 use super::*;
+use crate::introspection::IntrospectionFields;
 
 impl From<federated_graph::FederatedGraph> for Schema {
     fn from(graph: federated_graph::FederatedGraph) -> Self {
-        let mut out = Schema {
+        let mut schema = Schema {
             data_sources: (0..graph.subgraphs.len())
                 .map(|i| DataSource::Subgraph(SubgraphId::from(i)))
                 .collect(),
@@ -27,13 +28,33 @@ impl From<federated_graph::FederatedGraph> for Schema {
             input_objects: graph.input_objects.into_iter().map(Into::into).collect(),
             strings: graph.strings,
             resolvers: vec![],
+            definitions: vec![],
         };
-        out.object_fields.sort_unstable();
-        out.interface_fields.sort_unstable_by_key(|field| field.interface_id);
+
+        let root_fields = {
+            let mut root_fields = vec![];
+            for field_id in schema.object_fields(schema.root_operation_types.query) {
+                root_fields.push(field_id);
+            }
+            if let Some(mutation) = schema.root_operation_types.mutation {
+                for field_id in schema.object_fields(mutation) {
+                    root_fields.push(field_id);
+                }
+            }
+            if let Some(subscription) = schema.root_operation_types.subscription {
+                for field_id in schema.object_fields(subscription) {
+                    root_fields.push(field_id);
+                }
+            }
+            root_fields.sort_unstable();
+            root_fields
+        };
 
         // Yeah it's ugly, conversion should be cleaned up once we got it working I guess.
+        // -- RESOLVERS --
         let mut resolvers = HashMap::<Resolver, ResolverId>::new();
-        for field in graph.fields {
+        for (i, field) in graph.fields.into_iter().enumerate() {
+            let field_id = FieldId::from(i);
             let mut field_resolvers = vec![];
             let mut field_requires = field
                 .requires
@@ -41,19 +62,21 @@ impl From<federated_graph::FederatedGraph> for Schema {
                 .map(|federated_graph::FieldRequires { subgraph_id, fields }| (subgraph_id, fields))
                 .collect::<HashMap<_, _>>();
             if let Some(subgraph_id) = field.resolvable_in {
-                let n = resolvers.len();
-                let resolver_id = *resolvers
-                    .entry(Resolver::Subgraph(SubgraphResolver {
-                        subgraph_id: subgraph_id.into(),
-                    }))
-                    .or_insert_with(|| ResolverId::from(n));
-                let requires = field_requires.remove(&subgraph_id).unwrap_or_default();
-                field_resolvers.push(FieldResolver {
-                    resolver_id,
-                    requires: requires.into_iter().map(Into::into).collect(),
-                });
+                if root_fields.binary_search(&field_id).is_ok() {
+                    let n = resolvers.len();
+                    let resolver_id = *resolvers
+                        .entry(Resolver::Subgraph(SubgraphResolver {
+                            subgraph_id: subgraph_id.into(),
+                        }))
+                        .or_insert_with(|| ResolverId::from(n));
+                    let requires = field_requires.remove(&subgraph_id).unwrap_or_default();
+                    field_resolvers.push(FieldResolver {
+                        resolver_id,
+                        requires: requires.into_iter().map(Into::into).collect(),
+                    });
+                }
             }
-            out.fields.push(Field {
+            schema.fields.push(Field {
                 name: field.name.into(),
                 field_type_id: field.field_type_id.into(),
                 resolvers: field_resolvers,
@@ -64,8 +87,22 @@ impl From<federated_graph::FederatedGraph> for Schema {
         }
         let mut resolvers = resolvers.into_iter().collect::<Vec<_>>();
         resolvers.sort_unstable_by_key(|(_, resolver_id)| *resolver_id);
-        out.resolvers = resolvers.into_iter().map(|(resolver, _)| resolver).collect();
-        out
+        schema.resolvers = resolvers.into_iter().map(|(resolver, _)| resolver).collect();
+
+        // -- DEFINITIONS --
+        let mut definitions = vec![];
+        definitions.extend((0..schema.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
+        definitions.extend((0..schema.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
+        definitions.extend((0..schema.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
+        definitions.extend((0..schema.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
+        definitions.extend((0..schema.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
+        definitions.extend((0..schema.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
+
+        // -- INTROSPECTION --
+        IntrospectionFields::insert_into(&mut schema);
+
+        schema.ensure_proper_ordering();
+        schema
     }
 }
 
@@ -125,6 +162,7 @@ impl From<federated_graph::FieldArgument> for FieldArgument {
         FieldArgument {
             name: argument.name.into(),
             type_id: argument.type_id.into(),
+            default_value: None,
         }
     }
 }

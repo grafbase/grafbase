@@ -51,20 +51,8 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
     type IntoFuture = BoxFuture<'a, ServerResult<serde_json::Value>>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let document = engine_parser::parse_query(self.graphql.query).expect("request document to be well formed");
+        let request = self.graphql.into_engine_request();
 
-        let mut operations = document.operations.iter();
-
-        let operation = match self.graphql.operation_name {
-            None => operations.next().expect("document to have at least one operation"),
-            Some(expected_name) => operations
-                .find(|(name, _)| *name.expect("names if operationName provided") == expected_name)
-                .expect("an operation with the given operationName"),
-        }
-        .1
-        .clone()
-        .node;
-
-        Box::pin(async move { self.engine.execute(operation).await })
+        Box::pin(async move { self.engine.execute_request(request).await })
     }
 }

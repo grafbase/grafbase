@@ -33,7 +33,7 @@ version = "0.1.2"
 source = "git+https://github.com/grafbase/again?branch=cloudflare-workers-compatibility#559c2a11a3576096c115e7d6a414afa27d734cb5"
 dependencies = [
  "futures-timer",
- "log 0.4.19",
+ "log 0.4.20",
  "rand 0.8.5",
 ]
 
@@ -491,7 +491,7 @@ dependencies = [
  "cfg-if",
  "concurrent-queue",
  "futures-lite",
- "log 0.4.19",
+ "log 0.4.20",
  "parking",
  "polling",
  "rustix",
@@ -556,7 +556,7 @@ dependencies = [
  "async-channel",
  "futures-lite",
  "http-types",
- "log 0.4.19",
+ "log 0.4.20",
  "memchr",
  "pin-project-lite",
 ]
@@ -579,7 +579,7 @@ dependencies = [
  "futures-lite",
  "gloo-timers",
  "kv-log-macro",
- "log 0.4.19",
+ "log 0.4.20",
  "memchr",
  "once_cell",
  "pin-project-lite",
@@ -852,7 +852,7 @@ dependencies = [
  "atomic-waker",
  "fastrand",
  "futures-lite",
- "log 0.4.19",
+ "log 0.4.20",
 ]
 
 [[package]]
@@ -1771,7 +1771,7 @@ dependencies = [
  "chrono",
  "dynomite-derive",
  "futures",
- "log 0.4.19",
+ "log 0.4.20",
  "rusoto_core",
  "rusoto_dynamodb",
  "uuid",
@@ -1901,6 +1901,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-v2"
+version = "3.0.31"
+dependencies = [
+ "engine",
+ "engine-parser",
+ "engine-v2-schema",
+ "engine-value",
+ "futures-locks",
+ "futures-util",
+ "im",
+ "itertools 0.11.0",
+ "lasso",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "engine-v2-schema"
+version = "3.0.31"
+dependencies = [
+ "graphql-federated-graph",
+]
+
+[[package]]
 name = "engine-value"
 version = "3.0.31"
 dependencies = [
@@ -1918,7 +1944,7 @@ checksum = "a12e6657c4c97ebab115a42dcee77225f7f482cdd841cf7088c657a42e9e00e7"
 dependencies = [
  "atty",
  "humantime",
- "log 0.4.19",
+ "log 0.4.20",
  "regex",
  "termcolor",
 ]
@@ -1990,7 +2016,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe5e43d0f78a42ad591453aedb1d7ae631ce7ee445c7643691055a9ed8d3b01c"
 dependencies = [
- "log 0.4.19",
+ "log 0.4.20",
  "once_cell",
  "rand 0.8.5",
 ]
@@ -2046,7 +2072,7 @@ checksum = "374a3a53c1bd5fb31b10084229290eafb0a05f260ec90f1f726afffda4877a8a"
 dependencies = [
  "fastdivide",
  "itertools 0.10.5",
- "log 0.4.19",
+ "log 0.4.20",
  "ownedbytes",
  "tantivy-bitpacker",
  "tantivy-common",
@@ -2069,15 +2095,21 @@ dependencies = [
  "async-graphql-axum 6.0.10",
  "async-graphql-parser 6.0.10",
  "axum",
+ "engine",
+ "engine-v2",
+ "futures-concurrency",
+ "futures-util",
  "grafbase-graphql-introspection",
  "graphql-composition",
  "handlebars",
  "indoc",
+ "log 0.4.20",
  "reqwest",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "url",
 ]
 
@@ -2223,6 +2255,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-concurrency"
+version = "7.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef6712e11cdeed5c8cf21ea0b90fec40fbe64afc9bbf2339356197eeca829fc3"
+dependencies = [
+ "bitvec",
+ "futures-core",
+ "pin-project",
+ "slab",
+ "smallvec",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2269,6 +2314,17 @@ dependencies = [
  "parking",
  "pin-project-lite",
  "waker-fn",
+]
+
+[[package]]
+name = "futures-locks"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45ec6fe3675af967e67c5536c0b9d44e34e6c52f86bedc4ea49c5317b8e94d06"
+dependencies = [
+ "futures-channel",
+ "futures-task",
+ "tokio",
 ]
 
 [[package]]
@@ -2382,7 +2438,7 @@ checksum = "f3e123d9ae7c02966b4d892e550bdc32164f05853cd40ab570650ad600596a8a"
 dependencies = [
  "cc",
  "libc",
- "log 0.4.19",
+ "log 0.4.20",
  "rustversion",
  "windows",
 ]
@@ -2475,7 +2531,6 @@ dependencies = [
  "grafbase-local-common",
  "grafbase-local-server",
  "headers",
- "hex-literal",
  "indicatif",
  "indoc",
  "inquire",
@@ -2483,7 +2538,7 @@ dependencies = [
  "itertools 0.11.0",
  "json_dotpath",
  "jwt-compact 0.8.0",
- "log 0.4.19",
+ "log 0.4.20",
  "lru 0.12.0",
  "multipart-stream",
  "once_cell",
@@ -2598,7 +2653,7 @@ dependencies = [
  "hyper",
  "integer-encoding",
  "itertools 0.11.0",
- "log 0.4.19",
+ "log 0.4.20",
  "notify",
  "notify-debouncer-mini",
  "parser-graphql",
@@ -2688,6 +2743,9 @@ dependencies = [
 name = "graphql-federated-graph"
 version = "0.1.0"
 dependencies = [
+ "async-graphql-parser 6.0.10",
+ "async-graphql-value 6.0.10",
+ "indexmap 2.0.0",
  "serde",
 ]
 
@@ -2732,7 +2790,7 @@ version = "4.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faa67bab9ff362228eb3d00bd024a4965d8231bbb7921167f0cfa66c6626b225"
 dependencies = [
- "log 0.4.19",
+ "log 0.4.20",
  "pest",
  "pest_derive",
  "serde",
@@ -2840,12 +2898,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hex-literal"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
 
 [[package]]
 name = "hkdf"
@@ -3343,7 +3395,7 @@ dependencies = [
  "cfg-if",
  "combine 4.6.6",
  "jni-sys",
- "log 0.4.19",
+ "log 0.4.20",
  "thiserror",
  "walkdir",
  "windows-sys 0.45.0",
@@ -3476,7 +3528,16 @@ version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0de8b303297635ad57c9f5059fd9cee7a47f8e8daa09df0fcd07dd39fb22977f"
 dependencies = [
- "log 0.4.19",
+ "log 0.4.20",
+]
+
+[[package]]
+name = "lasso"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4644821e1c3d7a560fe13d842d13f587c07348a1a05d3a797152d41c90c56df2"
+dependencies = [
+ "hashbrown 0.13.2",
 ]
 
 [[package]]
@@ -3567,7 +3628,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags 2.3.3",
  "futures-util",
- "log 0.4.19",
+ "log 0.4.20",
  "maplit",
  "reqwest",
  "secrecy",
@@ -3580,9 +3641,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.19"
+version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
+checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 dependencies = [
  "value-bag",
 ]
@@ -3677,7 +3738,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56220900f1a0923789ecd6bf25fbae8af3b2f1ff3e9e297fc9b6b8674dd4d852"
 dependencies = [
  "instant",
- "log 0.4.19",
+ "log 0.4.20",
 ]
 
 [[package]]
@@ -3789,7 +3850,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "927a765cd3fc26206e66b296465fa9d3e5ab003e651c1b3c060e7956d96b19d2"
 dependencies = [
  "libc",
- "log 0.4.19",
+ "log 0.4.20",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.48.0",
 ]
@@ -3805,7 +3866,7 @@ dependencies = [
  "futures-util",
  "http",
  "httparse",
- "log 0.4.19",
+ "log 0.4.20",
  "memchr",
  "mime",
  "spin 0.9.8",
@@ -4519,7 +4580,7 @@ dependencies = [
  "cfg-if",
  "concurrent-queue",
  "libc",
- "log 0.4.19",
+ "log 0.4.20",
  "pin-project-lite",
  "windows-sys 0.48.0",
 ]
@@ -4925,7 +4986,7 @@ dependencies = [
  "hyper-rustls",
  "ipnet",
  "js-sys",
- "log 0.4.19",
+ "log 0.4.20",
  "mime",
  "mime_guess",
  "once_cell",
@@ -5149,7 +5210,7 @@ dependencies = [
  "chrono",
  "env_logger",
  "failure",
- "log 0.4.19",
+ "log 0.4.20",
  "reqwest",
  "serde",
  "serde_json",
@@ -5211,7 +5272,7 @@ dependencies = [
  "crc32fast",
  "futures",
  "lazy_static",
- "log 0.4.19",
+ "log 0.4.20",
  "reqwest",
  "rusoto_credential",
  "rusoto_signature",
@@ -5266,7 +5327,7 @@ dependencies = [
  "hex",
  "hmac",
  "http",
- "log 0.4.19",
+ "log 0.4.20",
  "md-5",
  "percent-encoding",
  "pin-project-lite",
@@ -5345,7 +5406,7 @@ version = "0.21.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "446e14c5cda4f3f30fe71863c34ec70f5ac79d6087097ad0bb433e1be5edf04c"
 dependencies = [
- "log 0.4.19",
+ "log 0.4.20",
  "ring 0.17.5",
  "rustls-webpki",
  "sct",
@@ -5975,7 +6036,7 @@ dependencies = [
  "hashlink",
  "hex",
  "indexmap 2.0.0",
- "log 0.4.19",
+ "log 0.4.20",
  "memchr",
  "once_cell",
  "paste",
@@ -6057,7 +6118,7 @@ dependencies = [
  "hkdf",
  "hmac",
  "itoa",
- "log 0.4.19",
+ "log 0.4.20",
  "md-5",
  "memchr",
  "once_cell",
@@ -6097,7 +6158,7 @@ dependencies = [
  "hmac",
  "home",
  "itoa",
- "log 0.4.19",
+ "log 0.4.20",
  "md-5",
  "memchr",
  "once_cell",
@@ -6128,7 +6189,7 @@ dependencies = [
  "futures-intrusive",
  "futures-util",
  "libsqlite3-sys",
- "log 0.4.19",
+ "log 0.4.20",
  "percent-encoding",
  "serde",
  "sqlx-core",
@@ -6509,7 +6570,7 @@ dependencies = [
  "htmlescape",
  "itertools 0.10.5",
  "levenshtein_automata",
- "log 0.4.19",
+ "log 0.4.20",
  "lru 0.7.8",
  "measure_time",
  "memmap2",
@@ -6784,7 +6845,7 @@ dependencies = [
  "fallible-iterator",
  "futures-channel",
  "futures-util",
- "log 0.4.19",
+ "log 0.4.20",
  "parking_lot",
  "percent-encoding",
  "phf",
@@ -6840,7 +6901,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54319c93411147bced34cb5609a80e0a8e44c5999c93903a81cd866630ec0bfd"
 dependencies = [
  "futures-util",
- "log 0.4.19",
+ "log 0.4.20",
  "tokio",
  "tungstenite",
 ]
@@ -6941,12 +7002,11 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tracing"
-version = "0.1.37"
+version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
+checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
 dependencies = [
- "cfg-if",
- "log 0.4.19",
+ "log 0.4.20",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
@@ -6954,9 +7014,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.24"
+version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f57e3ca2a01450b1a921183a9c9cbfda207fd822cef4ccb00a65402cbba7a74"
+checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6965,9 +7025,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.31"
+version = "0.1.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0955b8137a1df6f1a2e9a37d8a6656291ff0297c1a97c24e0d8425fe2312f79a"
+checksum = "c06d3da6113f116aaee68e4d601191614c9053067f9ab7f6edbcb161237daa54"
 dependencies = [
  "once_cell",
  "valuable",
@@ -6980,7 +7040,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ddad33d2d10b1ed7eb9d1f518a5674713876e97e5bb9b7345a7984fbb4f922"
 dependencies = [
  "lazy_static",
- "log 0.4.19",
+ "log 0.4.20",
  "tracing-core",
 ]
 
@@ -7019,7 +7079,7 @@ dependencies = [
  "bytes",
  "http",
  "httparse",
- "log 0.4.19",
+ "log 0.4.20",
  "rand 0.8.5",
  "sha1",
  "thiserror",
@@ -7338,7 +7398,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b04bc93f9d6bdee709f6bd2118f57dd6679cf1176a1af464fca3ab0d66d8fb"
 dependencies = [
  "bumpalo",
- "log 0.4.19",
+ "log 0.4.20",
  "once_cell",
  "proc-macro2",
  "quote",
@@ -7430,7 +7490,7 @@ dependencies = [
  "core-foundation",
  "home",
  "jni",
- "log 0.4.19",
+ "log 0.4.20",
  "ndk-context",
  "objc",
  "raw-window-handle",
@@ -7679,7 +7739,7 @@ dependencies = [
  "futures-timer",
  "http-types",
  "hyper",
- "log 0.4.19",
+ "log 0.4.20",
  "once_cell",
  "regex",
  "serde",
