@@ -3,7 +3,7 @@ import {
   SingleGraphConfigInput,
   DeprecatedSingleGraphConfigInput,
   FederatedGraphConfig,
-  FederatedGraphConfigInput
+  FederatedGraphConfigInput,
 } from './config'
 import { OpenAPIParams, PartialOpenAPI } from './connector/openapi'
 import { GraphQLParams, PartialGraphQLAPI } from './connector/graphql'
@@ -28,39 +28,30 @@ export { type AuthorizerContext } from './authorizer/context'
 
 export { graph }
 
-/** @deprecated use `graph.Single()` instead */
+// /** @deprecated use `graph.Single()` instead */
 export const g = graph.Single()
 
 dotenv.config({
   // must exist, defined by "~/.grafbase/parser/parse-config.ts"
   path: path.join(process.env.GRAFBASE_PROJECT_GRAFBASE_DIR!, '.env'),
-  override: true
+  override: true,
 })
 
 export type AtLeastOne<T> = [T, ...T[]]
 
 const isFederatedGraphConfigInput = (
-  input:
-    | SingleGraphConfigInput
-    | DeprecatedSingleGraphConfigInput
-    | FederatedGraphConfigInput
-): input is FederatedGraphConfigInput =>
-  'graph' in input && input.graph instanceof FederatedGraph
+  input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput | FederatedGraphConfigInput,
+): input is FederatedGraphConfigInput => 'graph' in input && input.graph instanceof FederatedGraph
 
 /**
  * A constructor for a complete Grafbase configuration.
  */
 export function config(input: SingleGraphConfigInput): SingleGraphConfig
-/** @deprecated use `graph` instead of `schema` */
-export function config(
-  input: DeprecatedSingleGraphConfigInput
-): SingleGraphConfig
+// /** @deprecated use `graph` instead of `schema` */
+export function config(input: DeprecatedSingleGraphConfigInput): SingleGraphConfig
 export function config(input: FederatedGraphConfigInput): FederatedGraphConfig
 export function config(
-  input:
-    | SingleGraphConfigInput
-    | DeprecatedSingleGraphConfigInput
-    | FederatedGraphConfigInput
+  input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput | FederatedGraphConfigInput,
 ): SingleGraphConfig | FederatedGraphConfig {
   if (isFederatedGraphConfigInput(input)) {
     return new FederatedGraphConfig(input)
@@ -112,7 +103,7 @@ export const connector = {
     validateIdentifier(name)
 
     return new PartialPostgresAPI(name, params)
-  }
+  },
 }
 
 export const auth = {
@@ -137,9 +128,7 @@ export const auth = {
    *
    * @param params - The configuration parameters.
    */
-  JWKS: (
-    params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>
-  ): JWKSAuth => {
+  JWKS: (params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>): JWKSAuth => {
     return new JWKSAuth(params)
   },
   /**
@@ -149,5 +138,5 @@ export const auth = {
    */
   Authorizer: (params: AuthorizerParams): Authorizer => {
     return new Authorizer(params)
-  }
+  },
 }
