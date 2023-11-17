@@ -38,7 +38,7 @@ impl Router {
                 (RouterMessage::Graph(graph), _) => {
                     log::trace!("router got a new graph");
 
-                    self.engine = Some(new_engine(graph));
+                    self.engine = graph.map(new_engine);
                 }
                 (RouterMessage::Request(request, response_sender), Some(engine)) => {
                     log::trace!("router got a new request with an existing engine");
@@ -71,7 +71,7 @@ async fn run_request(request: engine::Request, response_sender: ResponseSender, 
 }
 
 enum RouterMessage {
-    Graph(FederatedGraph),
+    Graph(Option<FederatedGraph>),
     Request(engine::Request, ResponseSender),
 }
 

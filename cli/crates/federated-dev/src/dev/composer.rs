@@ -143,14 +143,21 @@ impl Composer {
     }
 
     async fn handle_recompose(&mut self) -> Result<(), crate::Error> {
+        if self.graphs.is_empty() {
+            // Composing an empty set of graphs is going to fail, so lets not do that.
+            self.bus.clear_graph().await?;
+            return Ok(());
+        }
+
         let subgraphs = self.ingest_subgraphs(None);
 
         match compose(&subgraphs).into_result() {
             Ok(graph) => self.bus.send_graph(graph).await?,
-            Err(_) => {
+            Err(error) => {
+                log::warn!("Recomposition failed: {error:?}");
                 return Err(crate::Error::internal(
                     "Fatal: couldn't recompose existing subgraphs".to_string(),
-                ))
+                ));
             }
         };
 
