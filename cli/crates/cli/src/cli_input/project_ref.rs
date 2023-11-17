@@ -9,7 +9,7 @@ pub struct ProjectRef {
 }
 
 impl ProjectRef {
-    pub(crate) const ARG_DESCRIPTION: &str = r"Project reference following the format "account/project@branch"";
+    pub(crate) const ARG_DESCRIPTION: &str = r#"Project reference following the format "account/project@branch""#;
 
     pub(crate) fn account(&self) -> &str {
         self.account.as_ref()
@@ -28,7 +28,7 @@ impl str::FromStr for ProjectRef {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        const GENERIC_ERR: &str = r"Invalid project reference. The project reference argument must follow the format: "account/project@branch"";
+        const GENERIC_ERR: &str = r#"Invalid project reference. The project reference argument must follow the format: "account/project@branch""#;
 
         let Some((account, rest)) = s.split_once('/') else {
             return Err(GENERIC_ERR);
