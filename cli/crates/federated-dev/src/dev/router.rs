@@ -23,7 +23,7 @@ impl Router {
         }
     }
 
-    pub async fn handler(mut self) -> Result<(), crate::Error> {
+    pub async fn handler(mut self) {
         log::trace!("starting the router handler");
 
         let streams: [RouterStream; 2] = [
@@ -57,8 +57,6 @@ impl Router {
                 }
             }
         }
-
-        Ok(())
     }
 }
 
