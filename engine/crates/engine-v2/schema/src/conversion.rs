@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 // All of that should be in federated_graph actually.
 use super::*;
+use crate::introspection::IntrospectionFields;
 
 impl From<federated_graph::FederatedGraph> for Schema {
     fn from(graph: federated_graph::FederatedGraph) -> Self {
@@ -27,9 +28,8 @@ impl From<federated_graph::FederatedGraph> for Schema {
             input_objects: graph.input_objects.into_iter().map(Into::into).collect(),
             strings: graph.strings,
             resolvers: vec![],
+            definitions: vec![],
         };
-        schema.object_fields.sort_unstable();
-        schema.interface_fields.sort_unstable_by_key(|field| field.interface_id);
 
         let root_fields = {
             let mut root_fields = vec![];
@@ -51,6 +51,7 @@ impl From<federated_graph::FederatedGraph> for Schema {
         };
 
         // Yeah it's ugly, conversion should be cleaned up once we got it working I guess.
+        // -- RESOLVERS --
         let mut resolvers = HashMap::<Resolver, ResolverId>::new();
         for (i, field) in graph.fields.into_iter().enumerate() {
             let field_id = FieldId::from(i);
@@ -87,6 +88,20 @@ impl From<federated_graph::FederatedGraph> for Schema {
         let mut resolvers = resolvers.into_iter().collect::<Vec<_>>();
         resolvers.sort_unstable_by_key(|(_, resolver_id)| *resolver_id);
         schema.resolvers = resolvers.into_iter().map(|(resolver, _)| resolver).collect();
+
+        // -- DEFINITIONS --
+        let mut definitions = vec![];
+        definitions.extend((0..schema.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
+        definitions.extend((0..schema.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
+        definitions.extend((0..schema.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
+        definitions.extend((0..schema.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
+        definitions.extend((0..schema.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
+        definitions.extend((0..schema.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
+
+        // -- INTROSPECTION --
+        IntrospectionFields::insert_into(&mut schema);
+
+        schema.ensure_proper_ordering();
         schema
     }
 }
@@ -147,6 +162,7 @@ impl From<federated_graph::FieldArgument> for FieldArgument {
         FieldArgument {
             name: argument.name.into(),
             type_id: argument.type_id.into(),
+            default_value: None,
         }
     }
 }

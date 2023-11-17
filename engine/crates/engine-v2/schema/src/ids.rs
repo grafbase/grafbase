@@ -18,6 +18,13 @@ macro_rules! id_newtypes {
                 }
             }
 
+            impl std::ops::IndexMut<$name> for Schema {
+                fn index_mut(&mut self, index: $name) -> &mut $out {
+                    &mut self.$storage[(index.0.get() - 1) as usize]
+                }
+            }
+
+
             impl From<usize> for $name {
                 fn from(index: usize) -> Self {
                     Self(std::num::NonZeroU32::new((index + 1) as u32).unwrap())
