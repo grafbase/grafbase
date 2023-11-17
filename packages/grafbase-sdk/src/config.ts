@@ -48,7 +48,9 @@ export class SingleGraphConfig {
   constructor(input: SingleGraphConfigInput)
   // /** @deprecated use `graph` instead of `schema` */
   constructor(input: DeprecatedSingleGraphConfigInput)
-  constructor(input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput) {
+  constructor(
+    input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput
+  ) {
     this.graph = 'graph' in input ? input.graph : input.schema
 
     if (input.auth) {
