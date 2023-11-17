@@ -53,7 +53,6 @@ fn top_level_typename() {
 }
 
 #[test]
-#[ignore]
 fn response_with_lists() {
     let response = runtime()
         .block_on(async move {
@@ -68,7 +67,14 @@ fn response_with_lists() {
     insta::assert_json_snapshot!(response, @r###"
     {
       "data": {
-        "__typename": "Query"
+        "allBotPullRequests": [
+          {
+            "title": "Creating the thing"
+          },
+          {
+            "title": "Some bot PR"
+          }
+        ]
       }
     }
     "###);
