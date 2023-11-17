@@ -1,5 +1,3 @@
-
-
 #[macro_export]
 macro_rules! dot_get_opt {
     ($item: expr, $dotpath: expr, $ty: ty) => {{
