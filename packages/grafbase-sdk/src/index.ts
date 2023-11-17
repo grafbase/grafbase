@@ -1,7 +1,7 @@
 import {
   SingleGraphConfig,
+  ExperimentalSingleGraphConfigInput,
   SingleGraphConfigInput,
-  DeprecatedSingleGraphConfigInput,
   FederatedGraphConfig,
   FederatedGraphConfigInput
 } from './config'
@@ -42,7 +42,7 @@ export type AtLeastOne<T> = [T, ...T[]]
 const isFederatedGraphConfigInput = (
   input:
     | SingleGraphConfigInput
-    | DeprecatedSingleGraphConfigInput
+    | ExperimentalSingleGraphConfigInput
     | FederatedGraphConfigInput
 ): input is FederatedGraphConfigInput =>
   'graph' in input && input.graph instanceof FederatedGraph
@@ -53,13 +53,13 @@ const isFederatedGraphConfigInput = (
 export function config(input: SingleGraphConfigInput): SingleGraphConfig
 // /** @deprecated use `graph` instead of `schema` */
 export function config(
-  input: DeprecatedSingleGraphConfigInput
+  input: ExperimentalSingleGraphConfigInput
 ): SingleGraphConfig
 export function config(input: FederatedGraphConfigInput): FederatedGraphConfig
 export function config(
   input:
     | SingleGraphConfigInput
-    | DeprecatedSingleGraphConfigInput
+    | ExperimentalSingleGraphConfigInput
     | FederatedGraphConfigInput
 ): SingleGraphConfig | FederatedGraphConfig {
   if (isFederatedGraphConfigInput(input)) {
