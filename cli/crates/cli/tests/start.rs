@@ -14,7 +14,7 @@ fn start_with_ts_config() {
 
     let response = client
         .gql::<serde_json::Value>(
-            r#"
+            r"
         query {
             userCollection(first: 100) {
                 edges {
@@ -24,7 +24,7 @@ fn start_with_ts_config() {
                 }
             }
         }
-    "#,
+    ",
         )
         .send();
     assert_eq!(

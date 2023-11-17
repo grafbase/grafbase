@@ -9,7 +9,7 @@ pub struct ProjectRef {
 }
 
 impl ProjectRef {
-    pub(crate) const ARG_DESCRIPTION: &str = r#"Project reference following the format "account/project@branch""#;
+    pub(crate) const ARG_DESCRIPTION: &'static str = r#"Project reference following the format "account/project@branch""#;
 
     pub(crate) fn account(&self) -> &str {
         self.account.as_ref()

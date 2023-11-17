@@ -18,14 +18,14 @@ async fn simple_eq() {
 
     let server = Server::delete_many(&config, "users", body).await;
 
-    let request = server.request(indoc::indoc! {r#"
+    let request = server.request(indoc::indoc! {r"
         mutation {
           userDeleteMany(filter: { age: { gt: 30 } })
           {
             deletedCount
           }
         }   
-    "#});
+    "});
 
     insta::assert_json_snapshot!(request.await, @r###"
     {
