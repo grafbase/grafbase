@@ -3,7 +3,6 @@
   "branchPrefix": "renovate-",
   "extends": [
     "config:base",
-    ":disableDependencyDashboard",
     "schedule:weekly"
   ],
   "packageRules": [
