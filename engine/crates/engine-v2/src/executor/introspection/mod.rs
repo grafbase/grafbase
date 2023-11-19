@@ -2,13 +2,12 @@ use engine_value::ConstValue;
 use schema::introspection::{IntrospectionDataSource, IntrospectionQuery, IntrospectionResolver};
 
 use super::{Executor, ExecutorContext, ExecutorError, ExecutorInput, ExecutorOutput};
-use crate::{request::OperationSelectionSet, response::ResponseObjectId};
+use crate::response::ResponseObjectRoot;
 
 mod resolver;
 
 pub struct IntrospectionExecutor<'a> {
-    response_object_id: ResponseObjectId,
-    selection_set: &'a OperationSelectionSet,
+    root: ResponseObjectRoot,
     data_source: &'a IntrospectionDataSource,
     query: IntrospectionQuery,
 }
@@ -18,16 +17,14 @@ impl<'a> IntrospectionExecutor<'a> {
     pub(super) fn build<'ctx, 'input>(
         ctx: ExecutorContext<'ctx>,
         resolver: &IntrospectionResolver,
-        selection_set: &'ctx OperationSelectionSet,
         input: ExecutorInput<'input>,
     ) -> Result<Executor<'a>, ExecutorError>
     where
         'ctx: 'a,
     {
         Ok(Executor::Introspection(IntrospectionExecutor {
-            response_object_id: input.response_object_roots.id(),
+            root: input.root_response_objects.root(),
             query: resolver.query,
-            selection_set,
             data_source: ctx.engine.schema[resolver.data_source_id].as_introspection().unwrap(),
         }))
     }
@@ -40,26 +37,25 @@ impl<'a> IntrospectionExecutor<'a> {
     ) -> Result<(), ExecutorError> {
         // There is no IO, we directly write into the response.
         let mut data = output.data.lock().await;
-        for field in ctx.default_walker().walk(self.selection_set).all_fields() {
+        for (response_key, field) in ctx.default_walk_selection_set().collect_fields(self.root.object_id) {
             let mut resolver = resolver::Resolver::new(&ctx.engine.schema, self.data_source, &mut data);
             let value = match self.query {
                 IntrospectionQuery::Type => {
                     // There is a single argument if any so don't need to match anything, the
                     // query is already validated.
                     let name = field
-                        .arguments()
+                        .bound_arguments()
                         .next()
                         .map(|arg| match arg.resolved_value() {
                             ConstValue::String(s) => s,
                             _ => panic!("Validation failure: Expected string argument"),
                         })
                         .expect("Validation failure: missing argument");
-                    resolver.resolve_type_by_name(&name, field.subselection())
+                    resolver.type_by_name(field, &name)
                 }
-                IntrospectionQuery::Schema => resolver.resolve_schema(field.subselection()),
+                IntrospectionQuery::Schema => resolver.schema(field),
             };
-            data.get_mut(self.response_object_id)
-                .insert(field.response_position(), field.response_name(), value);
+            data.get_mut(self.root.id).fields.insert(response_key, value);
         }
         Ok(())
     }

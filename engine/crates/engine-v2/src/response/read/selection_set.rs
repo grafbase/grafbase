@@ -1,7 +1,4 @@
-use crate::{
-    execution::StrId,
-    formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
-};
+use crate::execution::StrId;
 
 /// Selection set used to read data from the response.
 /// Used for plan inputs.
@@ -12,7 +9,6 @@ pub struct ReadSelectionSet {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadSelection {
-    pub response_position: usize,
     pub response_name: StrId,
     pub subselection: ReadSelectionSet,
 }
@@ -46,22 +42,5 @@ impl FromIterator<ReadSelection> for ReadSelectionSet {
         Self {
             items: iter.into_iter().collect::<Vec<_>>(),
         }
-    }
-}
-
-impl ContextAwareDebug for ReadSelectionSet {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ReadSelectionSet")
-            .field("items", &ctx.debug(&self.items))
-            .finish()
-    }
-}
-
-impl ContextAwareDebug for ReadSelection {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ReadSelection")
-            .field("name", &ctx.strings[self.response_name].to_string())
-            .field("subselection", &ctx.debug(&self.subselection))
-            .finish()
     }
 }

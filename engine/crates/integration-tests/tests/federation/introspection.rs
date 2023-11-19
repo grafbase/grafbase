@@ -7,6 +7,72 @@ use integration_tests::{
     runtime, MockGraphQlServer,
 };
 
+const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("./graphql/introspection.graphql");
+
+#[test]
+fn can_run_pathfinder_introspection_query() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+
+        engine.execute(PATHFINDER_INTROSPECTION_QUERY).await
+    });
+    assert!(response.errors().is_empty(), "{response:#?}");
+
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    type Bot {
+      id: ID!
+    }
+
+    input BotInput {
+      id: ID!
+    }
+
+    type Header {
+      name: String!
+      value: String!
+    }
+
+    type Issue {
+      author: UserOrBot!
+      title: String!
+    }
+
+    type PullRequest {
+      author: UserOrBot!
+      checks: [String!]!
+      title: String!
+    }
+
+    interface PullRequestOrIssue {
+      author: UserOrBot!
+      title: String!
+    }
+
+    input PullRequestsAndIssuesFilters {
+      search: String!
+    }
+
+    type Query {
+      allBotPullRequests: [PullRequest!]!
+      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      headers: [Header!]!
+      pullRequestOrIssue(id: ID!): PullRequestOrIssue
+      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      serverVersion: String!
+    }
+
+    type User {
+      email: String!
+      name: String!
+    }
+
+    union UserOrBot = Bot | User
+
+    "###);
+}
+
 #[test]
 fn can_run_2018_introspection_query() {
     let response = runtime().block_on(async move {

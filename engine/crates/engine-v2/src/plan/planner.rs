@@ -1,17 +1,17 @@
-use std::{
-    collections::{HashMap, HashSet},
-    num::NonZeroUsize,
-};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use itertools::Itertools;
-use schema::{DataSourceId, FieldId, FieldResolver, ResolverId};
+use schema::{DataSourceId, FieldSet, ResolverId};
 
-use super::{plans::ExecutionPlansBuilder, ExecutionPlan, ExecutionPlans, PlanId};
+use super::{
+    attribution::AttributionBuilder, plans::ExecutionPlansBuilder, Attribution, ExecutionPlan, ExecutionPlans,
+    OperationPlan, PlanId,
+};
 use crate::{
-    formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
+    plan::SelectionSetRoot,
     request::{
-        Operation, OperationFieldId, OperationPath, OperationPathSegment, OperationSelection, OperationSelectionSet,
-        ResolvedTypeCondition, TypeCondition,
+        BoundFieldId, BoundSelectionSetWalker, FlattenedBoundField, Operation, QueryPath, QueryPathSegment,
+        ResolvedTypeCondition,
     },
     response::{GraphqlError, ReadSelection, ReadSelectionSet},
     Engine,
@@ -35,277 +35,222 @@ impl From<PrepareError> for GraphqlError {
 
 pub type PrepareResult<T> = Result<T, PrepareError>;
 
-// This is the part that should be cached for a GraphQL query.
-pub struct OperationPlan {
-    pub operation: Operation,
-    pub execution_plans: ExecutionPlans,
-    pub final_read_selection_set: ReadSelectionSet,
-}
-
-impl OperationPlan {
-    #[allow(clippy::unnecessary_wraps)]
-    pub fn prepare(engine: &Engine, operation: Operation) -> PrepareResult<OperationPlan> {
-        // Creating the final read selection set immediately before any modifications (plan inputs
-        // adding fields)
-        let final_read_selection_set = create_final_read_selection_set(&operation, &operation.selection_set);
-        let mut planner = Planner {
-            engine,
-            operation,
-            plans: ExecutionPlans::builder(),
-        };
-        planner.plan_operation();
-        let operation = planner.operation;
-        let execution_plans = planner.plans.build();
-
-        Ok(OperationPlan {
-            operation,
-            execution_plans,
-            final_read_selection_set,
-        })
-    }
-}
-
-fn create_final_read_selection_set(operation: &Operation, selection_set: &OperationSelectionSet) -> ReadSelectionSet {
+fn create_final_read_selection_set(selection_set: BoundSelectionSetWalker<'_>) -> ReadSelectionSet {
     selection_set
-        .iter()
-        .map(|selection| {
-            let op_field = &operation[selection.operation_field_id];
-            ReadSelection {
-                response_position: op_field.position,
-                response_name: op_field.name,
-                subselection: create_final_read_selection_set(operation, &selection.subselection),
-            }
+        // TODO: Will be removed later, the response is already in the right format. We just need
+        // to read the fields in the right order.
+        .flatten_fields()
+        .map(|field| ReadSelection {
+            response_name: field.response_name(),
+            subselection: create_final_read_selection_set(field.selection_set()),
         })
         .collect()
 }
 
-pub struct Planner<'a> {
-    engine: &'a Engine,
-    operation: Operation,
-    plans: ExecutionPlansBuilder,
+#[allow(clippy::unnecessary_wraps)]
+pub(super) fn plan_operation(engine: &Engine, mut operation: Operation) -> PrepareResult<OperationPlan> {
+    // Creating the final read selection set immediately before any modifications (plan inputs
+    // adding fields)
+    let final_read_selection_set =
+        create_final_read_selection_set(operation.walk_root_selection_set(engine.schema.default_walker()));
+    let attribution = Attribution::builder(&operation);
+    let to_be_planned = VecDeque::from([ToBePlannedSelectionSet {
+        parent: None,
+        root: SelectionSetRoot {
+            path: QueryPath::empty(),
+            id: operation.root_selection_set_id,
+        },
+        fields: operation
+            .walk_root_selection_set(engine.schema.default_walker())
+            .flatten_fields()
+            .map(Into::into)
+            .collect(),
+    }]);
+    let mut planner = Planner {
+        engine,
+        operation: &mut operation,
+        plans: ExecutionPlans::builder(),
+        attribution,
+        to_be_planned,
+    };
+    while let Some(to_be_planned) = planner.to_be_planned.pop_front() {
+        planner.plan_next(to_be_planned);
+    }
+
+    let execution_plans = planner.plans.build();
+    let attribution = planner.attribution.build(&engine.schema, &operation);
+    Ok(OperationPlan {
+        operation,
+        execution_plans,
+        attribution,
+        final_read_selection_set,
+    })
 }
 
-impl<'a> Planner<'a> {
-    fn plan_operation(&mut self) {
-        let mut stack = vec![ToBePlanned {
-            parent: None,
-            path: OperationPath::empty(),
-            selection_set: self.operation.selection_set.clone(),
-        }];
-        while let Some(to_be_planned) = stack.pop() {
-            stack.extend(self.plan_next(to_be_planned));
-        }
-    }
-
-    fn plan_next(
-        &mut self,
-        ToBePlanned {
-            parent,
-            path,
-            mut selection_set,
-        }: ToBePlanned,
-    ) -> Vec<ToBePlanned> {
-        if selection_set.is_empty() {
-            return vec![];
-        }
-
-        #[derive(Debug, Default)]
-        pub struct ResolverIO {
-            input: schema::FieldSet,
-            output: Vec<FieldId>,
-        }
-
-        let mut candidates = HashMap::<ResolverId, ResolverIO>::new();
-        for selection in &selection_set {
-            let field_id = self.operation[selection.operation_field_id].field_id;
-            for FieldResolver { resolver_id, requires } in &self.engine.schema[field_id].resolvers {
-                let io = candidates.entry(*resolver_id).or_default();
-                io.input = schema::FieldSet::merge(&io.input, requires);
-                io.output.push(field_id);
-            }
-        }
-
-        // We assume no inputs and separate outputs for now.
-        // Later we could:
-        // - take candidate with least dependencies (to other plans) and provides the most fields
-        // (probably?)
-        // - plan it, and iterate until we planned everything.
-        let mut plan_ids = vec![];
-        let mut children = vec![];
-        for (resolver_id, io) in candidates {
-            assert!(io.input.is_empty());
-            let resolver = &self.engine.schema[resolver_id];
-            let (plan_selection_set, mut to_be_planned, rest) =
-                self.partition_selection_set(resolver.data_source_id(), io.output, &path, selection_set);
-            selection_set = rest;
-
-            let plan_id = self.plans.push(ExecutionPlan {
-                path: path.clone(),
-                input: ReadSelectionSet::empty(),
-                selection_set: plan_selection_set,
-                resolver_id,
-            });
-
-            for plan in &mut to_be_planned {
-                plan.parent = Some(plan_id);
-            }
-            children.extend(to_be_planned);
-            plan_ids.push(plan_id);
-        }
-
-        if let Some(parent) = parent {
-            for child in &plan_ids {
-                self.plans.add_dependency(*child, parent);
-            }
-        }
-
-        assert!(children.is_empty(), "CHILDREN:\n{:#?}", self.debug(&children));
-        children
-    }
-
-    // will be used in a later PR.
-    #[allow(dead_code)]
-    fn compute_dense_capacity(&self, fields: impl IntoIterator<Item = OperationFieldId>) -> Option<NonZeroUsize> {
-        let mut count: usize = 0;
-        let mut type_conditions = HashSet::new();
-        for id in fields {
-            count += 1;
-            type_conditions.insert(self.operation[id].type_condition);
-        }
-        // If we have more than one type condition, it means certain fields are optional. None
-        // counts as 1. When using dense objects we don't filter fields so it must represent the
-        // final state.
-        if type_conditions.len() > 1 {
-            None
-        } else {
-            NonZeroUsize::new(count)
-        }
-    }
-
-    fn partition_selection_set(
-        &self,
-        data_source_id: DataSourceId,
-        mut output_fields: Vec<FieldId>,
-        path: &OperationPath,
-        selection_set: OperationSelectionSet,
-    ) -> (OperationSelectionSet, Vec<ToBePlanned>, OperationSelectionSet) {
-        output_fields.sort_unstable();
-        let mut to_be_planned = vec![];
-
-        let (selection_set, rest) = selection_set
-            .into_iter()
-            .map(|selection| {
-                let op_field = &self.operation[selection.operation_field_id];
-                if output_fields.binary_search(&op_field.field_id).is_ok() {
-                    let schema_field = &self.engine.schema[op_field.field_id];
-
-                    Ok(OperationSelection {
-                        operation_field_id: selection.operation_field_id,
-                        subselection: self.assign_provideable_write_selection_set(
-                            data_source_id,
-                            schema_field.provides(data_source_id).cloned().unwrap_or_default(),
-                            true,
-                            self.make_path_child(path, selection.operation_field_id),
-                            selection.subselection,
-                            &mut to_be_planned,
-                        ),
-                    })
-                } else {
-                    Err(selection)
-                }
-            })
-            .partition_result();
-
-        (selection_set, to_be_planned, rest)
-    }
-
-    fn assign_provideable_write_selection_set(
-        &self,
-        data_source_id: DataSourceId,
-        provideable: schema::FieldSet,
-        assign_without_resolvers: bool,
-        path: OperationPath,
-        selection_set: OperationSelectionSet,
-        to_be_planned: &mut Vec<ToBePlanned>,
-    ) -> OperationSelectionSet {
-        let (found, missing): (OperationSelectionSet, OperationSelectionSet) = selection_set
-            .into_iter()
-            .map(|selection| {
-                let op_field = &self.operation[selection.operation_field_id];
-                let schema_field = &self.engine.schema[op_field.field_id];
-
-                let provideable_field = provideable.selection(op_field.field_id);
-                if provideable_field.is_some() || (assign_without_resolvers && schema_field.resolvers.is_empty()) {
-                    let provideable = schema::FieldSet::merge_opt(
-                        provideable_field.map(|s| &s.subselection),
-                        schema_field.provides(data_source_id),
-                    );
-                    Ok(OperationSelection {
-                        operation_field_id: selection.operation_field_id,
-                        subselection: self.assign_provideable_write_selection_set(
-                            data_source_id,
-                            provideable,
-                            schema_field.resolvers.is_empty(),
-                            self.make_path_child(&path, selection.operation_field_id),
-                            selection.subselection,
-                            to_be_planned,
-                        ),
-                    })
-                } else {
-                    Err(selection)
-                }
-            })
-            .partition_result();
-        if !missing.is_empty() {
-            to_be_planned.push(ToBePlanned {
-                parent: None, // defined later
-                path,
-                selection_set: missing,
-            });
-        }
-        found
-    }
-
-    fn make_path_child(&self, parent: &OperationPath, child: OperationFieldId) -> OperationPath {
-        let reponse_field = &self.operation[child];
-        parent.child(OperationPathSegment {
-            operation_field_id: child,
-            type_condition: reponse_field.type_condition.map(|cond| {
-                ResolvedTypeCondition::new(match cond {
-                    TypeCondition::Interface(interface_id) => self.engine.schema[interface_id].possible_types.clone(),
-                    TypeCondition::Object(object_id) => vec![object_id],
-                    TypeCondition::Union(union_id) => self.engine.schema[union_id].possible_types.clone(),
-                })
-            }),
-            position: reponse_field.position,
-            name: reponse_field.name,
-        })
-    }
+struct Planner<'a> {
+    engine: &'a Engine,
+    operation: &'a mut Operation,
+    plans: ExecutionPlansBuilder,
+    attribution: AttributionBuilder,
+    to_be_planned: VecDeque<ToBePlannedSelectionSet>,
 }
 
 #[derive(Debug)]
-struct ToBePlanned {
+struct ToBePlannedSelectionSet {
     parent: Option<PlanId>,
-    path: OperationPath,
-    selection_set: OperationSelectionSet,
+    root: SelectionSetRoot,
+    fields: HashSet<ToBePlannedField>,
 }
 
-impl<'a> FormatterContextHolder for Planner<'a> {
-    fn formatter_context(&self) -> FormatterContext<'_> {
-        FormatterContext {
-            schema: &self.engine.schema,
-            strings: &self.operation.strings,
-            opeartion: &self.operation,
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+struct ToBePlannedField {
+    resolved_type_condition: Option<ResolvedTypeCondition>,
+    id: BoundFieldId,
+}
+
+impl From<FlattenedBoundField<'_>> for ToBePlannedField {
+    fn from(field: FlattenedBoundField<'_>) -> Self {
+        ToBePlannedField {
+            resolved_type_condition: field.resolved_type_condition.clone(),
+            id: field.bound_field_id(),
         }
     }
 }
 
-impl ContextAwareDebug for ToBePlanned {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ToBePlanned")
-            .field("parent", &self.parent)
-            .field("path", &ctx.debug(&self.path))
-            .field("selection_set", &ctx.debug(&self.selection_set))
-            .finish()
+struct ToBeAssignedField {
+    root: SelectionSetRoot,
+    provideable: FieldSet,
+    id: BoundFieldId,
+    data_source_id: DataSourceId,
+    plan_id: PlanId,
+    continuous: bool,
+}
+
+impl<'a> Planner<'a> {
+    fn plan_next(
+        &mut self,
+        ToBePlannedSelectionSet {
+            parent,
+            root,
+            mut fields,
+        }: ToBePlannedSelectionSet,
+    ) {
+        while !fields.is_empty() {
+            pub struct Candidate {
+                resolver_id: ResolverId,
+                requires: FieldSet,
+                output: HashSet<ToBePlannedField>,
+            }
+
+            let mut candidates = HashMap::<ResolverId, Candidate>::new();
+            for field in &fields {
+                for field_resolver in self
+                    .operation
+                    .walk_field(self.engine.schema.default_walker(), field.id)
+                    .resolvers()
+                {
+                    let candidate = candidates
+                        .entry(field_resolver.resolver_id)
+                        .or_insert_with_key(|&resolver_id| Candidate {
+                            resolver_id,
+                            requires: FieldSet::default(),
+                            output: HashSet::new(),
+                        });
+                    candidate.requires = schema::FieldSet::merge(&candidate.requires, &field_resolver.requires);
+                    candidate.output.insert(field.clone());
+                }
+            }
+
+            // We assume no inputs and separate outputs for now.
+            // Later we could:
+            // - Determine which candidate need additional data (mapping requires to actual fields or
+            //   check whether they could be provided from parent/sibling plans).
+            // - plan the one with most fields.
+            let candidate = candidates.into_iter().next().unwrap().1;
+            assert!(candidate.requires.is_empty());
+
+            let plan_id = self.plans.push(ExecutionPlan {
+                root: root.clone(),
+                input: ReadSelectionSet::empty(),
+                resolver_id: candidate.resolver_id,
+            });
+            if let Some(parent) = parent {
+                self.plans.add_dependency(plan_id, parent);
+            }
+
+            let data_source_id = self.engine.schema[candidate.resolver_id].data_source_id();
+            for field in candidate.output {
+                fields.remove(&field);
+                let resolved_type_condition = field.resolved_type_condition.clone();
+                let field = self.operation.walk_field(self.engine.schema.default_walker(), field.id);
+                self.assign_field(ToBeAssignedField {
+                    root: SelectionSetRoot {
+                        path: root.path.child(QueryPathSegment {
+                            resolved_type_condition,
+                            name: field.response_name(),
+                        }),
+                        id: field.selection_set().id,
+                    },
+                    provideable: field.provides(data_source_id).cloned().unwrap_or_default(),
+                    id: field.bound_field_id(),
+                    continuous: true,
+                    data_source_id,
+                    plan_id,
+                });
+            }
+        }
+    }
+
+    fn assign_field(
+        &mut self,
+        ToBeAssignedField {
+            root,
+            provideable,
+            id,
+            data_source_id,
+            plan_id,
+            continuous,
+        }: ToBeAssignedField,
+    ) {
+        self.attribution.attribute(id, plan_id);
+        let walker = self.operation.walk_field(self.engine.schema.default_walker(), id);
+
+        let (to_be_assigned, to_be_planned): (Vec<_>, HashSet<_>) = walker
+            .selection_set()
+            .flatten_fields()
+            .map(|field| {
+                let provideable_selection = provideable.get(field.id);
+                if provideable_selection.is_some() || (continuous && field.resolvers.is_empty()) {
+                    Ok(ToBeAssignedField {
+                        root: SelectionSetRoot {
+                            path: root.path.child(QueryPathSegment {
+                                resolved_type_condition: field.resolved_type_condition.clone(),
+                                name: field.response_name(),
+                            }),
+                            id: field.selection_set().id,
+                        },
+                        provideable: FieldSet::merge_opt(Some(&provideable), field.provides(data_source_id)),
+                        id: field.bound_field_id(),
+                        continuous: field.resolvers.is_empty(),
+                        data_source_id,
+                        plan_id,
+                    })
+                } else {
+                    Err(ToBePlannedField::from(field))
+                }
+            })
+            .partition_result();
+
+        for field in to_be_assigned {
+            self.assign_field(field);
+        }
+
+        if !to_be_planned.is_empty() {
+            self.to_be_planned.push_back(ToBePlannedSelectionSet {
+                parent: Some(plan_id),
+                root,
+                fields: to_be_planned,
+            });
+        }
     }
 }

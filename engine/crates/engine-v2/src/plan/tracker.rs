@@ -1,25 +1,23 @@
 use super::PlanId;
 
-pub struct ExecutableTracker {
+pub struct ExecutionPlansTracker {
     pub(super) parent_to_child: Vec<(PlanId, PlanId)>, // outgoing edges (sorted by parent)
     pub(super) parent_count: Vec<usize>,               // in-degree
     pub(super) executed_count: usize,
 }
 
-impl ExecutableTracker {
+impl ExecutionPlansTracker {
     pub fn all_without_dependencies(&self) -> Vec<PlanId> {
         self.parent_count
             .iter()
             .enumerate()
-            .filter_map(
-                |(plan_id, &in_degree)| {
-                    if in_degree == 0 {
-                        Some(PlanId(plan_id))
-                    } else {
-                        None
-                    }
-                },
-            )
+            .filter_map(|(plan_id, &in_degree)| {
+                if in_degree == 0 {
+                    Some(PlanId::from(plan_id))
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
@@ -33,8 +31,8 @@ impl ExecutableTracker {
             if parent_id != plan_id {
                 break;
             }
-            self.parent_count[child_id.0] -= 1;
-            if self.parent_count[child_id.0] == 0 {
+            self.parent_count[usize::from(child_id)] -= 1;
+            if self.parent_count[usize::from(child_id)] == 0 {
                 executable_plan_ids.push(child_id);
             }
         }

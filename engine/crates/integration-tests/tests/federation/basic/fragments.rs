@@ -2,7 +2,6 @@ use engine_v2::Engine;
 use integration_tests::{federation::EngineV2Ext, mocks::graphql::FakeGithubSchema, runtime, MockGraphQlServer};
 
 #[test]
-#[ignore]
 fn named_fragment_on_object() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
@@ -14,7 +13,7 @@ fn named_fragment_on_object() {
                 r"
                     query {
                         allBotPullRequests {
-                            ... PrFields
+                            ...PrFields
                         }
                     }
 
@@ -22,20 +21,47 @@ fn named_fragment_on_object() {
                         title
                         checks
                         author {
-                            name
-                            email
+                            ...UserFields
                         }
+                    }
+
+                    fragment UserFields on User {
+                        name
                     }
                     ",
             )
             .await
     });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "allBotPullRequests": [
+          {
+            "author": {
+              "name": "Jim"
+            },
+            "checks": [
+              "Success!"
+            ],
+            "title": "Creating the thing"
+          },
+          {
+            "author": {
+              "name": null
+            },
+            "checks": [
+              "Success!"
+            ],
+            "title": "Some bot PR"
+          }
+        ]
+      }
+    }
+    "###);
 }
 
 #[test]
-#[ignore]
 fn inline_fragment_on_object() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
@@ -50,10 +76,6 @@ fn inline_fragment_on_object() {
                             ... {
                                 title
                                 checks
-                                author {
-                                    name
-                                    email
-                                }
                             }
                         }
                     }
@@ -62,11 +84,29 @@ fn inline_fragment_on_object() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "allBotPullRequests": [
+          {
+            "checks": [
+              "Success!"
+            ],
+            "title": "Creating the thing"
+          },
+          {
+            "checks": [
+              "Success!"
+            ],
+            "title": "Some bot PR"
+          }
+        ]
+      }
+    }
+    "###);
 }
 
 #[test]
-#[ignore]
 fn inline_fragment_on_object_with_type_condition() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
@@ -82,8 +122,10 @@ fn inline_fragment_on_object_with_type_condition() {
                                 title
                                 checks
                                 author {
-                                    name
-                                    email
+                                    ... on User {
+                                        name
+                                        email
+                                    }
                                 }
                             }
                         }
@@ -93,7 +135,34 @@ fn inline_fragment_on_object_with_type_condition() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "allBotPullRequests": [
+          {
+            "author": {
+              "email": "jim@example.com",
+              "name": "Jim"
+            },
+            "checks": [
+              "Success!"
+            ],
+            "title": "Creating the thing"
+          },
+          {
+            "author": {
+              "email": null,
+              "name": null
+            },
+            "checks": [
+              "Success!"
+            ],
+            "title": "Some bot PR"
+          }
+        ]
+      }
+    }
+    "###);
 }
 
 #[test]

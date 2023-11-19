@@ -1,20 +1,91 @@
-use std::fmt::Debug;
+use engine_parser::Pos;
+use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, UnionId};
 
-use super::OperationFieldId;
-use crate::formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder};
+use super::{BoundFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId};
+use crate::execution::StrId;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-pub struct OperationSelectionSet {
-    pub items: Vec<OperationSelection>,
+pub struct BoundSelectionSet {
+    // Ordering matters and must be respected in the response.
+    pub items: Vec<BoundSelection>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OperationSelection {
-    pub operation_field_id: OperationFieldId,
-    pub subselection: OperationSelectionSet,
+pub enum BoundSelection {
+    Field(BoundFieldId),
+    FragmentSpread(BoundFragmentSpread),
+    InlineFragment(BoundInlineFragment),
 }
 
-impl OperationSelectionSet {
+/// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
+/// A BoundField is a field in the query *after* spreading all the named fragments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundField {
+    pub definition_id: BoundFieldDefinitionId,
+    pub selection_set_id: BoundSelectionSetId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundFragmentSpread {
+    pub location: Pos,
+    pub fragment_id: BoundFragmentDefinitionId,
+    // This selection set is bound to its actual position in the query.
+    pub selection_set_id: BoundSelectionSetId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundInlineFragment {
+    pub location: Pos,
+    pub type_condition: Option<TypeCondition>,
+    pub selection_set_id: BoundSelectionSetId,
+    pub directives: Vec<()>,
+}
+
+/// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
+/// A BoundField is a field in the query *after* spreading all the named fragments.
+#[derive(Debug)]
+pub struct BoundFragmentDefinition {
+    pub name: String,
+    pub name_location: Pos,
+    pub type_condition: TypeCondition,
+    pub directives: Vec<()>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TypeCondition {
+    Interface(InterfaceId),
+    Object(ObjectId),
+    Union(UnionId),
+}
+
+impl From<TypeCondition> for Definition {
+    fn from(value: TypeCondition) -> Self {
+        match value {
+            TypeCondition::Interface(id) => Definition::Interface(id),
+            TypeCondition::Object(id) => Definition::Object(id),
+            TypeCondition::Union(id) => Definition::Union(id),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundFieldDefinition {
+    pub name_location: Pos,
+    pub name: StrId,
+    pub field_id: FieldId,
+    pub arguments: Vec<BoundFieldArgument>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundFieldArgument {
+    pub name_location: Pos,
+    pub input_value_id: InputValueId,
+    pub value_location: Pos,
+    // TODO: Should be validated, coerced and bound.
+    pub value: engine_value::Value,
+}
+
+impl BoundSelectionSet {
     pub fn empty() -> Self {
         Self { items: vec![] }
     }
@@ -27,59 +98,41 @@ impl OperationSelectionSet {
         self.items.is_empty()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &OperationSelection> {
+    pub fn iter(&self) -> impl Iterator<Item = &BoundSelection> {
         self.items.iter()
     }
 }
 
-impl Extend<OperationSelection> for OperationSelectionSet {
-    fn extend<T: IntoIterator<Item = OperationSelection>>(&mut self, iter: T) {
+impl Extend<BoundSelection> for BoundSelectionSet {
+    fn extend<T: IntoIterator<Item = BoundSelection>>(&mut self, iter: T) {
         self.items.extend(iter);
     }
 }
 
-impl FromIterator<OperationSelection> for OperationSelectionSet {
-    fn from_iter<T: IntoIterator<Item = OperationSelection>>(iter: T) -> Self {
+impl FromIterator<BoundSelection> for BoundSelectionSet {
+    fn from_iter<T: IntoIterator<Item = BoundSelection>>(iter: T) -> Self {
         Self {
             items: iter.into_iter().collect::<Vec<_>>(),
         }
     }
 }
 
-impl IntoIterator for OperationSelectionSet {
-    type Item = OperationSelection;
+impl IntoIterator for BoundSelectionSet {
+    type Item = BoundSelection;
 
-    type IntoIter = <Vec<OperationSelection> as IntoIterator>::IntoIter;
+    type IntoIter = <Vec<BoundSelection> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.items.into_iter()
     }
 }
 
-impl<'a> IntoIterator for &'a OperationSelectionSet {
-    type Item = &'a OperationSelection;
+impl<'a> IntoIterator for &'a BoundSelectionSet {
+    type Item = &'a BoundSelection;
 
-    type IntoIter = <&'a Vec<OperationSelection> as IntoIterator>::IntoIter;
+    type IntoIter = <&'a Vec<BoundSelection> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.items.iter()
-    }
-}
-
-impl ContextAwareDebug for OperationSelectionSet {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RequestSelectionSet")
-            .field("items", &ctx.debug(&self.items))
-            .finish()
-    }
-}
-
-impl ContextAwareDebug for OperationSelection {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let field = &ctx.opeartion[self.operation_field_id];
-        f.debug_struct("RequestSelection")
-            .field("name", &ctx.strings[field.name].to_string())
-            .field("subselection", &ctx.debug(&self.subselection))
-            .finish()
     }
 }

@@ -5,7 +5,7 @@ use futures_util::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 
 use super::{Executor, ExecutorContext, ExecutorError, ExecutorInput, ExecutorOutput};
 use crate::{
-    plan::{ExecutableTracker, OperationPlan, PlanId},
+    plan::{ExecutionPlansTracker, OperationPlan, PlanId},
     response::{GraphqlErrors, Response, ResponseData},
     Engine,
 };
@@ -13,7 +13,7 @@ use crate::{
 pub struct ExecutorCoordinator<'eng, 'op> {
     engine: &'eng Engine,
     plan: &'op OperationPlan,
-    tracker: ExecutableTracker,
+    tracker: ExecutionPlansTracker,
     data: Arc<Mutex<ResponseData>>,
     errors: GraphqlErrors,
 }
@@ -24,7 +24,10 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
         Self {
             engine,
             plan,
-            data: Arc::new(Mutex::new(ResponseData::new(plan.operation.strings.clone()))),
+            data: Arc::new(Mutex::new(ResponseData::new(
+                plan.operation.root_object_id,
+                plan.operation.strings.clone(),
+            ))),
             tracker,
             errors: GraphqlErrors::default(),
         }
@@ -47,15 +50,18 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
                         self.data
                             .lock()
                             .await
-                            .read_objects(&self.engine.schema, &plan.path, &plan.input)
+                            .read_objects(&self.engine.schema, &plan.root.path, &plan.input)
                     {
                         let resolver = &self.engine.schema[plan.resolver_id];
                         let ctx = ExecutorContext {
                             engine: self.engine,
-                            operation: &self.plan.operation,
+                            plan: self.plan,
+                            plan_id,
                         };
-                        let input = ExecutorInput { response_object_roots };
-                        match Executor::build(ctx.clone(), resolver, &plan.selection_set, input) {
+                        let input = ExecutorInput {
+                            root_response_objects: response_object_roots,
+                        };
+                        match Executor::build(ctx.clone(), resolver, input) {
                             Ok(executor) => {
                                 futures.push(Box::pin(async move {
                                     let mut output = output;
@@ -87,31 +93,17 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
                     // Creating a Graphql error if the executor failed
                     self.errors.push_errors(output.errors);
                     if let Some(error) = error {
-                        let plan = &self.plan.execution_plans[plan_id];
-                        let mut op_path = plan
-                            .path
+                        let ctx = ExecutorContext {
+                            engine: self.engine,
+                            plan: self.plan,
+                            plan_id,
+                        };
+                        let locations = ctx
+                            .default_walk_selection_set()
                             .into_iter()
-                            .map(|segment| segment.operation_field_id)
-                            .collect::<Vec<_>>();
-                        op_path.push(
-                            // Taking first field in the output. The plan path is the root position
-                            // of the object we're merging fields into.
-                            plan.selection_set
-                                .iter()
-                                .next()
-                                .map(|selection| selection.operation_field_id)
-                                .unwrap(),
-                        );
-                        let locations = op_path
-                            .last()
-                            .map(|id| vec![self.plan.operation[*id].pos])
-                            .unwrap_or_default();
-                        // Not the true response path, will be reworked later.
-                        let path = op_path
-                            .into_iter()
-                            .map(|id| self.plan.operation.strings[self.plan.operation[id].name].to_string())
+                            .map(|selection| selection.location())
                             .collect();
-                        self.errors.add_error(path, error.to_string(), locations);
+                        self.errors.add_error(vec![], error.to_string(), locations);
                     }
                     // start the execution of any children for which all parents have finised.
                     for executable_plan_id in self.tracker.next_executable(plan_id) {
@@ -128,11 +120,13 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
     }
 
     // ugly... should be sent back through a stream to support defer.
-    pub fn get_response(self) -> Response<'eng> {
+    pub fn into_response(self) -> Response {
         let data = Arc::try_unwrap(self.data).unwrap().try_unwrap().unwrap();
-        let schema = &self.engine.schema;
         Response {
-            data: Some(data.into_serializable(schema, self.plan.final_read_selection_set.clone())),
+            data: Some(data.into_serializable(
+                Arc::clone(&self.engine.schema),
+                self.plan.final_read_selection_set.clone(),
+            )),
             errors: self.errors.into(),
         }
     }

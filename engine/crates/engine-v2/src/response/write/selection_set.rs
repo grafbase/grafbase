@@ -1,10 +1,6 @@
 use core::num::NonZeroUsize;
 
-use crate::{
-    execution::StrId,
-    formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
-    request::OperationFieldId,
-};
+use crate::{execution::StrId, request::BoundFieldDefinitionId};
 
 /// Selection set used to write data into the response.
 /// Used for plan outputs.
@@ -16,7 +12,7 @@ pub struct WriteSelectionSet {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WriteSelection {
-    pub operation_field_id: OperationFieldId,
+    pub operation_field_id: BoundFieldDefinitionId,
     pub source_name: StrId,
     pub response_position: usize,
     pub response_name: StrId,
@@ -48,23 +44,5 @@ impl<'a> IntoIterator for &'a WriteSelectionSet {
 
     fn into_iter(self) -> Self::IntoIter {
         self.items.iter()
-    }
-}
-
-impl ContextAwareDebug for WriteSelectionSet {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("WriteSelectionSet")
-            .field("items", &ctx.debug(&self.items))
-            .finish()
-    }
-}
-
-impl ContextAwareDebug for WriteSelection {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = ctx.strings[self.response_name].to_string();
-        f.debug_struct("WriteSelection")
-            .field("name", &name)
-            .field("subselection", &ctx.debug(&self.subselection))
-            .finish()
     }
 }

@@ -1,14 +1,18 @@
 use engine_value::ConstValue;
 use schema::InputValueWalker;
 
-use crate::request::OperationFieldArgument;
+use crate::request::BoundFieldArgument;
 
 pub struct OperationFieldArgumentWalker<'a> {
     pub(super) input_value: InputValueWalker<'a>,
-    pub(super) argument: &'a OperationFieldArgument,
+    pub(super) argument: &'a BoundFieldArgument,
 }
 
 impl<'a> OperationFieldArgumentWalker<'a> {
+    pub fn new(input_value: InputValueWalker<'a>, argument: &'a BoundFieldArgument) -> Self {
+        Self { input_value, argument }
+    }
+
     pub fn name(&self) -> &str {
         self.input_value.name()
     }
@@ -29,7 +33,7 @@ impl<'a> OperationFieldArgumentWalker<'a> {
 
 impl<'a> std::fmt::Debug for OperationFieldArgumentWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<OperationFieldArgumentWalker<'_>>())
+        f.debug_struct("OperationFieldArgumentWalker")
             .field("name", &self.name())
             .field("query_value", &self.query_value())
             .finish()

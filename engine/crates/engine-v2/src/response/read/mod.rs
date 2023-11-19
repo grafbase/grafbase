@@ -1,6 +1,7 @@
-use super::{ResponseData, ResponseObjectId};
-use crate::request::OperationPath;
+use std::sync::Arc;
 
+use super::ResponseData;
+use crate::request::QueryPath;
 mod selection_set;
 mod ser;
 mod view;
@@ -8,10 +9,10 @@ mod view;
 use schema::Schema;
 pub use selection_set::{ReadSelection, ReadSelectionSet};
 pub use ser::SerializableResponseData;
-pub use view::ResponseObjectsView;
+pub use view::{ResponseObjectRoot, ResponseObjectsView};
 
 impl ResponseData {
-    pub fn into_serializable(self, schema: &Schema, selection_set: ReadSelectionSet) -> SerializableResponseData<'_> {
+    pub fn into_serializable(self, schema: Arc<Schema>, selection_set: ReadSelectionSet) -> SerializableResponseData {
         SerializableResponseData {
             schema,
             data: self,
@@ -23,7 +24,7 @@ impl ResponseData {
     pub fn read_objects<'a>(
         &'a self,
         schema: &'a Schema,
-        path: &'a OperationPath,
+        path: &'a QueryPath,
         selection_set: &'a ReadSelectionSet,
     ) -> Option<ResponseObjectsView<'a>> {
         let response_object_ids = self.find_matching_object_node_ids(path);
@@ -32,31 +33,30 @@ impl ResponseData {
         } else {
             Some(ResponseObjectsView {
                 schema,
-                response_object_ids,
+                roots: response_object_ids,
                 response: self,
                 selection_set,
             })
         }
     }
 
-    fn find_matching_object_node_ids(&self, path: &OperationPath) -> Vec<ResponseObjectId> {
+    fn find_matching_object_node_ids(&self, path: &QueryPath) -> Vec<ResponseObjectRoot> {
         let Some(root) = self.root else {
             return vec![];
         };
         let mut nodes = vec![root];
 
         for segment in path {
-            if let Some(ref type_condition) = segment.type_condition {
+            if let Some(ref type_condition) = segment.resolved_type_condition {
                 nodes = nodes
                     .into_iter()
                     .filter_map(|node_id| {
                         let node = self.get(node_id);
                         let object_id = node
-                            .object_id()
+                            .object_id
                             .expect("Missing object_id on a node that is subject to a type condition.");
                         if type_condition.matches(object_id) {
-                            node.field(segment.position, segment.name)
-                                .and_then(|node| node.as_object())
+                            node.fields.get(&segment.name).and_then(|node| node.as_object())
                         } else {
                             None
                         }
@@ -67,7 +67,8 @@ impl ResponseData {
                     .into_iter()
                     .filter_map(|node_id| {
                         self.get(node_id)
-                            .field(segment.position, segment.name)
+                            .fields
+                            .get(&segment.name)
                             .and_then(|node| node.as_object())
                     })
                     .collect();
@@ -78,5 +79,11 @@ impl ResponseData {
         }
 
         nodes
+            .into_iter()
+            .map(|id| ResponseObjectRoot {
+                id,
+                object_id: self.get(id).object_id.unwrap(),
+            })
+            .collect()
     }
 }

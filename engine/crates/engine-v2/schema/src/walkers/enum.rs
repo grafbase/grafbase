@@ -19,7 +19,7 @@ impl<'a> EnumWalker<'a> {
 
 impl<'a> std::fmt::Debug for EnumWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<EnumWalker<'_>>())
+        f.debug_struct("EnumWalker")
             .field("id", &usize::from(self.id))
             .field("name", &self.name())
             .field("description", &self.description())

@@ -1,39 +1,44 @@
-use schema::{FieldId, FieldWalker};
+use schema::FieldWalker;
 
-use super::{OperationFieldArgumentWalker, OperationSelectionSetWalker};
+use super::{BoundSelectionSetWalker, OperationFieldArgumentWalker};
 use crate::{
     execution::StrId,
-    request::{Operation, OperationFieldId, OperationSelectionSet},
+    request::{BoundField, BoundFieldId, Operation},
 };
 
-pub struct OperationFieldWalker<'a> {
-    pub(super) operation: &'a Operation,
-    pub(super) id: OperationFieldId,
-    pub(super) schema_field: FieldWalker<'a>,
-    pub(super) selection_set: &'a OperationSelectionSet,
+pub struct BoundFieldWalker<'a> {
+    pub(in crate::request) schema_field: FieldWalker<'a>,
+    pub(in crate::request) operation: &'a Operation,
+    pub(in crate::request) bound_field: &'a BoundField,
+    pub(in crate::request) id: BoundFieldId,
 }
 
-impl<'a> OperationFieldWalker<'a> {
-    pub fn id(&self) -> FieldId {
-        self.schema_field.id
+impl<'a> BoundFieldWalker<'a> {
+    pub fn new(
+        schema_field: FieldWalker<'a>,
+        operation: &'a Operation,
+        bound_field: &'a BoundField,
+        id: BoundFieldId,
+    ) -> Self {
+        Self {
+            schema_field,
+            operation,
+            bound_field,
+            id,
+        }
     }
 
-    pub fn name(&self) -> &str {
-        self.schema_field.name()
-    }
-
-    pub fn response_position(&self) -> usize {
-        self.operation[self.id].position
+    pub fn bound_field_id(&self) -> BoundFieldId {
+        self.id
     }
 
     pub fn response_name(&self) -> StrId {
-        self.operation[self.id].name
+        self.operation[self.bound_field.definition_id].name
     }
 
-    pub fn arguments(&self) -> impl ExactSizeIterator<Item = OperationFieldArgumentWalker<'a>> + 'a {
-        let field = &self.operation[self.id];
+    pub fn bound_arguments(&self) -> impl ExactSizeIterator<Item = OperationFieldArgumentWalker<'a>> + 'a {
         let walker = self.schema_field.walk(());
-        field
+        self.operation[self.bound_field.definition_id]
             .arguments
             .iter()
             .map(move |argument| OperationFieldArgumentWalker {
@@ -42,21 +47,29 @@ impl<'a> OperationFieldWalker<'a> {
             })
     }
 
-    pub fn subselection(&self) -> OperationSelectionSetWalker<'a> {
-        OperationSelectionSetWalker {
+    pub fn selection_set(&self) -> BoundSelectionSetWalker<'a> {
+        BoundSelectionSetWalker {
             schema: self.schema_field.walk(()),
             operation: self.operation,
-            selection_set: self.selection_set,
+            id: self.bound_field.selection_set_id,
         }
     }
 }
 
-impl<'a> std::fmt::Debug for OperationFieldWalker<'a> {
+impl<'a> std::ops::Deref for BoundFieldWalker<'a> {
+    type Target = FieldWalker<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.schema_field
+    }
+}
+
+impl<'a> std::fmt::Debug for BoundFieldWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<OperationFieldWalker<'_>>())
+        f.debug_struct("BoundFieldWalker")
             .field("name", &self.name())
-            .field("arguments", &self.arguments().collect::<Vec<_>>())
-            .field("subselection", &self.subselection())
+            .field("arguments", &self.bound_arguments().collect::<Vec<_>>())
+            .field("selection_set", &self.selection_set())
             .finish()
     }
 }
