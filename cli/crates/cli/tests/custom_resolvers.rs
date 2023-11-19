@@ -279,7 +279,11 @@ fn test_field_resolver(
     let (subdirectory_path, package_json_path) = variant;
     let mut env = Environment::init_in_subdirectory(subdirectory_path);
     env.grafbase_init(ConfigType::GraphQL);
-    std::fs::write(env.directory_path.join(".env"), "MY_OWN_VARIABLE=test_value").unwrap();
+    std::fs::write(
+        env.directory_path.join(subdirectory_path).join(".env"),
+        "MY_OWN_VARIABLE=test_value",
+    )
+    .unwrap();
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
     if let Some((package_manager, package_json)) = package_json {
