@@ -19,7 +19,7 @@ async fn subgraph() {
     let server = MockServer::start().await;
 
     let request = json!({
-        "query": "query {\n  _service {\n    sdl\n  }\n}    \n",
+        "query": "query {\n  _service {\n    sdl\n  }\n}\n",
         "variables": {}
     });
 
@@ -66,7 +66,7 @@ async fn header_no_whitespace() {
     let server = MockServer::start().await;
 
     let request = json!({
-        "query": "query {\n  _service {\n    sdl\n  }\n}    \n",
+        "query": "query {\n  _service {\n    sdl\n  }\n}\n",
         "variables": {}
     });
 
@@ -114,7 +114,7 @@ async fn header_with_whitespace() {
     let server = MockServer::start().await;
 
     let request = json!({
-        "query": "query {\n  _service {\n    sdl\n  }\n}    \n",
+        "query": "query {\n  _service {\n    sdl\n  }\n}\n",
         "variables": {}
     });
 
@@ -162,7 +162,7 @@ async fn two_headers() {
     let server = MockServer::start().await;
 
     let request = json!({
-        "query": "query {\n  _service {\n    sdl\n  }\n}    \n",
+        "query": "query {\n  _service {\n    sdl\n  }\n}\n",
         "variables": {}
     });
 
