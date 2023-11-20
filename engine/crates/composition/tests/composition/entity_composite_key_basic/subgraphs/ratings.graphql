@@ -1,0 +1,22 @@
+extend schema
+    @link(
+        url: "https://specs.apollo.dev/federation/v2.3",
+        import: ["@key", "@external", "@requires"]
+     )
+
+type Query {
+  courseRating(courseId: ID!): [CourseRating]
+}
+
+type CourseRating @key(fields: "courseId") {
+  courseId: ID!
+  rating: Float
+  comments: String
+}
+
+type Enrollment @key(fields: "studentId courseId") {
+  studentId: ID!
+  courseId: ID!
+  rating: CourseRating
+}
+

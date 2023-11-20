@@ -4,7 +4,6 @@ use async_graphql_value::ConstValue;
 use super::schema_definitions::FederationDirectivesMatcher;
 use crate::{subgraphs::DefinitionId, Subgraphs};
 
-/// Returns whether the object is shareable.
 pub(super) fn ingest_directives(
     definition_id: DefinitionId,
     type_definition: &ast::TypeDefinition,

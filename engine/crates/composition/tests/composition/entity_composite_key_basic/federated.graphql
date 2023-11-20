@@ -1,0 +1,52 @@
+enum join__Graph {
+    COURSES @join__graph(name: "courses", url: "http://example.com/courses")
+    RATINGS @join__graph(name: "ratings", url: "http://example.com/ratings")
+    STUDENTS @join__graph(name: "students", url: "http://example.com/students")
+}
+
+type Query {
+    courses: [Course] @join__field(graph: COURSES)
+    course(id: ID!): Course @join__field(graph: COURSES)
+    courseRating(courseId: ID!): [CourseRating] @join__field(graph: RATINGS)
+    students: [Student] @join__field(graph: STUDENTS)
+    student(id: ID!): Student @join__field(graph: STUDENTS)
+}
+
+type Course
+    @join__type(graph: COURSES, key: "id")
+    @join__type(graph: STUDENTS, key: "id")
+{
+    id: ID!
+    name: String @join__field(graph: COURSES)
+    description: String @join__field(graph: COURSES)
+    enrolledStudents: [Student] @join__field(graph: STUDENTS, requires: "id")
+}
+
+type Enrollment
+    @join__type(graph: COURSES, key: "studentId courseId")
+    @join__type(graph: RATINGS, key: "studentId courseId")
+    @join__type(graph: STUDENTS, key: "studentId courseId")
+{
+    studentId: ID!
+    courseId: ID!
+    course: Course @join__field(graph: STUDENTS)
+    enrollmentDetails: Enrollment @join__field(graph: COURSES, requires: "studentId courseId")
+    rating: CourseRating @join__field(graph: RATINGS)
+    enrollmentDate: String @join__field(graph: STUDENTS)
+}
+
+type CourseRating
+    @join__type(graph: RATINGS, key: "courseId")
+{
+    courseId: ID! @join__field(graph: RATINGS)
+    rating: Float @join__field(graph: RATINGS)
+    comments: String @join__field(graph: RATINGS)
+}
+
+type Student
+    @join__type(graph: STUDENTS, key: "id")
+{
+    id: ID! @join__field(graph: STUDENTS)
+    name: String @join__field(graph: STUDENTS)
+    enrollments: [Enrollment] @join__field(graph: STUDENTS)
+}
