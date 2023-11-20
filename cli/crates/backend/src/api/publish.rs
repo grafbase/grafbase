@@ -10,7 +10,7 @@ pub async fn publish(
     // The Good Code™
     account: &str,
     project: &str,
-    branch: &str,
+    branch: Option<&str>,
     subgraph_name: &str,
     url: &str,
     schema: &str,
@@ -21,7 +21,7 @@ pub async fn publish(
         input: super::graphql::mutations::PublishInput {
             account_slug: account,
             project_slug: project,
-            branch: Some(branch),
+            branch,
             subgraph: subgraph_name,
             url,
             schema,
