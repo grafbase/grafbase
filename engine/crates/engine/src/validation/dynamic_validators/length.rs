@@ -37,7 +37,7 @@ fn check_bounds<T: PartialOrd>(item: T, lower: Option<T>, upper: Option<T>) -> L
 }
 
 impl DynValidate<&Value> for LengthValidator {
-    fn validate<'a>(&self, ctx: &mut VisitorContext<'a>, meta: &MetaInputValue, pos: Pos, value: &Value) {
+    fn validate(&self, ctx: &mut VisitorContext<'_>, meta: &MetaInputValue, pos: Pos, value: &Value) {
         use LengthTestResult::*;
 
         let var_value = match value {
@@ -97,9 +97,9 @@ fn test_length_validator() {
     }
 
     let registry = Schema::create_registry_static::<Query, EmptyMutation, EmptySubscription>();
-    let query = r#"{
+    let query = r"{
         value #1
-    }"#;
+    }";
 
     let doc = parse_query(query).unwrap();
 

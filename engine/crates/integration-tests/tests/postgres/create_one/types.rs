@@ -949,13 +949,13 @@ fn int2() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: 420 }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -990,13 +990,13 @@ fn int2_array() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: [1, 2] }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1034,13 +1034,13 @@ fn int4() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: 420 }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1075,13 +1075,13 @@ fn int4_array() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: [1, 2] }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1289,13 +1289,13 @@ fn json() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: { foo: 1 } }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1332,13 +1332,13 @@ fn json_array() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: [{ foo: 1 }, { bar: 2 }] }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1380,13 +1380,13 @@ fn jsonb() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: { foo: 1 } }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1423,13 +1423,13 @@ fn jsonb_array() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: [{ foo: 1 }, { bar: 2 }] }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1641,13 +1641,13 @@ fn float4() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: 3.14 }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1682,13 +1682,13 @@ fn float4_array() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: [3.14, 1.23] }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1726,13 +1726,13 @@ fn float8() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: 3.14 }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1767,13 +1767,13 @@ fn float8_array() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: [3.14, 1.23] }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -1981,13 +1981,13 @@ fn bool() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: true }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -2022,13 +2022,13 @@ fn bool_array() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: [true, false] }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -2567,9 +2567,9 @@ fn uuid_array() {
 #[test]
 fn r#enum() {
     let response = query_postgres(|api| async move {
-        let r#type = indoc! {r#"
+        let r#type = indoc! {r"
             CREATE TYPE street_light AS ENUM ('red', 'yellow', 'green');
-        "#};
+        "};
 
         api.execute_sql(r#type).await;
 
@@ -2582,13 +2582,13 @@ fn r#enum() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: YELLOW }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -2614,9 +2614,9 @@ fn r#enum() {
 #[test]
 fn enum_array() {
     let response = query_postgres(|api| async move {
-        let r#type = indoc! {r#"
+        let r#type = indoc! {r"
             CREATE TYPE street_light AS ENUM ('red', 'yellow', 'green');
-        "#};
+        "};
 
         api.execute_sql(r#type).await;
 
@@ -2629,13 +2629,13 @@ fn enum_array() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { val: [YELLOW, GREEN] }) {
                 returning { val }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 

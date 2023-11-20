@@ -30,7 +30,7 @@ fn openapi_test() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -40,7 +40,7 @@ fn openapi_test() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .await
                 .into_value(),
@@ -136,7 +136,7 @@ fn openapi_flat_namespace() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                    r#"
+                    r"
                     query {
                         pet(petId: 123) {
                             id
@@ -144,7 +144,7 @@ fn openapi_flat_namespace() {
                             status
                         }
                     }
-                "#,
+                ",
                 )
                 .await
                 .into_value(),

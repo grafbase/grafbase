@@ -374,9 +374,9 @@ impl<'a> FieldExecutionSet<'a> {
 
                 let resolve_info = ResolveInfo {
                     path: ctx_field.path.clone(),
-                    parent_type: &type_name,
+                    parent_type: type_name,
                     return_type: match meta_field.map(|field| &field.ty) {
-                        Some(ty) => &ty,
+                        Some(ty) => ty,
                         None => {
                             return Err(ServerError::new(
                                 format!(r#"Cannot query field "{field_name}" on type "{type_name}"self."#),
@@ -581,7 +581,7 @@ impl<'a> Fields<'a> {
                                     path: ctx_field.path.clone(),
                                     parent_type: &type_name,
                                     return_type: match meta_field.map(|field| &field.ty) {
-                                        Some(ty) => &ty,
+                                        Some(ty) => ty,
                                         None => {
                                             return Err(ServerError::new(
                                                 format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),

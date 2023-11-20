@@ -24,13 +24,13 @@ struct Request {
 }
 
 pub(super) async fn introspect(url: &str, headers: &[(impl AsRef<str>, impl AsRef<str>)]) -> Result<String, ()> {
-    let query = indoc::indoc! {r#"
+    let query = indoc::indoc! {r"
         query {
           _service {
             sdl
           }
-        }    
-    "#};
+        }
+    "};
 
     let request = Request {
         query,

@@ -87,7 +87,7 @@ fn with_renamed_data() {
     "#};
 
     let response = with_mongodb(schema, |api| async move {
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreateMany(input: [
                 { age: 30 },
@@ -96,15 +96,15 @@ fn with_renamed_data() {
                 insertedIds
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { age } }}
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

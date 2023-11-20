@@ -27,8 +27,7 @@ impl<'a> KnownArgumentNames<'a> {
             " Did you mean",
             self.current_args
                 .iter()
-                .map(|(args, _)| args.iter().map(|arg| arg.0.as_str()))
-                .flatten(),
+                .flat_map(|(args, _)| args.iter().map(|arg| arg.0.as_str())),
             name,
         )
         .unwrap_or_default()
@@ -116,12 +115,12 @@ mod tests {
     fn single_arg_is_known() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment argOnRequiredArg on Dog {
             doesKnowCommand(dogCommand: SIT)
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -129,12 +128,12 @@ mod tests {
     fn multiple_args_are_known() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment multipleArgs on ComplicatedArgs {
             multipleReqs(req1: 1, req2: 2)
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -142,12 +141,12 @@ mod tests {
     fn ignores_args_of_unknown_fields() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment argOnUnknownField on Dog {
             unknownField(unknownArg: SIT)
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -155,12 +154,12 @@ mod tests {
     fn multiple_args_in_reverse_order_are_known() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment multipleArgsReverseOrder on ComplicatedArgs {
             multipleReqs(req2: 2, req1: 1)
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -168,12 +167,12 @@ mod tests {
     fn no_args_on_optional_arg() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment noArgOnOptionalArg on Dog {
             isHousetrained
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -181,7 +180,7 @@ mod tests {
     fn args_are_known_deeply() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           {
             dog {
               doesKnowCommand(dogCommand: SIT)
@@ -194,7 +193,7 @@ mod tests {
               }
             }
           }
-        "#,
+        ",
         );
     }
 
@@ -202,11 +201,11 @@ mod tests {
     fn directive_args_are_known() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           {
             dog @skip(if: true)
           }
-        "#,
+        ",
         );
     }
 
@@ -214,11 +213,11 @@ mod tests {
     fn undirective_args_are_invalid() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           {
             dog @skip(unless: true)
           }
-        "#,
+        ",
         );
     }
 
@@ -226,12 +225,12 @@ mod tests {
     fn invalid_arg_name() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment invalidArgName on Dog {
             doesKnowCommand(unknown: true)
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -239,12 +238,12 @@ mod tests {
     fn unknown_args_amongst_known_args() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment oneGoodArgOneInvalidArg on Dog {
             doesKnowCommand(whoknows: 1, dogCommand: SIT, unknown: true)
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -252,7 +251,7 @@ mod tests {
     fn unknown_args_deeply() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           {
             dog {
               doesKnowCommand(unknown: true)
@@ -265,7 +264,7 @@ mod tests {
               }
             }
           }
-        "#,
+        ",
         );
     }
 }

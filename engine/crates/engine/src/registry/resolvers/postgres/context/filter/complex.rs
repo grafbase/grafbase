@@ -76,7 +76,7 @@ impl<'a> Iterator for ComplexFilterIterator<'a> {
             let nested = Self::new(self.context, input_type, object);
 
             for condition in nested {
-                conditions.push(Expression::from(condition))
+                conditions.push(Expression::from(condition));
             }
 
             let table = relation.referenced_table();

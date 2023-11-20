@@ -211,9 +211,9 @@ fn table_with_serial_primary_key() {
 #[test]
 fn table_with_enum_field() {
     let response = introspect_postgres(|api| async move {
-        let r#type = indoc! {r#"
+        let r#type = indoc! {r"
             CREATE TYPE street_light AS ENUM ('red', 'yellow', 'green');
-        "#};
+        "};
 
         api.execute_sql(r#type).await;
 
@@ -1352,7 +1352,7 @@ fn table_with_composite_primary_key() {
 #[test]
 fn two_schemas_same_table_name() {
     let response = introspect_postgres(|api| async move {
-        api.execute_sql(r#"CREATE SCHEMA private"#).await;
+        api.execute_sql(r"CREATE SCHEMA private").await;
 
         let schema = indoc! {r#"
             CREATE TABLE private."User" (
@@ -3107,34 +3107,34 @@ fn two_tables_with_single_column_foreign_key() {
 #[test]
 fn cedalio_issue_november_2023() {
     let response = introspect_namespaced_postgres("pg", |api| async move {
-        let create = indoc! {r#"
+        let create = indoc! {r"
             CREATE TYPE access_mode AS ENUM ('PUBLIC', 'PUBLIC_READ', 'PRIVATE');
-        "#};
+        "};
 
         api.execute_sql(create).await;
 
-        let create = indoc! {r#"
+        let create = indoc! {r"
             CREATE TYPE project_status AS ENUM ('CREATED', 'READY', 'FAILED');
-        "#};
+        "};
 
         api.execute_sql(create).await;
 
-        let create = indoc! {r#"
+        let create = indoc! {r"
             CREATE TABLE networks (
                 id SERIAL PRIMARY KEY
             );
-        "#};
+        "};
 
         api.execute_sql(create).await;
 
-        let create = indoc! {r#"
+        let create = indoc! {r"
             CREATE TABLE projects (
                 id SERIAL PRIMARY KEY,
                 access_mode access_mode NOT NULL,
                 status project_status DEFAULT 'CREATED' NOT NULL,
                 network_id INT REFERENCES networks(id)
             );
-        "#};
+        "};
 
         api.execute_sql(create).await;
     });

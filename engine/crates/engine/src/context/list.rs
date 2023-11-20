@@ -109,10 +109,10 @@ impl<'a> Context<'a> for ContextList<'a> {
     }
 
     fn query_env(&self) -> &'a QueryEnv {
-        &self.field_context.query_env()
+        self.field_context.query_env()
     }
 
     fn schema_env(&self) -> &'a SchemaEnv {
-        &self.field_context.schema_env()
+        self.field_context.schema_env()
     }
 }

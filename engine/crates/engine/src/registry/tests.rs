@@ -8,7 +8,7 @@ const EXPECTED_SHA: &str = "86586b4bbc667719c8b977a7f587691fc43c68937937c255c0fc
 
 #[test]
 fn test_serde_roundtrip() {
-    let id = r#"
+    let id = r"
             This test ensures the default `VersionedRegistry` serialization output remains stable.
 
             When this test fails, it likely means the shape of the `Registry` type was updated,
@@ -22,7 +22,7 @@ fn test_serde_roundtrip() {
 
             Once you are satisfied your changes are backward-compatible, update `EXPECTED_SHA` with
             the new output presented in the test result.
-        "#;
+        ";
 
     let registry = Cow::Owned(Registry::new().with_sample_data());
     let versioned_registry = VersionedRegistry {

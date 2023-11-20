@@ -276,7 +276,7 @@ mod tests {
         assert!(caching_config
             .types
             .keys()
-            .all(|k| k.starts_with("cached") || k.to_lowercase() == Query.to_string().to_lowercase()))
+            .all(|k| k.starts_with("cached") || k.to_lowercase() == Query.to_string().to_lowercase()));
     }
 
     #[test]

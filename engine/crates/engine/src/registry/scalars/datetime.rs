@@ -23,7 +23,7 @@ impl<'a> SDLDefinitionScalar<'a> for DateTimeScalar {
 
     fn description() -> Option<&'a str> {
         Some(
-            r#"A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
+            r"A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
 
 This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
@@ -35,7 +35,7 @@ When expected as an input type, only RFC 3339 compliant date-time strings are ac
 # Result Coercion
 
 Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.
-For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z."#,
+For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.",
         )
     }
 }

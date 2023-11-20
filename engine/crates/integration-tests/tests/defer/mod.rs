@@ -22,7 +22,7 @@ fn simple_defer_test() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -37,7 +37,7 @@ fn simple_defer_test() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await
@@ -86,7 +86,7 @@ fn defer_on_non_streaming_request_doesnt_defer() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -101,7 +101,7 @@ fn defer_on_non_streaming_request_doesnt_defer() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .await
                 .into_value(),
@@ -133,7 +133,7 @@ fn test_defer_on_field_rejected() {
 
         insta::assert_json_snapshot!(engine
             .execute(
-                r#"
+                r"
                 query {
                     petstore @defer {
                         pet(petId: 123) {
@@ -142,7 +142,7 @@ fn test_defer_on_field_rejected() {
                         }
                     }
                 }
-            "#
+            "
             )
             .await
             .into_value(), @r###"
@@ -175,7 +175,7 @@ fn test_defer_on_named_fragment() {
 
         insta::assert_json_snapshot!(engine
             .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -192,7 +192,7 @@ fn test_defer_on_named_fragment() {
                             name
                         }
                     }
-                "#,
+                ",
             )
                 .into_iter()
                 .await
@@ -240,7 +240,7 @@ fn test_nested_defers() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                           ... @defer {
@@ -257,7 +257,7 @@ fn test_nested_defers() {
                           }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await
@@ -313,7 +313,7 @@ fn test_defer_with_errors() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -328,7 +328,7 @@ fn test_defer_with_errors() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await
@@ -401,7 +401,7 @@ fn test_defer_at_root() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -418,7 +418,7 @@ fn test_defer_at_root() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await
@@ -542,7 +542,7 @@ fn test_defer_with_if_true() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -557,7 +557,7 @@ fn test_defer_with_if_true() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await
@@ -606,7 +606,7 @@ fn test_defer_with_if_false() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -621,7 +621,7 @@ fn test_defer_with_if_false() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await

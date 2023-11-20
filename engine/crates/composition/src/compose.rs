@@ -12,7 +12,7 @@ use itertools::Itertools;
 
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     ctx.subgraphs.iter_definition_groups(|definitions| {
-        let Some(first) = definitions.get(0) else {
+        let Some(first) = definitions.first() else {
             return;
         };
 
@@ -88,7 +88,7 @@ fn merge_object_definitions<'a>(
 }
 
 fn merge_field_definitions<'a>(fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
-    let Some(first) = fields.get(0) else { return };
+    let Some(first) = fields.first() else { return };
 
     if first.parent_definition().kind() == DefinitionKind::Object {
         object::compose_object_fields(*first, fields, ctx);

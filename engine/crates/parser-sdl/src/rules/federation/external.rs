@@ -19,9 +19,9 @@ impl ExternalDirective {
 
 impl Directive for ExternalDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @external on OBJECT | FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }

@@ -35,7 +35,7 @@ fn test_multi_field_keys() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -44,7 +44,7 @@ fn test_multi_field_keys() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "Todo",
@@ -110,7 +110,7 @@ fn test_composite_keys() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -119,7 +119,7 @@ fn test_composite_keys() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "Todo",
@@ -195,7 +195,7 @@ fn test_repeated_keys() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($reprs: [_Any!]!) {
                         _entities(representations: $reprs) {
                             __typename
@@ -204,7 +204,7 @@ fn test_repeated_keys() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"reprs": [
                     { "__typename": "Todo", "id": "123", "list": "456" },

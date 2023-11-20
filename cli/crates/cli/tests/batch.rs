@@ -199,7 +199,7 @@ fn batch_update() {
             ]
         }))
         .send();
-    let best_post_ever_id = all_posts(&client).edges.get(0).unwrap().node.id.clone();
+    let best_post_ever_id = all_posts(&client).edges.first().unwrap().node.id.clone();
 
     let response: CreateUpdateManyPayload = dot_get!(
         client
@@ -303,7 +303,7 @@ fn batch_delete() {
         }))
         .send();
 
-    let best_post_ever_id = all_posts(&client).edges.get(0).unwrap().node.id.clone();
+    let best_post_ever_id = all_posts(&client).edges.first().unwrap().node.id.clone();
     let DeleteManyPayload { deleted_ids } = dot_get!(
         client
             .gql::<Value>(BATCH_DELETE)
@@ -322,7 +322,7 @@ fn batch_delete() {
 
     let posts = all_posts(&client).edges;
     assert_eq!(posts.len(), 1, "{posts:#?}");
-    let bible_post = posts.get(0).unwrap().node.clone();
+    let bible_post = posts.first().unwrap().node.clone();
     assert_eq!(bible_post.slug, "The Bible");
     let bible_id = bible_post.id;
 

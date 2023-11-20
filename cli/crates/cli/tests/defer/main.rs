@@ -35,7 +35,7 @@ async fn defer_multipart_test() {
 
     let response = client
         .gql::<Value>(
-            r#"
+            r"
                     query {
                         todoCollection(first: 1) {
                             __typename
@@ -56,7 +56,7 @@ async fn defer_multipart_test() {
                             }
                         }
                     }
-                "#,
+                ",
         )
         .into_reqwest_builder()
         .header("accept", "multipart/mixed")
@@ -139,7 +139,7 @@ async fn defer_sse_test() {
 
     let events = client
         .gql::<Value>(
-            r#"
+            r"
                     query {
                         todoCollection(first: 1) {
                             __typename
@@ -160,7 +160,7 @@ async fn defer_sse_test() {
                             }
                         }
                     }
-                "#,
+                ",
         )
         .into_reqwest_builder()
         .eventsource()

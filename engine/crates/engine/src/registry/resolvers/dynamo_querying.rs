@@ -357,9 +357,9 @@ impl DynamoResolver {
             }
             DynamoResolver::QueryIds { ids, type_name } => {
                 let ids: Vec<String> = ids.resolve(ctx, last_resolver_value)?;
-                get::by_ids(ctx, &ids, &type_name).await
+                get::by_ids(ctx, &ids, type_name).await
             }
-            DynamoResolver::_SearchQueryIds { ids, type_name } => get::by_ids(ctx, &ids, &type_name).await,
+            DynamoResolver::_SearchQueryIds { ids, type_name } => get::by_ids(ctx, ids, type_name).await,
             DynamoResolver::QueryPKSK { pk, sk, .. } => {
                 let pk = match pk
                     .param(ctx, last_resolver_value.map(ResolvedValue::data_resolved))?

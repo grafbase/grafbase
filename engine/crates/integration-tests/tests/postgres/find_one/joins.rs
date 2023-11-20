@@ -41,7 +41,7 @@ fn one_to_one_join_parent_side() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 2 }) {
                 id
@@ -49,7 +49,7 @@ fn one_to_one_join_parent_side() {
                 profile { description }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -115,7 +115,7 @@ fn one_to_one_join_between_schemas() {
 
         api.execute_sql(insert_private).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
@@ -123,7 +123,7 @@ fn one_to_one_join_between_schemas() {
                 secret { secretName }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -189,7 +189,7 @@ fn one_to_one_join_between_schemas_using_duplicate_table_names() {
 
         api.execute_sql(insert_private).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               publicUser(by: { id: 1 }) {
                 id
@@ -197,7 +197,7 @@ fn one_to_one_join_between_schemas_using_duplicate_table_names() {
                 privateUser { secretName }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -265,7 +265,7 @@ fn one_to_many_join_between_schemas() {
 
         api.execute_sql(insert_private).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               publicUser(by: { id: 1 }) {
                 id
@@ -273,7 +273,7 @@ fn one_to_many_join_between_schemas() {
                 privateUsers(first: 1000) { edges { node { secretName } } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -414,14 +414,14 @@ fn one_to_one_join_child_side() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               profile(by: { id: 2 }) {
                 description
                 user { id name }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -500,7 +500,7 @@ fn one_to_one_to_one_join() {
 
         api.execute_sql(insert_extras).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 2 }) {
                 id
@@ -508,7 +508,7 @@ fn one_to_one_to_one_join() {
                 profile { description extra { number } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -572,14 +572,14 @@ fn one_to_many_join_child_side() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               blog(by: { id: 2 }) {
                 title
                 user { id name }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -640,14 +640,14 @@ fn one_to_many_join_parent_side() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
                 blogs(first: 10000) { edges { node { id title } } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -740,7 +740,7 @@ fn nested_one_to_many_joins_parent_side() {
 
         api.execute_sql(insert_blogs).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
@@ -762,7 +762,7 @@ fn nested_one_to_many_joins_parent_side() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -855,14 +855,14 @@ fn one_to_many_join_parent_side_with_first() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
                 blogs(first: 1) { edges { node { id title } } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -929,14 +929,14 @@ fn one_to_many_join_parent_side_with_last() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
                 blogs(last: 1) { edges { node { id title } } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1003,14 +1003,14 @@ fn one_to_many_join_parent_side_with_single_column_descending_order() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
                 blogs(first: 10, orderBy: [{ id: DESC }]) { edges { node { id title } } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1084,7 +1084,7 @@ fn one_to_many_join_parent_side_with_compound_column_ordering_with_last() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
@@ -1099,7 +1099,7 @@ fn one_to_many_join_parent_side_with_compound_column_ordering_with_last() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1177,14 +1177,14 @@ fn one_to_many_join_parent_side_with_single_column_descending_order_with_last() 
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
                 blogs(last: 1, orderBy: [{ id: DESC }]) { edges { node { id title } } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1271,7 +1271,7 @@ fn two_one_to_many_joins_parent_side() {
 
         api.execute_sql(insert_cats).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
@@ -1279,7 +1279,7 @@ fn two_one_to_many_joins_parent_side() {
                 cats(first: 100) { edges { node { id name } } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1387,7 +1387,7 @@ fn one_to_one_with_one_to_many_joins_parent_side() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 name
@@ -1395,7 +1395,7 @@ fn one_to_one_with_one_to_many_joins_parent_side() {
                 profile { description }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

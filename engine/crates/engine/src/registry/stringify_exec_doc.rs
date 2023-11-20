@@ -193,26 +193,26 @@ mod tests {
     fn test_stringify() {
         let registry = Registry::default();
         let doc = parse_query(
-            r#"
+            r"
             query Abc {
               a b c(a:1,b:2) {
                 d e f
               }
             }
-        "#,
+        ",
         )
         .unwrap();
         assert_eq!(
             registry.stringify_exec_doc(&Default::default(), &doc).unwrap(),
-            r#"query Abc { a b c(a: 1, b: 2) { d e f } }"#
+            r"query Abc { a b c(a: 1, b: 2) { d e f } }"
         );
 
         let doc = parse_query(
-            r#"
+            r"
             query Abc($a:Int) {
               value(input:$a)
             }
-        "#,
+        ",
         )
         .unwrap();
         assert_eq!(
@@ -224,7 +224,7 @@ mod tests {
                     &doc
                 )
                 .unwrap(),
-            r#"query Abc($a: Int) { value(input: 10) }"#
+            r"query Abc($a: Int) { value(input: 10) }"
         );
     }
 

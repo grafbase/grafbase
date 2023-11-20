@@ -29,7 +29,7 @@ fn federation_smoke_test() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -38,7 +38,7 @@ fn federation_smoke_test() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "Todo",
@@ -71,7 +71,7 @@ fn test_getting_multiple_reprs() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($reprs: [_Any!]!) {
                         _entities(representations: $reprs) {
                             __typename
@@ -80,7 +80,7 @@ fn test_getting_multiple_reprs() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"reprs": [
                     { "__typename": "Todo", "id": todo_id_one },
@@ -114,7 +114,7 @@ fn test_missing_item() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -123,7 +123,7 @@ fn test_missing_item() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "Todo",
@@ -186,7 +186,7 @@ fn test_returning_unresolvable_representations() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($withoutListId: ID!, $withListId: ID!) {
                         withoutList: todo(by: {id: $withoutListId}) {
                             title
@@ -209,7 +209,7 @@ fn test_returning_unresolvable_representations() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"withoutListId": todo_id, "withListId": todo_with_list_id}))
                 .await
@@ -265,7 +265,7 @@ fn test_contributing_fields_via_default_resolver() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -275,7 +275,7 @@ fn test_contributing_fields_via_default_resolver() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "TodoList",
@@ -333,7 +333,7 @@ fn test_key_with_select() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($reprs: [_Any!]!) {
                         _entities(representations: $reprs) {
                             __typename
@@ -343,7 +343,7 @@ fn test_key_with_select() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"reprs": [
                     { "__typename": "TodoList", "id": "123" },
@@ -385,7 +385,7 @@ trait TodoEngineExt {
 impl TodoEngineExt for Engine {
     async fn create_todo(&self, title: &str) -> String {
         self.execute(
-            r#"
+            r"
                 mutation($title: String!) {
                     todoCreate(input: {title: $title}) {
                         todo {
@@ -393,7 +393,7 @@ impl TodoEngineExt for Engine {
                         }
                     }
                 }
-            "#,
+            ",
         )
         .variables(json!({"title": title}))
         .await
@@ -405,7 +405,7 @@ impl TodoEngineExt for Engine {
 
     async fn create_todo_with_list(&self, title: &str, list_id: &str) -> String {
         self.execute(
-            r#"
+            r"
                 mutation($title: String!, $listId: ID) {
                     todoCreate(input: {title: $title, todoListId: $listId}) {
                         todo {
@@ -413,7 +413,7 @@ impl TodoEngineExt for Engine {
                         }
                     }
                 }
-            "#,
+            ",
         )
         .variables(json!({"title": title, "listId": list_id}))
         .await

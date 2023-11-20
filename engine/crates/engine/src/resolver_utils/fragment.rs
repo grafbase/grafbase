@@ -164,22 +164,22 @@ mod tests {
 
     #[test]
     fn missing_variable_error() {
-        insta::assert_display_snapshot!(parse_directive(r#"@defer(label: $nope)"#).unwrap_err(), @"Error interpreting @defer: unknown variable nope");
+        insta::assert_display_snapshot!(parse_directive(r"@defer(label: $nope)").unwrap_err(), @"Error interpreting @defer: unknown variable nope");
     }
 
     #[test]
     fn additional_variable_error() {
-        insta::assert_display_snapshot!(parse_directive(r#"@defer(wrong: true)"#).unwrap_err(), @"Error interpreting @defer: unknown field `wrong`, expected `label` or `if`");
+        insta::assert_display_snapshot!(parse_directive(r"@defer(wrong: true)").unwrap_err(), @"Error interpreting @defer: unknown field `wrong`, expected `label` or `if`");
     }
 
     #[test]
     fn wrong_variable_type_error() {
-        insta::assert_display_snapshot!(parse_directive(r#"@defer(label: $two)"#).unwrap_err(), @"Error interpreting @defer: invalid type: boolean `true`, expected a string for the argument `label`");
+        insta::assert_display_snapshot!(parse_directive(r"@defer(label: $two)").unwrap_err(), @"Error interpreting @defer: invalid type: boolean `true`, expected a string for the argument `label`");
     }
 
     #[test]
     fn wrong_literal_type_error() {
-        insta::assert_display_snapshot!(parse_directive(r#"@defer(label: true)"#).unwrap_err(), @"Error interpreting @defer: invalid type: boolean `true`, expected a string for the argument `label`");
+        insta::assert_display_snapshot!(parse_directive(r"@defer(label: true)").unwrap_err(), @"Error interpreting @defer: invalid type: boolean `true`, expected a string for the argument `label`");
     }
 
     fn parse_directive(directive_string: &str) -> Result<DeferDirective, ServerError> {

@@ -131,7 +131,7 @@ where
                 }
             }
             Value::Object(obj) => {
-                for (key, value) in obj.iter() {
+                for (key, value) in obj {
                     serializer.append_pair(key, json_scalar_to_query_string(value)?.borrow());
                 }
             }

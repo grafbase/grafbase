@@ -2,7 +2,7 @@ mod de;
 mod selection_set;
 
 use de::AnyFieldsSeed;
-pub use selection_set::{WriteSelection, WriteSelectionSet};
+pub use selection_set::WriteSelectionSet;
 use serde::de::DeserializeSeed;
 
 use super::{Response, ResponseMutObject, ResponseObjectId, ResponseSparseObject, ResponseValue};

@@ -152,12 +152,12 @@ mod tests {
 
     #[test]
     fn should_error_on_unknown_directive_in_field_position() {
-        let schema = r#"
+        let schema = r"
             type Product {
                 id: ID!
                 name: String! @break
             }
-            "#;
+            ";
 
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
@@ -171,7 +171,7 @@ mod tests {
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "Unknown directive `break` in field context",
             "should match"
         );
@@ -179,11 +179,11 @@ mod tests {
 
     #[test]
     fn should_error_on_unknown_directive_in_schema_position() {
-        let schema = r#"
+        let schema = r"
             schema @break {
                 query: Boolean
             }
-            "#;
+            ";
 
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
@@ -197,7 +197,7 @@ mod tests {
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "Unknown directive `break` in schema context",
             "should match"
         );
@@ -205,12 +205,12 @@ mod tests {
 
     #[test]
     fn should_error_on_unknown_directive_in_type_position() {
-        let schema = r#"
+        let schema = r"
             type Product @break {
                 id: ID!
                 name: String!
             }
-            "#;
+            ";
 
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
@@ -224,7 +224,7 @@ mod tests {
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "Unknown directive `break` in type context",
             "should match"
         );
@@ -232,12 +232,12 @@ mod tests {
 
     #[test]
     fn should_error_on_known_directive_not_allowed_in_field_position() {
-        let schema = r#"
+        let schema = r"
             type Product {
                 id: ID!
                 name: String! @model
             }
-            "#;
+            ";
 
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
@@ -251,7 +251,7 @@ mod tests {
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "Directive `model` may not be used in field context",
             "should match"
         );
@@ -259,11 +259,11 @@ mod tests {
 
     #[test]
     fn should_error_on_known_directive_not_allowed_in_schema_position() {
-        let schema = r#"
+        let schema = r"
             schema @unique {
                 query: Boolean
             }
-            "#;
+            ";
 
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
@@ -277,7 +277,7 @@ mod tests {
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "Directive `unique` may not be used in schema context",
             "should match"
         );
@@ -285,12 +285,12 @@ mod tests {
 
     #[test]
     fn should_error_on_known_directive_not_allowed_in_type_position() {
-        let schema = r#"
+        let schema = r"
             type Product @relation {
                 id: ID!
                 name: String!
             }
-            "#;
+            ";
 
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
@@ -304,7 +304,7 @@ mod tests {
 
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "Directive `relation` may not be used in type context",
             "should match"
         );
@@ -312,12 +312,12 @@ mod tests {
 
     #[test]
     fn should_not_error_on_known_directive_allowed_in_positions() {
-        let schema = r#"
+        let schema = r"
             type Product @model {
                 id: ID!
                 name: String! @unique
             }
-            "#;
+            ";
 
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)

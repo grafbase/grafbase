@@ -19,7 +19,7 @@ pub(super) fn keys(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType<'
             continue;
         };
         let key = meta_field.rename.clone().unwrap_or(key);
-        let value = normalize(keys, ctx, value, &meta_field);
+        let value = normalize(keys, ctx, value, meta_field);
 
         result.insert(key, value);
     }
@@ -34,7 +34,7 @@ pub(super) fn values(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType
 
     for (key, value) in map {
         let meta_field = input_type.field(&key).unwrap();
-        let value = normalize(values, ctx, value, &meta_field);
+        let value = normalize(values, ctx, value, meta_field);
         let type_name = meta_field.ty.named_type();
         let value = MongoValue::from_json(type_name.as_str(), value).into();
 

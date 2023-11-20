@@ -49,14 +49,14 @@ fn string_set_with_returning() {
 
         expected.assert_eq(&result);
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 name
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -113,14 +113,14 @@ fn string_set_no_returning() {
 
         expected.assert_eq(&result);
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 name
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -156,24 +156,24 @@ fn int2_increment() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: 68 } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -209,24 +209,24 @@ fn int2_decrement() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { decrement: 1 } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -262,24 +262,24 @@ fn int2_multiply() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { multiply: 8 } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -315,24 +315,24 @@ fn int2_divide() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { divide: 2 } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -368,24 +368,24 @@ fn int4_increment() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: 68 } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -431,14 +431,14 @@ fn int8_increment() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -474,24 +474,24 @@ fn float_increment() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: 68.0 } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -527,24 +527,24 @@ fn double_increment() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { increment: 68.0 } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -590,14 +590,14 @@ fn numeric_increment() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -643,14 +643,14 @@ fn money_increment() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -686,24 +686,24 @@ fn array_set() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { set: [3, 4] } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -742,24 +742,24 @@ fn array_append() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { append: [2, 3] } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -799,24 +799,24 @@ fn array_prepend() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { prepend: [2, 3] } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -856,24 +856,24 @@ fn jsonb_append() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { append: [2, 3] } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -913,24 +913,24 @@ fn jsonb_prepend() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdate(by: { id: 1 }, input: { val: { prepend: [2, 3] } }) {
                 returning { id }
               }
             }
-        "#};
+        "};
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -980,14 +980,14 @@ fn jsonb_delete_key_from_object() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1035,14 +1035,14 @@ fn jsonb_delete_key_from_array() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1090,14 +1090,14 @@ fn jsonb_delete_at_path() {
 
         api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) {
                 id
                 val
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

@@ -202,6 +202,7 @@ pub struct QueryValueIter<'a> {
     pub edges: Box<dyn Iterator<Item = &'a HashMap<String, AttributeValue>> + 'a + Send + Sync>,
 }
 
+#[allow(clippy::iter_without_into_iter)]
 impl<'a> QueryValue
 where
     Self: 'a,

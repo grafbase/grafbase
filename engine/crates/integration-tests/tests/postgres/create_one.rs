@@ -15,7 +15,7 @@ fn pk_explicit_int() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { id: 1 }) {
                 returning {
@@ -24,7 +24,7 @@ fn pk_explicit_int() {
                 rowCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -59,13 +59,13 @@ fn pk_explicit_int_no_returning() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { id: 1 }) {
                 rowCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -97,7 +97,7 @@ fn namespaced() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               neon {
                 userCreate(input: { id: 1 }) {
@@ -105,7 +105,7 @@ fn namespaced() {
                 }
               }
             }    
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -141,13 +141,13 @@ fn renamed() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: { idField: 1 }) {
                 returning { idField }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -181,13 +181,13 @@ fn serial_id() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreate(input: {}) {
                 returning { idField }
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 

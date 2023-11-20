@@ -49,14 +49,14 @@ fn id_pk_implicit_order_with_after() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1) {
                 edges { node { name } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -119,14 +119,14 @@ fn id_pk_implicit_order_with_before() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 1) {
                 edges { node { name } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -189,14 +189,14 @@ fn id_pk_explicit_order_with_after() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1, orderBy: [{ id: DESC }]) {
                 edges { node { name } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -259,14 +259,14 @@ fn id_pk_explicit_order_with_before() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 1, orderBy: [{ id: DESC }]) {
                 edges { node { name } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -333,14 +333,14 @@ fn compound_pk_implicit_order_with_after() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1) {
                 edges { node { name email } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -407,14 +407,14 @@ fn compound_pk_implicit_order_with_before() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 1) {
                 edges { node { name email } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -482,14 +482,14 @@ fn compound_pk_explicit_order_with_after() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1, orderBy: [{ name: ASC }, { email: DESC }]) {
                 edges { node { name email } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -557,14 +557,14 @@ fn compound_pk_explicit_order_with_before() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 1, orderBy: [{ name: ASC }, { email: DESC }]) {
                 edges { node { name email } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -632,14 +632,14 @@ fn compound_pk_implicit_order_with_nulls_and_after() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1) {
                 edges { node { name email } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -707,14 +707,14 @@ fn compound_pk_implicit_order_with_nulls_and_before() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 1) {
                 edges { node { name email } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
@@ -800,7 +800,7 @@ fn nested_page_info_no_limit() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1000, filter: { id: { eq: 1 } }) {
                 edges {
@@ -815,7 +815,7 @@ fn nested_page_info_no_limit() {
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

@@ -13,6 +13,7 @@
 #![allow(clippy::explicit_iter_loop)]
 #![allow(clippy::future_not_send)]
 #![allow(clippy::if_not_else)]
+#![allow(clippy::iter_without_into_iter)]
 #![allow(clippy::implicit_hasher)]
 #![allow(clippy::map_flatten)]
 #![allow(clippy::map_unwrap_or)]

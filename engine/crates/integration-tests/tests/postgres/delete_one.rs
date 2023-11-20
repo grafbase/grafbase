@@ -20,7 +20,7 @@ fn namespaced() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               neon {
                 userDelete(by: { id: 1 }) {
@@ -28,17 +28,17 @@ fn namespaced() {
                 }
               }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               neon {
                 userCollection(first: 10) { edges { node { id name } } }
               }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -99,22 +99,22 @@ fn single_pk() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDelete(by: { id: 1 }) {
                 returning { id name }
                 rowCount
               }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -172,21 +172,21 @@ fn single_pk_not_returning() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDelete(by: { id: 1 }) {
                 rowCount
               }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -240,19 +240,19 @@ fn missing() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDelete(by: { id: 3 }) { returning { id name } rowCount }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -321,11 +321,11 @@ fn single_unique() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -393,11 +393,11 @@ fn composite_pk() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { name email } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -465,11 +465,11 @@ fn composite_key_with_nulls() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { name email } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {

@@ -645,7 +645,7 @@ fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
     match parent_input {
         Value::Object(obj) => Some(vec![obj]),
         Value::List(list) => {
-            let input_list = list.iter().map(inputs).flatten().flatten().collect();
+            let input_list = list.iter().filter_map(inputs).flatten().collect();
             Some(input_list)
         }
         _ => None,
@@ -681,7 +681,7 @@ async fn create_relation_node<'a>(
                 .ok_or(TransactionError::UnknownError)
                 .map_err(Error::new_with_source)?;
 
-            let from_ty = ObfuscatedID::new(&from).map_err(Error::new_with_source)?;
+            let from_ty = ObfuscatedID::new(from).map_err(Error::new_with_source)?;
 
             let selected_type = selected_value
                 .await

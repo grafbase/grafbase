@@ -18,9 +18,9 @@ pub const ONE_OF_DIRECTIVE: &str = "oneOf";
 
 impl Directive for OneOfDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @oneOf on INPUT_OBJECT
-        "#
+        "
         .to_string()
     }
 }
@@ -87,13 +87,13 @@ fn test_not_usable_on_nullable_fields() {
 
     use super::visitor::{visit, VisitorContext};
 
-    let schema = r#"
+    let schema = r"
         input UserByInput @oneOf {
             id: ID
             email: String
             name: String
         }
-    "#;
+    ";
 
     let schema = parse_schema(schema).unwrap();
     let mut ctx = VisitorContext::new_for_tests(&schema);

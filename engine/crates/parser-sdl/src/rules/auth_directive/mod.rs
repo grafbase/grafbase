@@ -143,47 +143,47 @@ pub mod tests {
 
     parse_test!(
         no_auth_directive,
-        r#"
+        r"
         schema {
           query: Query
         }
-        "#,
+        ",
         Default::default()
     );
 
     parse_fail!(
         anonymous_rule,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: anonymous } ]
         ){
           query: Query
         }
-        "#,
+        ",
         "auth rule: unknown variant `anonymous`, expected one of `private`, `public`, `groups`, `owner`"
     );
 
     parse_fail!(
         anonymous_rule_with_unsupported_ops,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: anonymous, operations: [read] } ]
         ){
           query: Query
         }
-        "#,
+        ",
         "auth rule: unknown variant `anonymous`, expected one of `private`, `public`, `groups`, `owner`"
     );
 
     parse_test!(
         private_rule,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: private } ]
         ){
           query: Query
         }
-        "#,
+        ",
         engine::AuthConfig {
             allowed_private_ops: Operations::all(),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
@@ -193,13 +193,13 @@ pub mod tests {
 
     parse_test!(
         private_rule_with_ops,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: private, operations: [create, delete] } ]
         ){
           query: Query
         }
-        "#,
+        ",
         engine::AuthConfig {
             allowed_private_ops: Operations::CREATE | Operations::DELETE,
             allowed_public_ops: allowed_public_ops(Operations::empty()),
@@ -209,13 +209,13 @@ pub mod tests {
 
     parse_test!(
         private_rule_with_empty_ops,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: private, operations: [] } ]
         ){
           query: Query
         }
-        "#,
+        ",
         engine::AuthConfig {
             allowed_private_ops: Operations::empty(),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
@@ -291,37 +291,37 @@ pub mod tests {
 
     parse_fail!(
         groups_rule_with_null_groups,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: groups, groups: null } ],
         ){
           query: Query
         }
-        "#,
+        ",
         "auth rule: invalid type: null, expected a sequence"
     );
 
     parse_fail!(
         groups_rule_with_empty_groups,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: groups, groups: [] } ],
         ){
           query: Query
         }
-        "#,
+        ",
         "groups must be a non-empty list"
     );
 
     parse_test!(
         owner_rule,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: owner } ],
         ){
           query: Query
         }
-        "#,
+        ",
         engine::AuthConfig {
             allowed_owner_ops: Operations::all(),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
@@ -368,23 +368,23 @@ pub mod tests {
 
     parse_fail!(
         oidc_with_missing_field,
-        r#"
+        r"
         schema @auth(
           providers: [ { type: oidc } ]
         ){
           query: Query
         }
-        "#,
+        ",
         "auth provider: missing field `issuer`"
     );
 
     parse_fail!(
         type_auth_without_model,
-        r#"
+        r"
         type Todo @auth(rules: []) {
           id: ID!
         }
-        "#,
+        ",
         "the @auth directive can only be used on @model types"
     );
 
@@ -400,12 +400,12 @@ pub mod tests {
 
     parse_fail!(
         field_auth_without_model,
-        r#"
+        r"
         type Todo {
           id: ID!
           title: String @auth(rules: [])
         }
-        "#,
+        ",
         "the @auth directive can only be used on fields of @model types"
     );
 
@@ -729,13 +729,13 @@ query: Query
 
     parse_test!(
         public_rule,
-        r#"
+        r"
         schema @auth(
           rules: [ { allow: public } ],
         ){
           query: Query
         }
-        "#,
+        ",
         engine::AuthConfig {
             allowed_public_ops: Operations::all(),
             ..Default::default()
@@ -744,13 +744,13 @@ query: Query
 
     parse_test!(
         public_rule_combined_with_private,
-        r#"
+        r"
       schema @auth(
         rules: [ { allow: public, operations: [ get ] }, { allow: private } ],
       ){
         query: Query
       }
-      "#,
+      ",
         engine::AuthConfig {
             allowed_public_ops: allowed_public_ops(Operations::GET),
             allowed_private_ops: Operations::all(),

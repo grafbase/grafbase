@@ -67,7 +67,7 @@ pub fn is_valid_input_value(
                 registry::MetaType::Scalar(scalar) => match scalar.parser {
                     registry::ScalarParser::PassThrough => None,
                     registry::ScalarParser::BestEffort => {
-                        if PossibleScalar::is_valid(&type_name, &value) {
+                        if PossibleScalar::is_valid(type_name, value) {
                             None
                         } else {
                             Some(valid_error(&path, format!("expected type \"{type_name}\"")))

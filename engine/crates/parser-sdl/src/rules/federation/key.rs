@@ -45,9 +45,9 @@ impl Directive for KeyDirective {
     fn definition() -> String {
         // Note: technically this is meant to be declared "repeatable"
         // but our parser doesn't seem to support it.
-        r#"
+        r"
         directive @key(fields: FieldSet!, resolvable: Boolean = true, select: FieldSelection) on OBJECT | INTERFACE
-        "#
+        "
         .to_string()
     }
 }

@@ -651,7 +651,7 @@ mod tests {
     fn serialize(input: &str) -> String {
         let mut buf = String::new();
         let (selections, fragment_definitions) = input_to_selections(input);
-        let fragments = fragment_definitions.iter().map(|(k, v)| (k, v)).collect();
+        let fragments = fragment_definitions.iter().collect();
 
         let name = Name::new("foo");
         let variable_definition = VariableDefinition {

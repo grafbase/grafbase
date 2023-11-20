@@ -30,9 +30,9 @@ impl OverrideDirective {
 
 impl Directive for OverrideDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @override(from: String!) on FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }

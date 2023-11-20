@@ -10,7 +10,7 @@ use crate::registry::resolvers::postgres::context::TableSelection;
 /// queries into a JSON array, which is serialized in the database.
 ///
 /// [example query](https://gist.github.com/pimeys/a7535acb0922fa432562539f5d8123c3)
-pub fn build<'a>(builder: SelectBuilder<'a>) -> Result<Select<'a>, crate::Error> {
+pub fn build(builder: SelectBuilder<'_>) -> Result<Select<'_>, crate::Error> {
     // The innermost query of the select. All filters, ordering, limits etc. are defined here.
     let sql_table =
         Table::from((builder.table().schema(), builder.table().database_name())).alias(builder.table().database_name());
@@ -23,7 +23,7 @@ pub fn build<'a>(builder: SelectBuilder<'a>) -> Result<Select<'a>, crate::Error>
         }
     }
 
-    if let Some(ref args) = builder.collection_args() {
+    if let Some(args) = builder.collection_args() {
         for ordering in args.order_by().inner() {
             inner_nested.order_by(ordering.clone());
         }

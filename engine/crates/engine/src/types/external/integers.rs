@@ -7,7 +7,7 @@ impl LegacyScalarType for i8 {
         match value {
             Value::Number(n) => {
                 let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n < Self::MIN as i64 || n > Self::MAX as i64 {
+                if n < i64::from(Self::MIN) || n > i64::from(Self::MAX) {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
                         Self::MIN,
@@ -25,7 +25,7 @@ impl LegacyScalarType for i8 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(*self as i64))
+        Value::Number(Number::from(i64::from(*self)))
     }
 }
 
@@ -36,7 +36,7 @@ impl LegacyScalarType for i16 {
         match value {
             Value::Number(n) => {
                 let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n < Self::MIN as i64 || n > Self::MAX as i64 {
+                if n < i64::from(Self::MIN) || n > i64::from(Self::MAX) {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
                         Self::MIN,
@@ -54,7 +54,7 @@ impl LegacyScalarType for i16 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(*self as i64))
+        Value::Number(Number::from(i64::from(*self)))
     }
 }
 
@@ -65,7 +65,7 @@ impl LegacyScalarType for i32 {
         match value {
             Value::Number(n) => {
                 let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n < Self::MIN as i64 || n > Self::MAX as i64 {
+                if n < i64::from(Self::MIN) || n > i64::from(Self::MAX) {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
                         Self::MIN,
@@ -83,7 +83,7 @@ impl LegacyScalarType for i32 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(*self as i64))
+        Value::Number(Number::from(i64::from(*self)))
     }
 }
 
@@ -116,7 +116,7 @@ impl LegacyScalarType for u8 {
         match value {
             Value::Number(n) => {
                 let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n > Self::MAX as u64 {
+                if n > u64::from(Self::MAX) {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
                         0,
@@ -134,7 +134,7 @@ impl LegacyScalarType for u8 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(*self as u64))
+        Value::Number(Number::from(u64::from(*self)))
     }
 }
 
@@ -145,7 +145,7 @@ impl LegacyScalarType for u16 {
         match value {
             Value::Number(n) => {
                 let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n > Self::MAX as u64 {
+                if n > u64::from(Self::MAX) {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
                         0,
@@ -163,7 +163,7 @@ impl LegacyScalarType for u16 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(*self as u64))
+        Value::Number(Number::from(u64::from(*self)))
     }
 }
 
@@ -174,7 +174,7 @@ impl LegacyScalarType for u32 {
         match value {
             Value::Number(n) => {
                 let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n > Self::MAX as u64 {
+                if n > u64::from(Self::MAX) {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} are accepted.",
                         0,
@@ -192,7 +192,7 @@ impl LegacyScalarType for u32 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(*self as u64))
+        Value::Number(Number::from(u64::from(*self)))
     }
 }
 

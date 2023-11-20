@@ -116,11 +116,11 @@ mod tests {
             foo: String! @resolver(name: "blah")
         }
     "#, &[])]
-    #[case(r#"
+    #[case(r"
         extend type Query {
             foo: String!
         }
-    "#, &[
+    ", &[
         "Field 'foo' of 'Query' must have a resolver defined."
     ])]
     #[case(r#"
@@ -133,11 +133,11 @@ mod tests {
             foo: String! @resolver(name: "blah")
         }
     "#, &[])]
-    #[case(r#"
+    #[case(r"
         extend type Mutation {
             foo: String!
         }
-    "#, &[
+    ", &[
         "Field 'foo' of 'Mutation' must have a resolver defined."
     ])]
     #[case(r#"

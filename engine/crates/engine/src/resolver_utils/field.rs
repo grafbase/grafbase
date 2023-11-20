@@ -64,7 +64,7 @@ pub async fn resolve_field(
         parent_resolver_value = resolve_requires_fieldset(parent_resolver_value, requires, ctx).await?;
     }
 
-    let result = match CurrentResolverType::new(&field, ctx) {
+    let result = match CurrentResolverType::new(field, ctx) {
         CurrentResolverType::PRIMITIVE => resolve_primitive_field(ctx, field, parent_resolver_value).await,
         CurrentResolverType::CONTAINER => resolve_container_field(ctx, field, parent_resolver_value).await,
         CurrentResolverType::ARRAY => resolve_array_field(ctx, field, parent_resolver_value).await,
@@ -89,7 +89,7 @@ async fn resolve_primitive_field(
     field: &MetaField,
     parent_resolver_value: ResolvedValue,
 ) -> Result<ResponseNodeId, ServerError> {
-    let resolved_value = run_field_resolver(&ctx, parent_resolver_value)
+    let resolved_value = run_field_resolver(ctx, parent_resolver_value)
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos));
 
@@ -135,7 +135,7 @@ async fn resolve_primitive_field(
                     .map_err(|err: serde_json::Error| ServerError::new(err.to_string(), Some(ctx.item.pos)))?;
 
                 field
-                    .check_cache_tag(ctx, &parent_type_name, &field.name, Some(&scalar_value))
+                    .check_cache_tag(ctx, parent_type_name, &field.name, Some(&scalar_value))
                     .await;
 
                 scalar_value
@@ -143,11 +143,11 @@ async fn resolve_primitive_field(
             ScalarParser::BestEffort => match result {
                 serde_json::Value::Null => ConstValue::Null,
                 _ => {
-                    let scalar_value = PossibleScalar::to_value(&field.ty.named_type().as_str(), result)
+                    let scalar_value = PossibleScalar::to_value(field.ty.named_type().as_str(), result)
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
                     field
-                        .check_cache_tag(ctx, &parent_type_name, &field.name, Some(&scalar_value))
+                        .check_cache_tag(ctx, parent_type_name, &field.name, Some(&scalar_value))
                         .await;
 
                     scalar_value
@@ -175,7 +175,7 @@ async fn resolve_container_field(
 ) -> Result<ResponseNodeId, ServerError> {
     // If there is a resolver associated to the container we execute it before
     // asking to resolve the other fields
-    let resolved_value = run_field_resolver(&ctx, parent_resolver_value)
+    let resolved_value = run_field_resolver(ctx, parent_resolver_value)
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
@@ -256,7 +256,7 @@ async fn resolve_array_field(
         .lookup_expecting::<&MetaType>(&field.ty)
         .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
-    let resolved_value = run_field_resolver(&ctx, parent_resolver_value)
+    let resolved_value = run_field_resolver(ctx, parent_resolver_value)
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 

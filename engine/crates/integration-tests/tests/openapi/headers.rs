@@ -25,7 +25,7 @@ fn test_header_passthrough() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                    r#"
+                    r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -33,7 +33,7 @@ fn test_header_passthrough() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .header("wow-what-a-header", "isn't it the best")
                 .header("and-another-one", "yes")

@@ -5,7 +5,7 @@ mod selection_set;
 
 use engine_parser::types::OperationDefinition;
 pub use engine_parser::types::OperationType;
-pub use fields::{OperationArgument, OperationField, OperationFieldId, OperationFields, Pos, TypeCondition};
+pub use fields::{OperationArgument, OperationFieldId, OperationFields, Pos, TypeCondition};
 pub use path::{OperationPath, OperationPathSegment, ResolvedTypeCondition};
 use schema::Schema;
 pub use selection_set::{OperationSelection, OperationSelectionSet};

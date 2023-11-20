@@ -31,7 +31,7 @@ fn aliases() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query {
                         petstore {
                             goodDoggo: pet(petId: 123) {
@@ -44,7 +44,7 @@ fn aliases() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .await
                 .into_value(),

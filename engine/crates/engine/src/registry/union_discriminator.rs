@@ -67,7 +67,7 @@ impl std::hash::Hash for UnionDiscriminator {
             UnionDiscriminator::FieldHasValue(field, values) => {
                 field.hash(state);
                 for value in values {
-                    value.to_string().hash(state)
+                    value.to_string().hash(state);
                 }
             }
             UnionDiscriminator::IsAScalar(inner) => inner.hash(state),
