@@ -4,11 +4,11 @@ use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 
 use crate::{
     execution::StrId,
-    response::{Response, ResponseSparseObject, ResponseValue},
+    response::{ResponseData, ResponseObject, ResponseValue},
 };
 
 pub struct AnyFieldsSeed<'resp> {
-    pub(super) response: &'resp mut Response,
+    pub(super) response: &'resp mut ResponseData,
 }
 
 impl<'de, 'resp> DeserializeSeed<'de> for AnyFieldsSeed<'resp> {
@@ -25,7 +25,7 @@ impl<'de, 'resp> DeserializeSeed<'de> for AnyFieldsSeed<'resp> {
 }
 
 struct AnyFieldsVistor<'resp> {
-    response: &'resp mut Response,
+    response: &'resp mut ResponseData,
 }
 
 impl<'de, 'resp> Visitor<'de> for AnyFieldsVistor<'resp> {
@@ -54,7 +54,7 @@ impl<'de, 'resp> Visitor<'de> for AnyFieldsVistor<'resp> {
 }
 
 struct AnyNodeSeed<'resp> {
-    response: &'resp mut Response,
+    response: &'resp mut ResponseData,
 }
 
 impl<'de, 'resp> DeserializeSeed<'de> for AnyNodeSeed<'resp> {
@@ -71,7 +71,7 @@ impl<'de, 'resp> DeserializeSeed<'de> for AnyNodeSeed<'resp> {
 }
 
 struct AnyNodeVisitor<'resp> {
-    response: &'resp mut Response,
+    response: &'resp mut ResponseData,
 }
 
 impl<'de, 'resp> Visitor<'de> for AnyNodeVisitor<'resp> {
@@ -164,7 +164,7 @@ impl<'de, 'resp> Visitor<'de> for AnyNodeVisitor<'resp> {
             fields.insert(field_name, value);
         }
 
-        let object_node_id = self.response.push_sparse_object(ResponseSparseObject {
+        let object_node_id = self.response.push_object(ResponseObject {
             object_id: None,
             fields,
         });

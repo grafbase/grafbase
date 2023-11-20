@@ -8,59 +8,153 @@ use integration_tests::{
 };
 
 #[test]
-#[ignore]
 fn can_run_2018_introspection_query() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine
-                .execute(IntrospectionQuery::with_capabilities(
-                    SpecificationVersion::June2018.capabilities(),
-                ))
-                .await
-        })
-        .unwrap();
+        engine
+            .execute(IntrospectionQuery::with_capabilities(
+                SpecificationVersion::June2018.capabilities(),
+            ))
+            .await
+    });
+    assert!(response.errors().is_empty(), "{response:#?}");
 
-    insta::assert_json_snapshot!(introspection_to_sdl(response), @"");
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    type Bot {
+      id: ID!
+    }
+
+    input BotInput {
+      id: ID!
+    }
+
+    type Header {
+      name: String!
+      value: String!
+    }
+
+    type Issue {
+      author: UserOrBot!
+      title: String!
+    }
+
+    type PullRequest {
+      author: UserOrBot!
+      checks: [String!]!
+      title: String!
+    }
+
+    interface PullRequestOrIssue {
+      author: UserOrBot!
+      title: String!
+    }
+
+    input PullRequestsAndIssuesFilters {
+      search: String!
+    }
+
+    type Query {
+      allBotPullRequests: [PullRequest!]!
+      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      headers: [Header!]!
+      pullRequestOrIssue(id: ID!): PullRequestOrIssue
+      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      serverVersion: String!
+    }
+
+    type User {
+      email: String!
+      name: String!
+    }
+
+    union UserOrBot = Bot | User
+
+    "###);
 }
 
 #[test]
-#[ignore]
 fn can_run_2021_introspection_query() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine
-                .execute(IntrospectionQuery::with_capabilities(
-                    SpecificationVersion::October2021.capabilities(),
-                ))
-                .await
-        })
-        .unwrap();
+        engine
+            .execute(IntrospectionQuery::with_capabilities(
+                SpecificationVersion::October2021.capabilities(),
+            ))
+            .await
+    });
+    assert!(response.errors().is_empty(), "{response:#?}");
 
-    insta::assert_json_snapshot!(introspection_to_sdl(response), @"");
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    type Bot {
+      id: ID!
+    }
+
+    input BotInput {
+      id: ID!
+    }
+
+    type Header {
+      name: String!
+      value: String!
+    }
+
+    type Issue {
+      author: UserOrBot!
+      title: String!
+    }
+
+    type PullRequest {
+      author: UserOrBot!
+      checks: [String!]!
+      title: String!
+    }
+
+    interface PullRequestOrIssue {
+      author: UserOrBot!
+      title: String!
+    }
+
+    input PullRequestsAndIssuesFilters {
+      search: String!
+    }
+
+    type Query {
+      allBotPullRequests: [PullRequest!]!
+      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      headers: [Header!]!
+      pullRequestOrIssue(id: ID!): PullRequestOrIssue
+      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      serverVersion: String!
+    }
+
+    type User {
+      email: String!
+      name: String!
+    }
+
+    union UserOrBot = Bot | User
+
+    "###);
 }
 
 #[test]
-#[ignore]
 fn can_run_capability_introspection_query() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine.execute(CapabilitiesQuery::build(())).await
-        })
-        .unwrap();
+        engine.execute(CapabilitiesQuery::build(())).await
+    });
+    assert!(response.errors().is_empty(), "{response:#?}");
 
-    let response = serde_json::from_value::<CapabilitiesQuery>(response).expect("valid response");
+    let response = serde_json::from_value::<CapabilitiesQuery>(response.into_data()).expect("valid response");
 
     assert_eq!(
         response.capabilities().version_supported(),
@@ -70,16 +164,17 @@ fn can_run_capability_introspection_query() {
 
 #[test]
 #[ignore]
+#[allow(clippy::panic)]
 fn introspection_output_matches_source() {
     use reqwest::Client;
-    let (engine_response, downstream_sdl) = runtime().block_on(async move {
+    let (response, _upstream_sdl) = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-        let engine_response = engine.execute(IntrospectionQuery::build(())).await.unwrap();
+        let response = engine.execute(IntrospectionQuery::build(())).await;
 
-        let downstream_sdl = Client::new()
+        let upstream_sdl = Client::new()
             .post(format!("http://localhost:{}", github_mock.port()))
             .run_graphql(IntrospectionQuery::build(()))
             .await
@@ -90,48 +185,115 @@ fn introspection_output_matches_source() {
             .expect("valid schema")
             .to_sdl();
 
-        (engine_response, downstream_sdl)
+        (response, upstream_sdl)
     });
+    assert!(response.errors().is_empty(), "{response:#?}");
 
-    let engine_sdl = introspection_to_sdl(engine_response);
+    let _engine_sdl = introspection_to_sdl(response.into_data());
 
-    similar_asserts::assert_eq!(engine_sdl, downstream_sdl);
+    panic!("How to compare efficiently to DSL? They don't have the same ordering of fields or types.");
 }
 
 #[test]
-#[ignore]
 fn can_introsect_when_multiple_subgraphs() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-            let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-            let engine = Engine::build()
-                .with_schema("github", &github_mock)
-                .await
-                .with_schema("echo", &echo_mock)
-                .await
-                .finish();
+        let engine = Engine::build()
+            .with_schema("github", &github_mock)
+            .await
+            .with_schema("echo", &echo_mock)
+            .await
+            .finish();
 
-            engine.execute(IntrospectionQuery::build(())).await
-        })
-        .unwrap();
+        engine.execute(IntrospectionQuery::build(())).await
+    });
+    assert!(response.errors().is_empty(), "{response:#?}");
 
-    insta::assert_json_snapshot!(introspection_to_sdl(response), @"");
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    type Bot {
+      id: ID!
+    }
+
+    input BotInput {
+      id: ID!
+    }
+
+    type Header {
+      name: String!
+      value: String!
+    }
+
+    input InputObj {
+      string: String
+      int: Int
+      float: Float
+      id: ID
+      annoyinglyOptionalStrings: [[String!]]!
+      recursiveObject: InputObj
+      recursiveObjectList: [InputObj!]!
+    }
+
+    type Issue {
+      author: UserOrBot!
+      title: String!
+    }
+
+    scalar JSON
+
+    type PullRequest {
+      author: UserOrBot!
+      checks: [String!]!
+      title: String!
+    }
+
+    interface PullRequestOrIssue {
+      author: UserOrBot!
+      title: String!
+    }
+
+    input PullRequestsAndIssuesFilters {
+      search: String!
+    }
+
+    type Query {
+      allBotPullRequests: [PullRequest!]!
+      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      float(input: Float!): Float!
+      headers: [Header!]!
+      id(input: ID!): ID!
+      inputObject(input: InputObj!): JSON!
+      int(input: Int!): Int!
+      listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
+      listOfStrings(input: [String!]!): [String!]!
+      optionalListOfOptionalStrings(input: [[String!]]!): [[String!]]!
+      pullRequestOrIssue(id: ID!): PullRequestOrIssue
+      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      serverVersion: String!
+      string(input: String!): String!
+    }
+
+    type User {
+      email: String!
+      name: String!
+    }
+
+    union UserOrBot = Bot | User
+
+    "###);
 }
 
 #[test]
-#[ignore]
 fn supports_the_type_field() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("github", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("github", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r#"
+        engine
+            .execute(
+                r#"
                     query {
                         __type(name: "PullRequest") {
                             kind
@@ -144,34 +306,58 @@ fn supports_the_type_field() {
                             possibleTypes
                             enumValues
                             inputFields {
-                                blah
+                                name
                             }
                             ofType {
-                                blah
+                                kind
+                                name
                             }
                         }
                     }
                     "#,
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__type": {
+          "description": null,
+          "enumValues": null,
+          "fields": [
+            {
+              "name": "author"
+            },
+            {
+              "name": "checks"
+            },
+            {
+              "name": "title"
+            }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "kind": "OBJECT",
+          "name": "PullRequest",
+          "ofType": null,
+          "possibleTypes": null
+        }
+      }
+    }
+    "###);
 }
 
 #[test]
-#[ignore]
 fn type_field_returns_null_on_missing_type() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("github", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("github", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r#"
+        engine
+            .execute(
+                r#"
                     query {
                         __type(name: "Boom") {
                             kind
@@ -179,26 +365,29 @@ fn type_field_returns_null_on_missing_type() {
                         }
                     }
                     "#,
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__type": null
+      }
+    }
+    "###);
 }
 
 #[test]
-#[ignore]
 fn supports_recursing_through_types() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("github", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("github", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r#"
+        engine
+            .execute(
+                r#"
                     query {
                         __type(name: "PullRequestOrIssue") {
                             possibleTypes {
@@ -222,26 +411,31 @@ fn supports_recursing_through_types() {
                         }
                     }
                     "#,
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__type": {
+          "possibleTypes": []
+        }
+      }
+    }
+    "###);
 }
 
 #[test]
-#[ignore]
 fn rejects_bogus_introspection_queries() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("github", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("github", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r#"
+        engine
+            .execute(
+                r#"
                     query {
                         __type(name: "PullRequestOrIssue") {
                             possibleTypes {
@@ -250,16 +444,32 @@ fn rejects_bogus_introspection_queries() {
                         }
                     }
                     "#,
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "locations": [
+            {
+              "column": 33,
+              "line": 5
+            }
+          ],
+          "message": "__Type does not have a field named 'blarg'",
+          "path": []
+        }
+      ]
+    }
+    "###);
 }
 
-fn introspection_to_sdl(response: serde_json::Value) -> String {
-    serde_json::from_value::<IntrospectionQuery>(response)
+#[allow(clippy::panic)]
+fn introspection_to_sdl(data: serde_json::Value) -> String {
+    serde_json::from_value::<IntrospectionQuery>(data)
         .expect("valid response")
         .into_schema()
         .expect("valid schema")

@@ -5,7 +5,6 @@ mod refresh;
 
 pub(crate) use admin::AdminBus;
 pub(crate) use compose::ComposeBus;
-use engine::ServerResult;
 pub(crate) use message::*;
 pub(crate) use refresh::RefreshBus;
 
@@ -15,7 +14,7 @@ use graphql_composition::FederatedGraph;
 use tokio::sync::{mpsc, oneshot};
 use url::Url;
 
-use super::{admin::Header, refresher::RefreshMessage};
+use super::{admin::Header, refresher::RefreshMessage, router::RouterResult};
 
 /// A channel to send composed federated graph, typically to a router.
 pub(crate) type GraphSender = mpsc::Sender<Option<FederatedGraph>>;
@@ -42,7 +41,7 @@ pub(crate) type RequestSender = mpsc::Sender<(engine::Request, ResponseSender)>;
 pub(crate) type RequestReceiver = mpsc::Receiver<(engine::Request, ResponseSender)>;
 
 /// Send half of channel for the router actor to send responses
-pub(crate) type ResponseSender = oneshot::Sender<ServerResult<serde_json::Value>>;
+pub(crate) type ResponseSender = oneshot::Sender<RouterResult<Vec<u8>>>;
 
 async fn compose_graph(
     sender: &ComposeSender,

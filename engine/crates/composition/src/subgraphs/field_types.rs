@@ -77,6 +77,13 @@ impl<'a> FieldTypeWalker<'a> {
         self.subgraphs.field_types.inner_types.get_index(self.id.0).unwrap()
     }
 
+    /// The definition with the name returned by `type_name` in `subgraph`.
+    pub(crate) fn definition(self, subgraph: SubgraphId) -> Option<DefinitionWalker<'a>> {
+        self.subgraphs
+            .definition_by_name_id(self.type_name().id, subgraph)
+            .map(|id| self.walk(id))
+    }
+
     /// ```ignore,graphql
     /// type MyObject {
     ///   id: ID!

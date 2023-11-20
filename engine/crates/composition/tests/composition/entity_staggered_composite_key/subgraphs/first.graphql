@@ -1,0 +1,19 @@
+extend schema
+    @link(
+        url: "https://specs.apollo.dev/federation/v2.3",
+        import: ["@key"]
+     )
+
+extend type Query {
+  as: [A]
+}
+
+type A @key(fields: "b { id } c") {
+  b: B!
+  c: String!
+}
+
+type B {
+  id: ID!
+  foo: String
+}

@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 // All of that should be in federated_graph actually.
 use super::*;
-use crate::introspection::IntrospectionFields;
+use crate::introspection::Introspection;
 
 impl From<federated_graph::FederatedGraph> for Schema {
     fn from(graph: federated_graph::FederatedGraph) -> Self {
         let mut schema = Schema {
+            description: None,
             data_sources: (0..graph.subgraphs.len())
                 .map(|i| DataSource::Subgraph(SubgraphId::from(i)))
                 .collect(),
@@ -19,31 +20,33 @@ impl From<federated_graph::FederatedGraph> for Schema {
             objects: graph.objects.into_iter().map(Into::into).collect(),
             object_fields: graph.object_fields.into_iter().map(Into::into).collect(),
             fields: vec![],
-            field_types: graph.field_types.into_iter().map(Into::into).collect(),
+            types: graph.field_types.into_iter().map(Into::into).collect(),
             interfaces: graph.interfaces.into_iter().map(Into::into).collect(),
             interface_fields: graph.interface_fields.into_iter().map(Into::into).collect(),
             enums: graph.enums.into_iter().map(Into::into).collect(),
             unions: graph.unions.into_iter().map(Into::into).collect(),
             scalars: graph.scalars.into_iter().map(Into::into).collect(),
-            input_objects: graph.input_objects.into_iter().map(Into::into).collect(),
+            input_objects: vec![],
             strings: graph.strings,
             resolvers: vec![],
             definitions: vec![],
+            input_values: vec![],
         };
 
         let root_fields = {
             let mut root_fields = vec![];
-            for field_id in schema.object_fields(schema.root_operation_types.query) {
-                root_fields.push(field_id);
+            let walker = schema.default_walker();
+            for field in walker.walk(schema.root_operation_types.query).fields() {
+                root_fields.push(field.id);
             }
             if let Some(mutation) = schema.root_operation_types.mutation {
-                for field_id in schema.object_fields(mutation) {
-                    root_fields.push(field_id);
+                for field in walker.walk(mutation).fields() {
+                    root_fields.push(field.id);
                 }
             }
             if let Some(subscription) = schema.root_operation_types.subscription {
-                for field_id in schema.object_fields(subscription) {
-                    root_fields.push(field_id);
+                for field in walker.walk(subscription).fields() {
+                    root_fields.push(field.id);
                 }
             }
             root_fields.sort_unstable();
@@ -51,7 +54,12 @@ impl From<federated_graph::FederatedGraph> for Schema {
         };
 
         // Yeah it's ugly, conversion should be cleaned up once we got it working I guess.
-        // -- RESOLVERS --
+        // -- FIELDS & RESOLVERS --
+        // 1. The federated graph uses "resolvable_in" whenever a field is present in a subgraph.
+        //    But for resolvers we only want the "entrypoints", so root fields and later the `@key`
+        //    for federation entities.
+        // 2. Field arguments are converted to input values. That's how the GraphQL spec defines
+        //    them and having an id allows data sources to rename those more easily.
         let mut resolvers = HashMap::<Resolver, ResolverId>::new();
         for (i, field) in graph.fields.into_iter().enumerate() {
             let field_id = FieldId::from(i);
@@ -76,33 +84,97 @@ impl From<federated_graph::FederatedGraph> for Schema {
                     });
                 }
             }
-            schema.fields.push(Field {
+            let field = Field {
                 name: field.name.into(),
-                field_type_id: field.field_type_id.into(),
+                description: None,
+                type_id: field.field_type_id.into(),
                 resolvers: field_resolvers,
                 provides: field.provides.into_iter().map(Into::into).collect(),
-                arguments: field.arguments.into_iter().map(Into::into).collect(),
+                arguments: {
+                    field
+                        .arguments
+                        .into_iter()
+                        .map(|argument| {
+                            let input_value = InputValue {
+                                name: argument.name.into(),
+                                description: None,
+                                type_id: argument.type_id.into(),
+                                default_value: None,
+                            };
+                            schema.input_values.push(input_value);
+                            InputValueId::from(schema.input_values.len() - 1)
+                        })
+                        .collect()
+                },
                 composed_directives: field.composed_directives.into_iter().map(Into::into).collect(),
-            });
+                is_deprecated: false,
+                deprecated_reason: None,
+            };
+            schema.fields.push(field);
         }
         let mut resolvers = resolvers.into_iter().collect::<Vec<_>>();
         resolvers.sort_unstable_by_key(|(_, resolver_id)| *resolver_id);
         schema.resolvers = resolvers.into_iter().map(|(resolver, _)| resolver).collect();
 
+        // -- INPUT OBJECTS --
+        // Separating the input fields into a separate input_value vec with an id. This additional
+        // indirection allows data sources to rename fields more easily.
+        for input_object in graph.input_objects {
+            let input_object = InputObject {
+                name: input_object.name.into(),
+                description: None,
+                input_fields: {
+                    input_object
+                        .fields
+                        .into_iter()
+                        .map(|field| {
+                            let input_value = InputValue {
+                                name: field.name.into(),
+                                description: None,
+                                type_id: field.field_type_id.into(),
+                                default_value: None,
+                            };
+                            schema.input_values.push(input_value);
+                            InputValueId::from(schema.input_values.len() - 1)
+                        })
+                        .collect()
+                },
+                composed_directives: input_object.composed_directives.into_iter().map(Into::into).collect(),
+            };
+            schema.input_objects.push(input_object);
+        }
+
         // -- DEFINITIONS --
-        let mut definitions = vec![];
-        definitions.extend((0..schema.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
-        definitions.extend((0..schema.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
-        definitions.extend((0..schema.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
-        definitions.extend((0..schema.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
-        definitions.extend((0..schema.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
-        definitions.extend((0..schema.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
+        // Adding all definitions for introspection & query binding
+        schema
+            .definitions
+            .extend((0..schema.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
+
+        // -- INTERFACES --
+        // Adding all implementations of an interface, used during introspection.
+        for object_id in (0..schema.objects.len()).map(ObjectId::from) {
+            for interface_id in schema[object_id].interfaces.clone() {
+                schema[interface_id].possible_types.push(object_id);
+            }
+        }
 
         // -- INTROSPECTION --
-        IntrospectionFields::insert_into(&mut schema);
-
-        schema.ensure_proper_ordering();
-        schema
+        Introspection::finalize_schema(schema)
     }
 }
 
@@ -119,7 +191,8 @@ impl From<federated_graph::Object> for Object {
     fn from(object: federated_graph::Object) -> Self {
         Object {
             name: object.name.into(),
-            implements_interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
+            description: None,
+            interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
             resolvable_keys: object.resolvable_keys.into_iter().map(Into::into).collect(),
             composed_directives: object.composed_directives.into_iter().map(Into::into).collect(),
         }
@@ -157,16 +230,6 @@ impl From<federated_graph::FieldProvides> for FieldProvides {
     }
 }
 
-impl From<federated_graph::FieldArgument> for FieldArgument {
-    fn from(argument: federated_graph::FieldArgument) -> Self {
-        FieldArgument {
-            name: argument.name.into(),
-            type_id: argument.type_id.into(),
-            default_value: None,
-        }
-    }
-}
-
 impl From<federated_graph::Value> for Value {
     fn from(value: federated_graph::Value) -> Self {
         match value {
@@ -199,10 +262,10 @@ impl From<federated_graph::Definition> for Definition {
     }
 }
 
-impl From<federated_graph::FieldType> for FieldType {
+impl From<federated_graph::FieldType> for Type {
     fn from(field_type: federated_graph::FieldType) -> Self {
-        FieldType {
-            kind: field_type.kind.into(),
+        Type {
+            inner: field_type.kind.into(),
             wrapping: Wrapping {
                 inner_is_required: field_type.inner_is_required,
                 list_wrapping: field_type.list_wrappers.into_iter().rev().map(Into::into).collect(),
@@ -224,7 +287,9 @@ impl From<federated_graph::Interface> for Interface {
     fn from(interface: federated_graph::Interface) -> Self {
         Interface {
             name: interface.name.into(),
-            implementations: vec![],
+            description: None,
+            interfaces: vec![],
+            possible_types: vec![],
             composed_directives: interface.composed_directives.into_iter().map(Into::into).collect(),
         }
     }
@@ -243,6 +308,7 @@ impl From<federated_graph::Enum> for Enum {
     fn from(value: federated_graph::Enum) -> Self {
         Enum {
             name: value.name.into(),
+            description: None,
             values: value.values.into_iter().map(Into::into).collect(),
             composed_directives: value.composed_directives.into_iter().map(Into::into).collect(),
         }
@@ -253,7 +319,8 @@ impl From<federated_graph::Union> for Union {
     fn from(union: federated_graph::Union) -> Self {
         Union {
             name: union.name.into(),
-            members: union.members.into_iter().map(Into::into).collect(),
+            description: None,
+            possible_types: union.members.into_iter().map(Into::into).collect(),
             composed_directives: union.composed_directives.into_iter().map(Into::into).collect(),
         }
     }
@@ -280,7 +347,10 @@ impl From<federated_graph::FieldSetItem> for FieldSetItem {
 impl From<federated_graph::EnumValue> for EnumValue {
     fn from(enum_value: federated_graph::EnumValue) -> Self {
         EnumValue {
-            value: enum_value.value.into(),
+            name: enum_value.value.into(),
+            description: None,
+            deprecated_reason: None,
+            is_deprecated: false,
             composed_directives: enum_value.composed_directives.into_iter().map(Into::into).collect(),
         }
     }
@@ -290,26 +360,20 @@ impl From<federated_graph::Scalar> for Scalar {
     fn from(scalar: federated_graph::Scalar) -> Self {
         Scalar {
             name: scalar.name.into(),
+            description: None,
+            specified_by_url: None,
             composed_directives: scalar.composed_directives.into_iter().map(Into::into).collect(),
         }
     }
 }
 
-impl From<federated_graph::InputObject> for InputObject {
-    fn from(input_object: federated_graph::InputObject) -> Self {
-        InputObject {
-            name: input_object.name.into(),
-            fields: input_object.fields.into_iter().map(Into::into).collect(),
-            composed_directives: input_object.composed_directives.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<federated_graph::InputObjectField> for InputObjectField {
+impl From<federated_graph::InputObjectField> for InputValue {
     fn from(field: federated_graph::InputObjectField) -> Self {
-        InputObjectField {
+        InputValue {
             name: field.name.into(),
-            field_type_id: field.field_type_id.into(),
+            description: None,
+            type_id: field.field_type_id.into(),
+            default_value: None,
         }
     }
 }
@@ -329,7 +393,7 @@ macro_rules! from_id_newtypes {
 from_id_newtypes! {
     EnumId => EnumId,
     FieldId => FieldId,
-    FieldTypeId => FieldTypeId,
+    FieldTypeId => TypeId,
     InputObjectId => InputObjectId,
     InterfaceId => InterfaceId,
     ObjectId => ObjectId,

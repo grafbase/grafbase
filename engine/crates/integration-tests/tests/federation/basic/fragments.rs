@@ -4,15 +4,14 @@ use integration_tests::{federation::EngineV2Ext, mocks::graphql::FakeGithubSchem
 #[test]
 #[ignore]
 fn named_fragment_on_object() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r"
+        engine
+            .execute(
+                r"
                     query {
                         allBotPullRequests {
                             ... PrFields
@@ -28,10 +27,9 @@ fn named_fragment_on_object() {
                         }
                     }
                     ",
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
     insta::assert_json_snapshot!(response, @"");
 }
@@ -39,15 +37,14 @@ fn named_fragment_on_object() {
 #[test]
 #[ignore]
 fn inline_fragment_on_object() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r"
+        engine
+            .execute(
+                r"
                     query {
                         allBotPullRequests {
                             ... {
@@ -61,10 +58,9 @@ fn inline_fragment_on_object() {
                         }
                     }
                     ",
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
     insta::assert_json_snapshot!(response, @"");
 }
@@ -72,15 +68,14 @@ fn inline_fragment_on_object() {
 #[test]
 #[ignore]
 fn inline_fragment_on_object_with_type_condition() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r"
+        engine
+            .execute(
+                r"
                     query {
                         allBotPullRequests {
                             ... on PullRequest {
@@ -94,10 +89,9 @@ fn inline_fragment_on_object_with_type_condition() {
                         }
                     }
                     ",
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
     insta::assert_json_snapshot!(response, @"");
 }
@@ -105,15 +99,14 @@ fn inline_fragment_on_object_with_type_condition() {
 #[test]
 #[ignore]
 fn inline_fragments_on_polymorphic_types() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r#"
+        engine
+            .execute(
+                r#"
                     query {
                         pullRequestsAndIssues(id: "1") {
                             ... on PullRequest {
@@ -136,10 +129,9 @@ fn inline_fragments_on_polymorphic_types() {
                         }
                     }
                     "#,
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
     insta::assert_json_snapshot!(response, @"");
 }
@@ -147,15 +139,14 @@ fn inline_fragments_on_polymorphic_types() {
 #[test]
 #[ignore]
 fn named_fragments_on_polymorphic_types() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine
-                .execute(
-                    r#"
+        engine
+            .execute(
+                r#"
                     query {
                         pullRequestsAndIssues(id: "1") {
                             ...PrFragment
@@ -188,10 +179,9 @@ fn named_fragments_on_polymorphic_types() {
                         }
                     }
                     "#,
-                )
-                .await
-        })
-        .unwrap();
+            )
+            .await
+    });
 
     insta::assert_json_snapshot!(response, @"");
 }

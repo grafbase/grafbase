@@ -3,90 +3,94 @@ use std::{
     num::NonZeroUsize,
 };
 
-use engine_parser::types::OperationDefinition;
 use itertools::Itertools;
 use schema::{DataSourceId, FieldId, FieldResolver, ResolverId};
 
 use super::{plans::ExecutionPlansBuilder, ExecutionPlan, ExecutionPlans, PlanId};
 use crate::{
-    execution::Strings,
     formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
     request::{
-        Operation, OperationFieldId, OperationFields, OperationPath, OperationPathSegment, OperationSelection,
-        OperationSelectionSet, OperationType, ResolvedTypeCondition, TypeCondition,
+        Operation, OperationFieldId, OperationPath, OperationPathSegment, OperationSelection, OperationSelectionSet,
+        ResolvedTypeCondition, TypeCondition,
     },
-    response::{ReadSelection, ReadSelectionSet},
+    response::{GraphqlError, ReadSelection, ReadSelectionSet},
     Engine,
 };
 
-// This is the part that should be cached for a GraphQL query.
-// I suppose we might want to plan all query operations together if we support operation batching.
-// we would just need to keep track of the operation name to the selection_set.
-// If that doesn't make any sense, we should rename that to OperationPlan
-pub struct PlannedOperation {
-    pub ty: OperationType,
-    pub final_read_selection_set: ReadSelectionSet,
-    pub fields: OperationFields,
-    pub strings: Strings,
-    pub plans: ExecutionPlans,
+#[derive(thiserror::Error, Debug)]
+pub enum PrepareError {
+    #[error("internal error: {0}")]
+    InternalError(String),
 }
 
-impl PlannedOperation {
-    pub fn build(engine: &Engine, operation_definition: OperationDefinition) -> PlannedOperation {
-        let mut strings = Strings::new();
-        let Operation {
-            ty,
-            selection_set,
-            fields,
-        } = Operation::bind(&engine.schema, operation_definition, &mut strings);
-        let mut planner = Planner {
-            engine,
-            strings: &mut strings,
-            plans: ExecutionPlans::builder(),
-            fields,
-        };
-        planner.plan_operation(&selection_set);
-        let final_read_selection_set = planner.create_final_read_selection_set(&selection_set);
-        let fields = planner.fields;
-        let plans = planner.plans.build();
-
-        PlannedOperation {
-            ty,
-            final_read_selection_set,
-            fields,
-            strings,
-            plans,
+impl From<PrepareError> for GraphqlError {
+    fn from(err: PrepareError) -> Self {
+        GraphqlError {
+            message: err.to_string(),
+            locations: vec![],
+            path: vec![],
         }
     }
 }
 
-pub struct Planner<'a, 'b> {
+pub type PrepareResult<T> = Result<T, PrepareError>;
+
+// This is the part that should be cached for a GraphQL query.
+pub struct OperationPlan {
+    pub operation: Operation,
+    pub execution_plans: ExecutionPlans,
+    pub final_read_selection_set: ReadSelectionSet,
+}
+
+impl OperationPlan {
+    #[allow(clippy::unnecessary_wraps)]
+    pub fn prepare(engine: &Engine, operation: Operation) -> PrepareResult<OperationPlan> {
+        // Creating the final read selection set immediately before any modifications (plan inputs
+        // adding fields)
+        let final_read_selection_set = create_final_read_selection_set(&operation, &operation.selection_set);
+        let mut planner = Planner {
+            engine,
+            operation,
+            plans: ExecutionPlans::builder(),
+        };
+        planner.plan_operation();
+        let operation = planner.operation;
+        let execution_plans = planner.plans.build();
+
+        Ok(OperationPlan {
+            operation,
+            execution_plans,
+            final_read_selection_set,
+        })
+    }
+}
+
+fn create_final_read_selection_set(operation: &Operation, selection_set: &OperationSelectionSet) -> ReadSelectionSet {
+    selection_set
+        .iter()
+        .map(|selection| {
+            let op_field = &operation[selection.operation_field_id];
+            ReadSelection {
+                response_position: op_field.position,
+                response_name: op_field.name,
+                subselection: create_final_read_selection_set(operation, &selection.subselection),
+            }
+        })
+        .collect()
+}
+
+pub struct Planner<'a> {
     engine: &'a Engine,
-    strings: &'b mut Strings,
-    fields: OperationFields,
+    operation: Operation,
     plans: ExecutionPlansBuilder,
 }
 
-impl<'a, 'b> Planner<'a, 'b> {
-    fn create_final_read_selection_set(&self, selection_set: &OperationSelectionSet) -> ReadSelectionSet {
-        selection_set
-            .iter()
-            .map(|selection| {
-                let op_field = &self.fields[selection.operation_field_id];
-                ReadSelection {
-                    response_position: op_field.position,
-                    response_name: op_field.name,
-                    subselection: self.create_final_read_selection_set(&selection.subselection),
-                }
-            })
-            .collect()
-    }
-
-    fn plan_operation(&mut self, selection_set: &OperationSelectionSet) {
+impl<'a> Planner<'a> {
+    fn plan_operation(&mut self) {
         let mut stack = vec![ToBePlanned {
             parent: None,
             path: OperationPath::empty(),
-            selection_set: selection_set.clone(),
+            selection_set: self.operation.selection_set.clone(),
         }];
         while let Some(to_be_planned) = stack.pop() {
             stack.extend(self.plan_next(to_be_planned));
@@ -113,7 +117,7 @@ impl<'a, 'b> Planner<'a, 'b> {
 
         let mut candidates = HashMap::<ResolverId, ResolverIO>::new();
         for selection in &selection_set {
-            let field_id = self.fields[selection.operation_field_id].field_id;
+            let field_id = self.operation[selection.operation_field_id].field_id;
             for FieldResolver { resolver_id, requires } in &self.engine.schema[field_id].resolvers {
                 let io = candidates.entry(*resolver_id).or_default();
                 io.input = schema::FieldSet::merge(&io.input, requires);
@@ -142,8 +146,6 @@ impl<'a, 'b> Planner<'a, 'b> {
                 resolver_id,
             });
 
-            println!("PLAN:\n{:#?}", self.debug(&self.plans[plan_id]));
-
             for plan in &mut to_be_planned {
                 plan.parent = Some(plan_id);
             }
@@ -162,12 +164,13 @@ impl<'a, 'b> Planner<'a, 'b> {
     }
 
     // will be used in a later PR.
+    #[allow(dead_code)]
     fn compute_dense_capacity(&self, fields: impl IntoIterator<Item = OperationFieldId>) -> Option<NonZeroUsize> {
         let mut count: usize = 0;
         let mut type_conditions = HashSet::new();
         for id in fields {
             count += 1;
-            type_conditions.insert(self.fields[id].type_condition);
+            type_conditions.insert(self.operation[id].type_condition);
         }
         // If we have more than one type condition, it means certain fields are optional. None
         // counts as 1. When using dense objects we don't filter fields so it must represent the
@@ -192,7 +195,7 @@ impl<'a, 'b> Planner<'a, 'b> {
         let (selection_set, rest) = selection_set
             .into_iter()
             .map(|selection| {
-                let op_field = &self.fields[selection.operation_field_id];
+                let op_field = &self.operation[selection.operation_field_id];
                 if output_fields.binary_search(&op_field.field_id).is_ok() {
                     let schema_field = &self.engine.schema[op_field.field_id];
 
@@ -228,7 +231,7 @@ impl<'a, 'b> Planner<'a, 'b> {
         let (found, missing): (OperationSelectionSet, OperationSelectionSet) = selection_set
             .into_iter()
             .map(|selection| {
-                let op_field = &self.fields[selection.operation_field_id];
+                let op_field = &self.operation[selection.operation_field_id];
                 let schema_field = &self.engine.schema[op_field.field_id];
 
                 let provideable_field = provideable.selection(op_field.field_id);
@@ -264,14 +267,14 @@ impl<'a, 'b> Planner<'a, 'b> {
     }
 
     fn make_path_child(&self, parent: &OperationPath, child: OperationFieldId) -> OperationPath {
-        let reponse_field = &self.fields[child];
+        let reponse_field = &self.operation[child];
         parent.child(OperationPathSegment {
             operation_field_id: child,
             type_condition: reponse_field.type_condition.map(|cond| {
                 ResolvedTypeCondition::new(match cond {
-                    TypeCondition::Interface(interface_id) => self.engine.schema[interface_id].implementations.clone(),
+                    TypeCondition::Interface(interface_id) => self.engine.schema[interface_id].possible_types.clone(),
                     TypeCondition::Object(object_id) => vec![object_id],
-                    TypeCondition::Union(union_id) => self.engine.schema[union_id].members.clone(),
+                    TypeCondition::Union(union_id) => self.engine.schema[union_id].possible_types.clone(),
                 })
             }),
             position: reponse_field.position,
@@ -287,12 +290,12 @@ struct ToBePlanned {
     selection_set: OperationSelectionSet,
 }
 
-impl<'a, 'b> FormatterContextHolder for Planner<'a, 'b> {
+impl<'a> FormatterContextHolder for Planner<'a> {
     fn formatter_context(&self) -> FormatterContext<'_> {
         FormatterContext {
             schema: &self.engine.schema,
-            strings: self.strings,
-            operation_fields: &self.fields,
+            strings: &self.operation.strings,
+            opeartion: &self.operation,
         }
     }
 }

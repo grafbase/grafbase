@@ -172,9 +172,9 @@ dependencies = [
 
 [[package]]
 name = "apollo-parser"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bb81e4793effa1744cc96f49542aec487696e595e0faeabbd9f8a83e5c83036"
+checksum = "db2953239e146be68f42333c2eaff528884fd300d0d1ed306b374f2a619a7d85"
 dependencies = [
  "memchr",
  "rowan",
@@ -1367,9 +1367,9 @@ dependencies = [
 
 [[package]]
 name = "cynic"
-version = "3.2.2"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf035d785657f3621eee03fdfeefab48127d8b1643b6f9edf8b3cd66cbd86e9b"
+checksum = "dcdc5f4454181d193b830f4c7c078d2c7cad5bd35967436467104a1dd9183041"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
@@ -1382,12 +1382,12 @@ dependencies = [
 
 [[package]]
 name = "cynic-codegen"
-version = "3.2.2"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e8e65b71a8bd2751712ab38326b73a5f98405b6b5f8fd4dae658e58c1576d09"
+checksum = "ca35aca0bce346d72a3443693d6008a3d085e3a9d41cdc034c1fc05574c486ee"
 dependencies = [
  "counter",
- "darling 0.14.4",
+ "darling 0.20.3",
  "graphql-parser",
  "once_cell",
  "ouroboros",
@@ -1395,15 +1395,15 @@ dependencies = [
  "quote",
  "rkyv",
  "strsim",
- "syn 1.0.109",
+ "syn 2.0.37",
  "thiserror",
 ]
 
 [[package]]
 name = "cynic-introspection"
-version = "3.2.2"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "185b6d9ba2093fc13b607f7b5142bde7267c72968f3c155c44b6fededf0a2f03"
+checksum = "c379e6787751d94022e0d8c24a1e7e4de63eede9390f7366276ce7faee37d160"
 dependencies = [
  "cynic",
  "cynic-codegen",
@@ -1413,13 +1413,14 @@ dependencies = [
 
 [[package]]
 name = "cynic-proc-macros"
-version = "3.2.2"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a933ea1f357cbd48f2068c59457631696ae58d554f89290e4da272b1f69ebf1"
+checksum = "4a9089aa5d1d58ab88c12c75458f8def586e1164a16a7c7123f4e90daa8d6f16"
 dependencies = [
  "cynic-codegen",
+ "darling 0.20.3",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.37",
 ]
 
 [[package]]
@@ -2102,6 +2103,7 @@ dependencies = [
  "grafbase-graphql-introspection",
  "graphql-composition",
  "handlebars",
+ "http",
  "indoc",
  "log 0.4.20",
  "reqwest",
@@ -4171,25 +4173,27 @@ dependencies = [
 
 [[package]]
 name = "ouroboros"
-version = "0.15.6"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1358bd1558bd2a083fed428ffeda486fbfb323e698cdda7794259d592ca72db"
+checksum = "1c86de06555b970aec45229b27291b53154f21a5743a163419f4e4c0b065dcde"
 dependencies = [
  "aliasable",
  "ouroboros_macro",
+ "static_assertions",
 ]
 
 [[package]]
 name = "ouroboros_macro"
-version = "0.15.6"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f7d21ccd03305a674437ee1248f3ab5d4b1db095cf1caf49f1713ddf61956b7"
+checksum = "8cad0c4b129e9696e37cb712b243777b90ef489a0bfaa0ac34e7d9b860e4f134"
 dependencies = [
- "Inflector",
+ "heck",
+ "itertools 0.11.0",
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.37",
 ]
 
 [[package]]
