@@ -61,7 +61,7 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
         // This probably indicates a malformed registry, lets return an error
         Error::new(format!("Internal error: {} could not be looked up in registry: {}", representation.ty, error.message))
     )?;
-    let resolver_context = ResolverContext::new(&ctx).with_ty(actual_type);
+    let resolver_context = ResolverContext::new(ctx).with_ty(actual_type);
 
     let data = match key_being_resolved.resolver() {
         Some(FederationResolver::DynamoUnique) => {
@@ -70,7 +70,7 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
                 by: VariableResolveDefinition::local_data("by"),
                 schema: None,
             }
-            .resolve(&ctx, &resolver_context, last_resolver_value.as_ref())
+            .resolve(ctx, &resolver_context, last_resolver_value.as_ref())
             .await
         }
         Some(FederationResolver::Http(resolver)) => {

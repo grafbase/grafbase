@@ -63,7 +63,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
                             "Directive \"{}\" may not be used on \"{current_location:?}\"",
                             directive.node.name.node
                         ),
-                    )
+                    );
                 }
             }
         } else {
@@ -127,7 +127,7 @@ mod tests {
     fn with_no_directives() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo {
             name
             ...Frag
@@ -135,7 +135,7 @@ mod tests {
           fragment Frag on Dog {
             name
           }
-        "#,
+        ",
         );
     }
 
@@ -143,7 +143,7 @@ mod tests {
     fn with_known_directives() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           {
             dog @include(if: true) {
               name
@@ -152,7 +152,7 @@ mod tests {
               name
             }
           }
-        "#,
+        ",
         );
     }
 
@@ -194,7 +194,7 @@ mod tests {
     fn with_well_placed_directives() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo {
             name @include(if: true)
             ...Frag @include(if: true)
@@ -204,7 +204,7 @@ mod tests {
           mutation Bar {
             someField
           }
-        "#,
+        ",
         );
     }
 
@@ -212,7 +212,7 @@ mod tests {
     fn with_misplaced_directives() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo @include(if: true) {
             name
             ...Frag
@@ -220,7 +220,7 @@ mod tests {
           mutation Bar {
             someField
           }
-        "#,
+        ",
         );
     }
 }

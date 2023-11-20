@@ -63,7 +63,7 @@ struct DeletionTask {
 }
 
 impl PartialOrd for DeletionTask {
-    #[allow(clippy::incorrect_partial_ord_impl_on_ord_type)]
+    #[allow(clippy::non_canonical_partial_ord_impl)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.to_delete_at
             .partial_cmp(&other.to_delete_at)
@@ -78,10 +78,10 @@ impl Ord for DeletionTask {
 }
 
 impl<T> CacheInner<T> {
-    fn purge(&mut self, now: &Instant) {
+    fn purge(&mut self, now: Instant) {
         let mut deleted = vec![];
         while let Some(DeletionTask { key, to_delete_at }) = self.deletion_tasks.peek() {
-            if to_delete_at <= now {
+            if to_delete_at <= &now {
                 self.key_to_entry.remove(key);
                 let DeletionTask { key, .. } = self.deletion_tasks.pop().unwrap();
                 deleted.push(key);
@@ -104,7 +104,7 @@ impl<T: Clone + Cacheable + 'static> runtime::cache::Cache for InMemoryCache<T> 
     async fn get(&self, key: &str) -> Result<Entry<Self::Value>> {
         let mut inner = self.inner.lock().await;
         let now = (inner.now)();
-        inner.purge(&now);
+        inner.purge(now);
         Ok(inner
             .key_to_entry
             .get(key)
@@ -125,7 +125,7 @@ impl<T: Clone + Cacheable + 'static> runtime::cache::Cache for InMemoryCache<T> 
     async fn put(&self, key: &str, state: EntryState, value: Arc<Self::Value>, tags: Vec<String>) -> Result<()> {
         let mut inner = self.inner.lock().await;
         let now = (inner.now)();
-        inner.purge(&now);
+        inner.purge(now);
         let key = key.to_string();
         inner.key_to_entry.insert(
             key.clone(),
@@ -150,7 +150,7 @@ impl<T: Clone + Cacheable + 'static> runtime::cache::Cache for InMemoryCache<T> 
     async fn delete(&self, key: &str) -> Result<()> {
         let mut inner = self.inner.lock().await;
         let now = (inner.now)();
-        inner.purge(&now);
+        inner.purge(now);
         inner.key_to_entry.remove(key);
         for tagged in inner.tag_to_keys.values_mut() {
             tagged.remove(key);
@@ -161,7 +161,7 @@ impl<T: Clone + Cacheable + 'static> runtime::cache::Cache for InMemoryCache<T> 
     async fn purge_by_tags(&self, tags: Vec<String>) -> Result<()> {
         let mut inner = self.inner.lock().await;
         let now = (inner.now)();
-        inner.purge(&now);
+        inner.purge(now);
         let keys = tags.into_iter().fold(HashSet::new(), |mut acc, tag| {
             acc.extend(inner.tag_to_keys.remove(&tag).unwrap_or_default());
             acc

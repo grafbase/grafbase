@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_default_with_enum_variant() {
-        let schema = r#"
+        let schema = r"
             type Product {
                 id: ID!
                 price: Int! @default(value: 0)
@@ -89,7 +89,7 @@ mod tests {
                 USD
                 GBP
             }
-        "#;
+        ";
 
         let mut rules = crate::rules::visitor::VisitorNil
             .with(crate::BasicType)
@@ -115,12 +115,12 @@ mod tests {
     "#, &[
         "The @default directive takes a single `value` argument"
     ])]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String @default
         }
-    "#, &[
+    ", &[
         "The @default directive takes a single `value` argument"
     ])]
     #[case(r#"
@@ -131,7 +131,7 @@ mod tests {
     "#, &[
         "The @default directive is not accepted on the `id` field"
     ])]
-    #[case(r#"
+    #[case(r"
         type Category @model {
             id: ID!
             name: String!
@@ -142,15 +142,15 @@ mod tests {
             name: String!
             category: Category @default(value: null)
         }
-    "#, &[
+    ", &[
         "The @default directive is not accepted on fields referring to other models"
     ])]
-    #[case(r#"
+    #[case(r"
         type Product @model {
             id: ID!
             name: String! @default(value: 10)
         }
-    "#, &[
+    ", &[
         "The @default value is of a wrong type: \"name\", expected type \"String\""
     ])]
     #[case(r#"

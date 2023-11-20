@@ -29,6 +29,7 @@ pub enum DocumentOperations {
 impl DocumentOperations {
     /// Iterate over the operations of the document.
     #[must_use]
+    #[allow(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> OperationsIter<'_> {
         OperationsIter(match self {
             Self::Single(op) => OperationsIterInner::Single(Some(op)),

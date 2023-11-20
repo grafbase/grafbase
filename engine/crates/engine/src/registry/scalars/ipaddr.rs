@@ -25,9 +25,9 @@ impl<'a> SDLDefinitionScalar<'a> for IPAddressScalar {
 
     fn description() -> Option<&'a str> {
         Some(
-            r#"A valid IPv4 or IPv6 address. IPv4 addresses are expected in quad-dotted notation `(123.12.34.56)`. IPv6 addresses are expected in non-bracketed, colon-separated format `(1a2b:3c4b::1234:4567)`.
+            r"A valid IPv4 or IPv6 address. IPv4 addresses are expected in quad-dotted notation `(123.12.34.56)`. IPv6 addresses are expected in non-bracketed, colon-separated format `(1a2b:3c4b::1234:4567)`.
 
-You can include an optional CIDR suffix `(123.45.67.89/16)` to indicate subnet mask."#,
+You can include an optional CIDR suffix `(123.45.67.89/16)` to indicate subnet mask.",
         )
     }
 

@@ -15,7 +15,7 @@ impl LegacyScalarType for f32 {
     }
 
     fn to_value(&self) -> Value {
-        match Number::from_f64(*self as f64) {
+        match Number::from_f64(f64::from(*self)) {
             Some(n) => Value::Number(n),
             None => Value::Null,
         }

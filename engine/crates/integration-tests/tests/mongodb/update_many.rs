@@ -116,13 +116,13 @@ fn set() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -192,13 +192,13 @@ fn combining_operators() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -309,13 +309,13 @@ fn unset_true() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -462,13 +462,13 @@ fn current_timestamp_true() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name time } }  
               }
             }
-        "#};
+        "};
 
         let result = api.execute(query).await;
         let mut deserialized: Result = serde_json::from_str(&result.as_json_string()).unwrap();
@@ -551,13 +551,13 @@ fn current_datetime_true() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name time } }  
               }
             }
-        "#};
+        "};
 
         let result = api.execute(query).await;
         let mut deserialized: Result = serde_json::from_str(&result.as_json_string()).unwrap();
@@ -609,13 +609,13 @@ fn inc_int() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -679,13 +679,13 @@ fn minimum_int() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -749,13 +749,13 @@ fn maximum_int() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -819,13 +819,13 @@ fn multiply_int() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -889,13 +889,13 @@ fn inc_float() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -959,13 +959,13 @@ fn minimum_float() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1029,13 +1029,13 @@ fn maximum_float() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1099,13 +1099,13 @@ fn multiply_float() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1169,13 +1169,13 @@ fn inc_bigint() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1239,13 +1239,13 @@ fn minimum_bigint() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1309,13 +1309,13 @@ fn maximum_bigint() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1379,13 +1379,13 @@ fn multiply_bigint() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1449,13 +1449,13 @@ fn inc_decimal() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1519,13 +1519,13 @@ fn minimum_decimal() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1589,13 +1589,13 @@ fn maximum_decimal() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1659,13 +1659,13 @@ fn multiply_decimal() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1729,13 +1729,13 @@ fn array_add_to_set() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1808,13 +1808,13 @@ fn array_pop_first() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1884,13 +1884,13 @@ fn array_pop_last() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1960,13 +1960,13 @@ fn array_pull() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2040,13 +2040,13 @@ fn array_pull_nested() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name inner { value} } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2121,13 +2121,13 @@ fn array_push() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -2200,13 +2200,13 @@ fn array_pull_all() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

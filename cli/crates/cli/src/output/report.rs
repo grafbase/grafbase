@@ -77,7 +77,7 @@ pub fn project_created(name: Option<&str>, config_type: ConfigType) {
     };
 
     if let Some(name) = name {
-        watercolor::output!(r#"✨ {name} was successfully initialized!"#, @BrightBlue);
+        watercolor::output!(r"✨ {name} was successfully initialized!", @BrightBlue);
 
         let schema_path = &[".", name, schema_file_name].join(&slash);
 
@@ -86,7 +86,7 @@ pub fn project_created(name: Option<&str>, config_type: ConfigType) {
             watercolor!("{schema_path}", @BrightBlue)
         );
     } else {
-        watercolor::output!(r#"✨ Your project was successfully set up for Grafbase!"#, @BrightBlue);
+        watercolor::output!(r"✨ Your project was successfully set up for Grafbase!", @BrightBlue);
 
         let schema_path = &[".", schema_file_name].join(&slash);
 

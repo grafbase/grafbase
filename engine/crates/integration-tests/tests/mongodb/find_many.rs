@@ -14,13 +14,13 @@ fn empty() {
     "#};
 
     let response = with_mongodb(schema, |api| async move {
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { eq: 39 } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -46,7 +46,7 @@ fn namespaced() {
     "#};
 
     let response = with_namespaced_mongodb("myMongo", schema, |api| async move {
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               myMongo {
                 userCollection(first: 10, filter: { age: { eq: 39 } }) {
@@ -54,7 +54,7 @@ fn namespaced() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -82,13 +82,13 @@ fn missing_first_or_last() {
     "#};
 
     let response = with_mongodb(schema, |api| async move {
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(filter: { age: { eq: 39 } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -134,13 +134,13 @@ fn eq() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { eq: 39 } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -256,13 +256,13 @@ fn ne() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { ne: 39 } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -307,13 +307,13 @@ fn gt() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { gt: 39 } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -353,13 +353,13 @@ fn lt() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { lt: 39 } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -399,13 +399,13 @@ fn gte() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { gte: 39 } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -450,13 +450,13 @@ fn lte() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { lte: 39 } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -501,13 +501,13 @@ fn r#in() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { in: [38, 40] } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -552,13 +552,13 @@ fn nin() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { age: { nin: [38, 40] } }) {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -764,7 +764,7 @@ fn not() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: {
                 age: { not: { eq: 39 } }
@@ -772,7 +772,7 @@ fn not() {
                 edges { node { name age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -940,7 +940,7 @@ fn timestamp_eq() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: {
                 registered: { eq: 1565545684 }
@@ -948,7 +948,7 @@ fn timestamp_eq() {
                 edges { node { registered } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -988,7 +988,7 @@ fn simple_array_all() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: {
                 data: { all: [2, 3, 4] }
@@ -996,7 +996,7 @@ fn simple_array_all() {
                 edges { node { data } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1040,7 +1040,7 @@ fn simple_array_size() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: {
                 data: { size: 2 }
@@ -1048,7 +1048,7 @@ fn simple_array_size() {
                 edges { node { data } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1091,7 +1091,7 @@ fn simple_array_elemmatch() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: {
                 data: { elemMatch: { eq: 2 } }
@@ -1099,7 +1099,7 @@ fn simple_array_elemmatch() {
                 edges { node { data } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1269,7 +1269,7 @@ fn simple_sort_asc() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 first: 10,
@@ -1279,7 +1279,7 @@ fn simple_sort_asc() {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1324,7 +1324,7 @@ fn simple_sort_desc() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 first: 10,
@@ -1334,7 +1334,7 @@ fn simple_sort_desc() {
                 edges { node { age } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1383,7 +1383,7 @@ fn nested_sort() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 first: 10,
@@ -1393,7 +1393,7 @@ fn nested_sort() {
                 edges { node { age { number } } }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

@@ -71,7 +71,7 @@ fn ts_config_flag(#[case] case_path: PathBuf) {
 
     let response = client
         .gql::<serde_json::Value>(
-            r#"
+            r"
         query {
             userCollection(first: 100) {
                 edges {
@@ -81,7 +81,7 @@ fn ts_config_flag(#[case] case_path: PathBuf) {
                 }
             }
         }
-    "#,
+    ",
         )
         .send();
     assert_eq!(

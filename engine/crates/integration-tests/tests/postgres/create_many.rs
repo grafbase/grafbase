@@ -13,14 +13,14 @@ fn two_pk_ids() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreateMany(input: [{ id: 1 }, { id: 2 }]) {
                 returning { id }
                 rowCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 
@@ -60,13 +60,13 @@ fn two_pk_ids_no_returning() {
 
         api.execute_sql(schema).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userCreateMany(input: [{ id: 1 }, { id: 2 }]) {
                 rowCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
 

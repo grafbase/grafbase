@@ -13,14 +13,14 @@ fn test_header_forwarding() {
 
         let mut response = engine
             .execute(
-                r#"
+                r"
                 query {
                     headers {
                         name
                         value
                     }
                 }
-				"#,
+				",
             )
             .header("wow-what-a-header", "isn't it the best")
             .header("and-another-one", "yes")

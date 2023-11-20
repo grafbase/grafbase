@@ -125,7 +125,7 @@ impl CollectionArgs {
                 Value::String("ASC".into()),
             );
 
-            order_by_argument.push(engine_value::Value::Object(object))
+            order_by_argument.push(engine_value::Value::Object(object));
         }
 
         // ordering the innermost query
@@ -156,7 +156,7 @@ impl CollectionArgs {
             };
 
             let column = database_definition
-                .find_column_for_client_field(&field, table.id())
+                .find_column_for_client_field(field, table.id())
                 .expect("ordering with non-existing column");
 
             let sql_column = Column::from((table.database_name().to_string(), column.database_name().to_string()));
@@ -257,7 +257,7 @@ fn generate_filter(fields: &[(&str, &serde_json::Value, OrderDirection)]) -> Opt
         if i == max_id {
             if value.is_null() {
                 if let OrderDirection::Ascending = direction {
-                    filters.push(column.is_not_null().into())
+                    filters.push(column.is_not_null().into());
                 }
             } else {
                 match direction {

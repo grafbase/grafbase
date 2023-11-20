@@ -57,7 +57,7 @@ fn test_simple_product() {
 #[named]
 fn test_simple_todo() {
     let result = super::parse_registry(
-        r#"
+        r"
         type Todo @model {
           id: ID!
           content: String!
@@ -74,7 +74,7 @@ fn test_simple_todo() {
         type Truc {
           name: String!
         }
-        "#,
+        ",
     )
     .unwrap();
 
@@ -85,7 +85,7 @@ fn test_simple_todo() {
 #[named]
 fn test_simple_todo_from_template() {
     let result = super::parse_registry(
-        r#"
+        r"
         type TodoList @model {
           id: ID!
           title: String!
@@ -98,7 +98,7 @@ fn test_simple_todo_from_template() {
           complete: Boolean
           list: TodoList
         }
-        "#,
+        ",
     )
     .unwrap();
 
@@ -109,7 +109,7 @@ fn test_simple_todo_from_template() {
 #[named]
 fn test_simple_todo_with_vec() {
     let result = super::parse_registry(
-        r#"
+        r"
         type Todo @model {
           id: ID!
           content: String!
@@ -126,7 +126,7 @@ fn test_simple_todo_with_vec() {
         type Truc {
           name: String!
         }
-        "#,
+        ",
     )
     .unwrap();
 
@@ -248,7 +248,7 @@ fn test_multiple_relations() {
 #[named]
 fn test_many_to_many() {
     let result = super::parse_registry(
-        r#"
+        r"
         type User @model {
             name: String!
             organizations: [Organization!]
@@ -258,7 +258,7 @@ fn test_many_to_many() {
           name: String!
           users: [User!]
         }
-        "#,
+        ",
     )
     .unwrap();
 
@@ -268,12 +268,12 @@ fn test_many_to_many() {
 #[test]
 fn should_ensure_lowercase() {
     let result = super::parse_registry(
-        r#"
+        r"
         type Blog @model {
           id: ID!
           truc_break: String! @unique
         }
-        "#,
+        ",
     );
 
     assert!(result.is_err(), "Should error here");
@@ -282,35 +282,35 @@ fn should_ensure_lowercase() {
 #[test]
 fn should_forbid_use_of_reserved_fields() {
     assert_validation_error!(
-        r#"
+        r"
         type Product @model {
             ALL: Int
         }
-        "#,
+        ",
         "Field name 'ALL' is reserved and cannot be used."
     );
     assert_validation_error!(
-        r#"
+        r"
         type Product @model {
             ANY: Int
         }
-        "#,
+        ",
         "Field name 'ANY' is reserved and cannot be used."
     );
     assert_validation_error!(
-        r#"
+        r"
         type Product @model {
             NONE: Int
         }
-        "#,
+        ",
         "Field name 'NONE' is reserved and cannot be used."
     );
     assert_validation_error!(
-        r#"
+        r"
         type Product @model {
             NOT: Int
         }
-        "#,
+        ",
         "Field name 'NOT' is reserved and cannot be used."
     );
 }
@@ -318,7 +318,7 @@ fn should_forbid_use_of_reserved_fields() {
 #[test]
 fn test_schema() {
     let nested_schema = super::parse_registry(
-        r#"
+        r"
         type User @model {
             id: ID!
             nested: Nested
@@ -327,7 +327,7 @@ fn test_schema() {
         type Nested {
           requiredField: String!
         }
-        "#,
+        ",
     )
     .unwrap();
 
@@ -342,23 +342,23 @@ fn test_schema() {
 #[named]
 fn test_model_reserved_fields() {
     let with_metadata_fields = super::parse_registry(
-        r#"
+        r"
         type Product @model {
             title: String
             id: ID!
             createdAt: DateTime!
             updatedAt: DateTime!
         }
-        "#,
+        ",
     )
     .unwrap();
 
     let without_metadata_fields = super::parse_registry(
-        r#"
+        r"
         type Product @model {
             title: String
         }
-        "#,
+        ",
     )
     .unwrap();
 
@@ -383,7 +383,7 @@ fn test_model_reserved_fields() {
 #[test]
 fn should_not_allow_same_enum_and_type() {
     let result = super::parse_registry(
-        r#"
+        r"
         type Product @model {
             id: ID!
             content: String!
@@ -394,7 +394,7 @@ fn should_not_allow_same_enum_and_type() {
           PRODUCT_A
           PRODUCT_B
         }
-        "#,
+        ",
     );
 
     assert!(result.is_err(), "Should error here");
@@ -403,41 +403,41 @@ fn should_not_allow_same_enum_and_type() {
 #[test]
 fn should_ensure_reserved_fields_have_correct_type_if_present() {
     assert_validation_error!(
-        r#"
+        r"
         type Product @model {
             id: Int!
         }
-        "#,
+        ",
         "Field 'id' of 'Product' is reserved by @model directive. It must have the type 'ID!' if present."
     );
 
     assert_validation_error!(
-        r#"
+        r"
         type Dummy @model {
             createdAt: DateTime
         }
-        "#,
+        ",
         "Field 'createdAt' of 'Dummy' is reserved by @model directive. It must have the type 'DateTime!' if present."
     );
 
     assert_validation_error!(
-        r#"
+        r"
         type Product @model {
             updatedAt: String!
         }
-        "#,
+        ",
         "Field 'updatedAt' of 'Product' is reserved by @model directive. It must have the type 'DateTime!' if present."
     );
 
     assert!(
         super::parse_registry(
-            r#"
+            r"
             type Product @model {
                 id: ID!
                 createdAt: DateTime!
                 updatedAt: DateTime!
             }
-            "#
+            "
         )
         .is_ok(),
         "Should support specifying explicitly reserved fields."
@@ -445,11 +445,11 @@ fn should_ensure_reserved_fields_have_correct_type_if_present() {
 
     assert!(
         super::parse_registry(
-            r#"
+            r"
             type Product @model {
                 name: String
             }
-            "#
+            "
         )
         .is_ok(),
         "@model directive should not require reserved fields."
@@ -457,13 +457,13 @@ fn should_ensure_reserved_fields_have_correct_type_if_present() {
 
     assert!(
         super::parse_registry(
-            r#"
+            r"
             type Product {
                 id: Int
                 createdAt: DateTime
                 updatedAt: String!
             }
-            "#
+            "
         )
         .is_ok(),
         "Reserved fields only apply with the @model directive."
@@ -473,12 +473,12 @@ fn should_ensure_reserved_fields_have_correct_type_if_present() {
 #[test]
 fn should_have_unique_fields() {
     assert_validation_error!(
-        r#"
+        r"
         type Product {
             count: Int
             count: Int
         }
-        "#,
+        ",
         "Field 'count' cannot be defined multiple times."
     );
 }
@@ -539,18 +539,18 @@ fn should_pick_up_required_resolvers() {
 #[named]
 fn should_support_search_directive() {
     let simple = super::parse_registry(
-        r#"
+        r"
             type Product @model {
                 title: String @search
             }
-            "#,
+            ",
     );
     assert!(simple.is_ok(), "Search should be supported on @model type");
     let simple = simple.unwrap();
     assert_snapshot(&format!("{}-simple", function_name!()), simple);
 
     let complex = super::parse_registry(
-        r#"
+        r"
             type Product @model {
               ip: IPAddress @search
               timestamp: Timestamp! @search
@@ -564,7 +564,7 @@ fn should_support_search_directive() {
               float: Float @search
               bool: Boolean @search
             }
-            "#,
+            ",
     );
 
     assert!(complex.is_ok(), "Search should support various field types.");
@@ -572,7 +572,7 @@ fn should_support_search_directive() {
     assert_snapshot(&format!("{}-complex", function_name!()), complex);
 
     let model_directive = super::parse_registry(
-        r#"
+        r"
             type Product @model @search {
               ip: IPAddress
               timestamp: Timestamp!
@@ -587,7 +587,7 @@ fn should_support_search_directive() {
               bool: Boolean
               json: JSON
             }
-            "#,
+            ",
     );
 
     assert!(
@@ -598,7 +598,7 @@ fn should_support_search_directive() {
     assert_snapshot(&format!("{}-model_directive", function_name!()), model_directive);
 
     let enum_field = super::parse_registry(
-        r#"
+        r"
             enum Status {
                 ACTIVE
                 INACTIVE
@@ -615,7 +615,7 @@ fn should_support_search_directive() {
                 pets: [Pet!]
                 name: String
             }
-            "#,
+            ",
     );
 
     assert!(enum_field.is_ok(), "Search should support model @search directive.");
@@ -623,29 +623,29 @@ fn should_support_search_directive() {
     assert_snapshot(&format!("{}-enum-field", function_name!()), model_directive);
 
     assert_validation_error!(
-        r#"
+        r"
             type Product {
                 title: String @search
             }
-        "#,
+        ",
         "The @search directive can only be used on @model types."
     );
 
     assert_validation_error!(
-        r#"
+        r"
             type Product @search {
                 title: String
             }
-        "#,
+        ",
         "The @search directive can only be used on @model types."
     );
 
     assert_validation_error!(
-        r#"
+        r"
             type Product @model {
                 title: JSON @search
             }
-        "#,
+        ",
         "The @search directive cannot be used with the JSON type."
     );
 }
@@ -654,7 +654,7 @@ fn should_support_search_directive() {
 #[named]
 fn test_search_enums_placed_after_use() {
     let registry = super::parse_registry(
-        r#"
+        r"
         type User @model @search {
             role: UserRoles! @default(value: EMPLOYEE)
         }
@@ -663,7 +663,7 @@ fn test_search_enums_placed_after_use() {
             EMPLOYEE
             CEO
         }
-        "#,
+        ",
     )
     .unwrap();
     assert_snapshot(function_name!(), registry);
@@ -671,7 +671,7 @@ fn test_search_enums_placed_after_use() {
 
 #[test]
 fn test_name_clashes_dont_cause_panic() {
-    let schema = r#"
+    let schema = r"
         type User {
             id: ID!
         }
@@ -679,14 +679,14 @@ fn test_name_clashes_dont_cause_panic() {
         type UserInput {
             id: ID!
         }
-    "#;
+    ";
     super::to_parse_result_with_variables(schema, &HashMap::new()).expect("must succeed");
 }
 
 #[test]
 fn test_with_lowercase_model_names() {
     assert_validation_error!(
-        r#"
+        r"
             type user @model {
                 name: String!
                 projects: [Project!]
@@ -695,7 +695,7 @@ fn test_with_lowercase_model_names() {
             type Project @model {
                 createdBy: user!
             }
-        "#,
+        ",
         "Models must be named in PascalCase.  Try renaming user to User."
     );
 }
@@ -703,7 +703,7 @@ fn test_with_lowercase_model_names() {
 #[test]
 fn test_missing_model_relation_gb4652() {
     assert_validation_error!(
-        r#"
+        r"
         type Space @model {
           posts: [Post]
         }
@@ -711,7 +711,7 @@ fn test_missing_model_relation_gb4652() {
         type Post {
           space: Space!
         }
-        "#,
+        ",
         "Non @model type (Post) cannot have a field (space) with a @model type (Space). Consider adding @model directive to Post."
     );
 }
@@ -719,18 +719,18 @@ fn test_missing_model_relation_gb4652() {
 #[test]
 fn test_experimental() {
     let result = super::parse_registry(
-        r#"
+        r"
             extend schema @experimental(kv: true)
-        "#,
+        ",
     )
     .unwrap();
 
     assert!(result.enable_kv);
 
     let result = super::parse_registry(
-        r#"
+        r"
             extend schema @experimental(kv: false)
-        "#,
+        ",
     )
     .unwrap();
 

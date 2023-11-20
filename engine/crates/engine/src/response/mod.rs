@@ -76,7 +76,7 @@ fn is_operation_introspection(operation: &OperationDefinition) -> bool {
 
 impl Response {
     pub fn to_graphql_response(&self) -> GraphQlResponse {
-        GraphQlResponse(&self)
+        GraphQlResponse(self)
     }
 
     /// Create a new successful response with the data.

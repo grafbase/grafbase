@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn test_maybe_undefined_serde() {
-        assert_eq!(to_value(&MaybeUndefined::Value(100i32)).unwrap(), value!(100));
+        assert_eq!(to_value(MaybeUndefined::Value(100i32)).unwrap(), value!(100));
 
         assert_eq!(
             from_value::<MaybeUndefined<i32>>(value!(100)).unwrap(),

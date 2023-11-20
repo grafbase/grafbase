@@ -57,7 +57,7 @@ async fn model_and_field_caching() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(
         &mut env,
-        r#"
+        r"
             type Model @model @cache(maxAge: 20) {
                 test: String!
             }
@@ -65,7 +65,7 @@ async fn model_and_field_caching() {
             type ModelAndField @model @cache(maxAge: 30) {
                 test: String! @cache(maxAge: 10)
             }
-        "#,
+        ",
     )
     .await;
 
@@ -75,7 +75,7 @@ async fn model_and_field_caching() {
     };
 
     // model caching
-    let query = r#"query {modelCollection(first: 10) {edges {node {test}}}}"#;
+    let query = r"query {modelCollection(first: 10) {edges {node {test}}}}";
     let response = call(query).await;
     assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("MISS"));
     assert_eq!(
@@ -88,7 +88,7 @@ async fn model_and_field_caching() {
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 
     // field caching
-    let query = r#"query {modelAndFieldCollection(first: 10) {edges {node {test}}}}"#;
+    let query = r"query {modelAndFieldCollection(first: 10) {edges {node {test}}}}";
     let response = call(query).await;
     assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("MISS"));
     assert_eq!(
@@ -105,11 +105,11 @@ async fn no_cache_on_non_cahced_field() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(
         &mut env,
-        r#"
+        r"
             type Post @model {
                 test: String!  @cache(maxAge: 20)
             }
-        "#,
+        ",
     )
     .await;
 
@@ -136,11 +136,11 @@ async fn no_cache_on_mutations() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(
         &mut env,
-        r#"
+        r"
             type Post @model @cache(maxAge: 30) {
                 test: String! @unique @cache(maxAge: 10)
             }
-        "#,
+        ",
     )
     .await;
 
@@ -180,25 +180,25 @@ async fn no_cache_on_same_query_different_variables() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(
         &mut env,
-        r#"
+        r"
             type Post @model @cache(maxAge: 30) {
                 test: String! @unique @cache(maxAge: 10)
             }
-        "#,
+        ",
     )
     .await;
 
     let call = |variables: serde_json::Value| async {
         client
             .gql::<Value>(
-                r#"
+                r"
                 query PostByTest($test: String!) {
                     post(by: { test: $test }) {
                         id
                         test
                     }
                 }
-                "#,
+                ",
             )
             .variables(variables)
             .into_reqwest_builder()
@@ -234,11 +234,11 @@ async fn no_cache_header_when_caching_is_not_used() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(
         &mut env,
-        r#"
+        r"
             type Post @model {
                 test: String!
             }
-        "#,
+        ",
     )
     .await;
 

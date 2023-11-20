@@ -23,14 +23,14 @@ fn page_info_no_nesting() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -84,14 +84,14 @@ fn page_info_first_has_more_data() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1) {
                 edges { node { name } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -139,14 +139,14 @@ fn page_info_last_has_more_data() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 1) {
                 edges { node { name } cursor }
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -216,7 +216,7 @@ fn nested_page_info_no_limit() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges {
@@ -231,7 +231,7 @@ fn nested_page_info_no_limit() {
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -324,7 +324,7 @@ fn nested_page_info_with_first() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges {
@@ -339,7 +339,7 @@ fn nested_page_info_with_first() {
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -425,7 +425,7 @@ fn nested_page_info_with_last() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges {
@@ -440,7 +440,7 @@ fn nested_page_info_with_last() {
                 pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

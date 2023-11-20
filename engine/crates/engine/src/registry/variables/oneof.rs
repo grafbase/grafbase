@@ -102,7 +102,7 @@ mod tests {
             "Unexpected message: {err}"
         );
 
-        let result = serde_json::from_str::<OneOf<String>>(r#"{}"#);
+        let result = serde_json::from_str::<OneOf<String>>(r"{}");
         let Err(err) = result else { panic!("Expected an error.") };
         assert!(
             err.to_string().contains("at least one field"),

@@ -85,21 +85,21 @@ mod tests {
     };
 
     #[rstest::rstest]
-    #[case::error_parsing_unknown_field(r#"
+    #[case::error_parsing_unknown_field(r"
         extend schema @experimental(random: true)
-    "#, &["Unable to parse @experimental - [2:37] unknown field `random`, expected one of `kv`, `ai`, `codegen`"], "", false)]
-    #[case::successful_parsing_kv_enabled(r#"
+    ", &["Unable to parse @experimental - [2:37] unknown field `random`, expected one of `kv`, `ai`, `codegen`"], "", false)]
+    #[case::successful_parsing_kv_enabled(r"
         extend schema @experimental(kv: true)
-    "#, &[], "kv", true)]
-    #[case::successful_parsing_kv_disabled(r#"
+    ", &[], "kv", true)]
+    #[case::successful_parsing_kv_disabled(r"
         extend schema @experimental(kv: false)
-    "#, &[], "kv", false)]
-    #[case::successful_parsing_ai_enabled(r#"
+    ", &[], "kv", false)]
+    #[case::successful_parsing_ai_enabled(r"
         extend schema @experimental(ai: true)
-    "#, &[], "ai", true)]
-    #[case::successful_parsing_ai_disabled(r#"
+    ", &[], "ai", true)]
+    #[case::successful_parsing_ai_disabled(r"
         extend schema @experimental(ai: false)
-    "#, &[], "ai", false)]
+    ", &[], "ai", false)]
     fn test_parsing(
         #[case] schema: &str,
         #[case] expected_messages: &[&str],

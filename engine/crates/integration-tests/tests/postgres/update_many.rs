@@ -24,7 +24,7 @@ fn with_returning() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdateMany(filter: { age: { eq: 11 } }, input: { age: { set: 10 } }) {
                 returning {
@@ -35,7 +35,7 @@ fn with_returning() {
                 rowCount
               }
             }
-        "#};
+        "};
 
         let result = serde_json::to_string_pretty(&api.execute(mutation).await.to_graphql_response()).unwrap();
 
@@ -62,13 +62,13 @@ fn with_returning() {
 
         expected.assert_eq(&result);
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { id name age } }
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -129,13 +129,13 @@ fn no_returning() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userUpdateMany(filter: { age: { eq: 11 } }, input: { age: { set: 10 } }) {
                 rowCount
               }
             }
-        "#};
+        "};
 
         let result = serde_json::to_string_pretty(&api.execute(mutation).await.to_graphql_response()).unwrap();
 
@@ -150,13 +150,13 @@ fn no_returning() {
 
         expected.assert_eq(&result);
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { id name age } }
               }
             }    
-        "#};
+        "};
 
         api.execute(query).await
     });

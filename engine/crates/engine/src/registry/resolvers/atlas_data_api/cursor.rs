@@ -97,7 +97,7 @@ impl AtlasCursor {
             acc
         });
 
-        for (key, value) in order_by.iter() {
+        for (key, value) in &order_by {
             let key_path = key.split('.');
 
             let field = key_path.fold(None, |acc, key| match acc {
@@ -125,7 +125,7 @@ impl AtlasCursor {
                 name: key.clone(),
                 value,
                 direction,
-            })
+            });
         }
 
         if !order_by.contains_key("_id") {

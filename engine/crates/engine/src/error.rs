@@ -119,7 +119,7 @@ impl ServerError {
     /// # });
     /// ```
     pub fn source<T: Any + Send + Sync>(&self) -> Option<&T> {
-        self.source.as_ref().map(|err| err.downcast_ref()).flatten()
+        self.source.as_ref().and_then(|err| err.downcast_ref())
     }
 
     #[doc(hidden)]

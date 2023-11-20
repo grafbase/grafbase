@@ -142,11 +142,11 @@ mod tests {
     fn all_variables_defined() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String, $b: String, $c: String) {
             field(a: $a, b: $b, c: $c)
           }
-        "#,
+        ",
         );
     }
 
@@ -154,7 +154,7 @@ mod tests {
     fn all_variables_deeply_defined() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String, $b: String, $c: String) {
             field(a: $a) {
               field(b: $b) {
@@ -162,7 +162,7 @@ mod tests {
               }
             }
           }
-        "#,
+        ",
         );
     }
 
@@ -170,7 +170,7 @@ mod tests {
     fn all_variables_deeply_defined_in_inline_fragments_defined() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String, $b: String, $c: String) {
             ... on Type {
               field(a: $a) {
@@ -182,7 +182,7 @@ mod tests {
               }
             }
           }
-        "#,
+        ",
         );
     }
 
@@ -190,7 +190,7 @@ mod tests {
     fn all_variables_in_fragments_deeply_defined() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String, $b: String, $c: String) {
             ...FragA
           }
@@ -207,7 +207,7 @@ mod tests {
           fragment FragC on Type {
             field(c: $c)
           }
-        "#,
+        ",
         );
     }
 
@@ -215,7 +215,7 @@ mod tests {
     fn variable_within_single_fragment_defined_in_multiple_operations() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String) {
             ...FragA
           }
@@ -225,7 +225,7 @@ mod tests {
           fragment FragA on Type {
             field(a: $a)
           }
-        "#,
+        ",
         );
     }
 
@@ -233,7 +233,7 @@ mod tests {
     fn variable_within_fragments_defined_in_operations() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String) {
             ...FragA
           }
@@ -246,7 +246,7 @@ mod tests {
           fragment FragB on Type {
             field(b: $b)
           }
-        "#,
+        ",
         );
     }
 
@@ -254,7 +254,7 @@ mod tests {
     fn variable_within_recursive_fragment_defined() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String) {
             ...FragA
           }
@@ -263,7 +263,7 @@ mod tests {
               ...FragA
             }
           }
-        "#,
+        ",
         );
     }
 
@@ -271,11 +271,11 @@ mod tests {
     fn variable_not_defined() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String, $b: String, $c: String) {
             field(a: $a, b: $b, c: $c, d: $d)
           }
-        "#,
+        ",
         );
     }
 
@@ -283,11 +283,11 @@ mod tests {
     fn variable_not_defined_by_unnamed_query() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           {
             field(a: $a)
           }
-        "#,
+        ",
         );
     }
 
@@ -295,11 +295,11 @@ mod tests {
     fn multiple_variables_not_defined() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo($b: String) {
             field(a: $a, b: $b, c: $c)
           }
-        "#,
+        ",
         );
     }
 
@@ -307,14 +307,14 @@ mod tests {
     fn variable_in_fragment_not_defined_by_unnamed_query() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           {
             ...FragA
           }
           fragment FragA on Type {
             field(a: $a)
           }
-        "#,
+        ",
         );
     }
 
@@ -322,7 +322,7 @@ mod tests {
     fn variable_in_fragment_not_defined_by_operation() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String, $b: String) {
             ...FragA
           }
@@ -339,7 +339,7 @@ mod tests {
           fragment FragC on Type {
             field(c: $c)
           }
-        "#,
+        ",
         );
     }
 
@@ -347,7 +347,7 @@ mod tests {
     fn multiple_variables_in_fragments_not_defined() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo($b: String) {
             ...FragA
           }
@@ -364,7 +364,7 @@ mod tests {
           fragment FragC on Type {
             field(c: $c)
           }
-        "#,
+        ",
         );
     }
 
@@ -372,7 +372,7 @@ mod tests {
     fn single_variable_in_fragment_not_defined_by_multiple_operations() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo($a: String) {
             ...FragAB
           }
@@ -382,7 +382,7 @@ mod tests {
           fragment FragAB on Type {
             field(a: $a, b: $b)
           }
-        "#,
+        ",
         );
     }
 
@@ -390,7 +390,7 @@ mod tests {
     fn variables_in_fragment_not_defined_by_multiple_operations() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo($b: String) {
             ...FragAB
           }
@@ -400,7 +400,7 @@ mod tests {
           fragment FragAB on Type {
             field(a: $a, b: $b)
           }
-        "#,
+        ",
         );
     }
 
@@ -408,7 +408,7 @@ mod tests {
     fn variable_in_fragment_used_by_other_operation() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo($b: String) {
             ...FragA
           }
@@ -421,7 +421,7 @@ mod tests {
           fragment FragB on Type {
             field(b: $b)
           }
-        "#,
+        ",
         );
     }
 
@@ -429,7 +429,7 @@ mod tests {
     fn multiple_undefined_variables_produce_multiple_errors() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query Foo($b: String) {
             ...FragAB
           }
@@ -444,7 +444,7 @@ mod tests {
           fragment FragC on Type {
             field2(c: $c)
           }
-        "#,
+        ",
         );
     }
 }

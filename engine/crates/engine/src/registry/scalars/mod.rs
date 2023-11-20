@@ -223,9 +223,9 @@ where
     }
 }
 
-const SPECIFIED_BY_DIRECTIVE: &str = r#"
+const SPECIFIED_BY_DIRECTIVE: &str = r"
 directive @specifiedBy(url: String!) on SCALAR
-"#;
+";
 
 impl<'a> SDLDefinitionScalar<'a> for PossibleScalarNil {
     fn sdl() -> String {

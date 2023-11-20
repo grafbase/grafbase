@@ -41,8 +41,7 @@ impl<'a> Visitor<'a> for FieldsOnCorrectType {
                             parent_type
                                 .fields()
                                 .iter()
-                                .map(|fields| fields.keys())
-                                .flatten()
+                                .flat_map(|fields| fields.keys())
                                 .map(String::as_str),
                             &field.node.name.node,
                         )
@@ -66,13 +65,13 @@ mod tests {
     fn selection_on_object() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment objectFieldSelection on Dog {
             __typename
             name
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -80,13 +79,13 @@ mod tests {
     fn aliased_selection_on_object() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment aliasedObjectFieldSelection on Dog {
             tn : __typename
             otherName : name
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -94,13 +93,13 @@ mod tests {
     fn selection_on_interface() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment interfaceFieldSelection on Pet {
             __typename
             name
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -108,12 +107,12 @@ mod tests {
     fn aliased_selection_on_interface() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment interfaceFieldSelection on Pet {
             otherName : name
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -121,12 +120,12 @@ mod tests {
     fn lying_alias_selection() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment lyingAliasSelection on Dog {
             name : nickname
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -134,12 +133,12 @@ mod tests {
     fn ignores_unknown_type() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment unknownSelection on UnknownType {
             unknownField
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -147,7 +146,7 @@ mod tests {
     fn nested_unknown_fields() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment typeKnownAgain on Pet {
             unknown_pet_field {
               ... on Cat {
@@ -156,7 +155,7 @@ mod tests {
             }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -164,12 +163,12 @@ mod tests {
     fn unknown_field_on_fragment() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment fieldNotDefined on Dog {
             meowVolume
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -177,14 +176,14 @@ mod tests {
     fn ignores_deeply_unknown_field() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment deepFieldNotDefined on Dog {
             unknown_field {
               deeper_unknown_field
             }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -192,14 +191,14 @@ mod tests {
     fn unknown_subfield() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment subFieldNotDefined on Human {
             pets {
               unknown_field
             }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -207,14 +206,14 @@ mod tests {
     fn unknown_field_on_inline_fragment() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment fieldNotDefined on Pet {
             ... on Dog {
               meowVolume
             }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -222,12 +221,12 @@ mod tests {
     fn unknown_aliased_target() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment aliasedFieldTargetNotDefined on Dog {
             volume : mooVolume
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -235,12 +234,12 @@ mod tests {
     fn unknown_aliased_lying_field_target() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment aliasedLyingFieldTargetNotDefined on Dog {
             barkVolume : kawVolume
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -248,12 +247,12 @@ mod tests {
     fn not_defined_on_interface() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment notDefinedOnInterface on Pet {
             tailLength
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -261,12 +260,12 @@ mod tests {
     fn defined_in_concrete_types_but_not_interface() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment definedOnImplementorsButNotInterface on Pet {
             nickname
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -274,12 +273,12 @@ mod tests {
     fn meta_field_on_union() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment definedOnImplementorsButNotInterface on Pet {
             __typename
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -287,12 +286,12 @@ mod tests {
     fn fields_on_union() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment definedOnImplementorsQueriedOnUnion on CatOrDog {
             name
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -300,7 +299,7 @@ mod tests {
     fn typename_on_union() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment objectFieldSelection on Pet {
             __typename
             ... on Dog {
@@ -311,7 +310,7 @@ mod tests {
             }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -319,7 +318,7 @@ mod tests {
     fn valid_field_in_inline_fragment() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment objectFieldSelection on Pet {
             ... on Dog {
               name
@@ -329,7 +328,7 @@ mod tests {
             }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 

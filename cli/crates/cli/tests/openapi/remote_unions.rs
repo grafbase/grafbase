@@ -30,7 +30,7 @@ async fn remote_unions_test() {
     insta::assert_yaml_snapshot!(
         client
             .gql::<Value>(
-                r#"
+                r"
                     query {
                         petstore {
                             pets {
@@ -47,7 +47,7 @@ async fn remote_unions_test() {
                             }
                         }
                     }
-                "#,
+                ",
             )
             .await,
         @r###"
@@ -76,7 +76,7 @@ async fn remote_unions_test() {
     insta::assert_yaml_snapshot!(
         client
             .gql::<Value>(
-                r#"
+                r"
                     query {
                         petstore {
                             owner {
@@ -90,7 +90,7 @@ async fn remote_unions_test() {
                             }
                         }
                     }
-                "#,
+                ",
             )
             .await,
         @r###"

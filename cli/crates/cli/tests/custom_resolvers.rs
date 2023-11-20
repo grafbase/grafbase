@@ -44,7 +44,7 @@ enum JavaScriptPackageManager {
         }
     "#,
     "fetch-grafbase-graphql.js",
-    r#"
+    r"
         export default function Resolver(parent, args, context, info) {
             return fetch('https://api.grafbase.com/graphql', {
                 headers: {
@@ -54,7 +54,7 @@ enum JavaScriptPackageManager {
                 body: JSON.stringify({ query: '{ __typename }' })
             });
         }
-    "#,
+    ",
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { fetchResult } }", "data.post.fetchResult")
     ],
@@ -69,11 +69,11 @@ enum JavaScriptPackageManager {
         }
     "#,
     "return-env-variable.js",
-    r#"
+    r"
         export default function Resolver(parent, args, context, info) {
             return process.env[args.name] || null;
         }
-    "#,
+    ",
     &[
         (
             r#"
@@ -116,13 +116,13 @@ enum JavaScriptPackageManager {
     "#,
     &[
         (
-            r#"
+            r"
                 query GetPost($id: ID!) {
                     post(by: { id: $id }) {
                         variable
                     }
                 }
-            "#,
+            ",
             "data.post.variable"
         ),
     ],
@@ -157,11 +157,11 @@ enum JavaScriptPackageManager {
         }
     "#,
     "return-title.js",
-    r#"
+    r"
         export default function Resolver(parent, args, context, info) {
             return parent.title;
         }
-    "#,
+    ",
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { title2 } }", "data.post.title2")
     ],
@@ -176,11 +176,11 @@ enum JavaScriptPackageManager {
         }
     "#,
     "return-header-value.js",
-    r#"
+    r"
         export default function Resolver(parent, args, context, info) {
             return context.request.headers[args.name];
         }
-    "#,
+    ",
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { headerValue(name: \"x-test-header\") } }", "data.post.headerValue")
     ],
@@ -195,12 +195,12 @@ enum JavaScriptPackageManager {
         }
     "#,
     "resolver.js",
-    r#"
+    r"
         const isPalindrome = require('is-palindrome');
         export default function Resolver(parent, args, context, info) {
             return isPalindrome(parent.title);
         }
-    "#,
+    ",
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
     ],
@@ -222,12 +222,12 @@ enum JavaScriptPackageManager {
         }
     "#,
     "resolver.js",
-    r#"
+    r"
         const isPalindrome = require('is-palindrome');
         export default function Resolver(parent, args, context, info) {
             return isPalindrome(parent.title);
         }
-    "#,
+    ",
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
     ],
@@ -249,12 +249,12 @@ enum JavaScriptPackageManager {
         }
     "#,
     "resolver.js",
-    r#"
+    r"
         const isPalindrome = require('is-palindrome');
         export default function Resolver(parent, args, context, info) {
             return isPalindrome(parent.title);
         }
-    "#,
+    ",
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
     ],
@@ -354,20 +354,20 @@ fn test_field_resolver(
     &[
         (
             "hello.js",
-            r#"
+            r"
                 export default function Resolver(parent, args, context, info) {
                     return 'Hello World!';
                 }
-            "#
+            "
         )
     ],
     &[
         (
-            r#"
+            r"
                 {
                     hello
                 }
-            "#,
+            ",
             "data.hello"
         ),
     ],
@@ -382,11 +382,11 @@ fn test_field_resolver(
     &[
         (
             "string-to-number.js",
-            r#"
+            r"
                 export default function Resolver(parent, args, context, info) {
                     return +args.string;
                 }
-            "#,
+            ",
         )
     ],
     &[
@@ -410,30 +410,30 @@ fn test_field_resolver(
     &[
         (
             "another-file.js",
-            r#"
+            r"
                 export function helper(parent, args, context, info) {
                     return 'Hello World!';
                 }
-            "#
+            "
         ),
         (
             "hello.js",
-            r#"
+            r"
                 import { helper } from './another-file';
 
                 export default function Resolver(parent, args, context, info) {
                     return helper(parent, args, context, info);
                 }
-            "#,
+            ",
         )
     ],
     &[
         (
-            r#"
+            r"
                 {
                     hello
                 }
-            "#,
+            ",
             "data.hello"
         ),
     ],
@@ -458,11 +458,11 @@ fn test_field_resolver(
     ],
     &[
         (
-            r#"
+            r"
                 {
                     hello
                 }
-            "#,
+            ",
             "data.hello"
         ),
     ],

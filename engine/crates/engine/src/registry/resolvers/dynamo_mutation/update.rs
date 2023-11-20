@@ -55,7 +55,7 @@ pub(super) async fn batch(
     ty: &ModelName,
 ) -> Result<ResolvedValue, Error> {
     let meta_type = ctx.registry().lookup(ty)?;
-    let (by_ids, by_constraints) = partition_by_identifier(ctx, &meta_type, input)?;
+    let (by_ids, by_constraints) = partition_by_identifier(ctx, meta_type, input)?;
 
     let increment = Arc::new(AtomicUsize::new(0));
     let (ids, selections, transactions): (Vec<_>, Vec<_>, Vec<_>) = generate_updates(ctx, by_ids, by_constraints)

@@ -20,11 +20,11 @@ fn after_with_no_sort() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 2) { pageInfo { endCursor } }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.endCursor");
@@ -73,7 +73,7 @@ fn after_with_sort_asc_no_nulls() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 first: 2,
@@ -83,7 +83,7 @@ fn after_with_sort_asc_no_nulls() {
                 pageInfo { endCursor }
               }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.endCursor");
@@ -137,7 +137,7 @@ fn after_with_sort_asc_with_nulls() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 first: 1,
@@ -147,7 +147,7 @@ fn after_with_sort_asc_with_nulls() {
                 pageInfo { endCursor }
               }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.endCursor");
@@ -205,7 +205,7 @@ fn after_with_sort_desc_no_nulls() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 first: 2,
@@ -215,7 +215,7 @@ fn after_with_sort_desc_no_nulls() {
                 pageInfo { endCursor }
               }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.endCursor");
@@ -269,7 +269,7 @@ fn after_with_sort_desc_with_nulls() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 first: 2,
@@ -279,7 +279,7 @@ fn after_with_sort_desc_with_nulls() {
                 pageInfo { endCursor }
               }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.endCursor");
@@ -332,11 +332,11 @@ fn after_has_next_and_previous_page_if_more_data() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 2) { pageInfo { hasPreviousPage hasNextPage } }
             }     
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -373,11 +373,11 @@ fn after_has_next_and_previous_page_if_not_more_data() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 3) { pageInfo { hasPreviousPage hasNextPage } }
             }     
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -414,11 +414,11 @@ fn before_with_no_sort() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 2) { edges { node { age } } pageInfo { startCursor } }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.startCursor");
@@ -467,7 +467,7 @@ fn before_with_sort_asc_no_nulls() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 last: 2,
@@ -477,7 +477,7 @@ fn before_with_sort_asc_no_nulls() {
                 pageInfo { startCursor }
               }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.startCursor");
@@ -533,7 +533,7 @@ fn before_with_sort_asc_with_nulls() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 last: 2,
@@ -543,7 +543,7 @@ fn before_with_sort_asc_with_nulls() {
                 pageInfo { startCursor }
               }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.startCursor");
@@ -599,7 +599,7 @@ fn before_with_sort_desc_no_nulls() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 last: 2,
@@ -609,7 +609,7 @@ fn before_with_sort_desc_no_nulls() {
                 pageInfo { startCursor }
               }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.startCursor");
@@ -665,7 +665,7 @@ fn before_with_sort_desc_with_nulls() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(
                 last: 2,
@@ -675,7 +675,7 @@ fn before_with_sort_desc_with_nulls() {
                 pageInfo { startCursor }
               }
             }     
-        "#};
+        "};
 
         let response = api.execute(query).await;
         let cursor = response.get_string("userCollection.pageInfo.startCursor");
@@ -731,11 +731,11 @@ fn before_has_previous_page_if_more_data() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 2) { edges { node { age } } pageInfo { hasPreviousPage hasNextPage } }
             }     
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -784,11 +784,11 @@ fn before_has_previous_page_if_not_more_data() {
 
         api.insert_many("users", documents).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 3) { edges { node { age } } pageInfo { hasPreviousPage hasNextPage } }
             }     
-        "#};
+        "};
 
         api.execute(query).await
     });

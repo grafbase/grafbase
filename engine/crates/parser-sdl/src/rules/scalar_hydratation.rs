@@ -70,14 +70,14 @@ mod tests {
 
     #[test]
     fn should_error_when_defining_a_invalid_scalar() {
-        let schema = r#"
+        let schema = r"
             scalar DateInvalid
 
             type Product @model {
                 id: ID!
                 test: DateInvalid!
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -87,7 +87,7 @@ mod tests {
         assert!(!ctx.errors.is_empty(), "shouldn't be empty");
         assert_eq!(ctx.errors.len(), 1, "should have one error");
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "\"DateInvalid\" is not a proper scalar",
             "should match"
         );
@@ -95,14 +95,14 @@ mod tests {
 
     #[test]
     fn should_work_with_a_valid_scalar() {
-        let schema = r#"
+        let schema = r"
             scalar DateTime
 
             type Product @model {
                 id: ID!
                 test: DateTime!
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 

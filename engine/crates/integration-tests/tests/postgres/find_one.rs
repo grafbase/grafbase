@@ -23,11 +23,11 @@ fn by_pk_no_rename() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 1 }) { id name }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -63,13 +63,13 @@ fn namespaced() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               postgres {
                 user(by: { id: 1 }) { id name }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -107,11 +107,11 @@ fn by_pk_with_rename() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { idField: 1 }) { idField nameField }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -334,14 +334,14 @@ fn by_id_when_having_another_unique() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               user(by: { id: 2 }) {
                 id
                 email
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -413,38 +413,38 @@ fn cedalio_issue_november_2023() {
     // this schema crashed for missing enum input types
 
     let response = query_namespaced_postgres("pg", |api| async move {
-        let create = indoc! {r#"
+        let create = indoc! {r"
             CREATE TYPE access_mode AS ENUM ('PUBLIC', 'PUBLIC_READ', 'PRIVATE');
-        "#};
+        "};
 
         api.execute_sql(create).await;
 
-        let create = indoc! {r#"
+        let create = indoc! {r"
             CREATE TYPE project_status AS ENUM ('CREATED', 'READY', 'FAILED');
-        "#};
+        "};
 
         api.execute_sql(create).await;
 
-        let create = indoc! {r#"
+        let create = indoc! {r"
             CREATE TABLE networks (
                 id SERIAL PRIMARY KEY
             );
-        "#};
+        "};
 
         api.execute_sql(create).await;
 
-        let create = indoc! {r#"
+        let create = indoc! {r"
             CREATE TABLE projects (
                 id SERIAL PRIMARY KEY,
                 access_mode access_mode NOT NULL,
                 status project_status DEFAULT 'CREATED' NOT NULL,
                 network_id INT REFERENCES networks(id)
             );
-        "#};
+        "};
 
         api.execute_sql(create).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query Pg {
               pg {
                 networksCollection(first: 10) {
@@ -459,7 +459,7 @@ fn cedalio_issue_november_2023() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

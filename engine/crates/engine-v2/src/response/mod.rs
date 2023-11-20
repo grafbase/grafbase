@@ -8,7 +8,6 @@ mod write;
 
 pub use error::GraphqlError;
 pub use read::{ReadSelection, ReadSelectionSet, ResponseObjectsView};
-pub use write::WriteSelectionSet;
 
 use crate::execution::{StrId, Strings};
 
