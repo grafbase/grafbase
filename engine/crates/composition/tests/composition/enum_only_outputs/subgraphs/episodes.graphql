@@ -5,10 +5,10 @@ type Episode {
   featuredToys: [FavoriteToy!]
 }
 
-type Teletubby @federation__key(fields: "name") {
+type Teletubby @key(fields: "name") {
   name: String!
   episodesFeatured: [Episode]
-  favoriteToy: FavoriteToy @federation__shareable
+  favoriteToy: FavoriteToy @shareable
 }
 
 type Query {
