@@ -95,6 +95,20 @@ pub(crate) struct NestedKeyFields {
     fields: HashSet<FieldId>,
 
     /// Objects that are part of keys that are not defined on the object itself.
+    ///
+    /// Example:
+    ///
+    /// ```graphql,ignore
+    /// type Entity @key(fields: "name nested { identifier }") {
+    ///   name: String!
+    /// }
+    ///
+    /// type Nested {
+    ///   identifier: ID!
+    /// }
+    /// ```
+    ///
+    /// `Nested` is an object with a nested key.
     objects_with_nested_keys: HashSet<DefinitionId>,
 }
 
