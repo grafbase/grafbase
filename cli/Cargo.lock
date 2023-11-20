@@ -2103,6 +2103,7 @@ dependencies = [
  "grafbase-graphql-introspection",
  "graphql-composition",
  "handlebars",
+ "http",
  "indoc",
  "log 0.4.20",
  "reqwest",

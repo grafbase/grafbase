@@ -1,8 +1,12 @@
-use engine::{ServerError, ServerResult};
-use engine_parser::types::OperationDefinition;
 use schema::Schema;
 
-use crate::{executor::ExecutorCoordinator, plan::PlannedOperation};
+use crate::{
+    error::EngineError,
+    executor::ExecutorCoordinator,
+    plan::OperationPlan,
+    request::{parse_operation, Operation},
+    response::Response,
+};
 
 pub struct Engine {
     pub(crate) schema: Schema,
@@ -13,29 +17,21 @@ impl Engine {
         Self { schema }
     }
 
-    pub async fn execute_request(&self, request: engine::Request) -> ServerResult<serde_json::Value> {
-        let document = engine_parser::parse_query(request.query)?;
-
-        let mut operations = document.operations.iter();
-
-        let operation = match request.operation_name {
-            None => operations
-                .next()
-                .ok_or_else(|| ServerError::new("document contains no operations", None))?,
-            Some(expected_name) => operations
-                .find(|(name, _)| name.is_some() && *name.unwrap() == expected_name)
-                .ok_or_else(|| ServerError::new(format!("could not find an operation named {expected_name}"), None))?,
+    pub async fn execute(&self, request: engine::Request) -> Response<'_> {
+        match self.prepare(request).await {
+            Ok(plan) => {
+                let mut executor = ExecutorCoordinator::new(self, &plan);
+                executor.execute().await;
+                executor.get_response()
+            }
+            Err(err) => Response::from_error(err),
         }
-        .1
-        .clone()
-        .node;
-
-        self.execute(operation).await
     }
 
-    pub async fn execute(&self, operation_definition: OperationDefinition) -> ServerResult<serde_json::Value> {
-        let planned_operation = PlannedOperation::build(self, operation_definition);
-        let response = ExecutorCoordinator::new(self, planned_operation).execute().await;
-        Ok(response)
+    async fn prepare(&self, request: engine::Request) -> Result<OperationPlan, EngineError> {
+        let unbound_operation = parse_operation(&request)?;
+        let operation = Operation::bind(&self.schema, unbound_operation)?;
+        let plan = OperationPlan::prepare(self, operation)?;
+        Ok(plan)
     }
 }

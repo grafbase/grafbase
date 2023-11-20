@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use super::bus::{GraphReceiver, RequestReceiver, ResponseSender};
-use engine::ServerError;
 use engine_v2::Engine;
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
@@ -48,12 +47,7 @@ impl Router {
                 (RouterMessage::Request(_, response_sender), None) => {
                     log::trace!("router got a new request with a missingengine");
 
-                    response_sender
-                        .send(Err(ServerError::new(
-                            "there are no subgraphs registered currently",
-                            None,
-                        )))
-                        .ok();
+                    response_sender.send(Err(RouterError::NoSubgraphs)).ok();
                 }
             }
         }
@@ -65,7 +59,11 @@ fn new_engine(graph: FederatedGraph) -> Arc<Engine> {
 }
 
 async fn run_request(request: engine::Request, response_sender: ResponseSender, engine: Arc<Engine>) {
-    response_sender.send(engine.execute_request(request).await).ok();
+    response_sender
+        .send(
+            serde_json::to_vec(&engine.execute(request).await).map_err(|err| RouterError::SerdeError(err.to_string())),
+        )
+        .ok();
 }
 
 enum RouterMessage {
@@ -80,3 +78,13 @@ impl RouterMessage {
 }
 
 type RouterStream = BoxStream<'static, RouterMessage>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum RouterError {
+    #[error("there are no subgraphs registered currently")]
+    NoSubgraphs,
+    #[error("Serialization failure: {0}")]
+    SerdeError(String),
+}
+
+pub type RouterResult<T> = Result<T, RouterError>;

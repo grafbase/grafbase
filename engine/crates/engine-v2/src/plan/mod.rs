@@ -8,9 +8,11 @@ use crate::{
 
 mod planner;
 mod plans;
+mod tracker;
 
-pub use planner::PlannedOperation;
+pub use planner::{OperationPlan, PrepareError};
 pub use plans::{ExecutionPlans, PlanId};
+pub use tracker::ExecutableTracker;
 
 pub struct ExecutionPlan {
     pub path: OperationPath,
