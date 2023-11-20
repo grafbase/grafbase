@@ -3,7 +3,7 @@ use crate::{
     composition_ir as ir,
     subgraphs::{FieldTypeId, StringId},
 };
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 /// The arguments of a federated graph's fields are the interseciton of the subgraph's arguments for
 /// that field.
@@ -83,6 +83,37 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
 
     let requires = fields.iter().filter(|f| f.requires().is_some()).map(|f| f.id).collect();
 
+    let mut composed_directives = Vec::new();
+
+    if let Some(reason) = fields.iter().find_map(|f| f.deprecated().map(|d| d.map(|d| d.id))) {
+        let arguments = match reason {
+            Some(reason) => vec![(
+                ctx.insert_static_str("reason"),
+                graphql_federated_graph::Value::String(ctx.insert_string(reason)),
+            )],
+            None => Vec::new(),
+        };
+        let directive_name = ctx.insert_static_str("deprecated");
+        composed_directives.push(graphql_federated_graph::Directive {
+            name: directive_name,
+            arguments,
+        });
+    }
+
+    for tag in fields
+        .iter()
+        .flat_map(|f| f.tags().map(|t| t.id))
+        .collect::<BTreeSet<_>>()
+    {
+        let directive_name = ctx.insert_static_str("tag");
+        let argument_name = ctx.insert_static_str("name");
+        let tag_argument = graphql_federated_graph::Value::String(ctx.insert_string(tag));
+        composed_directives.push(graphql_federated_graph::Directive {
+            name: directive_name,
+            arguments: vec![(argument_name, tag_argument)],
+        });
+    }
+
     ctx.insert_field(ir::FieldIr {
         parent_name: first.parent_definition().name().id,
         field_name: first.name().id,
@@ -91,5 +122,6 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         resolvable_in,
         provides,
         requires,
+        composed_directives,
     });
 }

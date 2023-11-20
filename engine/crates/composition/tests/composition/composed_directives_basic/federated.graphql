@@ -1,0 +1,58 @@
+enum join__Graph {
+    BIRDWATCH_BASIC @join__graph(name: "birdwatch_basic", url: "http://example.com/birdwatch_basic")
+    OBSERVATIONS @join__graph(name: "observations", url: "http://example.com/observations")
+    SIGHTINGS @join__graph(name: "sightings", url: "http://example.com/sightings")
+}
+
+scalar DateTime
+
+type Bird {
+    id: ID!
+    name: String!
+    species: String!
+    observedAt: DateTime! @deprecated(reason: "Use UNIX timestamps instead as customary in bird watching")
+    location: String! @tag(name: "locationService") @tag(name: "b") @tag(name: "a")
+    notes: String @deprecated(reason: "Field is obsolete due to new data model.")
+}
+
+type Query {
+    birds: [Bird] @join__field(graph: BIRDWATCH_BASIC)
+    bird(id: ID!): Bird @join__field(graph: BIRDWATCH_BASIC)
+    birdObservations(filters: BirdObservationFilters): [BirdObservation] @join__field(graph: OBSERVATIONS)
+    birdObservation(observationID: ID!): BirdObservation @join__field(graph: OBSERVATIONS)
+    birdSightings: [BirdSighting] @join__field(graph: SIGHTINGS)
+    birdSighting(sightingID: ID!, private: Boolean): BirdSighting @join__field(graph: SIGHTINGS)
+}
+
+type BirdObservation {
+    bird: Bird! @join__field(graph: OBSERVATIONS)
+    observationID: ID! @join__field(graph: OBSERVATIONS)
+    observerDetails: ObserverDetails! @join__field(graph: OBSERVATIONS)
+    timeOfObservation: DateTime! @join__field(graph: OBSERVATIONS)
+}
+
+type ObserverDetails {
+    name: String! @join__field(graph: OBSERVATIONS)
+    membershipNumber: String @join__field(graph: OBSERVATIONS)
+    observerType: ObserverType! @join__field(graph: OBSERVATIONS)
+}
+
+type BirdSighting {
+    bird: Bird! @join__field(graph: SIGHTINGS)
+    sightingID: ID! @join__field(graph: SIGHTINGS)
+    observer: String! @join__field(graph: SIGHTINGS)
+    weatherConditions: String @join__field(graph: SIGHTINGS)
+}
+
+enum ObserverType {
+    AMATEUR
+    SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals")
+    PROFESSIONAL
+}
+
+input BirdObservationFilters {
+    observerName: String
+    observerType: ObserverType
+    observedAt: DateTime
+    first: Int
+}

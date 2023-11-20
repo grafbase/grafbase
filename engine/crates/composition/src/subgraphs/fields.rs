@@ -18,6 +18,18 @@ pub(super) struct Field {
     requires: Option<Vec<Selection>>,
     is_shareable: bool,
     is_external: bool,
+
+    // @deprecated
+    deprecated: Option<Deprecation>,
+
+    // @tag
+    tags: Vec<StringId>,
+}
+
+/// Corresponds to an `@deprecated` directive.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Deprecation {
+    pub(crate) reason: Option<StringId>,
 }
 
 impl Subgraphs {
@@ -35,6 +47,8 @@ impl Subgraphs {
             is_external,
             provides,
             requires,
+            deprecated,
+            tags,
         }: FieldIngest<'_>,
     ) -> Result<FieldId, String> {
         let provides = provides
@@ -43,6 +57,7 @@ impl Subgraphs {
         let requires = requires
             .map(|requires| self.selection_set_from_str(requires))
             .transpose()?;
+        let tags = tags.into_iter().map(|tag| self.strings.intern(tag)).collect();
         let name = self.strings.intern(field_name);
 
         if let Some(last_field) = self.fields.0.last() {
@@ -58,6 +73,8 @@ impl Subgraphs {
             arguments: Vec::new(),
             provides,
             requires,
+            deprecated,
+            tags,
         };
         let id = FieldId(self.fields.0.push_return_idx(field));
         let parent_object_name = self.walk(parent_definition_id).name().id;
@@ -80,6 +97,8 @@ pub(crate) struct FieldIngest<'a> {
     pub(crate) is_external: bool,
     pub(crate) provides: Option<&'a str>,
     pub(crate) requires: Option<&'a str>,
+    pub(crate) deprecated: Option<Deprecation>,
+    pub(crate) tags: Vec<&'a str>,
 }
 
 pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;
@@ -98,6 +117,27 @@ impl<'a> FieldWalker<'a> {
     /// ```
     pub(crate) fn arguments(self) -> impl Iterator<Item = ArgumentWalker<'a>> {
         self.field().arguments.iter().map(move |id| self.walk(*id))
+    }
+
+    /// The contents of the `@deprecated` directive. `None` in the absence of directive,
+    /// `Some(None)` when no reason is provided.
+    pub(crate) fn deprecated(self) -> Option<Option<StringWalker<'a>>> {
+        self.field()
+            .deprecated
+            .map(|deprecated| deprecated.reason.map(|deprecated| self.walk(deprecated)))
+    }
+
+    /// ```graphql,ignore
+    /// type Query {
+    ///     findManyUser(
+    ///       filters: FindManyUserFilter?,
+    ///       searchQuery: String?
+    ///     ): [User!]! @tag(name: "Taste") @tag(name: "the") @tag(name: "Rainbow")
+    ///                 ^^^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^
+    /// }
+    /// ```
+    pub(crate) fn tags(self) -> impl Iterator<Item = StringWalker<'a>> {
+        self.field().tags.iter().map(move |id| self.walk(*id))
     }
 
     pub fn is_external(self) -> bool {

@@ -1,0 +1,25 @@
+type Bird @shareable {
+    id: ID!
+    name: String!
+    species: String!
+    observedAt: DateTime! @deprecated
+    location: String!
+    notes: String @deprecated(reason: "Use `birdSighting` field instead.")
+}
+
+type BirdSighting @key(field: "id") @deprecated(reason: "we haven't seen any birds in a while :(") {
+    sightingID: ID!
+    bird: Bird!
+    observer: String!
+    weatherConditions: String
+}
+
+type Query {
+    birdSightings: [BirdSighting]
+    birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting
+}
+
+schema {
+    query: Query
+}
+

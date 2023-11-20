@@ -67,6 +67,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
         resolvable_in,
         provides,
         requires,
+        composed_directives,
     } in ir_fields
     {
         let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
@@ -88,7 +89,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                 provides: Vec::new(),
                 requires: Vec::new(),
                 resolvable_in,
-                composed_directives: Vec::new(),
+                composed_directives,
             };
 
             let id = federated::FieldId(ctx.out.fields.push_return_idx(field));

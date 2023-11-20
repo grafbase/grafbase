@@ -129,7 +129,27 @@ impl CompositionIr {
         id
     }
 
-    pub(crate) fn insert_enum_value(&mut self, enum_id: federated::EnumId, value: StringWalker<'_>) {
+    pub(crate) fn insert_enum_value(
+        &mut self,
+        enum_id: federated::EnumId,
+        value: StringWalker<'_>,
+        deprecation: Option<Option<StringWalker<'_>>>,
+    ) {
+        let mut composed_directives = Vec::new();
+
+        if let Some(deprecation) = deprecation {
+            let arguments = match deprecation {
+                Some(reason) => vec![(
+                    self.insert_static_str("reason"),
+                    federated::Value::String(self.insert_string(reason)),
+                )],
+                None => Vec::new(),
+            };
+            let name = self.insert_static_str("deprecated");
+
+            composed_directives.push(federated::Directive { name, arguments });
+        }
+
         let value = self.insert_string(value);
         let r#enum = &mut self.enums[enum_id.0];
 
@@ -139,7 +159,7 @@ impl CompositionIr {
 
         r#enum.values.push(federated::EnumValue {
             value,
-            composed_directives: Vec::new(),
+            composed_directives,
         });
     }
 
@@ -151,8 +171,12 @@ impl CompositionIr {
         self.union_members.insert((union_name, member_name));
     }
 
-    fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
+    pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
         self.strings.insert(string)
+    }
+
+    pub(crate) fn insert_static_str(&mut self, string: &'static str) -> federated::StringId {
+        self.strings.insert_static_str(string)
     }
 }
 
@@ -168,15 +192,25 @@ pub(crate) struct FieldIr {
 
     /// Subgraph fields with an `@requires`.
     pub(crate) requires: Vec<subgraphs::FieldId>,
+
+    pub(crate) composed_directives: Vec<federated::Directive>,
 }
 
 #[derive(Default)]
 pub(crate) struct StringsIr {
     pub(crate) map: HashMap<subgraphs::StringId, federated::StringId>,
+    pub(crate) static_str_map: HashMap<&'static str, federated::StringId>,
     pub(crate) strings: Vec<String>,
 }
 
 impl StringsIr {
+    pub(crate) fn insert_static_str(&mut self, string: &'static str) -> federated::StringId {
+        *self
+            .static_str_map
+            .entry(string)
+            .or_insert_with(|| federated::StringId(self.strings.push_return_idx(string.to_owned())))
+    }
+
     pub(crate) fn insert(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
         *self
             .map

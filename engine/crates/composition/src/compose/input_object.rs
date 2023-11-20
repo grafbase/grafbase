@@ -40,6 +40,7 @@ pub(super) fn merge_input_object_definitions(
             resolvable_in: None,
             provides: Vec::new(),
             requires: Vec::new(),
+            composed_directives: Vec::new(),
         });
     }
 }

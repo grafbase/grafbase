@@ -7,10 +7,6 @@ mod strings;
 mod unions;
 mod walkers;
 
-use std::collections::{BTreeMap, BTreeSet};
-
-use itertools::Itertools;
-
 pub(crate) use self::{
     definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
     field_types::*,
@@ -19,7 +15,10 @@ pub(crate) use self::{
     strings::{StringId, StringWalker},
     walkers::*,
 };
+
 use crate::VecExt;
+use itertools::Itertools;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// A set of subgraphs to be composed.
 #[derive(Default)]
