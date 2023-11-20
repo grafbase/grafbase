@@ -7,8 +7,13 @@ use super::{
 use cynic::{http::ReqwestExt, QueryBuilder};
 
 /// The `grafbase subgraphs` command.
-pub async fn subgraphs(account: &str, project: &str, branch: &str) -> Result<Vec<Subgraph>, ApiError> {
+pub async fn subgraphs(account: &str, project: &str, branch: Option<&str>) -> Result<Vec<Subgraph>, ApiError> {
     let client = create_client().await?;
+    let Some(branch) = branch else {
+        return Err(ApiError::SubgraphsError(
+            "A branch must be specified in order to list subgraphs".to_owned(),
+        ));
+    };
 
     let operation = ListSubgraphsQuery::build(ListSubgraphsArguments {
         account,

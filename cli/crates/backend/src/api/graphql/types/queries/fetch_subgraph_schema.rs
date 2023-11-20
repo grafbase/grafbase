@@ -5,7 +5,7 @@ pub struct FetchSubgraphSchemaArguments<'a> {
     pub account: &'a str,
     pub project: &'a str,
     pub subgraph_name: &'a str,
-    pub branch: &'a str,
+    pub branch: Option<&'a str>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
