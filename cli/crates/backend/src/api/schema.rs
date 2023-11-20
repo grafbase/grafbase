@@ -9,17 +9,27 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 pub async fn schema(
     account: &str,
     project: &str,
-    branch: &str,
+    branch: Option<&str>,
     subgraph_name: Option<&str>,
 ) -> Result<Option<String>, ApiError> {
     if let Some(subgraph_name) = subgraph_name {
         subgraph_schema(account, project, branch, subgraph_name).await.map(Some)
     } else {
+        let Some(branch) = branch else {
+            return Err(ApiError::SubgraphsError(
+                "A branch must be specified when fetching a federated graph schema".to_owned(),
+            ));
+        };
         federated_graph_schema(account, project, branch).await
     }
 }
 
-async fn subgraph_schema(account: &str, project: &str, branch: &str, subgraph_name: &str) -> Result<String, ApiError> {
+async fn subgraph_schema(
+    account: &str,
+    project: &str,
+    branch: Option<&str>,
+    subgraph_name: &str,
+) -> Result<String, ApiError> {
     let client = create_client().await?;
     let operation = FetchSubgraphSchemaQuery::build(FetchSubgraphSchemaArguments {
         account,
