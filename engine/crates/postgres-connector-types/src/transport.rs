@@ -33,6 +33,8 @@ impl Column {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 pub trait Transport: Send + Sync {
+    async fn close(self) -> crate::Result<()>;
+
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<i64>;
 
     fn parameterized_query<'a>(&'a self, query: &'a str, params: Vec<Value>) -> BoxStream<'a, Result<Value, Error>>;
