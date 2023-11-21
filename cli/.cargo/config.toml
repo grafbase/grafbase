@@ -9,6 +9,7 @@ rustflags = [
     "-Aclippy::missing-errors-doc",
     "-Aclippy::missing-panics-doc",
     "-Aclippy::module-name-repetitions",
+    "-Aclippy::struct-field-names",
     "-Aclippy::enum_variant_names",
 ]
 
