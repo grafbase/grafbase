@@ -1,5 +1,8 @@
 # graphql-schema-validation
 
+[![docs.rs](https://img.shields.io/docsrs/graphql-schema-validation)](https://docs.rs/graphql-schema-validation)
+
+
 This crate implements GraphQL SDL schema validation according to the [2021
 version of the GraphQL spec](http://spec.graphql.org/October2021/).
 
