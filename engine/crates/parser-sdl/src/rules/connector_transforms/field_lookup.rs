@@ -200,58 +200,60 @@ mod tests {
 
     #[test]
     fn test_type_path_parsing() {
-        insta::assert_json_snapshot!(parse("Query.whatever"), @r###"
-        {
-          "field": "whatever",
-          "path": [],
-          "starting_type": "Query"
-        }
-        "###);
-        insta::assert_json_snapshot!(parse("Query.{customer,invoice}"), @r###"
-        {
-          "field": "(customer)|(invoice)",
-          "path": [],
-          "starting_type": "Query"
-        }
-        "###);
-        insta::assert_json_snapshot!(parse("Query.*.{customer,invoice}"), @r###"
-        {
-          "field": "(customer)|(invoice)",
-          "path": [
-            ".*?"
-          ],
-          "starting_type": "Query"
-        }
-        "###);
-        insta::assert_json_snapshot!(parse("Query.*.{customer,invoice}"), @r###"
-        {
-          "field": "(customer)|(invoice)",
-          "path": [
-            ".*?"
-          ],
-          "starting_type": "Query"
-        }
-        "###);
-        insta::assert_json_snapshot!(parse("Query.customer*"), @r###"
-        {
-          "field": "customer.*?",
-          "path": [],
-          "starting_type": "Query"
-        }
-        "###);
-        insta::assert_json_snapshot!(parse("Query.*customer"), @r###"
-        {
-          "field": ".*?customer",
-          "path": [],
-          "starting_type": "Query"
-        }
-        "###);
-        insta::assert_json_snapshot!(parse("Query.{custom*,inv*}"), @r###"
-        {
-          "field": "(custom.*?)|(inv.*?)",
-          "path": [],
-          "starting_type": "Query"
-        }
-        "###);
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!(parse("Query.whatever"), @r###"
+            {
+              "field": "whatever",
+              "path": [],
+              "starting_type": "Query"
+            }
+            "###);
+            insta::assert_json_snapshot!(parse("Query.{customer,invoice}"), @r###"
+            {
+              "field": "(customer)|(invoice)",
+              "path": [],
+              "starting_type": "Query"
+            }
+            "###);
+            insta::assert_json_snapshot!(parse("Query.*.{customer,invoice}"), @r###"
+            {
+              "field": "(customer)|(invoice)",
+              "path": [
+                ".*?"
+              ],
+              "starting_type": "Query"
+            }
+            "###);
+            insta::assert_json_snapshot!(parse("Query.*.{customer,invoice}"), @r###"
+            {
+              "field": "(customer)|(invoice)",
+              "path": [
+                ".*?"
+              ],
+              "starting_type": "Query"
+            }
+            "###);
+            insta::assert_json_snapshot!(parse("Query.customer*"), @r###"
+            {
+              "field": "customer.*?",
+              "path": [],
+              "starting_type": "Query"
+            }
+            "###);
+            insta::assert_json_snapshot!(parse("Query.*customer"), @r###"
+            {
+              "field": ".*?customer",
+              "path": [],
+              "starting_type": "Query"
+            }
+            "###);
+            insta::assert_json_snapshot!(parse("Query.{custom*,inv*}"), @r###"
+            {
+              "field": "(custom.*?)|(inv.*?)",
+              "path": [],
+              "starting_type": "Query"
+            }
+            "###);
+        });
     }
 }

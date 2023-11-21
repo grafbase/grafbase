@@ -37,7 +37,6 @@ indexmap.workspace = true
 [dev-dependencies]
 insta = { version = "1", features = ["json"] }
 pretty_assertions = "1"
-serde_json = { workspace = true }
 rstest = { workspace = true }
 assert_matches = "1.5"
 function_name = "0.3"

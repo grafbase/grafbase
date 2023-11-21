@@ -334,8 +334,10 @@ fn test_schema() {
     let req_string_a = serde_json::to_value(&nested_schema).unwrap();
     let sdl_a = Schema::new(nested_schema).sdl();
 
-    insta::assert_json_snapshot!(req_string_a);
-    insta::assert_snapshot!(sdl_a);
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_json_snapshot!(req_string_a);
+        insta::assert_snapshot!(sdl_a);
+    });
 }
 
 #[test]
@@ -368,12 +370,14 @@ fn test_model_reserved_fields() {
     let req_string_b = serde_json::to_value(&without_metadata_fields).unwrap();
     let sdl_b = Schema::new(without_metadata_fields).sdl();
 
-    // Comparing snaphots for better test errors first
-    insta::assert_json_snapshot!(format!("{}-req-a", function_name!()), req_string_a);
-    insta::assert_snapshot!(format!("{}-sdl-a", function_name!()), sdl_a);
+    insta::with_settings!({sort_maps => true}, {
+        // Comparing snaphots for better test errors first
+        insta::assert_json_snapshot!(format!("{}-req-a", function_name!()), req_string_a);
+        insta::assert_snapshot!(format!("{}-sdl-a", function_name!()), sdl_a);
 
-    insta::assert_json_snapshot!(format!("{}-req-b", function_name!()), req_string_b);
-    insta::assert_snapshot!(format!("{}-sdl-b", function_name!()), sdl_b);
+        insta::assert_json_snapshot!(format!("{}-req-b", function_name!()), req_string_b);
+        insta::assert_snapshot!(format!("{}-sdl-b", function_name!()), sdl_b);
+    });
 
     // Actual test, ensuring they're equivalent.
     assert_eq!(req_string_a, req_string_b);

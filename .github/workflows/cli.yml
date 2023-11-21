@@ -70,6 +70,7 @@ jobs:
           npx prettier --check .
 
   lint:
+    name: Lint and run unit tests
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: buildjet-8vcpu-ubuntu-2204
@@ -81,7 +82,7 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Prepare CLI assets
@@ -92,8 +93,6 @@ jobs:
 
       - name: Sanitize
         uses: ./.github/actions/sanitize
-        with:
-          test: false
 
   individual-builds:
     needs: [detect-change-type]
@@ -111,7 +110,7 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build-${{ matrix.package }}-${{ hashFiles('cli/Cargo.lock') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build-${{ matrix.package }}-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build
 
       - name: Fetch CDN assets
@@ -201,7 +200,7 @@ jobs:
       - name: Build release
         run: |
           cd cli
-          cargo build --release --target x86_64-pc-windows-msvc --timings
+          cargo build --release -p grafbase --target x86_64-pc-windows-msvc --timings
 
       - uses: actions/upload-artifact@v3
         with:
@@ -281,7 +280,7 @@ jobs:
       - name: Build release
         run: |
           cd cli
-          cargo build --release --target ${{ matrix.archs.target }} --timings
+          cargo build --release -p grafbase --target ${{ matrix.archs.target }} --timings
 
       - uses: actions/upload-artifact@v3
         with:
@@ -348,7 +347,7 @@ jobs:
       - name: Build ${{ matrix.target }} release
         run: |
           cd cli
-          cargo build --release --target ${{ matrix.target }} --timings
+          cargo build --release -p grafbase --target ${{ matrix.target }} --timings
 
       - uses: actions/upload-artifact@v3
         with:
@@ -427,3 +426,35 @@ jobs:
           footer: "<{run_url}|View Run>"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  cargo-integration-tests:
+    needs: [lint]
+    name: Run Rust integration tests
+    runs-on: buildjet-16vcpu-ubuntu-2204
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@beta
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Start local databases
+        run: |
+          docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
+
+      - name: Install cargo-nextest
+        run: |
+          curl \
+            --config ${GITHUB_WORKSPACE}/.github/curl_options \
+            https://get.nexte.st/latest/linux \
+            | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+
+      - name: Test Engine
+        working-directory: ./engine/crates/integration-tests
+        run: |
+          cargo nextest run --profile ci
+          exitcode="$?"

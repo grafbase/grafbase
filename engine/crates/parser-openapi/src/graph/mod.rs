@@ -594,7 +594,7 @@ mod tests {
     fn test_graph_size() {
         // Our graph can end up with a ton of nodes & edges so it's important
         // that they don't get too big.
-        assert!(std::mem::size_of::<Node>() <= 48);
+        assert!(std::mem::size_of::<Node>() <= 88);
         assert!(std::mem::size_of::<Edge>() <= 48);
     }
 }

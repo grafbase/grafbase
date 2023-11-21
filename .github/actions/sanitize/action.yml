@@ -2,10 +2,6 @@ name: Sanitize CLI
 description: Run cargo fmt, clippy, test
 
 inputs:
-  working-directory:
-    required: false
-    default: cli
-    description: Where to run cargo
   lint:
     required: false
     default: "true"
@@ -22,15 +18,18 @@ runs:
       name: cargo fmt
       shell: bash
       run: |
-        cd ${{ inputs.working-directory }}
         cargo fmt --check
 
     - if: ${{ inputs.lint == 'true' }}
       name: cargo clippy
       shell: bash
       run: |
-        cd ${{ inputs.working-directory }}
-        cargo clippy --locked --all-targets --tests -- -D warnings
+        cargo clippy \
+          --workspace \
+          --exclude integration-tests \
+          --locked \
+          --all-targets \
+          --tests -- -D warnings
 
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -48,5 +47,4 @@ runs:
       name: cargo nextest
       shell: bash
       run: |
-        cd ${{ inputs.working-directory }}
-        CARGO_BUILD_JOBS=4 RUST_BACKTRACE=1 cargo nextest run --profile ci
+        CARGO_BUILD_JOBS=4 RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci

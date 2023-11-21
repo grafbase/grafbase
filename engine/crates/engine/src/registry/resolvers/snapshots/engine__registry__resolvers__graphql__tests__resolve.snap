@@ -1,5 +1,5 @@
 ---
-source: crates/engine/src/registry/resolvers/graphql.rs
+source: engine/crates/engine/src/registry/resolvers/graphql.rs
 expression: result.unwrap()
 ---
 {
@@ -7,8 +7,8 @@ expression: result.unwrap()
     "github": {
       "repository": {
         "issueOrPullRequest": {
-          "changedFiles": 1,
-          "id": "PR_kwDOEn_gEs5PlTvR"
+          "id": "PR_kwDOEn_gEs5PlTvR",
+          "changedFiles": 1
         }
       }
     }

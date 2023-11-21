@@ -18,6 +18,7 @@ rustflags = [
   "-Aclippy::implicit-hasher",
   "-Aclippy::items-after-statements",
   "-Aclippy::into_iter_without_iter",
+  "-Aclippy::iter_without_into_iter",
   "-Aclippy::large-digit-groups",
   "-Aclippy::let-underscore-untyped",
   "-Aclippy::let-with-type-underscore",
