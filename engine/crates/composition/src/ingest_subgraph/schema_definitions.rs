@@ -51,11 +51,11 @@ const DEFAULT_FEDERATION_PREFIX: &str = "federation__";
 impl Default for FederationDirectivesMatcher<'_> {
     fn default() -> Self {
         FederationDirectivesMatcher {
-            shareable: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}shareable")),
-            key: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}key")),
-            external: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}external")),
-            provides: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}provides")),
-            requires: Cow::Owned(format!("{DEFAULT_FEDERATION_PREFIX}requires")),
+            shareable: Cow::Borrowed("shareable"),
+            key: Cow::Borrowed("key"),
+            external: Cow::Borrowed("external"),
+            provides: Cow::Borrowed("provides"),
+            requires: Cow::Borrowed("requires"),
         }
     }
 }
@@ -170,6 +170,18 @@ mod federation_directives_matcher_tests {
     #[test]
     fn no_link_declaration() {
         with_matcher_for_schema("type Irrelevant { id: ID! }", |matcher| {
+            assert!(matcher.is_shareable("shareable"));
+            assert!(matcher.is_key("key"));
+            assert!(!matcher.is_key("@key"));
+            assert!(!matcher.is_key("federation__key"));
+            assert!(!matcher.is_shareable("federation__shareable"));
+        });
+    }
+
+    #[test]
+    fn bare_link_declaration() {
+        let schema = r#"extend schema @link(url: "https://specs.apollo.dev/federation/v2.3")"#;
+        with_matcher_for_schema(schema, |matcher| {
             assert!(matcher.is_key("federation__key"));
             assert!(matcher.is_shareable("federation__shareable"));
             assert!(!matcher.is_key("key"));
@@ -182,11 +194,11 @@ mod federation_directives_matcher_tests {
     fn irrelevant_link_declaration() {
         let schema = r#"extend schema @link(url: "https://bad.horse", as: "horse")"#;
         with_matcher_for_schema(schema, |matcher| {
-            assert!(matcher.is_key("federation__key"));
-            assert!(matcher.is_shareable("federation__shareable"));
-            assert!(!matcher.is_key("key"));
+            assert!(matcher.is_key("key"));
+            assert!(matcher.is_shareable("shareable"));
+            assert!(!matcher.is_key("federation__key"));
+            assert!(!matcher.is_shareable("federation__shareable"));
             assert!(!matcher.is_key("@key"));
-            assert!(!matcher.is_shareable("shareable"));
         });
     }
 
