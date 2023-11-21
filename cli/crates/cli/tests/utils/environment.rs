@@ -184,6 +184,7 @@ impl Environment {
     pub fn write_schema(&self, schema: impl AsRef<str>) {
         // TODO: this is temporary until we update all tests to use SDK
         let _ = fs::remove_file("grafbase.config.ts");
+        let _ = fs::remove_file("grafbase/grafbase.config.ts");
         self.write_file("schema.graphql", schema);
     }
 
