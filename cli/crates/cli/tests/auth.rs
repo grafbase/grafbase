@@ -608,9 +608,9 @@ async fn authorizer_with_no_headers_should_work() {
     env.grafbase_init(GraphType::Single);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
-    let authorizer_content = r#"export default function(context) {
+    let authorizer_content = r"export default function(context) {
         return { identity: { sub:'user1', groups: ['backend'] } };
-    }"#;
+    }";
 
     env.write_authorizer(format!("{authorizer_name}.js"), authorizer_content);
     env.set_variables(HashMap::from([(
@@ -632,9 +632,9 @@ async fn authorizer_with_headers_should_work() {
     env.grafbase_init(GraphType::Single);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
-    let authorizer_content = r#"export default function(context) {
+    let authorizer_content = r"export default function(context) {
         return { identity: { groups: [context.request.headers['h1']] } };
-    }"#;
+    }";
 
     env.write_authorizer(format!("{authorizer_name}.js"), authorizer_content);
     env.set_variables(HashMap::from([(
@@ -656,14 +656,14 @@ async fn authorizer_with_public_access_should_work() {
     env.grafbase_init(GraphType::Single);
     env.write_schema(AUTHORIZER_SCHEMA);
     let authorizer_name = "a1";
-    let authorizer_content = r#"export default function(context) {
+    let authorizer_content = r"export default function(context) {
         const grp = context.request.headers['h1']
         if (grp) {
             return { identity: { groups: [grp] } };
         } else {
             return {}; // missing identity = public access
         }
-    }"#;
+    }";
 
     env.write_authorizer(format!("{authorizer_name}.js"), authorizer_content);
     env.set_variables(HashMap::from([(

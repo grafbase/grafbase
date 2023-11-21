@@ -4,25 +4,30 @@ use std::{borrow::Cow, cmp::Ordering};
 
 mod conversion;
 mod ids;
+pub mod introspection;
 mod names;
+mod walkers;
+
 pub use ids::*;
+use introspection::{IntrospectionDataSource, IntrospectionResolver};
 pub use names::Names;
+pub use walkers::*;
 
 /// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
 /// federated_graph::FederatedGraph.
 pub struct Schema {
+    pub description: Option<StringId>,
     data_sources: Vec<DataSource>,
     subgraphs: Vec<Subgraph>,
 
     pub root_operation_types: RootOperationTypes,
-    // pub typename_field_id: FieldId,
     objects: Vec<Object>,
-    // Sorted by object_id, name
+    // Sorted by object_id, field name (actual string)
     object_fields: Vec<ObjectField>,
 
     interfaces: Vec<Interface>,
-    // Sorted by interface_id
+    // Sorted by interface_id, field name (actual string)
     interface_fields: Vec<InterfaceField>,
 
     fields: Vec<Field>,
@@ -31,15 +36,74 @@ pub struct Schema {
     unions: Vec<Union>,
     scalars: Vec<Scalar>,
     input_objects: Vec<InputObject>,
+    input_values: Vec<InputValue>,
     resolvers: Vec<Resolver>,
 
     /// All the strings in the supergraph, deduplicated.
     strings: Vec<String>,
-
     /// All the field types in the supergraph, deduplicated.
-    field_types: Vec<FieldType>,
+    types: Vec<Type>,
+    // All definitions sorted by their name (actual string)
+    pub definitions: Vec<Definition>,
 }
 
+impl Schema {
+    pub fn definition_by_name(&self, name: &str) -> Option<Definition> {
+        self.definitions
+            .binary_search_by_key(&name, |definition| self.definition_name(*definition))
+            .map(|index| self.definitions[index])
+            .ok()
+    }
+
+    pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldId> {
+        self.object_fields
+            .binary_search_by_key(&(object_id, name), |ObjectField { object_id, field_id }| {
+                (*object_id, &self[self[*field_id].name])
+            })
+            .map(|index| self.object_fields[index].field_id)
+            .ok()
+    }
+
+    pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldId> {
+        self.interface_fields
+            .binary_search_by_key(&(interface_id, name), |InterfaceField { interface_id, field_id }| {
+                (*interface_id, &self[self[*field_id].name])
+            })
+            .map(|index| self.interface_fields[index].field_id)
+            .ok()
+    }
+
+    fn ensure_proper_ordering(&mut self) {
+        let mut object_fields = std::mem::take(&mut self.object_fields);
+        object_fields
+            .sort_unstable_by_key(|ObjectField { object_id, field_id }| (*object_id, &self[self[*field_id].name]));
+        self.object_fields = object_fields;
+
+        let mut interface_fields = std::mem::take(&mut self.interface_fields);
+        interface_fields.sort_unstable_by_key(|InterfaceField { interface_id, field_id }| {
+            (*interface_id, &self[self[*field_id].name])
+        });
+        self.interface_fields = interface_fields;
+
+        let mut definitions = std::mem::take(&mut self.definitions);
+        definitions.sort_unstable_by_key(|definition| self.definition_name(*definition));
+        self.definitions = definitions;
+    }
+
+    fn definition_name(&self, definition: Definition) -> &str {
+        let name = match definition {
+            Definition::Scalar(s) => self[s].name,
+            Definition::Object(o) => self[o].name,
+            Definition::Interface(i) => self[i].name,
+            Definition::Union(u) => self[u].name,
+            Definition::Enum(e) => self[e].name,
+            Definition::InputObject(io) => self[io].name,
+        };
+        &self[name]
+    }
+}
+
+#[derive(Debug)]
 pub struct RootOperationTypes {
     pub query: ObjectId,
     pub mutation: Option<ObjectId>,
@@ -53,22 +117,32 @@ impl std::fmt::Debug for Schema {
 }
 
 pub enum DataSource {
+    Introspection(Box<IntrospectionDataSource>),
     Subgraph(SubgraphId),
 }
 
+impl DataSource {
+    pub fn as_introspection(&self) -> Option<&IntrospectionDataSource> {
+        match self {
+            DataSource::Introspection(introspection) => Some(introspection),
+            DataSource::Subgraph(_) => None,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Subgraph {
     pub name: StringId,
     pub url: StringId,
 }
 
+#[derive(Debug)]
 pub struct Object {
     pub name: StringId,
-
-    pub implements_interfaces: Vec<InterfaceId>,
-
+    pub description: Option<StringId>,
+    pub interfaces: Vec<InterfaceId>,
     /// All _resolvable_ keys.
-    pub resolvable_keys: Vec<Key>,
-
+    resolvable_keys: Vec<Key>,
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
@@ -79,6 +153,7 @@ pub struct ObjectField {
     pub field_id: FieldId,
 }
 
+#[derive(Debug)]
 pub struct Key {
     /// The subgraph that can resolve the entity with these fields.
     pub subgraph_id: SubgraphId,
@@ -183,15 +258,19 @@ pub struct FieldSetItem {
     pub subselection: FieldSet,
 }
 
+#[derive(Debug)]
 pub struct Field {
     pub name: StringId,
-    pub field_type_id: FieldTypeId,
+    pub description: Option<StringId>,
+    pub type_id: TypeId,
     pub resolvers: Vec<FieldResolver>,
+    pub is_deprecated: bool,
+    pub deprecated_reason: Option<StringId>,
 
     /// Special case when only going through this field children are accessible.
     provides: Vec<FieldProvides>,
 
-    pub arguments: Vec<FieldArgument>,
+    pub arguments: Vec<InputValueId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
@@ -206,17 +285,19 @@ impl Field {
     }
 }
 
+#[derive(Debug)]
 pub struct FieldResolver {
     pub resolver_id: ResolverId,
     pub requires: FieldSet,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Resolver {
+    Introspection(IntrospectionResolver),
     Subgraph(SubgraphResolver),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SubgraphResolver {
     pub subgraph_id: SubgraphId,
 }
@@ -225,6 +306,7 @@ impl Resolver {
     pub fn data_source_id(&self) -> DataSourceId {
         match self {
             Resolver::Subgraph(resolver) => DataSourceId::from(resolver.subgraph_id),
+            Resolver::Introspection(resolver) => resolver.data_source_id,
         }
     }
 
@@ -233,16 +315,13 @@ impl Resolver {
     }
 }
 
-pub struct FieldArgument {
-    pub name: StringId,
-    pub type_id: FieldTypeId,
-}
-
+#[derive(Debug)]
 pub struct Directive {
     pub name: StringId,
     pub arguments: Vec<(StringId, Value)>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     String(StringId),
     Int(i64),
@@ -253,6 +332,7 @@ pub enum Value {
     List(Vec<Value>),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Definition {
     Scalar(ScalarId),
     Object(ObjectId),
@@ -262,8 +342,45 @@ pub enum Definition {
     InputObject(InputObjectId),
 }
 
-pub struct FieldType {
-    pub kind: Definition,
+impl From<ScalarId> for Definition {
+    fn from(id: ScalarId) -> Self {
+        Self::Scalar(id)
+    }
+}
+
+impl From<ObjectId> for Definition {
+    fn from(id: ObjectId) -> Self {
+        Self::Object(id)
+    }
+}
+
+impl From<InterfaceId> for Definition {
+    fn from(id: InterfaceId) -> Self {
+        Self::Interface(id)
+    }
+}
+
+impl From<UnionId> for Definition {
+    fn from(id: UnionId) -> Self {
+        Self::Union(id)
+    }
+}
+
+impl From<EnumId> for Definition {
+    fn from(id: EnumId) -> Self {
+        Self::Enum(id)
+    }
+}
+
+impl From<InputObjectId> for Definition {
+    fn from(id: InputObjectId) -> Self {
+        Self::InputObject(id)
+    }
+}
+
+#[derive(Debug)]
+pub struct Type {
+    pub inner: Definition,
     pub wrapping: Wrapping,
 }
 
@@ -279,8 +396,44 @@ pub struct Wrapping {
     /// - `[String]!` => false
     pub inner_is_required: bool,
 
-    /// Outermost to innermost.
+    /// Innermost to outermost.
     pub list_wrapping: Vec<ListWrapping>,
+}
+
+impl Wrapping {
+    fn nullable() -> Self {
+        Wrapping {
+            inner_is_required: false,
+            list_wrapping: vec![],
+        }
+    }
+
+    fn required() -> Self {
+        Wrapping {
+            inner_is_required: true,
+            list_wrapping: vec![],
+        }
+    }
+
+    fn nullable_list(self) -> Self {
+        Wrapping {
+            list_wrapping: [ListWrapping::NullableList]
+                .into_iter()
+                .chain(self.list_wrapping)
+                .collect(),
+            ..self
+        }
+    }
+
+    fn required_list(self) -> Self {
+        Wrapping {
+            list_wrapping: [ListWrapping::RequiredList]
+                .into_iter()
+                .chain(self.list_wrapping)
+                .collect(),
+            ..self
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -290,91 +443,94 @@ pub enum ListWrapping {
 }
 
 /// Represents an `@provides` directive on a field in a subgraph.
+#[derive(Debug)]
 pub struct FieldProvides {
     pub data_source_id: DataSourceId,
     pub fields: FieldSet,
 }
 
+#[derive(Debug)]
 pub struct Interface {
     pub name: StringId,
-    pub implementations: Vec<ObjectId>,
+    pub description: Option<StringId>,
+    pub interfaces: Vec<InterfaceId>,
+
+    pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
 
+#[derive(Debug)]
 pub struct InterfaceField {
     pub interface_id: InterfaceId,
     pub field_id: FieldId,
 }
 
+#[derive(Debug)]
 pub struct Enum {
     pub name: StringId,
+    pub description: Option<StringId>,
     pub values: Vec<EnumValue>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
 
+#[derive(Debug)]
 pub struct EnumValue {
-    pub value: StringId,
+    pub name: StringId,
+    pub description: Option<StringId>,
+    pub is_deprecated: bool,
+    pub deprecated_reason: Option<StringId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
 
+#[derive(Debug)]
 pub struct Union {
     pub name: StringId,
-    pub members: Vec<ObjectId>,
+    pub description: Option<StringId>,
+    pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
 
+#[derive(Debug)]
 pub struct Scalar {
     pub name: StringId,
-
+    pub description: Option<StringId>,
+    pub specified_by_url: Option<StringId>,
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
 
+#[derive(Debug)]
 pub struct InputObject {
     pub name: StringId,
-    pub fields: Vec<InputObjectField>,
+    pub description: Option<StringId>,
+    pub input_fields: Vec<InputValueId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
 
-pub struct InputObjectField {
+#[derive(Debug, Clone)]
+pub struct InputValue {
     pub name: StringId,
-    pub field_type_id: FieldTypeId,
+    pub description: Option<StringId>,
+    pub type_id: TypeId,
+    pub default_value: Option<Value>,
 }
 
 impl Schema {
-    pub fn object_fields(&self, target: ObjectId) -> impl Iterator<Item = FieldId> + '_ {
-        let start = self
-            .object_fields
-            .partition_point(|object_field| object_field.object_id < target);
-        self.object_fields[start..].iter().map_while(move |object_field| {
-            if object_field.object_id == target {
-                Some(object_field.field_id)
-            } else {
-                None
-            }
-        })
+    pub fn default_walker(&self) -> SchemaWalker<'_, ()> {
+        self.walker(self)
     }
 
-    pub fn interface_fields(&self, target: InterfaceId) -> impl Iterator<Item = FieldId> + '_ {
-        let start = self
-            .interface_fields
-            .partition_point(|interface_field| interface_field.interface_id < target);
-        self.interface_fields[start..].iter().map_while(move |interface_field| {
-            if interface_field.interface_id == target {
-                Some(interface_field.field_id)
-            } else {
-                None
-            }
-        })
+    pub fn walker<'a>(&'a self, names: &'a dyn Names) -> SchemaWalker<'a, ()> {
+        SchemaWalker::new((), self, names)
     }
 }

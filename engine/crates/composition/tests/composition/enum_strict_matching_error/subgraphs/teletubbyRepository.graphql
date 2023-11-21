@@ -1,7 +1,7 @@
-type Teletubby @federation__key(fields: "name") {
+type Teletubby @key(fields: "name") {
   name: String!
   color: String!
-  favoriteToy: FavoriteToy @federation__shareable
+  favoriteToy: FavoriteToy @shareable
   mood: Mood
 }
 

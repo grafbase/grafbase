@@ -2,7 +2,7 @@ type Query {
   user(id: ID!): User
 }
 
-type User @federation__key(fields: "id") {
+type User @key(fields: "id") {
   id: ID!
   name: String
   email: String

@@ -81,12 +81,12 @@ fn test_block_string_value() {
     assert_eq!(block_string_value("\r\r  some text\r\n \n \n "), "some text");
     assert_eq!(
         block_string_value(
-            r#"
+            r"
     a
     b
 
     c
-"#
+"
         ),
         "a\nb\n\nc"
     );

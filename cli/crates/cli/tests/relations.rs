@@ -114,14 +114,14 @@ fn relations() {
 
 #[test]
 fn test_relation_unlinking() {
-    const SCHEMA: &str = r#"
+    const SCHEMA: &str = r"
         type Environment @model {
             groups: [Group]
         }
         type Group @model {
             environment: Environment
         }
-    "#;
+    ";
 
     let mut env = Environment::init();
 
@@ -138,7 +138,7 @@ fn test_relation_unlinking() {
 
     let value = client
         .gql::<Value>(
-            r#"
+            r"
             mutation CreateEnv {
                 environmentCreate(input: {groups: {create: {}}}) {
                     environment {
@@ -153,7 +153,7 @@ fn test_relation_unlinking() {
                     }
                 }
             }
-        "#,
+        ",
         )
         .send();
 
@@ -166,7 +166,7 @@ fn test_relation_unlinking() {
 
     let result = client
         .gql::<Value>(
-            r#"
+            r"
             mutation UnlinkGroupFromEnv($groupId: ID!, $envId: ID) {
                 groupUpdate(
                   by: {
@@ -182,7 +182,7 @@ fn test_relation_unlinking() {
                   }
                 }
             }
-        "#,
+        ",
         )
         .variables(serde_json::json!({ "groupId": group_id, "envId": env_id }))
         .send();
@@ -196,7 +196,7 @@ fn test_relation_unlinking() {
 
     let result = client
         .gql::<Value>(
-            r#"
+            r"
             query GetGroup($groupId: ID!) {
                 group(by: {id: $groupId}) {
                     id
@@ -205,7 +205,7 @@ fn test_relation_unlinking() {
                     }
                 }
             }
-        "#,
+        ",
         )
         .variables(serde_json::json!({ "groupId": group_id }))
         .send();
@@ -220,14 +220,14 @@ fn test_relation_unlinking() {
 
 #[test]
 fn test_relation_unlink_and_create() {
-    const SCHEMA: &str = r#"
+    const SCHEMA: &str = r"
         type Environment @model {
             groups: [Group]
         }
         type Group @model {
             environment: Environment
         }
-    "#;
+    ";
 
     let mut env = Environment::init();
 
@@ -244,7 +244,7 @@ fn test_relation_unlink_and_create() {
 
     let value = client
         .gql::<Value>(
-            r#"
+            r"
             mutation CreateEnv {
                 environmentCreate(input: {groups: {create: {}}}) {
                     environment {
@@ -259,7 +259,7 @@ fn test_relation_unlink_and_create() {
                     }
                 }
             }
-        "#,
+        ",
         )
         .send();
 
@@ -272,7 +272,7 @@ fn test_relation_unlink_and_create() {
 
     let result = client
         .gql::<Value>(
-            r#"
+            r"
             mutation EnvUpdate($groupId: ID!, $envId: ID) {
                 environmentUpdate(
                   by: {
@@ -292,7 +292,7 @@ fn test_relation_unlink_and_create() {
                     }
                 }
             }
-        "#,
+        ",
         )
         .variables(serde_json::json!({ "groupId": group_id, "envId": env_id }))
         .send();
@@ -310,7 +310,7 @@ fn test_relation_unlink_and_create() {
 
     let result = client
         .gql::<Value>(
-            r#"
+            r"
             query GetGroup($groupId: ID!) {
                 group(by: {id: $groupId}) {
                     id
@@ -319,7 +319,7 @@ fn test_relation_unlink_and_create() {
                     }
                 }
             }
-        "#,
+        ",
         )
         .variables(serde_json::json!({ "groupId": new_group_id }))
         .send();
@@ -337,7 +337,7 @@ fn update_bug_gb4646() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
     env.write_schema(
-        r#"
+        r"
         type Player @model {
           name: String! @unique
           notes: [Note]
@@ -347,7 +347,7 @@ fn update_bug_gb4646() {
           note: String!
           player: Player!
         }
-    "#,
+    ",
     );
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
@@ -390,7 +390,7 @@ fn update_bug_gb4646() {
     let update = |note: &str| {
         client
             .gql::<Value>(
-                r#"
+                r"
                 mutation NotesUpdate($id: ID!, $note: String!) {
                   noteUpdate(by: {id: $id}, input: {note: $note}) {
                     note {
@@ -398,7 +398,7 @@ fn update_bug_gb4646() {
                     }
                   }
                 }
-                "#,
+                ",
             )
             .variables(json!({
                 "id": note_id,
@@ -410,7 +410,7 @@ fn update_bug_gb4646() {
         dot_get!(
             client
                 .gql::<Value>(
-                    r#"
+                    r"
                 query ListPlayers {
                   playerCollection(first: 100) {
                     edges {
@@ -432,7 +432,7 @@ fn update_bug_gb4646() {
                     }
                   }
                 }
-                "#,
+                ",
                 )
                 .send(),
             "data.playerCollection.edges.0.node.notes.edges.0.node.note"

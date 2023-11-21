@@ -1,4 +1,4 @@
-type Animal @federation__key(fields: "id") {
+type Animal @key(fields: "id") {
     id: ID!
     age: Int!
 }

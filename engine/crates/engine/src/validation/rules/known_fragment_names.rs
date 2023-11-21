@@ -30,7 +30,7 @@ mod tests {
     fn known() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           {
             human(id: 4) {
               ...HumanFields1
@@ -52,7 +52,7 @@ mod tests {
           fragment HumanFields3 on Human {
             name
           }
-        "#,
+        ",
         );
     }
 
@@ -60,7 +60,7 @@ mod tests {
     fn unknown() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           {
             human(id: 4) {
               ...UnknownFragment1
@@ -73,7 +73,7 @@ mod tests {
             name
             ...UnknownFragment3
           }
-        "#,
+        ",
         );
     }
 }

@@ -168,7 +168,7 @@ impl TypeReference for TypeCondition {
 pub struct NamedType<'a>(Cow<'a, str>);
 
 impl NamedType<'_> {
-    pub fn borrow<'a>(&'a self) -> NamedType<'a> {
+    pub fn borrow(&self) -> NamedType<'_> {
         NamedType(Cow::Borrowed(self.0.as_ref()))
     }
 

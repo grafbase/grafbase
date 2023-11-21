@@ -468,7 +468,7 @@ pub(crate) fn visit<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>,
                 .types
                 .get(fragment.node.type_condition.node.on.node.as_str()),
             |ctx| visit_fragment_definition(v, ctx, name, fragment),
-        )
+        );
     }
 
     for (name, operation) in doc.operations.iter() {
@@ -549,10 +549,10 @@ fn visit_selection<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>, 
         Selection::InlineFragment(inline_fragment) => {
             if let Some(TypeCondition { on: name }) = &inline_fragment.node.type_condition.as_ref().map(|c| &c.node) {
                 ctx.with_type(ctx.registry.types.get(name.node.as_str()), |ctx| {
-                    visit_inline_fragment(v, ctx, inline_fragment)
+                    visit_inline_fragment(v, ctx, inline_fragment);
                 });
             } else {
-                visit_inline_fragment(v, ctx, inline_fragment)
+                visit_inline_fragment(v, ctx, inline_fragment);
             }
         }
     }
@@ -571,7 +571,7 @@ fn visit_field<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>, fiel
         let expected_ty = meta_input_value.map(|input_ty| MetaTypeName::create(input_ty.ty.as_str()));
 
         ctx.with_input_type(expected_ty, |ctx| {
-            visit_input_value(v, ctx, field.pos, expected_ty, &value.node, meta_input_value)
+            visit_input_value(v, ctx, field.pos, expected_ty, &value.node, meta_input_value);
         });
         v.exit_argument(ctx, name, value);
     }
@@ -612,7 +612,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
                         is_secret: meta.is_secret,
                         rename: None,
                     });
-                    for value in values.iter() {
+                    for value in values {
                         visit_input_value(
                             v,
                             ctx,
@@ -654,7 +654,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
     if let Some(meta) = meta {
         if let Some(validators) = meta.validators.as_ref() {
             for validator in validators {
-                validator.validate(ctx, meta, pos, value)
+                validator.validate(ctx, meta, pos, value);
             }
         }
     };
@@ -688,7 +688,7 @@ fn visit_directives<'a, V: Visitor<'a>>(
             let meta_input_value = schema_directive.and_then(|schema_directive| schema_directive.args.get(&*name.node));
             let expected_ty = meta_input_value.map(|input_ty| MetaTypeName::create(input_ty.ty.as_str()));
             ctx.with_input_type(expected_ty, |ctx| {
-                visit_input_value(v, ctx, d.pos, expected_ty, &value.node, meta_input_value)
+                visit_input_value(v, ctx, d.pos, expected_ty, &value.node, meta_input_value);
             });
             v.exit_argument(ctx, name, value);
         }
@@ -797,6 +797,6 @@ pub(crate) mod test {
         value: &'a Value,
         meta: Option<&MetaInputValue>,
     ) {
-        super::visit_input_value(v, ctx, pos, expected_ty, value, meta)
+        super::visit_input_value(v, ctx, pos, expected_ty, value, meta);
     }
 }

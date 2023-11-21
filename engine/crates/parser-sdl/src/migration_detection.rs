@@ -95,42 +95,42 @@ mod tests {
 
     #[rstest::rstest]
     #[case(
-        r#"
+        r"
             type Product @model {
                 id: ID!
                 name: String!
             }
-        "#,
-        r#"
+        ",
+        r"
             type Product @model {
                 id: ID!
                 name: String
             }
-        "#,
+        ",
         &[],
     )]
     #[case(
-        r#"
+        r"
             type Product @model {
                 id: ID!
                 name: String
             }
-        "#,
-        r#"
+        ",
+        r"
             type Product @model {
                 id: ID!
                 name: String!
             }
-        "#,
+        ",
         &[RequiredMigration::FieldMadeNonOptional { path: "Product.name".into() }]
     )]
     #[case(
-        r#"
+        r"
             type Product @model {
                 id: ID!
                 name: String
             }
-        "#,
+        ",
         r#"
             type Product @model {
                 id: ID!

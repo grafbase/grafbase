@@ -225,12 +225,12 @@ mod tests {
     #[test]
     fn test_not_usable_on_nullable_fields() {
         assert_validation_error!(
-            r#"
+            r"
             type Product @model {
                 id: ID!
                 name: String @unique
             }
-            "#,
+            ",
             "The @unique directive cannot be used with nullable fields, but name is nullable"
         );
     }
@@ -238,12 +238,12 @@ mod tests {
     #[test]
     fn test_usable_on_non_nullable_fields() {
         let registry = crate::parse_registry(
-            r#"
+            r"
             type Product @model {
                 id: ID!
                 name: String! @unique
             }
-            "#,
+            ",
         )
         .unwrap();
 
@@ -253,12 +253,12 @@ mod tests {
     #[test]
     fn test_not_usable_on_collection() {
         assert_validation_error!(
-            r#"
+            r"
             type Product @model {
                 id: ID!
                 name: [String]! @unique
             }
-            "#,
+            ",
             "The @unique directive cannot be used with collections, but name is a collection"
         );
     }
@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn test_not_usable_on_relations() {
         assert_validation_error!(
-            r#"
+            r"
             type Category @model {
                 id: ID!
                 product: Product
@@ -277,7 +277,7 @@ mod tests {
                 name: [String]!
                 category: Category! @unique
             }
-            "#,
+            ",
             "The @unique directive cannot be used with relations, but category is a relation"
         );
     }

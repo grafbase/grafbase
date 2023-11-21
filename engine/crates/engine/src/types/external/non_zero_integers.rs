@@ -9,7 +9,7 @@ impl LegacyScalarType for NonZeroI8 {
         match value {
             Value::Number(n) => {
                 let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n < i8::MIN as i64 || n > i8::MAX as i64 || n == 0 {
+                if n < i64::from(i8::MIN) || n > i64::from(i8::MAX) || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
                         i8::MIN,
@@ -27,7 +27,7 @@ impl LegacyScalarType for NonZeroI8 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(self.get() as i64))
+        Value::Number(Number::from(i64::from(self.get())))
     }
 }
 
@@ -38,7 +38,7 @@ impl LegacyScalarType for NonZeroI16 {
         match value {
             Value::Number(n) => {
                 let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n < i16::MIN as i64 || n > i16::MAX as i64 || n == 0 {
+                if n < i64::from(i16::MIN) || n > i64::from(i16::MAX) || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
                         i16::MIN,
@@ -56,7 +56,7 @@ impl LegacyScalarType for NonZeroI16 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(self.get() as i64))
+        Value::Number(Number::from(i64::from(self.get())))
     }
 }
 
@@ -67,7 +67,7 @@ impl LegacyScalarType for NonZeroI32 {
         match value {
             Value::Number(n) => {
                 let n = n.as_i64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n < i32::MIN as i64 || n > i32::MAX as i64 || n == 0 {
+                if n < i64::from(i32::MIN) || n > i64::from(i32::MAX) || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
                         i32::MIN,
@@ -85,7 +85,7 @@ impl LegacyScalarType for NonZeroI32 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(self.get() as i64))
+        Value::Number(Number::from(i64::from(self.get())))
     }
 }
 
@@ -118,7 +118,7 @@ impl LegacyScalarType for NonZeroU8 {
         match value {
             Value::Number(n) => {
                 let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n > u8::MAX as u64 || n == 0 {
+                if n > u64::from(u8::MAX) || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
                         1,
@@ -136,7 +136,7 @@ impl LegacyScalarType for NonZeroU8 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(self.get() as u64))
+        Value::Number(Number::from(u64::from(self.get())))
     }
 }
 
@@ -147,7 +147,7 @@ impl LegacyScalarType for NonZeroU16 {
         match value {
             Value::Number(n) => {
                 let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n > u16::MAX as u64 || n == 0 {
+                if n > u64::from(u16::MAX) || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
                         1,
@@ -165,7 +165,7 @@ impl LegacyScalarType for NonZeroU16 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(self.get() as u64))
+        Value::Number(Number::from(u64::from(self.get())))
     }
 }
 
@@ -176,7 +176,7 @@ impl LegacyScalarType for NonZeroU32 {
         match value {
             Value::Number(n) => {
                 let n = n.as_u64().ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n > u32::MAX as u64 || n == 0 {
+                if n > u64::from(u32::MAX) || n == 0 {
                     return Err(InputValueError::from(format!(
                         "Only integers from {} to {} or non zero are accepted.",
                         1,
@@ -194,7 +194,7 @@ impl LegacyScalarType for NonZeroU32 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(self.get() as u64))
+        Value::Number(Number::from(u64::from(self.get())))
     }
 }
 

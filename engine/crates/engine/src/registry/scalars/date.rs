@@ -27,10 +27,10 @@ impl<'a> SDLDefinitionScalar<'a> for DateScalar {
 
     fn description() -> Option<&'a str> {
         Some(
-            r#"
+            r"
 A date string, such as 2007-12-03, is compliant with the full-date format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for the representation of dates and times using the Gregorian calendar.
 
-This scalar is a description of the date, as used for birthdays for example. It cannot represent an instant on the timeline."#,
+This scalar is a description of the date, as used for birthdays for example. It cannot represent an instant on the timeline.",
         )
     }
 }
@@ -38,7 +38,7 @@ This scalar is a description of the date, as used for birthdays for example. It 
 impl DynamicParse for DateScalar {
     fn is_valid(value: &ConstValue) -> bool {
         match value {
-            ConstValue::String(val) => NaiveDate::parse_from_str(&val, DATE_FORMAT).is_ok(),
+            ConstValue::String(val) => NaiveDate::parse_from_str(val, DATE_FORMAT).is_ok(),
             _ => false,
         }
     }

@@ -3,7 +3,7 @@ mod executor;
 mod transaction;
 
 use async_trait::async_trait;
-use futures::stream::BoxStream;
+use futures::{channel::oneshot, stream::BoxStream};
 use serde_json::Value;
 pub use tokio_postgres::Transaction;
 
@@ -14,6 +14,7 @@ use crate::error::Error;
 pub struct TcpTransport {
     client: tokio_postgres::Client,
     connection_string: String,
+    close_recv: oneshot::Receiver<()>,
 }
 
 impl TcpTransport {
@@ -38,15 +39,20 @@ impl TcpTransport {
             .await
             .map_err(|error| crate::error::Error::Connection(error.to_string()))?;
 
+        let (close_send, close_recv) = oneshot::channel();
+
         async_runtime::spawn(async move {
             if let Err(e) = connection.await {
                 eprintln!("connection error: {e}");
             }
+
+            close_send.send(()).unwrap();
         });
 
         let this = Self {
             client,
             connection_string: connection_string.to_string(),
+            close_recv,
         };
 
         Ok(this)
@@ -77,15 +83,20 @@ impl TcpTransport {
             .await
             .map_err(|error| crate::error::Error::Connection(error.to_string()))?;
 
+        let (close_send, close_recv) = oneshot::channel();
+
         async_runtime::spawn(async move {
             if let Err(e) = connection.await {
                 eprintln!("connection error: {e}");
             }
+
+            close_send.send(()).unwrap();
         });
 
         let this = Self {
             client,
             connection_string: connection_string.to_string(),
+            close_recv,
         };
 
         Ok(this)
@@ -99,6 +110,11 @@ impl TcpTransport {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for TcpTransport {
+    async fn close(self) -> crate::Result<()> {
+        drop(self.client);
+        self.close_recv.await.map_err(|e| Error::Internal(e.to_string()))
+    }
+
     fn parameterized_query<'a>(&'a self, query: &'a str, params: Vec<Value>) -> BoxStream<'a, Result<Value, Error>> {
         executor::query(&self.client, query, params)
     }

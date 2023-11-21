@@ -144,7 +144,7 @@ pub enum Definition {
     InputObject(InputObjectId),
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq)]
 pub struct FieldType {
     pub kind: Definition,
 
@@ -162,7 +162,7 @@ pub struct FieldType {
     pub list_wrappers: Vec<ListWrapper>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ListWrapper {
     RequiredList,
     NullableList,

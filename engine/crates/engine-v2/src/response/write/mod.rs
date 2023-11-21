@@ -2,20 +2,14 @@ mod de;
 mod selection_set;
 
 use de::AnyFieldsSeed;
-pub use selection_set::{WriteSelection, WriteSelectionSet};
 use serde::de::DeserializeSeed;
 
-use super::{Response, ResponseMutObject, ResponseObjectId, ResponseSparseObject, ResponseValue};
-use crate::request::OperationSelectionSet;
+use super::{AnyResponseMutObject, ResponseData, ResponseObject, ResponseObjectId, ResponseValue};
 
-impl Response {
-    pub fn prepare_write(&self, _selection_set: &OperationSelectionSet) -> WriteSelectionSet {
-        todo!()
-    }
-
+impl ResponseData {
     // Temporary as it's simple. We still need to validate the data we're receiving in all cases.
     // Upstream might break the contract. This basically got me started.
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic, dead_code)]
     pub fn write_fields_any<'de, D>(
         &mut self,
         object_node_id: ResponseObjectId,
@@ -27,8 +21,8 @@ impl Response {
         let seed = AnyFieldsSeed { response: self };
         let fields = seed.deserialize(deserializer)?;
         let response_object = match self.get_mut(object_node_id) {
-            ResponseMutObject::Sparse(obj) => obj,
-            ResponseMutObject::Dense(_) => panic!("Cannot add any fields in dense reponse object."),
+            AnyResponseMutObject::Sparse(obj) => obj,
+            AnyResponseMutObject::Dense(_) => panic!("Cannot add any fields in dense reponse object."),
         };
         for (name, value) in fields {
             response_object.fields.insert(name, value);
@@ -51,8 +45,8 @@ impl Response {
             _ => panic!("Expected object or null"),
         }
         let response_object = match self.get_mut(object_node_id) {
-            ResponseMutObject::Sparse(obj) => obj,
-            ResponseMutObject::Dense(_) => panic!("Cannot add any fields in dense reponse object."),
+            AnyResponseMutObject::Sparse(obj) => obj,
+            AnyResponseMutObject::Dense(_) => panic!("Cannot add any fields in dense reponse object."),
         };
         for (name, value) in response_fields {
             response_object.fields.insert(name, value);
@@ -69,14 +63,14 @@ impl Response {
                 ResponseValue::List(arr.into_iter().map(|v| self.push_json_value(v)).collect())
             }
             serde_json::Value::Object(obj) => {
-                let response_object = ResponseSparseObject {
+                let response_object = ResponseObject {
                     object_id: None,
                     fields: obj
                         .into_iter()
                         .map(|(name, value)| (self.strings.get_or_intern(&name), self.push_json_value(value)))
                         .collect(),
                 };
-                ResponseValue::Object(self.push_sparse_object(response_object))
+                ResponseValue::Object(self.push_object(response_object))
             }
         }
     }

@@ -38,7 +38,7 @@ async fn openapi_test() {
     insta::assert_yaml_snapshot!(
         client
             .gql::<Value>(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -48,7 +48,7 @@ async fn openapi_test() {
                             }
                         }
                     }
-                "#,
+                ",
             )
             .await,
         @r###"
@@ -132,7 +132,7 @@ async fn openapi_flat_namespace() {
     insta::assert_yaml_snapshot!(
         client
             .gql::<Value>(
-                r#"
+                r"
                     query {
                         pet(petId: 123) {
                             id
@@ -140,7 +140,7 @@ async fn openapi_flat_namespace() {
                             status
                         }
                     }
-                "#,
+                ",
             )
             .await,
         @r###"

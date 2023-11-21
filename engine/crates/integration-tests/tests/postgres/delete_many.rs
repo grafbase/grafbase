@@ -30,13 +30,13 @@ fn namespaced() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               postgres {
                 userCollection(first: 10) { edges { node { id name } } }
               }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -111,11 +111,11 @@ fn eq() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -187,11 +187,11 @@ fn eq_not_returning() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -253,11 +253,11 @@ fn missing() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -324,19 +324,19 @@ fn eq_null() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { name: { eq: null } }) { returning { id name } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -401,19 +401,19 @@ fn ne_null() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { name: { ne: null } }) { returning { id name } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -485,11 +485,11 @@ fn eq_two_fields() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name age } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -565,11 +565,11 @@ fn eq_rename() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id nameGame } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -640,11 +640,11 @@ fn ne() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -709,19 +709,19 @@ fn gt() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { id: { gt: 1 } }) { returning { id name } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -784,19 +784,19 @@ fn lt() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { id: { lt: 3 } }) { returning { id name } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -859,19 +859,19 @@ fn gte() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { id: { gte: 2 } }) { returning { id name } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -934,19 +934,19 @@ fn lte() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { id: { lte: 2 } }) { returning { id name } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1009,19 +1009,19 @@ fn r#in() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { id: { in: [1, 3] } }) { returning { id name } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1086,19 +1086,19 @@ fn nin() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { id: { nin: [1, 3] } }) { returning { id name } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1177,11 +1177,11 @@ fn all() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name age } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1263,11 +1263,11 @@ fn any() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name age } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1347,11 +1347,11 @@ fn none() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name age } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1427,11 +1427,11 @@ fn not() {
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) { edges { node { id name } } }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1496,21 +1496,21 @@ fn array_eq() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { numbers: { eq: [3, 4] } }) { returning { id numbers } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1575,21 +1575,21 @@ fn array_ne() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { numbers: { ne: [3, 4] } }) { returning { id numbers } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1654,21 +1654,21 @@ fn array_gt() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { numbers: { gt: [1, 2] } }) { returning { id numbers } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1733,21 +1733,21 @@ fn array_contains() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { numbers: { contains: [1, 2, 2, 1] } }) { returning { id numbers } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1812,21 +1812,21 @@ fn array_contained() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { numbers: { contained: [3, 6, 4, 7] } }) { returning { id numbers } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {
@@ -1891,21 +1891,21 @@ fn array_overlaps() {
 
         api.execute_sql(insert).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { numbers: { overlaps: [1, 5, 5, 6] } }) { returning { id numbers } }
             }
-        "#};
+        "};
 
         let mutation_result = api.execute(mutation).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         let expected = expect![[r#"
             {

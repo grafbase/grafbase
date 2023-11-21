@@ -12,13 +12,13 @@ fn empty() {
     "#};
 
     let response = with_mongodb(schema, |api| async move {
-        let query = indoc! {r#"
+        let query = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { eq: 39 } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -44,7 +44,7 @@ fn namespaced() {
     "#};
 
     let response = with_namespaced_mongodb("mongo", schema, |api| async move {
-        let query = indoc! {r#"
+        let query = indoc! {r"
             mutation {
               mongo {
                 userDeleteMany(filter: { age: { eq: 39 } }) {
@@ -52,7 +52,7 @@ fn namespaced() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -88,26 +88,26 @@ fn eq() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { eq: 39 } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -152,26 +152,26 @@ fn renamed_eq() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { eq: 39 } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -220,26 +220,26 @@ fn nested() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { number: { eq: 39 } } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age { number } } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -292,26 +292,26 @@ fn nested_renamed() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { number: { eq: 39 } } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age { number } } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -389,13 +389,13 @@ fn nested_eq() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { data { b { c } d } other} }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -452,26 +452,26 @@ fn ne() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { ne: 39 } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":2}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -511,26 +511,26 @@ fn gt() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { gt: 39 } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -575,26 +575,26 @@ fn lt() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { lt: 39 } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -639,26 +639,26 @@ fn gte() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { gte: 39 } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":2}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -698,26 +698,26 @@ fn lte() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { lte: 39 } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":2}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -757,26 +757,26 @@ fn r#in() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { in: [38, 40] } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":2}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -816,26 +816,26 @@ fn nin() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: { age: { nin: [38, 40] } }) {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -897,13 +897,13 @@ fn all() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -967,13 +967,13 @@ fn none() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1038,13 +1038,13 @@ fn any() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { name age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1085,7 +1085,7 @@ fn not() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: {
                 age: { not: { eq: 39 } }
@@ -1093,20 +1093,20 @@ fn not() {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { age } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1177,13 +1177,13 @@ fn date_eq() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { birthday } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1245,13 +1245,13 @@ fn datetime_eq() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { birthday } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1304,7 +1304,7 @@ fn timestamp_eq() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: {
                 registered: { eq: 1565545684 }
@@ -1312,20 +1312,20 @@ fn timestamp_eq() {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { registered } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1365,7 +1365,7 @@ fn simple_array_all() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: {
                 data: { all: [2, 3, 4] }
@@ -1373,20 +1373,20 @@ fn simple_array_all() {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { data } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1439,7 +1439,7 @@ fn simple_array_size() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: {
                 data: { size: 2 }
@@ -1447,20 +1447,20 @@ fn simple_array_size() {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { data } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1511,7 +1511,7 @@ fn simple_array_elemmatch() {
 
         api.insert_many("users", documents).await;
 
-        let mutation = indoc! {r#"
+        let mutation = indoc! {r"
             mutation {
               userDeleteMany(filter: {
                 data: { elemMatch: { eq: 1 } }
@@ -1519,20 +1519,20 @@ fn simple_array_elemmatch() {
                 deletedCount
               }
             }
-        "#};
+        "};
 
         let result = api.execute(mutation).await;
         let expected = expect![[r#"{"data":{"userDeleteMany":{"deletedCount":1}}}"#]];
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { data } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1603,13 +1603,13 @@ fn complex_array_elemmatch() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { data { street } } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1685,13 +1685,13 @@ fn complex_double_nested_array_elemmatch() {
 
         expected.assert_eq(&result.as_json_string());
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10) {
                 edges { node { data { street { name } } } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

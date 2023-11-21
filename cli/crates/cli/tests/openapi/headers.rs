@@ -29,7 +29,7 @@ async fn test_header_passthrough() {
     insta::assert_yaml_snapshot!(
         client
             .gql::<Value>(
-                r#"
+                r"
                     query {
                         petstore {
                             pet(petId: 123) {
@@ -37,7 +37,7 @@ async fn test_header_passthrough() {
                             }
                         }
                     }
-                "#,
+                ",
             )
             .header("wow-what-a-header", "isn't it the best")
             .header("and-another-one", "yes")

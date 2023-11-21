@@ -18,7 +18,7 @@ fn test_defer_on_matching_typecondition() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pets {
@@ -32,7 +32,7 @@ fn test_defer_on_matching_typecondition() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await
@@ -83,7 +83,7 @@ fn test_defer_on_unmatching_typecondition() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pets {
@@ -97,7 +97,7 @@ fn test_defer_on_unmatching_typecondition() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await
@@ -136,7 +136,7 @@ fn test_defer_on_multiple_fragments_with_one_match() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             pets {
@@ -153,7 +153,7 @@ fn test_defer_on_multiple_fragments_with_one_match() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await
@@ -204,7 +204,7 @@ fn test_defer_with_typecondition_on_concrete_type() {
         insta::assert_json_snapshot!(
             engine
                 .execute_stream(
-                r#"
+                r"
                     query {
                         petstore {
                             ... on PetstoreQuery @defer {
@@ -214,7 +214,7 @@ fn test_defer_with_typecondition_on_concrete_type() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .into_iter()
                 .await

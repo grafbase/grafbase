@@ -261,20 +261,20 @@ mod tests {
 
     #[rstest::rstest]
     // errors
-    #[case::forbidden_usage_max_age(r#"
+    #[case::forbidden_usage_max_age(r"
         extend schema @cache(maxAge: 60, staleWhileRevalidate: 300, rules: [])
-    "#, & ["@cache error: forbidden argument(s) used - [\"maxAge\", \"staleWhileRevalidate\", \"mutationInvalidation\"]"])]
-    #[case::forbidden_usage_mutation_invalidation(r#"
+    ", & ["@cache error: forbidden argument(s) used - [\"maxAge\", \"staleWhileRevalidate\", \"mutationInvalidation\"]"])]
+    #[case::forbidden_usage_mutation_invalidation(r"
         extend schema @cache(maxAge: 60, mutationInvalidation: type, rules: [])
-    "#, & ["@cache error: forbidden argument(s) used - [\"maxAge\", \"staleWhileRevalidate\", \"mutationInvalidation\"]"])]
-    #[case::missing_types_field(r#"
+    ", & ["@cache error: forbidden argument(s) used - [\"maxAge\", \"staleWhileRevalidate\", \"mutationInvalidation\"]"])]
+    #[case::missing_types_field(r"
         extend schema @cache(rules: [{
             maxAge: 10
         }])
-    "#, & ["@cache error: Unable to parse - [2:37] missing field `types`"])]
-    #[case::forbidden_and_invalid_mutation_invalidation(r#"
+    ", & ["@cache error: Unable to parse - [2:37] missing field `types`"])]
+    #[case::forbidden_and_invalid_mutation_invalidation(r"
         extend schema @cache(maxAge: 60, mutationInvalidation: test, rules: [])
-    "#, & [
+    ", & [
     "@cache error: forbidden argument(s) used - [\"maxAge\", \"staleWhileRevalidate\", \"mutationInvalidation\"]",
     "@cache error: Unable to parse - [2:64] invalid value: string \"test\", expected one of entity, list, type",
     ])]

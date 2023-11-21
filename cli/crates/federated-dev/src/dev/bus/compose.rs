@@ -33,7 +33,11 @@ impl ComposeBus {
     }
 
     pub async fn send_graph(&self, message: FederatedGraph) -> Result<(), Error> {
-        Ok(self.graph_sender.send(message).await?)
+        Ok(self.graph_sender.send(Some(message)).await?)
+    }
+
+    pub async fn clear_graph(&self) -> Result<(), Error> {
+        Ok(self.graph_sender.send(None).await?)
     }
 
     pub async fn send_refresh(&self, graphs: Vec<RefreshMessage>) -> Result<(), Error> {

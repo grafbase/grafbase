@@ -419,10 +419,10 @@ impl Schema {
         let request = extensions.prepare_request(request).await?;
         let mut document = {
             let query = &request.query;
-            let fut_parse = async { parse_query(&query).map_err(Into::<ServerError>::into) };
+            let fut_parse = async { parse_query(query).map_err(Into::<ServerError>::into) };
             futures_util::pin_mut!(fut_parse);
             extensions
-                .parse_query(&query, &request.variables, &mut fut_parse)
+                .parse_query(query, &request.variables, &mut fut_parse)
                 .await?
         };
 

@@ -1,0 +1,33 @@
+enum join__Graph {
+    MULTI_KEY @join__graph(name: "multi_key", url: "http://example.com/multi_key")
+    SINGLE_KEY @join__graph(name: "single_key", url: "http://example.com/single_key")
+}
+
+type Query {
+    getUserComments(name: String!, email: String!): User @join__field(graph: MULTI_KEY)
+    getUser(id: ID!): User @join__field(graph: SINGLE_KEY)
+}
+
+type User
+    @join__type(graph: MULTI_KEY, key: "id")
+    @join__type(graph: MULTI_KEY, key: "name email")
+    @join__type(graph: SINGLE_KEY, key: "id")
+{
+    id: ID!
+    name: String! @join__field(graph: MULTI_KEY)
+    email: String! @join__field(graph: MULTI_KEY)
+    comments: [Comment!]! @join__field(graph: MULTI_KEY)
+    posts: [Post!]! @join__field(graph: SINGLE_KEY)
+}
+
+type Comment {
+    id: ID! @join__field(graph: MULTI_KEY)
+    text: String! @join__field(graph: MULTI_KEY)
+}
+
+type Post {
+    id: ID! @join__field(graph: SINGLE_KEY)
+    title: String! @join__field(graph: SINGLE_KEY)
+    body: String! @join__field(graph: SINGLE_KEY)
+    published: Boolean! @join__field(graph: SINGLE_KEY)
+}

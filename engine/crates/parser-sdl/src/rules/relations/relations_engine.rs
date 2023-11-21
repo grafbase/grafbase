@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn one_to_one_relation_monodirectional() {
-        let schema = r#"
+        let schema = r"
             type Author @model {
                 id: ID!
             }
@@ -172,7 +172,7 @@ mod tests {
                 id: ID!
                 publishedBy: Author
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn one_to_one_relation_bidirectionnal() {
-        let schema = r#"
+        let schema = r"
             type Author @model {
                 id: ID!
                 published: Post
@@ -200,7 +200,7 @@ mod tests {
                 id: ID!
                 publishedBy: Author
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn one_to_many_relation_monodirectional_1() {
-        let schema = r#"
+        let schema = r"
             type Author @model {
                 id: ID!
             }
@@ -227,7 +227,7 @@ mod tests {
                 id: ID!
                 publishedBy: [Author]
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -245,7 +245,7 @@ mod tests {
 
     #[test]
     fn one_to_many_relation_monodirectional_2() {
-        let schema = r#"
+        let schema = r"
             type Author @model {
                 id: ID!
                 posts: [Post]
@@ -254,7 +254,7 @@ mod tests {
             type Post @model {
                 id: ID!
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -272,7 +272,7 @@ mod tests {
 
     #[test]
     fn one_to_many_relation_bidirectional_1() {
-        let schema = r#"
+        let schema = r"
             type Author @model {
                 id: ID!
                 post: Post!
@@ -282,7 +282,7 @@ mod tests {
                 id: ID!
                 publishedBy: [Author]
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn one_to_many_relation_bidirectional_2() {
-        let schema = r#"
+        let schema = r"
             type Author @model {
                 id: ID!
                 posts: [Post]
@@ -310,7 +310,7 @@ mod tests {
                 id: ID!
                 author: Author!
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn many_to_many_relation_monodirectional() {
-        let schema = r#"
+        let schema = r"
             type Author @model {
                 id: ID!
                 posts: [Post!]
@@ -338,7 +338,7 @@ mod tests {
                 id: ID!
                 publishedBy: [Author!]
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 

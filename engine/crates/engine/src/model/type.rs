@@ -211,9 +211,9 @@ impl<'a> __Type<'a> {
     #[inline]
     async fn of_type(&self) -> Option<__Type<'a>> {
         if let TypeDetail::List(ty) = &self.detail {
-            Some(__Type::new(self.registry, self.visible_types, &ty))
+            Some(__Type::new(self.registry, self.visible_types, ty))
         } else if let TypeDetail::NonNull(ty) = &self.detail {
-            Some(__Type::new(self.registry, self.visible_types, &ty))
+            Some(__Type::new(self.registry, self.visible_types, ty))
         } else {
             None
         }

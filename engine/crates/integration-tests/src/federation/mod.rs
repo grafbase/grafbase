@@ -1,9 +1,9 @@
 mod builder;
 
-use std::{collections::HashMap, future::IntoFuture};
+use std::{borrow::Cow, collections::HashMap, future::IntoFuture, ops::Deref};
 
 pub use builder::*;
-use engine::{ServerResult, Variables};
+use engine::Variables;
 use futures::future::BoxFuture;
 
 use crate::engine::GraphQlRequest;
@@ -46,25 +46,45 @@ impl ExecutionRequest<'_> {
 }
 
 impl<'a> IntoFuture for ExecutionRequest<'a> {
-    type Output = ServerResult<serde_json::Value>;
+    type Output = GraphqlResponse;
 
-    type IntoFuture = BoxFuture<'a, ServerResult<serde_json::Value>>;
+    type IntoFuture = BoxFuture<'a, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let document = engine_parser::parse_query(self.graphql.query).expect("request document to be well formed");
+        let request = self.graphql.into_engine_request();
 
-        let mut operations = document.operations.iter();
+        Box::pin(async move { GraphqlResponse(serde_json::to_value(self.engine.execute(request).await).unwrap()) })
+    }
+}
 
-        let operation = match self.graphql.operation_name {
-            None => operations.next().expect("document to have at least one operation"),
-            Some(expected_name) => operations
-                .find(|(name, _)| *name.expect("names if operationName provided") == expected_name)
-                .expect("an operation with the given operationName"),
+#[derive(serde::Serialize, Debug)]
+pub struct GraphqlResponse(serde_json::Value);
+
+impl Deref for GraphqlResponse {
+    type Target = serde_json::Value;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl GraphqlResponse {
+    pub fn into_value(self) -> serde_json::Value {
+        self.0
+    }
+
+    pub fn into_data(self) -> serde_json::Value {
+        match self.0 {
+            serde_json::Value::Object(mut value) => value.remove("data"),
+            _ => None,
         }
-        .1
-        .clone()
-        .node;
+        .unwrap_or_default()
+    }
 
-        Box::pin(async move { self.engine.execute(operation).await })
+    pub fn errors(&self) -> Cow<'_, Vec<serde_json::Value>> {
+        self.0["errors"]
+            .as_array()
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Owned(Vec::new()))
     }
 }

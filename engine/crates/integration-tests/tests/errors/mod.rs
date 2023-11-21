@@ -23,7 +23,7 @@ fn error_propagation_openapi() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query {
                         petstore {
                             goodDoggo: pet(petId: 123) {
@@ -36,7 +36,7 @@ fn error_propagation_openapi() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .await
                 .into_value(),
@@ -81,7 +81,7 @@ fn querying_unknown_field() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query {
                         petstore {
                           someNonsenseField {
@@ -89,7 +89,7 @@ fn querying_unknown_field() {
                           }
                         }
                     }
-                "#,
+                ",
                 )
                 .await
                 .into_value(),

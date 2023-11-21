@@ -34,9 +34,9 @@ impl RequiresDirective {
 
 impl Directive for RequiresDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @requires(fields: FieldSet!) on FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }

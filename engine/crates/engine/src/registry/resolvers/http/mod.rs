@@ -145,7 +145,7 @@ impl HttpResolver {
         for param in &self.path_parameters {
             let variable = param.variable_resolve_definition.resolve(ctx, last_resolver_value)?;
 
-            url = url.apply_path_parameter(&param, variable)?;
+            url = url.apply_path_parameter(param, variable)?;
         }
 
         let query_variables = self

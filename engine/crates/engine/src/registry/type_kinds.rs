@@ -72,16 +72,16 @@ impl<'a> OutputType<'a> {
 
     pub fn field(&self, name: &str) -> Option<&MetaField> {
         match self {
-            OutputType::Object(ref object) => object.field_by_name(name),
-            OutputType::Interface(ref interface) => interface.field_by_name(name),
+            OutputType::Object(object) => object.field_by_name(name),
+            OutputType::Interface(interface) => interface.field_by_name(name),
             _ => None,
         }
     }
 
     pub fn field_map(&self) -> Option<&IndexMap<String, MetaField>> {
         match self {
-            OutputType::Object(ref object) => Some(&object.fields),
-            OutputType::Interface(ref interface) => Some(&interface.fields),
+            OutputType::Object(object) => Some(&object.fields),
+            OutputType::Interface(interface) => Some(&interface.fields),
             _ => None,
         }
     }

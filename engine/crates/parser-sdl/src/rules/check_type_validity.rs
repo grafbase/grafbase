@@ -141,7 +141,7 @@ mod tests {
         assert!(!ctx.errors.is_empty(), "shouldn't be empty");
         assert_eq!(ctx.errors.len(), 1, "should have one error");
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "Field `__price` got an undefined type: `Url`.",
             "should match"
         );

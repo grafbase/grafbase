@@ -123,7 +123,7 @@ impl<'a> ContextField<'a> {
             .get(name)
             .ok_or_else(|| {
                 ServerError::new(
-                    &format!("Internal Error: Unknown argument '{name}'"),
+                    format!("Internal Error: Unknown argument '{name}'"),
                     Some(self.item.pos),
                 )
             })
@@ -151,7 +151,7 @@ impl<'a> ContextField<'a> {
             resolve_input(self, name, meta_input_value, maybe_value, mode)
         } else {
             Err(ServerError::new(
-                &format!("Internal Error: Unknown argument '{name}'"),
+                format!("Internal Error: Unknown argument '{name}'"),
                 Some(self.item.pos),
             ))
         }

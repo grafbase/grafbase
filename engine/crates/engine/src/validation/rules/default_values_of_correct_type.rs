@@ -42,7 +42,7 @@ impl<'a> Visitor<'a> for DefaultValuesOfCorrectType {
                 ctx.report_error(
                     vec![variable_definition.pos],
                     format!("Invalid default value for argument: {reason}"),
-                )
+                );
             }
         }
     }
@@ -60,11 +60,11 @@ mod tests {
     fn variables_with_no_default_values() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query NullableValues($a: Int, $b: String, $c: ComplexInput) {
             dog { name }
           }
-        "#,
+        ",
         );
     }
 
@@ -72,11 +72,11 @@ mod tests {
     fn required_variables_without_default_values() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query RequiredValues($a: Int!, $b: String!) {
             dog { name }
           }
-        "#,
+        ",
         );
     }
 
@@ -128,11 +128,11 @@ mod tests {
     fn complex_variables_missing_required_field() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query MissingRequiredField($a: ComplexInput = {intField: 3}) {
             dog { name }
           }
-        "#,
+        ",
         );
     }
 

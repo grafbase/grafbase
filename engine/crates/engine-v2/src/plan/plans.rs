@@ -1,15 +1,12 @@
-use super::ExecutionPlan;
+use super::{ExecutableTracker, ExecutionPlan};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
-pub struct PlanId(usize);
+pub struct PlanId(pub(super) usize);
 
 pub struct ExecutionPlans {
     plans: Vec<ExecutionPlan>,              // nodes
     parent_to_child: Vec<(PlanId, PlanId)>, // outgoing edges (sorted by parent)
-    // Both variables underneath are changed during the execution. Need to separate them later.
-    // should be a Vec<u8>, a plan having more than 255 dependencies is most likely insane
-    parent_count: Vec<usize>, // in-degree
-    executed_count: usize,
+    parent_count: Vec<usize>,
 }
 
 impl ExecutionPlans {
@@ -21,45 +18,12 @@ impl ExecutionPlans {
         }
     }
 
-    pub fn all_without_dependencies(&self) -> Vec<PlanId> {
-        self.parent_count
-            .iter()
-            .enumerate()
-            .filter_map(
-                |(plan_id, &in_degree)| {
-                    if in_degree == 0 {
-                        Some(PlanId(plan_id))
-                    } else {
-                        None
-                    }
-                },
-            )
-            .collect()
-    }
-
-    // current used during execution, but we shouldn't. ExecutionPlanGraph should create another
-    // struct having a copy of parent_count. making ExecutionPlanGraph re-usable accross executions
-    // (and thus could be saved in a LRU cache)
-    pub fn finished(&mut self, plan_id: PlanId) -> Vec<PlanId> {
-        self.executed_count += 1;
-        let start = self
-            .parent_to_child
-            .partition_point(|(parent_id, _)| *parent_id < plan_id);
-        let mut executable_plan_ids = vec![];
-        for &(parent_id, child_id) in &self.parent_to_child[start..] {
-            if parent_id != plan_id {
-                break;
-            }
-            self.parent_count[child_id.0] -= 1;
-            if self.parent_count[child_id.0] == 0 {
-                executable_plan_ids.push(child_id);
-            }
+    pub fn build_tracker(&self) -> ExecutableTracker {
+        ExecutableTracker {
+            parent_to_child: self.parent_to_child.clone(),
+            parent_count: self.parent_count.clone(),
+            executed_count: 0,
         }
-        executable_plan_ids
-    }
-
-    pub fn are_all_executed(&self) -> bool {
-        self.executed_count == self.plans.len()
     }
 }
 
@@ -84,7 +48,6 @@ impl ExecutionPlansBuilder {
             plans: self.plans,
             parent_to_child: self.parent_to_child,
             parent_count: self.parent_count,
-            executed_count: 0,
         }
     }
 

@@ -56,9 +56,9 @@ impl<'a> Visitor<'a> for ResolverDirective {
 
 impl Directive for ResolverDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @resolver(name: String) on FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }
@@ -72,12 +72,12 @@ mod tests {
     use crate::rules::visitor::visit;
 
     #[rstest::rstest]
-    #[case(r#"
+    #[case(r"
         type Customer @model {
             id: ID!
             balance: Int! @resolver
         }
-    "#, &[
+    ", &[
         "The @resolver directive takes a single `name` argument"
     ])]
     #[case(r#"

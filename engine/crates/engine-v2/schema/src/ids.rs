@@ -1,7 +1,8 @@
 /// Isolating ids from the rest to prevent misuse of the NonZeroU32.
 /// They can only be created by From<usize>
 use crate::{
-    DataSource, Enum, Field, FieldType, InputObject, Interface, Object, Resolver, Scalar, Schema, Subgraph, Union,
+    DataSource, Definition, Enum, Field, InputObject, InputValue, Interface, Object, Resolver, Scalar, Schema,
+    Subgraph, Type, Union,
 };
 
 macro_rules! id_newtypes {
@@ -18,9 +19,22 @@ macro_rules! id_newtypes {
                 }
             }
 
+            impl std::ops::IndexMut<$name> for Schema {
+                fn index_mut(&mut self, index: $name) -> &mut $out {
+                    &mut self.$storage[(index.0.get() - 1) as usize]
+                }
+            }
+
+
             impl From<usize> for $name {
                 fn from(index: usize) -> Self {
                     Self(std::num::NonZeroU32::new((index + 1) as u32).unwrap())
+                }
+            }
+
+            impl From<$name> for usize {
+                fn from(id: $name) -> Self {
+                    (id.0.get() - 1) as usize
                 }
             }
         )*
@@ -38,7 +52,7 @@ id_newtypes! {
     DataSourceId + data_sources + DataSource,
     EnumId + enums + Enum,
     FieldId + fields + Field,
-    FieldTypeId + field_types + FieldType,
+    TypeId + types + Type,
     InputObjectId + input_objects + InputObject,
     InterfaceId + interfaces + Interface,
     ObjectId + objects + Object,
@@ -47,4 +61,6 @@ id_newtypes! {
     SubgraphId + subgraphs + Subgraph,
     UnionId + unions + Union,
     ResolverId + resolvers + Resolver,
+    DefinitionId + definitions + Definition,
+    InputValueId + input_values + InputValue,
 }

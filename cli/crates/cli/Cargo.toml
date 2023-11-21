@@ -20,7 +20,6 @@ ctrlc = "3"
 indicatif = "0.17"
 inquire = "0.6"
 exitcode = "1"
-hex-literal = "0.4"
 indoc = "2"
 itertools = "0.11"
 log = "0.4"
@@ -41,9 +40,9 @@ webbrowser = "0.8"
 lru = "0.12"
 futures-util = "0.3"
 
-server = { package = "grafbase-local-server", path = "../server", version = "0.44.5" }
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.44.5" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.44.5" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.44.6" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.44.6" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.44.6" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
 federated-dev = { path = "../federated-dev" }
 atty = "0.2.14"

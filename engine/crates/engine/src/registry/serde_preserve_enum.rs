@@ -223,7 +223,7 @@ mod tests {
             json!({
                 "__enum": "HELLO"
             })
-        )
+        );
     }
 
     #[test]
@@ -234,7 +234,7 @@ mod tests {
             json!({
                 "__object": {"hello": null}
             })
-        )
+        );
     }
 
     #[test]

@@ -30,7 +30,7 @@ pub(super) fn merge_field_arguments<'a>(
 pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
     if fields
         .iter()
-        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_key()))
+        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_part_of_key()))
         .count()
         > 1
     {
@@ -45,8 +45,11 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         ));
     }
 
-    let first_is_key = first.is_key();
-    if fields.iter().any(|field| field.is_key() != first_is_key) {
+    let first_is_part_of_key = first.is_part_of_key();
+    if fields
+        .iter()
+        .any(|field| field.is_part_of_key() != first_is_part_of_key)
+    {
         let name = format!(
             "{}.{}",
             first.parent_definition().name().as_str(),
@@ -54,7 +57,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         );
         let (key_subgraphs, non_key_subgraphs) = fields
             .iter()
-            .partition::<Vec<FieldWalker<'_>>, _>(|field| field.is_key());
+            .partition::<Vec<FieldWalker<'_>>, _>(|field| field.is_part_of_key());
 
         ctx.diagnostics.push_fatal(format!(
             "The field `{name}` is part of `@key` in {} but not in {}",

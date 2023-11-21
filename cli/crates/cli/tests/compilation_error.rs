@@ -46,11 +46,11 @@ fn compilation_error_resolvers() {
     env.write_schema(COMPILATION_ERROR_RESOLVER_SCHEMA);
     env.write_resolver(
         "return-title.js",
-        r#"
+        r"
             export xyz {
                 return parent.title;
             }
-        "#,
+        ",
     );
 
     // For now without watching before we investigate the issue.

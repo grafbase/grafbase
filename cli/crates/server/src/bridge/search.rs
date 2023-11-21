@@ -82,10 +82,10 @@ impl<'a> Index<'a> {
         let mut writer = index.writer_with_num_threads(1, 20_000_000)?;
         // FIXME: GB-3636 Implement DynamoDB variant
         let mut fut = sqlx::query_as(
-            r#"
+            r"
         SELECT pk AS id, document
         FROM records WHERE entity_type = $1 AND pk = sk
-        "#,
+        ",
         )
         .bind(entity_type)
         .fetch(pool);

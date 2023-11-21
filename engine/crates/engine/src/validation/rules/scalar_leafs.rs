@@ -20,7 +20,7 @@ impl<'a> Visitor<'a> for ScalarLeafs {
                                 field.node.name,
                                 ty.name()
                             ),
-                        )
+                        );
                     } else if !ty.is_leaf() && field.node.selection_set.node.items.is_empty() {
                         ctx.report_error(
                             vec![field.pos],
@@ -29,7 +29,7 @@ impl<'a> Visitor<'a> for ScalarLeafs {
                                 field.node.name,
                                 ty.name()
                             ),
-                        )
+                        );
                     }
                 }
             }
@@ -49,12 +49,12 @@ mod tests {
     fn valid_scalar_selection() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment scalarSelection on Dog {
             barks
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -62,11 +62,11 @@ mod tests {
     fn object_type_missing_selection() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query directQueryOnObjectWithoutSubFields {
             human
           }
-        "#,
+        ",
         );
     }
 
@@ -74,11 +74,11 @@ mod tests {
     fn interface_type_missing_selection() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           {
             human { pets }
           }
-        "#,
+        ",
         );
     }
 
@@ -86,12 +86,12 @@ mod tests {
     fn valid_scalar_selection_with_args() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment scalarSelectionWithArgs on Dog {
             doesKnowCommand(dogCommand: SIT)
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -99,12 +99,12 @@ mod tests {
     fn scalar_selection_not_allowed_on_boolean() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment scalarSelectionsNotAllowedOnBoolean on Dog {
             barks { sinceWhen }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -112,12 +112,12 @@ mod tests {
     fn scalar_selection_not_allowed_on_enum() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment scalarSelectionsNotAllowedOnEnum on Cat {
             furColor { inHexdec }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -125,12 +125,12 @@ mod tests {
     fn scalar_selection_not_allowed_with_args() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment scalarSelectionsNotAllowedWithArgs on Dog {
             doesKnowCommand(dogCommand: SIT) { sinceWhen }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -138,12 +138,12 @@ mod tests {
     fn scalar_selection_not_allowed_with_directives() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment scalarSelectionsNotAllowedWithDirectives on Dog {
             name @include(if: true) { isAlsoHumanName }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 
@@ -151,12 +151,12 @@ mod tests {
     fn scalar_selection_not_allowed_with_directives_and_args() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment scalarSelectionsNotAllowedWithDirectivesAndArgs on Dog {
             doesKnowCommand(dogCommand: SIT) @include(if: true) { sinceWhen }
           }
           { __typename }
-        "#,
+        ",
         );
     }
 }

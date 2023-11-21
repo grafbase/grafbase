@@ -241,7 +241,7 @@ impl Registry {
                     if let Some(description) = field.description.as_deref() {
                         writeln!(sdl, "\t\"\"\"\n\t{description}\n\t\"\"\"").ok();
                     }
-                    writeln!(sdl, "\t{}", export_input_value(&field)).ok();
+                    writeln!(sdl, "\t{}", export_input_value(field)).ok();
                 }
                 writeln!(sdl, "}}").ok();
             }

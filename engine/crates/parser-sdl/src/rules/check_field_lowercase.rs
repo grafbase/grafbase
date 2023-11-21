@@ -46,12 +46,12 @@ mod tests {
 
     #[test]
     fn should_error_when_not_camel_lowercase() {
-        let schema = r#"
+        let schema = r"
             type Product @model {
                 id: ID!
                 _name: String!
             }
-            "#;
+            ";
 
         let schema = parse_schema(schema).expect("");
 
@@ -61,7 +61,7 @@ mod tests {
         assert!(!ctx.errors.is_empty(), "shouldn't be empty");
         assert_eq!(ctx.errors.len(), 1, "should have one error");
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            ctx.errors.first().unwrap().message,
             "Field \"_name\" is not in Camel lowercase, please use \"name\" instead.",
             "should match"
         );

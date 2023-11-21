@@ -11,15 +11,13 @@ use integration_tests::{federation::EngineV2Ext, mocks::graphql::FakeGithubSchem
 
 #[test]
 fn single_field_from_single_server() {
-    let response = runtime()
-        .block_on(async move {
-            let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-            let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
 
-            engine.execute("query { serverVersion }").await
-        })
-        .unwrap();
+        engine.execute("query { serverVersion }").await
+    });
 
     insta::assert_json_snapshot!(response, @r###"
     {
@@ -32,6 +30,46 @@ fn single_field_from_single_server() {
 
 #[test]
 #[ignore]
-fn test_introspection_matches() {
-    todo!("introspect fake server and introspect federation server - schemas should match")
+fn top_level_typename() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+
+        engine.execute("query { __typename }").await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__typename": "Query"
+      }
+    }
+    "###);
+}
+
+#[test]
+fn response_with_lists() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+
+        engine.execute("query { allBotPullRequests { title } }").await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "allBotPullRequests": [
+          {
+            "title": "Creating the thing"
+          },
+          {
+            "title": "Some bot PR"
+          }
+        ]
+      }
+    }
+    "###);
 }

@@ -76,7 +76,7 @@ pub(super) async fn receive_batch_multipart(
         match field.name() {
             Some("operations") => {
                 let body = field.bytes().await?;
-                request = Some(super::receive_batch_body_no_multipart(&content_type, body.as_ref()).await?)
+                request = Some(super::receive_batch_body_no_multipart(&content_type, body.as_ref()).await?);
             }
             Some("map") => {
                 let map_bytes = field.bytes().await?;

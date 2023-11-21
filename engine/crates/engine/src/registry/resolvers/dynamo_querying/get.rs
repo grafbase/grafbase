@@ -105,7 +105,7 @@ pub(super) async fn paginated_by_ids(
         items.truncate(cursor.limit());
         if cursor.is_backward() {
             // reverting back to the expected ordering
-            items.reverse()
+            items.reverse();
         }
         (items, has_more)
     };

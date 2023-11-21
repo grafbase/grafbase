@@ -22,13 +22,13 @@ fn eq_pk() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { id: { eq: 1 } }) {
                 edges { node { id name } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -70,13 +70,13 @@ fn first() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 1) {
                 edges { node { id name } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -118,13 +118,13 @@ fn last() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(last: 1) {
                 edges { node { id name } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -166,13 +166,13 @@ fn order_by() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, orderBy: [{ name: DESC }]) {
                 edges { node { id name } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -220,7 +220,7 @@ fn namespaced() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               pg {
                 userCollection(first: 10, filter: { id: { eq: 1 } }) {
@@ -228,7 +228,7 @@ fn namespaced() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -272,13 +272,13 @@ fn eq_pk_rename() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { idField: { eq: 1 } }) {
                 edges { node { idField nameField } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -368,13 +368,13 @@ fn array_eq() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { numbers: { eq: [3, 4] } }) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -419,13 +419,13 @@ fn array_ne() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { numbers: { ne: [3, 4] } }) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -470,13 +470,13 @@ fn array_gt() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { numbers: { gt: [1, 2] } }) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -521,13 +521,13 @@ fn array_contains() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { numbers: { contains: [1, 2, 2, 1] } }) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -572,13 +572,13 @@ fn array_contained() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { numbers: { contained: [3, 6, 4, 7] } }) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -623,13 +623,13 @@ fn array_overlaps() {
 
         api.execute_sql(insert).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { numbers: { overlaps: [1, 5, 5, 6] } }) {
                 edges { node { id numbers } }  
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1400,7 +1400,7 @@ fn one_to_many_relation_filter_child_side() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               blogCollection(first: 10, filter: { user: { id: { eq: 1 } } }) {
                 edges {
@@ -1412,7 +1412,7 @@ fn one_to_many_relation_filter_child_side() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });
@@ -1490,7 +1490,7 @@ fn one_to_many_relation_filter_parent_side() {
 
         api.execute_sql(insert_profiles).await;
 
-        let query = indoc! {r#"
+        let query = indoc! {r"
             query {
               userCollection(first: 10, filter: { blogs: { contains: { id: { eq: 1 } } } }) {
                 edges {
@@ -1502,7 +1502,7 @@ fn one_to_many_relation_filter_parent_side() {
                 }
               }
             }
-        "#};
+        "};
 
         api.execute(query).await
     });

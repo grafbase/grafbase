@@ -63,10 +63,25 @@ impl Environment {
             if #[cfg(feature = "dynamodb")] {
                 return tokio::runtime::Runtime::new().unwrap().block_on(async move {
                     let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
-                    Self::init_internal(port, dynamodb_env)
+                    Self::init_internal("./", port, dynamodb_env)
                 });
             } else {
-                return Self::init_internal(port);
+                return Self::init_internal("./", port)
+            }
+        );
+    }
+
+    #[allow(clippy::needless_return, clippy::unused_async)]
+    pub fn init_in_subdirectory(subdirectory_path: impl AsRef<Path>) -> Self {
+        let port = get_free_port();
+        cfg_if!(
+            if #[cfg(feature = "dynamodb")] {
+                return tokio::runtime::Runtime::new().unwrap().block_on(async move {
+                    let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
+                    Self::init_internal(subdirectory_path, port, dynamodb_env)
+                });
+            } else {
+                return Self::init_internal(subdirectory_path, port)
             }
         );
     }
@@ -77,18 +92,22 @@ impl Environment {
         cfg_if!(
             if #[cfg(feature = "dynamodb")] {
                 let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
-                return Self::init_internal(port, dynamodb_env);
+                return Self::init_internal("./", port, dynamodb_env);
             } else {
-                return Self::init_internal(port);
+                return Self::init_internal("./", port);
             }
         );
     }
 
-    fn init_internal(port: u16, #[cfg(feature = "dynamodb")] dynamodb_env: dynamodb::DynamoDbEnvironment) -> Self {
+    fn init_internal(
+        subdirectory_path: impl AsRef<Path>,
+        port: u16,
+        #[cfg(feature = "dynamodb")] dynamodb_env: dynamodb::DynamoDbEnvironment,
+    ) -> Self {
         let temp_dir = tempdir().unwrap();
         env::set_current_dir(temp_dir.path()).unwrap();
 
-        let schema_path = temp_dir.path().join(GRAFBASE_SCHEMA_FILE_NAME);
+        let schema_path = temp_dir.path().join(subdirectory_path).join(GRAFBASE_SCHEMA_FILE_NAME);
         let directory_path = temp_dir.path().to_owned();
         println!("Using temporary directory {:?}", directory_path.as_os_str());
         let commands = vec![];
@@ -165,6 +184,7 @@ impl Environment {
     pub fn write_schema(&self, schema: impl AsRef<str>) {
         // TODO: this is temporary until we update all tests to use SDK
         let _ = fs::remove_file("grafbase.config.ts");
+        let _ = fs::remove_file("grafbase/grafbase.config.ts");
         self.write_file("schema.graphql", schema);
     }
 
@@ -234,21 +254,39 @@ impl Environment {
 
     #[track_caller]
     pub fn grafbase_init(&self, graph_type: GraphType) {
-        cmd!(cargo_bin("grafbase"), "--trace", "2", "init", "-g", graph_type.as_ref())
-            .dir(&self.directory_path)
-            .run()
-            .unwrap();
+        let current_directory_path = self.schema_path.parent().expect("must be defined");
+        std::fs::create_dir_all(current_directory_path).unwrap();
+        cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "init",
+            "-g",
+            graph_type.as_ref()
+        )
+        .dir(current_directory_path)
+        .run()
+        .unwrap();
     }
 
     #[track_caller]
     pub fn grafbase_init_output(&self, graph_type: GraphType) -> Output {
-        cmd!(cargo_bin("grafbase"), "--trace", "2", "init", "-g", graph_type.as_ref())
-            .dir(&self.directory_path)
-            .stdout_capture()
-            .stderr_capture()
-            .unchecked()
-            .run()
-            .unwrap()
+        let current_directory_path = self.schema_path.parent().expect("must be defined");
+        std::fs::create_dir_all(current_directory_path).unwrap();
+        cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "init",
+            "-g",
+            graph_type.as_ref()
+        )
+        .dir(current_directory_path)
+        .stdout_capture()
+        .stderr_capture()
+        .unchecked()
+        .run()
+        .unwrap()
     }
 
     pub fn grafbase_init_template_output(&self, name: Option<&str>, template: &str) -> Output {

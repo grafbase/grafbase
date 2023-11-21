@@ -37,7 +37,7 @@ fn test_federation_with_required_field() {
         insta::assert_json_snapshot!(
             engine
                 .execute(
-                r#"
+                r"
                     query($repr: _Any!) {
                         _entities(representations: [$repr]) {
                             __typename
@@ -46,7 +46,7 @@ fn test_federation_with_required_field() {
                             }
                         }
                     }
-                "#,
+                ",
                 )
                 .variables(json!({"repr": {
                     "__typename": "User",

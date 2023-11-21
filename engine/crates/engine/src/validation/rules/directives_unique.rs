@@ -80,13 +80,13 @@ mod tests {
     fn skip_on_field() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           {
             dog {
               name @skip(if: true)
             }
           }
-        "#,
+        ",
         );
     }
 
@@ -94,13 +94,13 @@ mod tests {
     fn duplicate_skip_on_field() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           {
             dog {
               name @skip(if: true) @skip(if: false)
             }
           }
-        "#,
+        ",
         );
     }
 
@@ -108,15 +108,15 @@ mod tests {
     fn skip_on_fragment_spread() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           fragment A on Dog {
             name
           }
-          
+
           query {
             dog ... A @skip(if: true)
           }
-        "#,
+        ",
         );
     }
 
@@ -124,15 +124,15 @@ mod tests {
     fn duplicate_skip_on_fragment_spread() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           fragment A on Dog {
             name
           }
-          
+
           query {
             dog ... A @skip(if: true) @skip(if: false)
           }
-        "#,
+        ",
         );
     }
 
@@ -140,13 +140,13 @@ mod tests {
     fn skip_on_inline_fragment() {
         expect_passes_rule!(
             factory,
-            r#"
+            r"
           query {
             dog ... @skip(if: true) {
                 name
             }
           }
-        "#,
+        ",
         );
     }
 
@@ -154,13 +154,13 @@ mod tests {
     fn duplicate_skip_on_inline_fragment() {
         expect_fails_rule!(
             factory,
-            r#"
+            r"
           query {
             dog ... @skip(if: true) @skip(if: false) {
                 name
             }
           }
-        "#,
+        ",
         );
     }
 }

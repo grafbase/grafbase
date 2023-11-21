@@ -367,7 +367,7 @@ impl Transformer {
                 table_id,
             } => {
                 let database_definition = ctx
-                    .get_postgres_definition(&directive_name)
+                    .get_postgres_definition(directive_name)
                     .expect("we must have an introspected database");
 
                 let table = database_definition.walk(*table_id);

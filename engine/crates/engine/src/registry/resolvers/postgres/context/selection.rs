@@ -69,7 +69,7 @@ impl<'a> SelectionIterator<'a> {
 
                         let column = ctx
                             .database_definition
-                            .find_column_for_client_field(&field, table.id())
+                            .find_column_for_client_field(field, table.id())
                             .expect("ordering with non-existing column");
 
                         extra_columns.push(column);

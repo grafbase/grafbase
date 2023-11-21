@@ -32,9 +32,9 @@ impl ProvidesDirective {
 
 impl Directive for ProvidesDirective {
     fn definition() -> String {
-        r#"
+        r"
         directive @provides(fields: FieldSet!) on FIELD_DEFINITION
-        "#
+        "
         .to_string()
     }
 }

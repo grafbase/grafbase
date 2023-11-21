@@ -99,7 +99,7 @@ struct ResolveContext<'a> {
 impl<'a> ResolveContext<'a> {
     fn with_input(&'a self, path: &'a str, input: &'a MetaInputValue) -> ResolveContext<'a> {
         ResolveContext {
-            ctx: &self.ctx,
+            ctx: self.ctx,
             path: self.path.with(path),
             ty: input.ty.as_str(),
             allow_list_coercion: true,
@@ -121,7 +121,7 @@ fn resolve_maybe_absent_input(
     // remember exactly why though...
     match value.or_else(|| rctx.default_value.cloned()) {
         Some(value) => resolve_present_input(rctx, value, mode).map(Some),
-        None => matches!(MetaTypeName::create(&rctx.ty), MetaTypeName::NonNull(_))
+        None => matches!(MetaTypeName::create(rctx.ty), MetaTypeName::NonNull(_))
             .then_some(Err(rctx.input_error("Unexpected null value")))
             .transpose(),
     }
@@ -132,7 +132,7 @@ fn resolve_present_input(
     value: ConstValue,
     mode: InputResolveMode,
 ) -> Result<ConstValue, Error> {
-    match MetaTypeName::create(&rctx.ty) {
+    match MetaTypeName::create(rctx.ty) {
         MetaTypeName::NonNull(type_name) => {
             if matches!(value, ConstValue::Null) {
                 return Err(rctx.input_error("Unexpected null value"));
@@ -145,7 +145,7 @@ fn resolve_present_input(
             }
             if let ConstValue::List(list) = value {
                 let rctx = ResolveContext {
-                    ty: &type_name,
+                    ty: type_name,
                     allow_list_coercion: list.len() <= 1,
                     default_value: None,
                     ..rctx
@@ -163,7 +163,7 @@ fn resolve_present_input(
             } else if rctx.allow_list_coercion {
                 Ok(ConstValue::List(vec![resolve_present_input(
                     ResolveContext {
-                        ty: &type_name,
+                        ty: type_name,
                         allow_list_coercion: true,
                         default_value: None,
                         ..rctx
@@ -192,7 +192,7 @@ fn resolve_present_input(
                         let mut map = IndexMap::with_capacity(fields.len());
                         for (name, meta_input_value) in &input_object.input_fields {
                             if let Some(field_value) = resolve_maybe_absent_input(
-                                rctx.with_input(name, &meta_input_value),
+                                rctx.with_input(name, meta_input_value),
                                 fields.remove(&Name::new(name)),
                                 mode,
                             )? {

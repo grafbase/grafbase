@@ -190,6 +190,7 @@ impl VariableResolveDefinition {
         result.map_err(|err| err.into_server_error(ctx.item.pos))
     }
 
+    #[allow(clippy::unnecessary_fallible_conversions)]
     pub fn expect_opt_cursor<'a>(
         &self,
         ctx: &'a ContextField<'a>,

@@ -5,11 +5,12 @@ use std::{fmt, str};
 pub struct ProjectRef {
     account: String,
     project: String,
-    branch: String,
+    branch: Option<String>,
 }
 
 impl ProjectRef {
-    pub(crate) const ARG_DESCRIPTION: &str = r#"Project reference following the format "account/project@branch""#;
+    pub(crate) const ARG_DESCRIPTION: &'static str =
+        r#"Project reference following the format "account/project@branch""#;
 
     pub(crate) fn account(&self) -> &str {
         self.account.as_ref()
@@ -19,8 +20,8 @@ impl ProjectRef {
         self.project.as_ref()
     }
 
-    pub(crate) fn branch(&self) -> &str {
-        self.branch.as_ref()
+    pub(crate) fn branch(&self) -> Option<&str> {
+        self.branch.as_deref()
     }
 }
 
@@ -46,14 +47,10 @@ impl str::FromStr for ProjectRef {
             return Err("The project name is missing.");
         }
 
-        if branch.is_empty() {
-            return Err(r#"The branch name is missing after "@"."#);
-        }
-
         Ok(ProjectRef {
             account: account.to_owned(),
             project: project.to_owned(),
-            branch: branch.to_owned(),
+            branch: Some(branch).filter(|s| !s.is_empty()).map(String::from),
         })
     }
 }
@@ -63,8 +60,13 @@ impl fmt::Display for ProjectRef {
         f.write_str(&self.account)?;
         f.write_str("/")?;
         f.write_str(&self.project)?;
-        f.write_str("@")?;
-        f.write_str(&self.branch)
+
+        if let Some(branch) = &self.branch {
+            f.write_str("@")?;
+            f.write_str(branch)?;
+        }
+
+        Ok(())
     }
 }
 

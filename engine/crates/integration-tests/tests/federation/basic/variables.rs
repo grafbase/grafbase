@@ -65,20 +65,19 @@ fn list_coercion() {
     let query = "query(input: String!) { listOfListOfStrings(input: $input) }";
     let input = json!("hello");
 
-    let response = runtime()
-        .block_on({
-            let input = input.clone();
-            async move {
-                let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+    let response = runtime().block_on({
+        let input = input.clone();
+        async move {
+            let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-                let engine = Engine::build().with_schema("schema", echo_mock).await.finish();
+            let engine = Engine::build().with_schema("schema", echo_mock).await.finish();
 
-                engine.execute(query).variables(json!({"input": input})).await
-            }
-        })
-        .unwrap();
+            engine.execute(query).variables(json!({"input": input})).await
+        }
+    });
+    assert!(response.errors().is_empty(), "{response:#?}");
 
-    assert_eq!(response["data"], json!([["hello"]]));
+    assert_eq!(response.into_data(), json!([["hello"]]));
 }
 
 #[test]
@@ -99,18 +98,17 @@ where
 }
 
 fn do_roundtrip_test(query: &str, input: serde_json::Value) {
-    let response = runtime()
-        .block_on({
-            let input = input.clone();
-            async move {
-                let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+    let response = runtime().block_on({
+        let input = input.clone();
+        async move {
+            let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-                let engine = Engine::build().with_schema("schema", echo_mock).await.finish();
+            let engine = Engine::build().with_schema("schema", echo_mock).await.finish();
 
-                engine.execute(query).variables(json!({"input": input})).await
-            }
-        })
-        .unwrap();
+            engine.execute(query).variables(json!({"input": input})).await
+        }
+    });
+    assert!(response.errors().is_empty(), "{response:#?}");
 
     // I'm not certain this is the right assert since execute doesn't actually return
     // anything right now.

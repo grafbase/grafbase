@@ -1,0 +1,28 @@
+extend schema
+    @link(
+        url: "https://specs.apollo.dev/federation/v2.3",
+        import: ["@key", "@external", "@requires"]
+     )
+
+type Query {
+  student(id: ID!): Student
+  students: [Student]
+}
+
+type Student @key(fields: "id") {
+  id: ID!
+  name: String
+  enrollments: [Enrollment]
+}
+
+type Enrollment @key(fields: "studentId courseId") {
+  studentId: ID!
+  courseId: ID!
+  course: Course @provides(fields: "name")
+  enrollmentDate: String
+}
+
+extend type Course @key(fields: "id") {
+  id: ID! @external
+  enrolledStudents: [Student] @requires(fields: "id")
+}

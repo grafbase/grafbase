@@ -12,8 +12,8 @@ repository.workspace = true
 [dependencies]
 indoc = "2.0.4"
 reqwest = { version = "0.11.22", default-features = false, features = ["json", "rustls"] }
-cynic = { version = "3.2.2", features = ["http-reqwest"] }
-cynic-introspection = "3.2.2"
+cynic = { version = "3.3.0", features = ["http-reqwest"] }
+cynic-introspection = "3.3.0"
 serde = "1.0.192"
-apollo-parser = "0.7.3"
+apollo-parser = "0.7.4"
 apollo-encoder = "0.8.0"
