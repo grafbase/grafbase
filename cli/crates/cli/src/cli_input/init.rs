@@ -4,11 +4,11 @@ use super::{filter_existing_arguments, ArgumentNames};
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 #[clap(rename_all = "lowercase")]
-pub enum ConfigFormat {
-    /// Adds a TypeScript configuration file
-    TypeScript,
-    /// Adds a GraphQL configuration file
-    GraphQL,
+pub enum GraphType {
+    /// Creates a federated graph
+    Federated,
+    /// Creates a single graph
+    Single,
 }
 
 #[derive(Debug, Parser)]
@@ -18,9 +18,9 @@ pub struct InitCommand {
     /// The name or GitHub URL of the template to use for the new project
     #[arg(short, long)]
     pub template: Option<String>,
-    /// The format used for the Grafbase configuration file
+    /// What graph type (federated or single) to initialize the project with
     #[arg(short, long)]
-    pub config_format: Option<ConfigFormat>,
+    pub graph: Option<GraphType>,
 }
 
 impl InitCommand {

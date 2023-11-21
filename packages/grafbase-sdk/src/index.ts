@@ -1,7 +1,7 @@
 import {
   SingleGraphConfig,
+  ExperimentalSingleGraphConfigInput,
   SingleGraphConfigInput,
-  DeprecatedSingleGraphConfigInput,
   FederatedGraphConfig,
   FederatedGraphConfigInput
 } from './config'
@@ -28,7 +28,7 @@ export { type AuthorizerContext } from './authorizer/context'
 
 export { graph }
 
-/** @deprecated use `graph.Single()` instead */
+// /** @deprecated use `graph.Single()` instead */
 export const g = graph.Single()
 
 dotenv.config({
@@ -42,7 +42,7 @@ export type AtLeastOne<T> = [T, ...T[]]
 const isFederatedGraphConfigInput = (
   input:
     | SingleGraphConfigInput
-    | DeprecatedSingleGraphConfigInput
+    | ExperimentalSingleGraphConfigInput
     | FederatedGraphConfigInput
 ): input is FederatedGraphConfigInput =>
   'graph' in input && input.graph instanceof FederatedGraph
@@ -51,15 +51,15 @@ const isFederatedGraphConfigInput = (
  * A constructor for a complete Grafbase configuration.
  */
 export function config(input: SingleGraphConfigInput): SingleGraphConfig
-/** @deprecated use `graph` instead of `schema` */
+// /** @deprecated use `graph` instead of `schema` */
 export function config(
-  input: DeprecatedSingleGraphConfigInput
+  input: ExperimentalSingleGraphConfigInput
 ): SingleGraphConfig
 export function config(input: FederatedGraphConfigInput): FederatedGraphConfig
 export function config(
   input:
     | SingleGraphConfigInput
-    | DeprecatedSingleGraphConfigInput
+    | ExperimentalSingleGraphConfigInput
     | FederatedGraphConfigInput
 ): SingleGraphConfig | FederatedGraphConfig {
   if (isFederatedGraphConfigInput(input)) {

@@ -1,26 +1,25 @@
-use crate::{cli_input::ConfigFormat, errors::CliError, output::report, prompts::handle_inquire_error};
-use backend::project::{self, ConfigType, Template};
-use inquire::Select;
+use crate::{cli_input::GraphType, errors::CliError, output::report};
+use backend::project::{self, Template};
 
-pub fn init(name: Option<&str>, template: Option<&str>, config_format: Option<ConfigFormat>) -> Result<(), CliError> {
-    let template = match (template, config_format) {
+pub fn init(name: Option<&str>, template: Option<&str>, graph_type: Option<GraphType>) -> Result<(), CliError> {
+    let template = match (template, graph_type) {
         (Some(template), _) => Template::FromUrl(template),
-        (None, Some(ConfigFormat::TypeScript)) => Template::FromDefault(ConfigType::TypeScript),
-        (None, Some(ConfigFormat::GraphQL)) => Template::FromDefault(ConfigType::GraphQL),
+        (None, Some(GraphType::Single)) => Template::FromDefault(project::GraphType::Single),
+        (None, Some(GraphType::Federated)) => Template::FromDefault(project::GraphType::Federated),
         (None, None) => {
-            let config_type = Select::new(
-                "What configuration format would you like to use?",
-                ConfigType::VARIANTS.to_vec(),
-            )
-            .prompt()
-            .map_err(handle_inquire_error)?;
+            // let graph_type = Select::new(
+            //     "What type of graph would you like to create?",
+            //     project::GraphType::VARIANTS.to_vec(),
+            // )
+            // .prompt()
+            // .map_err(handle_inquire_error)?;
 
-            Template::FromDefault(config_type)
+            Template::FromDefault(project::GraphType::Single)
         }
     };
 
-    let config_type = project::init(name, template).map_err(CliError::BackendError)?;
-    report::project_created(name, config_type);
+    project::init(name, template).map_err(CliError::BackendError)?;
+    report::project_created(name);
 
     Ok(())
 }

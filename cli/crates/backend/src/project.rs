@@ -1,4 +1,4 @@
-use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_SDL, DEFAULT_SCHEMA_TS, USER_AGENT};
+use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_FEDERATED, DEFAULT_SCHEMA_SINGLE, USER_AGENT};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use async_tar::Archive;
@@ -22,37 +22,37 @@ use tokio_util::io::StreamReader;
 use url::Url;
 
 #[derive(Debug, Clone, Copy)]
-pub enum ConfigType {
-    TypeScript,
-    GraphQL,
+pub enum GraphType {
+    Single,
+    Federated,
 }
 
-impl AsRef<str> for ConfigType {
+impl AsRef<str> for GraphType {
     fn as_ref(&self) -> &str {
         match self {
-            ConfigType::TypeScript => "typescript",
-            ConfigType::GraphQL => "graphql",
+            GraphType::Single => "single",
+            GraphType::Federated => "federated",
         }
     }
 }
 
-impl fmt::Display for ConfigType {
+impl fmt::Display for GraphType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConfigType::TypeScript => f.write_str("TypeScript"),
-            ConfigType::GraphQL => f.write_str("GraphQL"),
+            GraphType::Single => f.write_str("Single"),
+            GraphType::Federated => f.write_str("Federated"),
         }
     }
 }
 
-impl ConfigType {
-    pub const VARIANTS: &'static [ConfigType] = &[Self::TypeScript, Self::GraphQL];
+impl GraphType {
+    pub const VARIANTS: &'static [GraphType] = &[Self::Single, Self::Federated];
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum Template<'a> {
     FromUrl(&'a str),
-    FromDefault(ConfigType),
+    FromDefault(GraphType),
 }
 
 /// initializes a new project in the current or a new directory, optionally from a template
@@ -96,7 +96,7 @@ pub enum Template<'a> {
 /// - returns [`BackendError::GetRepositoryInformation`] if the request to get the information for a repository returned a non 200-299 status
 ///
 /// - returns [`BackendError::ReadRepositoryInformation`] if the request to get the information for a repository returned a response that could not be parsed
-pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, BackendError> {
+pub fn init(name: Option<&str>, template: Template<'_>) -> Result<(), BackendError> {
     let project_path = to_project_path(name)?;
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -148,16 +148,16 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, Ba
                         GRAFBASE_SDK_PACKAGE_VERSION,
                     )
                     .map_err(BackendError::CommonError)?;
-                    return Ok(ConfigType::TypeScript);
+                    return Ok(());
                 }
 
-                Ok(ConfigType::GraphQL)
+                Ok(())
             }
-            Template::FromDefault(config_type) => {
+            Template::FromDefault(graph_type) => {
                 let dot_env_path = project_path.join(GRAFBASE_ENV_FILE_NAME);
 
-                let schema_write_result = match config_type {
-                    ConfigType::TypeScript => {
+                let schema_write_result = match graph_type {
+                    GraphType::Single => {
                         let schema_path = project_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
 
                         let add_sdk = environment::add_dev_dependency_to_package_json(
@@ -167,13 +167,25 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, Ba
                         )
                         .map_err(Into::into);
 
-                        let write_schema = fs::write(schema_path, DEFAULT_SCHEMA_TS).map_err(BackendError::WriteSchema);
+                        let write_schema =
+                            fs::write(schema_path, DEFAULT_SCHEMA_SINGLE).map_err(BackendError::WriteSchema);
 
                         add_sdk.and(write_schema)
                     }
-                    ConfigType::GraphQL => {
-                        let schema_path = project_path.join(GRAFBASE_SCHEMA_FILE_NAME);
-                        fs::write(schema_path, DEFAULT_SCHEMA_SDL).map_err(BackendError::WriteSchema)
+                    GraphType::Federated => {
+                        let schema_path = project_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
+
+                        let add_sdk = environment::add_dev_dependency_to_package_json(
+                            &project_path,
+                            GRAFBASE_SDK_PACKAGE_NAME,
+                            GRAFBASE_SDK_PACKAGE_VERSION,
+                        )
+                        .map_err(Into::into);
+
+                        let write_schema =
+                            fs::write(schema_path, DEFAULT_SCHEMA_FEDERATED).map_err(BackendError::WriteSchema);
+
+                        add_sdk.and(write_schema)
                     }
                 };
 
@@ -182,7 +194,7 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<ConfigType, Ba
                 schema_write_result?;
                 dot_env_write_result?;
 
-                Ok(config_type)
+                Ok(())
             }
         }
     })

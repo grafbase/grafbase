@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use backend::project::ConfigType;
+use backend::project::GraphType;
 use json_dotpath::DotPaths;
 use serde_json::Value;
 use utils::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
@@ -11,7 +11,7 @@ use utils::environment::Environment;
 fn dev_watch() {
     let mut env = Environment::init();
 
-    env.grafbase_init(ConfigType::GraphQL);
+    env.grafbase_init(GraphType::Single);
 
     env.write_schema(format!("extend schema @experimental(codegen: true)\n{DEFAULT_SCHEMA}"));
 

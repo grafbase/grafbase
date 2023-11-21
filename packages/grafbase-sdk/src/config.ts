@@ -5,9 +5,11 @@ import { Experimental, ExperimentalParams } from './experimental'
 import { Federation, FederationParams } from './federation'
 
 /**
+ * DO NOT USE - experimental
+ *
  * An interface to create the complete config definition.
  */
-export interface SingleGraphConfigInput {
+export interface ExperimentalSingleGraphConfigInput {
   graph: SingleGraph
   auth?: AuthParams
   cache?: CacheParams
@@ -15,12 +17,16 @@ export interface SingleGraphConfigInput {
   federation?: FederationParams
 }
 
-/**
- * @deprecated use `graph` instead of `schema`
+// /**
+//  * @deprecated use `graph` instead of `schema`
+//  * An interface to create the complete config definition.
+//  */
+/*
+ *
  * An interface to create the complete config definition.
  */
-export interface DeprecatedSingleGraphConfigInput {
-  /** @deprecated use `graph` instead */
+export interface SingleGraphConfigInput {
+  // /** @deprecated use `graph` instead */
   schema: SingleGraph
   auth?: AuthParams
   cache?: CacheParams
@@ -29,6 +35,8 @@ export interface DeprecatedSingleGraphConfigInput {
 }
 
 /**
+ * DO NOT USE - experimental
+ *
  * An interface to create the federation config definition.
  */
 export interface FederatedGraphConfigInput {
@@ -45,11 +53,11 @@ export class SingleGraphConfig {
   private readonly experimental?: Experimental
   private readonly federation?: Federation
 
+  constructor(input: ExperimentalSingleGraphConfigInput)
+  // /** @deprecated use `graph` instead of `schema` */
   constructor(input: SingleGraphConfigInput)
-  /** @deprecated use `graph` instead of `schema` */
-  constructor(input: DeprecatedSingleGraphConfigInput)
   constructor(
-    input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput
+    input: ExperimentalSingleGraphConfigInput | SingleGraphConfigInput
   ) {
     this.graph = 'graph' in input ? input.graph : input.schema
 
