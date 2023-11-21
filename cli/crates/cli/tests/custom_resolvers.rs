@@ -44,7 +44,7 @@ enum JavaScriptPackageManager {
         }
     "#,
     "fetch-grafbase-graphql.js",
-    r#"
+    r"
         export default function Resolver(parent, args, context, info) {
             return fetch('https://api.grafbase.com/graphql', {
                 headers: {
@@ -54,7 +54,7 @@ enum JavaScriptPackageManager {
                 body: JSON.stringify({ query: '{ __typename }' })
             });
         }
-    "#,
+    ",
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { fetchResult } }", "data.post.fetchResult")
     ],
