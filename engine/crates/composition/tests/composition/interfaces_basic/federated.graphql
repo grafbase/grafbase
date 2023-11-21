@@ -4,7 +4,7 @@ enum join__Graph {
     SOCIAL @join__graph(name: "social", url: "http://example.com/social")
 }
 
-type Furby {
+type Furby implements FurbyType & SocialFurby {
     id: ID! @join__field(graph: SOCIAL)
     languages: [String!]! @join__field(graph: SOCIAL)
     canSing: Boolean! @join__field(graph: SOCIAL)

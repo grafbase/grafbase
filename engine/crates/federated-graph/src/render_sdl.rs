@@ -27,6 +27,19 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
         sdl.push_str("type ");
         sdl.push_str(object_name);
 
+        if !object.implements_interfaces.is_empty() {
+            sdl.push_str(" implements ");
+
+            for (idx, interface) in object.implements_interfaces.iter().enumerate() {
+                let interface_name = &graph[graph[*interface].name];
+                sdl.push_str(interface_name);
+
+                if idx < object.implements_interfaces.len() - 1 {
+                    sdl.push_str(" & ");
+                }
+            }
+        }
+
         if object.resolvable_keys.is_empty() {
             sdl.push_str(" {\n");
         } else {
@@ -52,7 +65,22 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for (idx, interface) in graph.interfaces.iter().enumerate() {
         let interface_name = &graph[interface.name];
-        writeln!(sdl, "interface {interface_name} {{")?;
+        write!(sdl, "interface {interface_name}")?;
+
+        if !interface.implements_interfaces.is_empty() {
+            sdl.push_str(" implements ");
+
+            for (idx, implemented) in interface.implements_interfaces.iter().enumerate() {
+                let implemented_interface_name = &graph[graph[*implemented].name];
+                sdl.push_str(implemented_interface_name);
+
+                if idx < interface.implements_interfaces.len() - 1 {
+                    sdl.push_str(" & ");
+                }
+            }
+        }
+
+        sdl.push_str(" {\n");
 
         for field in graph
             .interface_fields

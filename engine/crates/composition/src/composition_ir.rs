@@ -57,6 +57,7 @@ impl CompositionIr {
         let name = self.insert_string(iface_name);
         let iface = federated::Interface {
             name,
+            implements_interfaces: Vec::new(),
             composed_directives: Vec::new(),
         };
         let id = federated::InterfaceId(self.interfaces.push_return_idx(iface));

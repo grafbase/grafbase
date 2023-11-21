@@ -138,6 +138,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                             "Broken invariant: object id behind object name.".to_owned(),
                         ));
                     };
+                    ingest_object_interfaces(object_id, object, state)?;
                     ingest_object_fields(object_id, object, state);
                 }
                 ast::TypeKind::Interface(iface) => {
@@ -147,6 +148,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                             "Broken invariant: interface id behind interface name.".to_owned(),
                         ));
                     };
+                    ingest_interface_interfaces(interface_id, iface, state)?;
                     ingest_interface(interface_id, iface, state);
                 }
                 ast::TypeKind::Union(union) => {
@@ -169,6 +171,44 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
             },
         }
     }
+
+    Ok(())
+}
+
+fn ingest_interface_interfaces(
+    interface_id: InterfaceId,
+    interface: &ast::InterfaceType,
+    state: &mut State<'_>,
+) -> Result<(), DomainError> {
+    state.interfaces[interface_id.0].implements_interfaces = interface
+        .implements
+        .iter()
+        .map(|name| match state.definition_names[name.node.as_str()] {
+            Definition::Interface(interface_id) => Ok(interface_id),
+            _ => Err(DomainError(
+                "Broken invariant: object implements non-interface type".to_owned(),
+            )),
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(())
+}
+
+fn ingest_object_interfaces(
+    object_id: ObjectId,
+    object: &ast::ObjectType,
+    state: &mut State<'_>,
+) -> Result<(), DomainError> {
+    state.objects[object_id.0].implements_interfaces = object
+        .implements
+        .iter()
+        .map(|name| match state.definition_names[name.node.as_str()] {
+            Definition::Interface(interface_id) => Ok(interface_id),
+            _ => Err(DomainError(
+                "Broken invariant: object implements non-interface type".to_owned(),
+            )),
+        })
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(())
 }
@@ -328,6 +368,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                     ast::TypeKind::Interface(_) => {
                         let interface_id = InterfaceId(state.interfaces.push_return_idx(Interface {
                             name: type_name_id,
+                            implements_interfaces: Vec::new(),
                             composed_directives: Vec::new(),
                         }));
                         state
