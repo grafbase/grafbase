@@ -256,37 +256,23 @@ impl Environment {
     pub fn grafbase_init(&self, graph_type: GraphType) {
         let current_directory_path = self.schema_path.parent().expect("must be defined");
         std::fs::create_dir_all(current_directory_path).unwrap();
-        cmd!(
-            cargo_bin("grafbase"),
-            "--trace",
-            "2",
-            "init",
-            "-g",
-            graph_type.as_ref()
-        )
-        .dir(current_directory_path)
-        .run()
-        .unwrap();
+        cmd!(cargo_bin("grafbase"), "--trace", "2", "init", "-g", graph_type.as_ref())
+            .dir(current_directory_path)
+            .run()
+            .unwrap();
     }
 
     #[track_caller]
     pub fn grafbase_init_output(&self, graph_type: GraphType) -> Output {
         let current_directory_path = self.schema_path.parent().expect("must be defined");
         std::fs::create_dir_all(current_directory_path).unwrap();
-        cmd!(
-            cargo_bin("grafbase"),
-            "--trace",
-            "2",
-            "init",
-            "-g",
-            graph_type.as_ref()
-        )
-        .dir(current_directory_path)
-        .stdout_capture()
-        .stderr_capture()
-        .unchecked()
-        .run()
-        .unwrap()
+        cmd!(cargo_bin("grafbase"), "--trace", "2", "init", "-g", graph_type.as_ref())
+            .dir(current_directory_path)
+            .stdout_capture()
+            .stderr_capture()
+            .unchecked()
+            .run()
+            .unwrap()
     }
 
     pub fn grafbase_init_template_output(&self, name: Option<&str>, template: &str) -> Output {
