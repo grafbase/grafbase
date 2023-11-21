@@ -36,12 +36,12 @@ fn can_run_2018_introspection_query() {
       value: String!
     }
 
-    type Issue {
+    type Issue implements PullRequestOrIssue {
       author: UserOrBot!
       title: String!
     }
 
-    type PullRequest {
+    type PullRequest implements PullRequestOrIssue {
       author: UserOrBot!
       checks: [String!]!
       title: String!
@@ -104,12 +104,12 @@ fn can_run_2021_introspection_query() {
       value: String!
     }
 
-    type Issue {
+    type Issue implements PullRequestOrIssue {
       author: UserOrBot!
       title: String!
     }
 
-    type PullRequest {
+    type PullRequest implements PullRequestOrIssue {
       author: UserOrBot!
       checks: [String!]!
       title: String!
@@ -235,14 +235,14 @@ fn can_introsect_when_multiple_subgraphs() {
       recursiveObjectList: [InputObj!]!
     }
 
-    type Issue {
+    type Issue implements PullRequestOrIssue {
       author: UserOrBot!
       title: String!
     }
 
     scalar JSON
 
-    type PullRequest {
+    type PullRequest implements PullRequestOrIssue {
       author: UserOrBot!
       checks: [String!]!
       title: String!
@@ -337,7 +337,9 @@ fn supports_the_type_field() {
             }
           ],
           "inputFields": null,
-          "interfaces": [],
+          "interfaces": [
+            {}
+          ],
           "kind": "OBJECT",
           "name": "PullRequest",
           "ofType": null,
@@ -419,7 +421,132 @@ fn supports_recursing_through_types() {
     {
       "data": {
         "__type": {
-          "possibleTypes": []
+          "possibleTypes": [
+            {
+              "interfaces": [
+                {
+                  "name": "PullRequestOrIssue",
+                  "possibleTypes": [
+                    {
+                      "interfaces": [
+                        {
+                          "name": "PullRequestOrIssue",
+                          "possibleTypes": [
+                            {
+                              "interfaces": [
+                                {
+                                  "name": "PullRequestOrIssue"
+                                }
+                              ],
+                              "name": "Issue"
+                            },
+                            {
+                              "interfaces": [
+                                {
+                                  "name": "PullRequestOrIssue"
+                                }
+                              ],
+                              "name": "PullRequest"
+                            }
+                          ]
+                        }
+                      ],
+                      "name": "Issue"
+                    },
+                    {
+                      "interfaces": [
+                        {
+                          "name": "PullRequestOrIssue",
+                          "possibleTypes": [
+                            {
+                              "interfaces": [
+                                {
+                                  "name": "PullRequestOrIssue"
+                                }
+                              ],
+                              "name": "Issue"
+                            },
+                            {
+                              "interfaces": [
+                                {
+                                  "name": "PullRequestOrIssue"
+                                }
+                              ],
+                              "name": "PullRequest"
+                            }
+                          ]
+                        }
+                      ],
+                      "name": "PullRequest"
+                    }
+                  ]
+                }
+              ],
+              "name": "Issue"
+            },
+            {
+              "interfaces": [
+                {
+                  "name": "PullRequestOrIssue",
+                  "possibleTypes": [
+                    {
+                      "interfaces": [
+                        {
+                          "name": "PullRequestOrIssue",
+                          "possibleTypes": [
+                            {
+                              "interfaces": [
+                                {
+                                  "name": "PullRequestOrIssue"
+                                }
+                              ],
+                              "name": "Issue"
+                            },
+                            {
+                              "interfaces": [
+                                {
+                                  "name": "PullRequestOrIssue"
+                                }
+                              ],
+                              "name": "PullRequest"
+                            }
+                          ]
+                        }
+                      ],
+                      "name": "Issue"
+                    },
+                    {
+                      "interfaces": [
+                        {
+                          "name": "PullRequestOrIssue",
+                          "possibleTypes": [
+                            {
+                              "interfaces": [
+                                {
+                                  "name": "PullRequestOrIssue"
+                                }
+                              ],
+                              "name": "Issue"
+                            },
+                            {
+                              "interfaces": [
+                                {
+                                  "name": "PullRequestOrIssue"
+                                }
+                              ],
+                              "name": "PullRequest"
+                            }
+                          ]
+                        }
+                      ],
+                      "name": "PullRequest"
+                    }
+                  ]
+                }
+              ],
+              "name": "PullRequest"
+            }
+          ]
         }
       }
     }
