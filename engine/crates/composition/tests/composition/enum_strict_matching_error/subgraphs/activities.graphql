@@ -4,10 +4,10 @@ type Activity {
   participatingTeletubby: Teletubby!
 }
 
-type Teletubby @federation__key(fields: "name") {
+type Teletubby @key(fields: "name") {
   name: String!
   activities: [Activity]
-  favoriteToy: FavoriteToy @federation__shareable
+  favoriteToy: FavoriteToy @shareable
 }
 
 type Query {

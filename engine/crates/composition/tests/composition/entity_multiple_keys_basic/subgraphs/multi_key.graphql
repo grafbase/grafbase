@@ -1,0 +1,15 @@
+extend type Query {
+  getUserComments(name: String! email: String!): User
+}
+
+type User @key(fields: "id") @key(fields: "name email") {
+  id: ID!
+  name: String!
+  email: String!
+  comments: [Comment!]!
+}
+
+type Comment {
+  id: ID!
+  text: String!
+}

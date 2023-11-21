@@ -1,3 +1,5 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3")
+
 type Query {
   searchPerson(input: InputPerson!): [Person]
 }

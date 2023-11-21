@@ -1,0 +1,15 @@
+extend type Query {
+  getUser(id: ID!): User
+}
+
+type User @key(fields: "id") {
+  id: ID!
+  posts: [Post!]!
+}
+
+type Post {
+  id: ID!
+  title: String!
+  body: String!
+  published: Boolean!
+}

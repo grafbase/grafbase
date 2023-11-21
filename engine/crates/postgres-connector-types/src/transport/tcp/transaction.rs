@@ -9,6 +9,10 @@ use crate::{error::Error, transport::Transport};
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for Transaction<'_> {
+    async fn close(self) -> crate::Result<()> {
+        Ok(())
+    }
+
     fn parameterized_query<'a>(&'a self, query: &'a str, params: Vec<Value>) -> BoxStream<'a, Result<Value, Error>> {
         executor::query(self, query, params)
     }
