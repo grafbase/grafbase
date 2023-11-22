@@ -70,7 +70,6 @@ jobs:
           npx prettier --check .
 
   lint:
-    name: Lint and run unit tests
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: buildjet-8vcpu-ubuntu-2204
