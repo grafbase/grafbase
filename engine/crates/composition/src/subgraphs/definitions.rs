@@ -5,7 +5,11 @@ pub(crate) struct DefinitionId(pub(super) usize);
 
 // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
 #[derive(Default)]
-pub(crate) struct Definitions(Vec<Definition>);
+pub(crate) struct Definitions {
+    definitions: Vec<Definition>,
+    // (Implementer, implementee)
+    interface_impls: BTreeSet<(StringId, StringId)>,
+}
 
 pub(crate) struct Definition {
     subgraph_id: SubgraphId,
@@ -35,12 +39,16 @@ impl Subgraphs {
         self.definition_by_name_id(interned_name, subgraph_id).unwrap()
     }
 
+    pub(crate) fn iter_interface_impls(&self) -> impl Iterator<Item = (StringId, StringId)> + '_ {
+        self.definitions.interface_impls.iter().copied()
+    }
+
     pub(crate) fn set_external(&mut self, definition_id: DefinitionId) {
-        self.definitions.0[definition_id.0].is_external = true;
+        self.definitions.definitions[definition_id.0].is_external = true;
     }
 
     pub(crate) fn set_shareable(&mut self, definition_id: DefinitionId) {
-        self.definitions.0[definition_id.0].is_shareable = true;
+        self.definitions.definitions[definition_id.0].is_shareable = true;
     }
 
     pub(crate) fn push_definition(
@@ -57,9 +65,15 @@ impl Subgraphs {
             is_shareable: false,
             is_external: false,
         };
-        let id = DefinitionId(self.definitions.0.push_return_idx(definition));
+        let id = DefinitionId(self.definitions.definitions.push_return_idx(definition));
         self.definition_names.insert((name, subgraph_id), id);
         id
+    }
+
+    pub(crate) fn push_interface_impl(&mut self, implementer: StringId, implemented_interface: StringId) {
+        self.definitions
+            .interface_impls
+            .insert((implementer, implemented_interface));
     }
 }
 
@@ -67,7 +81,7 @@ pub(crate) type DefinitionWalker<'a> = Walker<'a, DefinitionId>;
 
 impl<'a> DefinitionWalker<'a> {
     fn definition(self) -> &'a Definition {
-        &self.subgraphs.definitions.0[self.id.0]
+        &self.subgraphs.definitions.definitions[self.id.0]
     }
 
     pub fn name(self) -> StringWalker<'a> {
@@ -94,7 +108,7 @@ impl<'a> DefinitionWalker<'a> {
 impl<'a> SubgraphWalker<'a> {
     pub(crate) fn definitions(self) -> impl Iterator<Item = DefinitionWalker<'a>> {
         let subgraph_id = self.id;
-        let definitions = &self.subgraphs.definitions.0;
+        let definitions = &self.subgraphs.definitions.definitions;
         let start = definitions.partition_point(|def| def.subgraph_id < self.id);
         let subgraph_definitions = definitions[start..]
             .iter()

@@ -36,11 +36,32 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
 
     emit_subgraphs(&mut ctx);
+    emit_interface_impls(&mut ctx);
     emit_fields(mem::take(&mut ir.fields), &mut ctx);
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.resolvable_keys, &mut ctx);
 
     out
+}
+
+fn emit_interface_impls(ctx: &mut Context<'_>) {
+    for (implementer, implementee) in ctx.subgraphs.iter_interface_impls() {
+        let federated::Definition::Interface(implementee) = ctx.definitions[&implementee] else {
+            continue;
+        };
+
+        match ctx.definitions[&implementer] {
+            federated::Definition::Object(object_id) => {
+                ctx.out.objects[object_id.0].implements_interfaces.push(implementee);
+            }
+            federated::Definition::Interface(interface_id) => {
+                ctx.out.interfaces[interface_id.0]
+                    .implements_interfaces
+                    .push(implementee);
+            }
+            _ => unreachable!(),
+        }
+    }
 }
 
 fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {

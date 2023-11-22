@@ -1,0 +1,33 @@
+enum join__Graph {
+    PRODUCT @join__graph(name: "product", url: "http://example.com/product")
+    USER @join__graph(name: "user", url: "http://example.com/user")
+}
+
+type Product implements Node {
+    id: ID! @join__field(graph: PRODUCT)
+    name: String! @join__field(graph: PRODUCT)
+    price: Float! @join__field(graph: PRODUCT)
+    description: String @join__field(graph: PRODUCT)
+}
+
+type User implements Timestamped {
+    id: ID! @join__field(graph: USER)
+    createdAt: String! @join__field(graph: USER)
+    updatedAt: String! @join__field(graph: USER)
+    username: String! @join__field(graph: USER)
+    email: String! @join__field(graph: USER)
+}
+
+type Query {
+    user(id: ID!): User @join__field(graph: USER)
+}
+
+interface Node {
+    id: ID!
+}
+
+interface Timestamped implements Node {
+    id: ID!
+    createdAt: String!
+    updatedAt: String!
+}

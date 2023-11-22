@@ -1,0 +1,21 @@
+interface Node {
+  id: ID!
+}
+
+interface Timestamped implements Node {
+  id: ID!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type User implements Timestamped {
+  id: ID!
+  createdAt: String!
+  updatedAt: String!
+  username: String!
+  email: String!
+}
+
+extend type Query {
+  user(id: ID!): User
+}

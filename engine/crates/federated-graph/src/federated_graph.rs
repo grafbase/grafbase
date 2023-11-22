@@ -186,6 +186,8 @@ pub struct FieldRequires {
 pub struct Interface {
     pub name: StringId,
 
+    pub implements_interfaces: Vec<InterfaceId>,
+
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }

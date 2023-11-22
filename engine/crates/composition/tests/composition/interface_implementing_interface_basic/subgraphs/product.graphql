@@ -1,0 +1,10 @@
+interface Node {
+  id: ID!
+}
+
+type Product implements Node {
+  id: ID!
+  name: String!
+  price: Float!
+  description: String
+}

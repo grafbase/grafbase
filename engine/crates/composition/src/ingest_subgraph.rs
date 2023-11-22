@@ -109,6 +109,12 @@ fn ingest_definition_bodies(
             }
             ast::TypeKind::Interface(interface) => {
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+                let definition_name = subgraphs.walk(definition_id).name().id;
+
+                for implemented_interface in &interface.implements {
+                    let implemented_interface = subgraphs.strings.intern(implemented_interface.node.as_str());
+                    subgraphs.push_interface_impl(definition_name, implemented_interface);
+                }
 
                 for field in &interface.fields {
                     let field_type = subgraphs.intern_field_type(&field.node.ty.node);
@@ -127,6 +133,13 @@ fn ingest_definition_bodies(
             }
             ast::TypeKind::Object(object_type) => {
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+                let definition_name = subgraphs.walk(definition_id).name().id;
+
+                for implemented_interface in &object_type.implements {
+                    let implemented_interface = subgraphs.strings.intern(implemented_interface.node.as_str());
+                    subgraphs.push_interface_impl(definition_name, implemented_interface);
+                }
+
                 object::ingest_fields(definition_id, object_type, federation_directives_matcher, subgraphs);
             }
             _ => (),
