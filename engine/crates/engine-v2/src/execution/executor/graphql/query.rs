@@ -4,19 +4,27 @@ use std::{
 };
 
 use engine_parser::types::OperationType;
+use engine_value::ConstValue;
+use itertools::Itertools;
 
 use crate::{
-    plan::{
-        PlanId, PlannedFieldWalker, PlannedFragmentSpreadWalker, PlannedInlineFragmentWalker,
-        PlannedSelectionSetWalker, PlannedSelectionWalker,
+    execution::walkers::{
+        FieldArgumentWalker, FieldWalker, FragmentSpreadWalker, InlineFragmentWalker, SelectionSetWalker,
+        SelectionWalker, VariablesWalker,
     },
-    request::{Operation, OperationFieldArgumentWalker},
+    plan::PlanId,
+    request::Operation,
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     FmtError(#[from] std::fmt::Error),
+}
+
+pub struct Query<'a> {
+    pub query: String,
+    pub variables: HashMap<String, &'a ConstValue>,
 }
 
 #[derive(Default)]
@@ -27,11 +35,12 @@ pub struct QueryBuilder {
 }
 
 impl QueryBuilder {
-    pub fn build(
-        operation: &Operation,
+    pub fn build<'a>(
+        operation: &'a Operation,
         plan_id: PlanId,
-        selection_set: PlannedSelectionSetWalker<'_>,
-    ) -> Result<String, Error> {
+        variables: VariablesWalker<'a>,
+        selection_set: SelectionSetWalker<'a>,
+    ) -> Result<Query<'a>, Error> {
         let mut builder = QueryBuilder::default();
         let mut query = Buffer::default();
         builder.write_selection_set(&mut query, selection_set)?;
@@ -50,26 +59,48 @@ impl QueryBuilder {
                 .map(|name| format!("{name}_Plan{plan_id}"))
                 .unwrap_or_else(|| format!("Plan{plan_id}")),
         );
+        if !builder.variable_references.is_empty() {
+            out.push_str(&format!(
+                "({})",
+                builder.variable_references.iter().format_with(", ", |name, f| {
+                    let variable = variables.unchecked_get(name);
+                    if let Some(default_value) = variable.default_value() {
+                        f(&format_args!(
+                            "${name}: {ty} = {default_value}",
+                            ty = variable.type_name()
+                        ))
+                    } else {
+                        f(&format_args!("${name}: {ty}", ty = variable.type_name()))
+                    }
+                })
+            ));
+        }
         out.push_str(&query);
         for (fragment, name) in builder.fragment_contents {
             out.push_str(&format!("\nfragment {name} {}", fragment.inner));
         }
 
-        Ok(out)
+        Ok(Query {
+            query: out,
+            variables: builder
+                .variable_references
+                .into_iter()
+                .map(|name| {
+                    let value = variables.unchecked_get(&name).value();
+                    (name, value)
+                })
+                .collect(),
+        })
     }
 
-    fn write_selection_set(
-        &mut self,
-        buffer: &mut Buffer,
-        selection_set: PlannedSelectionSetWalker<'_>,
-    ) -> Result<(), Error> {
+    fn write_selection_set(&mut self, buffer: &mut Buffer, selection_set: SelectionSetWalker<'_>) -> Result<(), Error> {
         buffer.write_str(" {\n")?;
         buffer.indent += 1;
         for selection in selection_set {
             match selection {
-                PlannedSelectionWalker::Field(field) => self.write_field(buffer, field)?,
-                PlannedSelectionWalker::FragmentSpread(spread) => self.write_fragment_spread(buffer, spread)?,
-                PlannedSelectionWalker::InlineFragment(fragment) => self.write_inline_fragment(buffer, fragment)?,
+                SelectionWalker::Field(field) => self.write_field(buffer, field)?,
+                SelectionWalker::FragmentSpread(spread) => self.write_fragment_spread(buffer, spread)?,
+                SelectionWalker::InlineFragment(fragment) => self.write_inline_fragment(buffer, fragment)?,
             };
         }
         buffer.indent -= 1;
@@ -77,11 +108,7 @@ impl QueryBuilder {
         Ok(())
     }
 
-    fn write_fragment_spread(
-        &mut self,
-        buffer: &mut Buffer,
-        spread: PlannedFragmentSpreadWalker<'_>,
-    ) -> Result<(), Error> {
+    fn write_fragment_spread(&mut self, buffer: &mut Buffer, spread: FragmentSpreadWalker<'_>) -> Result<(), Error> {
         let fragment = spread.fragment();
         // Nothing to deal with fragment cycles here, they should have been detected way earlier
         // during query validation.
@@ -91,24 +118,20 @@ impl QueryBuilder {
         // directives we could simplify that as there is not need to keep named fragment except for
         // their directives that the upstream server may understand.
         fragment_buffer.write_str(&format!("on {}", fragment.type_condition_name()))?;
-        self.write_selection_set(&mut fragment_buffer, fragment.selection_set())?;
+        self.write_selection_set(&mut fragment_buffer, spread.selection_set())?;
         let name = self.fragment_contents.entry(fragment_buffer).or_insert_with(|| {
             let id = self
                 .fragment_last_id
-                .entry(fragment.name().to_string())
+                .entry(fragment.name.to_string())
                 .and_modify(|id| *id += 1)
                 .or_default();
-            format!("{}_{}", fragment.name(), id)
+            format!("{}_{}", fragment.name, id)
         });
         buffer.indent_write(&format!("...{name}\n"))?;
         Ok(())
     }
 
-    fn write_inline_fragment(
-        &mut self,
-        buffer: &mut Buffer,
-        fragment: PlannedInlineFragmentWalker<'_>,
-    ) -> Result<(), Error> {
+    fn write_inline_fragment(&mut self, buffer: &mut Buffer, fragment: InlineFragmentWalker<'_>) -> Result<(), Error> {
         buffer.indent_write("...")?;
         if let Some(name) = fragment.type_condition_name() {
             buffer.write_str(&format!(" on {name}"))?;
@@ -117,7 +140,7 @@ impl QueryBuilder {
         Ok(())
     }
 
-    fn write_field(&mut self, buffer: &mut Buffer, field: PlannedFieldWalker<'_>) -> Result<(), Error> {
+    fn write_field(&mut self, buffer: &mut Buffer, field: FieldWalker<'_>) -> Result<(), Error> {
         buffer.indent_write(field.name())?;
         self.write_arguments(buffer, field.bound_arguments())?;
         if let Some(selection_set) = field.selection_set() {
@@ -131,7 +154,7 @@ impl QueryBuilder {
     fn write_arguments<'a>(
         &mut self,
         buffer: &mut Buffer,
-        arguments: impl ExactSizeIterator<Item = OperationFieldArgumentWalker<'a>>,
+        arguments: impl ExactSizeIterator<Item = FieldArgumentWalker<'a>>,
     ) -> Result<(), Error> {
         if arguments.len() != 0 {
             buffer.write_str("(")?;

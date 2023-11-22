@@ -3,8 +3,12 @@ use std::sync::Arc;
 use futures_locks::Mutex;
 use futures_util::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 
-use super::{Executor, ExecutorContext, ExecutorError, ExecutorInput, ExecutorOutput};
+use super::{
+    executor::{Executor, ExecutorError, ExecutorInput, ExecutorOutput},
+    ExecutionContext,
+};
 use crate::{
+    execution::Variables,
     plan::{ExecutionPlansTracker, OperationPlan, PlanId},
     response::{GraphqlErrors, Response, ResponseData},
     Engine,
@@ -16,10 +20,11 @@ pub struct ExecutorCoordinator<'eng, 'op> {
     tracker: ExecutionPlansTracker,
     data: Arc<Mutex<ResponseData>>,
     errors: GraphqlErrors,
+    variables: Variables<'op>,
 }
 
 impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
-    pub fn new(engine: &'eng Engine, plan: &'op OperationPlan) -> Self {
+    pub fn new(engine: &'eng Engine, plan: &'op OperationPlan, variables: Variables<'op>) -> Self {
         let tracker = plan.execution_plans.build_tracker();
         Self {
             engine,
@@ -30,6 +35,7 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
             ))),
             tracker,
             errors: GraphqlErrors::default(),
+            variables,
         }
     }
 
@@ -42,7 +48,7 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
             match task {
                 CoordinationTask::PlanStart(plan_id) => {
                     let plan = &self.plan.execution_plans[plan_id];
-                    let output = super::ExecutorOutput {
+                    let output = ExecutorOutput {
                         data: Arc::clone(&self.data),
                         errors: GraphqlErrors::default(),
                     };
@@ -53,9 +59,10 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
                             .read_objects(&self.engine.schema, &plan.root.path, &plan.input)
                     {
                         let resolver = &self.engine.schema[plan.resolver_id];
-                        let ctx = ExecutorContext {
+                        let ctx = ExecutionContext {
                             engine: self.engine,
                             plan: self.plan,
+                            variables: &self.variables,
                             plan_id,
                         };
                         let input = ExecutorInput {
@@ -93,9 +100,10 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
                     // Creating a Graphql error if the executor failed
                     self.errors.push_errors(output.errors);
                     if let Some(error) = error {
-                        let ctx = ExecutorContext {
+                        let ctx = ExecutionContext {
                             engine: self.engine,
                             plan: self.plan,
+                            variables: &self.variables,
                             plan_id,
                         };
                         let locations = ctx

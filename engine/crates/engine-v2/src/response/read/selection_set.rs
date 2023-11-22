@@ -9,7 +9,7 @@ pub struct ReadSelectionSet {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadSelection {
-    pub response_name: StrId,
+    pub response_key: StrId,
     pub subselection: ReadSelectionSet,
 }
 

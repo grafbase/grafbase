@@ -1,7 +1,7 @@
 use engine_value::ConstValue;
 use schema::introspection::{IntrospectionDataSource, IntrospectionQuery, IntrospectionResolver};
 
-use super::{Executor, ExecutorContext, ExecutorError, ExecutorInput, ExecutorOutput};
+use super::{ExecutionContext, Executor, ExecutorError, ExecutorInput, ExecutorOutput};
 use crate::response::ResponseObjectRoot;
 
 mod resolver;
@@ -15,7 +15,7 @@ pub struct IntrospectionExecutor<'a> {
 impl<'a> IntrospectionExecutor<'a> {
     #[allow(clippy::unnecessary_wraps)]
     pub(super) fn build<'ctx, 'input>(
-        ctx: ExecutorContext<'ctx>,
+        ctx: ExecutionContext<'ctx>,
         resolver: &IntrospectionResolver,
         input: ExecutorInput<'input>,
     ) -> Result<Executor<'a>, ExecutorError>
@@ -32,7 +32,7 @@ impl<'a> IntrospectionExecutor<'a> {
     #[allow(clippy::panic)]
     pub(super) async fn execute(
         self,
-        ctx: ExecutorContext<'_>,
+        ctx: ExecutionContext<'_>,
         output: &mut ExecutorOutput,
     ) -> Result<(), ExecutorError> {
         // There is no IO, we directly write into the response.

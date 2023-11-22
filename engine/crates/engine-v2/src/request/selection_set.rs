@@ -19,7 +19,7 @@ pub enum BoundSelection {
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BoundField {
     pub definition_id: BoundFieldDefinitionId,
     pub selection_set_id: BoundSelectionSetId,
