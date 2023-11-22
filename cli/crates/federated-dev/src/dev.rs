@@ -9,6 +9,7 @@ use axum::{
     routing::get,
     Json, Server,
 };
+use common::environment::Environment;
 use handlebars::Handlebars;
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot};
@@ -65,10 +66,14 @@ pub(super) async fn run(port: u16) -> Result<(), crate::Error> {
         .data(admin_bus)
         .finish();
 
+    let environment = Environment::get();
+    let static_asset_path = environment.user_dot_grafbase_path.join("static");
+
     let app = axum::Router::new()
         .route("/", get(root))
         .route("/admin", get(admin).post_service(GraphQL::new(schema)))
         .route("/graphql", get(engine_get).post(engine_post))
+        .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
         .with_state(ProxyState {
             pathfinder_html: Html(render_pathfinder(port, "/graphql")),
             admin_pathfinder_html: Html(render_pathfinder(port, "/admin")),
