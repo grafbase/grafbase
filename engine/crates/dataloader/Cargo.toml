@@ -21,7 +21,6 @@ tracing = { workspace = true, optional = true }
 [dev-dependencies]
 tokio = { version = "1.32", features = [
   "macros",
-  "rt-multi-thread",
   "sync",
   "time",
 ] }
