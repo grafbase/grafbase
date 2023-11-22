@@ -277,7 +277,7 @@ fn test_field_resolver(
     #[values(("./", "./"), ("./grafbase", "../"))] variant: (&str, &str),
 ) {
     let (subdirectory_path, package_json_path) = variant;
-    let mut env = Environment::init();
+    let mut env = Environment::init_in_subdirectory(subdirectory_path);
     env.grafbase_init(GraphType::Single);
     std::fs::write(
         env.directory_path.join(subdirectory_path).join(".env"),

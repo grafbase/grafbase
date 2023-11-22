@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.1] - Mon Nov 21 2023
+
+[CHANGELOG](changelog/0.10.1.md)
+
+## [0.10.0] - Mon Nov 21 2023
+
+[CHANGELOG](changelog/0.10.0.md)
+
 ## [0.9.1] - Fri Nov 10 2023
 
 [CHANGELOG](changelog/0.9.1.md)

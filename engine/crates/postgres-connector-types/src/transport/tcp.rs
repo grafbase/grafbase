@@ -43,10 +43,12 @@ impl TcpTransport {
 
         async_runtime::spawn(async move {
             if let Err(e) = connection.await {
-                eprintln!("connection error: {e}");
+                tracing::trace!("postgres connection error: {e}");
             }
 
-            close_send.send(()).unwrap();
+            if close_send.send(()).is_err() {
+                tracing::trace!("did not close the postgres connection properly (matters only in API)");
+            }
         });
 
         let this = Self {
@@ -87,10 +89,12 @@ impl TcpTransport {
 
         async_runtime::spawn(async move {
             if let Err(e) = connection.await {
-                eprintln!("connection error: {e}");
+                tracing::trace!("postgres connection error: {e}");
             }
 
-            close_send.send(()).unwrap();
+            if close_send.send(()).is_err() {
+                tracing::trace!("did not close the postgres connection properly (matters only in API)");
+            }
         });
 
         let this = Self {

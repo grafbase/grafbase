@@ -29,7 +29,6 @@ runs:
         path: |
           ~/.cargo/
           !~/.cargo/registry/src
-          cli/target/
 
     - name: Extract the Rust version to use from the `rust-toolchain.toml` file
       shell: bash

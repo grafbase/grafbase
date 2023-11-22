@@ -331,7 +331,7 @@ jobs:
         with:
           platform: macos
           cache-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Prepare CLI assets
         uses: ./.github/actions/cli_assets
