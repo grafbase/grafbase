@@ -187,6 +187,9 @@ pub enum ServerError {
 
     #[error(transparent)]
     UdfBuildError(#[from] UdfBuildError),
+
+    #[error("Error in gateway initialization: {0}")]
+    GatewayError(String),
 }
 
 #[derive(Debug, Error)]

@@ -6,6 +6,7 @@ use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
 use engine::{registry::resolvers::graphql, RequestHeaders};
 use gateway_core::{RequestContext, StreamingFormat};
 use graphql_extensions::{authorization::AuthExtension, runtime_log::RuntimeLogExtension};
+use postgres_connector_types::transport::TcpTransport;
 use runtime_local::{Bridge, LocalPgTransportFactory, LocalSearchEngine, UdfInvokerImpl};
 
 pub struct Executor {
@@ -13,15 +14,31 @@ pub struct Executor {
     env_vars: HashMap<String, String>,
     bridge: Bridge,
     registry: Arc<engine::Registry>,
+    postgres_transports: Arc<HashMap<String, TcpTransport>>,
 }
 
 impl Executor {
-    pub(crate) fn new(env_vars: HashMap<String, String>, bridge: Bridge, registry: Arc<engine::Registry>) -> Self {
-        Self {
+    pub(crate) async fn new(
+        env_vars: HashMap<String, String>,
+        bridge: Bridge,
+        registry: Arc<engine::Registry>,
+    ) -> Result<Self, crate::Error> {
+        let mut postgres_transports = HashMap::new();
+
+        for (name, definition) in &registry.postgres_databases {
+            let transport = TcpTransport::new(definition.connection_string())
+                .await
+                .map_err(|error| crate::Error::Internal(error.to_string()))?;
+
+            postgres_transports.insert(name.to_string(), transport);
+        }
+
+        Ok(Self {
             env_vars,
             bridge,
             registry,
-        }
+            postgres_transports: Arc::new(postgres_transports),
+        })
     }
 
     #[allow(clippy::panic, clippy::unused_async)]
@@ -112,7 +129,9 @@ impl Executor {
             .data(search_engine)
             .data(resolver_engine)
             .data(auth)
-            .data(LocalPgTransportFactory::runtime_factory())
+            .data(LocalPgTransportFactory::runtime_factory(
+                self.postgres_transports.clone(),
+            ))
             .data(RequestHeaders::from(&ctx.headers_as_map()))
             .data(runtime_ctx)
             .extension(RuntimeLogExtension::new(Box::new(

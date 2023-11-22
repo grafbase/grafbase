@@ -109,7 +109,10 @@ impl ProductionServer {
             gateway::Bridge::new(bridge_port),
             self.registry,
         )
+        .await
+        .map_err(|error| ServerError::GatewayError(error.to_string()))?
         .into_router();
+
         let gateway_server =
             axum::Server::bind(&SocketAddr::new(listen_address, port)).serve(gateway_app.into_make_service());
 
@@ -296,8 +299,11 @@ async fn spawn_servers(
     };
 
     let gateway = {
-        let app =
-            gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry).into_router();
+        let app = gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
+            .await
+            .map_err(|error| ServerError::GatewayError(error.to_string()))?
+            .into_router();
+
         // run it with hyper on localhost:3000
         let server = axum::Server::bind(&"127.0.0.1:0".parse().unwrap()).serve(app.into_make_service());
         WORKER_PORT.store(server.local_addr().port(), Ordering::Relaxed);

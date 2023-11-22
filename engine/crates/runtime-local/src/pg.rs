@@ -1,14 +1,18 @@
+use std::{collections::HashMap, sync::Arc};
+
 use postgres_connector_types::{
     database_definition::DatabaseDefinition,
     transport::{TcpTransport, Transport},
 };
 use runtime::pg::{PgTransportFactory, PgTransportFactoryError, PgTransportFactoryInner, PgTransportFactoryResult};
 
-pub struct LocalPgTransportFactory;
+pub struct LocalPgTransportFactory {
+    transports: Arc<HashMap<String, TcpTransport>>,
+}
 
 impl LocalPgTransportFactory {
-    pub fn runtime_factory() -> PgTransportFactory {
-        PgTransportFactory::new(Box::new(LocalPgTransportFactory))
+    pub fn runtime_factory(transports: Arc<HashMap<String, TcpTransport>>) -> PgTransportFactory {
+        PgTransportFactory::new(Box::new(LocalPgTransportFactory { transports }))
     }
 }
 
@@ -17,12 +21,17 @@ impl PgTransportFactoryInner for LocalPgTransportFactory {
     async fn try_new(
         &self,
         _name: &str,
-        database_definition: &DatabaseDefinition,
+        _database_definition: &DatabaseDefinition,
     ) -> PgTransportFactoryResult<Box<dyn Transport>> {
-        let tcp_transport = TcpTransport::new(database_definition.connection_string())
-            .await
-            .map_err(PgTransportFactoryError::TransportCreation)?;
+        unimplemented!("use the cached version")
+    }
 
-        Ok(Box::new(tcp_transport))
+    fn fetch_cached(&self, name: &str) -> PgTransportFactoryResult<&dyn Transport> {
+        let tcp_transport = self
+            .transports
+            .get(name)
+            .ok_or_else(|| PgTransportFactoryError::TransportNotFound(name.to_string()))?;
+
+        Ok(tcp_transport)
     }
 }
