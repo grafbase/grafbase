@@ -7,8 +7,8 @@ expression: result.unwrap()
     "github": {
       "repository": {
         "issueOrPullRequest": {
-          "id": "PR_kwDOEn_gEs5PlTvR",
-          "changedFiles": 1
+          "changedFiles": 1,
+          "id": "PR_kwDOEn_gEs5PlTvR"
         }
       }
     }

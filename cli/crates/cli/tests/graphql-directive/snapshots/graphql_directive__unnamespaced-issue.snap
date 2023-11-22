@@ -1,13 +1,13 @@
 ---
-source: crates/cli/tests/graphql-directive/main.rs
+source: cli/crates/cli/tests/graphql-directive/main.rs
 expression: "client.gql::<Value>(UNNAMESPACED_QUERY).variables(json!({ \"id\" : \"3\" })).await"
 ---
 data:
-  serverVersion: "1"
   pullRequestOrIssue:
     __typename: Issue
-    title: Everythings fucked
     author:
       __typename: User
       email: pessimist@example.com
+    title: Everythings fucked
+  serverVersion: "1"
 

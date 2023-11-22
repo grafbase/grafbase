@@ -111,8 +111,8 @@ async fn defer_multipart_test() {
             ]
           }
         },
-        "path": [],
-        "hasNext": false
+        "hasNext": false,
+        "path": []
       }
     ]
     "###);

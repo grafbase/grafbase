@@ -1,6 +1,6 @@
 ---
-source: crates/cli/tests/owner.rs
-expression: "client.gql::<Value>(OWNER_TWITTER_TWEET_CREATE).bearer(USER2).variables(json!({\n                \"userId\" : id\n            })).send()"
+source: cli/crates/cli/tests/owner.rs
+expression: "client.gql::<Value>(OWNER_TWITTER_TWEET_CREATE).bearer(&user_two_jwt()).variables(json!({\n                \"userId\" : id\n            })).send()"
 ---
 {
   "data": {
@@ -8,13 +8,13 @@ expression: "client.gql::<Value>(OWNER_TWITTER_TWEET_CREATE).bearer(USER2).varia
   },
   "errors": [
     {
-      "message": "An issue happened while applying the transaction.",
       "locations": [
         {
-          "line": 2,
-          "column": 3
+          "column": 3,
+          "line": 2
         }
       ],
+      "message": "An issue happened while applying the transaction.",
       "path": [
         "tweetCreate"
       ]

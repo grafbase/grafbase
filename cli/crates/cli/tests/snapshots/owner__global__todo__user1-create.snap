@@ -1,14 +1,14 @@
 ---
-source: crates/cli/tests/owner.rs
+source: cli/crates/cli/tests/owner.rs
 expression: todo_created
 ---
 {
   "data": {
     "todoCreate": {
       "todo": {
+        "complete": false,
         "id": "[id]",
-        "title": "1",
-        "complete": false
+        "title": "1"
       }
     }
   }
