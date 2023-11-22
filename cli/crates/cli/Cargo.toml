@@ -10,10 +10,6 @@ homepage.workspace = true
 keywords.workspace = true
 repository.workspace = true
 
-[patch.crates-io]
-rusoto_core = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
-rusoto_dynamodb = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
-
 [dependencies]
 backtrace = "0.3"
 chrono = "0.4"
