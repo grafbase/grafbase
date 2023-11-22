@@ -71,27 +71,27 @@ fn table_with_serial_primary_key() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -121,17 +121,6 @@ fn table_with_serial_primary_key() {
           id: Int!
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           id: Int
         }
@@ -154,16 +143,22 @@ fn table_with_serial_primary_key() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           id: Int
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -172,6 +167,33 @@ fn table_with_serial_primary_key() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -197,6 +219,28 @@ fn table_with_serial_primary_key() {
 
         input UserUpdateInput {
           id: IntUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         schema {
@@ -233,17 +277,6 @@ fn table_with_enum_field() {
           val: StreetLight!
         }
 
-        type ABatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [AReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input AByInput {
           id: Int
         }
@@ -267,17 +300,23 @@ fn table_with_enum_field() {
           pageInfo: PageInfo!
         }
 
-        type AEdge {
-          node: A!
-          cursor: String!
-        }
-
-        input AInput {
+        input ACreateInput {
           id: Int!
           val: StreetLight!
         }
 
-        type AMutation {
+        type ACreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [AReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type ACreatePayload {
           """
             Returned item from the mutation.
           """
@@ -286,6 +325,33 @@ fn table_with_enum_field() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type ADeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [AReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type ADeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: AReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type AEdge {
+          node: A!
+          cursor: String!
         }
 
         input AMutationCollection {
@@ -315,6 +381,28 @@ fn table_with_enum_field() {
         input AUpdateInput {
           id: IntUpdateInput
           val: StreetLightUpdateInput
+        }
+
+        type AUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [AReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type AUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: AReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         """
@@ -373,27 +461,27 @@ fn table_with_enum_field() {
           """
             Delete a unique A by a field or combination of fields
           """
-          aDelete(by: AByInput!): AMutation
+          aDelete(by: AByInput!): ADeletePayload
           """
             Delete multiple rows of A by a filter
           """
-          aDeleteMany(filter: AMutationCollection!): ABatchMutation
+          aDeleteMany(filter: AMutationCollection!): ADeleteManyPayload
           """
             Create a A
           """
-          aCreate(input: AInput!): AMutation
+          aCreate(input: ACreateInput!): ACreatePayload
           """
             Create multiple As
           """
-          aCreateMany(input: [AInput!]!): ABatchMutation
+          aCreateMany(input: [ACreateInput!]!): ACreateManyPayload
           """
             Update a unique A
           """
-          aUpdate(by: AByInput!, input: AUpdateInput!): AMutation
+          aUpdate(by: AByInput!, input: AUpdateInput!): AUpdatePayload
           """
             Update multiple As
           """
-          aUpdateMany(filter: AMutationCollection!, input: AUpdateInput!): ABatchMutation
+          aUpdateMany(filter: AMutationCollection!, input: AUpdateInput!): AUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -416,7 +504,7 @@ fn table_with_enum_field() {
           """
             Paginated query to fetch the whole list of A
           """
-          aCollection(filter: ACollection, first: Int, last: Int, before: String, after: String, orderBy: [AOrderByInput]): AConnection
+          acollection(filter: ACollection, first: Int, last: Int, before: String, after: String, orderBy: [AOrderByInput]): AConnection
         }
 
         enum StreetLight {
@@ -543,27 +631,27 @@ fn table_with_int_primary_key() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -593,17 +681,6 @@ fn table_with_int_primary_key() {
           id: Int!
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           id: Int
         }
@@ -626,16 +703,22 @@ fn table_with_int_primary_key() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           id: Int!
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -644,6 +727,33 @@ fn table_with_int_primary_key() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -669,6 +779,28 @@ fn table_with_int_primary_key() {
 
         input UserUpdateInput {
           id: IntUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         schema {
@@ -749,27 +881,27 @@ fn table_with_int_unique() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -799,17 +931,6 @@ fn table_with_int_unique() {
           id: Int!
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           id: Int
         }
@@ -832,16 +953,22 @@ fn table_with_int_unique() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           id: Int!
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -850,6 +977,33 @@ fn table_with_int_unique() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -875,6 +1029,28 @@ fn table_with_int_unique() {
 
         input UserUpdateInput {
           id: IntUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         schema {
@@ -956,27 +1132,27 @@ fn table_with_serial_primary_key_string_unique() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -1047,17 +1223,6 @@ fn table_with_serial_primary_key_string_unique() {
           email: String!
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           email: String
           id: Int
@@ -1082,17 +1247,23 @@ fn table_with_serial_primary_key_string_unique() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           id: Int
           email: String!
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -1101,6 +1272,33 @@ fn table_with_serial_primary_key_string_unique() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -1132,6 +1330,28 @@ fn table_with_serial_primary_key_string_unique() {
           email: StringUpdateInput
         }
 
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
         schema {
           query: Query
           mutation: Mutation
@@ -1160,27 +1380,27 @@ fn table_with_composite_primary_key() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -1251,17 +1471,6 @@ fn table_with_composite_primary_key() {
           email: String!
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           nameEmail: UserNameEmailInput
         }
@@ -1285,17 +1494,23 @@ fn table_with_composite_primary_key() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           name: String!
           email: String!
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -1304,6 +1519,33 @@ fn table_with_composite_primary_key() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -1338,6 +1580,28 @@ fn table_with_composite_primary_key() {
         input UserUpdateInput {
           name: StringUpdateInput
           email: StringUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         schema {
@@ -1428,51 +1692,51 @@ fn two_schemas_same_table_name() {
           """
             Delete a unique PrivateUser by a field or combination of fields
           """
-          privateUserDelete(by: PrivateUserByInput!): PrivateUserMutation
+          privateUserDelete(by: PrivateUserByInput!): PrivateUserDeletePayload
           """
             Delete multiple rows of PrivateUser by a filter
           """
-          privateUserDeleteMany(filter: PrivateUserMutationCollection!): PrivateUserBatchMutation
+          privateUserDeleteMany(filter: PrivateUserMutationCollection!): PrivateUserDeleteManyPayload
           """
             Create a PrivateUser
           """
-          privateUserCreate(input: PrivateUserInput!): PrivateUserMutation
+          privateUserCreate(input: PrivateUserCreateInput!): PrivateUserCreatePayload
           """
             Create multiple PrivateUsers
           """
-          privateUserCreateMany(input: [PrivateUserInput!]!): PrivateUserBatchMutation
+          privateUserCreateMany(input: [PrivateUserCreateInput!]!): PrivateUserCreateManyPayload
           """
             Update a unique PrivateUser
           """
-          privateUserUpdate(by: PrivateUserByInput!, input: PrivateUserUpdateInput!): PrivateUserMutation
+          privateUserUpdate(by: PrivateUserByInput!, input: PrivateUserUpdateInput!): PrivateUserUpdatePayload
           """
             Update multiple PrivateUsers
           """
-          privateUserUpdateMany(filter: PrivateUserMutationCollection!, input: PrivateUserUpdateInput!): PrivateUserBatchMutation
+          privateUserUpdateMany(filter: PrivateUserMutationCollection!, input: PrivateUserUpdateInput!): PrivateUserUpdateManyPayload
           """
             Delete a unique PublicUser by a field or combination of fields
           """
-          publicUserDelete(by: PublicUserByInput!): PublicUserMutation
+          publicUserDelete(by: PublicUserByInput!): PublicUserDeletePayload
           """
             Delete multiple rows of PublicUser by a filter
           """
-          publicUserDeleteMany(filter: PublicUserMutationCollection!): PublicUserBatchMutation
+          publicUserDeleteMany(filter: PublicUserMutationCollection!): PublicUserDeleteManyPayload
           """
             Create a PublicUser
           """
-          publicUserCreate(input: PublicUserInput!): PublicUserMutation
+          publicUserCreate(input: PublicUserCreateInput!): PublicUserCreatePayload
           """
             Create multiple PublicUsers
           """
-          publicUserCreateMany(input: [PublicUserInput!]!): PublicUserBatchMutation
+          publicUserCreateMany(input: [PublicUserCreateInput!]!): PublicUserCreateManyPayload
           """
             Update a unique PublicUser
           """
-          publicUserUpdate(by: PublicUserByInput!, input: PublicUserUpdateInput!): PublicUserMutation
+          publicUserUpdate(by: PublicUserByInput!, input: PublicUserUpdateInput!): PublicUserUpdatePayload
           """
             Update multiple PublicUsers
           """
-          publicUserUpdateMany(filter: PublicUserMutationCollection!, input: PublicUserUpdateInput!): PublicUserBatchMutation
+          publicUserUpdateMany(filter: PublicUserMutationCollection!, input: PublicUserUpdateInput!): PublicUserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -1489,17 +1753,6 @@ fn two_schemas_same_table_name() {
 
         type PrivateUser {
           id: Int!
-        }
-
-        type PrivateUserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [PrivateUserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
         }
 
         input PrivateUserByInput {
@@ -1524,16 +1777,22 @@ fn two_schemas_same_table_name() {
           pageInfo: PageInfo!
         }
 
-        type PrivateUserEdge {
-          node: PrivateUser!
-          cursor: String!
-        }
-
-        input PrivateUserInput {
+        input PrivateUserCreateInput {
           id: Int
         }
 
-        type PrivateUserMutation {
+        type PrivateUserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PrivateUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PrivateUserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -1542,6 +1801,33 @@ fn two_schemas_same_table_name() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type PrivateUserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PrivateUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PrivateUserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PrivateUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PrivateUserEdge {
+          node: PrivateUser!
+          cursor: String!
         }
 
         input PrivateUserMutationCollection {
@@ -1569,19 +1855,30 @@ fn two_schemas_same_table_name() {
           id: IntUpdateInput
         }
 
-        type PublicUser {
-          id: Int!
-        }
-
-        type PublicUserBatchMutation {
+        type PrivateUserUpdateManyPayload {
           """
             Returned items from the mutation.
           """
-          returning: [PublicUserReturning]!
+          returning: [PrivateUserReturning]!
           """
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type PrivateUserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PrivateUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PublicUser {
+          id: Int!
         }
 
         input PublicUserByInput {
@@ -1606,16 +1903,22 @@ fn two_schemas_same_table_name() {
           pageInfo: PageInfo!
         }
 
-        type PublicUserEdge {
-          node: PublicUser!
-          cursor: String!
-        }
-
-        input PublicUserInput {
+        input PublicUserCreateInput {
           id: Int
         }
 
-        type PublicUserMutation {
+        type PublicUserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PublicUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PublicUserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -1624,6 +1927,33 @@ fn two_schemas_same_table_name() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type PublicUserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PublicUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PublicUserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PublicUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PublicUserEdge {
+          node: PublicUser!
+          cursor: String!
         }
 
         input PublicUserMutationCollection {
@@ -1649,6 +1979,28 @@ fn two_schemas_same_table_name() {
 
         input PublicUserUpdateInput {
           id: IntUpdateInput
+        }
+
+        type PublicUserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PublicUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PublicUserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PublicUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         type Query {
@@ -1752,27 +2104,27 @@ fn table_with_serial_primary_key_namespaced() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: NeonUserByInput!): NeonUserMutation
+          userDelete(by: NeonUserByInput!): NeonUserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: NeonUserMutationCollection!): NeonUserBatchMutation
+          userDeleteMany(filter: NeonUserMutationCollection!): NeonUserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: NeonUserInput!): NeonUserMutation
+          userCreate(input: NeonUserCreateInput!): NeonUserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [NeonUserInput!]!): NeonUserBatchMutation
+          userCreateMany(input: [NeonUserCreateInput!]!): NeonUserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: NeonUserByInput!, input: NeonUserUpdateInput!): NeonUserMutation
+          userUpdate(by: NeonUserByInput!, input: NeonUserUpdateInput!): NeonUserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: NeonUserMutationCollection!, input: NeonUserUpdateInput!): NeonUserBatchMutation
+          userUpdateMany(filter: NeonUserMutationCollection!, input: NeonUserUpdateInput!): NeonUserUpdateManyPayload
         }
 
         enum NeonOrderByDirection {
@@ -1802,17 +2154,6 @@ fn table_with_serial_primary_key_namespaced() {
           id: Int!
         }
 
-        type NeonUserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [NeonUserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input NeonUserByInput {
           id: Int
         }
@@ -1835,16 +2176,22 @@ fn table_with_serial_primary_key_namespaced() {
           pageInfo: NeonPageInfo!
         }
 
-        type NeonUserEdge {
-          node: NeonUser!
-          cursor: String!
-        }
-
-        input NeonUserInput {
+        input NeonUserCreateInput {
           id: Int
         }
 
-        type NeonUserMutation {
+        type NeonUserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [NeonUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type NeonUserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -1853,6 +2200,33 @@ fn table_with_serial_primary_key_namespaced() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type NeonUserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [NeonUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type NeonUserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: NeonUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type NeonUserEdge {
+          node: NeonUser!
+          cursor: String!
         }
 
         input NeonUserMutationCollection {
@@ -1878,6 +2252,28 @@ fn table_with_serial_primary_key_namespaced() {
 
         input NeonUserUpdateInput {
           id: NeonIntUpdateInput
+        }
+
+        type NeonUserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [NeonUserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type NeonUserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: NeonUserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         type Query {
@@ -2018,27 +2414,27 @@ fn table_with_an_array_column() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -2069,17 +2465,6 @@ fn table_with_an_array_column() {
           name: [Int]!
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           id: Int
         }
@@ -2103,17 +2488,23 @@ fn table_with_an_array_column() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           id: Int
           name: [Int]!
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -2122,6 +2513,33 @@ fn table_with_an_array_column() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -2151,6 +2569,28 @@ fn table_with_an_array_column() {
         input UserUpdateInput {
           id: IntUpdateInput
           name: IntArrayUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         schema {
@@ -2234,6 +2674,30 @@ fn table_with_jsonb_column() {
         scalar JSON
 
         """
+          Update input for JSON type.
+        """
+        input JSONUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: JSON
+          """
+            Append JSON value to the column.
+          """ append: JSON
+          """
+            Prepend JSON value to the column.
+          """ prepend: JSON
+          """
+            Deletes a key (and its value) from a JSON object, or matching string value(s) from a JSON array.
+          """ deleteKey: String
+          """
+            Deletes the array element with specified index (negative integers count from the end). Throws an error if JSON value is not an array.
+          """ deleteElem: Int
+          """
+            Deletes the field or array element at the specified path, where path elements can be either field keys or array indexes.
+          """ deleteAtPath: [String!]
+        }
+
+        """
           Search filter input for JSON type.
         """
         input JsonSearchFilterInput {
@@ -2264,55 +2728,31 @@ fn table_with_jsonb_column() {
           not: JsonSearchFilterInput
         }
 
-        """
-          Update input for JSON type.
-        """
-        input JsonUpdateInput {
-          """
-            Replaces the value of a field with the specified value.
-          """ set: JSON
-          """
-            Append JSON value to the column.
-          """ append: JSON
-          """
-            Prepend JSON value to the column.
-          """ prepend: JSON
-          """
-            Deletes a key (and its value) from a JSON object, or matching string value(s) from a JSON array.
-          """ deleteKey: String
-          """
-            Deletes the array element with specified index (negative integers count from the end). Throws an error if JSON value is not an array.
-          """ deleteElem: Int
-          """
-            Deletes the field or array element at the specified path, where path elements can be either field keys or array indexes.
-          """ deleteAtPath: [String!]
-        }
-
         type Mutation {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -2343,17 +2783,6 @@ fn table_with_jsonb_column() {
           name: JSON!
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           id: Int
         }
@@ -2377,17 +2806,23 @@ fn table_with_jsonb_column() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           id: Int
           name: JSON!
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -2396,6 +2831,33 @@ fn table_with_jsonb_column() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -2424,7 +2886,29 @@ fn table_with_jsonb_column() {
 
         input UserUpdateInput {
           id: IntUpdateInput
-          name: JsonUpdateInput
+          name: JSONUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         schema {
@@ -2542,27 +3026,27 @@ fn table_with_json_column() {
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -2602,17 +3086,6 @@ fn table_with_json_column() {
           name: JSON!
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           id: Int
         }
@@ -2636,17 +3109,23 @@ fn table_with_json_column() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           id: Int
           name: JSON!
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -2655,6 +3134,33 @@ fn table_with_json_column() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -2684,6 +3190,28 @@ fn table_with_json_column() {
         input UserUpdateInput {
           id: IntUpdateInput
           name: SimpleJSONUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         schema {
@@ -2729,17 +3257,6 @@ fn two_tables_with_single_column_foreign_key() {
           user: User!
         }
 
-        type BlogBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [BlogReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input BlogByInput {
           id: Int
         }
@@ -2770,19 +3287,25 @@ fn two_tables_with_single_column_foreign_key() {
           pageInfo: PageInfo!
         }
 
-        type BlogEdge {
-          node: Blog!
-          cursor: String!
-        }
-
-        input BlogInput {
+        input BlogCreateInput {
           id: Int
           title: String!
           content: String
           userId: Int!
         }
 
-        type BlogMutation {
+        type BlogCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [BlogReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type BlogCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -2791,6 +3314,33 @@ fn two_tables_with_single_column_foreign_key() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type BlogDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [BlogReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type BlogDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: BlogReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type BlogEdge {
+          node: Blog!
+          cursor: String!
         }
 
         input BlogMutationCollection {
@@ -2828,6 +3378,28 @@ fn two_tables_with_single_column_foreign_key() {
           title: StringUpdateInput
           content: StringUpdateInput
           userId: IntUpdateInput
+        }
+
+        type BlogUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [BlogReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type BlogUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: BlogReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         """
@@ -2886,51 +3458,51 @@ fn two_tables_with_single_column_foreign_key() {
           """
             Delete a unique Blog by a field or combination of fields
           """
-          blogDelete(by: BlogByInput!): BlogMutation
+          blogDelete(by: BlogByInput!): BlogDeletePayload
           """
             Delete multiple rows of Blog by a filter
           """
-          blogDeleteMany(filter: BlogMutationCollection!): BlogBatchMutation
+          blogDeleteMany(filter: BlogMutationCollection!): BlogDeleteManyPayload
           """
             Create a Blog
           """
-          blogCreate(input: BlogInput!): BlogMutation
+          blogCreate(input: BlogCreateInput!): BlogCreatePayload
           """
             Create multiple Blogs
           """
-          blogCreateMany(input: [BlogInput!]!): BlogBatchMutation
+          blogCreateMany(input: [BlogCreateInput!]!): BlogCreateManyPayload
           """
             Update a unique Blog
           """
-          blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogMutation
+          blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogUpdatePayload
           """
             Update multiple Blogs
           """
-          blogUpdateMany(filter: BlogMutationCollection!, input: BlogUpdateInput!): BlogBatchMutation
+          blogUpdateMany(filter: BlogMutationCollection!, input: BlogUpdateInput!): BlogUpdateManyPayload
           """
             Delete a unique User by a field or combination of fields
           """
-          userDelete(by: UserByInput!): UserMutation
+          userDelete(by: UserByInput!): UserDeletePayload
           """
             Delete multiple rows of User by a filter
           """
-          userDeleteMany(filter: UserMutationCollection!): UserBatchMutation
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
           """
             Create a User
           """
-          userCreate(input: UserInput!): UserMutation
+          userCreate(input: UserCreateInput!): UserCreatePayload
           """
             Create multiple Users
           """
-          userCreateMany(input: [UserInput!]!): UserBatchMutation
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
             Update a unique User
           """
-          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserMutation
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
           """
             Update multiple Users
           """
-          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserBatchMutation
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
         }
 
         enum OrderByDirection {
@@ -3010,17 +3582,6 @@ fn two_tables_with_single_column_foreign_key() {
           blogs(first: Int, last: Int, before: String, after: String, orderBy: [BlogOrderByInput!]): BlogConnection
         }
 
-        type UserBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [UserReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input UserByInput {
           id: Int
         }
@@ -3045,17 +3606,23 @@ fn two_tables_with_single_column_foreign_key() {
           pageInfo: PageInfo!
         }
 
-        type UserEdge {
-          node: User!
-          cursor: String!
-        }
-
-        input UserInput {
+        input UserCreateInput {
           id: Int
           name: String!
         }
 
-        type UserMutation {
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -3064,6 +3631,33 @@ fn two_tables_with_single_column_foreign_key() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
         }
 
         input UserMutationCollection {
@@ -3093,6 +3687,28 @@ fn two_tables_with_single_column_foreign_key() {
         input UserUpdateInput {
           id: IntUpdateInput
           name: StringUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         schema {
@@ -3246,67 +3862,56 @@ fn cedalio_issue_november_2023() {
           """
             Delete a unique Networks by a field or combination of fields
           """
-          networksDelete(by: PgNetworksByInput!): PgNetworksMutation
+          networksDelete(by: PgNetworksByInput!): PgNetworksDeletePayload
           """
             Delete multiple rows of Networks by a filter
           """
-          networksDeleteMany(filter: PgNetworksMutationCollection!): PgNetworksBatchMutation
+          networksDeleteMany(filter: PgNetworksMutationCollection!): PgNetworksDeleteManyPayload
           """
             Create a Networks
           """
-          networksCreate(input: PgNetworksInput!): PgNetworksMutation
+          networksCreate(input: PgNetworksCreateInput!): PgNetworksCreatePayload
           """
             Create multiple Networkss
           """
-          networksCreateMany(input: [PgNetworksInput!]!): PgNetworksBatchMutation
+          networksCreateMany(input: [PgNetworksCreateInput!]!): PgNetworksCreateManyPayload
           """
             Update a unique Networks
           """
-          networksUpdate(by: PgNetworksByInput!, input: PgNetworksUpdateInput!): PgNetworksMutation
+          networksUpdate(by: PgNetworksByInput!, input: PgNetworksUpdateInput!): PgNetworksUpdatePayload
           """
             Update multiple Networkss
           """
-          networksUpdateMany(filter: PgNetworksMutationCollection!, input: PgNetworksUpdateInput!): PgNetworksBatchMutation
+          networksUpdateMany(filter: PgNetworksMutationCollection!, input: PgNetworksUpdateInput!): PgNetworksUpdateManyPayload
           """
             Delete a unique Projects by a field or combination of fields
           """
-          projectsDelete(by: PgProjectsByInput!): PgProjectsMutation
+          projectsDelete(by: PgProjectsByInput!): PgProjectsDeletePayload
           """
             Delete multiple rows of Projects by a filter
           """
-          projectsDeleteMany(filter: PgProjectsMutationCollection!): PgProjectsBatchMutation
+          projectsDeleteMany(filter: PgProjectsMutationCollection!): PgProjectsDeleteManyPayload
           """
             Create a Projects
           """
-          projectsCreate(input: PgProjectsInput!): PgProjectsMutation
+          projectsCreate(input: PgProjectsCreateInput!): PgProjectsCreatePayload
           """
             Create multiple Projectss
           """
-          projectsCreateMany(input: [PgProjectsInput!]!): PgProjectsBatchMutation
+          projectsCreateMany(input: [PgProjectsCreateInput!]!): PgProjectsCreateManyPayload
           """
             Update a unique Projects
           """
-          projectsUpdate(by: PgProjectsByInput!, input: PgProjectsUpdateInput!): PgProjectsMutation
+          projectsUpdate(by: PgProjectsByInput!, input: PgProjectsUpdateInput!): PgProjectsUpdatePayload
           """
             Update multiple Projectss
           """
-          projectsUpdateMany(filter: PgProjectsMutationCollection!, input: PgProjectsUpdateInput!): PgProjectsBatchMutation
+          projectsUpdateMany(filter: PgProjectsMutationCollection!, input: PgProjectsUpdateInput!): PgProjectsUpdateManyPayload
         }
 
         type PgNetworks {
           id: Int!
           projects(first: Int, last: Int, before: String, after: String, orderBy: [PgProjectsOrderByInput!]): PgProjectsConnection
-        }
-
-        type PgNetworksBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [PgNetworksReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
         }
 
         input PgNetworksByInput {
@@ -3332,16 +3937,22 @@ fn cedalio_issue_november_2023() {
           pageInfo: PgPageInfo!
         }
 
-        type PgNetworksEdge {
-          node: PgNetworks!
-          cursor: String!
-        }
-
-        input PgNetworksInput {
+        input PgNetworksCreateInput {
           id: Int
         }
 
-        type PgNetworksMutation {
+        type PgNetworksCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgNetworksReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgNetworksCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -3350,6 +3961,33 @@ fn cedalio_issue_november_2023() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type PgNetworksDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgNetworksReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgNetworksDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgNetworksReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgNetworksEdge {
+          node: PgNetworks!
+          cursor: String!
         }
 
         input PgNetworksMutationCollection {
@@ -3375,6 +4013,28 @@ fn cedalio_issue_november_2023() {
 
         input PgNetworksUpdateInput {
           id: PgIntUpdateInput
+        }
+
+        type PgNetworksUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgNetworksReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgNetworksUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgNetworksReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         enum PgOrderByDirection {
@@ -3443,17 +4103,6 @@ fn cedalio_issue_november_2023() {
           networks: PgNetworks
         }
 
-        type PgProjectsBatchMutation {
-          """
-            Returned items from the mutation.
-          """
-          returning: [PgProjectsReturning]!
-          """
-            The number of rows mutated.
-          """
-          rowCount: Int!
-        }
-
         input PgProjectsByInput {
           id: Int
         }
@@ -3484,19 +4133,25 @@ fn cedalio_issue_november_2023() {
           pageInfo: PgPageInfo!
         }
 
-        type PgProjectsEdge {
-          node: PgProjects!
-          cursor: String!
-        }
-
-        input PgProjectsInput {
+        input PgProjectsCreateInput {
           id: Int
           accessMode: PgAccessMode!
           status: PgProjectStatus
           networkId: Int
         }
 
-        type PgProjectsMutation {
+        type PgProjectsCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgProjectsReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgProjectsCreatePayload {
           """
             Returned item from the mutation.
           """
@@ -3505,6 +4160,33 @@ fn cedalio_issue_november_2023() {
             The number of rows mutated.
           """
           rowCount: Int!
+        }
+
+        type PgProjectsDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgProjectsReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgProjectsDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgProjectsReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgProjectsEdge {
+          node: PgProjects!
+          cursor: String!
         }
 
         input PgProjectsMutationCollection {
@@ -3542,6 +4224,28 @@ fn cedalio_issue_november_2023() {
           accessMode: PgAccessModeUpdateInput
           status: PgProjectStatusUpdateInput
           networkId: PgIntUpdateInput
+        }
+
+        type PgProjectsUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgProjectsReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgProjectsUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgProjectsReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
         }
 
         type PgQuery {

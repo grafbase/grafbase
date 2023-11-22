@@ -58,6 +58,7 @@ mod validations;
 pub use connector_parsers::ConnectorParsers;
 pub use engine::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
+pub use registry::names::*;
 pub use rules::{
     cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
     graphql_directive::GraphqlDirective,

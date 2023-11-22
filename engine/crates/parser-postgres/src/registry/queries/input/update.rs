@@ -6,7 +6,7 @@ use postgres_connector_types::database_definition::TableWalker;
 use crate::registry::context::{InputContext, OutputContext};
 
 pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, output_ctx: &mut OutputContext) -> String {
-    let input_type_name = input_ctx.update_type_name(table.client_name());
+    let input_type_name = input_ctx.update_input_name(table.client_name());
 
     output_ctx.with_input_type(&input_type_name, table.id(), |builder| {
         for column in table.columns() {
@@ -20,9 +20,9 @@ pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, out
             }
 
             let r#type = if column.is_array() {
-                input_ctx.update_type_name(&format!("{client_type}Array"))
+                input_ctx.update_input_name(&format!("{client_type}Array"))
             } else {
-                input_ctx.update_type_name(&client_type)
+                input_ctx.update_input_name(&client_type)
             };
 
             let mut input = MetaInputValue::new(column.client_name(), r#type);
