@@ -263,7 +263,7 @@ enum JavaScriptPackageManager {
             "dependencies": {
                 "is-palindrome": "^0.3.0"
             },
-            "packageManager": "^yarn@1.22.0"
+            "packageManager": "yarn@1.22.0"
         }
     "#))
 )]
