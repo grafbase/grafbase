@@ -53,13 +53,13 @@ fn error_propagation_openapi() {
           },
           "errors": [
             {
+              "message": "Received an unexpected status from the downstream server: 404 Not Found",
               "locations": [
                 {
-                  "column": 29,
-                  "line": 8
+                  "line": 8,
+                  "column": 29
                 }
               ],
-              "message": "Received an unexpected status from the downstream server: 404 Not Found",
               "path": [
                 "petstore",
                 "veryGoodDoggo"
@@ -98,13 +98,13 @@ fn querying_unknown_field() {
           "data": null,
           "errors": [
             {
+              "message": "Unknown field \"someNonsenseField\" on type \"PetstoreQuery\".",
               "locations": [
                 {
-                  "column": 27,
-                  "line": 4
+                  "line": 4,
+                  "column": 27
                 }
-              ],
-              "message": "Unknown field \"someNonsenseField\" on type \"PetstoreQuery\"."
+              ]
             }
           ]
         }
@@ -141,13 +141,13 @@ fn error_handling_scalar_custom_resolver() {
           },
           "errors": [
             {
+              "message": "Shits on fire yo",
               "locations": [
                 {
-                  "column": 9,
-                  "line": 1
+                  "line": 1,
+                  "column": 9
                 }
               ],
-              "message": "Shits on fire yo",
               "path": [
                 "error"
               ]
@@ -188,13 +188,13 @@ fn error_handling_list_custom_resolver() {
           },
           "errors": [
             {
+              "message": "Shits on fire yo",
               "locations": [
                 {
-                  "column": 9,
-                  "line": 1
+                  "line": 1,
+                  "column": 9
                 }
               ],
-              "message": "Shits on fire yo",
               "path": [
                 "error"
               ]
@@ -251,13 +251,13 @@ fn error_handling_list_propagation() {
           },
           "errors": [
             {
+              "message": "get out of my pub",
               "locations": [
                 {
-                  "column": 16,
-                  "line": 1
+                  "line": 1,
+                  "column": 16
                 }
               ],
-              "message": "get out of my pub",
               "path": [
                 "list",
                 1,

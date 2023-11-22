@@ -44,13 +44,13 @@ fn introspecting_service_field_when_no_federation() {
           "data": null,
           "errors": [
             {
+              "message": "Unknown field \"_service\" on type \"Query\".",
               "locations": [
                 {
-                  "column": 9,
-                  "line": 1
+                  "line": 1,
+                  "column": 9
                 }
-              ],
-              "message": "Unknown field \"_service\" on type \"Query\"."
+              ]
             }
           ]
         }

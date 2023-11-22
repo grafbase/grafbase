@@ -1,22 +1,22 @@
 ---
-source: crates/integration-tests/tests/graphql_connector/basic.rs
+source: engine/crates/integration-tests/tests/graphql_connector/basic.rs
 expression: "engine.execute(NAMESPACED_QUERY).variables(json!({\n                    \"id\" : \"2\"\n                })).await.into_value()"
 ---
 {
   "data": {
     "gothub": {
+      "serverVersion": "1",
       "pullRequestOrIssue": {
         "__typename": "GothubPullRequest",
-        "author": {
-          "__typename": "GothubBot",
-          "id": "123"
-        },
+        "title": "Some bot PR",
         "checks": [
           "Success!"
         ],
-        "title": "Some bot PR"
-      },
-      "serverVersion": "1"
+        "author": {
+          "__typename": "GothubBot",
+          "id": "123"
+        }
+      }
     }
   }
 }

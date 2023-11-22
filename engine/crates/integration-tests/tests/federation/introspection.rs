@@ -323,8 +323,9 @@ fn supports_the_type_field() {
     {
       "data": {
         "__type": {
+          "kind": "OBJECT",
+          "name": "PullRequest",
           "description": null,
-          "enumValues": null,
           "fields": [
             {
               "name": "author"
@@ -336,14 +337,13 @@ fn supports_the_type_field() {
               "name": "title"
             }
           ],
-          "inputFields": null,
           "interfaces": [
             {}
           ],
-          "kind": "OBJECT",
-          "name": "PullRequest",
-          "ofType": null,
-          "possibleTypes": null
+          "possibleTypes": null,
+          "enumValues": null,
+          "inputFields": null,
+          "ofType": null
         }
       }
     }
@@ -423,128 +423,128 @@ fn supports_recursing_through_types() {
         "__type": {
           "possibleTypes": [
             {
+              "name": "Issue",
               "interfaces": [
                 {
                   "name": "PullRequestOrIssue",
                   "possibleTypes": [
                     {
+                      "name": "Issue",
                       "interfaces": [
                         {
                           "name": "PullRequestOrIssue",
                           "possibleTypes": [
                             {
+                              "name": "Issue",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "Issue"
+                              ]
                             },
                             {
+                              "name": "PullRequest",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "PullRequest"
+                              ]
                             }
                           ]
                         }
-                      ],
-                      "name": "Issue"
+                      ]
                     },
                     {
+                      "name": "PullRequest",
                       "interfaces": [
                         {
                           "name": "PullRequestOrIssue",
                           "possibleTypes": [
                             {
+                              "name": "Issue",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "Issue"
+                              ]
                             },
                             {
+                              "name": "PullRequest",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "PullRequest"
+                              ]
                             }
                           ]
                         }
-                      ],
-                      "name": "PullRequest"
+                      ]
                     }
                   ]
                 }
-              ],
-              "name": "Issue"
+              ]
             },
             {
+              "name": "PullRequest",
               "interfaces": [
                 {
                   "name": "PullRequestOrIssue",
                   "possibleTypes": [
                     {
+                      "name": "Issue",
                       "interfaces": [
                         {
                           "name": "PullRequestOrIssue",
                           "possibleTypes": [
                             {
+                              "name": "Issue",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "Issue"
+                              ]
                             },
                             {
+                              "name": "PullRequest",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "PullRequest"
+                              ]
                             }
                           ]
                         }
-                      ],
-                      "name": "Issue"
+                      ]
                     },
                     {
+                      "name": "PullRequest",
                       "interfaces": [
                         {
                           "name": "PullRequestOrIssue",
                           "possibleTypes": [
                             {
+                              "name": "Issue",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "Issue"
+                              ]
                             },
                             {
+                              "name": "PullRequest",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "PullRequest"
+                              ]
                             }
                           ]
                         }
-                      ],
-                      "name": "PullRequest"
+                      ]
                     }
                   ]
                 }
-              ],
-              "name": "PullRequest"
+              ]
             }
           ]
         }
@@ -580,13 +580,13 @@ fn rejects_bogus_introspection_queries() {
       "data": null,
       "errors": [
         {
+          "message": "__Type does not have a field named 'blarg'",
           "locations": [
             {
-              "column": 33,
-              "line": 5
+              "line": 5,
+              "column": 33
             }
           ],
-          "message": "__Type does not have a field named 'blarg'",
           "path": []
         }
       ]

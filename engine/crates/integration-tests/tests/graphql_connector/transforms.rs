@@ -30,8 +30,8 @@ fn graphql_test_with_transforms() {
         }
 
         type PullRequest implements PullRequestOrIssue {
-          checks: [String!]!
           title: String!
+          checks: [String!]!
         }
 
         interface PullRequestOrIssue {
@@ -43,12 +43,12 @@ fn graphql_test_with_transforms() {
         }
 
         type Query {
-          allBotPullRequests: [PullRequest!]!
-          botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
-          headers: [Header!]!
-          pullRequestOrIssue(id: ID!): PullRequestOrIssue
-          pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
           serverVersion: String!
+          pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+          botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+          allBotPullRequests: [PullRequest!]!
+          pullRequestOrIssue(id: ID!): PullRequestOrIssue
+          headers: [Header!]!
         }
 
         "###);

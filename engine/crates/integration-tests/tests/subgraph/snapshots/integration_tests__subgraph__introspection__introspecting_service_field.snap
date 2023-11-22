@@ -1,5 +1,5 @@
 ---
-source: crates/integration-tests/tests/federation/introspection.rs
+source: engine/crates/integration-tests/tests/subgraph/introspection.rs
 expression: schema
 ---
 """
@@ -31,14 +31,6 @@ type Mutation {
 	"""
 	todoCreateMany(input: [TodoCreateManyInput!]!): TodoCreateManyPayload
 	"""
-	Delete a Todo by ID or unique field
-	"""
-	todoDelete(by: TodoByInput!): TodoDeletePayload
-	"""
-	Delete multiple Todo
-	"""
-	todoDeleteMany(input: [TodoDeleteManyInput!]!): TodoDeleteManyPayload
-	"""
 	Update a Todo
 	"""
 	todoUpdate(by: TodoByInput!, input: TodoUpdateInput!): TodoUpdatePayload
@@ -46,16 +38,24 @@ type Mutation {
 	Update multiple Todo
 	"""
 	todoUpdateMany(input: [TodoUpdateManyInput!]!): TodoUpdateManyPayload
+	"""
+	Delete a Todo by ID or unique field
+	"""
+	todoDelete(by: TodoByInput!): TodoDeletePayload
+	"""
+	Delete multiple Todo
+	"""
+	todoDeleteMany(input: [TodoDeleteManyInput!]!): TodoDeleteManyPayload
 }
 enum OrderByDirection {
 	ASC
 	DESC
 }
 type PageInfo {
-	endCursor: String
-	hasNextPage: Boolean!
 	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
 	startCursor: String
+	endCursor: String
 }
 type Query {
 	"""
@@ -65,22 +65,22 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Todo`.
 	"""
-	todoCollection(after: String, before: String, filter: TodoCollectionFilterInput, first: Int, last: Int, orderBy: TodoOrderByInput): TodoConnection
+	todoCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoOrderByInput, filter: TodoCollectionFilterInput): TodoConnection
 }
 type Todo @key(fields: "id") {
-	"""
-	when the model was created
-	"""
-	createdAt: DateTime!
+	title: String!
 	"""
 	Unique identifier
 	"""
 	id: ID!
-	title: String!
 	"""
 	when the model was updated
 	"""
 	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
 }
 input TodoByInput {
 	id: ID
@@ -89,11 +89,11 @@ input TodoCollectionFilterInput {
 	id: IDCollectionFilterInput
 }
 type TodoConnection {
-	edges: [TodoEdge]
 	"""
 	Information to aid in pagination
 	"""
 	pageInfo: PageInfo!
+	edges: [TodoEdge]
 }
 """
 Input to create a Todo
@@ -120,8 +120,8 @@ type TodoDeletePayload {
 	deletedId: ID!
 }
 type TodoEdge {
-	cursor: String!
 	node: Todo!
+	cursor: String!
 }
 input TodoOrderByInput {
 	createdAt: OrderByDirection

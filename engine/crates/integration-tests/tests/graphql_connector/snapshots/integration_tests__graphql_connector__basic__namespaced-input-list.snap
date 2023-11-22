@@ -1,26 +1,26 @@
 ---
-source: crates/integration-tests/tests/graphql_connector/basic.rs
-expression: "engine.execute(r#\"\n                    query GetPullRequests($bots: [[GothubBotInput!]]!) {\n                        gothub {\n                            botPullRequests(bots: $bots) {\n                                checks\n                                author {\n                                    __typename\n                                }\n                            }\n                        }\n                    }\n                \"#).variables(json!({\n                    \"bots\" : [[{ \"id\" : \"2\" }]]\n                })).await.into_value()"
+source: engine/crates/integration-tests/tests/graphql_connector/basic.rs
+expression: "engine.execute(r\"\n                    query GetPullRequests($bots: [[GothubBotInput!]]!) {\n                        gothub {\n                            botPullRequests(bots: $bots) {\n                                checks\n                                author {\n                                    __typename\n                                }\n                            }\n                        }\n                    }\n                \").variables(json!({\n                    \"bots\" : [[{ \"id\" : \"2\" }]]\n                })).await.into_value()"
 ---
 {
   "data": {
     "gothub": {
       "botPullRequests": [
         {
+          "checks": [
+            "Success!"
+          ],
           "author": {
             "__typename": "GothubUser"
-          },
-          "checks": [
-            "Success!"
-          ]
+          }
         },
         {
-          "author": {
-            "__typename": "GothubBot"
-          },
           "checks": [
             "Success!"
-          ]
+          ],
+          "author": {
+            "__typename": "GothubBot"
+          }
         }
       ]
     }
