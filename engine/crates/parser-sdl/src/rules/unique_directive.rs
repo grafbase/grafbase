@@ -103,8 +103,8 @@ impl UniqueDirective {
     pub fn name(&self) -> String {
         self.fields
             .iter()
-            .map(|f| f.name.as_ref())
-            .collect::<Vec<_>>()
+            .map(|f| f.name.as_str())
+            .collect::<Vec<&str>>()
             .join("And_")
             .to_camel_lowercase()
     }
