@@ -9,6 +9,10 @@ fn update_expect() -> bool {
 }
 
 fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
+    if cfg!(target_family = "windows") {
+        return Ok(()); // newlines
+    }
+
     let subgraphs_dir = federated_graph_path.with_file_name("").join("subgraphs");
 
     if !subgraphs_dir.is_dir() {
@@ -71,6 +75,10 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
 }
 
 fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()> {
+    if cfg!(target_family = "windows") {
+        return Ok(()); // newlines
+    }
+
     let sdl = fs::read_to_string(federated_graph_path)
         .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
 
