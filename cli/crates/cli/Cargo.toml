@@ -40,9 +40,9 @@ webbrowser = "0.8"
 lru = "0.12"
 futures-util = "0.3"
 
-server = { package = "grafbase-local-server", path = "../server", version = "0.45.1" }
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.45.1" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.45.1" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.45.2" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.45.2" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.45.2" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
 federated-dev = { path = "../federated-dev" }
 atty = "0.2.14"
