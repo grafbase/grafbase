@@ -10,6 +10,10 @@ homepage.workspace = true
 keywords.workspace = true
 repository.workspace = true
 
+[patch.crates-io]
+rusoto_core = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+rusoto_dynamodb = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+
 [dependencies]
 backtrace = "0.3"
 chrono = "0.4"
@@ -84,8 +88,8 @@ regex = "1"
 reqwest-eventsource = "0.5"
 rstest = "0.18"
 rstest_reuse = "0.6"
-rusoto_core = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
-rusoto_dynamodb = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+rusoto_core = "0.48"
+rusoto_dynamodb = "0.48"
 strum = { version = "0.25", features = ["derive"] }
 which = "4"
 wiremock = "0.5"
