@@ -4,17 +4,17 @@ expression: "engine.execute(UNNAMESPACED_QUERY).variables(json!({\n             
 ---
 {
   "data": {
-    "serverVersion": "1",
     "pullRequestOrIssue": {
       "__typename": "PullRequest",
-      "title": "Some bot PR",
-      "checks": [
-        "Success!"
-      ],
       "author": {
         "__typename": "Bot",
         "id": "123"
-      }
-    }
+      },
+      "checks": [
+        "Success!"
+      ],
+      "title": "Some bot PR"
+    },
+    "serverVersion": "1"
   }
 }

@@ -5,18 +5,18 @@ expression: "engine.execute(NAMESPACED_QUERY).variables(json!({\n               
 {
   "data": {
     "gothub": {
-      "serverVersion": "1",
       "pullRequestOrIssue": {
         "__typename": "GothubPullRequest",
-        "title": "Creating the thing",
-        "checks": [
-          "Success!"
-        ],
         "author": {
           "__typename": "GothubUser",
           "email": "jim@example.com"
-        }
-      }
+        },
+        "checks": [
+          "Success!"
+        ],
+        "title": "Creating the thing"
+      },
+      "serverVersion": "1"
     }
   }
 }

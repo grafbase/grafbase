@@ -59,13 +59,13 @@ fn test_defer_on_matching_typecondition() {
             "data": {
               "data": "A PetstoreString"
             },
+            "hasNext": false,
             "path": [
               "petstore",
               "pets",
               0,
               "owner"
-            ],
-            "hasNext": false
+            ]
           }
         ]
         "###);
@@ -180,13 +180,13 @@ fn test_defer_on_multiple_fragments_with_one_match() {
             "data": {
               "data": "A PetstoreString"
             },
+            "hasNext": false,
             "path": [
               "petstore",
               "pets",
               0,
               "owner"
-            ],
-            "hasNext": false
+            ]
           }
         ]
         "###);
@@ -236,10 +236,10 @@ fn test_defer_with_typecondition_on_concrete_type() {
                 }
               ]
             },
+            "hasNext": false,
             "path": [
               "petstore"
-            ],
-            "hasNext": false
+            ]
           }
         ]
         "###);

@@ -5,8 +5,8 @@ expression: "engine.execute(NAMESPACED_QUERY).variables(json!({\n               
 {
   "data": {
     "gothub": {
-      "serverVersion": "1",
-      "pullRequestOrIssue": null
+      "pullRequestOrIssue": null,
+      "serverVersion": "1"
     }
   }
 }

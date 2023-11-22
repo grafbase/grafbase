@@ -67,7 +67,7 @@ rusoto_dynamodb = "0.48"
 # Serde
 serde = { version = "1", features = ["derive"] }
 serde_dynamo = "4"
-serde_json = { version = "1", features = ["preserve_order"] }
+serde_json = { version = "1" }
 serde-wasm-bindgen = "0.6"
 serde_with = "3"
 

@@ -34,13 +34,13 @@ fn unknown_entity() {
           },
           "errors": [
             {
-              "message": "Unknown __typename in representation: SomeUnknownType",
               "locations": [
                 {
-                  "line": 3,
-                  "column": 25
+                  "column": 25,
+                  "line": 3
                 }
               ],
+              "message": "Unknown __typename in representation: SomeUnknownType",
               "path": [
                 "_entities",
                 0
@@ -87,13 +87,13 @@ fn unknown_key() {
           },
           "errors": [
             {
-              "message": "Could not find a matching key for the given representation",
               "locations": [
                 {
-                  "line": 3,
-                  "column": 25
+                  "column": 25,
+                  "line": 3
                 }
               ],
+              "message": "Could not find a matching key for the given representation",
               "path": [
                 "_entities",
                 0
@@ -146,13 +146,13 @@ fn partial_failures() {
           },
           "errors": [
             {
-              "message": "Unknown __typename in representation: SomeUnknownType",
               "locations": [
                 {
-                  "line": 3,
-                  "column": 25
+                  "column": 25,
+                  "line": 3
                 }
               ],
+              "message": "Unknown __typename in representation: SomeUnknownType",
               "path": [
                 "_entities",
                 1
@@ -194,13 +194,13 @@ fn totally_malformed_representation() {
           "data": null,
           "errors": [
             {
-              "message": "Invalid value for argument \"representations.0\", expected type \"_Any\"",
               "locations": [
                 {
-                  "line": 3,
-                  "column": 35
+                  "column": 35,
+                  "line": 3
                 }
-              ]
+              ],
+              "message": "Invalid value for argument \"representations.0\", expected type \"_Any\""
             }
           ]
         }
@@ -238,13 +238,13 @@ fn representation_missing_typename() {
           "data": null,
           "errors": [
             {
-              "message": "Could not deserialize _Any: missing field `__typename`",
               "locations": [
                 {
-                  "line": 3,
-                  "column": 25
+                  "column": 25,
+                  "line": 3
                 }
               ],
+              "message": "Could not deserialize _Any: missing field `__typename`",
               "path": [
                 "_entities"
               ]
