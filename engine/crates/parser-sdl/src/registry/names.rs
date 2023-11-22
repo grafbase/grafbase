@@ -43,6 +43,31 @@ pub const INPUT_FIELD_RELATION_UNLINK: &str = "unlink";
 pub const INPUT_FIELD_NUM_OP_SET: &str = "set";
 pub const INPUT_FIELD_NUM_OP_INCREMENT: &str = "increment";
 pub const INPUT_FIELD_NUM_OP_DECREMENT: &str = "decrement";
+pub const INPUT_FIELD_NUM_OP_MULTIPLY: &str = "multiply";
+pub const INPUT_FIELD_NUM_OP_DIVIDE: &str = "divide";
+
+pub const INPUT_FIELD_COLLECTION_OP_APPEND: &str = "append";
+pub const INPUT_FIELD_COLLECTION_OP_PREPEND: &str = "prepend";
+pub const INPUT_FIELD_COLLECTION_OP_DELETE_ELEM: &str = "deleteElem";
+pub const INPUT_FIELD_COLLECTION_OP_DELETE_KEY: &str = "deleteKey";
+pub const INPUT_FIELD_COLLECTION_OP_DELETE_AT_PATH: &str = "deleteAtPath";
+
+pub const INPUT_FIELD_OP_EQ: &str = "eq";
+pub const INPUT_FIELD_OP_NE: &str = "ne";
+pub const INPUT_FIELD_OP_GT: &str = "gt";
+pub const INPUT_FIELD_OP_LT: &str = "lt";
+pub const INPUT_FIELD_OP_GTE: &str = "gte";
+pub const INPUT_FIELD_OP_LTE: &str = "lte";
+pub const INPUT_FIELD_OP_IN: &str = "in";
+pub const INPUT_FIELD_OP_NIN: &str = "nin";
+pub const INPUT_FIELD_OP_NOT: &str = "not";
+pub const INPUT_FIELD_OP_CONTAINS: &str = "contains";
+pub const INPUT_FIELD_OP_CONTAINED: &str = "contained";
+pub const INPUT_FIELD_OP_OVERLAPS: &str = "overlaps";
+
+pub const ORDER_BY_DIRECTION: &str = "OrderByDirection";
+pub const ORDER_BY_ASC: &str = "ASC";
+pub const ORDER_BY_DESC: &str = "DESC";
 
 pub struct MetaNames;
 
@@ -65,8 +90,12 @@ impl MetaNames {
         name.to_camel()
     }
 
+    pub fn collection_by_str(type_name: &str) -> String {
+        format!("{type_name}Collection")
+    }
+
     pub fn collection(model_type_definition: &TypeDefinition) -> String {
-        format!("{}Collection", Self::model(model_type_definition))
+        Self::collection_by_str(&Self::model(model_type_definition))
     }
 
     //
@@ -111,16 +140,28 @@ impl MetaNames {
     //
     // COLLECTION
     //
+    pub fn query_collection_by_str(type_name: &str) -> String {
+        to_lower_camelcase(Self::collection_by_str(type_name))
+    }
+
     pub fn query_collection(model_type_definition: &TypeDefinition) -> String {
         to_lower_camelcase(Self::collection(model_type_definition))
     }
 
+    pub fn pagination_connection_type_by_str(type_name: &str) -> String {
+        format!("{type_name}Connection")
+    }
+
     pub fn pagination_connection_type(model_type_definition: &TypeDefinition) -> String {
-        format!("{}Connection", Self::model(model_type_definition))
+        Self::pagination_connection_type_by_str(&Self::model(model_type_definition))
+    }
+
+    pub fn pagination_edge_type_by_str(type_name: &str) -> String {
+        format!("{type_name}Edge")
     }
 
     pub fn pagination_edge_type(model_type_definition: &TypeDefinition) -> String {
-        format!("{}Edge", Self::model(model_type_definition))
+        Self::pagination_edge_type_by_str(&Self::model(model_type_definition))
     }
 
     pub fn pagination_orderby_input_by_str(type_name: &str) -> NamedType<'static> {
@@ -143,16 +184,36 @@ impl MetaNames {
     //
     // DELETE
     //
+
+    pub fn mutation_delete_by_str(type_name: &str) -> String {
+        to_lower_camelcase(format!("{type_name}Delete"))
+    }
+
     pub fn mutation_delete(model_type_definition: &TypeDefinition) -> String {
-        to_lower_camelcase(format!("{}Delete", Self::model(model_type_definition)))
+        Self::mutation_delete_by_str(&Self::model(model_type_definition))
+    }
+
+    pub fn mutation_delete_many_by_str(type_name: &str) -> String {
+        let delete = Self::mutation_delete_by_str(type_name);
+        format!("{delete}Many")
     }
 
     pub fn mutation_delete_many(model_type_definition: &TypeDefinition) -> String {
         format!("{}Many", Self::mutation_delete(model_type_definition))
     }
 
+    pub fn delete_payload_type_by_str(type_name: &str) -> String {
+        let mutation_delete = Self::mutation_delete_by_str(type_name);
+        format!("{mutation_delete}Payload").to_camel()
+    }
+
     pub fn delete_payload_type(model_type_definition: &TypeDefinition) -> String {
         format!("{}Payload", Self::mutation_delete(model_type_definition)).to_camel()
+    }
+
+    pub fn delete_many_payload_type_by_str(model_type_definition: &str) -> String {
+        let delete_many = Self::mutation_delete_many_by_str(model_type_definition);
+        format!("{delete_many}Payload").to_camel()
     }
 
     pub fn delete_many_payload_type(model_type_definition: &TypeDefinition) -> String {
@@ -166,16 +227,34 @@ impl MetaNames {
     //
     // CREATE
     //
+    pub fn mutation_create_by_str(type_name: &str) -> String {
+        to_lower_camelcase(format!("{type_name}Create"))
+    }
+
     pub fn mutation_create(model_type_definition: &TypeDefinition) -> String {
-        to_lower_camelcase(format!("{}Create", Self::model(model_type_definition)))
+        Self::mutation_create_by_str(&Self::model(model_type_definition))
+    }
+
+    pub fn create_payload_type_by_str(type_name: &str) -> String {
+        let mutation_create = Self::mutation_create_by_str(type_name);
+        format!("{mutation_create}Payload").to_camel()
     }
 
     pub fn create_payload_type(model_type_definition: &TypeDefinition) -> String {
         format!("{}Payload", Self::mutation_create(model_type_definition)).to_camel()
     }
 
+    pub fn mutation_create_many_by_str(type_name: &str) -> String {
+        format!("{}Many", Self::mutation_create_by_str(type_name))
+    }
+
     pub fn mutation_create_many(model_type_definition: &TypeDefinition) -> String {
         format!("{}Many", Self::mutation_create(model_type_definition))
+    }
+
+    pub fn create_many_payload_type_by_str(type_name: &str) -> String {
+        let create_many = Self::mutation_create_many_by_str(type_name);
+        format!("{create_many}Payload").to_camel()
     }
 
     pub fn create_many_payload_type(model_type_definition: &TypeDefinition) -> String {
@@ -186,6 +265,13 @@ impl MetaNames {
         format!("{}Input", Self::mutation_create_many(model_type_definition)).to_camel()
     }
 
+    pub fn create_input_by_str(type_name: &str, parent_type_name: Option<&str>) -> String {
+        match parent_type_name {
+            None => format!("{}Input", Self::mutation_create_by_str(type_name)).to_camel(),
+            Some(parent_relation) => format!("{parent_relation}Create{type_name}",),
+        }
+    }
+
     /// Defines
     /// - without parent, the create mutation input type name.
     /// - with parent, the nested input type name to create said type when creating the parent.
@@ -193,14 +279,8 @@ impl MetaNames {
         model_type_definition: &TypeDefinition,
         maybe_parent_relation: Option<&ParentRelation<'_>>,
     ) -> String {
-        match maybe_parent_relation {
-            None => format!("{}Input", Self::mutation_create(model_type_definition)).to_camel(),
-            Some(parent_relation) => format!(
-                "{}Create{}",
-                Self::relation_prefix(parent_relation),
-                Self::model(model_type_definition),
-            ),
-        }
+        let parent_relation = maybe_parent_relation.map(|parent| Self::relation_prefix(parent));
+        Self::create_input_by_str(&Self::model(model_type_definition), parent_relation.as_deref())
     }
 
     /// For a given relation, one can either link to an existing object or create a new one.
@@ -218,20 +298,42 @@ impl MetaNames {
     //
     // UPDATE
     //
+    pub fn mutation_update_by_str(type_name: &str) -> String {
+        to_lower_camelcase(format!("{type_name}Update"))
+    }
+
     pub fn mutation_update(model_type_definition: &TypeDefinition) -> String {
-        to_lower_camelcase(format!("{}Update", Self::model(model_type_definition)))
+        Self::mutation_update_by_str(&Self::model(model_type_definition))
+    }
+
+    pub fn update_payload_type_by_str(type_name: &str) -> String {
+        let mutation_update = Self::mutation_update_by_str(type_name);
+        format!("{mutation_update}Payload").to_camel()
     }
 
     pub fn update_payload_type(model_type_definition: &TypeDefinition) -> String {
         format!("{}Payload", Self::mutation_update(model_type_definition)).to_camel()
     }
 
+    pub fn update_input_by_str(type_name: &str) -> String {
+        let mutation_update = Self::mutation_update_by_str(type_name);
+        format!("{mutation_update}Input").to_camel()
+    }
+
     pub fn update_input(model_type_definition: &TypeDefinition) -> String {
-        format!("{}Input", Self::mutation_update(model_type_definition)).to_camel()
+        Self::update_input_by_str(&Self::model(model_type_definition))
+    }
+
+    pub fn mutation_update_many_by_str(type_name: &str) -> String {
+        format!("{}Many", Self::mutation_update_by_str(type_name))
     }
 
     pub fn mutation_update_many(model_type_definition: &TypeDefinition) -> String {
         format!("{}Many", Self::mutation_update(model_type_definition))
+    }
+
+    pub fn update_many_payload_type_by_str(type_name: &str) -> String {
+        format!("{}Payload", Self::mutation_update_many_by_str(type_name)).to_camel()
     }
 
     pub fn update_many_payload_type(model_type_definition: &TypeDefinition) -> String {

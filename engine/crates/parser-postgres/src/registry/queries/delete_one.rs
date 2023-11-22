@@ -17,7 +17,7 @@ pub(crate) fn register(
     filter_oneof_type: &str,
     output_ctx: &mut OutputContext,
 ) {
-    let type_name = input_ctx.mutation_return_type_name(table.client_name());
+    let type_name = input_ctx.delete_payload_name(table.client_name());
     let query_name = format!("{}_Delete", table.client_name()).to_camel_case();
 
     let filter_description = format!("The field and value by which to delete the {type_name}");

@@ -18,7 +18,7 @@ pub(crate) fn register(
     update_input_type: &str,
     output_ctx: &mut OutputContext,
 ) {
-    let type_name = input_ctx.mutation_return_type_name(table.client_name());
+    let type_name = input_ctx.update_payload_name(table.client_name());
     let query_name = format!("{}_Update", table.client_name()).to_camel_case();
 
     let by_value = MetaInputValue::new("by", format!("{filter_oneof_type}!"));

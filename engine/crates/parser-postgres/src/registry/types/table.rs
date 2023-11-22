@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use engine::registry::{
     resolvers::{transformer::Transformer, Resolver},
     Constraint, InputObjectType, MetaField, MetaInputValue, ObjectType,
@@ -49,41 +47,53 @@ pub(super) fn generate(
         }
     });
 
-    let mutation_return_type_name = input_ctx.mutation_return_type_name(table.client_name());
+    let type_names = vec![
+        input_ctx.create_payload_name(table.client_name()),
+        input_ctx.update_payload_name(table.client_name()),
+        input_ctx.delete_payload_name(table.client_name()),
+    ];
 
-    output_ctx.with_object_type(&mutation_return_type_name, table.id(), |builder| {
-        let mut field = MetaField::new("returning", returning_type_name.as_str());
-        field.description = Some(String::from("Returned item from the mutation."));
-        field.resolver = Resolver::Transformer(Transformer::Select {
-            key: "returning".to_string(),
+    for mutation_return_type_name in type_names {
+        output_ctx.with_object_type(&mutation_return_type_name, table.id(), |builder| {
+            let mut field = MetaField::new("returning", returning_type_name.as_str());
+            field.description = Some(String::from("Returned item from the mutation."));
+            field.resolver = Resolver::Transformer(Transformer::Select {
+                key: "returning".to_string(),
+            });
+            builder.push_non_mapped_scalar_field(field);
+
+            let mut field = MetaField::new("rowCount", "Int!");
+            field.description = Some(String::from("The number of rows mutated."));
+            field.resolver = Resolver::Transformer(Transformer::Select {
+                key: "rowCount".to_string(),
+            });
+            builder.push_non_mapped_scalar_field(field);
         });
-        builder.push_non_mapped_scalar_field(field);
+    }
 
-        let mut field = MetaField::new("rowCount", "Int!");
-        field.description = Some(String::from("The number of rows mutated."));
-        field.resolver = Resolver::Transformer(Transformer::Select {
-            key: "rowCount".to_string(),
+    let type_names = vec![
+        input_ctx.create_many_payload_name(table.client_name()),
+        input_ctx.update_many_payload_name(table.client_name()),
+        input_ctx.delete_many_payload_name(table.client_name()),
+    ];
+
+    for mutation_return_type_name in type_names {
+        output_ctx.with_object_type(&mutation_return_type_name, table.id(), |builder| {
+            let mut field = MetaField::new("returning", format!("[{returning_type_name}]!"));
+            field.description = Some(String::from("Returned items from the mutation."));
+            field.resolver = Resolver::Transformer(Transformer::Select {
+                key: "returning".to_string(),
+            });
+            builder.push_non_mapped_scalar_field(field);
+
+            let mut field = MetaField::new("rowCount", "Int!");
+            field.description = Some(String::from("The number of rows mutated."));
+            field.resolver = Resolver::Transformer(Transformer::Select {
+                key: "rowCount".to_string(),
+            });
+            builder.push_non_mapped_scalar_field(field);
         });
-        builder.push_non_mapped_scalar_field(field);
-    });
-
-    let mutation_return_type_name = input_ctx.batch_mutation_return_type_name(table.client_name());
-
-    output_ctx.with_object_type(&mutation_return_type_name, table.id(), |builder| {
-        let mut field = MetaField::new("returning", format!("[{returning_type_name}]!"));
-        field.description = Some(String::from("Returned items from the mutation."));
-        field.resolver = Resolver::Transformer(Transformer::Select {
-            key: "returning".to_string(),
-        });
-        builder.push_non_mapped_scalar_field(field);
-
-        let mut field = MetaField::new("rowCount", "Int!");
-        field.description = Some(String::from("The number of rows mutated."));
-        field.resolver = Resolver::Transformer(Transformer::Select {
-            key: "rowCount".to_string(),
-        });
-        builder.push_non_mapped_scalar_field(field);
-    });
+    }
 }
 
 fn add_column(input_ctx: &InputContext<'_>, column: TableColumnWalker<'_>, builder: &mut ObjectTypeBuilder) {
@@ -163,7 +173,7 @@ fn add_relation(input_ctx: &InputContext<'_>, relation: RelationWalker<'_>, buil
         let client_type = if relation.nullable() {
             client_type
         } else {
-            Cow::Owned(format!("{client_type}!"))
+            format!("{client_type}!")
         };
 
         let mut field = MetaField::new(relation.client_field_name(), client_type.as_ref());
