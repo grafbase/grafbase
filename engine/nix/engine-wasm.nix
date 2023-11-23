@@ -31,5 +31,19 @@ let
   };
 
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+  initialWasm = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
 in
-craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; })
+  pkgs.writeShellScriptBin "engine-wasm" ''
+    cargo install wasm-bindgen-cli
+    wasm-bindgen ${initialWasm}/bin/engine-wasm "$@"
+'';
+# pkgs.mkShe. {
+#   name = "grafbase-engine-npm";
+#   src = null;
+#   buildInputs = with pkgs; [ wasm-bindgen-cli ];
+#   unpackPhase = ":";
+#   buildPhase = ''
+#     wasm-bindgen ${initialWasm}/lib/engine_wasm.wasm --out-dir $out
+#   '';
+# }
