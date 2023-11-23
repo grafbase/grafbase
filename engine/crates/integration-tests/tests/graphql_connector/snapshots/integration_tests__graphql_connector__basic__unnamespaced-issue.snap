@@ -10,7 +10,7 @@ expression: "engine.execute(UNNAMESPACED_QUERY).variables(json!({\n             
         "__typename": "User",
         "email": "pessimist@example.com"
       },
-      "title": "Everythings fucked"
+      "title": "Everythings fine"
     },
     "serverVersion": "1"
   }

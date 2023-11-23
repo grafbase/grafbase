@@ -107,8 +107,8 @@ fn join_on_connector_type() {
                 @r###"
         {
           "pullRequestOrIssue": {
-            "description": "Oh no Everythings fucked",
-            "title": "Everythings fucked"
+            "description": "Oh no Everythings fine",
+            "title": "Everythings fine"
           }
         }
         "###

@@ -9,6 +9,6 @@ data:
       author:
         __typename: GothubUser
         email: pessimist@example.com
-      title: Everythings fucked
+      title: Everythings fine
     serverVersion: "1"
 

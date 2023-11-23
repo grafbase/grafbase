@@ -11,7 +11,7 @@ expression: "engine.execute(NAMESPACED_QUERY).variables(json!({\n               
           "__typename": "GothubUser",
           "email": "pessimist@example.com"
         },
-        "title": "Everythings fucked"
+        "title": "Everythings fine"
       },
       "serverVersion": "1"
     }
