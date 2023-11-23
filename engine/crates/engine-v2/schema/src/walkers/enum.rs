@@ -12,8 +12,8 @@ impl<'a> EnumWalker<'a> {
         self.description.map(|id| self.schema[id].as_str())
     }
 
-    pub fn values(&self) -> impl Iterator<Item = &EnumValue> + '_ {
-        self.values.iter()
+    pub fn values(&self) -> impl Iterator<Item = &'a EnumValue> + 'a {
+        self.schema[self.id].values.iter()
     }
 }
 

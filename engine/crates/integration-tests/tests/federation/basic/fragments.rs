@@ -38,22 +38,20 @@ fn named_fragment_on_object() {
       "data": {
         "allBotPullRequests": [
           {
+            "title": "Creating the thing",
+            "checks": [
+              "Success!"
+            ],
             "author": {
               "name": "Jim"
-            },
-            "checks": [
-              "Success!"
-            ],
-            "title": "Creating the thing"
+            }
           },
           {
-            "author": {
-              "name": null
-            },
+            "title": "Some bot PR",
             "checks": [
               "Success!"
             ],
-            "title": "Some bot PR"
+            "author": {}
           }
         ]
       }
@@ -89,16 +87,16 @@ fn inline_fragment_on_object() {
       "data": {
         "allBotPullRequests": [
           {
+            "title": "Creating the thing",
             "checks": [
               "Success!"
-            ],
-            "title": "Creating the thing"
+            ]
           },
           {
+            "title": "Some bot PR",
             "checks": [
               "Success!"
-            ],
-            "title": "Some bot PR"
+            ]
           }
         ]
       }
@@ -140,24 +138,21 @@ fn inline_fragment_on_object_with_type_condition() {
       "data": {
         "allBotPullRequests": [
           {
-            "author": {
-              "email": "jim@example.com",
-              "name": "Jim"
-            },
+            "title": "Creating the thing",
             "checks": [
               "Success!"
             ],
-            "title": "Creating the thing"
+            "author": {
+              "name": "Jim",
+              "email": "jim@example.com"
+            }
           },
           {
-            "author": {
-              "email": null,
-              "name": null
-            },
+            "title": "Some bot PR",
             "checks": [
               "Success!"
             ],
-            "title": "Some bot PR"
+            "author": {}
           }
         ]
       }
@@ -166,7 +161,6 @@ fn inline_fragment_on_object_with_type_condition() {
 }
 
 #[test]
-#[ignore]
 fn inline_fragments_on_polymorphic_types() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
@@ -177,7 +171,7 @@ fn inline_fragments_on_polymorphic_types() {
             .execute(
                 r#"
                     query {
-                        pullRequestsAndIssues(id: "1") {
+                        pullRequestsAndIssues(filter: { search: "1" }) {
                             ... on PullRequest {
                                 __typename
                                 title
@@ -187,7 +181,7 @@ fn inline_fragments_on_polymorphic_types() {
                                     ... on User {
                                         email
                                     }
-                                    ... on User Bot {
+                                    ... on Bot {
                                         id
                                     }
                                 }
@@ -202,11 +196,42 @@ fn inline_fragments_on_polymorphic_types() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "pullRequestsAndIssues": [
+          {
+            "__typename": "PullRequest",
+            "title": "Creating the thing",
+            "checks": [
+              "Success!"
+            ],
+            "author": {
+              "__typename": "User",
+              "email": "jim@example.com"
+            }
+          },
+          {
+            "__typename": "PullRequest",
+            "title": "Some bot PR",
+            "checks": [
+              "Success!"
+            ],
+            "author": {
+              "__typename": "Bot",
+              "id": "123"
+            }
+          },
+          {
+            "title": "Everythings fine"
+          }
+        ]
+      }
+    }
+    "###);
 }
 
 #[test]
-#[ignore]
 fn named_fragments_on_polymorphic_types() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
@@ -217,7 +242,7 @@ fn named_fragments_on_polymorphic_types() {
             .execute(
                 r#"
                     query {
-                        pullRequestsAndIssues(id: "1") {
+                        pullRequestsAndIssues(filter: { search: "1" }) {
                             ...PrFragment
                             ...IssueFragment
                         }
@@ -252,5 +277,39 @@ fn named_fragments_on_polymorphic_types() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "pullRequestsAndIssues": [
+          {
+            "__typename": "PullRequest",
+            "title": "Creating the thing",
+            "checks": [
+              "Success!"
+            ],
+            "author": {
+              "__typename": "User",
+              "email": "jim@example.com"
+            }
+          },
+          {
+            "__typename": "PullRequest",
+            "title": "Some bot PR",
+            "checks": [
+              "Success!"
+            ],
+            "author": {
+              "__typename": "Bot",
+              "id": "123"
+            }
+          },
+          {
+            "author": {
+              "email": "pessimist@example.com"
+            }
+          }
+        ]
+      }
+    }
+    "###);
 }

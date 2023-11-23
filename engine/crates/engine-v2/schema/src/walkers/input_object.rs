@@ -12,11 +12,9 @@ impl<'a> InputObjectWalker<'a> {
         self.description.map(|id| self.schema[id].as_str())
     }
 
-    pub fn input_fields<'s>(&'s self) -> impl Iterator<Item = InputValueWalker<'s>> + 's
-    where
-        'a: 's,
-    {
-        self.schema[self.id].input_fields.iter().map(|id| self.walk(*id))
+    pub fn input_fields(&self) -> impl Iterator<Item = InputValueWalker<'a>> + 'a {
+        let walker = *self;
+        self.schema[self.id].input_fields.iter().map(move |id| walker.walk(*id))
     }
 }
 

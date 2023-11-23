@@ -1,7 +1,7 @@
 use schema::SchemaWalker;
 
-use super::{BoundSelectionSetWalker, FlattenFieldsIterator};
-use crate::request::{BoundInlineFragment, Operation, ResolvedTypeCondition};
+use super::BoundSelectionSetWalker;
+use crate::request::{BoundInlineFragment, Operation};
 
 pub struct BoundInlineFragmentWalker<'a> {
     pub(in crate::request) schema: SchemaWalker<'a, ()>,
@@ -10,20 +10,6 @@ pub struct BoundInlineFragmentWalker<'a> {
 }
 
 impl<'a> BoundInlineFragmentWalker<'a> {
-    pub(super) fn nested_fields(
-        &self,
-        parent_type_condition: Option<ResolvedTypeCondition>,
-    ) -> FlattenFieldsIterator<'a> {
-        FlattenFieldsIterator {
-            resolved_type_condition: ResolvedTypeCondition::merge(
-                parent_type_condition,
-                self.inner.type_condition.map(|cond| cond.resolve(&self.schema)),
-            ),
-            selections: self.selection_set().into_iter(),
-            nested: None,
-        }
-    }
-
     pub fn selection_set(&self) -> BoundSelectionSetWalker<'a> {
         BoundSelectionSetWalker {
             schema: self.schema,

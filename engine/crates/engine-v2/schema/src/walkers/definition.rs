@@ -1,5 +1,7 @@
 use super::{field::FieldWalker, SchemaWalker};
-use crate::{Definition, EnumWalker, InputObjectWalker, InterfaceWalker, ObjectWalker, ScalarWalker, StringId};
+use crate::{
+    DataType, Definition, EnumWalker, InputObjectWalker, InterfaceWalker, ObjectWalker, ScalarWalker, StringId,
+};
 
 pub type DefinitionWalker<'a> = SchemaWalker<'a, Definition>;
 
@@ -78,6 +80,14 @@ impl<'a> DefinitionWalker<'a> {
     pub fn as_scalar(&self) -> Option<ScalarWalker<'a>> {
         match self.id {
             Definition::Scalar(s) => Some(self.walk(s)),
+            _ => None,
+        }
+    }
+
+    pub fn data_type(&self) -> Option<DataType> {
+        match self.id {
+            Definition::Scalar(id) => Some(self.schema[id].data_type),
+            Definition::Enum(_) => Some(DataType::String),
             _ => None,
         }
     }

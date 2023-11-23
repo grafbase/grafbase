@@ -1,47 +1,34 @@
 use schema::ResolverId;
 
 use crate::{
-    request::{BoundSelectionSetId, Operation, QueryPath},
+    request::{BoundSelectionSetId, QueryPath},
     response::ReadSelectionSet,
-    Engine,
 };
 
 mod attribution;
+mod expectation;
 mod id;
 mod planner;
 mod plans;
-mod tracker;
+mod selection_set;
 
 pub use attribution::Attribution;
+pub use expectation::*;
 pub use id::PlanId;
-pub use planner::{PrepareError, PrepareResult};
 pub use plans::ExecutionPlans;
-pub use tracker::ExecutionPlansTracker;
 
 #[derive(Debug, Clone)]
-pub struct SelectionSetRoot {
+pub struct ExecutionPlanRoot {
     pub path: QueryPath,
-    pub id: BoundSelectionSetId,
+    pub merged_selection_set_ids: Vec<BoundSelectionSetId>,
 }
 
 // the actual selection_set that will be resolved is determined at runtime after @skip/@include
 // have been computed.
 pub struct ExecutionPlan {
-    pub root: SelectionSetRoot,
+    pub root: ExecutionPlanRoot,
     pub input: ReadSelectionSet,
     pub resolver_id: ResolverId,
-}
-
-// This is the part that should be cached for a GraphQL query.
-pub struct OperationPlan {
-    pub operation: Operation,
-    pub execution_plans: ExecutionPlans,
     pub attribution: Attribution,
-    pub final_read_selection_set: ReadSelectionSet,
-}
-
-impl OperationPlan {
-    pub fn prepare(engine: &Engine, operation: Operation) -> PrepareResult<OperationPlan> {
-        planner::plan_operation(engine, operation)
-    }
+    pub expectation: ExpectedSelectionSet,
 }

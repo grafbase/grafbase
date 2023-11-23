@@ -2,15 +2,15 @@ use std::collections::{HashMap, HashSet};
 
 pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
-use schema::{Definition, FieldWalker, InterfaceId, ObjectId, Schema, UnionId};
+use schema::{Definition, FieldWalker, Schema};
 
 use super::{
-    selection_set::BoundField, variable::VariableDefinition, BoundFieldArgument, BoundFieldDefinition,
-    BoundFieldDefinitionId, BoundFieldId, BoundFragmentDefinition, BoundFragmentDefinitionId, BoundFragmentSpread,
-    BoundInlineFragment, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Operation, Pos, TypeCondition,
-    UnboundOperation,
+    selection_set::BoundField, variable::VariableDefinition, BoundAnyFieldDefinition, BoundAnyFieldDefinitionId,
+    BoundFieldArgument, BoundFieldDefinition, BoundFieldId, BoundFragmentDefinition, BoundFragmentDefinitionId,
+    BoundFragmentSpread, BoundInlineFragment, BoundSelection, BoundSelectionSet, BoundSelectionSetId,
+    BoundTypeNameFieldDefinition, Operation, Pos, ResponseKeys, SelectionSetRoot, TypeCondition, UnboundOperation,
 };
-use crate::{execution::Strings, response::GraphqlError};
+use crate::response::ServerError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
@@ -48,9 +48,11 @@ pub enum BindError {
         "Variable named '{name}' does not have a valid input type. Can only be a scalar, enum or input object. Found: '{ty}'."
     )]
     InvalidVariableType { name: String, ty: String, location: Pos },
+    #[error("Too many fields selection set.")]
+    TooManyFields { location: Pos },
 }
 
-impl From<BindError> for GraphqlError {
+impl From<BindError> for ServerError {
     fn from(err: BindError) -> Self {
         let locations = match err {
             BindError::UnknownField { location, .. }
@@ -62,13 +64,13 @@ impl From<BindError> for GraphqlError {
             | BindError::CannotHaveSelectionSet { location, .. }
             | BindError::DisjointTypeCondition { location, .. }
             | BindError::InvalidVariableType { location, .. }
+            | BindError::TooManyFields { location }
             | BindError::LeafMustBeAScalarOrEnum { location, .. } => vec![location],
             BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
         };
-        GraphqlError {
+        ServerError {
             message: err.to_string(),
             locations,
-            path: vec![],
         }
     }
 }
@@ -89,16 +91,18 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
     };
     let mut binder = Binder {
         schema,
-        strings: Strings::new(),
+        response_keys: ResponseKeys::new(),
         fragment_definitions: HashMap::new(),
         field_definitions: Vec::new(),
         fields: Vec::new(),
-        selection_sets: vec![BoundSelectionSet { items: vec![] }],
-        emtpy_selection_set_id: BoundSelectionSetId::from(0),
+        selection_sets: vec![],
         unbound_fragments: unbound.fragments,
+        next_response_position: 0,
     };
-    let root_selection_set_id =
-        binder.bind_selection_set(ParentType::Object(root_object_id), unbound.definition.selection_set)?;
+    let root_selection_set_id = binder.bind_field_selection_set(
+        SelectionSetRoot::Object(root_object_id),
+        unbound.definition.selection_set,
+    )?;
     let variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
     Ok(Operation {
         ty: unbound.definition.ty,
@@ -111,7 +115,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
             fragment_definitions.sort_unstable_by_key(|(id, _)| *id);
             fragment_definitions.into_iter().map(|(_, def)| def).collect()
         },
-        strings: binder.strings,
+        response_keys: binder.response_keys,
         field_definitions: binder.field_definitions,
         fields: binder.fields,
         variable_definitions,
@@ -120,13 +124,20 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
 
 pub struct Binder<'a> {
     schema: &'a Schema,
-    strings: Strings,
+    response_keys: ResponseKeys,
     unbound_fragments: HashMap<String, Positioned<engine_parser::types::FragmentDefinition>>,
     fragment_definitions: HashMap<String, (BoundFragmentDefinitionId, BoundFragmentDefinition)>,
-    field_definitions: Vec<BoundFieldDefinition>,
+    field_definitions: Vec<BoundAnyFieldDefinition>,
     fields: Vec<BoundField>,
     selection_sets: Vec<BoundSelectionSet>,
-    emtpy_selection_set_id: BoundSelectionSetId,
+    // We keep track of the position of fields within the response object that will be
+    // returned. With type conditions it's not obvious to know which field will be present or
+    // not, but we can order all bound fields. This needs to be done at the request binding
+    // level to ensure that fields stay in the right order even if split across different
+    // execution plans.
+    // We also need to use the global request position so that merged selection sets are still
+    // in the right order.
+    next_response_position: usize,
 }
 
 impl<'a> Binder<'a> {
@@ -190,9 +201,17 @@ impl<'a> Binder<'a> {
         }
     }
 
+    fn bind_field_selection_set(
+        &mut self,
+        root: SelectionSetRoot,
+        selection_set: Positioned<engine_parser::types::SelectionSet>,
+    ) -> BindResult<BoundSelectionSetId> {
+        self.bind_selection_set(root, selection_set)
+    }
+
     fn bind_selection_set(
         &mut self,
-        parent: ParentType,
+        root: SelectionSetRoot,
         selection_set: Positioned<engine_parser::types::SelectionSet>,
     ) -> BindResult<BoundSelectionSetId> {
         let Positioned {
@@ -200,27 +219,28 @@ impl<'a> Binder<'a> {
             node: selection_set,
         } = selection_set;
         // Keeping the original ordering
-        let bound = selection_set
+        let items = selection_set
             .items
             .into_iter()
             .map(|Positioned { node: selection, .. }| match selection {
-                engine_parser::types::Selection::Field(selection) => self.bind_field(parent, selection),
+                engine_parser::types::Selection::Field(selection) => self.bind_field(root, selection),
                 engine_parser::types::Selection::FragmentSpread(selection) => {
-                    self.bind_fragment_spread(parent, selection)
+                    self.bind_fragment_spread(root, selection)
                 }
                 engine_parser::types::Selection::InlineFragment(selection) => {
-                    self.bind_inline_fragment(parent, selection)
+                    self.bind_inline_fragment(root, selection)
                 }
             })
-            .collect::<BindResult<BoundSelectionSet>>()?;
+            .collect::<BindResult<Vec<_>>>()?;
         let id = BoundSelectionSetId::from(self.selection_sets.len());
-        self.selection_sets.push(bound);
+        let selection_set = BoundSelectionSet { root, items };
+        self.selection_sets.push(selection_set);
         Ok(id)
     }
 
     fn bind_field(
         &mut self,
-        parent: ParentType,
+        root: SelectionSetRoot,
         Positioned {
             pos: name_location,
             node: field,
@@ -228,100 +248,131 @@ impl<'a> Binder<'a> {
     ) -> BindResult<BoundSelection> {
         let walker = self.schema.default_walker();
         let name = field.name.node.as_str();
-        let schema_field: FieldWalker<'_> = match parent {
-            ParentType::Object(object_id) => self.schema.object_field_by_name(object_id, name),
-            ParentType::Interface(interface_id) => self.schema.interface_field_by_name(interface_id, name),
-            ParentType::Union(union_id) => {
-                return Err(BindError::UnionHaveNoFields {
-                    name: name.to_string(),
-                    ty: walker.walk(union_id).name().to_string(),
+        let response_key = self.response_keys.get_or_intern(
+            &field
+                .alias
+                .map(|Positioned { node, .. }| node.to_string())
+                .unwrap_or_else(|| name.to_string()),
+        );
+        let bound_response_key =
+            response_key
+                .with_position(self.next_response_position)
+                .ok_or(BindError::TooManyFields {
                     location: name_location,
-                });
-            }
-        }
-        .map(|field_id| walker.walk(field_id))
-        .ok_or_else(|| BindError::UnknownField {
-            container: walker.walk(Definition::from(parent)).name().to_string(),
-            name: name.to_string(),
-            location: name_location,
-        })?;
+                })?;
+        self.next_response_position += 1;
 
-        let arguments = field
-            .arguments
-            .into_iter()
-            .map(
-                |(
-                    Positioned {
-                        pos: name_location,
-                        node: name,
-                    },
-                    Positioned {
-                        pos: value_location,
-                        node: value,
-                    },
-                )| {
-                    let name = name.to_string();
-                    schema_field
-                        .argument_by_name(&name)
-                        .map(|input_value| BoundFieldArgument {
-                            name_location,
-                            input_value_id: input_value.id,
-                            value_location,
-                            value,
-                        })
-                        .ok_or_else(|| BindError::UnknownFieldArgument {
-                            field: schema_field.name().to_string(),
-                            name,
-                            location: name_location,
-                        })
-                },
-            )
-            .collect::<BindResult<_>>()?;
-
-        let selection_set_id = if field.selection_set.node.items.is_empty() {
-            if !matches!(
-                schema_field.ty().inner().id,
-                Definition::Scalar(_) | Definition::Enum(_)
-            ) {
-                return Err(BindError::LeafMustBeAScalarOrEnum {
-                    name: name.to_string(),
-                    ty: schema_field.ty().inner().name().to_string(),
-                    location: name_location,
-                });
-            }
-            self.emtpy_selection_set_id
-        } else {
-            match schema_field.ty().inner().id {
-                Definition::Object(object_id) => {
-                    self.bind_selection_set(ParentType::Object(object_id), field.selection_set)
-                }
-                Definition::Interface(interface_id) => {
-                    self.bind_selection_set(ParentType::Interface(interface_id), field.selection_set)
-                }
-                Definition::Union(union_id) => {
-                    self.bind_selection_set(ParentType::Union(union_id), field.selection_set)
-                }
-                _ => Err(BindError::CannotHaveSelectionSet {
-                    name: name.to_string(),
-                    ty: schema_field.ty().name().to_string(),
-                    location: name_location,
+        let (bound_field_definition, selection_set_id) = match name {
+            "__typename" => (
+                BoundAnyFieldDefinition::TypeName(BoundTypeNameFieldDefinition {
+                    name_location,
+                    response_key,
                 }),
-            }?
+                None,
+            ),
+
+            name => {
+                let schema_field: FieldWalker<'_> = match root {
+                    SelectionSetRoot::Object(object_id) => self.schema.object_field_by_name(object_id, name),
+                    SelectionSetRoot::Interface(interface_id) => {
+                        self.schema.interface_field_by_name(interface_id, name)
+                    }
+                    SelectionSetRoot::Union(union_id) => {
+                        return Err(BindError::UnionHaveNoFields {
+                            name: name.to_string(),
+                            ty: walker.walk(union_id).name().to_string(),
+                            location: name_location,
+                        });
+                    }
+                }
+                .map(|field_id| walker.walk(field_id))
+                .ok_or_else(|| BindError::UnknownField {
+                    container: walker.walk(Definition::from(root)).name().to_string(),
+                    name: name.to_string(),
+                    location: name_location,
+                })?;
+
+                let arguments = field
+                    .arguments
+                    .into_iter()
+                    .map(
+                        |(
+                            Positioned {
+                                pos: name_location,
+                                node: name,
+                            },
+                            Positioned {
+                                pos: value_location,
+                                node: value,
+                            },
+                        )| {
+                            let name = name.to_string();
+                            schema_field
+                                .argument_by_name(&name)
+                                .map(|input_value| BoundFieldArgument {
+                                    name_location,
+                                    input_value_id: input_value.id,
+                                    value_location,
+                                    value,
+                                })
+                                .ok_or_else(|| BindError::UnknownFieldArgument {
+                                    field: schema_field.name().to_string(),
+                                    name,
+                                    location: name_location,
+                                })
+                        },
+                    )
+                    .collect::<BindResult<_>>()?;
+
+                let selection_set_id = if field.selection_set.node.items.is_empty() {
+                    if !matches!(
+                        schema_field.ty().inner().id,
+                        Definition::Scalar(_) | Definition::Enum(_)
+                    ) {
+                        return Err(BindError::LeafMustBeAScalarOrEnum {
+                            name: name.to_string(),
+                            ty: schema_field.ty().inner().name().to_string(),
+                            location: name_location,
+                        });
+                    }
+                    None
+                } else {
+                    Some(match schema_field.ty().inner().id {
+                        Definition::Object(object_id) => {
+                            self.bind_field_selection_set(SelectionSetRoot::Object(object_id), field.selection_set)
+                        }
+                        Definition::Interface(interface_id) => self
+                            .bind_field_selection_set(SelectionSetRoot::Interface(interface_id), field.selection_set),
+                        Definition::Union(union_id) => {
+                            self.bind_field_selection_set(SelectionSetRoot::Union(union_id), field.selection_set)
+                        }
+                        _ => Err(BindError::CannotHaveSelectionSet {
+                            name: name.to_string(),
+                            ty: schema_field.ty().name().to_string(),
+                            location: name_location,
+                        }),
+                    }?)
+                };
+                (
+                    BoundAnyFieldDefinition::Field(BoundFieldDefinition {
+                        response_key,
+                        name_location,
+                        field_id: schema_field.id,
+                        arguments,
+                    }),
+                    selection_set_id,
+                )
+            }
         };
-        let name = &field
-            .alias
-            .map(|Positioned { node, .. }| node.to_string())
-            .unwrap_or_else(|| name.to_string());
-        let operation_field_definition_id = BoundFieldDefinitionId::from(self.field_definitions.len());
-        self.field_definitions.push(BoundFieldDefinition {
-            name: self.strings.get_or_intern(name),
-            name_location,
-            field_id: schema_field.id,
-            arguments,
-        });
+        let definition_id = BoundAnyFieldDefinitionId::from(self.field_definitions.len());
+        self.field_definitions.push(bound_field_definition);
         let bound_field_id = BoundFieldId::from(self.fields.len());
         self.fields.push(BoundField {
-            definition_id: operation_field_definition_id,
+            // Adding the position ensures fields are always returned in the right order in the
+            // final response. Currently, we support up to 4095 bound fields in a selection set,
+            // which should be more than enough for anything remotely sane.
+            bound_response_key,
+            definition_id,
             selection_set_id,
         });
         Ok(BoundSelection::Field(bound_field_id))
@@ -329,7 +380,7 @@ impl<'a> Binder<'a> {
 
     fn bind_fragment_spread(
         &mut self,
-        parent: ParentType,
+        root: SelectionSetRoot,
         Positioned {
             pos: location,
             node: spread,
@@ -349,7 +400,7 @@ impl<'a> Binder<'a> {
                 name: name.to_string(),
                 location,
             })?;
-        let type_condition = self.bind_type_condition(parent, &fragment_definition.type_condition)?;
+        let type_condition = self.bind_type_condition(root, &fragment_definition.type_condition)?;
         let selection_set_id = self.bind_selection_set(type_condition.into(), fragment_definition.selection_set)?;
 
         Ok(BoundSelection::FragmentSpread(BoundFragmentSpread {
@@ -378,7 +429,7 @@ impl<'a> Binder<'a> {
 
     fn bind_inline_fragment(
         &mut self,
-        parent: ParentType,
+        root: SelectionSetRoot,
         Positioned {
             pos: location,
             node: fragment,
@@ -386,9 +437,9 @@ impl<'a> Binder<'a> {
     ) -> BindResult<BoundSelection> {
         let type_condition = fragment
             .type_condition
-            .map(|condition| self.bind_type_condition(parent, &condition))
+            .map(|condition| self.bind_type_condition(root, &condition))
             .transpose()?;
-        let fragment_root = type_condition.map(Into::into).unwrap_or(parent);
+        let fragment_root = type_condition.map(Into::into).unwrap_or(root);
         let selection_set_id = self.bind_selection_set(fragment_root, fragment.selection_set)?;
         Ok(BoundSelection::InlineFragment(BoundInlineFragment {
             location,
@@ -400,7 +451,7 @@ impl<'a> Binder<'a> {
 
     fn bind_type_condition(
         &self,
-        parent: ParentType,
+        root: SelectionSetRoot,
         Positioned { pos: location, node }: &Positioned<engine_parser::types::TypeCondition>,
     ) -> BindResult<TypeCondition> {
         let location = *location;
@@ -423,22 +474,20 @@ impl<'a> Binder<'a> {
                 });
             }
         };
-        let possible_types = TypeCondition::from(parent)
+        let possible_types = TypeCondition::from(root)
             .resolve(self.schema)
-            .possible_types()
             .iter()
             .copied()
             .collect::<HashSet<_>>();
         let frament_possible_types = type_condition
             .resolve(self.schema)
-            .possible_types()
             .iter()
             .copied()
             .collect::<HashSet<_>>();
         if possible_types.is_disjoint(&frament_possible_types) {
             let walker = self.schema.default_walker();
             return Err(BindError::DisjointTypeCondition {
-                parent: walker.walk(Definition::from(parent)).name().to_string(),
+                parent: walker.walk(Definition::from(root)).name().to_string(),
                 name: name.to_string(),
                 location,
             });
@@ -447,24 +496,17 @@ impl<'a> Binder<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum ParentType {
-    Union(UnionId),
-    Interface(InterfaceId),
-    Object(ObjectId),
-}
-
-impl From<ParentType> for TypeCondition {
-    fn from(parent: ParentType) -> Self {
+impl From<SelectionSetRoot> for TypeCondition {
+    fn from(parent: SelectionSetRoot) -> Self {
         match parent {
-            ParentType::Interface(id) => Self::Interface(id),
-            ParentType::Object(id) => Self::Object(id),
-            ParentType::Union(id) => Self::Union(id),
+            SelectionSetRoot::Interface(id) => Self::Interface(id),
+            SelectionSetRoot::Object(id) => Self::Object(id),
+            SelectionSetRoot::Union(id) => Self::Union(id),
         }
     }
 }
 
-impl From<TypeCondition> for ParentType {
+impl From<TypeCondition> for SelectionSetRoot {
     fn from(cond: TypeCondition) -> Self {
         match cond {
             TypeCondition::Interface(id) => Self::Interface(id),
@@ -474,12 +516,12 @@ impl From<TypeCondition> for ParentType {
     }
 }
 
-impl From<ParentType> for Definition {
-    fn from(parent: ParentType) -> Self {
+impl From<SelectionSetRoot> for Definition {
+    fn from(parent: SelectionSetRoot) -> Self {
         match parent {
-            ParentType::Interface(id) => Self::Interface(id),
-            ParentType::Object(id) => Self::Object(id),
-            ParentType::Union(id) => Self::Union(id),
+            SelectionSetRoot::Interface(id) => Self::Interface(id),
+            SelectionSetRoot::Object(id) => Self::Object(id),
+            SelectionSetRoot::Union(id) => Self::Union(id),
         }
     }
 }

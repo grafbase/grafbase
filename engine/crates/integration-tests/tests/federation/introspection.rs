@@ -18,7 +18,7 @@ fn can_run_pathfinder_introspection_query() {
 
         engine.execute(PATHFINDER_INTROSPECTION_QUERY).await
     });
-    assert!(response.errors().is_empty(), "{response:#?}");
+    assert!(response.errors().is_empty(), "{response}");
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
     type Bot {
@@ -86,7 +86,7 @@ fn can_run_2018_introspection_query() {
             ))
             .await
     });
-    assert!(response.errors().is_empty(), "{response:#?}");
+    assert!(response.errors().is_empty(), "{response}");
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
     type Bot {
@@ -154,7 +154,7 @@ fn can_run_2021_introspection_query() {
             ))
             .await
     });
-    assert!(response.errors().is_empty(), "{response:#?}");
+    assert!(response.errors().is_empty(), "{response}");
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
     type Bot {
@@ -218,7 +218,7 @@ fn can_run_capability_introspection_query() {
 
         engine.execute(CapabilitiesQuery::build(())).await
     });
-    assert!(response.errors().is_empty(), "{response:#?}");
+    assert!(response.errors().is_empty(), "{response}");
 
     let response = serde_json::from_value::<CapabilitiesQuery>(response.into_data()).expect("valid response");
 
@@ -253,7 +253,7 @@ fn introspection_output_matches_source() {
 
         (response, upstream_sdl)
     });
-    assert!(response.errors().is_empty(), "{response:#?}");
+    assert!(response.errors().is_empty(), "{response}");
 
     let _engine_sdl = introspection_to_sdl(response.into_data());
 
@@ -275,7 +275,7 @@ fn can_introsect_when_multiple_subgraphs() {
 
         engine.execute(IntrospectionQuery::build(())).await
     });
-    assert!(response.errors().is_empty(), "{response:#?}");
+    assert!(response.errors().is_empty(), "{response}");
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
     type Bot {
@@ -395,8 +395,9 @@ fn supports_the_type_field() {
     {
       "data": {
         "__type": {
+          "kind": "OBJECT",
+          "name": "PullRequest",
           "description": null,
-          "enumValues": null,
           "fields": [
             {
               "name": "author"
@@ -408,16 +409,15 @@ fn supports_the_type_field() {
               "name": "title"
             }
           ],
-          "inputFields": null,
           "interfaces": [
             {
               "name": "PullRequestOrIssue"
             }
           ],
-          "kind": "OBJECT",
-          "name": "PullRequest",
-          "ofType": null,
-          "possibleTypes": null
+          "possibleTypes": null,
+          "enumValues": null,
+          "inputFields": null,
+          "ofType": null
         }
       }
     }
@@ -497,128 +497,128 @@ fn supports_recursing_through_types() {
         "__type": {
           "possibleTypes": [
             {
+              "name": "Issue",
               "interfaces": [
                 {
                   "name": "PullRequestOrIssue",
                   "possibleTypes": [
                     {
+                      "name": "Issue",
                       "interfaces": [
                         {
                           "name": "PullRequestOrIssue",
                           "possibleTypes": [
                             {
+                              "name": "Issue",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "Issue"
+                              ]
                             },
                             {
+                              "name": "PullRequest",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "PullRequest"
+                              ]
                             }
                           ]
                         }
-                      ],
-                      "name": "Issue"
+                      ]
                     },
                     {
+                      "name": "PullRequest",
                       "interfaces": [
                         {
                           "name": "PullRequestOrIssue",
                           "possibleTypes": [
                             {
+                              "name": "Issue",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "Issue"
+                              ]
                             },
                             {
+                              "name": "PullRequest",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "PullRequest"
+                              ]
                             }
                           ]
                         }
-                      ],
-                      "name": "PullRequest"
+                      ]
                     }
                   ]
                 }
-              ],
-              "name": "Issue"
+              ]
             },
             {
+              "name": "PullRequest",
               "interfaces": [
                 {
                   "name": "PullRequestOrIssue",
                   "possibleTypes": [
                     {
+                      "name": "Issue",
                       "interfaces": [
                         {
                           "name": "PullRequestOrIssue",
                           "possibleTypes": [
                             {
+                              "name": "Issue",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "Issue"
+                              ]
                             },
                             {
+                              "name": "PullRequest",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "PullRequest"
+                              ]
                             }
                           ]
                         }
-                      ],
-                      "name": "Issue"
+                      ]
                     },
                     {
+                      "name": "PullRequest",
                       "interfaces": [
                         {
                           "name": "PullRequestOrIssue",
                           "possibleTypes": [
                             {
+                              "name": "Issue",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "Issue"
+                              ]
                             },
                             {
+                              "name": "PullRequest",
                               "interfaces": [
                                 {
                                   "name": "PullRequestOrIssue"
                                 }
-                              ],
-                              "name": "PullRequest"
+                              ]
                             }
                           ]
                         }
-                      ],
-                      "name": "PullRequest"
+                      ]
                     }
                   ]
                 }
-              ],
-              "name": "PullRequest"
+              ]
             }
           ]
         }
@@ -656,12 +656,11 @@ fn rejects_bogus_introspection_queries() {
         {
           "locations": [
             {
-              "column": 33,
-              "line": 5
+              "line": 5,
+              "column": 33
             }
           ],
-          "message": "__Type does not have a field named 'blarg'",
-          "path": []
+          "message": "__Type does not have a field named 'blarg'"
         }
       ]
     }

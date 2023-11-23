@@ -2,16 +2,21 @@ use engine_parser::Pos;
 use schema::FieldId;
 
 use super::{FieldArgumentWalker, SelectionSetWalker};
-use crate::request::BoundField;
+use crate::request::{BoundField, BoundFieldDefinition};
 
 pub struct FieldWalker<'a> {
     pub(super) ctx: super::WalkerContext<'a, FieldId>,
     pub(super) bound_field: BoundField,
+    pub(super) definition: &'a BoundFieldDefinition,
 }
 
 impl<'a> FieldWalker<'a> {
     pub fn location(&self) -> Pos {
-        self.ctx.plan.operation[self.bound_field.definition_id].name_location
+        self.definition.name_location
+    }
+
+    pub fn response_key(&self) -> &str {
+        &self.ctx.operation.response_keys[self.definition.response_key]
     }
 
     pub fn bound_arguments<'s>(&'s self) -> impl ExactSizeIterator<Item = FieldArgumentWalker<'s>> + 's
@@ -19,24 +24,27 @@ impl<'a> FieldWalker<'a> {
         'a: 's,
     {
         let ctx = self.ctx;
-        self.ctx.plan.operation[self.bound_field.definition_id]
+        self.definition
             .arguments
             .iter()
             .map(move |argument| FieldArgumentWalker {
-                ctx: ctx.walk(argument.input_value_id),
+                input_value: ctx.schema_walker.walk(argument.input_value_id),
+                variables: ctx.variables,
                 argument,
             })
     }
 
     pub fn selection_set(&self) -> Option<SelectionSetWalker<'a>> {
-        if self.ctx.plan.attribution[self.bound_field.selection_set_id].contains(&self.ctx.plan_id) {
-            Some(SelectionSetWalker {
-                ctx: self.ctx.walk(()),
-                id: self.bound_field.selection_set_id,
-            })
-        } else {
-            None
-        }
+        self.bound_field.selection_set_id.and_then(|id| {
+            if self.ctx.attribution.selection_set(id) {
+                Some(SelectionSetWalker {
+                    ctx: self.ctx.walk(()),
+                    merged_selection_set_ids: vec![id],
+                })
+            } else {
+                None
+            }
+        })
     }
 }
 

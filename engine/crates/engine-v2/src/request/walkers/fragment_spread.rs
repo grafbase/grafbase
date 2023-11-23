@@ -1,7 +1,7 @@
 use schema::SchemaWalker;
 
-use super::{BoundSelectionSetWalker, FlattenFieldsIterator};
-use crate::request::{BoundFragmentSpread, Operation, ResolvedTypeCondition};
+use super::BoundSelectionSetWalker;
+use crate::request::{BoundFragmentSpread, Operation};
 
 pub struct BoundFragmentSpreadWalker<'a> {
     pub(in crate::request) schema: SchemaWalker<'a, ()>,
@@ -10,21 +10,6 @@ pub struct BoundFragmentSpreadWalker<'a> {
 }
 
 impl<'a> BoundFragmentSpreadWalker<'a> {
-    pub(super) fn nested_fields(
-        &self,
-        parent_type_condition: Option<ResolvedTypeCondition>,
-    ) -> FlattenFieldsIterator<'a> {
-        let fragment_definition = &self.operation[self.inner.fragment_id];
-        FlattenFieldsIterator {
-            resolved_type_condition: ResolvedTypeCondition::merge(
-                parent_type_condition,
-                Some(fragment_definition.type_condition.resolve(&self.schema)),
-            ),
-            selections: self.selection_set().into_iter(),
-            nested: None,
-        }
-    }
-
     pub fn selection_set(&self) -> BoundSelectionSetWalker<'a> {
         BoundSelectionSetWalker {
             schema: self.schema,
