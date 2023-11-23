@@ -2537,6 +2537,7 @@ dependencies = [
  "gateway-core",
  "graphql-extensions",
  "http",
+ "postgres-connector-types",
  "runtime",
  "runtime-local",
  "runtime-noop",

@@ -25,8 +25,11 @@ pub struct Gateway {
 }
 
 impl Gateway {
-    #[must_use]
-    pub fn new(env_vars: HashMap<String, String>, bridge: Bridge, registry: Arc<engine::Registry>) -> Self {
+    pub async fn new(
+        env_vars: HashMap<String, String>,
+        bridge: Bridge,
+        registry: Arc<engine::Registry>,
+    ) -> Result<Self, crate::Error> {
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: "localhost".to_string(),
@@ -39,15 +42,17 @@ impl Gateway {
             auth_config: registry.auth.clone(),
             bridge: bridge.clone(),
         });
-        let executor = Arc::new(Executor::new(env_vars, bridge, registry));
-        Gateway {
+
+        let executor = Arc::new(Executor::new(env_vars, bridge, registry).await?);
+
+        Ok(Gateway {
             inner: Arc::new(gateway_core::Gateway::new(
                 executor,
                 Arc::new(InMemoryCache::<engine::Response>::new()),
                 cache_config,
                 authorizer,
             )),
-        }
+        })
     }
 
     pub fn into_router(self) -> axum::Router {

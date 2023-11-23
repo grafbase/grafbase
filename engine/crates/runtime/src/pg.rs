@@ -6,6 +6,8 @@ use postgres_connector_types::{database_definition::DatabaseDefinition, transpor
 pub enum PgTransportFactoryError {
     #[error("Transport creation error: {0}")]
     TransportCreation(#[from] postgres_connector_types::error::Error),
+    #[error("Transport not found for name: {0}")]
+    TransportNotFound(String),
 }
 
 pub type PgTransportFactoryResult<T> = std::result::Result<T, PgTransportFactoryError>;
@@ -17,6 +19,8 @@ pub trait PgTransportFactoryInner {
         name: &str,
         database_definition: &DatabaseDefinition,
     ) -> PgTransportFactoryResult<Box<dyn Transport>>;
+
+    fn fetch_cached(&self, name: &str) -> PgTransportFactoryResult<&dyn Transport>;
 }
 
 type BoxedPgTransportFactoryImpl = Box<dyn PgTransportFactoryInner + Send + Sync>;

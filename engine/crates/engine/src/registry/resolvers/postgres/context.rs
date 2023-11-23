@@ -26,7 +26,7 @@ pub struct PostgresContext<'a> {
     context: &'a ContextField<'a>,
     resolver_context: &'a ResolverContext<'a>,
     database_definition: &'a DatabaseDefinition,
-    transport: Box<dyn Transport>,
+    transport: &'a dyn Transport,
 }
 
 impl<'a> PostgresContext<'a> {
@@ -34,7 +34,7 @@ impl<'a> PostgresContext<'a> {
         context: &'a ContextField<'a>,
         resolver_context: &'a ResolverContext<'a>,
         database_definition: &'a DatabaseDefinition,
-        transport: Box<dyn Transport>,
+        transport: &'a dyn Transport,
     ) -> Result<PostgresContext<'a>, Error> {
         Ok(Self {
             context,
@@ -182,7 +182,7 @@ impl<'a> PostgresContext<'a> {
 
     /// The database connection.
     pub fn transport(&self) -> &dyn Transport {
-        self.transport.as_ref()
+        self.transport
     }
 
     pub fn runtime_ctx(&self) -> Result<&runtime::Context, crate::Error> {
