@@ -98,8 +98,16 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
         writeln!(sdl, "enum {enum_name} {{")?;
 
         for value in &r#enum.values {
-            let value = &graph[value.value];
-            writeln!(sdl, "{INDENT}{value}")?;
+            let value_name = &graph[value.value];
+            write!(sdl, "{INDENT}{value_name}")?;
+
+            for directive in &value.composed_directives {
+                let directive_name = &graph[directive.name];
+                let arguments = DirectiveArguments(&directive.arguments, graph);
+                write!(sdl, " @{directive_name}{arguments}")?;
+            }
+
+            sdl.push('\n');
         }
 
         writeln!(sdl, "}}\n")?;
@@ -174,8 +182,19 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
 
     write_provides(field, graph, sdl)?;
     write_requires(field, graph, sdl)?;
+    write_composed_directives(field, graph, sdl)?;
 
     sdl.push('\n');
+    Ok(())
+}
+
+fn write_composed_directives(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    for directive in &field.composed_directives {
+        let directive_name = &graph[directive.name];
+        let arguments = DirectiveArguments(&directive.arguments, graph);
+        write!(sdl, " @{directive_name}{arguments}")?;
+    }
+
     Ok(())
 }
 
@@ -325,5 +344,54 @@ impl<T: Display> Display for MaybeDisplay<T> {
         }
 
         Ok(())
+    }
+}
+
+struct DirectiveArguments<'a>(&'a [(StringId, Value)], &'a FederatedGraph);
+
+impl Display for DirectiveArguments<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let DirectiveArguments(arguments, graph) = self;
+
+        if arguments.is_empty() {
+            return Ok(());
+        }
+
+        f.write_str("(")?;
+
+        let mut arguments = arguments.iter().peekable();
+
+        while let Some((name, value)) = arguments.next() {
+            let name = &graph[*name];
+            let value = ValueDisplay(value, graph);
+            write!(f, "{name}: {value}")?;
+
+            if arguments.peek().is_some() {
+                f.write_str(", ")?;
+            }
+        }
+
+        f.write_str(")")
+    }
+}
+
+struct ValueDisplay<'a>(&'a Value, &'a FederatedGraph);
+
+impl Display for ValueDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ValueDisplay(value, graph) = self;
+        match value {
+            Value::String(s) => {
+                f.write_str("\"")?;
+                f.write_str(&graph[*s])?;
+                f.write_str("\"")
+            }
+            Value::Int(i) => Display::fmt(i, f),
+            Value::Float(val) | Value::EnumValue(val) => f.write_str(&graph[*val]),
+            Value::Boolean(true) => f.write_str("true"),
+            Value::Boolean(false) => f.write_str("false"),
+            Value::Object(_) => todo!(),
+            Value::List(_) => todo!(),
+        }
     }
 }

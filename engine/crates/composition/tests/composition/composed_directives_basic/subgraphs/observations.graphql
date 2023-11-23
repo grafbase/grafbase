@@ -1,0 +1,43 @@
+type Bird @shareable {
+    id: ID!
+    name: String!
+    species: String!
+    observedAt: DateTime! @deprecated
+    location: String! @tag(name: "locationService") @tag(name: "a")
+    notes: String @deprecated(reason: "Field is obsolete due to new data model.")
+}
+
+type BirdObservation @id(fields: "observationID") {
+    observationID: ID!
+    bird: Bird!
+    observerDetails: ObserverDetails!
+    timeOfObservation: DateTime!
+}
+
+type ObserverDetails {
+    name: String!
+    membershipNumber: String
+    observerType: ObserverType!
+}
+
+enum ObserverType {
+    AMATEUR
+    SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals")
+    PROFESSIONAL
+}
+
+input BirdObservationFilters {
+    observerName: String
+    observerType: ObserverType
+    observedAt: DateTime @deprecated(reason: "UNIX timestamps instead, as usual in bird watching")
+    first: Int
+}
+
+type Query {
+    birdObservations(filters: BirdObservationFilters): [BirdObservation]
+    birdObservation(observationID: ID!): BirdObservation
+}
+
+schema {
+    query: Query
+}

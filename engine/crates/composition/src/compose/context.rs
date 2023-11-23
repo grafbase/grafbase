@@ -42,8 +42,13 @@ impl<'a> Context<'a> {
         self.ir.insert_enum(name)
     }
 
-    pub(crate) fn insert_enum_value(&mut self, enum_id: federated::EnumId, value: StringWalker<'_>) {
-        self.ir.insert_enum_value(enum_id, value);
+    pub(crate) fn insert_enum_value(
+        &mut self,
+        enum_id: federated::EnumId,
+        value: StringWalker<'_>,
+        deprecation: Option<Option<StringWalker<'_>>>,
+    ) {
+        self.ir.insert_enum_value(enum_id, value, deprecation);
     }
 
     pub(crate) fn insert_field(&mut self, ir: crate::composition_ir::FieldIr) {
@@ -76,6 +81,19 @@ impl<'a> Context<'a> {
 
     pub(crate) fn insert_resolvable_key(&mut self, object_id: federated::ObjectId, key_id: subgraphs::KeyId) {
         self.ir.insert_resolvable_key(object_id, key_id);
+    }
+
+    pub(crate) fn insert_string(&mut self, string_id: subgraphs::StringId) -> federated::StringId {
+        self.ir.insert_string(self.subgraphs.walk(string_id))
+    }
+
+    // We need a separate method for strings that appear in the federated graph but were not
+    // interned in subgraphs.
+    pub(crate) fn insert_static_str(&mut self, string: &'static str) -> federated::StringId {
+        match self.subgraphs.strings.lookup(string) {
+            Some(id) => self.ir.insert_string(self.subgraphs.walk(id)),
+            None => self.ir.insert_static_str(string),
+        }
     }
 }
 

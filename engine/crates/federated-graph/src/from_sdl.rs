@@ -87,6 +87,19 @@ impl<'a> State<'a> {
 
         StringId(self.strings.insert_full(s.to_owned()).0)
     }
+
+    fn insert_value(&mut self, node: &async_graphql_value::ConstValue) -> Value {
+        match node {
+            async_graphql_value::ConstValue::Null => Value::String(self.insert_string("null")),
+            async_graphql_value::ConstValue::Number(number) => Value::String(self.insert_string(&number.to_string())),
+            async_graphql_value::ConstValue::String(s) => Value::String(self.insert_string(s)),
+            async_graphql_value::ConstValue::Boolean(b) => Value::Boolean(*b),
+            async_graphql_value::ConstValue::Enum(enm) => Value::EnumValue(self.insert_string(enm)),
+            async_graphql_value::ConstValue::Binary(_) => unreachable!(),
+            async_graphql_value::ConstValue::List(_) => todo!(),
+            async_graphql_value::ConstValue::Object(_) => todo!(),
+        }
+    }
 }
 
 pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
@@ -395,10 +408,11 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         state.definition_names.insert(type_name, Definition::Enum(enum_id));
 
                         for value in &enm.values {
+                            let composed_directives = collect_composed_directives(&value.node.directives, state);
                             let value = state.insert_string(value.node.value.node.as_str());
                             state.enums[enum_id.0].values.push(EnumValue {
                                 value,
-                                composed_directives: Vec::new(),
+                                composed_directives,
                             });
                         }
                     }
@@ -463,6 +477,8 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
             _ => None,
         });
 
+    let composed_directives = collect_composed_directives(&ast_field.directives, state);
+
     let field_id = FieldId(state.fields.push_return_idx(Field {
         name,
         field_type_id,
@@ -470,7 +486,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         provides: Vec::new(),
         requires: Vec::new(),
         arguments,
-        composed_directives: Vec::new(),
+        composed_directives,
     }));
 
     state.selection_map.insert((parent_id, field_name), field_id);
@@ -617,4 +633,25 @@ impl<T> VecExt<T> for Vec<T> {
         self.push(elem);
         idx
     }
+}
+
+fn collect_composed_directives(
+    directives: &[Positioned<ast::ConstDirective>],
+    state: &mut State<'_>,
+) -> Vec<Directive> {
+    directives
+        .iter()
+        .filter(|dir| dir.node.name.node != JOIN_FIELD_DIRECTIVE_NAME)
+        .map(|directive| Directive {
+            name: state.insert_string(directive.node.name.node.as_str()),
+            arguments: directive
+                .node
+                .arguments
+                .iter()
+                .map(|(name, value)| -> (StringId, Value) {
+                    (state.insert_string(name.node.as_str()), state.insert_value(&value.node))
+                })
+                .collect(),
+        })
+        .collect()
 }

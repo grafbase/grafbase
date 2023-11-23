@@ -84,6 +84,8 @@ pub(super) fn ingest_fields(
                 _ => None,
             });
 
+        let deprecated = super::find_deprecated_directive(&field.directives, subgraphs);
+        let tags = super::find_tag_directives(&field.directives);
         let field_type = subgraphs.intern_field_type(&field.ty.node);
         let field_id = subgraphs
             .push_field(crate::subgraphs::FieldIngest {
@@ -94,6 +96,8 @@ pub(super) fn ingest_fields(
                 is_external,
                 provides,
                 requires,
+                deprecated,
+                tags,
             })
             .unwrap();
 

@@ -12,7 +12,10 @@ use crate::{
     subgraphs::{self, DefinitionKind, SubgraphId},
     Subgraphs,
 };
-use async_graphql_parser::types as ast;
+use async_graphql_parser::{
+    types::{self as ast, ConstDirective},
+    Positioned,
+};
 
 pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
     let subgraph_id = subgraphs.push_subgraph(name, url);
@@ -94,6 +97,8 @@ fn ingest_definition_bodies(
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
                 for field in &input_object.fields {
                     let field_type = subgraphs.intern_field_type(&field.node.ty.node);
+                    let deprecated = find_deprecated_directive(&field.node.directives, subgraphs);
+                    let tags = find_tag_directives(&field.node.directives);
                     subgraphs
                         .push_field(subgraphs::FieldIngest {
                             parent_definition_id: definition_id,
@@ -103,6 +108,8 @@ fn ingest_definition_bodies(
                             is_external: false,
                             provides: None,
                             requires: None,
+                            deprecated,
+                            tags,
                         })
                         .unwrap();
                 }
@@ -118,6 +125,8 @@ fn ingest_definition_bodies(
 
                 for field in &interface.fields {
                     let field_type = subgraphs.intern_field_type(&field.node.ty.node);
+                    let tags = find_tag_directives(&field.node.directives);
+                    let deprecated = find_deprecated_directive(&field.node.directives, subgraphs);
                     subgraphs
                         .push_field(subgraphs::FieldIngest {
                             parent_definition_id: definition_id,
@@ -127,6 +136,8 @@ fn ingest_definition_bodies(
                             is_external: false,
                             provides: None,
                             requires: None,
+                            deprecated,
+                            tags,
                         })
                         .unwrap();
                 }
@@ -145,4 +156,36 @@ fn ingest_definition_bodies(
             _ => (),
         }
     }
+}
+
+fn find_deprecated_directive(
+    directives: &[Positioned<ConstDirective>],
+    subgraphs: &mut Subgraphs,
+) -> Option<subgraphs::Deprecation> {
+    let directive = directives
+        .iter()
+        .find(|directive| directive.node.name.node == "deprecated")?;
+
+    let reason = directive.node.get_argument("reason")?;
+
+    let reason = match &reason.node {
+        async_graphql_value::ConstValue::String(s) => Some(subgraphs.strings.intern(s.as_str())),
+        _ => None,
+    };
+
+    Some(subgraphs::Deprecation { reason })
+}
+
+fn find_tag_directives(directives: &[Positioned<ConstDirective>]) -> Vec<&str> {
+    directives
+        .iter()
+        .filter(|directive| directive.node.name.node == "tag")
+        .filter_map(|directive| {
+            let value = directive.node.get_argument("name")?;
+            match &value.node {
+                async_graphql_value::ConstValue::String(s) => Some(s.as_str()),
+                _ => None,
+            }
+        })
+        .collect()
 }

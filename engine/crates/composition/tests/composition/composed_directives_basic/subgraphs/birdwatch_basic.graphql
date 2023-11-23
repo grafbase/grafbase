@@ -1,0 +1,19 @@
+scalar DateTime
+
+type Bird @shareable {
+    id: ID!
+    name: String!
+    species: String!
+    observedAt: DateTime! @deprecated(reason: "Use UNIX timestamps instead as customary in bird watching")
+    location: String! @tag(name: "locationService") @tag(name: "b")
+    notes: String
+}
+
+type Query {
+    birds: [Bird]
+    bird(id: ID!): Bird
+}
+
+schema {
+    query: Query
+}
