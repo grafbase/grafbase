@@ -41,6 +41,8 @@ pub enum BindError {
     NoMutationDefined,
     #[error("Subscriptions are not defined on this schema.")]
     NoSubscriptionDefined,
+    #[error("Leaf field '{name}' must be a scalar or an enum, but is a {ty}.")]
+    LeafMustBeAScalarOrEnum { name: String, ty: String, location: Pos },
 }
 
 impl From<BindError> for GraphqlError {
@@ -53,7 +55,8 @@ impl From<BindError> for GraphqlError {
             | BindError::UnionHaveNoFields { location, .. }
             | BindError::InvalidTypeConditionTargetType { location, .. }
             | BindError::CannotHaveSelectionSet { location, .. }
-            | BindError::DisjointTypeCondition { location, .. } => vec![location],
+            | BindError::DisjointTypeCondition { location, .. }
+            | BindError::LeafMustBeAScalarOrEnum { location, .. } => vec![location],
             BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
         };
         GraphqlError {
@@ -208,6 +211,16 @@ impl<'a> Binder<'a> {
             .collect::<BindResult<_>>()?;
 
         let selection_set_id = if field.selection_set.node.items.is_empty() {
+            if !matches!(
+                schema_field.ty().inner().id,
+                Definition::Scalar(_) | Definition::Enum(_)
+            ) {
+                return Err(BindError::LeafMustBeAScalarOrEnum {
+                    name: name.to_string(),
+                    ty: schema_field.ty().inner().name().to_string(),
+                    location: name_location,
+                });
+            }
             self.emtpy_selection_set_id
         } else {
             match schema_field.ty().inner().id {

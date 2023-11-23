@@ -34,12 +34,12 @@ fn can_run_pathfinder_introspection_query() {
       value: String!
     }
 
-    type Issue {
+    type Issue implements PullRequestOrIssue {
       author: UserOrBot!
       title: String!
     }
 
-    type PullRequest {
+    type PullRequest implements PullRequestOrIssue {
       author: UserOrBot!
       checks: [String!]!
       title: String!
@@ -368,9 +368,15 @@ fn supports_the_type_field() {
                             fields(includeDeprecated: true) {
                                 name
                             }
-                            interfaces
-                            possibleTypes
-                            enumValues
+                            interfaces {
+                                name
+                            }
+                            possibleTypes {
+                                name
+                            }
+                            enumValues {
+                                name
+                            }
                             inputFields {
                                 name
                             }
@@ -404,7 +410,9 @@ fn supports_the_type_field() {
           ],
           "inputFields": null,
           "interfaces": [
-            {}
+            {
+              "name": "PullRequestOrIssue"
+            }
           ],
           "kind": "OBJECT",
           "name": "PullRequest",

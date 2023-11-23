@@ -7,8 +7,13 @@ use axum::{extract::State, http::HeaderMap, routing::post, Router};
 
 mod echo;
 mod fake_github;
+mod federation;
 
-pub use {echo::EchoSchema, fake_github::FakeGithubSchema};
+pub use {
+    echo::EchoSchema,
+    fake_github::FakeGithubSchema,
+    federation::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
+};
 
 pub struct MockGraphQlServer {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
