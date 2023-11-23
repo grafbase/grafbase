@@ -115,8 +115,21 @@ impl TcpTransport {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for TcpTransport {
     async fn close(self) -> crate::Result<()> {
+        use futures::future::Either;
+
+        const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
         drop(self.client);
-        self.close_recv.await.map_err(|e| Error::Internal(e.to_string()))
+        #[cfg(target_arch = "wasm32")]
+        let timeout_future =
+            gloo_timers::future::TimeoutFuture::new(TIMEOUT.as_millis().try_into().expect("must fit in"));
+        #[cfg(not(target_arch = "wasm32"))]
+        let timeout_future = Box::pin(tokio::time::sleep(TIMEOUT));
+
+        match futures::future::select(self.close_recv, timeout_future).await {
+            Either::Left((result, _)) => result.map_err(|e| Error::Internal(e.to_string())),
+            Either::Right(_) => Err(Error::Internal("timeout".to_string())),
+        }
     }
 
     fn parameterized_query<'a>(&'a self, query: &'a str, params: Vec<Value>) -> BoxStream<'a, Result<Value, Error>> {

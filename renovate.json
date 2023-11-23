@@ -1,5 +1,4 @@
 {
-  "additionalBranchPrefix": "{{parentDir}}-",
   "branchPrefix": "renovate-",
   "extends": [
     "config:base",

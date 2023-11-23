@@ -54,7 +54,7 @@ static_assertions = "1"
 tempfile = "3"
 thiserror = { workspace = true }
 url = { workspace = true, features = ["serde"] }
-web-time = { workspace = true }
+web-time.workspace = true
 
 # API dependencies
 dataloader = { workspace = true }
