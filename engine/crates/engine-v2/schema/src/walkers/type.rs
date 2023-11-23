@@ -25,7 +25,7 @@ impl<'a> TypeWalker<'a> {
 
 impl<'a> std::fmt::Debug for TypeWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<TypeWalker<'_>>())
+        f.debug_struct("TypeWalker")
             .field("name", &self.name())
             .field("inner", &self.inner())
             .finish()

@@ -41,7 +41,7 @@ impl<'a> ObjectWalker<'a> {
 
 impl<'a> std::fmt::Debug for ObjectWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<ObjectWalker<'_>>())
+        f.debug_struct("ObjectWalker")
             .field("id", &usize::from(self.id))
             .field("name", &self.name())
             .field("description", &self.description())

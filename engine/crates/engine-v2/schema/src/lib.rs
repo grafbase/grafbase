@@ -1,13 +1,15 @@
 #![allow(dead_code)]
 
-use std::{borrow::Cow, cmp::Ordering};
+use std::borrow::Cow;
 
 mod conversion;
+mod field_set;
 mod ids;
 pub mod introspection;
 mod names;
 mod walkers;
 
+pub use field_set::*;
 pub use ids::*;
 use introspection::{IntrospectionDataSource, IntrospectionResolver};
 pub use names::Names;
@@ -44,7 +46,7 @@ pub struct Schema {
     /// All the field types in the supergraph, deduplicated.
     types: Vec<Type>,
     // All definitions sorted by their name (actual string)
-    pub definitions: Vec<Definition>,
+    definitions: Vec<Definition>,
 }
 
 impl Schema {
@@ -112,7 +114,7 @@ pub struct RootOperationTypes {
 
 impl std::fmt::Debug for Schema {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<Schema>()).finish_non_exhaustive()
+        f.debug_struct("Schema").finish_non_exhaustive()
     }
 }
 
@@ -162,102 +164,6 @@ pub struct Key {
     pub fields: FieldSet,
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct FieldSet {
-    // sorted by field id
-    items: Vec<FieldSetItem>,
-}
-
-impl FromIterator<FieldSetItem> for FieldSet {
-    fn from_iter<T: IntoIterator<Item = FieldSetItem>>(iter: T) -> Self {
-        let mut items = iter.into_iter().collect::<Vec<_>>();
-        items.sort_unstable_by_key(|selection| selection.field);
-        Self { items }
-    }
-}
-
-impl IntoIterator for FieldSet {
-    type Item = FieldSetItem;
-
-    type IntoIter = <Vec<FieldSetItem> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.into_iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a FieldSet {
-    type Item = &'a FieldSetItem;
-
-    type IntoIter = <&'a Vec<FieldSetItem> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.iter()
-    }
-}
-
-impl FieldSet {
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &FieldSetItem> + '_ {
-        self.items.iter()
-    }
-
-    pub fn selection(&self, field: FieldId) -> Option<&FieldSetItem> {
-        let index = self
-            .items
-            .binary_search_by_key(&field, |selection| selection.field)
-            .ok()?;
-        Some(&self.items[index])
-    }
-
-    pub fn merge_opt(left_set: Option<&FieldSet>, right_set: Option<&FieldSet>) -> FieldSet {
-        match (left_set, right_set) {
-            (Some(left_set), Some(right_set)) => Self::merge(left_set, right_set),
-            (Some(left_set), None) => left_set.clone(),
-            (None, Some(right_set)) => right_set.clone(),
-            (None, None) => FieldSet::default(),
-        }
-    }
-
-    pub fn merge(left_set: &FieldSet, right_set: &FieldSet) -> FieldSet {
-        let mut items = vec![];
-        let mut l = 0;
-        let mut r = 0;
-        while l < left_set.items.len() && r < right_set.items.len() {
-            let left = &left_set.items[l];
-            let right = &right_set.items[r];
-            match left.field.cmp(&right.field) {
-                Ordering::Less => {
-                    items.push(left.clone());
-                    l += 1;
-                }
-                Ordering::Equal => {
-                    items.push(right.clone());
-                    r += 1;
-                }
-                Ordering::Greater => {
-                    items.push(FieldSetItem {
-                        field: left.field,
-                        subselection: Self::merge(&left.subselection, &right.subselection),
-                    });
-                    l += 1;
-                    r += 1;
-                }
-            }
-        }
-        FieldSet { items }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct FieldSetItem {
-    pub field: FieldId,
-    pub subselection: FieldSet,
-}
-
 #[derive(Debug)]
 pub struct Field {
     pub name: StringId,
@@ -274,15 +180,6 @@ pub struct Field {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
-}
-
-impl Field {
-    pub fn provides(&self, data_source_id: DataSourceId) -> Option<&FieldSet> {
-        self.provides
-            .iter()
-            .find(|provides| provides.data_source_id == data_source_id)
-            .map(|provides| &provides.fields)
-    }
 }
 
 #[derive(Debug)]

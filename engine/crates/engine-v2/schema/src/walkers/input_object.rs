@@ -22,7 +22,7 @@ impl<'a> InputObjectWalker<'a> {
 
 impl<'a> std::fmt::Debug for InputObjectWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<InputObjectWalker<'_>>())
+        f.debug_struct("InputObjectWalker")
             .field("id", &usize::from(self.id))
             .field("name", &self.name())
             .field("description", &self.description())

@@ -12,7 +12,7 @@ mod r#type;
 mod union;
 
 pub use definition::DefinitionWalker;
-pub use field::FieldWalker;
+pub use field::{FieldResolverWalker, FieldWalker};
 pub use input_object::InputObjectWalker;
 pub use input_value::InputValueWalker;
 pub use interface::InterfaceWalker;
@@ -111,5 +111,13 @@ impl<'a> SchemaWalker<'a, ()> {
 
     pub fn subscription(&'a self) -> Option<ObjectWalker<'a>> {
         self.schema.root_operation_types.subscription.map(|id| self.walk(id))
+    }
+}
+
+impl<'a> std::ops::Deref for SchemaWalker<'a, ()> {
+    type Target = Schema;
+
+    fn deref(&self) -> &Self::Target {
+        self.schema
     }
 }

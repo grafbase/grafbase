@@ -59,11 +59,7 @@ fn new_engine(graph: FederatedGraph) -> Arc<Engine> {
 }
 
 async fn run_request(request: engine::Request, response_sender: ResponseSender, engine: Arc<Engine>) {
-    response_sender
-        .send(
-            serde_json::to_vec(&engine.execute(request).await).map_err(|err| RouterError::SerdeError(err.to_string())),
-        )
-        .ok();
+    response_sender.send(Ok(engine.execute(request).await)).ok();
 }
 
 enum RouterMessage {
@@ -83,8 +79,6 @@ type RouterStream = BoxStream<'static, RouterMessage>;
 pub enum RouterError {
     #[error("there are no subgraphs registered currently")]
     NoSubgraphs,
-    #[error("Serialization failure: {0}")]
-    SerdeError(String),
 }
 
 pub type RouterResult<T> = Result<T, RouterError>;

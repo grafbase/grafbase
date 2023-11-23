@@ -41,7 +41,7 @@ pub(crate) type RequestSender = mpsc::Sender<(engine::Request, ResponseSender)>;
 pub(crate) type RequestReceiver = mpsc::Receiver<(engine::Request, ResponseSender)>;
 
 /// Send half of channel for the router actor to send responses
-pub(crate) type ResponseSender = oneshot::Sender<RouterResult<Vec<u8>>>;
+pub(crate) type ResponseSender = oneshot::Sender<RouterResult<engine_v2::Response>>;
 
 async fn compose_graph(
     sender: &ComposeSender,

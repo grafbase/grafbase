@@ -4,7 +4,7 @@ mod selection_set;
 use de::AnyFieldsSeed;
 use serde::de::DeserializeSeed;
 
-use super::{AnyResponseMutObject, ResponseData, ResponseObject, ResponseObjectId, ResponseValue};
+use super::{ResponseData, ResponseObject, ResponseObjectId, ResponseValue};
 
 impl ResponseData {
     // Temporary as it's simple. We still need to validate the data we're receiving in all cases.
@@ -20,10 +20,7 @@ impl ResponseData {
     {
         let seed = AnyFieldsSeed { response: self };
         let fields = seed.deserialize(deserializer)?;
-        let response_object = match self.get_mut(object_node_id) {
-            AnyResponseMutObject::Sparse(obj) => obj,
-            AnyResponseMutObject::Dense(_) => panic!("Cannot add any fields in dense reponse object."),
-        };
+        let response_object = self.get_mut(object_node_id);
         for (name, value) in fields {
             response_object.fields.insert(name, value);
         }
@@ -44,10 +41,7 @@ impl ResponseData {
             }
             _ => panic!("Expected object or null"),
         }
-        let response_object = match self.get_mut(object_node_id) {
-            AnyResponseMutObject::Sparse(obj) => obj,
-            AnyResponseMutObject::Dense(_) => panic!("Cannot add any fields in dense reponse object."),
-        };
+        let response_object = self.get_mut(object_node_id);
         for (name, value) in response_fields {
             response_object.fields.insert(name, value);
         }

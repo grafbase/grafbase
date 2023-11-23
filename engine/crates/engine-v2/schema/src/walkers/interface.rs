@@ -46,7 +46,7 @@ impl<'a> InterfaceWalker<'a> {
 
 impl<'a> std::fmt::Debug for InterfaceWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<InterfaceWalker<'_>>())
+        f.debug_struct("InterfaceWalker")
             .field("id", &usize::from(self.id))
             .field("name", &self.name())
             .field("description", &self.description())

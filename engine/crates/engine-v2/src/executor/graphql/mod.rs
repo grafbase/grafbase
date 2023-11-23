@@ -1,7 +1,7 @@
 use schema::SubgraphResolver;
 
 use super::{Executor, ExecutorContext, ExecutorError, ExecutorInput, ExecutorOutput};
-use crate::{request::OperationSelectionSet, response::ResponseObjectId};
+use crate::response::ResponseObjectId;
 
 mod query;
 
@@ -31,18 +31,18 @@ impl GraphqlExecutor {
     pub(super) fn build(
         ctx: ExecutorContext<'_>,
         resolver: &SubgraphResolver,
-        selection_set: &OperationSelectionSet,
         input: ExecutorInput<'_>,
     ) -> Result<Executor<'static>, ExecutorError> {
         let SubgraphResolver { subgraph_id } = resolver;
         let subgraph = &ctx.engine.schema[*subgraph_id];
-        let query = query::QueryBuilder::build(ctx.operation.ty, ctx.default_walker().walk(selection_set)).unwrap();
+        let query = query::QueryBuilder::build(&ctx.plan.operation, ctx.plan_id, ctx.default_walk_selection_set())
+            .map_err(|err| ExecutorError::InternalError(format!("Failed to build query: {err}")))?;
         Ok(Executor::GraphQL(Self {
             endpoint_name: ctx.engine.schema[subgraph.name].to_string(),
             url: ctx.engine.schema[subgraph.url].clone(),
             query,
             variables: serde_json::Value::Null,
-            response_object_id: input.response_object_roots.id(),
+            response_object_id: input.root_response_objects.root().id,
         }))
     }
 
@@ -71,7 +71,9 @@ impl GraphqlExecutor {
             .await
             .write_fields_json(self.response_object_id, response.data);
         for error in response.errors {
-            output.errors.add_simple_error(error.message);
+            output
+                .errors
+                .add_simple_error(format!("Upstream error: {}", error.message));
         }
 
         Ok(())

@@ -1,7 +1,4 @@
-use super::{ExecutableTracker, ExecutionPlan};
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
-pub struct PlanId(pub(super) usize);
+use super::{ExecutionPlan, ExecutionPlansTracker, PlanId};
 
 pub struct ExecutionPlans {
     plans: Vec<ExecutionPlan>,              // nodes
@@ -18,8 +15,8 @@ impl ExecutionPlans {
         }
     }
 
-    pub fn build_tracker(&self) -> ExecutableTracker {
-        ExecutableTracker {
+    pub fn build_tracker(&self) -> ExecutionPlansTracker {
+        ExecutionPlansTracker {
             parent_to_child: self.parent_to_child.clone(),
             parent_count: self.parent_count.clone(),
             executed_count: 0,
@@ -30,8 +27,8 @@ impl ExecutionPlans {
 impl std::ops::Index<PlanId> for ExecutionPlans {
     type Output = ExecutionPlan;
 
-    fn index(&self, index: PlanId) -> &Self::Output {
-        &self.plans[index.0]
+    fn index(&self, id: PlanId) -> &Self::Output {
+        &self.plans[usize::from(id)]
     }
 }
 
@@ -52,14 +49,15 @@ impl ExecutionPlansBuilder {
     }
 
     pub fn push(&mut self, plan: ExecutionPlan) -> PlanId {
+        let id = PlanId::from(self.plans.len());
         self.plans.push(plan);
         self.parent_count.push(0);
-        PlanId(self.plans.len() - 1)
+        id
     }
 
     pub fn add_dependency(&mut self, child: PlanId, parent: PlanId) {
         self.parent_to_child.push((parent, child));
-        self.parent_count[child.0] += 1;
+        self.parent_count[usize::from(child)] += 1;
     }
 }
 
@@ -67,6 +65,6 @@ impl std::ops::Index<PlanId> for ExecutionPlansBuilder {
     type Output = ExecutionPlan;
 
     fn index(&self, index: PlanId) -> &Self::Output {
-        &self.plans[index.0]
+        &self.plans[usize::from(index)]
     }
 }

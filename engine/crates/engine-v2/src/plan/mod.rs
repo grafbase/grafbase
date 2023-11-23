@@ -1,34 +1,49 @@
 use schema::ResolverId;
 
 use crate::{
-    formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
-    request::{OperationPath, OperationSelectionSet},
+    request::{BoundSelectionSetId, Operation, QueryPath},
     response::ReadSelectionSet,
+    Engine,
 };
 
+mod attribution;
+mod id;
 mod planner;
 mod plans;
 mod tracker;
+mod walkers;
 
-pub use planner::{OperationPlan, PrepareError};
-pub use plans::{ExecutionPlans, PlanId};
-pub use tracker::ExecutableTracker;
+pub use attribution::Attribution;
+pub use id::PlanId;
+pub use planner::{PrepareError, PrepareResult};
+pub use plans::ExecutionPlans;
+pub use tracker::ExecutionPlansTracker;
+pub use walkers::*;
 
+#[derive(Debug, Clone)]
+pub struct SelectionSetRoot {
+    pub path: QueryPath,
+    pub id: BoundSelectionSetId,
+}
+
+// the actual selection_set that will be resolved is determined at runtime after @skip/@include
+// have been computed.
 pub struct ExecutionPlan {
-    pub path: OperationPath,
+    pub root: SelectionSetRoot,
     pub input: ReadSelectionSet,
-    pub selection_set: OperationSelectionSet,
     pub resolver_id: ResolverId,
 }
 
-impl ContextAwareDebug for ExecutionPlan {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let resolver = &ctx.schema[self.resolver_id];
-        f.debug_struct("ExecutionPlan")
-            .field("path", &ctx.debug(&self.path))
-            .field("input", &ctx.debug(&self.input))
-            .field("selection_set", &ctx.debug(&self.selection_set))
-            .field("resolver", &resolver)
-            .finish()
+// This is the part that should be cached for a GraphQL query.
+pub struct OperationPlan {
+    pub operation: Operation,
+    pub execution_plans: ExecutionPlans,
+    pub attribution: Attribution,
+    pub final_read_selection_set: ReadSelectionSet,
+}
+
+impl OperationPlan {
+    pub fn prepare(engine: &Engine, operation: Operation) -> PrepareResult<OperationPlan> {
+        planner::plan_operation(engine, operation)
     }
 }

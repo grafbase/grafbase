@@ -11,6 +11,7 @@ repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
 
 [dependencies]
+derive_more = "0.99"
 im = "15"
 lasso = "0.7"
 itertools.workspace = true

@@ -3,10 +3,7 @@ use std::sync::Arc;
 use futures_locks::Mutex;
 use schema::Resolver;
 
-use crate::{
-    request::OperationSelectionSet,
-    response::{GraphqlErrors, ResponseData, ResponseObjectsView},
-};
+use crate::response::{GraphqlErrors, ResponseData, ResponseObjectsView};
 
 mod context;
 mod coordinator;
@@ -65,15 +62,14 @@ impl<'exc> Executor<'exc> {
     fn build<'ctx, 'input>(
         ctx: ExecutorContext<'ctx>,
         resolver: &schema::Resolver,
-        selection_set: &'ctx OperationSelectionSet,
         input: ExecutorInput<'input>,
     ) -> Result<Self, ExecutorError>
     where
         'ctx: 'exc,
     {
         match resolver {
-            Resolver::Subgraph(resolver) => GraphqlExecutor::build(ctx, resolver, selection_set, input),
-            Resolver::Introspection(resolver) => IntrospectionExecutor::build(ctx, resolver, selection_set, input),
+            Resolver::Subgraph(resolver) => GraphqlExecutor::build(ctx, resolver, input),
+            Resolver::Introspection(resolver) => IntrospectionExecutor::build(ctx, resolver, input),
         }
     }
 
@@ -86,7 +82,7 @@ impl<'exc> Executor<'exc> {
 }
 
 struct ExecutorInput<'a> {
-    response_object_roots: ResponseObjectsView<'a>,
+    root_response_objects: ResponseObjectsView<'a>,
 }
 
 /// Executors manipulate the response data through this struct, registering any errors (without

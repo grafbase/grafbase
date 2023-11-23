@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use schema::Schema;
 
 use crate::{
@@ -9,20 +11,24 @@ use crate::{
 };
 
 pub struct Engine {
-    pub(crate) schema: Schema,
+    // We use an Arc for the schema to have a self-contained response which may still
+    // needs access to the schema strings
+    pub(crate) schema: Arc<Schema>,
 }
 
 impl Engine {
     pub fn new(schema: Schema) -> Self {
-        Self { schema }
+        Self {
+            schema: Arc::new(schema),
+        }
     }
 
-    pub async fn execute(&self, request: engine::Request) -> Response<'_> {
+    pub async fn execute(&self, request: engine::Request) -> Response {
         match self.prepare(request).await {
             Ok(plan) => {
                 let mut executor = ExecutorCoordinator::new(self, &plan);
                 executor.execute().await;
-                executor.get_response()
+                executor.into_response()
             }
             Err(err) => Response::from_error(err),
         }

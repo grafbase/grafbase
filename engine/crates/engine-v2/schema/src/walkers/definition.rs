@@ -97,7 +97,7 @@ impl<'a> From<InterfaceWalker<'a>> for DefinitionWalker<'a> {
 
 impl<'a> std::fmt::Debug for DefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut debug = f.debug_struct(std::any::type_name::<DefinitionWalker<'_>>());
+        let mut debug = f.debug_struct("DefinitionWalker");
         match self.id {
             Definition::Scalar(s) => debug.field("inner", &self.walk(s)),
             Definition::Object(o) => debug.field("inner", &self.walk(o)),

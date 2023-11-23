@@ -1,5 +1,5 @@
 use super::SchemaWalker;
-use crate::{FieldId, InputValueWalker, TypeWalker};
+use crate::{DataSourceId, FieldId, FieldResolver, FieldSet, InputValueWalker, Resolver, Schema, TypeWalker};
 
 pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
@@ -14,6 +14,23 @@ impl<'a> FieldWalker<'a> {
 
     pub fn deprecated_reason(&self) -> Option<&'a str> {
         self.deprecated_reason.map(|id| self.schema[id].as_str())
+    }
+
+    pub fn resolvers<'s>(&'s self) -> impl Iterator<Item = FieldResolverWalker<'s>> + 's
+    where
+        's: 'a,
+    {
+        self.resolvers.iter().map(|inner| FieldResolverWalker {
+            schema: self.schema,
+            inner,
+        })
+    }
+
+    pub fn provides(&self, data_source_id: DataSourceId) -> Option<&FieldSet> {
+        self.provides
+            .iter()
+            .find(|provides| provides.data_source_id == data_source_id)
+            .map(|provides| &provides.fields)
     }
 
     pub fn arguments<'s>(&'s self) -> impl Iterator<Item = InputValueWalker<'s>> + 's
@@ -35,9 +52,28 @@ impl<'a> FieldWalker<'a> {
     }
 }
 
+pub struct FieldResolverWalker<'a> {
+    schema: &'a Schema,
+    inner: &'a FieldResolver,
+}
+
+impl<'a> FieldResolverWalker<'a> {
+    pub fn resolver(&self) -> &Resolver {
+        &self.schema[self.inner.resolver_id]
+    }
+}
+
+impl<'a> std::ops::Deref for FieldResolverWalker<'a> {
+    type Target = FieldResolver;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner
+    }
+}
+
 impl<'a> std::fmt::Debug for FieldWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<FieldWalker<'_>>())
+        f.debug_struct("FieldWalker")
             .field("id", &usize::from(self.id))
             .field("name", &self.name())
             .field("description", &self.description())

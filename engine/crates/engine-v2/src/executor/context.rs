@@ -1,7 +1,7 @@
 use schema::Names;
 
 use crate::{
-    request::{Operation, OperationWalker},
+    plan::{OperationPlan, PlanId, PlannedSelectionSetWalker},
     Engine,
 };
 
@@ -9,22 +9,25 @@ use crate::{
 #[derive(Clone)]
 pub struct ExecutorContext<'a> {
     pub engine: &'a Engine,
-    pub operation: &'a Operation,
+    pub plan: &'a OperationPlan,
+    pub plan_id: PlanId,
 }
 
 impl<'ctx> ExecutorContext<'ctx> {
     /// If you do no need to rename anything, use this walker with the schema names.
-    pub fn default_walker(&self) -> OperationWalker<'_> {
-        self.walker(&self.engine.schema)
+    pub fn default_walk_selection_set(&self) -> PlannedSelectionSetWalker<'_> {
+        self.walk_selection_set(self.engine.schema.as_ref())
     }
 
-    pub fn walker<'a>(&self, names: &'a dyn Names) -> OperationWalker<'a>
+    pub fn walk_selection_set<'a>(&self, names: &'a dyn Names) -> PlannedSelectionSetWalker<'a>
     where
         'ctx: 'a,
     {
-        OperationWalker {
-            schema: self.engine.schema.walker(names),
-            operation: self.operation,
-        }
+        PlannedSelectionSetWalker::new(
+            self.engine.schema.walker(names),
+            self.plan,
+            self.plan_id,
+            self.plan.execution_plans[self.plan_id].root.id,
+        )
     }
 }

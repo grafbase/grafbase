@@ -1,78 +1,85 @@
-use schema::ObjectId;
+use schema::{ObjectId, Schema};
 
-use super::OperationFieldId;
-use crate::{
-    execution::StrId,
-    formatter::{ContextAwareDebug, FormatterContext, FormatterContextHolder},
-};
+use super::TypeCondition;
+use crate::execution::StrId;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct OperationPath(im::Vector<OperationPathSegment>);
+pub struct QueryPath(im::Vector<QueryPathSegment>);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OperationPathSegment {
-    // Keeping the actual id around for debug/print/...
-    pub operation_field_id: OperationFieldId,
-    // Actual needed fields.
-    pub type_condition: Option<ResolvedTypeCondition>,
-    pub position: usize,
+pub struct QueryPathSegment {
+    pub resolved_type_condition: Option<ResolvedTypeCondition>,
     pub name: StrId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResolvedTypeCondition(Vec<ObjectId>);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ResolvedTypeCondition {
+    // sorted to guarantee deterministic order
+    possible_types: Vec<ObjectId>,
+}
 
 impl ResolvedTypeCondition {
-    pub fn new(object_ids: Vec<ObjectId>) -> Self {
-        Self(object_ids)
+    pub fn new(mut possible_types: Vec<ObjectId>) -> Self {
+        possible_types.sort_unstable();
+        Self { possible_types }
     }
 
     pub fn matches(&self, object_id: ObjectId) -> bool {
-        self.0.contains(&object_id)
+        self.possible_types.contains(&object_id)
+    }
+
+    pub fn possible_types(&self) -> &[ObjectId] {
+        self.possible_types.as_slice()
+    }
+
+    pub fn merge(
+        parent: Option<ResolvedTypeCondition>,
+        nested: Option<ResolvedTypeCondition>,
+    ) -> Option<ResolvedTypeCondition> {
+        match (parent, nested) {
+            (None, None) => None,
+            (None, cond) | (cond, None) => cond,
+            (Some(parent), Some(nested)) => Some(Self::new(
+                parent
+                    .possible_types
+                    .into_iter()
+                    .filter(|object_id| nested.matches(*object_id))
+                    .collect(),
+            )),
+        }
     }
 }
 
-impl<'a> IntoIterator for &'a OperationPath {
-    type Item = &'a OperationPathSegment;
+impl TypeCondition {
+    pub fn resolve(self, schema: &Schema) -> ResolvedTypeCondition {
+        ResolvedTypeCondition {
+            possible_types: match self {
+                TypeCondition::Interface(interface_id) => schema[interface_id].possible_types.clone(),
+                TypeCondition::Object(object_id) => vec![object_id],
+                TypeCondition::Union(union_id) => schema[union_id].possible_types.clone(),
+            },
+        }
+    }
+}
 
-    type IntoIter = <&'a im::Vector<OperationPathSegment> as IntoIterator>::IntoIter;
+impl<'a> IntoIterator for &'a QueryPath {
+    type Item = &'a QueryPathSegment;
+
+    type IntoIter = <&'a im::Vector<QueryPathSegment> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
     }
 }
 
-impl OperationPath {
+impl QueryPath {
     pub fn empty() -> Self {
         Self::default()
     }
 
-    pub fn child(&self, segment: OperationPathSegment) -> Self {
+    pub fn child(&self, segment: QueryPathSegment) -> Self {
         let mut child = self.clone();
         child.0.push_back(segment);
         child
-    }
-}
-
-impl ContextAwareDebug for OperationPath {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list()
-            .entries(self.0.iter().map(|segment| ctx.debug(segment)))
-            .finish()
-    }
-}
-
-impl ContextAwareDebug for OperationPathSegment {
-    fn fmt(&self, ctx: &FormatterContext<'_>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let type_condition = self.type_condition.as_ref().map(|cond| {
-            cond.0
-                .clone()
-                .into_iter()
-                .map(|object_id| ctx.schema[ctx.schema[object_id].name].to_string())
-        });
-        f.debug_struct("ResponsePathSegment")
-            .field("name", &ctx.strings[self.name].to_string())
-            .field("type_condition", &type_condition)
-            .finish()
     }
 }

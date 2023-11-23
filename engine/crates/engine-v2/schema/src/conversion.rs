@@ -339,7 +339,7 @@ impl From<federated_graph::FieldSetItem> for FieldSetItem {
     fn from(selection: federated_graph::FieldSetItem) -> Self {
         FieldSetItem {
             field: selection.field.into(),
-            subselection: selection.subselection.into_iter().map(Into::into).collect(),
+            selection_set: selection.subselection.into_iter().map(Into::into).collect(),
         }
     }
 }

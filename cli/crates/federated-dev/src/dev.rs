@@ -140,10 +140,7 @@ async fn handle_engine_request(request: engine::Request, request_sender: Request
     request_sender.send((request, response_sender)).await.unwrap();
 
     match response_receiver.await {
-        Ok(Ok(bytes)) => {
-            let headers = [(http::header::CONTENT_TYPE, "application/json;charset=UTF-8")];
-            (headers, bytes).into_response()
-        }
+        Ok(Ok(response)) => Json(response).into_response(),
         Ok(Err(error)) => Json(json!({
             "data": null,
             "errors": [
