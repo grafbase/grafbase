@@ -38,6 +38,7 @@ rustflags = [
   "-Aclippy::unnecessary-fallible-conversions",
   "-Aclippy::unused-async",
   "-Aclippy::unused-self",
+  "-Aclippy::unused-extern-crates",
   "-Aclippy::wildcard-imports",
 ]
 

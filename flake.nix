@@ -17,6 +17,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
+
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      flake = false;
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     flake-parts.url = "github:hercules-ci/flake-parts";
@@ -27,12 +37,15 @@
     nixpkgs,
     flake-utils,
     pnpm2nix,
+    rust-overlay,
+    crane,
     ...
   }: let
     inherit (nixpkgs.lib) optional concatStringsSep;
     systems = flake-utils.lib.system;
     flake = flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
+        overlays = [(import rust-overlay)];
         inherit system;
       };
 
@@ -96,6 +109,7 @@
     in {
       devShells.default = pkgs.mkShell defaultShellConf;
       packages.cli-app = import ./packages/nix/cli-app.nix {inherit mkPnpmPackage pkgs;};
+      packages.engine-wasm = import ./engine/nix/engine-wasm.nix {inherit pkgs system crane;};
     });
   in
     flake-parts.lib.mkFlake { inherit inputs; } {

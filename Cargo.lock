@@ -2041,6 +2041,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-wasm"
+version = "0.45.2"
+dependencies = [
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

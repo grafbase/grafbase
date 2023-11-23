@@ -1,0 +1,16 @@
+[package]
+name = "engine-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# parser-sdl.path = "../parser-sdl"
+wasm-bindgen.workspace = true
+
