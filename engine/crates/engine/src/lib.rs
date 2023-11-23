@@ -3,7 +3,6 @@
 #![deny(clippy::inefficient_to_string)]
 #![deny(clippy::match_wildcard_for_single_variants)]
 #![deny(clippy::redundant_closure_for_method_calls)]
-#![deny(unused_crate_dependencies)]
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_sign_loss)]

@@ -2044,6 +2044,7 @@ dependencies = [
 name = "engine-wasm"
 version = "0.45.2"
 dependencies = [
+ "async-graphql 6.0.10",
  "async-trait",
  "common-types",
  "engine",
