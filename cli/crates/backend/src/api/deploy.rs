@@ -15,7 +15,6 @@ use std::ffi::OsStr;
 use std::path::Path;
 use tokio::fs::read_to_string;
 use tokio_util::codec::{BytesCodec, FramedRead};
-use tokio_util::compat::TokioAsyncReadCompatExt;
 use walkdir::{DirEntry, WalkDir};
 
 const ENTRY_BLACKLIST: [&str; 2] = ["node_modules", ".env"];
@@ -41,42 +40,42 @@ pub async fn deploy() -> Result<(), ApiError> {
     let project_metadata: ProjectMetadata =
         serde_json::from_str(&project_metadata_file).map_err(|_| ApiError::CorruptProjectMetadataFile)?;
 
-    let (tar_file, tar_file_path) = tempfile::NamedTempFile::new()
-        .map_err(ApiError::CreateTempFile)?
-        .into_parts();
+    let tar_file_path = tokio::task::spawn_blocking(|| {
+        let (tar_file, tar_file_path) = tempfile::NamedTempFile::new()
+            .map_err(ApiError::CreateTempFile)?
+            .into_parts();
 
-    let tar_file: tokio::fs::File = tar_file.into();
-    let tar_file = tar_file.compat();
+        let mut tar = tar::Builder::new(tar_file);
+        tar.mode(tar::HeaderMode::Deterministic);
 
-    let mut tar = async_tar::Builder::new(tar_file);
-    tar.mode(async_tar::HeaderMode::Deterministic);
-
-    if project.path.join(PACKAGE_JSON).exists() {
-        tar.append_path_with_name(project.path.join(PACKAGE_JSON), PACKAGE_JSON)
-            .await
-            .map_err(ApiError::AppendToArchive)?;
-    }
-
-    let walker = WalkDir::new(&project.path).min_depth(1).into_iter();
-    for entry in walker.filter_entry(|entry| should_traverse_entry(entry, &project.path)) {
-        let entry = entry.map_err(ApiError::ReadProjectFile)?;
-
-        let entry_path = entry.path().to_owned();
-        let path_in_tar = entry_path.strip_prefix(&project.path).expect("must include prefix");
-        let entry_metadata = entry.metadata().map_err(ApiError::ReadProjectFile)?;
-        if entry_metadata.is_file() {
-            tar.append_path_with_name(&entry_path, path_in_tar)
-                .await
-                .map_err(ApiError::AppendToArchive)?;
-        } else {
-            // as we don't follow links, anything else will be a directory
-            tar.append_dir(path_in_tar, &entry_path)
-                .await
+        if project.path.join(PACKAGE_JSON).exists() {
+            tar.append_path_with_name(project.path.join(PACKAGE_JSON), PACKAGE_JSON)
                 .map_err(ApiError::AppendToArchive)?;
         }
-    }
 
-    tar.finish().await.map_err(ApiError::WriteArchive)?;
+        let walker = WalkDir::new(&project.path).min_depth(1).into_iter();
+        for entry in walker.filter_entry(|entry| should_traverse_entry(entry, &project.path)) {
+            let entry = entry.map_err(ApiError::ReadProjectFile)?;
+
+            let entry_path = entry.path().to_owned();
+            let path_in_tar = entry_path.strip_prefix(&project.path).expect("must include prefix");
+            let entry_metadata = entry.metadata().map_err(ApiError::ReadProjectFile)?;
+            if entry_metadata.is_file() {
+                tar.append_path_with_name(&entry_path, path_in_tar)
+                    .map_err(ApiError::AppendToArchive)?;
+            } else {
+                // as we don't follow links, anything else will be a directory
+                tar.append_dir(path_in_tar, &entry_path)
+                    .map_err(ApiError::AppendToArchive)?;
+            }
+        }
+
+        tar.finish().map_err(ApiError::WriteArchive)?;
+
+        Result::Ok::<_, ApiError>(tar_file_path)
+    })
+    .await
+    .expect("must be fine")?;
 
     let tar_file = tokio::fs::File::open(&tar_file_path)
         .await
