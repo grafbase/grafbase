@@ -2044,8 +2044,11 @@ dependencies = [
 name = "engine-wasm"
 version = "0.45.2"
 dependencies = [
+ "async-trait",
+ "common-types",
  "engine",
  "gateway-core",
+ "runtime-noop",
  "wasm-bindgen",
 ]
 

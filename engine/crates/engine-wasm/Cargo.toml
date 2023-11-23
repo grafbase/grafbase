@@ -11,6 +11,11 @@ repository.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
+common-types.path = "../common-types"
 engine.path = "../engine"
 gateway-core.path = "../gateway-core"
+runtime-noop.path = "../runtime-noop"
+
+async-graphql = "6"
+async-trait.workpsace = true
 wasm-bindgen.workspace = true

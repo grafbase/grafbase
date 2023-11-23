@@ -1,4 +1,4 @@
-{ pkgs, crane, system, ... }:
+{ pkgs, crane, system, lib, ... }:
 
 let
   toolchain = pkgs.rust-bin.stable.latest.minimal.override {
@@ -6,13 +6,26 @@ let
   };
   craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 
-  src = craneLib.cleanCargoSource (craneLib.path ../../.);
+
+  src = lib.cleanSourceWith {
+    filter =
+      (path: type:
+        let
+          isPest = builtins.isList (builtins.match ".*\\.pest$" path);
+          isRust = craneLib.filterCargoSources path type;
+        in
+        isRust || isPest);
+    src = lib.cleanSourceWith {
+      filter = lib.cleanSourceFilter;
+      src = (craneLib.path ../../.);
+    };
+  };
 
   commonArgs = {
     inherit src;
     pname = "engine-wasm";
     strictDeps = true;
-    RUSTFLAGS = "-Aunused-crate-dependencies";
+    RUSTFLAGS = "-Aunused-crate-dependencies -Arust-2018-idioms";
     cargoExtraArgs = "-p engine-wasm --target=wasm32-unknown-unknown";
     doCheck = false;
   };

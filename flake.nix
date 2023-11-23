@@ -48,6 +48,7 @@
         overlays = [(import rust-overlay)];
         inherit system;
       };
+      lib = nixpkgs.lib;
 
       aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8"];
 
@@ -109,7 +110,7 @@
     in {
       devShells.default = pkgs.mkShell defaultShellConf;
       packages.cli-app = import ./packages/nix/cli-app.nix {inherit mkPnpmPackage pkgs;};
-      packages.engine-wasm = import ./engine/nix/engine-wasm.nix {inherit pkgs system crane;};
+      packages.engine-wasm = import ./engine/nix/engine-wasm.nix {inherit pkgs system crane lib;};
     });
   in
     flake-parts.lib.mkFlake { inherit inputs; } {
