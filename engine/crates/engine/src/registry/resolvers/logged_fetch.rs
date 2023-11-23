@@ -3,12 +3,12 @@ use runtime::log::LogEvent;
 pub async fn send_logged_request(
     request_id: &str,
     fetch_log_endpoint_url: Option<&str>,
+    client: &reqwest::Client,
     request_builder: reqwest::RequestBuilder,
 ) -> Result<reqwest::Response, reqwest::Error> {
     let start_time = web_time::Instant::now();
 
-    let (client, request) = request_builder.build_split();
-    let request = request?;
+    let request = request_builder.build()?;
 
     let url = request.url().to_string();
     let method = request.method().to_string();

@@ -201,7 +201,8 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
                 group_queries(queries.clone())
             };
 
-            let mut request_builder = reqwest::Client::new()
+            let client = reqwest::Client::new();
+            let mut request_builder = client
                 .post(resolver.url.clone())
                 .header(USER_AGENT, "Grafbase") // Some APIs (such a GitHub's) require a User-Agent.
                 .json(&query);
@@ -213,6 +214,7 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
             let response = send_logged_request(
                 &resolver.ray_id,
                 resolver.fetch_log_endpoint_url.as_deref(),
+                &client,
                 request_builder,
             )
             .await

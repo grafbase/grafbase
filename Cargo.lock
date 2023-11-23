@@ -2049,6 +2049,7 @@ dependencies = [
  "common-types",
  "engine",
  "gateway-core",
+ "http",
  "runtime-noop",
  "wasm-bindgen",
 ]

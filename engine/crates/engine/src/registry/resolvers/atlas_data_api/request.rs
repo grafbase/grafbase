@@ -63,7 +63,8 @@ pub(super) async fn execute(
     let ray_id = runtime_ctx.ray_id();
     let fetch_log_endpoint_url = runtime_ctx.log.fetch_log_endpoint_url.as_deref();
 
-    let request_builder = reqwest::Client::new()
+    let client = reqwest::Client::new();
+    let request_builder = client
         .post(url)
         .header(CONTENT_TYPE, headers::APPLICATION_EJSON_CONTENT_TYPE)
         .header(ACCEPT, headers::APPLICATION_JSON_CONTENT_TYPE)
@@ -71,15 +72,16 @@ pub(super) async fn execute(
         .header(USER_AGENT, "Grafbase")
         .json(&request);
 
-    let value = super::super::logged_fetch::send_logged_request(ray_id, fetch_log_endpoint_url, request_builder)
-        .await
-        .map_err(map_err)?
-        .error_for_status()
-        .map_err(map_err)?
-        .json::<serde_json::Value>()
-        .await
-        .map_err(map_err)?
-        .take();
+    let value =
+        super::super::logged_fetch::send_logged_request(ray_id, fetch_log_endpoint_url, &client, request_builder)
+            .await
+            .map_err(map_err)?
+            .error_for_status()
+            .map_err(map_err)?
+            .json::<serde_json::Value>()
+            .await
+            .map_err(map_err)?
+            .take();
 
     request.convert_result(ctx, resolver_ctx, value)
 }

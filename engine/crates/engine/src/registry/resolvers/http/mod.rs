@@ -84,7 +84,8 @@ impl HttpResolver {
             let fetch_log_endpoint_url = runtime_ctx.log.fetch_log_endpoint_url.as_deref();
             let ray_id = &runtime_ctx.ray_id();
             let url = self.build_url(ctx, last_resolver_value.as_ref())?;
-            let mut request_builder = reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
+            let client = reqwest::Client::new();
+            let mut request_builder = client.request(self.method.parse()?, Url::parse(&url)?);
 
             for (name, value) in headers {
                 request_builder = request_builder.header(name, value);
@@ -108,9 +109,10 @@ impl HttpResolver {
                 }
             }
 
-            let response = super::logged_fetch::send_logged_request(ray_id, fetch_log_endpoint_url, request_builder)
-                .await
-                .map_err(|e| Error::new(e.to_string()))?;
+            let response =
+                super::logged_fetch::send_logged_request(ray_id, fetch_log_endpoint_url, &client, request_builder)
+                    .await
+                    .map_err(|e| Error::new(e.to_string()))?;
 
             if !self.expected_status.contains(response.status()) {
                 return Err(Error::new(format!(

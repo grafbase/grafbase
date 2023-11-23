@@ -2,16 +2,36 @@ use common_types::auth::ExecutionAuth;
 use engine::Request;
 use gateway_core::{AdminAuthError, AuthError};
 use runtime_noop::cache::NoopCache;
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 struct Executor;
+struct Context {
+    headers: http::HeaderMap,
+}
+
+#[async_trait::async_trait]
+impl gateway_core::RequestContext for Context {
+    fn ray_id(&self) -> &str {
+        "nope"
+    }
+
+    // Request execution will wait for those futures to end.
+    // worker requires a 'static future, so there isn't any choice.
+    async fn wait_until(&self, fut: Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>>) {
+        fut.await
+    }
+
+    fn headers(&self) -> &http::HeaderMap {
+        &self.headers
+    }
+}
 
 #[async_trait::async_trait]
 impl gateway_core::Executor for Executor {
-    type Error = String;
-    type Context = ();
-    type Response = engine::Response;
+    type Error = ResponseError;
+    type Context = Context;
+    type Response = Response;
 
     async fn execute(
         self: Arc<Self>,
@@ -29,7 +49,7 @@ impl gateway_core::Executor for Executor {
         request: engine::Request,
         streaming_format: gateway_core::StreamingFormat,
     ) -> Result<Self::Response, Self::Error> {
-        Err("Streaming responses are not supported".to_string())
+        Err(ResponseError("Streaming responses are not supported".to_string()))
     }
 }
 
@@ -41,7 +61,7 @@ struct Authorizer;
 
 #[async_trait::async_trait]
 impl gateway_core::Authorizer for Authorizer {
-    type Context = ();
+    type Context = Context;
 
     async fn authorize_admin_request(
         &self,
@@ -57,6 +77,45 @@ impl gateway_core::Authorizer for Authorizer {
         _request: &engine::Request,
     ) -> Result<ExecutionAuth, AuthError> {
         Ok(ExecutionAuth::new_from_api_keys())
+    }
+}
+
+pub struct Response(String);
+
+#[derive(Debug)]
+pub struct ResponseError(String);
+
+impl std::fmt::Display for ResponseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for ResponseError {}
+
+impl From<gateway_core::Error> for ResponseError {
+    fn from(err: gateway_core::Error) -> Self {
+        ResponseError(err.to_string())
+    }
+}
+
+impl gateway_core::Response for Response {
+    type Error = ResponseError;
+
+    fn with_additional_headers(self, headers: http::HeaderMap) -> Self {
+        todo!()
+    }
+
+    fn error(code: http::StatusCode, message: &str) -> Self {
+        todo!()
+    }
+
+    fn engine(response: Arc<engine::Response>) -> Result<Self, Self::Error> {
+        todo!()
+    }
+
+    fn admin(response: async_graphql::Response) -> Result<Self, Self::Error> {
+        todo!()
     }
 }
 

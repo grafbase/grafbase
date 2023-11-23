@@ -19,3 +19,4 @@ runtime-noop.path = "../runtime-noop"
 async-graphql = "6"
 async-trait.workpsace = true
 wasm-bindgen.workspace = true
+http.workspace = true
