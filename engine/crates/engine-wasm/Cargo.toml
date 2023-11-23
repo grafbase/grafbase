@@ -11,6 +11,6 @@ repository.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-# parser-sdl.path = "../parser-sdl"
+engine.path = "../engine"
+gateway-core.path = "../gateway-core"
 wasm-bindgen.workspace = true
-

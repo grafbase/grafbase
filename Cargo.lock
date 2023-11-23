@@ -2044,6 +2044,8 @@ dependencies = [
 name = "engine-wasm"
 version = "0.45.2"
 dependencies = [
+ "engine",
+ "gateway-core",
  "wasm-bindgen",
 ]
 
