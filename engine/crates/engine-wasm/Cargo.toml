@@ -20,3 +20,5 @@ async-graphql = "6"
 async-trait.workpsace = true
 wasm-bindgen.workspace = true
 http.workspace = true
+serde_json.workspace = true
+wasm-bindgen-futures = "0.4"

@@ -5,7 +5,10 @@ use runtime_noop::cache::NoopCache;
 use std::{pin::Pin, sync::Arc};
 use wasm_bindgen::prelude::*;
 
-struct Executor;
+struct Executor {
+    schema: engine::Schema,
+}
+
 struct Context {
     headers: http::HeaderMap,
 }
@@ -35,26 +38,59 @@ impl gateway_core::Executor for Executor {
 
     async fn execute(
         self: Arc<Self>,
-        ctx: Arc<Self::Context>,
-        auth: ExecutionAuth,
+        _ctx: Arc<Self::Context>,
+        _auth: ExecutionAuth,
         request: Request,
     ) -> Result<engine::Response, Self::Error> {
-        todo!()
+        Ok(self.schema.execute(request).await)
     }
 
     async fn execute_stream(
         self: Arc<Self>,
-        ctx: Arc<Self::Context>,
-        auth: ExecutionAuth,
-        request: engine::Request,
-        streaming_format: gateway_core::StreamingFormat,
+        _ctx: Arc<Self::Context>,
+        _auth: ExecutionAuth,
+        _request: engine::Request,
+        _streaming_format: gateway_core::StreamingFormat,
     ) -> Result<Self::Response, Self::Error> {
         Err(ResponseError("Streaming responses are not supported".to_string()))
     }
 }
 
-struct GrafbaseGateway {
-    gateway: gateway_core::Gateway<Executor, ()>,
+#[wasm_bindgen]
+pub struct GrafbaseGateway {
+    gateway: gateway_core::Gateway<Executor, NoopCache<engine::Response>>,
+}
+
+#[wasm_bindgen]
+impl GrafbaseGateway {
+    #[wasm_bindgen(constructor)]
+    pub fn new(schema: &str) -> Result<GrafbaseGateway, JsValue> {
+        let registry: engine::Registry = serde_json::from_str(schema).map_err(|err| JsValue::from(err.to_string()))?;
+        let schema = engine::Schema::build(registry)
+            .data(engine::registry::resolvers::graphql::QueryBatcher::new())
+            .finish();
+        let executor = Arc::new(Executor { schema });
+        let cache = Arc::new(NoopCache::<engine::Response>::new());
+        let cache_config = Default::default();
+        let authorizer = Box::new(Authorizer);
+        let gateway = gateway_core::Gateway::new(executor, cache, cache_config, authorizer);
+
+        Ok(GrafbaseGateway { gateway })
+    }
+
+    #[wasm_bindgen]
+    pub async fn execute(&self, request: String) -> Result<String, JsValue> {
+        let ctx = Arc::new(Context {
+            headers: http::HeaderMap::new(),
+        });
+        let request: engine::Request = serde_json::from_str(&request).map_err(|err| JsValue::from(err.to_string()))?;
+        let response = self
+            .gateway
+            .execute(&ctx, request, None)
+            .await
+            .map_err(|err| JsValue::from(err.to_string()))?;
+        Ok(response.0)
+    }
 }
 
 struct Authorizer;
@@ -73,7 +109,7 @@ impl gateway_core::Authorizer for Authorizer {
 
     async fn authorize_request(
         &self,
-        ctx: &Arc<Self::Context>,
+        _ctx: &Arc<Self::Context>,
         _request: &engine::Request,
     ) -> Result<ExecutionAuth, AuthError> {
         Ok(ExecutionAuth::new_from_api_keys())
@@ -102,30 +138,24 @@ impl From<gateway_core::Error> for ResponseError {
 impl gateway_core::Response for Response {
     type Error = ResponseError;
 
-    fn with_additional_headers(self, headers: http::HeaderMap) -> Self {
-        todo!()
+    fn with_additional_headers(self, _headers: http::HeaderMap) -> Self {
+        self
     }
 
     fn error(code: http::StatusCode, message: &str) -> Self {
-        todo!()
+        Response(
+            serde_json::to_string(&serde_json::json!({ "errors": [{ "message": format!("[{code}] {message}")}] }))
+                .unwrap(),
+        )
     }
 
     fn engine(response: Arc<engine::Response>) -> Result<Self, Self::Error> {
-        todo!()
+        Ok(Response(
+            serde_json::to_string(&response.to_graphql_response()).unwrap(),
+        ))
     }
 
     fn admin(response: async_graphql::Response) -> Result<Self, Self::Error> {
-        todo!()
+        Ok(Response(serde_json::to_string(&response).unwrap()))
     }
-}
-
-#[wasm_bindgen]
-pub fn make_config(schema: &str) -> Vec<u8> {
-    let executor = Arc::new(Executor);
-    let cache = Arc::new(NoopCache::new());
-    let cache_config = Default::default();
-    let authorizer = Box::new(Authorizer);
-    let gateway = gateway_core::Gateway::new(executor, cache, cache_config, authorizer);
-
-    b"meowmeowmeow".to_vec()
 }
