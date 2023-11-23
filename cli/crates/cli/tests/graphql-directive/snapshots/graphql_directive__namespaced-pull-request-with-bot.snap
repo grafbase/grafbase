@@ -1,16 +1,16 @@
 ---
-source: crates/cli/tests/graphql-directive/main.rs
+source: cli/crates/cli/tests/graphql-directive/main.rs
 expression: "client.gql::<Value>(NAMESPACED_QUERY).variables(json!({ \"id\" : \"2\" })).await"
 ---
 data:
   gothub:
-    serverVersion: "1"
     pullRequestOrIssue:
       __typename: GothubPullRequest
-      title: Some bot PR
-      checks:
-        - Success!
       author:
         __typename: GothubBot
         id: "123"
+      checks:
+        - Success!
+      title: Some bot PR
+    serverVersion: "1"
 

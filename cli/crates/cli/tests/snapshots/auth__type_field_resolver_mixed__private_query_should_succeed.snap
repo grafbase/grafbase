@@ -1,5 +1,5 @@
 ---
-source: crates/cli/tests/auth.rs
+source: cli/crates/cli/tests/auth.rs
 expression: "private_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await"
 ---
 {
@@ -9,8 +9,8 @@ expression: "private_client.gql::<Value>(AUTH_QUERY_WITH_TEXT).await"
       "edges": [
         {
           "node": {
-            "title": "1",
-            "text": "Lorem ipsum dolor sit amet"
+            "text": "Lorem ipsum dolor sit amet",
+            "title": "1"
           }
         }
       ]

@@ -1,5 +1,5 @@
 ---
-source: crates/integration-tests/tests/graphql_connector/basic.rs
+source: engine/crates/integration-tests/tests/graphql_connector/basic.rs
 expression: "engine.execute(UNNAMESPACED_QUERY).variables(json!({\n                    \"id\" : \"3\"\n                })).await.into_value()"
 ---
 {
@@ -10,7 +10,7 @@ expression: "engine.execute(UNNAMESPACED_QUERY).variables(json!({\n             
         "__typename": "User",
         "email": "pessimist@example.com"
       },
-      "title": "Everythings fucked"
+      "title": "Everythings fine"
     },
     "serverVersion": "1"
   }

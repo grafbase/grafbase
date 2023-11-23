@@ -1,5 +1,5 @@
 ---
-source: crates/engine/src/registry/resolvers/graphql.rs
+source: engine/crates/engine/src/registry/resolvers/graphql.rs
 expression: result.unwrap()
 ---
 {

@@ -1,16 +1,16 @@
 ---
-source: crates/cli/tests/owner.rs
+source: cli/crates/cli/tests/owner.rs
 expression: user_created
 ---
 {
   "data": {
     "userCreate": {
       "user": {
-        "id": "[id]",
-        "username": "user1",
-        "email": "user1@example.com",
         "avatar": "http://example.com/",
-        "url": "http://example.com/"
+        "email": "user1@example.com",
+        "id": "[id]",
+        "url": "http://example.com/",
+        "username": "user1"
       }
     }
   }

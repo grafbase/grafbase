@@ -1,6 +1,6 @@
 ---
-source: crates/cli/tests/owner.rs
-expression: "client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send()"
+source: cli/crates/cli/tests/owner.rs
+expression: "client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()"
 ---
 {
   "data": {
@@ -8,8 +8,8 @@ expression: "client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send()"
       "edges": [
         {
           "node": {
-            "title": "1",
-            "complete": false
+            "complete": false,
+            "title": "1"
           }
         }
       ]

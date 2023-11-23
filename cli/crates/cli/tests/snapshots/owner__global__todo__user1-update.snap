@@ -1,13 +1,13 @@
 ---
-source: crates/cli/tests/owner.rs
-expression: "client.gql::<Value>(OWNER_TODO_UPDATE).bearer(USER1).variables(json!({\n                \"id\" : id, \"complete\" : true\n            })).send()"
+source: cli/crates/cli/tests/owner.rs
+expression: "client.gql::<Value>(OWNER_TODO_UPDATE).bearer(&user_one_jwt()).variables(json!({\n                \"id\" : id, \"input\" : { \"complete\" : true }\n            })).send()"
 ---
 {
   "data": {
     "todoUpdate": {
       "todo": {
-        "title": "1",
-        "complete": true
+        "complete": true,
+        "title": "1"
       }
     }
   }

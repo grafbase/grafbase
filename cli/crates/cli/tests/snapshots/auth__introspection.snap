@@ -1,67 +1,161 @@
 ---
-source: crates/cli/tests/auth.rs
+source: cli/crates/cli/tests/auth.rs
 expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
 ---
 {
   "data": {
     "__schema": {
-      "queryType": {
-        "name": "Query"
-      },
+      "directives": [
+        {
+          "args": [
+            {
+              "defaultValue": "true",
+              "description": "When true fragment may be deferred",
+              "name": "if",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Boolean",
+                  "ofType": null
+                }
+              }
+            },
+            {
+              "defaultValue": null,
+              "description": "This label should be used by GraphQL clients to identify the data from patch responses and associate it with the correct fragment.",
+              "name": "label",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            }
+          ],
+          "description": "De-prioritizes a fragment, causing the fragment to be omitted in the initial response and delivered as a subsequent response afterward.",
+          "locations": [
+            "INLINE_FRAGMENT",
+            "FRAGMENT_SPREAD"
+          ],
+          "name": "defer"
+        },
+        {
+          "args": [
+            {
+              "defaultValue": null,
+              "description": "Included when true.",
+              "name": "if",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Boolean",
+                  "ofType": null
+                }
+              }
+            }
+          ],
+          "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
+          "locations": [
+            "FIELD",
+            "FRAGMENT_SPREAD",
+            "INLINE_FRAGMENT"
+          ],
+          "name": "include"
+        },
+        {
+          "args": [],
+          "description": "Indicates that an input object is a oneOf input object",
+          "locations": [
+            "INPUT_OBJECT"
+          ],
+          "name": "oneOf"
+        },
+        {
+          "args": [
+            {
+              "defaultValue": null,
+              "description": "Skipped when true.",
+              "name": "if",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Boolean",
+                  "ofType": null
+                }
+              }
+            }
+          ],
+          "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
+          "locations": [
+            "FIELD",
+            "FRAGMENT_SPREAD",
+            "INLINE_FRAGMENT"
+          ],
+          "name": "skip"
+        }
+      ],
       "mutationType": {
         "name": "Mutation"
+      },
+      "queryType": {
+        "name": "Query"
       },
       "subscriptionType": null,
       "types": [
         {
+          "description": "The `Boolean` scalar type represents `true` or `false`.",
+          "enumValues": null,
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
           "kind": "SCALAR",
           "name": "Boolean",
-          "description": "The `Boolean` scalar type represents `true` or `false`.",
-          "fields": null,
-          "inputFields": null,
-          "interfaces": null,
-          "enumValues": null,
           "possibleTypes": null
         },
         {
+          "description": "A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339\nprofile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.\n\nThis scalar is a description of an exact instant on the timeline such as the instant that a user account was created.\n\n# Input Coercion\n\nWhen expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.\n\n# Result Coercion\n\nWhere an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.\nFor example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.",
+          "enumValues": null,
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
           "kind": "SCALAR",
           "name": "DateTime",
-          "description": "A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339\nprofile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.\n\nThis scalar is a description of an exact instant on the timeline such as the instant that a user account was created.\n\n# Input Coercion\n\nWhen expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.\n\n# Result Coercion\n\nWhere an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.\nFor example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.",
-          "fields": null,
-          "inputFields": null,
-          "interfaces": null,
-          "enumValues": null,
           "possibleTypes": null
         },
         {
+          "description": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
+          "enumValues": null,
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
           "kind": "SCALAR",
           "name": "Float",
-          "description": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
-          "fields": null,
-          "inputFields": null,
-          "interfaces": null,
-          "enumValues": null,
           "possibleTypes": null
         },
         {
+          "description": null,
+          "enumValues": null,
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
           "kind": "SCALAR",
           "name": "ID",
-          "description": null,
-          "fields": null,
-          "inputFields": null,
-          "interfaces": null,
-          "enumValues": null,
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "IDCollectionFilterInput",
           "description": null,
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "in",
+              "defaultValue": null,
               "description": null,
+              "name": "in",
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -74,36 +168,34 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     "ofType": null
                   }
                 }
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "IDCollectionFilterInput",
           "possibleTypes": null
         },
         {
-          "kind": "SCALAR",
-          "name": "Int",
           "description": "The `Int` scalar type represents non-fractional whole numeric values.",
+          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "interfaces": null,
-          "enumValues": null,
+          "kind": "SCALAR",
+          "name": "Int",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "Mutation",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "todoCreate",
-              "description": "Create a Todo",
               "args": [
                 {
-                  "name": "input",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "input",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -112,25 +204,25 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                       "name": "TodoCreateInput",
                       "ofType": null
                     }
-                  },
-                  "defaultValue": null
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": "Create a Todo",
+              "isDeprecated": false,
+              "name": "todoCreate",
               "type": {
                 "kind": "OBJECT",
                 "name": "TodoCreatePayload",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "todoCreateMany",
-              "description": "Create multiple Todo",
               "args": [
                 {
-                  "name": "input",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "input",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -147,25 +239,25 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                         }
                       }
                     }
-                  },
-                  "defaultValue": null
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": "Create multiple Todo",
+              "isDeprecated": false,
+              "name": "todoCreateMany",
               "type": {
                 "kind": "OBJECT",
                 "name": "TodoCreateManyPayload",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "todoUpdate",
-              "description": "Update a Todo",
               "args": [
                 {
-                  "name": "by",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "by",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -174,12 +266,12 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                       "name": "TodoByInput",
                       "ofType": null
                     }
-                  },
-                  "defaultValue": null
+                  }
                 },
                 {
-                  "name": "input",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "input",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -188,25 +280,25 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                       "name": "TodoUpdateInput",
                       "ofType": null
                     }
-                  },
-                  "defaultValue": null
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": "Update a Todo",
+              "isDeprecated": false,
+              "name": "todoUpdate",
               "type": {
                 "kind": "OBJECT",
                 "name": "TodoUpdatePayload",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "todoUpdateMany",
-              "description": "Update multiple Todo",
               "args": [
                 {
-                  "name": "input",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "input",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -223,25 +315,25 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                         }
                       }
                     }
-                  },
-                  "defaultValue": null
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": "Update multiple Todo",
+              "isDeprecated": false,
+              "name": "todoUpdateMany",
               "type": {
                 "kind": "OBJECT",
                 "name": "TodoUpdateManyPayload",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "todoDelete",
-              "description": "Delete a Todo by ID or unique field",
               "args": [
                 {
-                  "name": "by",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "by",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -250,25 +342,25 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                       "name": "TodoByInput",
                       "ofType": null
                     }
-                  },
-                  "defaultValue": null
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": "Delete a Todo by ID or unique field",
+              "isDeprecated": false,
+              "name": "todoDelete",
               "type": {
                 "kind": "OBJECT",
                 "name": "TodoDeletePayload",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "todoDeleteMany",
-              "description": "Delete multiple Todo",
               "args": [
                 {
-                  "name": "input",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "input",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -285,56 +377,59 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                         }
                       }
                     }
-                  },
-                  "defaultValue": null
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": "Delete multiple Todo",
+              "isDeprecated": false,
+              "name": "todoDeleteMany",
               "type": {
                 "kind": "OBJECT",
                 "name": "TodoDeleteManyPayload",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "Mutation",
           "possibleTypes": null
         },
         {
-          "kind": "ENUM",
-          "name": "OrderByDirection",
           "description": null,
+          "enumValues": [
+            {
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "ASC"
+            },
+            {
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "DESC"
+            }
+          ],
           "fields": null,
           "inputFields": null,
           "interfaces": null,
-          "enumValues": [
-            {
-              "name": "ASC",
-              "description": null,
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "DESC",
-              "description": null,
-              "isDeprecated": false,
-              "deprecationReason": null
-            }
-          ],
+          "kind": "ENUM",
+          "name": "OrderByDirection",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "PageInfo",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
+              "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
               "name": "hasPreviousPage",
-              "description": null,
-              "args": [],
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -343,14 +438,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "Boolean",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
+              "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
               "name": "hasNextPage",
-              "description": null,
-              "args": [],
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -359,52 +454,49 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "Boolean",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
+              "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
               "name": "startCursor",
-              "description": null,
-              "args": [],
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "endCursor",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "endCursor",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "PageInfo",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "Query",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "todo",
-              "description": "Query a single Todo by an ID or a unique field",
               "args": [
                 {
-                  "name": "by",
+                  "defaultValue": null,
                   "description": "The field and value by which to query the Todo",
+                  "name": "by",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -413,116 +505,119 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                       "name": "TodoByInput",
                       "ofType": null
                     }
-                  },
-                  "defaultValue": null
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": "Query a single Todo by an ID or a unique field",
+              "isDeprecated": false,
+              "name": "todo",
               "type": {
                 "kind": "OBJECT",
                 "name": "Todo",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "todoCollection",
-              "description": "Paginated query to fetch the whole list of `Todo`.",
               "args": [
                 {
+                  "defaultValue": null,
+                  "description": null,
                   "name": "after",
-                  "description": null,
                   "type": {
                     "kind": "SCALAR",
                     "name": "String",
                     "ofType": null
-                  },
-                  "defaultValue": null
+                  }
                 },
                 {
+                  "defaultValue": null,
+                  "description": null,
                   "name": "before",
-                  "description": null,
                   "type": {
                     "kind": "SCALAR",
                     "name": "String",
                     "ofType": null
-                  },
-                  "defaultValue": null
+                  }
                 },
                 {
+                  "defaultValue": null,
+                  "description": null,
                   "name": "first",
-                  "description": null,
                   "type": {
                     "kind": "SCALAR",
                     "name": "Int",
                     "ofType": null
-                  },
-                  "defaultValue": null
+                  }
                 },
                 {
+                  "defaultValue": null,
+                  "description": null,
                   "name": "last",
-                  "description": null,
                   "type": {
                     "kind": "SCALAR",
                     "name": "Int",
                     "ofType": null
-                  },
-                  "defaultValue": null
+                  }
                 },
                 {
-                  "name": "orderBy",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "orderBy",
                   "type": {
                     "kind": "INPUT_OBJECT",
                     "name": "TodoOrderByInput",
                     "ofType": null
-                  },
-                  "defaultValue": null
+                  }
                 },
                 {
-                  "name": "filter",
+                  "defaultValue": null,
                   "description": null,
+                  "name": "filter",
                   "type": {
                     "kind": "INPUT_OBJECT",
                     "name": "TodoCollectionFilterInput",
                     "ofType": null
-                  },
-                  "defaultValue": null
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": "Paginated query to fetch the whole list of `Todo`.",
+              "isDeprecated": false,
+              "name": "todoCollection",
               "type": {
                 "kind": "OBJECT",
                 "name": "TodoConnection",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "Query",
           "possibleTypes": null
         },
         {
-          "kind": "SCALAR",
-          "name": "String",
           "description": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
+          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "interfaces": null,
-          "enumValues": null,
+          "kind": "SCALAR",
+          "name": "String",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "Todo",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "title",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "title",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -531,14 +626,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "String",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "id",
-              "description": "Unique identifier",
               "args": [],
+              "deprecationReason": null,
+              "description": "Unique identifier",
+              "isDeprecated": false,
+              "name": "id",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -547,14 +642,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "ID",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "updatedAt",
+              "args": [],
+              "deprecationReason": null,
               "description": "when the model was updated",
-              "args": [],
+              "isDeprecated": false,
+              "name": "updatedAt",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -563,14 +658,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "DateTime",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "createdAt",
-              "description": "when the model was created",
               "args": [],
+              "deprecationReason": null,
+              "description": "when the model was created",
+              "isDeprecated": false,
+              "name": "createdAt",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -579,67 +674,67 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "DateTime",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "Todo",
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "TodoByInput",
           "description": null,
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "id",
+              "defaultValue": null,
               "description": null,
+              "name": "id",
               "type": {
                 "kind": "SCALAR",
                 "name": "ID",
                 "ofType": null
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "TodoByInput",
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "TodoCollectionFilterInput",
           "description": null,
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "id",
+              "defaultValue": null,
               "description": null,
+              "name": "id",
               "type": {
                 "kind": "INPUT_OBJECT",
                 "name": "IDCollectionFilterInput",
                 "ofType": null
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "TodoCollectionFilterInput",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "TodoConnection",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "pageInfo",
-              "description": "Information to aid in pagination",
               "args": [],
+              "deprecationReason": null,
+              "description": "Information to aid in pagination",
+              "isDeprecated": false,
+              "name": "pageInfo",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -648,14 +743,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "PageInfo",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "edges",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "edges",
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -664,25 +759,24 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "TodoEdge",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "TodoConnection",
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "TodoCreateInput",
           "description": "Input to create a Todo",
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "title",
+              "defaultValue": null,
               "description": null,
+              "name": "title",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -691,23 +785,23 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "String",
                   "ofType": null
                 }
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "TodoCreateInput",
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "TodoCreateManyInput",
           "description": null,
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "input",
+              "defaultValue": null,
               "description": null,
+              "name": "input",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -716,23 +810,24 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "TodoCreateInput",
                   "ofType": null
                 }
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "TodoCreateManyInput",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "TodoCreateManyPayload",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "todoCollection",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "todoCollection",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -749,48 +844,47 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     }
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "TodoCreateManyPayload",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "TodoCreatePayload",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "todo",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "todo",
               "type": {
                 "kind": "OBJECT",
                 "name": "Todo",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "TodoCreatePayload",
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "TodoDeleteManyInput",
           "description": null,
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "by",
+              "defaultValue": null,
               "description": null,
+              "name": "by",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -799,23 +893,24 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "TodoByInput",
                   "ofType": null
                 }
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "TodoDeleteManyInput",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "TodoDeleteManyPayload",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "deletedIds",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "deletedIds",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -832,25 +927,25 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     }
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "TodoDeleteManyPayload",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "TodoDeletePayload",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "deletedId",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "deletedId",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -859,25 +954,25 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "ID",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "TodoDeletePayload",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "TodoEdge",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "node",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "node",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -886,14 +981,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "Todo",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "cursor",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "cursor",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -902,67 +997,66 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "String",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "TodoEdge",
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "TodoOrderByInput",
           "description": null,
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "createdAt",
+              "defaultValue": null,
               "description": null,
+              "name": "createdAt",
               "type": {
                 "kind": "ENUM",
                 "name": "OrderByDirection",
                 "ofType": null
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "TodoOrderByInput",
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "TodoUpdateInput",
           "description": "Input to update a Todo",
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "title",
+              "defaultValue": null,
               "description": null,
+              "name": "title",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "TodoUpdateInput",
           "possibleTypes": null
         },
         {
-          "kind": "INPUT_OBJECT",
-          "name": "TodoUpdateManyInput",
           "description": null,
+          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
-              "name": "by",
+              "defaultValue": null,
               "description": null,
+              "name": "by",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -971,12 +1065,12 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "TodoByInput",
                   "ofType": null
                 }
-              },
-              "defaultValue": null
+              }
             },
             {
-              "name": "input",
+              "defaultValue": null,
               "description": null,
+              "name": "input",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -985,23 +1079,24 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "TodoUpdateInput",
                   "ofType": null
                 }
-              },
-              "defaultValue": null
+              }
             }
           ],
           "interfaces": null,
-          "enumValues": null,
+          "kind": "INPUT_OBJECT",
+          "name": "TodoUpdateManyInput",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "TodoUpdateManyPayload",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "todoCollection",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "todoCollection",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1018,48 +1113,48 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     }
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "TodoUpdateManyPayload",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "TodoUpdatePayload",
           "description": null,
+          "enumValues": null,
           "fields": [
             {
-              "name": "todo",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "todo",
               "type": {
                 "kind": "OBJECT",
                 "name": "Todo",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "TodoUpdatePayload",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "__Directive",
           "description": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
+          "enumValues": null,
           "fields": [
             {
-              "name": "name",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "name",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1068,26 +1163,26 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "String",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "description",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "description",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "locations",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "locations",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1104,14 +1199,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     }
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "args",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "args",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1128,14 +1223,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     }
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "isRepeatable",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "isRepeatable",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1144,150 +1239,150 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "Boolean",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "__Directive",
           "possibleTypes": null
         },
         {
-          "kind": "ENUM",
-          "name": "__DirectiveLocation",
           "description": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
+          "enumValues": [
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a query operation.",
+              "isDeprecated": false,
+              "name": "QUERY"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a mutation operation.",
+              "isDeprecated": false,
+              "name": "MUTATION"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a subscription operation.",
+              "isDeprecated": false,
+              "name": "SUBSCRIPTION"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a field.",
+              "isDeprecated": false,
+              "name": "FIELD"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a fragment definition.",
+              "isDeprecated": false,
+              "name": "FRAGMENT_DEFINITION"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a fragment spread.",
+              "isDeprecated": false,
+              "name": "FRAGMENT_SPREAD"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to an inline fragment.",
+              "isDeprecated": false,
+              "name": "INLINE_FRAGMENT"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a variable definition.",
+              "isDeprecated": false,
+              "name": "VARIABLE_DEFINITION"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a schema definition.",
+              "isDeprecated": false,
+              "name": "SCHEMA"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a scalar definition.",
+              "isDeprecated": false,
+              "name": "SCALAR"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to an object type definition.",
+              "isDeprecated": false,
+              "name": "OBJECT"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a field definition.",
+              "isDeprecated": false,
+              "name": "FIELD_DEFINITION"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to an argument definition.",
+              "isDeprecated": false,
+              "name": "ARGUMENT_DEFINITION"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to an interface definition.",
+              "isDeprecated": false,
+              "name": "INTERFACE"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to a union definition.",
+              "isDeprecated": false,
+              "name": "UNION"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to an enum definition.",
+              "isDeprecated": false,
+              "name": "ENUM"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to an enum value definition.",
+              "isDeprecated": false,
+              "name": "ENUM_VALUE"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to an input object type definition.",
+              "isDeprecated": false,
+              "name": "INPUT_OBJECT"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Location adjacent to an input object field definition.",
+              "isDeprecated": false,
+              "name": "INPUT_FIELD_DEFINITION"
+            }
+          ],
           "fields": null,
           "inputFields": null,
           "interfaces": null,
-          "enumValues": [
-            {
-              "name": "QUERY",
-              "description": "Location adjacent to a query operation.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "MUTATION",
-              "description": "Location adjacent to a mutation operation.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "SUBSCRIPTION",
-              "description": "Location adjacent to a subscription operation.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "FIELD",
-              "description": "Location adjacent to a field.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "FRAGMENT_DEFINITION",
-              "description": "Location adjacent to a fragment definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "FRAGMENT_SPREAD",
-              "description": "Location adjacent to a fragment spread.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "INLINE_FRAGMENT",
-              "description": "Location adjacent to an inline fragment.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "VARIABLE_DEFINITION",
-              "description": "Location adjacent to a variable definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "SCHEMA",
-              "description": "Location adjacent to a schema definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "SCALAR",
-              "description": "Location adjacent to a scalar definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "OBJECT",
-              "description": "Location adjacent to an object type definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "FIELD_DEFINITION",
-              "description": "Location adjacent to a field definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "ARGUMENT_DEFINITION",
-              "description": "Location adjacent to an argument definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "INTERFACE",
-              "description": "Location adjacent to an interface definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "UNION",
-              "description": "Location adjacent to a union definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "ENUM",
-              "description": "Location adjacent to an enum definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "ENUM_VALUE",
-              "description": "Location adjacent to an enum value definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "INPUT_OBJECT",
-              "description": "Location adjacent to an input object type definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "INPUT_FIELD_DEFINITION",
-              "description": "Location adjacent to an input object field definition.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            }
-          ],
+          "kind": "ENUM",
+          "name": "__DirectiveLocation",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "__EnumValue",
           "description": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
+          "enumValues": null,
           "fields": [
             {
-              "name": "name",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "name",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1296,26 +1391,26 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "String",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "description",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "description",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "isDeprecated",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "isDeprecated",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1324,37 +1419,37 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "Boolean",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "deprecationReason",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "deprecationReason",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "__EnumValue",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "__Field",
           "description": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
+          "enumValues": null,
           "fields": [
             {
-              "name": "name",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "name",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1363,26 +1458,26 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "String",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "description",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "description",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "args",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "args",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1399,14 +1494,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     }
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "type",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "type",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1415,14 +1510,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "__Type",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "isDeprecated",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "isDeprecated",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1431,37 +1526,37 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "Boolean",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "deprecationReason",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "deprecationReason",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "__Field",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "__InputValue",
           "description": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
+          "enumValues": null,
           "fields": [
             {
-              "name": "name",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "name",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1470,26 +1565,26 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "String",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "description",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "description",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "type",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "type",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1498,49 +1593,49 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "__Type",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "defaultValue",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "defaultValue",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "__InputValue",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "__Schema",
           "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
+          "enumValues": null,
           "fields": [
             {
-              "name": "description",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "description",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "types",
-              "description": "A list of all types supported by this server.",
               "args": [],
+              "deprecationReason": null,
+              "description": "A list of all types supported by this server.",
+              "isDeprecated": false,
+              "name": "types",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1557,14 +1652,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     }
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "queryType",
-              "description": "The type that query operations will be rooted at.",
               "args": [],
+              "deprecationReason": null,
+              "description": "The type that query operations will be rooted at.",
+              "isDeprecated": false,
+              "name": "queryType",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1573,38 +1668,38 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "__Type",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "mutationType",
+              "args": [],
+              "deprecationReason": null,
               "description": "If this server supports mutation, the type that mutation operations will be rooted at.",
-              "args": [],
+              "isDeprecated": false,
+              "name": "mutationType",
               "type": {
                 "kind": "OBJECT",
                 "name": "__Type",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "subscriptionType",
+              "args": [],
+              "deprecationReason": null,
               "description": "If this server support subscription, the type that subscription operations will be rooted at.",
-              "args": [],
+              "isDeprecated": false,
+              "name": "subscriptionType",
               "type": {
                 "kind": "OBJECT",
                 "name": "__Type",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "directives",
-              "description": "A list of all directives supported by this server.",
               "args": [],
+              "deprecationReason": null,
+              "description": "A list of all directives supported by this server.",
+              "isDeprecated": false,
+              "name": "directives",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1621,25 +1716,25 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     }
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "__Schema",
           "possibleTypes": null
         },
         {
-          "kind": "OBJECT",
-          "name": "__Type",
           "description": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
+          "enumValues": null,
           "fields": [
             {
-              "name": "kind",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "kind",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1648,41 +1743,38 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                   "name": "__TypeKind",
                   "ofType": null
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
+              "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
               "name": "name",
-              "description": null,
-              "args": [],
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
+              "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
               "name": "description",
-              "description": null,
-              "args": [],
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "fields",
-              "description": null,
               "args": [
                 {
-                  "name": "includeDeprecated",
+                  "defaultValue": "false",
                   "description": null,
+                  "name": "includeDeprecated",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -1691,10 +1783,13 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                       "name": "Boolean",
                       "ofType": null
                     }
-                  },
-                  "defaultValue": "false"
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "fields",
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -1707,14 +1802,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     "ofType": null
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
+              "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
               "name": "interfaces",
-              "description": null,
-              "args": [],
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -1727,14 +1822,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     "ofType": null
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
+              "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
               "name": "possibleTypes",
-              "description": null,
-              "args": [],
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -1747,17 +1842,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     "ofType": null
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "enumValues",
-              "description": null,
               "args": [
                 {
-                  "name": "includeDeprecated",
+                  "defaultValue": "false",
                   "description": null,
+                  "name": "includeDeprecated",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -1766,10 +1858,13 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                       "name": "Boolean",
                       "ofType": null
                     }
-                  },
-                  "defaultValue": "false"
+                  }
                 }
               ],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "enumValues",
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -1782,14 +1877,14 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     "ofType": null
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "inputFields",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "inputFields",
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -1802,204 +1897,109 @@ expression: "set_up.client.gql::<Value>(INTROSPECTION_QUERY).await"
                     "ofType": null
                   }
                 }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "ofType",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "ofType",
               "type": {
                 "kind": "OBJECT",
                 "name": "__Type",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "specifiedByURL",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "specifiedByURL",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             },
             {
-              "name": "isOneOf",
-              "description": null,
               "args": [],
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "isOneOf",
               "type": {
                 "kind": "SCALAR",
                 "name": "Boolean",
                 "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
+              }
             }
           ],
           "inputFields": null,
           "interfaces": [],
-          "enumValues": null,
+          "kind": "OBJECT",
+          "name": "__Type",
           "possibleTypes": null
         },
         {
-          "kind": "ENUM",
-          "name": "__TypeKind",
           "description": "An enum describing what kind of type a given `__Type` is.",
+          "enumValues": [
+            {
+              "deprecationReason": null,
+              "description": "Indicates this type is a scalar.",
+              "isDeprecated": false,
+              "name": "SCALAR"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Indicates this type is an object. `fields` and `interfaces` are valid fields.",
+              "isDeprecated": false,
+              "name": "OBJECT"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.",
+              "isDeprecated": false,
+              "name": "INTERFACE"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Indicates this type is a union. `possibleTypes` is a valid field.",
+              "isDeprecated": false,
+              "name": "UNION"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Indicates this type is an enum. `enumValues` is a valid field.",
+              "isDeprecated": false,
+              "name": "ENUM"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Indicates this type is an input object. `inputFields` is a valid field.",
+              "isDeprecated": false,
+              "name": "INPUT_OBJECT"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Indicates this type is a list. `ofType` is a valid field.",
+              "isDeprecated": false,
+              "name": "LIST"
+            },
+            {
+              "deprecationReason": null,
+              "description": "Indicates this type is a non-null. `ofType` is a valid field.",
+              "isDeprecated": false,
+              "name": "NON_NULL"
+            }
+          ],
           "fields": null,
           "inputFields": null,
           "interfaces": null,
-          "enumValues": [
-            {
-              "name": "SCALAR",
-              "description": "Indicates this type is a scalar.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "OBJECT",
-              "description": "Indicates this type is an object. `fields` and `interfaces` are valid fields.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "INTERFACE",
-              "description": "Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "UNION",
-              "description": "Indicates this type is a union. `possibleTypes` is a valid field.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "ENUM",
-              "description": "Indicates this type is an enum. `enumValues` is a valid field.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "INPUT_OBJECT",
-              "description": "Indicates this type is an input object. `inputFields` is a valid field.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "LIST",
-              "description": "Indicates this type is a list. `ofType` is a valid field.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "NON_NULL",
-              "description": "Indicates this type is a non-null. `ofType` is a valid field.",
-              "isDeprecated": false,
-              "deprecationReason": null
-            }
-          ],
+          "kind": "ENUM",
+          "name": "__TypeKind",
           "possibleTypes": null
-        }
-      ],
-      "directives": [
-        {
-          "name": "defer",
-          "description": "De-prioritizes a fragment, causing the fragment to be omitted in the initial response and delivered as a subsequent response afterward.",
-          "locations": [
-            "INLINE_FRAGMENT",
-            "FRAGMENT_SPREAD"
-          ],
-          "args": [
-            {
-              "name": "if",
-              "description": "When true fragment may be deferred",
-              "type": {
-                "kind": "NON_NULL",
-                "name": null,
-                "ofType": {
-                  "kind": "SCALAR",
-                  "name": "Boolean",
-                  "ofType": null
-                }
-              },
-              "defaultValue": "true"
-            },
-            {
-              "name": "label",
-              "description": "This label should be used by GraphQL clients to identify the data from patch responses and associate it with the correct fragment.",
-              "type": {
-                "kind": "SCALAR",
-                "name": "String",
-                "ofType": null
-              },
-              "defaultValue": null
-            }
-          ]
-        },
-        {
-          "name": "include",
-          "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
-          "locations": [
-            "FIELD",
-            "FRAGMENT_SPREAD",
-            "INLINE_FRAGMENT"
-          ],
-          "args": [
-            {
-              "name": "if",
-              "description": "Included when true.",
-              "type": {
-                "kind": "NON_NULL",
-                "name": null,
-                "ofType": {
-                  "kind": "SCALAR",
-                  "name": "Boolean",
-                  "ofType": null
-                }
-              },
-              "defaultValue": null
-            }
-          ]
-        },
-        {
-          "name": "oneOf",
-          "description": "Indicates that an input object is a oneOf input object",
-          "locations": [
-            "INPUT_OBJECT"
-          ],
-          "args": []
-        },
-        {
-          "name": "skip",
-          "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
-          "locations": [
-            "FIELD",
-            "FRAGMENT_SPREAD",
-            "INLINE_FRAGMENT"
-          ],
-          "args": [
-            {
-              "name": "if",
-              "description": "Skipped when true.",
-              "type": {
-                "kind": "NON_NULL",
-                "name": null,
-                "ofType": {
-                  "kind": "SCALAR",
-                  "name": "Boolean",
-                  "ofType": null
-                }
-              },
-              "defaultValue": null
-            }
-          ]
         }
       ]
     }

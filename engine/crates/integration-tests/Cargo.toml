@@ -35,7 +35,7 @@ runtime-local = { path = "../runtime-local" }
 
 [dependencies.tokio]
 version = "1.32"
-features = ["rt-multi-thread", "macros"]
+features = ["macros"]
 
 [dependencies.insta]
 version = "1.31"

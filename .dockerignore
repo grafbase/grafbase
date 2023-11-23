@@ -2,9 +2,8 @@
 .gitignore
 .github
 .git
-cli/target
-engine/target
 Dockerfile
 node_modules
 templates
 examples
+/target

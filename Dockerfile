@@ -5,6 +5,8 @@ WORKDIR /grafbase
 
 RUN mkdir -p packages/grafbase-sdk
 
+COPY Cargo.lock Cargo.lock
+COPY Cargo.toml Cargo.toml
 COPY ./cli ./cli
 COPY ./engine ./engine
 COPY ./packages/grafbase-sdk/package.json ./packages/grafbase-sdk
@@ -17,9 +19,9 @@ WORKDIR /grafbase/packages/cli-app
 RUN npx --yes pnpm i
 RUN npx --yes pnpm run cli-app:build
 
-WORKDIR /grafbase/cli
+WORKDIR /grafbase
 
-RUN cargo build --release
+RUN cargo build -p grafbase --release
 
 # Run
 FROM alpine:3.18
@@ -31,7 +33,7 @@ RUN apk add --no-cache nodejs npm
 RUN adduser -g wheel -D grafbase -h "/data" && mkdir -p /data && chown grafbase: /data
 USER grafbase
 
-COPY --from=build /grafbase/cli/target/release/grafbase /bin/grafbase
+COPY --from=build /grafbase/target/release/grafbase /bin/grafbase
 
 ENTRYPOINT ["/bin/grafbase"]
 

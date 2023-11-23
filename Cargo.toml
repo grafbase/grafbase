@@ -1,0 +1,129 @@
+[workspace]
+resolver = "2"
+members = [
+  "cli/crates/*",
+  "engine/crates/*",
+  "engine/crates/engine-v2/schema",
+  "engine/crates/engine/derive",
+  "engine/crates/engine/parser",
+  "engine/crates/engine/value",
+]
+
+[patch.crates-io]
+again = { git = "https://github.com/grafbase/again", branch = "cloudflare-workers-compatibility" }
+# Use our fork of dynomite that uses the 0.48 version of rusoto.
+dynomite = { git = "https://github.com/grafbase/dynomite", branch = "rusoto-0_48" }
+rusoto_core = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+rusoto_dynamodb = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
+# FIXME: Drop on next release.
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "00b1e328bf4ce750e01ea2450dcfe83e4955f2af" }
+ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db3216f058cbfadd4923df2c7" }
+
+[workspace.package]
+version = "0.45.2"
+edition = "2021"
+license = "Apache-2.0"
+homepage = "https://grafbase.com"
+keywords = ["grafbase"]
+repository = "https://github.com/grafbase/grafbase"
+
+[workspace.dependencies]
+again = "0.1"
+async-trait = "0.1"
+axum = "0.6"
+base64 = "0.21"
+bitflags = "2"
+bytes = "1"
+chrono = { version = "0.4", default-features = false }
+flexbuffers = "2"
+futures = "0.3"
+futures-util = "0.3"
+headers = "0.3"
+http = "0.2"
+indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
+itertools = "0.11"
+lazy_static = "1"
+num-traits = "0.2"
+once_cell = "1"
+regex = "1"
+rstest = "0.18"
+secrecy = "0.8"
+strum = "0.25"
+# Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is released
+tar = { git = "https://github.com/obmarg/tar-rs.git", rev = "bffee32190d531c03d806680daebd89cb1544be1" }
+thiserror = "1"
+tokio = "1"
+url = "2"
+uuid = "1"
+ulid = "1"
+wasm-bindgen = "0.2"
+web-time = "0.2"
+worker = "0.0.18"
+
+# AWS Rusoto SDK
+rusoto_core = "0.48"
+rusoto_dynamodb = "0.48"
+
+# Serde
+serde = { version = "1", features = ["derive"] }
+serde_dynamo = "4"
+serde_json = { version = "1" }
+serde-wasm-bindgen = "0.6"
+serde_with = "3"
+
+# Tracing
+tracing = "0.1"
+# don't bump to 0.18, leads to memory access out of bounds in cloudflare workers
+tracing-subscriber = "0.3"
+tracing-futures = "0.2"
+
+async-runtime = { path = "engine/crates/async-runtime" }
+common-types = { path = "engine/crates/common-types" }
+dataloader = { path = "engine/crates/dataloader", features = ["tracing"] }
+dynamodb = { path = "engine/crates/dynamodb" }
+engine-parser = { path = "engine/crates/engine/parser" }
+engine = { path = "engine/crates/engine" }
+engine-v2 = { path = "engine/crates/engine-v2" }
+engine-value = { path = "engine/crates/engine/value" }
+gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
+gateway-adapter = { path = "engine/crates/gateway-adapter" }
+gateway-core = { path = "engine/crates/gateway-core" }
+gateway-types = { path = "engine/crates/gateway-types" }
+graph-entities = { path = "engine/crates/graph-entities" }
+graphql-composition = { path = "engine/crates/composition" }
+graphql-extensions = { path = "engine/crates/graphql-extensions" }
+jwt-verifier = { path = "engine/crates/jwt-verifier" }
+log = { path = "engine/crates/log" }
+parser-graphql = { path = "engine/crates/parser-graphql" }
+parser-openapi = { path = "engine/crates/parser-openapi" }
+parser-postgres = { path = "engine/crates/parser-postgres" }
+runtime-local = { path = "engine/crates/runtime-local" }
+runtime-noop = { path = "engine/crates/runtime-noop" }
+runtime = { path = "engine/crates/runtime" }
+search-protocol = { path = "engine/crates/search-protocol" }
+worker-env = { path = "engine/crates/worker-env" }
+
+[profile.bench]
+debug = true
+
+[profile.release]
+strip = "symbols"
+# rustc supports two "optimize for size" levels:  opt-level = "s" and "z".
+# These names were inherited from clang / LLVM and are not too descriptive
+# but "z" is meant to give the idea that it produces smaller binaries than "s".
+# https://docs.rust-embedded.org/book/unsorted/speed-vs-size.html#optimize-for-size
+opt-level = "z"
+# by compiling as a single codegen unit (i.e. not in parallel),
+# it's possible to reduce size even further at the expense of
+# compilation time
+codegen-units = 1
+# by enabling link-time optimization, we can reduce size even further
+# by telling cargo to optimize at the link stage (in addition to the
+# normal optimizations during the compilation stage)
+lto = true
+
+# by overriding our dependencies' compilation settings, we can further optimize for size
+# https://docs.rust-embedded.org/book/unsorted/speed-vs-size.html#optimizing-dependencies
+[profile.release.package."*"]
+codegen-units = 1
+opt-level = "z"

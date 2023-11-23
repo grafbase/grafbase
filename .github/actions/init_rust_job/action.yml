@@ -33,7 +33,6 @@ runs:
     - name: Extract the Rust version to use from the `rust-toolchain.toml` file
       shell: bash
       run: |
-        cd cli
         rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
         echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
 

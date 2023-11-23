@@ -45,7 +45,6 @@ impl gateway_core::RequestContext for Context {
     async fn wait_until(&self, fut: BoxFuture<'static, ()>) {
         self.wait_until_sender
             .send(fut)
-            .ok()
             .expect("Channel is not closed before finishing all wait_until");
     }
 

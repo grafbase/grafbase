@@ -8,6 +8,7 @@ pub struct CompletionsCommand {
     pub shell: Shell,
 }
 
+#[allow(clippy::enum_variant_names)] // powershell is powershell, not "power"
 #[derive(Debug, Parser, Clone, Copy)]
 pub enum Shell {
     /// Generate completions for bash

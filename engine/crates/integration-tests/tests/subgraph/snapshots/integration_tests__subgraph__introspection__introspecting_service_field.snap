@@ -1,5 +1,5 @@
 ---
-source: crates/integration-tests/tests/federation/introspection.rs
+source: engine/crates/integration-tests/tests/subgraph/introspection.rs
 expression: schema
 ---
 """

@@ -1,9 +1,11 @@
 [toolchain]
+profile = "default"
 channel = "beta"
 targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
     "x86_64-unknown-linux-musl",  # Tools
     "aarch64-unknown-linux-musl", # AWS Lambda
     "wasm32-unknown-unknown",     # Cloudflare Workers
 ]
-components = ["rustfmt", "clippy"]
-profile = "minimal"
