@@ -31,8 +31,13 @@ runs:
           --all-targets \
           --tests -- -D warnings
 
+    # https://github.com/actions/setup-node/issues/899
+    - name: Enable Corepack before setting up Node
+      shell: bash
+      run: corepack enable
+
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: 18
 
