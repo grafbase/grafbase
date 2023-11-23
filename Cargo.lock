@@ -2214,6 +2214,7 @@ dependencies = [
  "futures-concurrency",
  "futures-util",
  "grafbase-graphql-introspection",
+ "grafbase-local-common",
  "graphql-composition",
  "handlebars",
  "indoc",
@@ -2224,6 +2225,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
+ "tower-http",
  "url",
 ]
 
