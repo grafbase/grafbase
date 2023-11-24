@@ -14,11 +14,20 @@ impl WasmTransport {
     async fn execute(&self, query: &str, params: Vec<serde_json::Value>) -> Result<u64, JsValue> {
         #[cfg(target_arch = "wasm32")]
         {
-            todo!()
-            // let context = JsValue::null();
-            // let query = JsValue::from_str(query);
-            // let params = params.try_into()?;
-            // self.callbacks.as_ref().parameterized_execute.call2(context, query, params).await
+            tracing::info!("querying");
+            let context = JsValue::null();
+            let query = JsValue::from_str(query);
+            tracing::info!("query: {query:?}");
+            let params = serde_wasm_bindgen::to_value(&params)?;
+            tracing::info!("params: {params:?}");
+            let result = self
+                .callbacks
+                .as_ref()
+                .parameterized_execute
+                .call2(&context, &query, &params)?;
+            tracing::info!("result: {result:?}");
+            let result = wasm_bindgen_futures::JsFuture::from(js_sys::Promise::from(result)).await?;
+            Ok(serde_wasm_bindgen::from_value(result)?)
         }
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -109,15 +118,6 @@ struct PgTransportFactoryImpl {
 
 #[async_trait::async_trait]
 impl PgTransportFactoryInner for PgTransportFactoryImpl {
-    async fn try_new(
-        &self,
-        name: &str,
-        database_definition: &DatabaseDefinition,
-    ) -> PgTransportFactoryResult<Box<dyn Transport>> {
-        tracing::error!("got to the factory new");
-        panic!()
-    }
-
     fn fetch_cached(&self, name: &str) -> PgTransportFactoryResult<&dyn Transport> {
         tracing::info!("fetching cached transport `{name}`");
         self.transports
