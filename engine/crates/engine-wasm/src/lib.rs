@@ -114,10 +114,10 @@ impl GrafbaseGateway {
             .map(|(name, db)| {
                 (
                     name.to_owned(),
-                    pg::WasmTransport {
+                    Arc::new(pg::WasmTransport {
                         connection_string: db.connection_string().to_owned(),
                         callbacks: send_wrapper::SendWrapper::new(pg_callbacks.clone().unwrap()),
-                    },
+                    }) as Arc<dyn pg::Transport>,
                 )
             })
             .collect();

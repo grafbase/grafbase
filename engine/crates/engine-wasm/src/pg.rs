@@ -113,16 +113,15 @@ pub(crate) fn make_pg_transport_factory(transports: HashMap<String, WasmTranspor
 }
 
 struct PgTransportFactoryImpl {
-    transports: HashMap<String, WasmTransport>,
+    transports: HashMap<String, Arc<dyn Transport + Send>>,
 }
 
 #[async_trait::async_trait]
 impl PgTransportFactoryInner for PgTransportFactoryImpl {
-    fn fetch_cached(&self, name: &str) -> PgTransportFactoryResult<&dyn Transport> {
+    fn try_get(&self, name: &str) -> PgTransportFactoryResult<Arc<dyn Transport>> {
         tracing::info!("fetching cached transport `{name}`");
         self.transports
             .get(name)
-            .map(|t| t as &dyn Transport)
             .ok_or_else(|| PgTransportFactoryError::TransportNotFound(name.to_owned()))
     }
 }
