@@ -1,10 +1,13 @@
 import * as w from './engine_wasm_stuff/engine_wasm'
 import * as fs from 'fs'
 
+import { Client } from 'pg'
+const client = new Client()
+await client.connect()
 
 async function parameterized_query(query: string, params: any[]) {
     console.log("query: " + query + " params: " + params)
-    return []
+    return { root: [{ id: 1 }, { id: 2 }] }
 }
 
 async function parameterized_execute(query: string, params: any[]) { console.log("execute: " + query + " params: " + params); return 100 }
