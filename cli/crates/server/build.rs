@@ -39,8 +39,9 @@ Please see the instructions in cli/crates/server/README.md.
 fn decompress_assets() -> io::Result<tempfile::TempDir> {
     use flate2::bufread::GzDecoder;
     let dir = tempfile::tempdir()?;
-    eprintln!("Decompressing the assets at `{ASSETS_GZIP_PATH}` from `server` crate build script.");
-    let file_reader = io::BufReader::new(fs::File::open(ASSETS_GZIP_PATH)?);
+    let assets_gzip_path = env::var("GRAFBASE_ASSETS_GZIP_PATH").unwrap_or_else(|_| ASSETS_GZIP_PATH.to_owned());
+    eprintln!("Decompressing the assets at `{assets_gzip_path}` from `server` crate build script.");
+    let file_reader = io::BufReader::new(fs::File::open(assets_gzip_path)?);
     let assets_reader = GzDecoder::new(file_reader);
     tar::Archive::new(assets_reader).unpack(dir.path())?;
     Ok(dir)
