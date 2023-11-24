@@ -14,10 +14,11 @@ impl WasmTransport {
     async fn execute(&self, query: &str, params: Vec<serde_json::Value>) -> Result<u64, JsValue> {
         #[cfg(target_arch = "wasm32")]
         {
-            let context = JsValue::null();
-            let query = JsValue::from_str(query);
-            let params = params.try_into()?;
-            self.callbacks.as_ref().parameterized_execute.call2(context, query, params).await
+            todo!()
+            // let context = JsValue::null();
+            // let query = JsValue::from_str(query);
+            // let params = params.try_into()?;
+            // self.callbacks.as_ref().parameterized_execute.call2(context, query, params).await
         }
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -29,10 +30,20 @@ impl WasmTransport {
     async fn query(&self, query: &str, params: Vec<serde_json::Value>) -> Result<serde_json::Value, JsValue> {
         #[cfg(target_arch = "wasm32")]
         {
+            tracing::info!("querying");
             let context = JsValue::null();
             let query = JsValue::from_str(query);
-            let params = params.try_into()?;
-            self.callbacks.as_ref().parameterized_query.call2(context, query, params).await
+            tracing::info!("query: {query:?}");
+            let params = serde_wasm_bindgen::to_value(&params)?;
+            tracing::info!("params: {params:?}");
+            let result = self
+                .callbacks
+                .as_ref()
+                .parameterized_query
+                .call2(&context, &query, &params)?;
+            tracing::info!("result: {result:?}");
+            let result = wasm_bindgen_futures::JsFuture::from(js_sys::Promise::from(result)).await?;
+            Ok(serde_wasm_bindgen::from_value(result)?)
         }
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -54,12 +65,12 @@ impl Transport for WasmTransport {
         query: &'a str,
         params: Vec<serde_json::Value>,
     ) -> BoxStream<'a, Result<serde_json::Value, Error>> {
-        Box::pin(futures_util::stream::once(async move {
+        Box::pin(futures_util::stream::once(send_wrapper::SendWrapper::new(async move {
             self.query(query, params).await.map_err(|e| Error::Query {
                 code: "0".to_owned(),
                 message: e.as_string().unwrap_or_else(|| format!("{e:?}")),
             })
-        }))
+        })))
     }
 
     fn connection_string(&self) -> &str {
