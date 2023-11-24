@@ -104,7 +104,7 @@ pub enum ServerError {
     ReadFile(PathBuf, IoError),
 
     /// returned if the schema parser command exits unsuccessfully
-    #[error("could not parse grafbase/schema.graphql\n{0}")]
+    #[error("{0}")]
     ParseSchema(String),
 
     /// returned if the typescript config parser command exits unsuccessfully
