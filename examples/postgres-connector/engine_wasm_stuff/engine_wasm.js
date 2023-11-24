@@ -1347,7 +1347,7 @@ module.exports.__wbg_now_c857fb0367c762cc = function() {
     return ret;
 };
 
-module.exports.__wbindgen_closure_wrapper6015 = function(arg0, arg1, arg2) {
+module.exports.__wbindgen_closure_wrapper6018 = function(arg0, arg1, arg2) {
     const ret = makeMutClosure(arg0, arg1, 258, __wbg_adapter_48);
     return addHeapObject(ret);
 };
