@@ -1,6 +1,6 @@
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 
-use postgres_connector_types::{database_definition::DatabaseDefinition, transport::Transport};
+use postgres_connector_types::transport::Transport;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PgTransportFactoryError {
@@ -11,17 +11,6 @@ pub enum PgTransportFactoryError {
 }
 
 pub type PgTransportFactoryResult<T> = std::result::Result<T, PgTransportFactoryError>;
-
-#[async_trait::async_trait]
-pub trait PgTransportFactoryInner {
-    async fn try_new(
-        &self,
-        name: &str,
-        database_definition: &DatabaseDefinition,
-    ) -> PgTransportFactoryResult<Box<dyn Transport>>;
-
-    fn fetch_cached(&self, name: &str) -> PgTransportFactoryResult<&dyn Transport>;
-}
 
 type BoxedPgTransportFactoryImpl = Box<dyn PgTransportFactoryInner + Send + Sync>;
 
@@ -41,4 +30,9 @@ impl Deref for PgTransportFactory {
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
+}
+
+#[async_trait::async_trait]
+pub trait PgTransportFactoryInner {
+    async fn try_get(&self, name: &str) -> PgTransportFactoryResult<Arc<dyn Transport>>;
 }

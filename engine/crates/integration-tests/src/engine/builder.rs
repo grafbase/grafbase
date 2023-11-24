@@ -81,12 +81,14 @@ impl EngineBuilder {
 
         let registry: Registry = serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap();
 
-        let mut postgres_transports = HashMap::new();
-
-        for (name, definition) in &registry.postgres_databases {
-            let transport = TcpTransport::new(definition.connection_string()).await.unwrap();
-            postgres_transports.insert(name.to_string(), transport);
-        }
+        let postgres = {
+            let mut transports = HashMap::new();
+            for (name, definition) in &registry.postgres_databases {
+                let transport = TcpTransport::new(definition.connection_string()).await.unwrap();
+                transports.insert(name.to_string(), transport);
+            }
+            runtime::pg::PgTransportFactory::new(Box::new(runtime_local::LocalPgTransportFactory::new(transports)))
+        };
 
         let mut schema_builder = Schema::build(registry)
             .data(QueryBatcher::new())
@@ -100,9 +102,7 @@ impl EngineBuilder {
                     request_log_event_id: None,
                 },
             ))
-            .data(runtime_local::LocalPgTransportFactory::runtime_factory(Arc::new(
-                postgres_transports,
-            )));
+            .data(postgres);
 
         if self.local_dynamo {
             schema_builder = enable_local_dynamo(schema_builder).await;
