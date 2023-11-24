@@ -27,3 +27,4 @@ tracing.workspace = true
 wasm-bindgen-futures = "0.4"
 console_error_panic_hook = "*"
 tracing-wasm = "0.2.1"
+futures-util.workspace = true

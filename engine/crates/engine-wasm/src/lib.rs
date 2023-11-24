@@ -70,13 +70,24 @@ impl GrafbaseGateway {
     #[wasm_bindgen(constructor)]
     pub fn new(schema: &str) -> Result<GrafbaseGateway, JsValue> {
         console_error_panic_hook::set_once();
-        tracing_wasm::set_as_global_default();
+
+        {
+            let config = tracing_wasm::WASMLayerConfigBuilder::new()
+                .set_console_config(tracing_wasm::ConsoleConfig::ReportWithoutConsoleColor)
+                .build();
+            tracing_wasm::set_as_global_default_with_config(config);
+        }
 
         let registry: engine::Registry =
             serde_json::from_str(schema).map_err(|err| JsValue::from(format!("Error reading config: {err}")))?;
+        let pg_transports = registry
+            .postgres_databases
+            .iter()
+            .map(|(name, db)| (name.to_owned(), pg::WasmTransport(db.connection_string().to_owned())))
+            .collect();
         let schema = engine::Schema::build(registry)
             .data(engine::registry::resolvers::graphql::QueryBatcher::new())
-            .data(pg::make_pg_transport_factory())
+            .data(pg::make_pg_transport_factory(pg_transports))
             .finish();
         let executor = Arc::new(Executor { schema });
         let cache = Arc::new(NoopCache::<engine::Response>::new());

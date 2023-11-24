@@ -219,11 +219,11 @@ function handleError(f, args) {
     try {
         return f.apply(this, args);
     } catch (e) {
-        wasm.__wbindgen_export_5(addHeapObject(e));
+        wasm.__wbindgen_export_6(addHeapObject(e));
     }
 }
-function __wbg_adapter_84(arg0, arg1, arg2, arg3) {
-    wasm.__wbindgen_export_6(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
+function __wbg_adapter_90(arg0, arg1, arg2, arg3) {
+    wasm.__wbindgen_export_7(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
 }
 
 /**
@@ -320,7 +320,7 @@ class IntoUnderlyingByteSource {
             return getStringFromWasm0(r0, r1);
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
-            wasm.__wbindgen_export_7(deferred1_0, deferred1_1);
+            wasm.__wbindgen_export_5(deferred1_0, deferred1_1);
         }
     }
     /**
@@ -668,7 +668,7 @@ module.exports.__wbg_new_2b55e405e4af4986 = function(arg0, arg1) {
             const a = state0.a;
             state0.a = 0;
             try {
-                return __wbg_adapter_84(a, state0.b, arg0, arg1);
+                return __wbg_adapter_90(a, state0.b, arg0, arg1);
             } finally {
                 state0.a = a;
             }
@@ -680,13 +680,38 @@ module.exports.__wbg_new_2b55e405e4af4986 = function(arg0, arg1) {
     }
 };
 
-module.exports.__wbg_clearTimeout_76877dbc010e786d = function(arg0) {
-    const ret = clearTimeout(takeObject(arg0));
+module.exports.__wbg_new_abda76e883ba8a5f = function() {
+    const ret = new Error();
     return addHeapObject(ret);
+};
+
+module.exports.__wbg_stack_658279fe44541cf6 = function(arg0, arg1) {
+    const ret = getObject(arg1).stack;
+    const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
+    const len1 = WASM_VECTOR_LEN;
+    getInt32Memory0()[arg0 / 4 + 1] = len1;
+    getInt32Memory0()[arg0 / 4 + 0] = ptr1;
+};
+
+module.exports.__wbg_error_f851667af71bcfc6 = function(arg0, arg1) {
+    let deferred0_0;
+    let deferred0_1;
+    try {
+        deferred0_0 = arg0;
+        deferred0_1 = arg1;
+        console.error(getStringFromWasm0(arg0, arg1));
+    } finally {
+        wasm.__wbindgen_export_5(deferred0_0, deferred0_1);
+    }
 };
 
 module.exports.__wbindgen_object_drop_ref = function(arg0) {
     takeObject(arg0);
+};
+
+module.exports.__wbg_clearTimeout_76877dbc010e786d = function(arg0) {
+    const ret = clearTimeout(takeObject(arg0));
+    return addHeapObject(ret);
 };
 
 module.exports.__wbindgen_cb_drop = function(arg0) {
@@ -990,6 +1015,51 @@ module.exports.__wbg_getRandomValues_37fa2ca9e4e07fab = function() { return hand
     getObject(arg0).getRandomValues(getObject(arg1));
 }, arguments) };
 
+module.exports.__wbg_measure_aa7a73f17813f708 = function() { return handleError(function (arg0, arg1, arg2, arg3) {
+    let deferred0_0;
+    let deferred0_1;
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        deferred0_0 = arg0;
+        deferred0_1 = arg1;
+        deferred1_0 = arg2;
+        deferred1_1 = arg3;
+        performance.measure(getStringFromWasm0(arg0, arg1), getStringFromWasm0(arg2, arg3));
+    } finally {
+        wasm.__wbindgen_export_5(deferred0_0, deferred0_1);
+        wasm.__wbindgen_export_5(deferred1_0, deferred1_1);
+    }
+}, arguments) };
+
+module.exports.__wbg_mark_40e050a77cc39fea = function(arg0, arg1) {
+    performance.mark(getStringFromWasm0(arg0, arg1));
+};
+
+module.exports.__wbg_log_c9486ca5d8e2cbe8 = function(arg0, arg1) {
+    let deferred0_0;
+    let deferred0_1;
+    try {
+        deferred0_0 = arg0;
+        deferred0_1 = arg1;
+        console.log(getStringFromWasm0(arg0, arg1));
+    } finally {
+        wasm.__wbindgen_export_5(deferred0_0, deferred0_1);
+    }
+};
+
+module.exports.__wbg_log_aba5996d9bde071f = function(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+    let deferred0_0;
+    let deferred0_1;
+    try {
+        deferred0_0 = arg0;
+        deferred0_1 = arg1;
+        console.log(getStringFromWasm0(arg0, arg1), getStringFromWasm0(arg2, arg3), getStringFromWasm0(arg4, arg5), getStringFromWasm0(arg6, arg7));
+    } finally {
+        wasm.__wbindgen_export_5(deferred0_0, deferred0_1);
+    }
+};
+
 module.exports.__wbindgen_debug_string = function(arg0, arg1) {
     const ret = debugString(getObject(arg1));
     const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
@@ -1078,13 +1148,13 @@ module.exports.__wbg_now_c857fb0367c762cc = function() {
     return ret;
 };
 
-module.exports.__wbindgen_closure_wrapper5862 = function(arg0, arg1, arg2) {
-    const ret = makeMutClosure(arg0, arg1, 253, __wbg_adapter_26);
+module.exports.__wbindgen_closure_wrapper5933 = function(arg0, arg1, arg2) {
+    const ret = makeMutClosure(arg0, arg1, 257, __wbg_adapter_26);
     return addHeapObject(ret);
 };
 
-module.exports.__wbindgen_closure_wrapper8472 = function(arg0, arg1, arg2) {
-    const ret = makeMutClosure(arg0, arg1, 328, __wbg_adapter_29);
+module.exports.__wbindgen_closure_wrapper8710 = function(arg0, arg1, arg2) {
+    const ret = makeMutClosure(arg0, arg1, 340, __wbg_adapter_29);
     return addHeapObject(ret);
 };
 

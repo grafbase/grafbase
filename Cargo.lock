@@ -2059,6 +2059,7 @@ dependencies = [
  "common-types",
  "console_error_panic_hook",
  "engine",
+ "futures-util",
  "gateway-core",
  "http",
  "postgres-connector-types",
