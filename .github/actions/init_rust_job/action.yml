@@ -21,7 +21,7 @@ runs:
   using: 'composite'
   steps:
     - name: Cargo cache
-      uses: buildjet/cache@v3
+      uses: actions/cache@v3
       continue-on-error: false
       with:
         key: ${{ inputs.cache-key }}
