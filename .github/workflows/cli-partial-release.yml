@@ -115,7 +115,7 @@ jobs:
       - name: Generate licenses
         shell: bash
         run: |
-          (cd cli && cargo about generate -o "licenses.html" about.hbs)
+          cargo about generate -o "licenses.html" about.hbs
           find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
 
@@ -146,7 +146,7 @@ jobs:
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
           files: |
-            cli/licenses.html
+            licenses.html
             cli/npm/github/grafbase-aarch64-apple-darwin
             cli/npm/github/grafbase-x86_64-apple-darwin
             cli/npm/github/grafbase-x86_64-pc-windows-msvc.exe
