@@ -88,7 +88,7 @@ impl PgCallbacks {
 #[wasm_bindgen]
 impl GrafbaseGateway {
     #[wasm_bindgen(constructor)]
-    pub fn new(schema: &str, mut pg_callbacks: Option<PgCallbacks>) -> Result<GrafbaseGateway, JsValue> {
+    pub fn new(schema: &str, pg_callbacks: Option<PgCallbacks>) -> Result<GrafbaseGateway, JsValue> {
         console_error_panic_hook::set_once();
 
         {
@@ -121,9 +121,20 @@ impl GrafbaseGateway {
                 )
             })
             .collect();
+        let ctx = Arc::new(Context {
+            headers: http::HeaderMap::new(),
+        });
+        let runtime_ctx = runtime::context::Context::new(
+            &ctx,
+            runtime::context::LogContext {
+                fetch_log_endpoint_url: None,
+                request_log_event_id: None,
+            },
+        );
         let schema = engine::Schema::build(registry)
             .data(engine::registry::resolvers::graphql::QueryBatcher::new())
             .data(pg::make_pg_transport_factory(pg_transports))
+            .data(runtime_ctx)
             .finish();
         let executor = Arc::new(Executor { schema });
         let cache = Arc::new(NoopCache::<engine::Response>::new());

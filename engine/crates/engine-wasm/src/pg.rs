@@ -1,9 +1,9 @@
 use futures_util::{stream::BoxStream, Future};
 use postgres_connector_types::{database_definition::DatabaseDefinition, error::Error, transport::Transport};
 use runtime::pg::{PgTransportFactory, PgTransportFactoryError, PgTransportFactoryInner, PgTransportFactoryResult};
+use send_wrapper::SendWrapper;
 use std::{collections::HashMap, pin::Pin, sync::Arc};
 use wasm_bindgen::JsValue;
-use send_wrapper::SendWrapper;
 
 pub(crate) struct WasmTransport {
     pub(crate) connection_string: String,
@@ -11,12 +11,34 @@ pub(crate) struct WasmTransport {
 }
 
 impl WasmTransport {
-    fn execute() -> Result<u64, JsValue> {
-        todo!()
+    async fn execute(&self, query: &str, params: Vec<serde_json::Value>) -> Result<u64, JsValue> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let context = JsValue::null();
+            let query = JsValue::from_str(query);
+            let params = params.try_into()?;
+            self.callbacks.as_ref().parameterized_execute.call2(context, query, params).await
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            Ok(serde_json::Value::Null)
+        }
     }
 
-    fn query() -> Result<serde_json::Value, JsValue> {
-        todo!()
+    async fn query(&self, query: &str, params: Vec<serde_json::Value>) -> Result<serde_json::Value, JsValue> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let context = JsValue::null();
+            let query = JsValue::from_str(query);
+            let params = params.try_into()?;
+            self.callbacks.as_ref().parameterized_query.call2(context, query, params).await
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            Ok(serde_json::Value::Null)
+        }
     }
 }
 
@@ -32,7 +54,12 @@ impl Transport for WasmTransport {
         query: &'a str,
         params: Vec<serde_json::Value>,
     ) -> BoxStream<'a, Result<serde_json::Value, Error>> {
-        todo!();
+        Box::pin(futures_util::stream::once(async move {
+            self.query(query, params).await.map_err(|e| Error::Query {
+                code: "0".to_owned(),
+                message: e.as_string().unwrap_or_else(|| format!("{e:?}")),
+            })
+        }))
     }
 
     fn connection_string(&self) -> &str {
