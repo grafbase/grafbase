@@ -115,7 +115,7 @@ jobs:
       - name: Generate licenses
         shell: bash
         run: |
-          cargo about generate -o "licenses.html" cli/about.hbs
+          cargo about generate -c cli/about.toml -o "licenses.html" cli/about.hbs
           find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
 
