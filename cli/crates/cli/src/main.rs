@@ -6,6 +6,7 @@ mod cli_input;
 mod create;
 mod deploy;
 mod dev;
+mod dump_config;
 mod errors;
 mod init;
 mod introspect;
@@ -157,5 +158,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
             }
         }
         SubCommand::Introspect(cmd) => introspect::introspect(&cmd),
+        SubCommand::DumpConfig => dump_config::dump_config(),
     }
 }

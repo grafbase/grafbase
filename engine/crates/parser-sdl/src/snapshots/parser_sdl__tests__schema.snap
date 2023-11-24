@@ -1,5 +1,5 @@
 ---
-source: crates/parser-sdl/src/tests.rs
+source: engine/crates/parser-sdl/src/tests.rs
 expression: req_string_a
 ---
 {
@@ -83,6 +83,7 @@ expression: req_string_a
   "enable_federation": false,
   "enable_kv": false,
   "federation_subscription": false,
+  "grafbase_cli_version": null,
   "http_headers": {},
   "implements": {},
   "mongodb_configurations": {},

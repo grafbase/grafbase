@@ -47,6 +47,9 @@ pub enum SubCommand {
     /// Publish a subgraph to a federated graph
     #[clap(hide = true)]
     Publish(PublishCommand),
+    /// Dump the registry as JSON.
+    #[clap(hide = true)]
+    DumpConfig,
 }
 
 impl SubCommand {
@@ -65,6 +68,7 @@ impl SubCommand {
                 | Self::Start(_)
                 | Self::Build(_)
                 | Self::Unlink
+                | Self::DumpConfig
         )
     }
 }
@@ -88,6 +92,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Start(_)
             | SubCommand::Build(_)
             | SubCommand::Completions(_)
+            | SubCommand::DumpConfig
             | SubCommand::Logs(_) => None,
         }
     }
