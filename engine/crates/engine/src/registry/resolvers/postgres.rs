@@ -69,7 +69,7 @@ impl PostgresResolver {
                     &self.directive_name
                 )))?;
 
-            let transport = pg_transport_factory.fetch_cached(&self.directive_name)?;
+            let transport = pg_transport_factory.try_get(&self.directive_name).await?;
             let context = PostgresContext::new(ctx, resolver_ctx, database_definition, transport).await?;
 
             request::execute(context, self.operation).await

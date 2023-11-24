@@ -3,6 +3,8 @@ mod filter;
 pub mod selection;
 mod update_input;
 
+use std::sync::Arc;
+
 pub(super) use create_input::{CreateInputItem, CreateInputIterator};
 pub(super) use filter::FilterIterator;
 use postgres_connector_types::{
@@ -26,7 +28,7 @@ pub struct PostgresContext<'a> {
     context: &'a ContextField<'a>,
     resolver_context: &'a ResolverContext<'a>,
     database_definition: &'a DatabaseDefinition,
-    transport: &'a dyn Transport,
+    transport: Arc<dyn Transport>,
 }
 
 impl<'a> PostgresContext<'a> {
@@ -34,7 +36,7 @@ impl<'a> PostgresContext<'a> {
         context: &'a ContextField<'a>,
         resolver_context: &'a ResolverContext<'a>,
         database_definition: &'a DatabaseDefinition,
-        transport: &'a dyn Transport,
+        transport: Arc<dyn Transport>,
     ) -> Result<PostgresContext<'a>, Error> {
         Ok(Self {
             context,
@@ -182,7 +184,7 @@ impl<'a> PostgresContext<'a> {
 
     /// The database connection.
     pub fn transport(&self) -> &dyn Transport {
-        self.transport
+        self.transport.as_ref()
     }
 
     pub fn runtime_ctx(&self) -> Result<&runtime::Context, crate::Error> {
