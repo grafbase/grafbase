@@ -1,3 +1,7 @@
+#![allow(unused_crate_dependencies)]
+
+mod pg;
+
 use common_types::auth::ExecutionAuth;
 use engine::Request;
 use gateway_core::{AdminAuthError, AuthError};
@@ -65,10 +69,14 @@ pub struct GrafbaseGateway {
 impl GrafbaseGateway {
     #[wasm_bindgen(constructor)]
     pub fn new(schema: &str) -> Result<GrafbaseGateway, JsValue> {
+        console_error_panic_hook::set_once();
+        tracing_wasm::set_as_global_default();
+
         let registry: engine::Registry =
             serde_json::from_str(schema).map_err(|err| JsValue::from(format!("Error reading config: {err}")))?;
         let schema = engine::Schema::build(registry)
             .data(engine::registry::resolvers::graphql::QueryBatcher::new())
+            .data(pg::make_pg_transport_factory())
             .finish();
         let executor = Arc::new(Executor { schema });
         let cache = Arc::new(NoopCache::<engine::Response>::new());
@@ -76,11 +84,14 @@ impl GrafbaseGateway {
         let authorizer = Box::new(Authorizer);
         let gateway = gateway_core::Gateway::new(executor, cache, cache_config, authorizer);
 
+        tracing::info!("new worked");
+
         Ok(GrafbaseGateway { gateway })
     }
 
     #[wasm_bindgen]
     pub async fn execute(&self, request: String) -> Result<String, JsValue> {
+        tracing::info!("in execute");
         let ctx = Arc::new(Context {
             headers: http::HeaderMap::new(),
         });

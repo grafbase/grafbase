@@ -1,0 +1,11 @@
+extend schema
+  @auth(
+    rules: [
+      { allow: public }
+    ]
+  )extend schema
+  @postgres(
+    name: "pg"
+    url: "postgres://postgres:grafbase@127.0.0.1:5432/grafbase"
+    namespace: true
+  )

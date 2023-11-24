@@ -4,4 +4,4 @@ import * as fs from 'fs'
 const config = fs.readFileSync('./registry.json', 'utf8')
 const engine = new w.GrafbaseGateway(config)
 
-console.log(await engine.execute(JSON.stringify({ query: "{ __typename }" })))
+console.log(await engine.execute(JSON.stringify({ query: "{ __typename __schema { queryType { name fields { name } } } }" })))

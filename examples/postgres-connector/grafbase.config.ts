@@ -1,13 +1,13 @@
-import { g, config } from '@grafbase/sdk'
+import { g, config, connector } from '@grafbase/sdk'
 
 // Welcome to Grafbase!
 //
 // Configure authentication, data sources, resolvers and caching for your GraphQL API.
 
 // Data Sources - https://grafbase.com/docs/connectors
-//
-// const pg = connector.Postgres('pg', { url: g.env('DATABASE_URL') })
-// g.datasource(pg)
+
+const pg = connector.Postgres('pg', { url: g.env('POSTGRES_URL') })
+g.datasource(pg)
 
 // Resolvers - https://grafbase.com/docs/resolvers
 //

@@ -15,10 +15,15 @@ common-types.path = "../common-types"
 engine.path = "../engine"
 gateway-core.path = "../gateway-core"
 runtime-noop.path = "../runtime-noop"
+runtime.path = "../runtime"
+postgres-connector-types.path = "../postgres-connector-types"
 
 async-graphql = "6"
 async-trait.workpsace = true
 wasm-bindgen.workspace = true
 http.workspace = true
 serde_json.workspace = true
+tracing.workspace = true
 wasm-bindgen-futures = "0.4"
+console_error_panic_hook = "*"
+tracing-wasm = "0.2.1"

@@ -103,6 +103,7 @@
           if [[ "${system}" == "aarch64-darwin" ]]; then
             cargo binstall --no-confirm --no-symlinks --quiet ${aarch64DarwinExternalCargoCrates}
           fi
+          export POSTGRES_URL=postgres://postgres:grafbase@127.0.0.1:5432
         '';
       };
 
