@@ -19,9 +19,11 @@
     };
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = {
+  outputs = inputs@{
+    flake-parts,
     nixpkgs,
     flake-utils,
     pnpm2nix,
@@ -29,8 +31,7 @@
   }: let
     inherit (nixpkgs.lib) optional concatStringsSep;
     systems = flake-utils.lib.system;
-  in
-    flake-utils.lib.eachDefaultSystem (system: let
+    flake = flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
       };
@@ -96,4 +97,11 @@
       devShells.default = pkgs.mkShell defaultShellConf;
       packages.cli-app = import ./packages/nix/cli-app.nix {inherit mkPnpmPackage pkgs;};
     });
+  in
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      inherit flake;
+      systems = flake-utils.lib.defaultSystems;
+      perSystem = { config, ... }: {
+      };
+    };
 }
