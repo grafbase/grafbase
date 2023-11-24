@@ -3,6 +3,7 @@ use engine::{indexmap::map::Entry, registry::relations::MetaRelation, Positioned
 use engine_parser::types::{FieldDefinition, Type, TypeKind};
 use if_chain::if_chain;
 use regex::Regex;
+use std::sync::OnceLock;
 
 use crate::{
     registry::names::MetaNames,
@@ -37,8 +38,9 @@ pub const NAME_ARGUMENT: &str = "name";
 
 static NAME_CHARS: &str = r"[_a-zA-Z0-9]";
 
-lazy_static::lazy_static! {
-    static ref NAME_RE: Regex = Regex::new(&format!("^{NAME_CHARS}*$")).unwrap();
+fn name_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(&format!("^{NAME_CHARS}*$")).unwrap())
 }
 
 impl RelationEngine {
@@ -120,7 +122,7 @@ impl<'a> Visitor<'a> for RelationEngine {
                 for field in &object.fields {
                     if ModelDirective::is_model(ctx, &field.node.ty.node) {
                         let relation = generate_metarelation(&type_definition.node.name.node, &field.node);
-                        if !NAME_RE.is_match(&relation.name) {
+                        if !name_re().is_match(&relation.name) {
                             let name = &relation.name;
                             ctx.report_error(
                                 vec![relation_name(&field.node).unwrap().pos],
