@@ -1,5 +1,8 @@
+pub(crate) use postgres_connector_types::{
+    database_definition::DatabaseDefinition, error::Error, transport::Transport,
+};
+
 use futures_util::{stream::BoxStream, Future};
-use postgres_connector_types::{database_definition::DatabaseDefinition, error::Error, transport::Transport};
 use runtime::pg::{PgTransportFactory, PgTransportFactoryError, PgTransportFactoryInner, PgTransportFactoryResult};
 use send_wrapper::SendWrapper;
 use std::{collections::HashMap, pin::Pin, sync::Arc};
@@ -32,7 +35,7 @@ impl WasmTransport {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            Ok(serde_json::Value::Null)
+            Ok(u64::MAX)
         }
     }
 
@@ -107,21 +110,22 @@ impl Transport for WasmTransport {
     }
 }
 
-pub(crate) fn make_pg_transport_factory(transports: HashMap<String, WasmTransport>) -> PgTransportFactory {
+pub(crate) fn make_pg_transport_factory(transports: HashMap<String, Arc<dyn Transport>>) -> PgTransportFactory {
     let factory_impl = PgTransportFactoryImpl { transports };
     PgTransportFactory::new(Box::new(factory_impl))
 }
 
 struct PgTransportFactoryImpl {
-    transports: HashMap<String, Arc<dyn Transport + Send>>,
+    transports: HashMap<String, Arc<dyn Transport>>,
 }
 
 #[async_trait::async_trait]
 impl PgTransportFactoryInner for PgTransportFactoryImpl {
-    fn try_get(&self, name: &str) -> PgTransportFactoryResult<Arc<dyn Transport>> {
+    async fn try_get(&self, name: &str) -> PgTransportFactoryResult<Arc<dyn Transport>> {
         tracing::info!("fetching cached transport `{name}`");
         self.transports
             .get(name)
             .ok_or_else(|| PgTransportFactoryError::TransportNotFound(name.to_owned()))
+            .cloned()
     }
 }
