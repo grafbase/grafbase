@@ -14,7 +14,7 @@ pub(crate) struct WasmTransport {
 }
 
 impl WasmTransport {
-    async fn execute(&self, query: &str, params: Vec<serde_json::Value>) -> Result<u64, JsValue> {
+    async fn execute(&self, query: &str, params: Vec<serde_json::Value>) -> Result<i64, JsValue> {
         #[cfg(target_arch = "wasm32")]
         {
             tracing::info!("querying");
@@ -35,7 +35,7 @@ impl WasmTransport {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            Ok(u64::MAX)
+            Ok(i64::MAX)
         }
     }
 
@@ -106,7 +106,12 @@ impl Transport for WasmTransport {
         'query: 'a,
         Self: 'a,
     {
-        todo!()
+        Box::pin(async move {
+            self.execute(query, params).await.map_err(|e| Error::Query {
+                code: "0".to_owned(),
+                message: e.as_string().unwrap_or_else(|| format!("{e:?}")),
+            })
+        })
     }
 }
 

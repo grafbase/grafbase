@@ -726,26 +726,11 @@ module.exports.__wbindgen_boolean_get = function(arg0) {
     return ret;
 };
 
-module.exports.__wbindgen_is_bigint = function(arg0) {
-    const ret = typeof(getObject(arg0)) === 'bigint';
-    return ret;
-};
-
 module.exports.__wbindgen_number_get = function(arg0, arg1) {
     const obj = getObject(arg1);
     const ret = typeof(obj) === 'number' ? obj : undefined;
     getFloat64Memory0()[arg0 / 8 + 1] = isLikeNone(ret) ? 0 : ret;
     getInt32Memory0()[arg0 / 4 + 0] = !isLikeNone(ret);
-};
-
-module.exports.__wbg_isSafeInteger_2088b01008075470 = function(arg0) {
-    const ret = Number.isSafeInteger(getObject(arg0));
-    return ret;
-};
-
-module.exports.__wbindgen_bigint_from_i64 = function(arg0) {
-    const ret = arg0;
-    return addHeapObject(ret);
 };
 
 module.exports.__wbg_length_820c786973abdd8a = function(arg0) {
@@ -813,6 +798,11 @@ module.exports.__wbg_set_da7be7bf0e037b14 = function(arg0, arg1, arg2) {
     return addHeapObject(ret);
 };
 
+module.exports.__wbindgen_bigint_from_i64 = function(arg0) {
+    const ret = arg0;
+    return addHeapObject(ret);
+};
+
 module.exports.__wbindgen_string_get = function(arg0, arg1) {
     const obj = getObject(arg1);
     const ret = typeof(obj) === 'string' ? obj : undefined;
@@ -820,6 +810,11 @@ module.exports.__wbindgen_string_get = function(arg0, arg1) {
     var len1 = WASM_VECTOR_LEN;
     getInt32Memory0()[arg0 / 4 + 1] = len1;
     getInt32Memory0()[arg0 / 4 + 0] = ptr1;
+};
+
+module.exports.__wbindgen_is_bigint = function(arg0) {
+    const ret = typeof(getObject(arg0)) === 'bigint';
+    return ret;
 };
 
 module.exports.__wbindgen_error_new = function(arg0, arg1) {
@@ -840,11 +835,6 @@ module.exports.__wbg_new_0394642eae39db16 = function() {
 module.exports.__wbg_set_b4da98d504ac6091 = function(arg0, arg1, arg2) {
     getObject(arg0)[arg1 >>> 0] = takeObject(arg2);
 };
-
-module.exports.__wbg_call_4c73e4aecced6a7d = function() { return handleError(function (arg0, arg1, arg2, arg3) {
-    const ret = getObject(arg0).call(getObject(arg1), getObject(arg2), getObject(arg3));
-    return addHeapObject(ret);
-}, arguments) };
 
 module.exports.__wbg_new_2b55e405e4af4986 = function(arg0, arg1) {
     try {
@@ -1131,6 +1121,16 @@ module.exports.__wbg_call_587b30eea3e09332 = function() { return handleError(fun
     return addHeapObject(ret);
 }, arguments) };
 
+module.exports.__wbg_call_4c73e4aecced6a7d = function() { return handleError(function (arg0, arg1, arg2, arg3) {
+    const ret = getObject(arg0).call(getObject(arg1), getObject(arg2), getObject(arg3));
+    return addHeapObject(ret);
+}, arguments) };
+
+module.exports.__wbg_isSafeInteger_2088b01008075470 = function(arg0) {
+    const ret = Number.isSafeInteger(getObject(arg0));
+    return ret;
+};
+
 module.exports.__wbg_set_07da13cc24b69217 = function() { return handleError(function (arg0, arg1, arg2) {
     const ret = Reflect.set(getObject(arg0), getObject(arg1), getObject(arg2));
     return ret;
@@ -1347,12 +1347,12 @@ module.exports.__wbg_now_c857fb0367c762cc = function() {
     return ret;
 };
 
-module.exports.__wbindgen_closure_wrapper6018 = function(arg0, arg1, arg2) {
+module.exports.__wbindgen_closure_wrapper6027 = function(arg0, arg1, arg2) {
     const ret = makeMutClosure(arg0, arg1, 258, __wbg_adapter_48);
     return addHeapObject(ret);
 };
 
-module.exports.__wbindgen_closure_wrapper8797 = function(arg0, arg1, arg2) {
+module.exports.__wbindgen_closure_wrapper8806 = function(arg0, arg1, arg2) {
     const ret = makeMutClosure(arg0, arg1, 341, __wbg_adapter_51);
     return addHeapObject(ret);
 };
