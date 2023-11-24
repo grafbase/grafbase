@@ -65,7 +65,8 @@ pub struct GrafbaseGateway {
 impl GrafbaseGateway {
     #[wasm_bindgen(constructor)]
     pub fn new(schema: &str) -> Result<GrafbaseGateway, JsValue> {
-        let registry: engine::Registry = serde_json::from_str(schema).map_err(|err| JsValue::from(err.to_string()))?;
+        let registry: engine::Registry =
+            serde_json::from_str(schema).map_err(|err| JsValue::from(format!("Error reading config: {err}")))?;
         let schema = engine::Schema::build(registry)
             .data(engine::registry::resolvers::graphql::QueryBatcher::new())
             .finish();
