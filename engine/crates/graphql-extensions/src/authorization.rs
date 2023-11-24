@@ -11,7 +11,7 @@ use engine::{
     registry::{relations::MetaRelation, ModelName, NamedType, Registry, TypeReference},
     AuthConfig, ServerError, ServerResult,
 };
-use engine_value::{indexmap::IndexMap, ConstValue};
+use engine_value::ConstValue;
 use log::{trace, warn};
 
 const INPUT_ARG: &str = "input";
@@ -60,10 +60,6 @@ impl Extension for AuthExtension {
         info: ResolveInfo<'_>,
         next: NextResolve<'_>,
     ) -> ServerResult<Option<ResponseNodeId>> {
-        lazy_static::lazy_static! {
-            static ref EMPTY_INDEX_MAP: IndexMap<engine_value::Name, ConstValue> = IndexMap::new();
-        }
-
         if info.parent_type.starts_with("__") || info.parent_type.starts_with("[__") || info.name.starts_with("__") {
             return next.run(ctx, info).await;
         }

@@ -1,9 +1,8 @@
-use std::collections::HashMap;
-
 use engine::ServerError;
 use itertools::Itertools;
 use regex::Regex;
 use serde_with::DeserializeFromStr;
+use std::{collections::HashMap, sync::OnceLock};
 
 /// A type representing a segment of a partially evaluated dynamic string.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -21,13 +20,14 @@ impl std::str::FromStr for DynamicString {
     type Err = ServerError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        lazy_static::lazy_static! {
-            static ref RE: Regex = Regex::new(r"\{\{\s*([[[:alnum:]]_.]+)\s*\}\}").unwrap();
+        fn re() -> &'static Regex {
+            static RE: OnceLock<Regex> = OnceLock::new();
+            RE.get_or_init(|| Regex::new(r"\{\{\s*([[[:alnum:]]_.]+)\s*\}\}").unwrap())
         }
 
         let mut errors = vec![];
         let mut segments = vec![];
-        let last_end = RE.captures_iter(string).fold(0, |last_end, captures| {
+        let last_end = re().captures_iter(string).fold(0, |last_end, captures| {
             let overall_match = captures.get(0).unwrap();
             let key = captures.get(1).unwrap().as_str();
             let path = key.split('.');

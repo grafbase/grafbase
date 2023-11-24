@@ -67,10 +67,9 @@ pub struct VisitorContext<'a> {
 impl<'a> VisitorContext<'a> {
     #[cfg(test)] // Used in tests.
     pub(crate) fn new_for_tests(document: &'a ServiceDocument) -> Self {
-        lazy_static::lazy_static! {
-            static ref EMPTY_HASHMAP: HashMap<String, String> = HashMap::new();
-        }
-        Self::new(document, true, &EMPTY_HASHMAP)
+        use std::sync::OnceLock;
+        static MAP: OnceLock<HashMap<String, String>> = OnceLock::new();
+        Self::new(document, true, MAP.get_or_init(HashMap::new))
     }
 
     /// Create a new unique [`SchemaID`] for this [`VisitorContext`] if the provided `ty` doesn't
