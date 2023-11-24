@@ -97,7 +97,7 @@ pub enum Error {
     ),
     #[error("{0:?}")]
     Validation(Vec<RuleError>),
-    #[error("Errors parsing {} connector: \n\n{}", .0, .1.join("\n"))]
+    #[error("{} data source: {}", .0, .1.join("\n"))]
     ConnectorErrors(String, Vec<String>, Pos),
 }
 
