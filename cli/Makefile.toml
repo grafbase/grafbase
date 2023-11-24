@@ -36,7 +36,7 @@ then
   echo "Error: '$VERSION' is not a valid semantic version" 1>&2
   exit 1
 fi
-cargo release version $VERSION --execute --no-confirm
+cargo release version $VERSION --execute --no-confirm -p grafbase
 cd npm/cli
 npm version --git-tag-version false $VERSION
 cd ../aarch64-unknown-linux-musl
