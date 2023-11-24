@@ -14,3 +14,8 @@ extend schema
     namespace: true
     url: "https://swapi-graphql.netlify.app/.netlify/functions/index"
   )
+  @openapi(
+    name: "openapi"
+    namespace: true
+    schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+  )

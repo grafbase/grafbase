@@ -12,9 +12,9 @@ g.datasource(pg)
 const gql = connector.GraphQL('swapi', { url: 'https://swapi-graphql.netlify.app/.netlify/functions/index' })
 g.datasource(gql)
 
-const stripe = connector.OpenAPI('Stripe', {
+const stripe = connector.OpenAPI('stripe', {
   schema:
-    'https://api.apis.guru/v2/specs/openapi.space/1.0.0/swagger.json',
+      'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json'
   // headers: headers => {
   //   headers.set('Authorization', `Bearer ${g.env('STRIPE_API_KEY')}`)
   // },

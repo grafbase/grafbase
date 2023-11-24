@@ -25,3 +25,5 @@ console.log(JSON.stringify(JSON.parse(await engine.execute(JSON.stringify({ quer
 
 
 console.log(JSON.stringify(JSON.parse(await engine.execute(JSON.stringify({ query: "{ swapi { allFilms(first: 3) { films { title director } } } }" }))), null, 2))
+
+console.log(JSON.stringify(JSON.parse(await engine.execute(JSON.stringify({ query: "{ openapi { account { country } } }" }))), null, 2))
