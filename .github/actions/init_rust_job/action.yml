@@ -22,6 +22,7 @@ runs:
   steps:
     - name: Cargo cache
       uses: buildjet/cache@v3
+      if: inputs.platform != 'macos'
       continue-on-error: false
       with:
         key: ${{ inputs.cache-key }}
