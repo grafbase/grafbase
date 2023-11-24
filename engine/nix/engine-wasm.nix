@@ -35,6 +35,6 @@ let
   initialWasm = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
 in
 pkgs.writeShellScriptBin "engine-wasm" ''
-  cargo install wasm-bindgen-cli@0.2.86
+  cargo install wasm-bindgen-cli@0.2.86 -q
   wasm-bindgen ${initialWasm}/lib/engine_wasm.wasm --target=nodejs --out-dir engine_wasm_stuff
 ''
