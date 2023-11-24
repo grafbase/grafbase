@@ -9,3 +9,8 @@ extend schema
     url: "postgres://postgres:grafbase@127.0.0.1:5432/grafbase"
     namespace: true
   )
+  @graphql(
+    name: "swapi"
+    namespace: true
+    url: "https://swapi-graphql.netlify.app/.netlify/functions/index"
+  )
