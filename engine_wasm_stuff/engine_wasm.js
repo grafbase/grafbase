@@ -215,6 +215,13 @@ function __wbg_adapter_29(arg0, arg1, arg2) {
     wasm.__wbindgen_export_4(arg0, arg1, addHeapObject(arg2));
 }
 
+function _assertClass(instance, klass) {
+    if (!(instance instanceof klass)) {
+        throw new Error(`expected instance of ${klass.name}`);
+    }
+    return instance.ptr;
+}
+
 function handleError(f, args) {
     try {
         return f.apply(this, args);
@@ -222,7 +229,7 @@ function handleError(f, args) {
         wasm.__wbindgen_export_6(addHeapObject(e));
     }
 }
-function __wbg_adapter_90(arg0, arg1, arg2, arg3) {
+function __wbg_adapter_91(arg0, arg1, arg2, arg3) {
     wasm.__wbindgen_export_7(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
 }
 
@@ -259,13 +266,19 @@ class GrafbaseGateway {
     }
     /**
     * @param {string} schema
+    * @param {PgCallbacks | undefined} pg_callbacks
     */
-    constructor(schema) {
+    constructor(schema, pg_callbacks) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
             const ptr0 = passStringToWasm0(schema, wasm.__wbindgen_export_0, wasm.__wbindgen_export_1);
             const len0 = WASM_VECTOR_LEN;
-            wasm.grafbasegateway_new(retptr, ptr0, len0);
+            let ptr1 = 0;
+            if (!isLikeNone(pg_callbacks)) {
+                _assertClass(pg_callbacks, PgCallbacks);
+                ptr1 = pg_callbacks.__destroy_into_raw();
+            }
+            wasm.grafbasegateway_new(retptr, ptr0, len0, ptr1);
             var r0 = getInt32Memory0()[retptr / 4 + 0];
             var r1 = getInt32Memory0()[retptr / 4 + 1];
             var r2 = getInt32Memory0()[retptr / 4 + 2];
@@ -484,6 +497,39 @@ class MinifyConfig {
 }
 module.exports.MinifyConfig = MinifyConfig;
 /**
+*/
+class PgCallbacks {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(PgCallbacks.prototype);
+        obj.__wbg_ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_pgcallbacks_free(ptr);
+    }
+    /**
+    * @param {Function} parameterized_execute
+    * @param {Function} parameterized_query
+    */
+    constructor(parameterized_execute, parameterized_query) {
+        const ret = wasm.pgcallbacks_new(addHeapObject(parameterized_execute), addHeapObject(parameterized_query));
+        return PgCallbacks.__wrap(ret);
+    }
+}
+module.exports.PgCallbacks = PgCallbacks;
+/**
 * Raw options for [`pipeTo()`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/pipeTo).
 */
 class PipeOptions {
@@ -668,7 +714,7 @@ module.exports.__wbg_new_2b55e405e4af4986 = function(arg0, arg1) {
             const a = state0.a;
             state0.a = 0;
             try {
-                return __wbg_adapter_90(a, state0.b, arg0, arg1);
+                return __wbg_adapter_91(a, state0.b, arg0, arg1);
             } finally {
                 state0.a = a;
             }
@@ -1148,13 +1194,13 @@ module.exports.__wbg_now_c857fb0367c762cc = function() {
     return ret;
 };
 
-module.exports.__wbindgen_closure_wrapper5933 = function(arg0, arg1, arg2) {
-    const ret = makeMutClosure(arg0, arg1, 257, __wbg_adapter_26);
+module.exports.__wbindgen_closure_wrapper5958 = function(arg0, arg1, arg2) {
+    const ret = makeMutClosure(arg0, arg1, 258, __wbg_adapter_26);
     return addHeapObject(ret);
 };
 
-module.exports.__wbindgen_closure_wrapper8710 = function(arg0, arg1, arg2) {
-    const ret = makeMutClosure(arg0, arg1, 340, __wbg_adapter_29);
+module.exports.__wbindgen_closure_wrapper8733 = function(arg0, arg1, arg2) {
+    const ret = makeMutClosure(arg0, arg1, 341, __wbg_adapter_29);
     return addHeapObject(ret);
 };
 

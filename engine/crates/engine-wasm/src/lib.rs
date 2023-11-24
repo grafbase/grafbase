@@ -66,9 +66,29 @@ pub struct GrafbaseGateway {
 }
 
 #[wasm_bindgen]
+pub struct PgCallbacks {
+    #[cfg(target_arch = "wasm32")]
+    parameterized_execute: js_sys::Function,
+    #[cfg(target_arch = "wasm32")]
+    parameterized_query: js_sys::Function,
+}
+
+#[wasm_bindgen]
+impl PgCallbacks {
+    #[wasm_bindgen(constructor)]
+    #[cfg(target_arch = "wasm32")]
+    pub fn new(parameterized_execute: js_sys::Function, parameterized_query: js_sys::Function) -> PgCallbacks {
+        PgCallbacks {
+            parameterized_execute,
+            parameterized_query,
+        }
+    }
+}
+
+#[wasm_bindgen]
 impl GrafbaseGateway {
     #[wasm_bindgen(constructor)]
-    pub fn new(schema: &str) -> Result<GrafbaseGateway, JsValue> {
+    pub fn new(schema: &str, mut pg_callbacks: Option<PgCallbacks>) -> Result<GrafbaseGateway, JsValue> {
         console_error_panic_hook::set_once();
 
         {
@@ -80,10 +100,26 @@ impl GrafbaseGateway {
 
         let registry: engine::Registry =
             serde_json::from_str(schema).map_err(|err| JsValue::from(format!("Error reading config: {err}")))?;
+        if registry.postgres_databases.len() > 0 && pg_callbacks.is_none() {
+            return Err(JsValue::from(
+                "Postgres databases are configured, but no callbacks were provided",
+            ));
+        }
+
+        let pg_callbacks = pg_callbacks.map(Arc::new);
+
         let pg_transports = registry
             .postgres_databases
             .iter()
-            .map(|(name, db)| (name.to_owned(), pg::WasmTransport(db.connection_string().to_owned())))
+            .map(|(name, db)| {
+                (
+                    name.to_owned(),
+                    pg::WasmTransport {
+                        connection_string: db.connection_string().to_owned(),
+                        callbacks: send_wrapper::SendWrapper::new(pg_callbacks.clone().unwrap()),
+                    },
+                )
+            })
             .collect();
         let schema = engine::Schema::build(registry)
             .data(engine::registry::resolvers::graphql::QueryBatcher::new())

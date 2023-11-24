@@ -2,7 +2,9 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export function __wbg_grafbasegateway_free(a: number): void;
-export function grafbasegateway_new(a: number, b: number, c: number): void;
+export function __wbg_pgcallbacks_free(a: number): void;
+export function pgcallbacks_new(a: number, b: number): number;
+export function grafbasegateway_new(a: number, b: number, c: number, d: number): void;
 export function grafbasegateway_execute(a: number, b: number, c: number): number;
 export function __wbg_queuingstrategy_free(a: number): void;
 export function queuingstrategy_highWaterMark(a: number): number;

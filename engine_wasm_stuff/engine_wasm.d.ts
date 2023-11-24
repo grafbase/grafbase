@@ -22,8 +22,9 @@ export class GrafbaseGateway {
   free(): void;
 /**
 * @param {string} schema
+* @param {PgCallbacks | undefined} pg_callbacks
 */
-  constructor(schema: string);
+  constructor(schema: string, pg_callbacks?: PgCallbacks);
 /**
 * @param {string} request
 * @returns {Promise<string>}
@@ -100,6 +101,16 @@ export class MinifyConfig {
 /**
 */
   js: boolean;
+}
+/**
+*/
+export class PgCallbacks {
+  free(): void;
+/**
+* @param {Function} parameterized_execute
+* @param {Function} parameterized_query
+*/
+  constructor(parameterized_execute: Function, parameterized_query: Function);
 }
 /**
 * Raw options for [`pipeTo()`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/pipeTo).
