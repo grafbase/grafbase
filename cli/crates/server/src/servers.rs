@@ -58,6 +58,7 @@ impl ProductionServer {
             registry,
             detected_udfs,
         } = run_schema_parser(&environment_variables, None).await?;
+        let registry = Arc::new(registry);
 
         let (bridge_app, bridge_state) =
             bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
@@ -251,6 +252,7 @@ async fn spawn_servers(
             return Ok(());
         }
     };
+    let registry = Arc::new(registry);
     // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
     // determined by inspecting the modified time of final artifacts of detected resolvers compared to the modified time
     // of the generated schema registry file.
@@ -399,13 +401,13 @@ pub struct DetectedUdf {
 }
 
 pub struct ParsingResponse {
-    registry: Arc<Registry>,
-    detected_udfs: Vec<DetectedUdf>,
+    pub(crate) registry: Registry,
+    pub(crate) detected_udfs: Vec<DetectedUdf>,
 }
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environment
 // and due to schema-parser not being open source
-async fn run_schema_parser(
+pub(crate) async fn run_schema_parser(
     environment_variables: &HashMap<String, String>,
     event_bus: Option<broadcast::Sender<Event>>,
 ) -> Result<ParsingResponse, ServerError> {
@@ -473,7 +475,7 @@ async fn run_schema_parser(
     );
 
     Ok(ParsingResponse {
-        registry: Arc::new(registry),
+        registry,
         detected_udfs: detected_resolvers,
     })
 }

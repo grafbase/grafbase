@@ -25,6 +25,7 @@ mod atomics;
 mod bridge;
 mod codegen_server;
 mod consts;
+mod dump_config;
 mod environment;
 mod error_server;
 mod event;
@@ -37,4 +38,5 @@ mod udf_builder;
 pub mod errors;
 pub mod types;
 
+pub use dump_config::dump_config;
 pub use servers::{export_embedded_files, start, ProductionServer};
