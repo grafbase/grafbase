@@ -1,5 +1,5 @@
 ---
-source: engine/crates/parser-graphql/src/conversion.rs
+source: crates/parser-graphql/src/conversion.rs
 expression: registry_from_introspection(schema)
 ---
 {
@@ -861,6 +861,5 @@ expression: registry_from_introspection(schema)
   },
   "enable_caching": false,
   "enable_kv": false,
-  "enable_ai": false,
-  "grafbase_cli_version": null
+  "enable_ai": false
 }
