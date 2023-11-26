@@ -4,15 +4,19 @@ use crate::{
 };
 
 #[tokio::main]
-pub async fn dump_config(version: String) -> Result<String, ServerError> {
+pub async fn dump_config(cli_version: String) -> Result<String, ServerError> {
     let env = crate::environment::variables().collect();
 
     let ParsingResponse {
-        mut registry,
+        registry,
         detected_udfs: _,
     } = run_schema_parser(&env, None).await?;
 
-    registry.grafbase_cli_version = Some(version);
+    serde_json::to_string(&RegistryWithVersion { cli_version, registry }).map_err(ServerError::SchemaParserResultJson)
+}
 
-    serde_json::to_string(&registry).map_err(ServerError::SchemaParserResultJson)
+#[derive(serde::Serialize)]
+struct RegistryWithVersion {
+    cli_version: String,
+    registry: engine::Registry,
 }
