@@ -6,7 +6,7 @@ use runtime_noop::cache::NoopCache;
 use std::{pin::Pin, sync::Arc};
 use wasm_bindgen::prelude::*;
 
-const CLI_VERSION: &str = "3";
+const CLI_VERSION: &str = "0.45.5";
 
 struct Executor {
     schema: engine::Schema,
