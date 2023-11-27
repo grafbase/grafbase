@@ -33,7 +33,8 @@ describe('Env var accessor', () => {
     g.datasource(github)
 
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @graphql(
           name: "GitHub"
           namespace: true

@@ -19,7 +19,8 @@ describe('MongoDB generator', () => {
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -36,7 +37,8 @@ describe('MongoDB generator', () => {
     g.datasource(mongo, { namespace: false })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: false
           name: "Test"
@@ -61,7 +63,8 @@ describe('MongoDB generator', () => {
       .collection('users')
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -100,7 +103,8 @@ describe('MongoDB generator', () => {
       .collection('users')
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -131,7 +135,8 @@ describe('MongoDB generator', () => {
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -161,7 +166,8 @@ describe('MongoDB generator', () => {
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -191,7 +197,8 @@ describe('MongoDB generator', () => {
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -221,7 +228,8 @@ describe('MongoDB generator', () => {
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -254,7 +262,8 @@ describe('MongoDB generator', () => {
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -288,7 +297,8 @@ describe('MongoDB generator', () => {
     g.datasource(mongo)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"
@@ -331,7 +341,8 @@ describe('MongoDB generator', () => {
     g.datasource(another)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @mongodb(
           namespace: true
           name: "Test"

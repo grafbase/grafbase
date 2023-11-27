@@ -24,6 +24,7 @@ import { InputDefinition } from './typedefs/input'
 import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
 import { DynamoDBModel, ModelFields } from './connector/dynamodb/model'
 import { PostgresAPI, PartialPostgresAPI } from './connector/postgres'
+import { Federation } from './federation'
 
 export type PartialDatasource =
   | PartialOpenAPI
@@ -45,14 +46,7 @@ export class Datasources {
   }
 
   public toString(): string {
-    if (this.inner.length > 0) {
-      const header = 'extend schema'
-      const datasources = this.inner.map(String).join('\n')
-
-      return `${header}\n${datasources}`
-    } else {
-      return ''
-    }
+    return this.inner.map(String).join('\n')
   }
 }
 
@@ -71,6 +65,7 @@ export class SingleGraph {
   private datasources: Datasources
   private extendedTypes: TypeExtension[]
   private inputs: Input[]
+  federation?: Federation
 
   constructor() {
     this.enums = []
@@ -473,9 +468,13 @@ export class SingleGraph {
     const unions = this.unions.map(String).join('\n\n')
     const enums = this.enums.map(String).join('\n\n')
     const models = this.models.map(String).join('\n\n')
+    const extendSchema =
+      datasources.length > 0 || this.federation ? 'extend schema ' : ''
 
     const renderOrder = [
+      extendSchema,
       datasources,
+      this.federation,
       interfaces,
       enums,
       inputs,

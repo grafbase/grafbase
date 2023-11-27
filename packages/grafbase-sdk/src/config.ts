@@ -79,13 +79,13 @@ export class SingleGraphConfig {
   }
 
   public toString(): string {
-    const graph = this.graph.toString()
+    this.graph.federation = this.federation
+    const graph = this.graph
     const auth = this.auth ? this.auth.toString() : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
-    const federation = this.federation ? this.federation.toString() : ''
 
-    return `${experimental}${auth}${cache}${federation}${graph}`
+    return `${experimental}${auth}${cache}${graph}`
   }
 }
 

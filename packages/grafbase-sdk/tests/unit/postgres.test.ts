@@ -15,7 +15,8 @@ describe('OpenAPI generator', () => {
     g.datasource(postgres)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @postgres(
           name: "Postgres"
           url: "postgres://postgres:grafbase@localhost:5432/postgres"
@@ -32,7 +33,8 @@ describe('OpenAPI generator', () => {
     g.datasource(postgres, { namespace: false })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @postgres(
           name: "Postgres"
           url: "postgres://postgres:grafbase@localhost:5432/postgres"
@@ -49,7 +51,8 @@ describe('OpenAPI generator', () => {
     g.datasource(postgres, { namespace: true })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @postgres(
           name: "Postgres"
           url: "postgres://postgres:grafbase@localhost:5432/postgres"

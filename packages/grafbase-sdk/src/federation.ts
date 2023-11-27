@@ -10,7 +10,7 @@ export class Federation {
   }
 
   public toString(): string {
-    return `\nextend schema @federation(version: "${this.version}")\n`
+    return `\n@federation(version: "${this.version}")\n`
   }
 }
 

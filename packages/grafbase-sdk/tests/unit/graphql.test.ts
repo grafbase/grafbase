@@ -15,7 +15,8 @@ describe('GraphQL connector', () => {
     g.datasource(contentful)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @graphql(
           name: "Contentful"
           namespace: true
@@ -32,7 +33,8 @@ describe('GraphQL connector', () => {
     g.datasource(contentful, { namespace: false })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @graphql(
           name: "Contentful"
           namespace: false
@@ -63,30 +65,31 @@ describe('GraphQL connector', () => {
     g.datasource(contentful, { namespace: true })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-"extend schema
-  @graphql(
-    name: "Contentful"
-    namespace: true
-    url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
-    headers: [
-      { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
-      { name: "Method", value: "POST" }
-      { name: "X-Features", value: "Foo,Bar" }
-      { name: "Foo", forward: "Bar" }
-    ]
-    introspectionHeaders: [
-      { name: "Foo", value: "BAR" }
-    ]
-    transforms: {
-      exclude: [
-        "Foo.Bar"
-        "Bar.Foo"
-        "Foo.*.bar"
-      ]
-      typePrefix: "AFancyPrefix"
-    }
-  )"
-`)
+      "extend schema 
+
+        @graphql(
+          name: "Contentful"
+          namespace: true
+          url: "https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}"
+          headers: [
+            { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
+            { name: "Method", value: "POST" }
+            { name: "X-Features", value: "Foo,Bar" }
+            { name: "Foo", forward: "Bar" }
+          ]
+          introspectionHeaders: [
+            { name: "Foo", value: "BAR" }
+          ]
+          transforms: {
+            exclude: [
+              "Foo.Bar"
+              "Bar.Foo"
+              "Foo.*.bar"
+            ]
+            typePrefix: "AFancyPrefix"
+          }
+        )"
+    `)
   })
 
   it('combines multiple apis into one extension', () => {
@@ -102,7 +105,8 @@ describe('GraphQL connector', () => {
     g.datasource(github)
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "extend schema
+      "extend schema 
+
         @graphql(
           name: "Contentful"
           namespace: true
