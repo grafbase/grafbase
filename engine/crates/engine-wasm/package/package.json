@@ -6,6 +6,7 @@
   "bugs": {
     "url": "https://github.com/grafbase/grafbase/issues"
   },
+  "main": "./engine_wasm.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/grafbase/grafbase",
