@@ -53,6 +53,12 @@ impl<'a> RelationWalker<'a> {
         self.foreign_key().all_columns_use_supported_types()
     }
 
+    /// True, if we use the referenced table in the client. E.g. it has at least one
+    /// column of supported type and one unique constraint.
+    pub fn referenced_table_is_allowed_in_client(self) -> bool {
+        self.referenced_table().allowed_in_client()
+    }
+
     /// The name of the relation field.
     pub fn client_field_name(self) -> String {
         let base_name = self.referenced_table().client_name().to_camel_case();
