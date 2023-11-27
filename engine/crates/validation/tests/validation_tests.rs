@@ -1,5 +1,6 @@
 #![allow(unused_crate_dependencies)]
 
+use graphql_schema_validation::Options;
 use std::{
     fs,
     path::Path,
@@ -26,9 +27,7 @@ fn init_miette() {
     });
 }
 
-fn run_test(graphql_file_path: &Path) -> datatest_stable::Result<()> {
-    use graphql_schema_validation::Options;
-
+fn run_validation_error_test(graphql_file_path: &Path) -> datatest_stable::Result<()> {
     if cfg!(windows) {
         return Ok(()); // newlines
     }
@@ -68,4 +67,28 @@ fn run_test(graphql_file_path: &Path) -> datatest_stable::Result<()> {
     .into())
 }
 
-datatest_stable::harness! { run_test, "./tests/validation_errors", r"^.*\.graphql$" }
+fn run_valid_schema_test(graphql_file_path: &Path) -> datatest_stable::Result<()> {
+    let schema = fs::read_to_string(graphql_file_path)?;
+
+    let diagnostics = graphql_schema_validation::validate_with_options(
+        &schema,
+        Options::FORBID_EXTENDING_UNKNOWN_TYPES | Options::DRAFT_VALIDATIONS,
+    );
+
+    if diagnostics.has_errors() {
+        let displayed = diagnostics
+            .iter()
+            .map(|d| format!("{d:?}"))
+            .collect::<Vec<_>>()
+            .join("\n\n");
+
+        return Err(miette::miette!("{displayed}").into());
+    }
+
+    Ok(())
+}
+
+datatest_stable::harness! {
+    run_validation_error_test, "./tests/validation_errors", r"^.*\.graphql$",
+    run_valid_schema_test, "./tests/valid_schemas", r"^.*\.graphql$",
+}
