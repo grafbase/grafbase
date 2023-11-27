@@ -1,0 +1,27 @@
+extend schema
+    @link(
+        url: "https://specs.apollo.dev/federation/v2.3",
+        import: [{ name: "@shareable", as: "@sharingIsCaring" }]
+    )
+
+
+type Query {
+    personalizedEventsNearYou(yourUserId: ID!, yourLocation: Location!): [Event!]
+}
+
+type Event {
+    type: EventType!
+    description: String!
+}
+
+enum EventType {
+    PARTY
+    RIOT
+    NATURAL_CATASTROPHE
+}
+
+input Location {
+    x: Float! @sharingIsCaring
+    y: Float! @sharingIsCaring
+}
+

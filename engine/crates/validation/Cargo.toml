@@ -19,5 +19,5 @@ similar = "2"
 miette = { version = "5.10.0", features = ["fancy"] }
 
 [[test]]
-name = "validation_errors"
+name = "validation_tests"
 harness = false
