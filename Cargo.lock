@@ -4923,7 +4923,7 @@ dependencies = [
 [[package]]
 name = "postgres-protocol"
 version = "0.6.6"
-source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#69df3c14a26e604396ef46caa7ded791686f34ce"
+source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase-next#4d0a1b1beff06d57f229373ab79efecf74af1711"
 dependencies = [
  "base64 0.21.2",
  "byteorder",
@@ -4931,6 +4931,7 @@ dependencies = [
  "fallible-iterator",
  "getrandom 0.2.10",
  "hmac",
+ "lazy_static",
  "md-5",
  "memchr",
  "rand 0.8.5",
@@ -4941,7 +4942,7 @@ dependencies = [
 [[package]]
 name = "postgres-types"
 version = "0.2.6"
-source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#69df3c14a26e604396ef46caa7ded791686f34ce"
+source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase-next#4d0a1b1beff06d57f229373ab79efecf74af1711"
 dependencies = [
  "bytes",
  "fallible-iterator",
@@ -7198,7 +7199,7 @@ dependencies = [
 [[package]]
 name = "tokio-postgres"
 version = "0.7.10"
-source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase#69df3c14a26e604396ef46caa7ded791686f34ce"
+source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase-next#4d0a1b1beff06d57f229373ab79efecf74af1711"
 dependencies = [
  "async-trait",
  "byteorder",
@@ -7223,7 +7224,7 @@ dependencies = [
 [[package]]
 name = "tokio-postgres-rustls"
 version = "0.10.0"
-source = "git+https://github.com/grafbase/tokio-postgres-rustls#51e2f7455fe643bb8b8b133877ebe98dd4691e9e"
+source = "git+https://github.com/grafbase/tokio-postgres-rustls?branch=grafbase-next#248ee8c0700eb5fe1bb103d726c237b063c7f2f9"
 dependencies = [
  "futures",
  "ring 0.16.20",
