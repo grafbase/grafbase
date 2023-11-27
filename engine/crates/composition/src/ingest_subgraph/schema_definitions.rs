@@ -44,6 +44,7 @@ pub(crate) struct FederationDirectivesMatcher<'a> {
     external: Cow<'a, str>,
     provides: Cow<'a, str>,
     requires: Cow<'a, str>,
+    interface_object: Cow<'a, str>,
 }
 
 const DEFAULT_FEDERATION_PREFIX: &str = "federation__";
@@ -56,6 +57,7 @@ impl Default for FederationDirectivesMatcher<'_> {
             external: Cow::Borrowed("external"),
             provides: Cow::Borrowed("provides"),
             requires: Cow::Borrowed("requires"),
+            interface_object: Cow::Borrowed("interfaceObject"),
         }
     }
 }
@@ -105,11 +107,16 @@ impl<'a> FederationDirectivesMatcher<'a> {
             external: final_name("external"),
             provides: final_name("provides"),
             requires: final_name("requires"),
+            interface_object: final_name("interfaceObject"),
         }
     }
 
     pub(crate) fn is_external(&self, directive_name: &str) -> bool {
         self.external == directive_name
+    }
+
+    pub(crate) fn is_interface_object(&self, directive_name: &str) -> bool {
+        self.interface_object == directive_name
     }
 
     pub(crate) fn is_shareable(&self, directive_name: &str) -> bool {

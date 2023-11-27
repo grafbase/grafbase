@@ -1,0 +1,44 @@
+enum join__Graph {
+    FOREST @join__graph(name: "forest", url: "http://example.com/forest")
+    MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+    SAVANA @join__graph(name: "savana", url: "http://example.com/savana")
+    STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+}
+
+type Squirrel {
+    favouriteFood: String @join__field(graph: FOREST)
+}
+
+type Cheetah implements Animal
+    @join__type(graph: MANGROVE, key: "species")
+    @join__type(graph: SAVANA, key: "species")
+{
+    species: String!
+    favouriteFood: String @join__field(graph: FOREST)
+    swimSpeedKmh: Float
+    weightGrams: Int @join__field(graph: STEPPE)
+    species: String!
+    swimSpeedKmh: Float @join__field(graph: MANGROVE)
+    runSpeedKmh: Float @join__field(graph: MANGROVE)
+    topSpeed: Int! @join__field(graph: SAVANA)
+}
+
+type Query {
+    getMammoth: Mammoth @join__field(graph: STEPPE)
+}
+
+type Mammoth {
+    weightGrams: Int @join__field(graph: STEPPE)
+    tuskLength: Int @join__field(graph: STEPPE)
+}
+
+interface Animal
+    @join__type(graph: MANGROVE, key: "species")
+    @join__type(graph: FOREST, key: "species", isInterfaceObject: true)
+    @join__type(graph: STEPPE, key: "species", isInterfaceObject: true)
+{
+    species: String!
+    favouriteFood: String @join__field(graph: FOREST)
+    swimSpeedKmh: Float
+    weightGrams: Int @join__field(graph: STEPPE)
+}

@@ -1,4 +1,5 @@
 mod context;
+mod entity_interface;
 mod enums;
 mod input_object;
 mod interface;
@@ -16,6 +17,12 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
             return;
         };
 
+        if first.is_interface_object()
+            || (first.kind() == DefinitionKind::Interface && first.entity_keys().next().is_some())
+        {
+            return entity_interface::merge_entity_interface_definitions(ctx, *first, definitions);
+        }
+
         match first.kind() {
             DefinitionKind::Object => merge_object_definitions(ctx, first, definitions),
             DefinitionKind::Union => merge_union_definitions(ctx, first, definitions),
@@ -27,9 +34,6 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
             DefinitionKind::Enum => enums::merge_enum_definitions(first, definitions, ctx),
         }
     });
-
-    ctx.subgraphs
-        .iter_field_groups(|fields| merge_field_definitions(fields, ctx));
 
     if !ctx.has_query_type() {
         ctx.diagnostics
@@ -85,14 +89,11 @@ fn merge_object_definitions<'a>(
     {
         ctx.insert_resolvable_key(object_id, key.id);
     }
-}
 
-fn merge_field_definitions<'a>(fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
-    let Some(first) = fields.first() else { return };
-
-    if first.parent_definition().kind() == DefinitionKind::Object {
+    ctx.subgraphs.iter_field_groups(first.name().id, |fields| {
+        let Some(first) = fields.first() else { return };
         object::compose_object_fields(*first, fields, ctx);
-    }
+    });
 }
 
 fn merge_union_definitions(

@@ -22,6 +22,11 @@ pub(super) fn ingest_directives(
             continue;
         }
 
+        if federation_directives_matcher.is_interface_object(directive_name) {
+            subgraphs.set_interface_object(definition_id);
+            continue;
+        }
+
         if federation_directives_matcher.is_key(directive_name) {
             let fields_arg = directive.node.get_argument("fields").map(|v| &v.node);
             let Some(ConstValue::String(fields_arg)) = fields_arg else {

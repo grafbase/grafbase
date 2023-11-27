@@ -8,6 +8,11 @@ pub(crate) struct Fields(Vec<Field>);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct FieldId(usize);
 
+impl FieldId {
+    pub const MIN: Self = Self(usize::MIN);
+    pub const MAX: Self = Self(usize::MAX);
+}
+
 /// A field in an object, interface or input object type.
 pub(super) struct Field {
     pub(super) parent_definition_id: DefinitionId,

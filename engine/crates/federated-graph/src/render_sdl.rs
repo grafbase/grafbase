@@ -80,7 +80,26 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             }
         }
 
-        sdl.push_str(" {\n");
+        if interface.resolvable_keys.is_empty() {
+            sdl.push_str(" {\n");
+        } else {
+            sdl.push('\n');
+            for resolvable_key in &interface.resolvable_keys {
+                let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
+                let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
+                let is_interface_object = if resolvable_key.is_interface_object {
+                    ", isInterfaceObject: true"
+                } else {
+                    ""
+                };
+                writeln!(
+                    sdl,
+                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}"{is_interface_object})"#
+                )?;
+            }
+
+            sdl.push_str("{\n");
+        }
 
         for field in graph
             .interface_fields
