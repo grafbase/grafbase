@@ -1,12 +1,12 @@
 {
   "name": "@tomhoule/grafbase-library-engine-experiment",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The Grafbase enggine as a wasm library, to bmed connectors into another node server (proof of concept)",
   "homepage": "https://grafbase.com",
   "bugs": {
     "url": "https://github.com/grafbase/grafbase/issues"
   },
-  "main": "./engine_wasm.js",
+  "main": "./engine-wasm/engine_wasm.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/grafbase/grafbase",
