@@ -67,9 +67,9 @@ pub struct GrafbaseGateway {
 #[wasm_bindgen]
 pub struct PgCallbacks {
     #[cfg(target_arch = "wasm32")]
-    parameterized_execute: js_sys::Function,
+    pub(crate) parameterized_execute: js_sys::Function,
     #[cfg(target_arch = "wasm32")]
-    parameterized_query: js_sys::Function,
+    pub(crate) parameterized_query: js_sys::Function,
 }
 
 #[wasm_bindgen]
