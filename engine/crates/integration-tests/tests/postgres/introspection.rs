@@ -3721,6 +3721,250 @@ fn two_tables_with_single_column_foreign_key() {
 }
 
 #[test]
+fn foreign_key_to_a_table_without_a_key_should_not_create_a_relation() {
+    let response = introspect_namespaced_postgres("pg", |api| async move {
+        api.execute_sql(r#"CREATE TABLE visible_table (id TEXT PRIMARY KEY)"#)
+            .await;
+
+        api.execute_sql(r#"CREATE TABLE hidden_table (visible_table TEXT NOT NULL REFERENCES visible_table(id))"#)
+            .await;
+    });
+
+    let expected = expect![[r#"
+        type Mutation {
+          pg: PgMutation
+        }
+
+        type PgMutation {
+          """
+            Delete a unique VisibleTable by a field or combination of fields
+          """
+          visibleTableDelete(by: PgVisibleTableByInput!): PgVisibleTableDeletePayload
+          """
+            Delete multiple rows of VisibleTable by a filter
+          """
+          visibleTableDeleteMany(filter: PgVisibleTableMutationCollection!): PgVisibleTableDeleteManyPayload
+          """
+            Create a VisibleTable
+          """
+          visibleTableCreate(input: PgVisibleTableCreateInput!): PgVisibleTableCreatePayload
+          """
+            Create multiple VisibleTables
+          """
+          visibleTableCreateMany(input: [PgVisibleTableCreateInput!]!): PgVisibleTableCreateManyPayload
+          """
+            Update a unique VisibleTable
+          """
+          visibleTableUpdate(by: PgVisibleTableByInput!, input: PgVisibleTableUpdateInput!): PgVisibleTableUpdatePayload
+          """
+            Update multiple VisibleTables
+          """
+          visibleTableUpdateMany(filter: PgVisibleTableMutationCollection!, input: PgVisibleTableUpdateInput!): PgVisibleTableUpdateManyPayload
+        }
+
+        enum PgOrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PgPageInfo {
+          hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
+        type PgQuery {
+          """
+            Query a single PgVisibleTable by a field
+          """
+          visibleTable(by: PgVisibleTableByInput!): PgVisibleTable
+          """
+            Paginated query to fetch the whole list of VisibleTable
+          """
+          visibleTableCollection(filter: PgVisibleTableCollection, first: Int, last: Int, before: String, after: String, orderBy: [PgVisibleTableOrderByInput]): PgVisibleTableConnection
+        }
+
+        """
+          Search filter input for String type.
+        """
+        input PgStringSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: String
+          """
+            The value is not the one given
+          """ ne: String
+          """
+            The value is greater than the one given
+          """ gt: String
+          """
+            The value is less than the one given
+          """ lt: String
+          """
+            The value is greater than, or equal to the one given
+          """ gte: String
+          """
+            The value is less than, or equal to the one given
+          """ lte: String
+          """
+            The value is in the given array of values
+          """ in: [String]
+          """
+            The value is not in the given array of values
+          """ nin: [String]
+          not: PgStringSearchFilterInput
+        }
+
+        """
+          Update input for String type.
+        """
+        input PgStringUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: String
+        }
+
+        type PgVisibleTable {
+          id: String!
+        }
+
+        input PgVisibleTableByInput {
+          id: String
+        }
+
+        input PgVisibleTableCollection {
+          id: PgStringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PgVisibleTableCollection]
+          """
+            None of the filters must match
+          """ NONE: [PgVisibleTableCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PgVisibleTableCollection]
+        }
+
+        type PgVisibleTableConnection {
+          edges: [PgVisibleTableEdge]!
+          pageInfo: PgPageInfo!
+        }
+
+        input PgVisibleTableCreateInput {
+          id: String!
+        }
+
+        type PgVisibleTableCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgVisibleTableReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgVisibleTableCreatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgVisibleTableReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgVisibleTableDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgVisibleTableReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgVisibleTableDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgVisibleTableReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgVisibleTableEdge {
+          node: PgVisibleTable!
+          cursor: String!
+        }
+
+        input PgVisibleTableMutationCollection {
+          id: PgStringSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [PgVisibleTableMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [PgVisibleTableMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [PgVisibleTableMutationCollection]
+        }
+
+        input PgVisibleTableOrderByInput {
+          id: PgOrderByDirection
+        }
+
+        type PgVisibleTableReturning {
+          id: String!
+        }
+
+        input PgVisibleTableUpdateInput {
+          id: PgStringUpdateInput
+        }
+
+        type PgVisibleTableUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [PgVisibleTableReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type PgVisibleTableUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: PgVisibleTableReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type Query {
+          pg: PgQuery
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+    "#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn cedalio_issue_november_2023() {
     let response = introspect_namespaced_postgres("pg", |api| async move {
         let create = indoc! {r"

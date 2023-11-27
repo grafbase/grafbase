@@ -86,7 +86,8 @@ impl<'a> TableWalker<'a> {
 
         let forward = range
             .map(move |id| self.walk(RelationId::Forward(ForwardRelationId(id as u32))))
-            .filter(|relation| relation.all_columns_use_supported_types());
+            .filter(|relation| relation.all_columns_use_supported_types())
+            .filter(|relation| relation.referenced_table_is_allowed_in_client());
 
         let range = super::range_for_key(&self.database_definition.relations.to, self.id, |(table_id, _)| {
             *table_id
@@ -94,7 +95,8 @@ impl<'a> TableWalker<'a> {
 
         let back = range
             .map(move |id| self.walk(RelationId::Back(BackRelationId(id as u32))))
-            .filter(|relation| relation.all_columns_use_supported_types());
+            .filter(|relation| relation.all_columns_use_supported_types())
+            .filter(|relation| relation.referenced_table_is_allowed_in_client());
 
         forward.chain(back)
     }
