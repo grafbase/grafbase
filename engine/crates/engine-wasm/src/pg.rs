@@ -1,6 +1,4 @@
-pub(crate) use postgres_connector_types::{
-    database_definition::DatabaseDefinition, error::Error, transport::Transport,
-};
+pub(crate) use postgres_connector_types::{error::Error, transport::Transport};
 
 use futures_util::{stream::BoxStream, Future};
 use runtime::pg::{PgTransportFactory, PgTransportFactoryError, PgTransportFactoryInner, PgTransportFactoryResult};
