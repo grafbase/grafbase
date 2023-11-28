@@ -490,11 +490,34 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         .directives
         .iter()
         .find(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
+        .filter(|dir| dir.node.get_argument("overrides").is_none())
         .and_then(|dir| dir.node.get_argument("graph"))
         .and_then(|arg| match &arg.node {
             async_graphql_value::ConstValue::Enum(s) => Some(state.graph_sdl_names[s.as_str()]),
             _ => None,
         });
+
+    let overrides = ast_field
+        .directives
+        .iter()
+        .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
+        .filter_map(|dir| dir.node.get_argument("graph").zip(dir.node.get_argument("overrides")))
+        .filter_map(|(graph, overrides)| match (&graph.node, &overrides.node) {
+            (async_graphql_value::ConstValue::Enum(graph), async_graphql_value::ConstValue::String(overrides)) => {
+                let subgraph_name = state.insert_string(graph.as_str());
+                Some(Override {
+                    graph: SubgraphId(
+                        state
+                            .subgraphs
+                            .iter()
+                            .position(|subgraph| subgraph.name == subgraph_name)?,
+                    ),
+                    from: state.insert_string(overrides),
+                })
+            }
+            _ => None, // unreachable in valid schemas
+        })
+        .collect();
 
     let composed_directives = collect_composed_directives(&ast_field.directives, state);
 
@@ -506,6 +529,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         requires: Vec::new(),
         arguments,
         composed_directives,
+        overrides,
     }));
 
     state.selection_map.insert((parent_id, field_name), field_id);

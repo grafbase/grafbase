@@ -41,6 +41,7 @@ pub(super) fn merge_input_object_definitions(
             provides: Vec::new(),
             requires: Vec::new(),
             composed_directives: Vec::new(),
+            overrides: Vec::new(),
         });
     }
 }

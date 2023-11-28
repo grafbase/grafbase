@@ -9,6 +9,7 @@ pub(crate) use self::context::Context as ComposeContext;
 
 use self::{context::Context, input_object::*};
 use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId};
+use graphql_federated_graph as federated;
 use itertools::Itertools;
 
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {

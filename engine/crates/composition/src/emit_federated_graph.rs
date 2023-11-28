@@ -89,6 +89,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
         provides,
         requires,
         composed_directives,
+        overrides,
     } in ir_fields
     {
         let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
@@ -106,6 +107,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                 name: field_name,
                 field_type_id,
                 arguments,
+                overrides,
 
                 provides: Vec::new(),
                 requires: Vec::new(),

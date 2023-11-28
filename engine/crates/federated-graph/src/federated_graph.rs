@@ -108,6 +108,9 @@ pub struct Field {
     /// See [FieldRequires]
     pub requires: Vec<FieldRequires>,
 
+    /// See [Override].
+    pub overrides: Vec<Override>,
+
     pub arguments: Vec<FieldArgument>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
@@ -183,6 +186,15 @@ pub struct FieldProvides {
 pub struct FieldRequires {
     pub subgraph_id: SubgraphId,
     pub fields: FieldSet,
+}
+
+/// Represents an `@override(graph: .., from: ...)` directive on a field in a subgraph.
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct Override {
+    pub graph: SubgraphId,
+    /// Points to a subgraph referenced by name, but this is _not_ validated to allow easier field
+    /// migrations between subgraphs.
+    pub from: StringId,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

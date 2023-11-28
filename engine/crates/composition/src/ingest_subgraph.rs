@@ -116,6 +116,7 @@ fn ingest_definition_bodies(
                             is_external: false,
                             provides: None,
                             requires: None,
+                            overrides: None,
                             deprecated,
                             tags,
                         })
@@ -144,6 +145,7 @@ fn ingest_definition_bodies(
                             is_external: false,
                             provides: None,
                             requires: None,
+                            overrides: None,
                             deprecated,
                             tags,
                         })
