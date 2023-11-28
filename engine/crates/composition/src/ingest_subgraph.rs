@@ -48,7 +48,15 @@ fn ingest_top_level_definitions(
                         );
                     }
                     ast::TypeKind::Interface(_interface_type) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Interface);
+                        let definition_id =
+                            subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Interface);
+
+                        object::ingest_directives(
+                            definition_id,
+                            &type_definition.node,
+                            subgraphs,
+                            federation_directives_matcher,
+                        );
                     }
                     ast::TypeKind::Union(_) => {
                         subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union);

@@ -1,7 +1,7 @@
 use crate::{
-    composition_ir::CompositionIr,
+    composition_ir::{self as ir, CompositionIr},
     subgraphs::{self, StringWalker},
-    Diagnostics,
+    Diagnostics, VecExt,
 };
 use graphql_federated_graph as federated;
 
@@ -51,8 +51,8 @@ impl<'a> Context<'a> {
         self.ir.insert_enum_value(enum_id, value, deprecation);
     }
 
-    pub(crate) fn insert_field(&mut self, ir: crate::composition_ir::FieldIr) {
-        self.ir.insert_field(ir);
+    pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) -> federated::FieldId {
+        federated::FieldId(self.ir.fields.push_return_idx(ir))
     }
 
     pub(crate) fn insert_input_object(&mut self, name: StringWalker<'_>) -> federated::InputObjectId {
@@ -61,6 +61,16 @@ impl<'a> Context<'a> {
 
     pub(crate) fn insert_interface(&mut self, name: StringWalker<'_>) -> federated::InterfaceId {
         self.ir.insert_interface(name)
+    }
+
+    pub(crate) fn insert_interface_resolvable_key(
+        &mut self,
+        id: federated::InterfaceId,
+        key: subgraphs::KeyId,
+        is_interface_object: bool,
+    ) {
+        self.ir
+            .insert_resolvable_key(federated::Definition::Interface(id), key, is_interface_object);
     }
 
     pub(crate) fn insert_object(&mut self, name: StringWalker<'_>) -> federated::ObjectId {
@@ -80,7 +90,8 @@ impl<'a> Context<'a> {
     }
 
     pub(crate) fn insert_resolvable_key(&mut self, object_id: federated::ObjectId, key_id: subgraphs::KeyId) {
-        self.ir.insert_resolvable_key(object_id, key_id);
+        self.ir
+            .insert_resolvable_key(federated::Definition::Object(object_id), key_id, false);
     }
 
     pub(crate) fn insert_string(&mut self, string_id: subgraphs::StringId) -> federated::StringId {

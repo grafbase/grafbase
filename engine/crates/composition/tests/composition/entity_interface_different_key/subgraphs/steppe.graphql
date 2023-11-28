@@ -1,0 +1,15 @@
+type Query {
+  getMammoth: Mammoth
+}
+
+# Wrong: the key must match the entity interface's key in the other subgraph.
+type Animal @interfaceObject @key(fields: "taxon") {
+  species: String
+  taxon: String!
+  weightGrams: Int
+}
+
+type Mammoth {
+  weightGrams: Int
+  tuskLength: Int
+}

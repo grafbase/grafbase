@@ -1,0 +1,17 @@
+type Query {
+    groceryList: [GroceryItem]
+}
+
+interface GroceryItem @key(fields: "id") {
+  id: ID!
+  name: String
+  price: Int
+}
+
+# Invalid: this is missing the key.
+type Fruit implements GroceryItem {
+  id: ID!
+  name: String
+  price: Int
+  glycemicIndex: Int
+}

@@ -1,0 +1,12 @@
+type Query {
+  getMammoth: Mammoth
+}
+
+type Animal @interfaceObject @key(fields: "species") {
+  species: String
+  weightGrams: Int
+}
+
+type Mammoth {
+  tuskLength: Int
+}

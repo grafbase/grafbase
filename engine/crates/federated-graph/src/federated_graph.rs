@@ -79,6 +79,9 @@ pub struct Key {
 
     /// Corresponds to the fields in an `@key` directive.
     pub fields: FieldSet,
+
+    /// Correspond to the `@join__type(isInterfaceObject: true)` directive argument.
+    pub is_interface_object: bool,
 }
 
 pub type FieldSet = Vec<FieldSetItem>;
@@ -117,13 +120,13 @@ pub struct FieldArgument {
     pub type_id: FieldTypeId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Directive {
     pub name: StringId,
     pub arguments: Vec<(StringId, Value)>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub enum Value {
     String(StringId),
     Int(i64),
@@ -187,6 +190,9 @@ pub struct Interface {
     pub name: StringId,
 
     pub implements_interfaces: Vec<InterfaceId>,
+
+    /// All _resolvable_ keys, for entity interfaces.
+    pub resolvable_keys: Vec<Key>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
