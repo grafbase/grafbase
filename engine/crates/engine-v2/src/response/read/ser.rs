@@ -43,11 +43,11 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
     {
         let mut map = serializer.serialize_map(Some(self.selection_set.len()))?;
         for selection in self.selection_set {
-            map.serialize_key(&self.response.strings[selection.response_name])?;
+            map.serialize_key(&self.response.strings[selection.response_key])?;
             match self
                 .object
                 .fields
-                .get(&selection.response_name)
+                .get(&selection.response_key)
                 .unwrap_or(&ResponseValue::Null)
             {
                 ResponseValue::Null => map.serialize_value(&serde_json::Value::Null)?,

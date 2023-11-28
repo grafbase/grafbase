@@ -41,7 +41,10 @@ where
         self.id
     }
 
-    pub fn walk<OtherId>(self, id: OtherId) -> SchemaWalker<'a, OtherId> {
+    pub fn walk<OtherId>(self, id: OtherId) -> SchemaWalker<'a, OtherId>
+    where
+        OtherId: Copy,
+    {
         SchemaWalker {
             id,
             schema: self.schema,

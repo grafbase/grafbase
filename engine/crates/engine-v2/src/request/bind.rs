@@ -5,9 +5,10 @@ use engine_parser::Positioned;
 use schema::{Definition, FieldWalker, InterfaceId, ObjectId, Schema, UnionId};
 
 use super::{
-    selection_set::BoundField, BoundFieldArgument, BoundFieldDefinition, BoundFieldDefinitionId, BoundFieldId,
-    BoundFragmentDefinition, BoundFragmentDefinitionId, BoundFragmentSpread, BoundInlineFragment, BoundSelection,
-    BoundSelectionSet, BoundSelectionSetId, Operation, Pos, TypeCondition, UnboundOperation,
+    selection_set::BoundField, variable::VariableDefinition, BoundFieldArgument, BoundFieldDefinition,
+    BoundFieldDefinitionId, BoundFieldId, BoundFragmentDefinition, BoundFragmentDefinitionId, BoundFragmentSpread,
+    BoundInlineFragment, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Operation, Pos, TypeCondition,
+    UnboundOperation,
 };
 use crate::{execution::Strings, response::GraphqlError};
 
@@ -43,6 +44,10 @@ pub enum BindError {
     NoSubscriptionDefined,
     #[error("Leaf field '{name}' must be a scalar or an enum, but is a {ty}.")]
     LeafMustBeAScalarOrEnum { name: String, ty: String, location: Pos },
+    #[error(
+        "Variable named '{name}' does not have a valid input type. Can only be a scalar, enum or input object. Found: '{ty}'."
+    )]
+    InvalidVariableType { name: String, ty: String, location: Pos },
 }
 
 impl From<BindError> for GraphqlError {
@@ -56,6 +61,7 @@ impl From<BindError> for GraphqlError {
             | BindError::InvalidTypeConditionTargetType { location, .. }
             | BindError::CannotHaveSelectionSet { location, .. }
             | BindError::DisjointTypeCondition { location, .. }
+            | BindError::InvalidVariableType { location, .. }
             | BindError::LeafMustBeAScalarOrEnum { location, .. } => vec![location],
             BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
         };
@@ -93,6 +99,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
     };
     let root_selection_set_id =
         binder.bind_selection_set(ParentType::Object(root_object_id), unbound.definition.selection_set)?;
+    let variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
     Ok(Operation {
         ty: unbound.definition.ty,
         root_object_id,
@@ -107,6 +114,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
         strings: binder.strings,
         field_definitions: binder.field_definitions,
         fields: binder.fields,
+        variable_definitions,
     })
 }
 
@@ -122,6 +130,66 @@ pub struct Binder<'a> {
 }
 
 impl<'a> Binder<'a> {
+    fn bind_variables(
+        &self,
+        variables: Vec<Positioned<engine_parser::types::VariableDefinition>>,
+    ) -> BindResult<Vec<VariableDefinition>> {
+        variables
+            .into_iter()
+            .map(|Positioned { node, .. }| {
+                let name_location = node.name.pos;
+                let name = node.name.node.to_string();
+                let default_value = node.default_value.map(|Positioned { pos: _, node }| node);
+                Ok(VariableDefinition {
+                    name,
+                    name_location,
+                    directives: vec![],
+                    default_value,
+                    r#type: self.convert_type(node.var_type.pos, node.var_type.node)?,
+                })
+            })
+            .collect()
+    }
+
+    fn convert_type(&self, location: Pos, ty: engine_parser::types::Type) -> BindResult<schema::Type> {
+        match ty.base {
+            engine_parser::types::BaseType::Named(name) => {
+                let definition =
+                    self.schema
+                        .definition_by_name(name.as_str())
+                        .ok_or_else(|| BindError::UnknownType {
+                            name: name.to_string(),
+                            location,
+                        })?;
+                if !matches!(
+                    definition,
+                    Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
+                ) {
+                    return Err(BindError::InvalidVariableType {
+                        name: name.to_string(),
+                        ty: self.schema.default_walker().walk(definition).name().to_string(),
+                        location,
+                    });
+                }
+                Ok(schema::Type {
+                    inner: definition,
+                    wrapping: schema::Wrapping {
+                        inner_is_required: !ty.nullable,
+                        list_wrapping: vec![],
+                    },
+                })
+            }
+            engine_parser::types::BaseType::List(nested) => self.convert_type(location, *nested).map(|mut r#type| {
+                r#type.wrapping.list_wrapping.push(if ty.nullable {
+                    schema::ListWrapping::NullableList
+                } else {
+                    schema::ListWrapping::RequiredList
+                });
+                r#type
+            }),
+        }
+    }
+
     fn bind_selection_set(
         &mut self,
         parent: ParentType,

@@ -7,7 +7,7 @@ use schema::{
 };
 
 use crate::{
-    plan::{GroupedFieldSet, ResolvedField},
+    execution::walkers::{GroupedFieldSet, ResolvedField},
     response::{ResponseData, ResponseValue},
 };
 

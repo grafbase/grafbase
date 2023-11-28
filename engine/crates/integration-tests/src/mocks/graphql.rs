@@ -80,7 +80,8 @@ async fn graphql_handler(State(state): State<AppState>, headers: HeaderMap, req:
         })
         .collect();
 
-    state.schema.execute(headers, req.into_inner()).await.into()
+    let response: GraphQLResponse = state.schema.execute(headers, req.into_inner()).await.into();
+    response
 }
 
 #[derive(Clone)]

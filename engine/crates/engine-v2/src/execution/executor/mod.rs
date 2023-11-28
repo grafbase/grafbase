@@ -5,15 +5,13 @@ use schema::Resolver;
 
 use crate::response::{GraphqlErrors, ResponseData, ResponseObjectsView};
 
-mod context;
-mod coordinator;
 mod graphql;
 mod introspection;
 
-use context::ExecutorContext;
-pub use coordinator::ExecutorCoordinator;
 use graphql::GraphqlExecutor;
 use introspection::IntrospectionExecutor;
+
+use super::ExecutionContext;
 
 /// Executors are responsible to retrieve a selection_set from a certain point in the query.
 ///
@@ -53,14 +51,14 @@ use introspection::IntrospectionExecutor;
 ///
 /// The executor for the catalog plan would have a single response object root and the price plan
 /// executor will have a root for each product in the response.
-enum Executor<'a> {
-    GraphQL(GraphqlExecutor),
+pub enum Executor<'a> {
+    GraphQL(GraphqlExecutor<'a>),
     Introspection(IntrospectionExecutor<'a>),
 }
 
 impl<'exc> Executor<'exc> {
-    fn build<'ctx, 'input>(
-        ctx: ExecutorContext<'ctx>,
+    pub fn build<'ctx, 'input>(
+        ctx: ExecutionContext<'ctx>,
         resolver: &schema::Resolver,
         input: ExecutorInput<'input>,
     ) -> Result<Self, ExecutorError>
@@ -73,7 +71,7 @@ impl<'exc> Executor<'exc> {
         }
     }
 
-    async fn execute(self, ctx: ExecutorContext<'_>, output: &mut ExecutorOutput) -> Result<(), ExecutorError> {
+    pub async fn execute(self, ctx: ExecutionContext<'_>, output: &mut ExecutorOutput) -> Result<(), ExecutorError> {
         match self {
             Executor::GraphQL(executor) => executor.execute(ctx, output).await,
             Executor::Introspection(executor) => executor.execute(ctx, output).await,
@@ -81,20 +79,20 @@ impl<'exc> Executor<'exc> {
     }
 }
 
-struct ExecutorInput<'a> {
-    root_response_objects: ResponseObjectsView<'a>,
+pub struct ExecutorInput<'a> {
+    pub root_response_objects: ResponseObjectsView<'a>,
 }
 
 /// Executors manipulate the response data through this struct, registering any errors (without
 /// locking) and modifying the actual data when necessary. Will be tweaked later to reduce lock
 /// contention.
 pub struct ExecutorOutput {
-    data: Arc<Mutex<ResponseData>>,
-    errors: GraphqlErrors,
+    pub data: Arc<Mutex<ResponseData>>,
+    pub errors: GraphqlErrors,
 }
 
 #[derive(thiserror::Error, Debug)]
-enum ExecutorError {
+pub enum ExecutorError {
     #[error("Internal error: {0}")]
     InternalError(String),
 }

@@ -1,16 +1,20 @@
+use std::collections::HashMap;
+
+use engine_value::ConstValue;
 use schema::SubgraphResolver;
 
-use super::{Executor, ExecutorContext, ExecutorError, ExecutorInput, ExecutorOutput};
+use self::query::Query;
+use super::{ExecutionContext, Executor, ExecutorError, ExecutorInput, ExecutorOutput};
 use crate::response::ResponseObjectId;
 
 mod query;
 
 #[derive(Debug)]
-pub(super) struct GraphqlExecutor {
+pub struct GraphqlExecutor<'a> {
     endpoint_name: String,
     url: String,
     query: String,
-    variables: serde_json::Value,
+    variables: HashMap<String, &'a ConstValue>,
     response_object_id: ResponseObjectId,
 }
 
@@ -26,29 +30,37 @@ struct GraphqlError {
     message: String,
 }
 
-impl GraphqlExecutor {
+impl<'a> GraphqlExecutor<'a> {
     #[allow(clippy::unnecessary_wraps)]
-    pub(super) fn build(
-        ctx: ExecutorContext<'_>,
+    pub(super) fn build<'ctx, 'input>(
+        ctx: ExecutionContext<'ctx>,
         resolver: &SubgraphResolver,
-        input: ExecutorInput<'_>,
-    ) -> Result<Executor<'static>, ExecutorError> {
+        input: ExecutorInput<'input>,
+    ) -> Result<Executor<'a>, ExecutorError>
+    where
+        'ctx: 'a,
+    {
         let SubgraphResolver { subgraph_id } = resolver;
         let subgraph = &ctx.engine.schema[*subgraph_id];
-        let query = query::QueryBuilder::build(&ctx.plan.operation, ctx.plan_id, ctx.default_walk_selection_set())
-            .map_err(|err| ExecutorError::InternalError(format!("Failed to build query: {err}")))?;
+        let Query { query, variables } = query::QueryBuilder::build(
+            &ctx.plan.operation,
+            ctx.plan_id,
+            ctx.default_walk_variables(),
+            ctx.default_walk_selection_set(),
+        )
+        .map_err(|err| ExecutorError::InternalError(format!("Failed to build query: {err}")))?;
         Ok(Executor::GraphQL(Self {
             endpoint_name: ctx.engine.schema[subgraph.name].to_string(),
             url: ctx.engine.schema[subgraph.url].clone(),
             query,
-            variables: serde_json::Value::Null,
+            variables,
             response_object_id: input.root_response_objects.root().id,
         }))
     }
 
     pub(super) async fn execute(
         self,
-        _ctx: ExecutorContext<'_>,
+        _ctx: ExecutionContext<'_>,
         output: &mut ExecutorOutput,
     ) -> Result<(), ExecutorError> {
         let response: GraphqlResponse = {
