@@ -9,6 +9,9 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["dynamodb", "sqlite", "database", "grafbase"]
 
+[lints]
+workspace = true
+
 [dependencies]
 again = { version = "0.1", default-features = false, features = [
   "wasm-bindgen",

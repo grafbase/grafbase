@@ -8,6 +8,9 @@ keywords.workspace = true
 repository.workspace = true
 publish = false
 
+[lints]
+workspace = true
+
 [dependencies]
 # For the GraphQL parser.
 engine-parser = { path = "../../../engine/crates/engine/parser" }

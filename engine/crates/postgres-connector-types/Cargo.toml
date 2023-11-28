@@ -9,6 +9,9 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "postgres", "grafbase"]
 
+[lints]
+workspace = true
+
 [dependencies]
 Inflector = "0.11.4"
 async-trait = "0.1.74"
