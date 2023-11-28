@@ -161,7 +161,13 @@ fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<f
 
         overrides.push(federated::Override {
             graph: federated::SubgraphId(field_subgraph.id.idx()),
-            from: ctx.insert_string(from.id),
+            from: ctx
+                .subgraphs
+                .iter_subgraphs()
+                .position(|subgraph| subgraph.name().id == from.id)
+                .map(federated::SubgraphId)
+                .map(federated::OverrideSource::Subgraph)
+                .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(from.id))),
         });
     }
 

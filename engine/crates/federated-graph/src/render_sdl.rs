@@ -245,7 +245,10 @@ fn write_overrides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> f
         from,
     } in &field.overrides
     {
-        let overrides = &graph[*from];
+        let overrides = match from {
+            OverrideSource::Subgraph(subgraph_id) => &graph[graph.subgraphs[subgraph_id.0].name],
+            OverrideSource::Missing(string) => &graph[*string],
+        };
         let graph = &graph[graph[*overriding_graph].name];
         write!(sdl, " @join__field(graph: {graph}, overrides: \"{overrides}\")")?;
     }

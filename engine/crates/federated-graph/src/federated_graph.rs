@@ -194,7 +194,13 @@ pub struct Override {
     pub graph: SubgraphId,
     /// Points to a subgraph referenced by name, but this is _not_ validated to allow easier field
     /// migrations between subgraphs.
-    pub from: StringId,
+    pub from: OverrideSource,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub enum OverrideSource {
+    Subgraph(SubgraphId),
+    Missing(StringId),
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

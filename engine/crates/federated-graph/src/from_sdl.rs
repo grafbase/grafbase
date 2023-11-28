@@ -512,7 +512,13 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
                             .iter()
                             .position(|subgraph| subgraph.name == subgraph_name)?,
                     ),
-                    from: state.insert_string(overrides),
+                    from: state
+                        .subgraphs
+                        .iter()
+                        .position(|subgraph| &state.strings[subgraph.name.0] == overrides)
+                        .map(SubgraphId)
+                        .map(OverrideSource::Subgraph)
+                        .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides))),
                 })
             }
             _ => None, // unreachable in valid schemas
