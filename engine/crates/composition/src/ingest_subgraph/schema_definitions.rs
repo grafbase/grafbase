@@ -44,6 +44,7 @@ pub(crate) struct FederationDirectivesMatcher<'a> {
     external: Cow<'a, str>,
     provides: Cow<'a, str>,
     requires: Cow<'a, str>,
+    inaccessible: Cow<'a, str>,
 }
 
 const DEFAULT_FEDERATION_PREFIX: &str = "federation__";
@@ -56,6 +57,7 @@ impl Default for FederationDirectivesMatcher<'_> {
             external: Cow::Borrowed("external"),
             provides: Cow::Borrowed("provides"),
             requires: Cow::Borrowed("requires"),
+            inaccessible: Cow::Borrowed("inaccessible"),
         }
     }
 }
@@ -105,6 +107,7 @@ impl<'a> FederationDirectivesMatcher<'a> {
             external: final_name("external"),
             provides: final_name("provides"),
             requires: final_name("requires"),
+            inaccessible: final_name("inaccessible"),
         }
     }
 
@@ -125,6 +128,10 @@ impl<'a> FederationDirectivesMatcher<'a> {
     }
 
     pub(crate) fn is_key(&self, directive_name: &str) -> bool {
+        self.key == directive_name
+    }
+
+    pub(crate) fn is_inaccessible(&self, directive_name: &str) -> bool {
         self.key == directive_name
     }
 }

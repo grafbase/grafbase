@@ -64,6 +64,11 @@ pub(super) fn ingest_fields(
                 .iter()
                 .any(|directive| federation_directives_matcher.is_external(directive.node.name.node.as_str()));
 
+        let is_inaccessible = field
+            .directives
+            .iter()
+            .any(|directive| federation_directives_matcher.is_inaccessible(directive.node.name.node.as_str()));
+
         let provides = field
             .directives
             .iter()
@@ -94,6 +99,7 @@ pub(super) fn ingest_fields(
                 field_type,
                 is_shareable,
                 is_external,
+                is_inaccessible,
                 provides,
                 requires,
                 deprecated,

@@ -11,6 +11,14 @@ use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId};
 use itertools::Itertools;
 
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
+    ctx.set_inaccessible_definitions(
+        ctx.subgraphs
+            .definitions()
+            .iter()
+            .filter(|definition| definition.is_inaccessible())
+            .cloned()
+            .collect(),
+    );
     ctx.subgraphs.iter_definition_groups(|definitions| {
         let Some(first) = definitions.first() else {
             return;
@@ -42,6 +50,7 @@ fn merge_object_definitions<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
 ) {
+    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
     if let Some(incompatible) = definitions
         .iter()
         .find(|definition| definition.kind() != DefinitionKind::Object)
@@ -57,7 +66,7 @@ fn merge_object_definitions<'a>(
     }
 
     let first_is_entity = first.is_entity();
-    if definitions.iter().any(|object| object.is_entity() != first_is_entity) {
+    if !is_inaccessible && definitions.iter().any(|object| object.is_entity() != first_is_entity) {
         let name = first.name().as_str();
         let (entity_subgraphs, non_entity_subgraphs) = definitions
             .iter()

@@ -2,7 +2,9 @@ use crate::{
     subgraphs::{self, StringWalker},
     VecExt,
 };
+use federated::FederatedGraph;
 use graphql_federated_graph as federated;
+use itertools::Combinations;
 use std::collections::{BTreeSet, HashMap};
 
 /// The intermediate representation of the schema that is produced by composition. This data
@@ -94,13 +96,24 @@ impl CompositionIr {
         self.resolvable_keys.push(KeyIr { object_id, key_id });
     }
 
-    pub(crate) fn insert_object(&mut self, object_name: StringWalker<'_>) -> federated::ObjectId {
+    pub(crate) fn insert_object(
+        &mut self,
+        object_name: StringWalker<'_>,
+        is_inaccessible: bool,
+    ) -> federated::ObjectId {
         let name = self.insert_string(object_name);
+        let mut composed_directives = Vec::new();
+        if is_inaccessible {
+            composed_directives.push(federated::Directive {
+                name: self.insert_static_str("inaccessible"),
+                arguments: Vec::new(),
+            });
+        }
         let object = federated::Object {
             name,
             implements_interfaces: Vec::new(),
             resolvable_keys: Vec::new(),
-            composed_directives: Vec::new(),
+            composed_directives,
         };
         let id = federated::ObjectId(self.objects.push_return_idx(object));
         self.definitions_by_name

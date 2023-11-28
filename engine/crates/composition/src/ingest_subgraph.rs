@@ -13,7 +13,7 @@ use crate::{
     Subgraphs,
 };
 use async_graphql_parser::{
-    types::{self as ast, ConstDirective},
+    types::{self as ast, ConstDirective, Directive},
     Positioned,
 };
 
@@ -37,9 +37,12 @@ fn ingest_top_level_definitions(
         match definition {
             ast::TypeSystemDefinition::Type(type_definition) => {
                 let type_name = &type_definition.node.name.node;
+                let is_inaccessible =
+                    has_inaccessible_directive(&type_definition.node.directives, federation_directives_matcher);
                 match &type_definition.node.kind {
                     ast::TypeKind::Object(_) => {
-                        let definition_id = subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Object);
+                        let definition_id =
+                            subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Object, is_inaccessible);
                         object::ingest_directives(
                             definition_id,
                             &type_definition.node,
@@ -48,21 +51,22 @@ fn ingest_top_level_definitions(
                         );
                     }
                     ast::TypeKind::Interface(_interface_type) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Interface);
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Interface, is_inaccessible);
                     }
                     ast::TypeKind::Union(_) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union);
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union, is_inaccessible);
                     }
                     ast::TypeKind::InputObject(_) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::InputObject);
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::InputObject, is_inaccessible);
                     }
 
                     ast::TypeKind::Scalar => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Scalar);
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Scalar, is_inaccessible);
                     }
 
                     ast::TypeKind::Enum(enum_type) => {
-                        let definition_id = subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Enum);
+                        let definition_id =
+                            subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Enum, is_inaccessible);
                         enums::ingest_enum(definition_id, enum_type, subgraphs);
                     }
                 }
@@ -106,6 +110,10 @@ fn ingest_definition_bodies(
                             field_type,
                             is_shareable: false,
                             is_external: false,
+                            is_inaccessible: has_inaccessible_directive(
+                                &field.node.directives,
+                                federation_directives_matcher,
+                            ),
                             provides: None,
                             requires: None,
                             deprecated,
@@ -134,6 +142,10 @@ fn ingest_definition_bodies(
                             field_type,
                             is_shareable: false,
                             is_external: false,
+                            is_inaccessible: has_inaccessible_directive(
+                                &field.node.directives,
+                                federation_directives_matcher,
+                            ),
                             provides: None,
                             requires: None,
                             deprecated,
@@ -188,4 +200,13 @@ fn find_tag_directives(directives: &[Positioned<ConstDirective>]) -> Vec<&str> {
             }
         })
         .collect()
+}
+
+fn has_inaccessible_directive(
+    directives: &[Positioned<ConstDirective>],
+    matcher: &FederationDirectivesMatcher<'_>,
+) -> bool {
+    directives
+        .iter()
+        .any(|directive| matcher.is_inaccessible(directive.node.name.node.as_str()))
 }

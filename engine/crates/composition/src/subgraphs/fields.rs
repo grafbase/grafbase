@@ -18,7 +18,7 @@ pub(super) struct Field {
     requires: Option<Vec<Selection>>,
     is_shareable: bool,
     is_external: bool,
-
+    is_inaccessible: bool,
     // @deprecated
     deprecated: Option<Deprecation>,
 
@@ -45,6 +45,7 @@ impl Subgraphs {
             field_type,
             is_shareable,
             is_external,
+            is_inaccessible,
             provides,
             requires,
             deprecated,
@@ -70,6 +71,7 @@ impl Subgraphs {
             field_type,
             is_shareable,
             is_external,
+            is_inaccessible,
             arguments: Vec::new(),
             provides,
             requires,
@@ -95,6 +97,7 @@ pub(crate) struct FieldIngest<'a> {
     pub(crate) field_type: FieldTypeId,
     pub(crate) is_shareable: bool,
     pub(crate) is_external: bool,
+    pub(crate) is_inaccessible: bool,
     pub(crate) provides: Option<&'a str>,
     pub(crate) requires: Option<&'a str>,
     pub(crate) deprecated: Option<Deprecation>,
@@ -146,6 +149,10 @@ impl<'a> FieldWalker<'a> {
 
     pub fn is_shareable(self) -> bool {
         self.field().is_shareable
+    }
+
+    pub fn is_inaccessible(self) -> bool {
+        self.field().is_inaccessible
     }
 
     pub fn parent_definition(self) -> DefinitionWalker<'a> {

@@ -17,6 +17,7 @@ pub(crate) struct Definition {
     kind: DefinitionKind,
     is_shareable: bool,
     is_external: bool,
+    is_inaccessible: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -56,6 +57,7 @@ impl Subgraphs {
         subgraph_id: SubgraphId,
         name: &str,
         kind: DefinitionKind,
+        is_inaccessible: bool,
     ) -> DefinitionId {
         let name = self.strings.intern(name);
         let definition = Definition {
@@ -64,6 +66,7 @@ impl Subgraphs {
             kind,
             is_shareable: false,
             is_external: false,
+            is_inaccessible,
         };
         let id = DefinitionId(self.definitions.definitions.push_return_idx(definition));
         self.definition_names.insert((name, subgraph_id), id);
@@ -98,6 +101,10 @@ impl<'a> DefinitionWalker<'a> {
 
     pub fn is_external(self) -> bool {
         self.definition().is_external
+    }
+
+    pub fn is_inaccessible(self) -> bool {
+        self.definition().is_inaccessible
     }
 
     pub fn subgraph(self) -> SubgraphWalker<'a> {

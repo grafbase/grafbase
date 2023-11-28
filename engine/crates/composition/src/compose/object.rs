@@ -1,3 +1,5 @@
+use graphql_federated_graph::Definition;
+
 use super::*;
 use crate::{
     composition_ir as ir,
@@ -28,9 +30,10 @@ pub(super) fn merge_field_arguments<'a>(
 }
 
 pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
+    let is_inaccessible = fields.iter().any(|field| field.is_inaccessible());
     if fields
         .iter()
-        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_part_of_key()))
+        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_part_of_key()) || is_inaccessible)
         .count()
         > 1
     {
@@ -48,7 +51,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
     let first_is_part_of_key = first.is_part_of_key();
     if fields
         .iter()
-        .any(|field| field.is_part_of_key() != first_is_part_of_key)
+        .any(|field| field.is_part_of_key() != first_is_part_of_key && !is_inaccessible)
     {
         let name = format!(
             "{}.{}",
@@ -66,6 +69,26 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
                 .map(|f| f.parent_definition().subgraph().name().as_str())
                 .join(", "),
             non_key_subgraphs
+                .into_iter()
+                .map(|f| f.parent_definition().subgraph().name().as_str())
+                .join(", "),
+        ));
+    }
+
+    if fields
+        .iter()
+        .any(|field| ctx.has_inaccessible_definition(field.r#type().type_name().id) && !field.is_inaccessible())
+    {
+        let name = format!(
+            "{}.{}",
+            first.parent_definition().name().as_str(),
+            first.name().as_str()
+        );
+        let non_marked_subgraphs = fields.iter().filter(|field| !field.is_inaccessible());
+
+        ctx.diagnostics.push_fatal(format!(
+            "The field `{name}` is of an @inaccessible type, but is itself not marked as @inaccessible in subgraphs {}",
+            non_marked_subgraphs
                 .into_iter()
                 .map(|f| f.parent_definition().subgraph().name().as_str())
                 .join(", "),
@@ -111,6 +134,14 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         composed_directives.push(graphql_federated_graph::Directive {
             name: directive_name,
             arguments: vec![(argument_name, tag_argument)],
+        });
+    }
+
+    if is_inaccessible {
+        let directive_name = ctx.insert_static_str("inaccessible");
+        composed_directives.push(graphql_federated_graph::Directive {
+            name: directive_name,
+            arguments: Vec::new(),
         });
     }
 
