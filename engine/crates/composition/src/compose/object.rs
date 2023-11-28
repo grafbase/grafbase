@@ -30,7 +30,7 @@ pub(super) fn merge_field_arguments<'a>(
 pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
     if fields
         .iter()
-        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_part_of_key()))
+        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_part_of_key() || f.overrides().is_some()))
         .count()
         > 1
     {
@@ -77,7 +77,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
     let resolvable_in = fields
         .first()
         .filter(|_| fields.len() == 1)
-        .map(|field| graphql_federated_graph::SubgraphId(field.parent_definition().subgraph().id.idx()));
+        .map(|field| federated::SubgraphId(field.parent_definition().subgraph().id.idx()));
 
     let provides = fields.iter().filter(|f| f.provides().is_some()).map(|f| f.id).collect();
 
@@ -89,12 +89,12 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         let arguments = match reason {
             Some(reason) => vec![(
                 ctx.insert_static_str("reason"),
-                graphql_federated_graph::Value::String(ctx.insert_string(reason)),
+                federated::Value::String(ctx.insert_string(reason)),
             )],
             None => Vec::new(),
         };
         let directive_name = ctx.insert_static_str("deprecated");
-        composed_directives.push(graphql_federated_graph::Directive {
+        composed_directives.push(federated::Directive {
             name: directive_name,
             arguments,
         });
@@ -107,12 +107,14 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
     {
         let directive_name = ctx.insert_static_str("tag");
         let argument_name = ctx.insert_static_str("name");
-        let tag_argument = graphql_federated_graph::Value::String(ctx.insert_string(tag));
-        composed_directives.push(graphql_federated_graph::Directive {
+        let tag_argument = federated::Value::String(ctx.insert_string(tag));
+        composed_directives.push(federated::Directive {
             name: directive_name,
             arguments: vec![(argument_name, tag_argument)],
         });
     }
+
+    let overrides = collect_overrides(fields, ctx);
 
     ctx.insert_field(ir::FieldIr {
         parent_name: first.parent_definition().name().id,
@@ -123,5 +125,51 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         provides,
         requires,
         composed_directives,
+        overrides,
     });
+}
+
+fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<federated::Override> {
+    let mut overrides = Vec::new();
+
+    for (field, from) in fields.iter().filter_map(|f| Some(f).zip(f.overrides())) {
+        let field_subgraph = field.parent_definition().subgraph();
+
+        if from.id == field_subgraph.name().id {
+            ctx.diagnostics.push_fatal(format!(
+                r#"Source and destination subgraphs "{}" are the same for overridden field "{}.{}""#,
+                from.as_str(),
+                field.parent_definition().name().as_str(),
+                field.name().as_str()
+            ));
+            continue;
+        }
+
+        if let Some(override_source) = fields
+            .iter()
+            .find(|f| f.parent_definition().subgraph().name().id == from.id)
+        {
+            if override_source.overrides().is_some() {
+                ctx.diagnostics
+                    .push_fatal(format!(r#"Field "{}.{}" on subgraph "{}" is also marked with directive @override in subgraph "{}". Only one @override directive is allowed per field."#,
+                        override_source.parent_definition().name().as_str(),
+                        override_source.name().as_str(),
+                        override_source.parent_definition().subgraph().name().as_str(),
+                        field.parent_definition().subgraph().name().as_str()));
+            }
+        }
+
+        overrides.push(federated::Override {
+            graph: federated::SubgraphId(field_subgraph.id.idx()),
+            from: ctx
+                .subgraphs
+                .iter_subgraphs()
+                .position(|subgraph| subgraph.name().id == from.id)
+                .map(federated::SubgraphId)
+                .map(federated::OverrideSource::Subgraph)
+                .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(from.id))),
+        });
+    }
+
+    overrides
 }

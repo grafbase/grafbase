@@ -192,13 +192,17 @@ pub(crate) struct FieldIr {
     pub(crate) field_name: subgraphs::StringId,
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
+
     pub(crate) resolvable_in: Option<federated::SubgraphId>,
 
-    /// Subgraph fields with an `@provides`.
+    /// Subgraph fields corresponding to this federated graph field that have an `@provides`.
     pub(crate) provides: Vec<subgraphs::FieldId>,
 
-    /// Subgraph fields with an `@requires`.
+    /// Subgraph fields corresponding to this federated graph field that have an `@requires`.
     pub(crate) requires: Vec<subgraphs::FieldId>,
+
+    // @join__field(graph: ..., override: ...)
+    pub(crate) overrides: Vec<federated::Override>,
 
     pub(crate) composed_directives: Vec<federated::Directive>,
 }

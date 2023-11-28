@@ -1,0 +1,10 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@interfaceObject", "@key", "@override", "@shareable"])
+
+type Query {
+  getMammoth: Mammoth @override(from: "steppe")
+}
+
+type Mammoth @shareable {
+  weightGrams: Int @override(from: "steppe")
+  tuskLength: Int @override(from: "steppe") # Error: overriding an overriding field
+}

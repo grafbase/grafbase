@@ -78,6 +78,7 @@ pub(crate) fn merge_entity_interface_definitions(
             provides: Vec::new(),
             requires: Vec::new(),
             composed_directives: Vec::new(),
+            overrides: Vec::new(),
         });
     }
 
@@ -129,6 +130,7 @@ pub(crate) fn merge_entity_interface_definitions(
                 provides: Vec::new(),
                 requires: Vec::new(),
                 composed_directives: Vec::new(),
+                overrides: Vec::new(),
             });
         }
     }
@@ -160,6 +162,7 @@ pub(crate) fn merge_entity_interface_definitions(
             provides,
             requires,
             composed_directives,
+            overrides,
         } in fields.values()
         {
             ctx.insert_field(ir::FieldIr {
@@ -171,6 +174,7 @@ pub(crate) fn merge_entity_interface_definitions(
                 provides: provides.clone(),
                 requires: requires.clone(),
                 composed_directives: composed_directives.clone(),
+                overrides: overrides.clone(),
             });
         }
     }

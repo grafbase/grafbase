@@ -202,6 +202,7 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
     write_provides(field, graph, sdl)?;
     write_requires(field, graph, sdl)?;
     write_composed_directives(field, graph, sdl)?;
+    write_overrides(field, graph, sdl)?;
 
     sdl.push('\n');
     Ok(())
@@ -235,6 +236,22 @@ fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGra
     );
     write!(sdl, " @join__field(graph: {subgraph_name}{provides}{requires})")?;
 
+    Ok(())
+}
+
+fn write_overrides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    for Override {
+        graph: overriding_graph,
+        from,
+    } in &field.overrides
+    {
+        let overrides = match from {
+            OverrideSource::Subgraph(subgraph_id) => &graph[graph.subgraphs[subgraph_id.0].name],
+            OverrideSource::Missing(string) => &graph[*string],
+        };
+        let graph = &graph[graph[*overriding_graph].name];
+        write!(sdl, " @join__field(graph: {graph}, overrides: \"{overrides}\")")?;
+    }
     Ok(())
 }
 

@@ -1,0 +1,2 @@
+# Field "Mammoth.tuskLength" on subgraph "steppe" is also marked with directive @override in subgraph "mangrove". Only one @override directive is allowed per field.
+# Source and destination subgraphs "steppe" are the same for overridden field "Mammoth.tuskLength"
