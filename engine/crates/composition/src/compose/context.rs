@@ -1,8 +1,6 @@
-use std::collections::HashSet;
-
 use crate::{
     composition_ir::CompositionIr,
-    subgraphs::{self, DefinitionId, StringId, StringWalker, Walker},
+    subgraphs::{self, StringWalker},
     Diagnostics,
 };
 use graphql_federated_graph as federated;
@@ -11,8 +9,6 @@ use graphql_federated_graph as federated;
 pub(crate) struct Context<'a> {
     pub(crate) subgraphs: &'a subgraphs::Subgraphs,
     pub(crate) diagnostics: &'a mut Diagnostics,
-    pub(crate) inaccessible_definitions: HashSet<StringId>,
-
     /// This should stay private, composition IR should remain write-only during composition: the
     /// subgraphs are the source of truth.
     ir: CompositionIr,
@@ -30,7 +26,6 @@ impl<'a> Context<'a> {
             subgraphs,
             diagnostics,
             ir,
-            inaccessible_definitions: HashSet::new(),
         }
     }
 
@@ -98,16 +93,6 @@ impl<'a> Context<'a> {
             Some(id) => self.ir.insert_string(self.subgraphs.walk(id)),
             None => self.ir.insert_static_str(string),
         }
-    }
-
-    /// note: only populated within `compose_graphs`
-    pub(crate) fn set_inaccessible_definitions(&mut self, definitions: Vec<Walker<'_, DefinitionId>>) {
-        self.inaccessible_definitions = HashSet::from_iter(definitions.iter().map(|definition| definition.name().id))
-    }
-
-    /// note: only works within `compose_graphs`
-    pub(crate) fn has_inaccessible_definition(&mut self, definition_string_id: StringId) -> bool {
-        self.inaccessible_definitions.contains(&definition_string_id)
     }
 }
 

@@ -132,7 +132,7 @@ impl<'a> FederationDirectivesMatcher<'a> {
     }
 
     pub(crate) fn is_inaccessible(&self, directive_name: &str) -> bool {
-        self.key == directive_name
+        self.inaccessible == directive_name
     }
 }
 

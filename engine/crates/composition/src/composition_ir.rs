@@ -2,9 +2,7 @@ use crate::{
     subgraphs::{self, StringWalker},
     VecExt,
 };
-use federated::FederatedGraph;
 use graphql_federated_graph as federated;
-use itertools::Combinations;
 use std::collections::{BTreeSet, HashMap};
 
 /// The intermediate representation of the schema that is produced by composition. This data

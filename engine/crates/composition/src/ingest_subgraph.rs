@@ -13,7 +13,7 @@ use crate::{
     Subgraphs,
 };
 use async_graphql_parser::{
-    types::{self as ast, ConstDirective, Directive},
+    types::{self as ast, ConstDirective},
     Positioned,
 };
 

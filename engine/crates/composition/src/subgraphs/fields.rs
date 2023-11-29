@@ -1,7 +1,7 @@
 use super::*;
 
 /// Fields of objects and interfaces.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Fields(Vec<Field>);
 
 /// The unique identifier for a field in an object, interface or input object field.
@@ -9,6 +9,7 @@ pub(crate) struct Fields(Vec<Field>);
 pub(crate) struct FieldId(usize);
 
 /// A field in an object, interface or input object type.
+#[derive(Debug)]
 pub(super) struct Field {
     pub(super) parent_definition_id: DefinitionId,
     pub(super) name: StringId,

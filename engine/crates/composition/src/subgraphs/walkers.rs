@@ -2,7 +2,7 @@
 
 use super::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct Walker<'a, Id> {
     pub(crate) id: Id,
     pub(crate) subgraphs: &'a Subgraphs,

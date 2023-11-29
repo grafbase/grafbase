@@ -4,7 +4,7 @@ use super::DefinitionId;
 use crate::Subgraphs;
 
 /// All the unions in all subgraphs.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Unions(
     /// (union, member)
     BTreeSet<(DefinitionId, DefinitionId)>,

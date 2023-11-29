@@ -3,7 +3,7 @@ use async_graphql_parser::types as ast;
 use std::collections::HashSet;
 
 /// All the keys (`@key(...)`) in all the subgraphs in one container.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Keys {
     keys: Vec<(DefinitionId, Key)>,
     nested_key_fields: NestedKeyFields,
@@ -76,7 +76,7 @@ impl Subgraphs {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct NestedKeyFields {
     /// Fields that are part of a nested key key _on another type/entity_. Example:
     ///

@@ -1,5 +1,3 @@
-use graphql_federated_graph::Definition;
-
 use super::*;
 use crate::{
     composition_ir as ir,
@@ -30,12 +28,15 @@ pub(super) fn merge_field_arguments<'a>(
 }
 
 pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
+    let field_type_is_inaccessible = fields.iter().any(|field| field.parent_definition().is_inaccessible());
     let is_inaccessible = fields.iter().any(|field| field.is_inaccessible());
-    if fields
-        .iter()
-        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_part_of_key()) || is_inaccessible)
-        .count()
-        > 1
+    let skip = is_inaccessible || field_type_is_inaccessible;
+    if !skip
+        && fields
+            .iter()
+            .filter(|f| !(f.is_shareable() || f.is_external() || f.is_part_of_key()))
+            .count()
+            > 1
     {
         let next = &fields[1];
 
@@ -49,9 +50,10 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
     }
 
     let first_is_part_of_key = first.is_part_of_key();
-    if fields
-        .iter()
-        .any(|field| field.is_part_of_key() != first_is_part_of_key && !is_inaccessible)
+    if !skip
+        && fields
+            .iter()
+            .any(|field| field.is_part_of_key() != first_is_part_of_key)
     {
         let name = format!(
             "{}.{}",
@@ -75,10 +77,14 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         ));
     }
 
-    if fields
-        .iter()
-        .any(|field| ctx.has_inaccessible_definition(field.r#type().type_name().id) && !field.is_inaccessible())
-    {
+    if fields.iter().any(|field| {
+        field
+            .r#type()
+            .definition(field.parent_definition().subgraph().id)
+            .filter(|parent| parent.is_inaccessible())
+            .is_some()
+            && !field.is_inaccessible()
+    }) {
         let name = format!(
             "{}.{}",
             first.parent_definition().name().as_str(),

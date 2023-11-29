@@ -4,13 +4,14 @@ use super::*;
 pub(crate) struct DefinitionId(pub(super) usize);
 
 // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Definitions {
     definitions: Vec<Definition>,
     // (Implementer, implementee)
     interface_impls: BTreeSet<(StringId, StringId)>,
 }
 
+#[derive(Debug)]
 pub(crate) struct Definition {
     subgraph_id: SubgraphId,
     name: StringId,

@@ -9,7 +9,7 @@ impl StringId {
 }
 
 /// Very simple implementation of string interning.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Strings(indexmap::IndexSet<Box<str>>);
 
 impl Strings {
