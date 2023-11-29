@@ -1,10 +1,10 @@
-type New {
+type New @shareable {
     name: String! @inaccessible
     message: String!
     old: Old! @inaccessible
 }
 
-type Old @inaccessible {
+type Old @inaccessible @shareable {
     name: String!
 }
 

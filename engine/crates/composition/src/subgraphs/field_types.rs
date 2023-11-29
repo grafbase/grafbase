@@ -5,7 +5,7 @@ use super::*;
 
 /// All the field types in the schema. Interned. Comparing two field's type has the same cost as
 /// comparing two `usize`s.
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub(super) struct FieldTypes {
     inner_types: IndexSet<InnerFieldType>,
     wrappers: IndexSet<WrapperType>,
@@ -14,22 +14,22 @@ pub(super) struct FieldTypes {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct FieldTypeId(usize);
 
-#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(Hash, PartialEq, Eq, Clone, Copy)]
 struct WrapperTypeId(usize);
 
-#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(Hash, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum WrapperTypeKind {
     List,
     NonNullList,
 }
 
-#[derive(Hash, PartialEq, Eq, Debug)]
+#[derive(Hash, PartialEq, Eq)]
 struct WrapperType {
     kind: WrapperTypeKind,
     outer: Option<WrapperTypeId>,
 }
 
-#[derive(Hash, PartialEq, Eq, Debug)]
+#[derive(Hash, PartialEq, Eq)]
 struct InnerFieldType {
     name: StringId,
     wrapper: Option<WrapperTypeId>,

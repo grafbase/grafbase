@@ -1,0 +1,21 @@
+type Query {
+  chiaSeedProducts: [ChiaSeedProduct]
+  chiaSeedProduct(id: ID!): ChiaSeedProduct
+}
+
+type ChiaSeedProduct {
+  id: ID!
+  name: String!
+  brand: String
+  price: Float
+  nutritionalInfo: NutritionalInfo # Error: this field should be inaccessible
+}
+
+type NutritionalInfo @inaccessible {
+  calories: Int
+  protein: Float
+  fat: Float
+  carbohydrates: Float
+  fiber: Float
+  omega3: Float
+}

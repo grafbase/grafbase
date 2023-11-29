@@ -21,7 +21,7 @@ use itertools::Itertools;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// A set of subgraphs to be composed.
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Subgraphs {
     pub(super) strings: strings::Strings,
     subgraphs: Vec<Subgraph>,
@@ -115,7 +115,6 @@ impl Subgraphs {
     }
 }
 
-#[derive(Debug)]
 pub(crate) struct Subgraph {
     /// The name of the subgraph. It is not contained in the GraphQL schema of the subgraph, it
     /// only makes sense within a project.

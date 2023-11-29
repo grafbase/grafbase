@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub(super) struct Enums {
     values: BTreeSet<(DefinitionId, StringId)>,
     // (enum name, enum value) -> deprecation
