@@ -10,12 +10,13 @@ pub(super) fn merge_interface_definitions(
     definitions: &[DefinitionWalker<'_>],
 ) {
     let mut all_fields: indexmap::IndexMap<StringId, FieldId> = indexmap::IndexMap::new();
+    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
 
     for field in definitions.iter().flat_map(|def| def.fields()) {
         all_fields.entry(field.name().id).or_insert(field.id);
     }
 
-    ctx.insert_interface(first.name());
+    ctx.insert_interface(first.name(), is_inaccessible);
 
     for field in all_fields.values() {
         let field = first.walk(*field);

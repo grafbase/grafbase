@@ -1,11 +1,11 @@
 type New @shareable {
     name: String! @inaccessible
-    message: String!
+    message: String! @inaccessible
     old: Old! @inaccessible
 }
 
 type Old @inaccessible @shareable {
-    name: String!
+    name: String! @inaccessible
 }
 
 type Query {

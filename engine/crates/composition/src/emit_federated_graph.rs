@@ -96,68 +96,71 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
         let field_name = ctx.insert_string(ctx.subgraphs.walk(field_name));
         let arguments = arguments
             .iter()
-            .map(|(arg_name, arg_type)| federated::FieldArgument {
-                name: ctx.insert_string(ctx.subgraphs.walk(*arg_name)),
-                type_id: ctx.insert_field_type(ctx.subgraphs.walk(*arg_type)),
+            .map(|argument| federated::FieldArgument {
+                name: ctx.insert_string(ctx.subgraphs.walk(argument.argument_name)),
+                type_id: ctx.insert_field_type(ctx.subgraphs.walk(argument.argument_type)),
+                composed_directives: argument.composed_directives.clone(),
             })
             .collect();
 
-        let push_field = |ctx: &mut Context<'a>, parent: federated::Definition| {
-            let field = federated::Field {
-                name: field_name,
-                field_type_id,
-                arguments,
-                overrides,
+        let push_field =
+            |ctx: &mut Context<'a>, parent: federated::Definition, composed_directives: Vec<federated::Directive>| {
+                let field = federated::Field {
+                    name: field_name,
+                    field_type_id,
+                    arguments,
+                    overrides,
 
-                provides: Vec::new(),
-                requires: Vec::new(),
-                resolvable_in,
-                composed_directives,
+                    provides: Vec::new(),
+                    requires: Vec::new(),
+                    resolvable_in,
+                    composed_directives,
+                };
+
+                let id = federated::FieldId(ctx.out.fields.push_return_idx(field));
+
+                for (subgraph_id, definition, provides) in provides.iter().filter_map(|field_id| {
+                    let field = ctx.subgraphs.walk(*field_id);
+                    field.provides().map(|provides| {
+                        (
+                            federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
+                            ctx.definitions[&field.r#type().type_name().id],
+                            provides,
+                        )
+                    })
+                }) {
+                    field_provides.push((id, subgraph_id, definition, provides));
+                }
+
+                for (subgraph_id, provides) in requires.iter().filter_map(|field_id| {
+                    let field = ctx.subgraphs.walk(*field_id);
+                    field.requires().map(|provides| {
+                        (
+                            federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
+                            provides,
+                        )
+                    })
+                }) {
+                    field_requires.push((id, subgraph_id, parent, provides));
+                }
+
+                id
             };
-
-            let id = federated::FieldId(ctx.out.fields.push_return_idx(field));
-
-            for (subgraph_id, definition, provides) in provides.iter().filter_map(|field_id| {
-                let field = ctx.subgraphs.walk(*field_id);
-                field.provides().map(|provides| {
-                    (
-                        federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
-                        ctx.definitions[&field.r#type().type_name().id],
-                        provides,
-                    )
-                })
-            }) {
-                field_provides.push((id, subgraph_id, definition, provides));
-            }
-
-            for (subgraph_id, provides) in requires.iter().filter_map(|field_id| {
-                let field = ctx.subgraphs.walk(*field_id);
-                field.requires().map(|provides| {
-                    (
-                        federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
-                        provides,
-                    )
-                })
-            }) {
-                field_requires.push((id, subgraph_id, parent, provides));
-            }
-
-            id
-        };
 
         match ctx.definitions[&parent_name] {
             parent @ federated::Definition::Object(object_id) => {
-                let field_id = push_field(ctx, parent);
+                let field_id = push_field(ctx, parent, composed_directives);
                 ctx.push_object_field(object_id, field_id);
             }
             parent @ federated::Definition::Interface(interface_id) => {
-                let field_id = push_field(ctx, parent);
+                let field_id = push_field(ctx, parent, composed_directives);
                 ctx.push_interface_field(interface_id, field_id);
             }
             federated::Definition::InputObject(input_object_id) => {
                 ctx.out[input_object_id].fields.push(federated::InputObjectField {
                     name: field_name,
                     field_type_id,
+                    composed_directives,
                 });
             }
             _ => unreachable!(),

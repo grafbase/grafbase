@@ -1,0 +1,17 @@
+enum UngulateType @inaccessible {
+  DEER
+  HORSE @inaccessible
+  CAMEL
+  RHINOCEROS
+  GIRAFFE
+}
+
+type Ungulate {
+  id: ID!
+  name: String!
+  type: UngulateType! @inaccessible
+}
+
+type Query {
+  getUngulate(id: ID!): Ungulate
+}

@@ -1,18 +1,20 @@
 use super::*;
-use crate::{
-    composition_ir as ir,
-    subgraphs::{FieldTypeId, StringId},
-};
-use std::collections::{BTreeSet, HashSet};
+use crate::composition_ir as ir;
 
 /// The arguments of a federated graph's fields are the interseciton of the subgraph's arguments for
-/// that field.
+/// that field. Returns (arg_name, arg_type, is_inaccessible).
 pub(super) fn merge_field_arguments<'a>(
     first: FieldWalker<'a>,
     fields: &[FieldWalker<'a>],
-) -> Vec<(StringId, FieldTypeId)> {
+    ctx: &mut Context<'a>,
+) -> Vec<ir::ArgumentIr> {
     let mut intersection: Vec<_> = first.arguments().map(|arg| arg.argument_name().id).collect();
     let mut buf = HashSet::new();
+    let inaccessible_arguments: HashSet<_> = fields
+        .iter()
+        .filter(|f| f.is_inaccessible())
+        .map(|f| f.name().id)
+        .collect();
 
     for field in &fields[1..] {
         buf.clear();
@@ -20,10 +22,39 @@ pub(super) fn merge_field_arguments<'a>(
         intersection.retain(|value| buf.contains(value));
     }
 
+    for argument in first.arguments().filter(|arg| {
+        !arg.is_inaccessible()
+            && arg
+                .argument_type()
+                .definition(first.parent_definition().subgraph().id)
+                .map(|def| def.is_inaccessible())
+                .unwrap_or(false)
+    }) {
+        ctx.diagnostics.push_fatal(format!(
+            "The argument `{}` on `{}` is of an @inaccessible type, but is itself not marked as @inaccessible.",
+            argument.argument_name().as_str(),
+            first.name().as_str(),
+        ));
+    }
+
     first
         .arguments()
         .filter(|arg| intersection.contains(&arg.argument_name().id))
-        .map(|arg| (arg.argument_name().id, arg.argument_type().id))
+        .map(|arg| {
+            let argument_name = arg.argument_name().id;
+            ir::ArgumentIr {
+                argument_name,
+                argument_type: arg.argument_type().id,
+                composed_directives: if inaccessible_arguments.contains(&argument_name) {
+                    vec![federated::Directive {
+                        name: ctx.insert_static_str("inaccessible"),
+                        arguments: Vec::new(),
+                    }]
+                } else {
+                    Vec::new()
+                },
+            }
+        })
         .collect()
 }
 
@@ -97,7 +128,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         ));
     }
 
-    let arguments = object::merge_field_arguments(first, fields);
+    let arguments = object::merge_field_arguments(first, fields, ctx);
 
     let resolvable_in = fields
         .first()

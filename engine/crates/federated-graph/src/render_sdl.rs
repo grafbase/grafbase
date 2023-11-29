@@ -19,7 +19,10 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             continue;
         }
 
-        writeln!(sdl, "scalar {name}\n")?;
+        write!(sdl, "scalar {name}")?;
+        write_composed_directives(&scalar.composed_directives, graph, &mut sdl)?;
+        sdl.push('\n');
+        sdl.push('\n');
     }
 
     for (idx, object) in graph.objects.iter().enumerate() {
@@ -41,7 +44,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             }
         }
 
-        write_composed_directives_object(object, graph, &mut sdl)?;
+        write_composed_directives(&object.composed_directives, graph, &mut sdl)?;
 
         if object.resolvable_keys.is_empty() {
             sdl.push_str(" {\n");
@@ -83,6 +86,8 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             }
         }
 
+        write_composed_directives(&interface.composed_directives, graph, &mut sdl)?;
+
         if interface.resolvable_keys.is_empty() {
             sdl.push_str(" {\n");
         } else {
@@ -117,7 +122,9 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for r#enum in &graph.enums {
         let enum_name = &graph[r#enum.name];
-        writeln!(sdl, "enum {enum_name} {{")?;
+        write!(sdl, "enum {enum_name}")?;
+        write_composed_directives(&r#enum.composed_directives, graph, &mut sdl)?;
+        sdl.push_str(" {\n");
 
         for value in &r#enum.values {
             let value_name = &graph[value.value];
@@ -137,7 +144,9 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for union in &graph.unions {
         let union_name = &graph[r#union.name];
-        write!(sdl, "union {union_name} = ")?;
+        write!(sdl, "union {union_name}")?;
+        write_composed_directives(&union.composed_directives, graph, &mut sdl)?;
+        sdl.push_str(" = ");
 
         let mut members = union.members.iter().peekable();
 
@@ -148,17 +157,21 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
                 sdl.push_str(" | ");
             }
         }
+
+        sdl.push_str("\n\n");
     }
 
     for input_object in &graph.input_objects {
         let name = &graph[input_object.name];
 
-        writeln!(sdl, "input {name} {{")?;
+        write!(sdl, "input {name}")?;
+
+        write_composed_directives(&input_object.composed_directives, graph, &mut sdl)?;
+
+        sdl.push_str(" {\n");
 
         for field in &input_object.fields {
-            let field_name = &graph[field.name];
-            let field_type = render_field_type(&graph[field.field_type_id], graph);
-            writeln!(sdl, "{INDENT}{field_name}: {field_type}")?;
+            write_input_field(field, graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
@@ -190,6 +203,18 @@ fn write_subgraphs_enum(graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Resu
     Ok(())
 }
 
+fn write_input_field(field: &InputObjectField, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
+    let field_name = &graph[field.name];
+    let field_type = render_field_type(&graph[field.field_type_id], graph);
+
+    write!(sdl, "{INDENT}{field_name}: {field_type}")?;
+
+    write_composed_directives(&field.composed_directives, graph, sdl)?;
+
+    sdl.push('\n');
+    Ok(())
+}
+
 fn write_field(field_id: FieldId, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     let field = &graph[field_id];
     let field_name = &graph[field.name];
@@ -204,25 +229,15 @@ fn write_field(field_id: FieldId, graph: &FederatedGraphV1, sdl: &mut String) ->
 
     write_provides(field, graph, sdl)?;
     write_requires(field, graph, sdl)?;
-    write_composed_directives(field, graph, sdl)?;
+    write_composed_directives(&field.composed_directives, graph, sdl)?;
     write_overrides(field, graph, sdl)?;
 
     sdl.push('\n');
     Ok(())
 }
 
-fn write_composed_directives_object(object: &Object, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
-    for directive in &object.composed_directives {
-        let directive_name = &graph[directive.name];
-        let arguments = DirectiveArguments(&directive.arguments, graph);
-        write!(sdl, " @{directive_name}{arguments}")?;
-    }
-
-    Ok(())
-}
-
-fn write_composed_directives(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
-    for directive in &field.composed_directives {
+fn write_composed_directives(directives: &[Directive], graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
+    for directive in directives {
         let directive_name = &graph[directive.name];
         let arguments = DirectiveArguments(&directive.arguments, graph);
         write!(sdl, " @{directive_name}{arguments}")?;

@@ -7,3 +7,8 @@ type Old @shareable {
     name: String! 
 }
 
+type Query {
+    currentTime: Time! @inaccessible
+}
+
+scalar Time @inaccessible

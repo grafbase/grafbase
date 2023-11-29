@@ -1,6 +1,7 @@
 //! This is a separate module because we want to use only the public API of [Subgraphs] and avoid
 //! mixing GraphQL parser logic and types with our internals.
 
+mod definition;
 mod enums;
 mod field;
 mod nested_key_fields;
@@ -9,13 +10,14 @@ mod schema_definitions;
 
 use self::{nested_key_fields::ingest_nested_key_fields, schema_definitions::*};
 use crate::{
-    subgraphs::{self, DefinitionKind, SubgraphId},
+    subgraphs::{self, DefinitionId, DefinitionKind, SubgraphId},
     Subgraphs,
 };
 use async_graphql_parser::{
     types::{self as ast, ConstDirective},
     Positioned,
 };
+use async_graphql_value::ConstValue;
 
 pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
     let subgraph_id = subgraphs.push_subgraph(name, url);
@@ -37,52 +39,32 @@ fn ingest_top_level_definitions(
         match definition {
             ast::TypeSystemDefinition::Type(type_definition) => {
                 let type_name = &type_definition.node.name.node;
-                let is_inaccessible =
-                    has_inaccessible_directive(&type_definition.node.directives, federation_directives_matcher);
-                match &type_definition.node.kind {
+                let definition_id = match &type_definition.node.kind {
                     ast::TypeKind::Object(_) => {
-                        let definition_id =
-                            subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Object, is_inaccessible);
-
-                        object::ingest_directives(
-                            definition_id,
-                            &type_definition.node,
-                            subgraphs,
-                            federation_directives_matcher,
-                        );
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Object)
                     }
                     ast::TypeKind::Interface(_interface_type) => {
-                        let definition_id = subgraphs.push_definition(
-                            subgraph_id,
-                            type_name,
-                            DefinitionKind::Interface,
-                            is_inaccessible,
-                        );
-
-                        object::ingest_directives(
-                            definition_id,
-                            &type_definition.node,
-                            subgraphs,
-                            federation_directives_matcher,
-                        );
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Interface)
                     }
-                    ast::TypeKind::Union(_) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union, is_inaccessible);
-                    }
+                    ast::TypeKind::Union(_) => subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union),
                     ast::TypeKind::InputObject(_) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::InputObject, is_inaccessible);
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::InputObject)
                     }
 
-                    ast::TypeKind::Scalar => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Scalar, is_inaccessible);
-                    }
+                    ast::TypeKind::Scalar => subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Scalar),
 
                     ast::TypeKind::Enum(enum_type) => {
-                        let definition_id =
-                            subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Enum, is_inaccessible);
+                        let definition_id = subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Enum);
                         enums::ingest_enum(definition_id, enum_type, subgraphs);
+                        definition_id
                     }
-                }
+                };
+                definition::ingest_directives(
+                    definition_id,
+                    &type_definition.node,
+                    subgraphs,
+                    federation_directives_matcher,
+                );
             }
             ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
         }

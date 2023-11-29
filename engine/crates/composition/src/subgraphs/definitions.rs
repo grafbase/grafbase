@@ -58,12 +58,15 @@ impl Subgraphs {
         self.definitions.definitions[definition_id.0].is_shareable = true;
     }
 
+    pub(crate) fn set_inaccessible(&mut self, definition_id: DefinitionId) {
+        self.definitions.definitions[definition_id.0].is_inaccessible = true;
+    }
+
     pub(crate) fn push_definition(
         &mut self,
         subgraph_id: SubgraphId,
         name: &str,
         kind: DefinitionKind,
-        is_inaccessible: bool,
     ) -> DefinitionId {
         let name = self.strings.intern(name);
         let definition = Definition {
@@ -72,7 +75,7 @@ impl Subgraphs {
             kind,
             is_shareable: false,
             is_external: false,
-            is_inaccessible,
+            is_inaccessible: false,
             is_interface_object: false,
         };
         let id = DefinitionId(self.definitions.definitions.push_return_idx(definition));

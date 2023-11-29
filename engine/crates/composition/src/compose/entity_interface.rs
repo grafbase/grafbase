@@ -1,6 +1,5 @@
 use super::*;
 use crate::composition_ir as ir;
-use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn merge_entity_interface_definitions(
     ctx: &mut Context<'_>,
@@ -8,6 +7,7 @@ pub(crate) fn merge_entity_interface_definitions(
     definitions: &[DefinitionWalker<'_>],
 ) {
     let interface_name = first.name();
+    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
 
     let interface_defs = || definitions.iter().filter(|def| def.kind() == DefinitionKind::Interface);
     let mut interfaces = interface_defs();
@@ -61,7 +61,7 @@ pub(crate) fn merge_entity_interface_definitions(
         }
     }
 
-    let interface_id = ctx.insert_interface(interface_name);
+    let interface_id = ctx.insert_interface(interface_name, is_inaccessible);
 
     let mut fields = BTreeMap::new();
 
@@ -72,7 +72,18 @@ pub(crate) fn merge_entity_interface_definitions(
             field_type: field.r#type().id,
             arguments: field
                 .arguments()
-                .map(|arg| (arg.argument_name().id, arg.argument_type().id))
+                .map(|arg| ir::ArgumentIr {
+                    argument_name: arg.argument_name().id,
+                    argument_type: arg.argument_type().id,
+                    composed_directives: if arg.is_inaccessible() {
+                        vec![federated::Directive {
+                            name: ctx.insert_static_str("inaccessible"),
+                            arguments: Vec::new(),
+                        }]
+                    } else {
+                        Vec::new()
+                    },
+                })
                 .collect(),
             resolvable_in: None,
             provides: Vec::new(),
@@ -124,7 +135,18 @@ pub(crate) fn merge_entity_interface_definitions(
                 field_type: field.r#type().id,
                 arguments: field
                     .arguments()
-                    .map(|arg| (arg.argument_name().id, arg.argument_type().id))
+                    .map(|arg| ir::ArgumentIr {
+                        argument_name: arg.argument_name().id,
+                        argument_type: arg.argument_type().id,
+                        composed_directives: if arg.is_inaccessible() {
+                            vec![federated::Directive {
+                                name: ctx.insert_static_str("inaccessible"),
+                                arguments: Vec::new(),
+                            }]
+                        } else {
+                            Vec::new()
+                        },
+                    })
                     .collect(),
                 resolvable_in: Some(graphql_federated_graph::SubgraphId(definition.subgraph().id.idx())),
                 provides: Vec::new(),

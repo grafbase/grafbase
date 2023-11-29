@@ -1,19 +1,96 @@
 enum join__Graph {
+    FIVE_WITH_ENUM @join__graph(name: "five_with_enum", url: "http://example.com/five_with_enum")
+    FOUR_WITH_UNION @join__graph(name: "four_with_union", url: "http://example.com/four_with_union")
     ONE @join__graph(name: "one", url: "http://example.com/one")
+    SIX_WITH_INPUT_OBJECT @join__graph(name: "six_with_input_object", url: "http://example.com/six_with_input_object")
+    THREE_WITH_INTERFACE @join__graph(name: "three_with_interface", url: "http://example.com/three_with_interface")
     TWO @join__graph(name: "two", url: "http://example.com/two")
+}
+
+scalar Time @inaccessible
+
+type Ungulate {
+    id: ID! @join__field(graph: FIVE_WITH_ENUM)
+    name: String! @join__field(graph: FIVE_WITH_ENUM)
+    type: UngulateType! @join__field(graph: FIVE_WITH_ENUM) @inaccessible
+}
+
+type Query {
+    getUngulate(id: ID!): Ungulate @join__field(graph: FIVE_WITH_ENUM)
+    getTVContent(id: ID!): TVContent @join__field(graph: FOUR_WITH_UNION) @inaccessible
+    getNew(name: String!): New @join__field(graph: ONE)
+    getBook(id: ID!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    getPolynomial(id: ID!): Polynomial @join__field(graph: THREE_WITH_INTERFACE) @inaccessible
+    currentTime: Time! @join__field(graph: TWO) @inaccessible
+}
+
+type Movie {
+    id: ID! @join__field(graph: FOUR_WITH_UNION)
+    title: String! @join__field(graph: FOUR_WITH_UNION)
+    director: String! @join__field(graph: FOUR_WITH_UNION)
+    releaseYear: Int @join__field(graph: FOUR_WITH_UNION)
+}
+
+type Series {
+    id: ID! @join__field(graph: FOUR_WITH_UNION)
+    title: String! @join__field(graph: FOUR_WITH_UNION)
+    seasons: Int @join__field(graph: FOUR_WITH_UNION)
 }
 
 type New {
     name: String! @inaccessible
-    message: String! @join__field(graph: ONE)
+    message: String! @join__field(graph: ONE) @inaccessible
     old: Old! @join__field(graph: ONE) @inaccessible
     other: String! @join__field(graph: TWO)
 }
 
 type Old @inaccessible {
-    name: String!
+    name: String! @inaccessible
 }
 
-type Query {
-    getNew(name: String!): New @join__field(graph: ONE)
+type Book {
+    id: ID! @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    title: String! @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    author: String! @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    publishedYear: Int @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    genre: String @join__field(graph: SIX_WITH_INPUT_OBJECT)
+}
+
+type Mutation {
+    addBook(input: BookInput!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    updateBook(id: ID!, input: BookInput!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+}
+
+type Quadratic implements Polynomial {
+    degree: Int @join__field(graph: THREE_WITH_INTERFACE)
+    coefficients: [Float] @join__field(graph: THREE_WITH_INTERFACE)
+    discriminant: Float @join__field(graph: THREE_WITH_INTERFACE)
+}
+
+type Cubic implements Polynomial {
+    degree: Int @join__field(graph: THREE_WITH_INTERFACE)
+    coefficients: [Float] @join__field(graph: THREE_WITH_INTERFACE)
+    inflectionPoint: Float @join__field(graph: THREE_WITH_INTERFACE)
+}
+
+interface Polynomial @inaccessible {
+    degree: Int
+    coefficients: [Float]
+}
+
+enum UngulateType @inaccessible {
+    DEER
+    HORSE
+    CAMEL
+    RHINOCEROS
+    GIRAFFE
+}
+
+union TVContent @inaccessible = Movie | Series
+
+input BookInput @inaccessible {
+    title: String!
+    author: String! @inaccessible
+    publishedYear: Int
+    genre: String
 }

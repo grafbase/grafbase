@@ -1,0 +1,21 @@
+interface Polynomial @inaccessible {
+  degree: Int
+  coefficients: [Float]
+}
+
+type Quadratic implements Polynomial {
+  degree: Int
+  coefficients: [Float]
+  discriminant: Float
+}
+
+type Cubic implements Polynomial {
+  degree: Int
+  coefficients: [Float]
+  inflectionPoint: Float
+}
+
+type Query {
+  getPolynomial(id: ID!): Polynomial @inaccessible
+}
+

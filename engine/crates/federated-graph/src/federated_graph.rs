@@ -121,6 +121,7 @@ pub struct Field {
 pub struct FieldArgument {
     pub name: StringId,
     pub type_id: FieldTypeId,
+    pub composed_directives: Vec<Directive>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -269,6 +270,7 @@ pub struct InputObject {
 pub struct InputObjectField {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
+    pub composed_directives: Vec<Directive>,
 }
 
 macro_rules! id_newtypes {
