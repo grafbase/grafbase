@@ -63,7 +63,7 @@ fn merge_object_definitions<'a>(
     }
 
     let first_is_entity = first.is_entity();
-    if !is_inaccessible && definitions.iter().any(|object| object.is_entity() != first_is_entity) {
+    if definitions.iter().any(|object| object.is_entity() != first_is_entity) {
         let name = first.name().as_str();
         let (entity_subgraphs, non_entity_subgraphs) = definitions
             .iter()
