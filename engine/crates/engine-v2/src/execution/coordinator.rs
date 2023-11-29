@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_runtime::make_send_on_wasm;
 use futures_locks::Mutex;
 use futures_util::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 
@@ -42,7 +43,9 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
     pub async fn execute(&mut self) {
         let mut futures = FuturesUnordered::<BoxFuture<'_, CoordinationTask>>::new();
         for plan_id in self.tracker.all_without_dependencies() {
-            futures.push(Box::pin(async move { CoordinationTask::PlanStart(plan_id) }));
+            futures.push(Box::pin(make_send_on_wasm(async move {
+                CoordinationTask::PlanStart(plan_id)
+            })));
         }
         while let Some(task) = futures.next().await {
             match task {
@@ -70,30 +73,30 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
                         };
                         match Executor::build(ctx.clone(), resolver, input) {
                             Ok(executor) => {
-                                futures.push(Box::pin(async move {
+                                futures.push(Box::pin(make_send_on_wasm(async move {
                                     let mut output = output;
                                     let error = executor.execute(ctx, &mut output).await.err();
                                     CoordinationTask::PlanEnd { plan_id, output, error }
-                                }));
+                                })));
                             }
                             Err(err) => {
-                                futures.push(Box::pin(async move {
+                                futures.push(Box::pin(make_send_on_wasm(async move {
                                     CoordinationTask::PlanEnd {
                                         output,
                                         error: Some(err),
                                         plan_id,
                                     }
-                                }));
+                                })));
                             }
                         }
                     } else {
-                        futures.push(Box::pin(async move {
+                        futures.push(Box::pin(make_send_on_wasm(async move {
                             CoordinationTask::PlanEnd {
                                 output,
                                 error: None,
                                 plan_id,
                             }
-                        }));
+                        })));
                     }
                 }
                 CoordinationTask::PlanEnd { plan_id, output, error } => {
@@ -115,7 +118,9 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
                     }
                     // start the execution of any children for which all parents have finised.
                     for executable_plan_id in self.tracker.next_executable(plan_id) {
-                        futures.push(Box::pin(async move { CoordinationTask::PlanStart(executable_plan_id) }));
+                        futures.push(Box::pin(make_send_on_wasm(async move {
+                            CoordinationTask::PlanStart(executable_plan_id)
+                        })));
                     }
                     if self.tracker.are_all_executed() {
                         // We should data back through a stream to later support additional data
