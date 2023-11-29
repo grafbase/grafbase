@@ -1,0 +1,9 @@
+type New {
+    other: String!
+    name: String! @inaccessible
+}
+
+type Old {
+    name: String! 
+}
+

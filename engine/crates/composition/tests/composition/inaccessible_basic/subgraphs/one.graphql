@@ -1,0 +1,14 @@
+type New {
+    name: String! @inaccessible
+    message: String!
+    old: Old! @inaccessible
+}
+
+type Old @inaccessible {
+    name: String!
+}
+
+type Query {
+    getNew(name: String!): New  
+}
+

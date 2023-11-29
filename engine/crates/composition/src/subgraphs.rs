@@ -70,13 +70,6 @@ impl Subgraphs {
         }
     }
 
-    pub(crate) fn definitions<'a>(&'a self) -> Vec<Walker<'_, DefinitionId>> {
-        self.definition_names
-            .iter()
-            .map(|(_, definition_id)| self.walk(*definition_id))
-            .collect_vec()
-    }
-
     /// Iterate over groups of fields to compose. The fields are grouped by parent type name and
     /// field name. The argument is a closure that receives each group as an argument. The order of
     /// iteration is deterministic but unspecified.
