@@ -33,13 +33,22 @@ fn find_operation_resource_schema(ctx: &super::Context, operation_index: NodeInd
         .filter(|node_index| matches!(&ctx.graph[*node_index], Node::Schema(_)))
         .collect::<Vec<_>>();
 
-    if schema_indices.len() != 1 {
-        // If there's more than one schema it's really hard to determine which schema is the "resource"
-        // this operation represents, so we just skip this.
-        return None;
+    match schema_indices.len() {
+        0..=1 => schema_indices.pop(),
+        // If there is more than one schema associated to the operation, we have to rely on
+        // heuristics to pick one.
+        _ => schema_indices.into_iter().find(|schema_index| {
+            ctx.graph
+                .edges_connecting(operation_index, *schema_index)
+                .any(|edge| match edge.weight() {
+                    // This is a/the sucess response: pick it.
+                    Edge::HasResponseType { status_code, .. } => status_code.is_success(),
+                    // ?
+                    Edge::HasField { .. } => true,
+                    _ => false,
+                })
+        }),
     }
-
-    schema_indices.pop()
 }
 
 // Determines the arity of a schema within an operation

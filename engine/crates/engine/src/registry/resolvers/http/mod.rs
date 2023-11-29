@@ -159,6 +159,13 @@ impl HttpResolver {
 }
 
 impl ExpectedStatusCode {
+    pub fn is_success(&self) -> bool {
+        match self {
+            ExpectedStatusCode::Exact(code) => 200 <= *code && *code < 300,
+            ExpectedStatusCode::Range(code_range) => code_range.contains(&200) && code_range.end < 300,
+        }
+    }
+
     pub fn contains(&self, code: reqwest::StatusCode) -> bool {
         match self {
             ExpectedStatusCode::Exact(expected_status) => code.as_u16() == *expected_status,
