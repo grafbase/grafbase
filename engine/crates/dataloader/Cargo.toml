@@ -9,6 +9,9 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "dataloader", "grafbase"]
 
+[lints]
+workspace = true
+
 [dependencies]
 async-trait = { version = "0.1", default-features = false }
 fnv = { version = "1", default-features = false, features = ["std"] }

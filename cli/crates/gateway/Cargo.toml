@@ -39,3 +39,6 @@ postgres-connector-types = { path = "../../../engine/crates/postgres-connector-t
 default = ["sqlite"]
 sqlite = ["dynamodb/sqlite"]
 dynamodb = []
+
+[lints]
+workspace = true

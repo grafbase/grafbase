@@ -392,7 +392,7 @@ impl QueryResponse {
     }
 
     pub fn add_cache_tags<Tag: Into<String>>(&mut self, tags: impl IntoIterator<Item = Tag>) {
-        self.cache_tags.extend(tags.into_iter().map(|tag| tag.into()));
+        self.cache_tags.extend(tags.into_iter().map(Into::into));
     }
 }
 

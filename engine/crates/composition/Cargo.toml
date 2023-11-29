@@ -7,6 +7,9 @@ description = "An implementation of GraphQL federated schema composition"
 repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/composition"
 keywords = ["graphql", "federation"]
 
+[lints]
+workspace = true
+
 [dependencies]
 graphql-federated-graph = { path = "../federated-graph", version = "0.1.0" }
 

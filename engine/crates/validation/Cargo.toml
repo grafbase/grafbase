@@ -7,6 +7,9 @@ description = "A spec compliant implementation of GraphQL SDL schema validation"
 repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/validation"
 keywords = ["graphql"]
 
+[lints]
+workspace = true
+
 [dependencies]
 async-graphql-parser = "6"
 async-graphql-value = "6"

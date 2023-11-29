@@ -126,3 +126,44 @@ lto = true
 [profile.release.package."*"]
 codegen-units = 1
 opt-level = "z"
+
+[workspace.lints.rust]
+nonstandard-style = "deny"
+rust-2018-idioms = "deny"
+unused-crate-dependencies = "deny"
+
+[workspace.lints.clippy]
+all = "deny"
+panic = "deny"
+
+# Opt out of lints that have too many false positives or are yet to be addressed.
+bool-to-int-with-if = "allow"
+cast-possible-truncation = "allow"
+default-trait-access = "allow"
+derive-partial-eq-without-eq = "allow"
+doc-markdown = "allow"
+enum-glob-use = "allow"
+implicit-hasher = "allow"
+items-after-statements = "allow"
+into_iter_without_iter = "allow"
+iter_without_into_iter = "allow"
+large-digit-groups = "allow"
+let-underscore-untyped = "allow"
+let-with-type-underscore = "allow"
+manual-assert = "allow"
+map-unwrap-or = "allow"
+match-wildcard-for-single-variants = "allow"
+missing-errors-doc = "allow"
+missing-panics-doc = "allow"
+module-name-repetitions = "allow"
+must-use-candidate = "allow"
+needless-pass-by-value = "allow"
+redundant-closure-for-method-calls = "allow"
+single-match-else = "allow"
+struct-excessive-bools = "allow"
+struct-field-names = "allow"
+too-many-lines = "allow"
+unnecessary-fallible-conversions = "allow"
+unused-async = "allow"
+unused-self = "allow"
+wildcard-imports = "allow"

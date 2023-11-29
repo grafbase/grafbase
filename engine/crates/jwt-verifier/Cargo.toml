@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Verify JSON Web Tokens"
 edition = "2021"
 
+[lints]
+workspace = true
+
 [dependencies]
 futures-util = { workspace = true }
 json_dotpath = "1"

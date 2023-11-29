@@ -10,6 +10,9 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "types", "grafbase"]
 
+[lints]
+workspace = true
+
 [dependencies]
 base64 = "0.21"
 engine-value = { path = "../engine/value", version = "3" }

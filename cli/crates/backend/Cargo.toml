@@ -49,3 +49,6 @@ cynic-codegen = { version = "3", features = ["rkyv"] }
 
 [features]
 dynamodb = ["server/dynamodb"]
+
+[lints]
+workspace = true
