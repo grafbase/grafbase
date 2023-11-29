@@ -1,0 +1,1 @@
+# [mangrove]: Interface type "Animal" has a resolvable key in subgraph "mangrove" but that subgraph is missing some of the supergraph implementation types of "Animal". Subgraph "mangrove" should define types Cheetah.

@@ -80,12 +80,16 @@ impl Subgraphs {
     /// Iterate over groups of fields to compose. The fields are grouped by parent type name and
     /// field name. The argument is a closure that receives each group as an argument. The order of
     /// iteration is deterministic but unspecified.
-    pub(crate) fn iter_field_groups<'a>(&'a self, mut compose_fn: impl FnMut(&[FieldWalker<'a>])) {
+    pub(crate) fn iter_field_groups<'a>(
+        &'a self,
+        parent_name: StringId,
+        mut compose_fn: impl FnMut(&[FieldWalker<'a>]),
+    ) {
         let mut buf = Vec::new();
         for (_, group) in &self
             .field_names
-            .iter()
-            .group_by(|(parent_name, field_name, _)| (parent_name, field_name))
+            .range((parent_name, StringId::MIN, FieldId::MIN)..(parent_name, StringId::MAX, FieldId::MAX))
+            .group_by(|(_, field_name, _)| field_name)
         {
             buf.clear();
             buf.extend(group.into_iter().map(|(_, _, field_id)| self.walk(*field_id)));

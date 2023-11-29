@@ -2203,7 +2203,7 @@ dependencies = [
 
 [[package]]
 name = "federated-dev"
-version = "0.45.3"
+version = "0.45.6"
 dependencies = [
  "async-graphql 6.0.10",
  "async-graphql-axum 6.0.10",
@@ -2526,7 +2526,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.45.3"
+version = "0.45.6"
 dependencies = [
  "async-graphql 6.0.10",
  "async-trait",
@@ -2652,7 +2652,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.45.3"
+version = "0.45.6"
 dependencies = [
  "async-graphql 5.0.10",
  "async-graphql-axum 5.0.10",
@@ -2721,7 +2721,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.45.3"
+version = "0.45.6"
 dependencies = [
  "apollo-encoder",
  "apollo-parser",
@@ -2734,7 +2734,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.45.3"
+version = "0.45.6"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -2767,7 +2767,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.45.3"
+version = "0.45.6"
 dependencies = [
  "chrono",
  "common-types",
@@ -2783,7 +2783,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.45.3"
+version = "0.45.6"
 dependencies = [
  "async-trait",
  "axum",
@@ -5726,9 +5726,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.21.8"
+version = "0.21.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "446e14c5cda4f3f30fe71863c34ec70f5ac79d6087097ad0bb433e1be5edf04c"
+checksum = "629648aced5775d558af50b2b4c7b02983a04b312126d45eeead26e7caa498b9"
 dependencies = [
  "log 0.4.20",
  "ring 0.17.5",
@@ -7466,7 +7466,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.45.3"
+version = "0.45.6"
 dependencies = [
  "datatest-stable",
  "engine-parser",

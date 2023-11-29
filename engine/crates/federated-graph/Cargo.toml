@@ -7,6 +7,9 @@ description = "A serializable federated GraphQL graph representation"
 repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/federated-graph"
 keywords = ["graphql", "federation"]
 
+[lints]
+workspace = true
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 

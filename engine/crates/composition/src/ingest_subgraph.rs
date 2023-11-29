@@ -43,6 +43,7 @@ fn ingest_top_level_definitions(
                     ast::TypeKind::Object(_) => {
                         let definition_id =
                             subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Object, is_inaccessible);
+
                         object::ingest_directives(
                             definition_id,
                             &type_definition.node,
@@ -51,7 +52,19 @@ fn ingest_top_level_definitions(
                         );
                     }
                     ast::TypeKind::Interface(_interface_type) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Interface, is_inaccessible);
+                        let definition_id = subgraphs.push_definition(
+                            subgraph_id,
+                            type_name,
+                            DefinitionKind::Interface,
+                            is_inaccessible,
+                        );
+
+                        object::ingest_directives(
+                            definition_id,
+                            &type_definition.node,
+                            subgraphs,
+                            federation_directives_matcher,
+                        );
                     }
                     ast::TypeKind::Union(_) => {
                         subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union, is_inaccessible);
@@ -116,6 +129,7 @@ fn ingest_definition_bodies(
                             ),
                             provides: None,
                             requires: None,
+                            overrides: None,
                             deprecated,
                             tags,
                         })
@@ -148,6 +162,7 @@ fn ingest_definition_bodies(
                             ),
                             provides: None,
                             requires: None,
+                            overrides: None,
                             deprecated,
                             tags,
                         })

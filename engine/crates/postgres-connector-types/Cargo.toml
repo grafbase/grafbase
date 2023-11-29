@@ -9,6 +9,9 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "postgres", "grafbase"]
 
+[lints]
+workspace = true
+
 [dependencies]
 Inflector = "0.11.4"
 async-trait = "0.1.74"
@@ -33,7 +36,7 @@ worker.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
-rustls = "0.21.8"
+rustls = "0.21.9"
 rustls-native-certs = "0.6.3"
 # https://github.com/sfackler/rust-postgres/pull/1067
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase" }

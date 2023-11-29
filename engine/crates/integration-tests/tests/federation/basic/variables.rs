@@ -4,25 +4,21 @@ use serde::Serialize;
 use serde_json::json;
 
 #[test]
-#[ignore]
 fn string() {
     roundtrip_test("string", "String!", "hello");
 }
 
 #[test]
-#[ignore]
 fn int() {
     roundtrip_test("int", "Int!", 420);
 }
 
 #[test]
-#[ignore]
 fn float() {
-    roundtrip_test("int", "Int!", 0.1);
+    roundtrip_test("float", "Float!", 798.0);
 }
 
 #[test]
-#[ignore]
 fn id() {
     roundtrip_test(
         "id",
@@ -32,7 +28,6 @@ fn id() {
 }
 
 #[test]
-#[ignore]
 fn lists() {
     roundtrip_test(
         "listOfStrings",
@@ -62,7 +57,7 @@ fn input_objects() {
 #[test]
 #[ignore]
 fn list_coercion() {
-    let query = "query(input: String!) { listOfListOfStrings(input: $input) }";
+    let query = "query($input: String!) { listOfListOfStrings(input: $input) }";
     let input = json!("hello");
 
     let response = runtime().block_on({
@@ -70,7 +65,7 @@ fn list_coercion() {
         async move {
             let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-            let engine = Engine::build().with_schema("schema", echo_mock).await.finish();
+            let engine = Engine::build().with_schema("schema", &echo_mock).await.finish();
 
             engine.execute(query).variables(json!({"input": input})).await
         }
@@ -94,16 +89,16 @@ where
 {
     let query = format!("query($input: {ty}) {{ {field}(input: $input) }}");
 
-    do_roundtrip_test(&query, serde_json::to_value(input).unwrap());
+    do_roundtrip_test(field, &query, serde_json::to_value(input).unwrap());
 }
 
-fn do_roundtrip_test(query: &str, input: serde_json::Value) {
+fn do_roundtrip_test(field: &str, query: &str, input: serde_json::Value) {
     let response = runtime().block_on({
         let input = input.clone();
         async move {
             let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-            let engine = Engine::build().with_schema("schema", echo_mock).await.finish();
+            let engine = Engine::build().with_schema("schema", &echo_mock).await.finish();
 
             engine.execute(query).variables(json!({"input": input})).await
         }
@@ -113,5 +108,5 @@ fn do_roundtrip_test(query: &str, input: serde_json::Value) {
     // I'm not certain this is the right assert since execute doesn't actually return
     // anything right now.
     // But we can fix that later.
-    assert_eq!(response["data"], input);
+    assert_eq!(response["data"][field], input);
 }

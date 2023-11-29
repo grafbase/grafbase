@@ -45,7 +45,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 }
 
 fn emit_interface_impls(ctx: &mut Context<'_>) {
-    for (implementer, implementee) in ctx.subgraphs.iter_interface_impls() {
+    for (implementee, implementer) in ctx.subgraphs.iter_interface_impls() {
         let federated::Definition::Interface(implementee) = ctx.definitions[&implementee] else {
             continue;
         };
@@ -89,6 +89,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
         provides,
         requires,
         composed_directives,
+        overrides,
     } in ir_fields
     {
         let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
@@ -106,6 +107,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                 name: field_name,
                 field_type_id,
                 arguments,
+                overrides,
 
                 provides: Vec::new(),
                 requires: Vec::new(),
@@ -194,14 +196,29 @@ fn emit_union_members(ir_members: &BTreeSet<(subgraphs::StringId, subgraphs::Str
 }
 
 fn emit_keys(keys: &[KeyIr], ctx: &mut Context<'_>) {
-    for KeyIr { object_id, key_id } in keys {
-        let parent_id = federated::Definition::Object(*object_id);
+    for KeyIr {
+        parent,
+        key_id,
+        is_interface_object,
+    } in keys
+    {
         let key = ctx.subgraphs.walk(*key_id);
-        let selection = attach_selection(key.fields(), parent_id, ctx);
-        ctx.out[*object_id].resolvable_keys.push(federated::Key {
+        let selection = attach_selection(key.fields(), *parent, ctx);
+        let key = federated::Key {
             subgraph_id: federated::SubgraphId(key.parent_definition().subgraph().id.idx()),
             fields: selection,
-        });
+            is_interface_object: *is_interface_object,
+        };
+
+        match parent {
+            federated::Definition::Object(object_id) => {
+                ctx.out[*object_id].resolvable_keys.push(key);
+            }
+            federated::Definition::Interface(interface_id) => {
+                ctx.out[*interface_id].resolvable_keys.push(key);
+            }
+            _ => unreachable!("non-object, non-interface key parent"),
+        }
     }
 }
 

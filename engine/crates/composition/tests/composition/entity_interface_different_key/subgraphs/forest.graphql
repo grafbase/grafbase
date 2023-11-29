@@ -1,0 +1,8 @@
+type Squirrel {
+  favouriteFood: String
+}
+
+type Animal @interfaceObject @key(fields: "species") {
+  species: String!
+  favouriteFood: String
+}

@@ -7,7 +7,7 @@ pub(crate) struct DefinitionId(pub(super) usize);
 #[derive(Default, Debug)]
 pub(crate) struct Definitions {
     definitions: Vec<Definition>,
-    // (Implementer, implementee)
+    // (Implementee, implementer)
     interface_impls: BTreeSet<(StringId, StringId)>,
 }
 
@@ -19,6 +19,7 @@ pub(crate) struct Definition {
     is_shareable: bool,
     is_external: bool,
     is_inaccessible: bool,
+    is_interface_object: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,6 +50,10 @@ impl Subgraphs {
         self.definitions.definitions[definition_id.0].is_external = true;
     }
 
+    pub(crate) fn set_interface_object(&mut self, definition_id: DefinitionId) {
+        self.definitions.definitions[definition_id.0].is_interface_object = true;
+    }
+
     pub(crate) fn set_shareable(&mut self, definition_id: DefinitionId) {
         self.definitions.definitions[definition_id.0].is_shareable = true;
     }
@@ -68,6 +73,7 @@ impl Subgraphs {
             is_shareable: false,
             is_external: false,
             is_inaccessible,
+            is_interface_object: false,
         };
         let id = DefinitionId(self.definitions.definitions.push_return_idx(definition));
         self.definition_names.insert((name, subgraph_id), id);
@@ -77,7 +83,7 @@ impl Subgraphs {
     pub(crate) fn push_interface_impl(&mut self, implementer: StringId, implemented_interface: StringId) {
         self.definitions
             .interface_impls
-            .insert((implementer, implemented_interface));
+            .insert((implemented_interface, implementer));
     }
 }
 
@@ -94,6 +100,10 @@ impl<'a> DefinitionWalker<'a> {
 
     pub fn kind(self) -> DefinitionKind {
         self.definition().kind
+    }
+
+    pub fn is_interface_object(self) -> bool {
+        self.definition().is_interface_object
     }
 
     pub fn is_shareable(self) -> bool {
@@ -124,5 +134,15 @@ impl<'a> SubgraphWalker<'a> {
         subgraph_definitions
             .enumerate()
             .map(move |(idx, _)| self.walk(DefinitionId(idx + start)))
+    }
+
+    pub(crate) fn interface_implementers(self, interface_name: StringId) -> impl Iterator<Item = DefinitionWalker<'a>> {
+        self.subgraphs
+            .definitions
+            .interface_impls
+            .iter()
+            .filter(move |(implementee, _implementer)| *implementee == interface_name)
+            .filter_map(move |(_, implementer)| self.subgraphs.definition_names.get(&(*implementer, self.id)))
+            .map(move |id| self.walk(*id))
     }
 }

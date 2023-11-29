@@ -79,6 +79,9 @@ pub struct Key {
 
     /// Corresponds to the fields in an `@key` directive.
     pub fields: FieldSet,
+
+    /// Correspond to the `@join__type(isInterfaceObject: true)` directive argument.
+    pub is_interface_object: bool,
 }
 
 pub type FieldSet = Vec<FieldSetItem>;
@@ -105,6 +108,9 @@ pub struct Field {
     /// See [FieldRequires]
     pub requires: Vec<FieldRequires>,
 
+    /// See [Override].
+    pub overrides: Vec<Override>,
+
     pub arguments: Vec<FieldArgument>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
@@ -117,13 +123,13 @@ pub struct FieldArgument {
     pub type_id: FieldTypeId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Directive {
     pub name: StringId,
     pub arguments: Vec<(StringId, Value)>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub enum Value {
     String(StringId),
     Int(i64),
@@ -182,11 +188,29 @@ pub struct FieldRequires {
     pub fields: FieldSet,
 }
 
+/// Represents an `@override(graph: .., from: ...)` directive on a field in a subgraph.
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct Override {
+    pub graph: SubgraphId,
+    /// Points to a subgraph referenced by name, but this is _not_ validated to allow easier field
+    /// migrations between subgraphs.
+    pub from: OverrideSource,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub enum OverrideSource {
+    Subgraph(SubgraphId),
+    Missing(StringId),
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Interface {
     pub name: StringId,
 
     pub implements_interfaces: Vec<InterfaceId>,
+
+    /// All _resolvable_ keys, for entity interfaces.
+    pub resolvable_keys: Vec<Key>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,

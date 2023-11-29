@@ -236,8 +236,7 @@ fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> R
         ast::TypeSystemDefinition::Type(ty) => Some(&ty.node),
         _ => None,
     }) {
-        let Some(Definition::Object(object_id)) = state.definition_names.get(typedef.name.node.as_str()).copied()
-        else {
+        let Some(definition) = state.definition_names.get(typedef.name.node.as_str()).copied() else {
             continue;
         };
         for join_type in typedef
@@ -261,15 +260,34 @@ fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> R
                     _ => None,
                 })
                 .map(|fields| {
-                    parse_selection_set(fields)
-                        .and_then(|fields| attach_selection(&fields, Definition::Object(object_id), state))
+                    parse_selection_set(fields).and_then(|fields| attach_selection(&fields, definition, state))
                 })
                 .transpose()?
                 .unwrap_or_default();
 
-            state.objects[object_id.0]
-                .resolvable_keys
-                .push(Key { subgraph_id, fields });
+            let is_interface_object = join_type
+                .node
+                .get_argument("isInterfaceObject")
+                .map(|arg| matches!(arg.node, async_graphql_value::ConstValue::Boolean(true)))
+                .unwrap_or(false);
+
+            match definition {
+                Definition::Object(object_id) => {
+                    state.objects[object_id.0].resolvable_keys.push(Key {
+                        subgraph_id,
+                        fields,
+                        is_interface_object,
+                    });
+                }
+                Definition::Interface(interface_id) => {
+                    state.interfaces[interface_id.0].resolvable_keys.push(Key {
+                        subgraph_id,
+                        fields,
+                        is_interface_object,
+                    });
+                }
+                _ => (),
+            }
         }
     }
 
@@ -382,6 +400,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         let interface_id = InterfaceId(state.interfaces.push_return_idx(Interface {
                             name: type_name_id,
                             implements_interfaces: Vec::new(),
+                            resolvable_keys: Vec::new(),
                             composed_directives: Vec::new(),
                         }));
                         state
@@ -471,11 +490,40 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         .directives
         .iter()
         .find(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
+        .filter(|dir| dir.node.get_argument("overrides").is_none())
         .and_then(|dir| dir.node.get_argument("graph"))
         .and_then(|arg| match &arg.node {
             async_graphql_value::ConstValue::Enum(s) => Some(state.graph_sdl_names[s.as_str()]),
             _ => None,
         });
+
+    let overrides = ast_field
+        .directives
+        .iter()
+        .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
+        .filter_map(|dir| dir.node.get_argument("graph").zip(dir.node.get_argument("overrides")))
+        .filter_map(|(graph, overrides)| match (&graph.node, &overrides.node) {
+            (async_graphql_value::ConstValue::Enum(graph), async_graphql_value::ConstValue::String(overrides)) => {
+                let subgraph_name = state.insert_string(graph.as_str());
+                Some(Override {
+                    graph: SubgraphId(
+                        state
+                            .subgraphs
+                            .iter()
+                            .position(|subgraph| subgraph.name == subgraph_name)?,
+                    ),
+                    from: state
+                        .subgraphs
+                        .iter()
+                        .position(|subgraph| &state.strings[subgraph.name.0] == overrides)
+                        .map(SubgraphId)
+                        .map(OverrideSource::Subgraph)
+                        .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides))),
+                })
+            }
+            _ => None, // unreachable in valid schemas
+        })
+        .collect();
 
     let composed_directives = collect_composed_directives(&ast_field.directives, state);
 
@@ -487,6 +535,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         requires: Vec::new(),
         arguments,
         composed_directives,
+        overrides,
     }));
 
     state.selection_map.insert((parent_id, field_name), field_id);

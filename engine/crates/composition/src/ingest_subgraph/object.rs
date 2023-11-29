@@ -1,8 +1,13 @@
-use async_graphql_parser::types as ast;
-use async_graphql_value::ConstValue;
-
 use super::schema_definitions::FederationDirectivesMatcher;
-use crate::{subgraphs::DefinitionId, Subgraphs};
+use crate::{
+    subgraphs::{DefinitionId, StringId},
+    Subgraphs,
+};
+use async_graphql_parser::{
+    types::{self as ast},
+    Positioned,
+};
+use async_graphql_value::ConstValue;
 
 pub(super) fn ingest_directives(
     definition_id: DefinitionId,
@@ -19,6 +24,11 @@ pub(super) fn ingest_directives(
 
         if federation_directives_matcher.is_external(directive_name) {
             subgraphs.set_external(definition_id);
+            continue;
+        }
+
+        if federation_directives_matcher.is_interface_object(directive_name) {
+            subgraphs.set_interface_object(definition_id);
             continue;
         }
 
@@ -90,6 +100,7 @@ pub(super) fn ingest_fields(
             });
 
         let deprecated = super::find_deprecated_directive(&field.directives, subgraphs);
+        let overrides = find_override_directive(&field.directives, subgraphs, federation_directives_matcher);
         let tags = super::find_tag_directives(&field.directives);
         let field_type = subgraphs.intern_field_type(&field.ty.node);
         let field_id = subgraphs
@@ -104,9 +115,25 @@ pub(super) fn ingest_fields(
                 requires,
                 deprecated,
                 tags,
+                overrides,
             })
             .unwrap();
 
         super::field::ingest_field_arguments(field_id, &field.arguments, subgraphs);
     }
+}
+
+fn find_override_directive(
+    directives: &[Positioned<ast::ConstDirective>],
+    subgraphs: &mut Subgraphs,
+    federation_directives_matcher: &FederationDirectivesMatcher<'_>,
+) -> Option<StringId> {
+    directives
+        .iter()
+        .find(|directive| federation_directives_matcher.is_override(directive.node.name.node.as_str()))
+        .and_then(|directive| directive.node.get_argument("from"))
+        .and_then(|v| match &v.node {
+            ConstValue::String(s) => Some(subgraphs.strings.intern(s.as_str())),
+            _ => None,
+        })
 }

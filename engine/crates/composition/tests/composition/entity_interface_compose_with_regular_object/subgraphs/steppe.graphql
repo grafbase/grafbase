@@ -1,0 +1,13 @@
+type Query {
+  getMammoth: Mammoth
+}
+
+# Wrong: this is missing @interfaceObject
+type Animal {
+  weightGrams: Int
+}
+
+type Mammoth {
+  weightGrams: Int
+  tuskLength: Int
+}

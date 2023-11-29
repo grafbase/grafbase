@@ -8,6 +8,11 @@ pub(crate) struct Fields(Vec<Field>);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct FieldId(usize);
 
+impl FieldId {
+    pub const MIN: Self = Self(usize::MIN);
+    pub const MAX: Self = Self(usize::MAX);
+}
+
 /// A field in an object, interface or input object type.
 #[derive(Debug)]
 pub(super) struct Field {
@@ -17,6 +22,7 @@ pub(super) struct Field {
     arguments: Vec<(StringId, FieldTypeId)>,
     provides: Option<Vec<Selection>>,
     requires: Option<Vec<Selection>>,
+    overrides: Option<StringId>,
     is_shareable: bool,
     is_external: bool,
     is_inaccessible: bool,
@@ -51,6 +57,7 @@ impl Subgraphs {
             requires,
             deprecated,
             tags,
+            overrides,
         }: FieldIngest<'_>,
     ) -> Result<FieldId, String> {
         let provides = provides
@@ -78,6 +85,7 @@ impl Subgraphs {
             requires,
             deprecated,
             tags,
+            overrides,
         };
         let id = FieldId(self.fields.0.push_return_idx(field));
         let parent_object_name = self.walk(parent_definition_id).name().id;
@@ -103,6 +111,9 @@ pub(crate) struct FieldIngest<'a> {
     pub(crate) requires: Option<&'a str>,
     pub(crate) deprecated: Option<Deprecation>,
     pub(crate) tags: Vec<&'a str>,
+
+    /// The @override(from: ...) directive.
+    pub(crate) overrides: Option<StringId>,
 }
 
 pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;
@@ -154,6 +165,16 @@ impl<'a> FieldWalker<'a> {
 
     pub fn is_inaccessible(self) -> bool {
         self.field().is_inaccessible
+    }
+
+    /// ```graphql,ignore
+    /// type Query {
+    ///   getRandomMammoth: Mammoth @override(from: "steppe")
+    ///                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+    /// }
+    /// ```
+    pub fn overrides(self) -> Option<StringWalker<'a>> {
+        self.field().overrides.map(|override_| self.walk(override_))
     }
 
     pub fn parent_definition(self) -> DefinitionWalker<'a> {

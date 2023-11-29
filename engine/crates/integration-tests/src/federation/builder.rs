@@ -25,7 +25,7 @@ pub trait SchemaSource {
 }
 
 impl FederationEngineBuilder {
-    pub async fn with_schema(mut self, name: &str, schema: impl SchemaSource) -> Self {
+    pub async fn with_schema(mut self, name: &str, schema: &impl SchemaSource) -> Self {
         self.schemas.push((
             name.to_string(),
             schema.url(),

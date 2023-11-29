@@ -1,7 +1,0 @@
-[toolchain]
-channel = "1.65"
-targets = [
-    "wasm32-unknown-unknown",     # Cloudflare Workers
-]
-components = ["rustfmt", "clippy"]
-profile = "minimal"

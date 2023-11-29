@@ -9,6 +9,9 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["log", "logging", "grafbase"]
 
+[lints]
+workspace = true
+
 [dependencies]
 bitflags = { workspace = true }
 futures-util = { workspace = true, features = ["std", "async-await"] }

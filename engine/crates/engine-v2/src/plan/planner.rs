@@ -41,7 +41,7 @@ fn create_final_read_selection_set(selection_set: BoundSelectionSetWalker<'_>) -
         // to read the fields in the right order.
         .flatten_fields()
         .map(|field| ReadSelection {
-            response_name: field.response_name(),
+            response_key: field.response_key(),
             subselection: create_final_read_selection_set(field.selection_set()),
         })
         .collect()
@@ -187,7 +187,7 @@ impl<'a> Planner<'a> {
                     root: SelectionSetRoot {
                         path: root.path.child(QueryPathSegment {
                             resolved_type_condition,
-                            name: field.response_name(),
+                            name: field.response_key(),
                         }),
                         id: field.selection_set().id,
                     },
@@ -225,7 +225,7 @@ impl<'a> Planner<'a> {
                         root: SelectionSetRoot {
                             path: root.path.child(QueryPathSegment {
                                 resolved_type_condition: field.resolved_type_condition.clone(),
-                                name: field.response_name(),
+                                name: field.response_key(),
                             }),
                             id: field.selection_set().id,
                         },

@@ -1,0 +1,8 @@
+interface Animal @key(fields: "species") {
+  species: String!
+}
+
+type Cheetah implements Animal @key(fields: "species") {
+  species: String!
+  topSpeed: Int!
+}

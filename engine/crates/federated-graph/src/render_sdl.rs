@@ -82,7 +82,26 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             }
         }
 
-        sdl.push_str(" {\n");
+        if interface.resolvable_keys.is_empty() {
+            sdl.push_str(" {\n");
+        } else {
+            sdl.push('\n');
+            for resolvable_key in &interface.resolvable_keys {
+                let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
+                let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
+                let is_interface_object = if resolvable_key.is_interface_object {
+                    ", isInterfaceObject: true"
+                } else {
+                    ""
+                };
+                writeln!(
+                    sdl,
+                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}"{is_interface_object})"#
+                )?;
+            }
+
+            sdl.push_str("{\n");
+        }
 
         for field in graph
             .interface_fields
@@ -185,6 +204,7 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
     write_provides(field, graph, sdl)?;
     write_requires(field, graph, sdl)?;
     write_composed_directives(field, graph, sdl)?;
+    write_overrides(field, graph, sdl)?;
 
     sdl.push('\n');
     Ok(())
@@ -228,6 +248,22 @@ fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGra
     );
     write!(sdl, " @join__field(graph: {subgraph_name}{provides}{requires})")?;
 
+    Ok(())
+}
+
+fn write_overrides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    for Override {
+        graph: overriding_graph,
+        from,
+    } in &field.overrides
+    {
+        let overrides = match from {
+            OverrideSource::Subgraph(subgraph_id) => &graph[graph.subgraphs[subgraph_id.0].name],
+            OverrideSource::Missing(string) => &graph[*string],
+        };
+        let graph = &graph[graph[*overriding_graph].name];
+        write!(sdl, " @join__field(graph: {graph}, overrides: \"{overrides}\")")?;
+    }
     Ok(())
 }
 

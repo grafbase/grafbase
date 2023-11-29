@@ -1,0 +1,12 @@
+type Query {
+  getMammoth: Mammoth
+}
+
+type Animal @interfaceObject {
+  weightGrams: Int
+}
+
+type Mammoth {
+  weightGrams: Int
+  tuskLength: Int
+}

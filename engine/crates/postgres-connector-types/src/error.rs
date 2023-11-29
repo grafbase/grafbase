@@ -2,21 +2,21 @@ use reqwest::StatusCode;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("the provided connection string is not a valid url: {}", _0)]
+    #[error("the provided connection string is not a valid url: {0}")]
     InvalidConnectionString(String),
     #[error("request timeout")]
     Timeout,
-    #[error("error sending request")]
+    #[error("could not send a request")]
     Request,
-    #[error("error connecting to server: {}", _0)]
+    #[error("could not connect to the server: {0}")]
     ServiceUnavailable(String),
-    #[error("authentication failure: {}", _0)]
+    #[error("authentication failure: {0}")]
     Unauthorized(String),
-    #[error("internal error: {}", _0)]
+    #[error("{0}")]
     Internal(String),
-    #[error("error connecting to Postgres: {}", _0)]
+    #[error("could not connect to Postgres: {0}")]
     Connection(String),
-    #[error("error code {}: {}", code, message)]
+    #[error("code {}: {}", code, message)]
     Query { code: String, message: String },
     #[error(transparent)]
     Serde(#[from] serde_json::Error),

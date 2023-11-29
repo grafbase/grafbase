@@ -53,16 +53,17 @@ impl CompositionIr {
         id
     }
 
-    pub(crate) fn insert_interface(&mut self, iface_name: StringWalker<'_>) -> federated::InterfaceId {
-        let name = self.insert_string(iface_name);
-        let iface = federated::Interface {
+    pub(crate) fn insert_interface(&mut self, interface_name: StringWalker<'_>) -> federated::InterfaceId {
+        let name = self.insert_string(interface_name);
+        let interface = federated::Interface {
             name,
             implements_interfaces: Vec::new(),
+            resolvable_keys: Vec::new(),
             composed_directives: Vec::new(),
         };
-        let id = federated::InterfaceId(self.interfaces.push_return_idx(iface));
+        let id = federated::InterfaceId(self.interfaces.push_return_idx(interface));
         self.definitions_by_name
-            .insert(iface_name.id, federated::Definition::Interface(id));
+            .insert(interface_name.id, federated::Definition::Interface(id));
         id
     }
 
@@ -90,8 +91,17 @@ impl CompositionIr {
         id
     }
 
-    pub(crate) fn insert_resolvable_key(&mut self, object_id: federated::ObjectId, key_id: subgraphs::KeyId) {
-        self.resolvable_keys.push(KeyIr { object_id, key_id });
+    pub(crate) fn insert_resolvable_key(
+        &mut self,
+        parent: federated::Definition,
+        key_id: subgraphs::KeyId,
+        is_interface_object: bool,
+    ) {
+        self.resolvable_keys.push(KeyIr {
+            parent,
+            key_id,
+            is_interface_object,
+        });
     }
 
     pub(crate) fn insert_object(
@@ -175,10 +185,6 @@ impl CompositionIr {
         });
     }
 
-    pub(crate) fn insert_field(&mut self, ir: FieldIr) {
-        self.fields.push(ir);
-    }
-
     pub(crate) fn insert_union_member(&mut self, union_name: subgraphs::StringId, member_name: subgraphs::StringId) {
         self.union_members.insert((union_name, member_name));
     }
@@ -197,13 +203,17 @@ pub(crate) struct FieldIr {
     pub(crate) field_name: subgraphs::StringId,
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
+
     pub(crate) resolvable_in: Option<federated::SubgraphId>,
 
-    /// Subgraph fields with an `@provides`.
+    /// Subgraph fields corresponding to this federated graph field that have an `@provides`.
     pub(crate) provides: Vec<subgraphs::FieldId>,
 
-    /// Subgraph fields with an `@requires`.
+    /// Subgraph fields corresponding to this federated graph field that have an `@requires`.
     pub(crate) requires: Vec<subgraphs::FieldId>,
+
+    // @join__field(graph: ..., override: ...)
+    pub(crate) overrides: Vec<federated::Override>,
 
     pub(crate) composed_directives: Vec<federated::Directive>,
 }
@@ -232,6 +242,7 @@ impl StringsIr {
 }
 
 pub(crate) struct KeyIr {
-    pub(crate) object_id: federated::ObjectId,
+    pub(crate) parent: federated::Definition,
     pub(crate) key_id: subgraphs::KeyId,
+    pub(crate) is_interface_object: bool,
 }

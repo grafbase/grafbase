@@ -3,6 +3,7 @@ mod ids;
 mod parse;
 mod path;
 mod selection_set;
+mod variable;
 mod walkers;
 
 pub use bind::{BindError, BindResult};
@@ -15,6 +16,7 @@ pub use selection_set::{
     BoundField, BoundFieldArgument, BoundFieldDefinition, BoundFragmentDefinition, BoundFragmentSpread,
     BoundInlineFragment, BoundSelection, BoundSelectionSet, TypeCondition,
 };
+pub use variable::VariableDefinition;
 pub use walkers::*;
 
 use crate::execution::Strings;
@@ -22,17 +24,17 @@ use crate::execution::Strings;
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VariableId(usize);
 
-#[derive(Debug)]
 pub struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectId,
     pub name: Option<String>,
     pub root_selection_set_id: BoundSelectionSetId,
     pub selection_sets: Vec<BoundSelectionSet>,
-    pub fragment_definitions: Vec<BoundFragmentDefinition>,
-    pub field_definitions: Vec<BoundFieldDefinition>,
     pub fields: Vec<BoundField>,
     pub strings: Strings,
+    pub fragment_definitions: Vec<BoundFragmentDefinition>,
+    pub field_definitions: Vec<BoundFieldDefinition>,
+    pub variable_definitions: Vec<VariableDefinition>,
 }
 
 impl Operation {

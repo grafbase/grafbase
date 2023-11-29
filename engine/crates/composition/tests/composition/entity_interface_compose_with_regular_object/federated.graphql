@@ -1,0 +1,3 @@
+# The object type `Animal` is annotated with @interfaceObject but missing a key in the `forest` subgraph.
+# `Animal` is an entity interface but the object type `Animal` is missing the @interfaceObject directive in the `steppe` subgraph.
+# The object type `Animal` is annotated with @interfaceObject but missing a key in the `steppe` subgraph.

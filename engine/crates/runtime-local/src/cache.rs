@@ -67,7 +67,7 @@ impl PartialOrd for DeletionTask {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.to_delete_at
             .partial_cmp(&other.to_delete_at)
-            .map(|ordering| ordering.reverse())
+            .map(std::cmp::Ordering::reverse)
     }
 }
 

@@ -11,14 +11,12 @@ mod id;
 mod planner;
 mod plans;
 mod tracker;
-mod walkers;
 
 pub use attribution::Attribution;
 pub use id::PlanId;
 pub use planner::{PrepareError, PrepareResult};
 pub use plans::ExecutionPlans;
 pub use tracker::ExecutionPlansTracker;
-pub use walkers::*;
 
 #[derive(Debug, Clone)]
 pub struct SelectionSetRoot {
