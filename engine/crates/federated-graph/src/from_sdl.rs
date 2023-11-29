@@ -380,11 +380,12 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         state.definition_names.insert(type_name, Definition::Scalar(scalar_id));
                     }
                     ast::TypeKind::Object(_) => {
+                        let composed_directives = collect_composed_directives(&typedef.node.directives, state);
                         let object_id = ObjectId(state.objects.push_return_idx(Object {
                             name: type_name_id,
                             implements_interfaces: Vec::new(),
                             resolvable_keys: Vec::new(),
-                            composed_directives: Vec::new(),
+                            composed_directives,
                         }));
 
                         match type_name {
@@ -691,6 +692,7 @@ fn collect_composed_directives(
     directives
         .iter()
         .filter(|dir| dir.node.name.node != JOIN_FIELD_DIRECTIVE_NAME)
+        .filter(|dir| dir.node.name.node != JOIN_TYPE_DIRECTIVE_NAME)
         .map(|directive| Directive {
             name: state.insert_string(directive.node.name.node.as_str()),
             arguments: directive

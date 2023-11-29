@@ -104,13 +104,24 @@ impl CompositionIr {
         });
     }
 
-    pub(crate) fn insert_object(&mut self, object_name: StringWalker<'_>) -> federated::ObjectId {
+    pub(crate) fn insert_object(
+        &mut self,
+        object_name: StringWalker<'_>,
+        is_inaccessible: bool,
+    ) -> federated::ObjectId {
         let name = self.insert_string(object_name);
+        let mut composed_directives = Vec::new();
+        if is_inaccessible {
+            composed_directives.push(federated::Directive {
+                name: self.insert_static_str("inaccessible"),
+                arguments: Vec::new(),
+            });
+        }
         let object = federated::Object {
             name,
             implements_interfaces: Vec::new(),
             resolvable_keys: Vec::new(),
-            composed_directives: Vec::new(),
+            composed_directives,
         };
         let id = federated::ObjectId(self.objects.push_return_idx(object));
         self.definitions_by_name

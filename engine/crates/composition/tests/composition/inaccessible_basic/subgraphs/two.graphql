@@ -1,0 +1,9 @@
+type New @shareable {
+    other: String!
+    name: String! @inaccessible
+}
+
+type Old @shareable {
+    name: String! 
+}
+

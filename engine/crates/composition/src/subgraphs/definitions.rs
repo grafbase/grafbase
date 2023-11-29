@@ -4,19 +4,21 @@ use super::*;
 pub(crate) struct DefinitionId(pub(super) usize);
 
 // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Definitions {
     definitions: Vec<Definition>,
     // (Implementee, implementer)
     interface_impls: BTreeSet<(StringId, StringId)>,
 }
 
+#[derive(Debug)]
 pub(crate) struct Definition {
     subgraph_id: SubgraphId,
     name: StringId,
     kind: DefinitionKind,
     is_shareable: bool,
     is_external: bool,
+    is_inaccessible: bool,
     is_interface_object: bool,
 }
 
@@ -61,6 +63,7 @@ impl Subgraphs {
         subgraph_id: SubgraphId,
         name: &str,
         kind: DefinitionKind,
+        is_inaccessible: bool,
     ) -> DefinitionId {
         let name = self.strings.intern(name);
         let definition = Definition {
@@ -69,6 +72,7 @@ impl Subgraphs {
             kind,
             is_shareable: false,
             is_external: false,
+            is_inaccessible,
             is_interface_object: false,
         };
         let id = DefinitionId(self.definitions.definitions.push_return_idx(definition));
@@ -108,6 +112,10 @@ impl<'a> DefinitionWalker<'a> {
 
     pub fn is_external(self) -> bool {
         self.definition().is_external
+    }
+
+    pub fn is_inaccessible(self) -> bool {
+        self.definition().is_inaccessible
     }
 
     pub fn subgraph(self) -> SubgraphWalker<'a> {

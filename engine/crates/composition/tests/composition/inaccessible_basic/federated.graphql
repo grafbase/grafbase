@@ -1,0 +1,19 @@
+enum join__Graph {
+    ONE @join__graph(name: "one", url: "http://example.com/one")
+    TWO @join__graph(name: "two", url: "http://example.com/two")
+}
+
+type New {
+    name: String! @inaccessible
+    message: String! @join__field(graph: ONE)
+    old: Old! @join__field(graph: ONE) @inaccessible
+    other: String! @join__field(graph: TWO)
+}
+
+type Old @inaccessible {
+    name: String!
+}
+
+type Query {
+    getNew(name: String!): New @join__field(graph: ONE)
+}

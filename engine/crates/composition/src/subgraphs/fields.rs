@@ -1,7 +1,7 @@
 use super::*;
 
 /// Fields of objects and interfaces.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Fields(Vec<Field>);
 
 /// The unique identifier for a field in an object, interface or input object field.
@@ -14,6 +14,7 @@ impl FieldId {
 }
 
 /// A field in an object, interface or input object type.
+#[derive(Debug)]
 pub(super) struct Field {
     pub(super) parent_definition_id: DefinitionId,
     pub(super) name: StringId,
@@ -24,7 +25,7 @@ pub(super) struct Field {
     overrides: Option<StringId>,
     is_shareable: bool,
     is_external: bool,
-
+    is_inaccessible: bool,
     // @deprecated
     deprecated: Option<Deprecation>,
 
@@ -51,6 +52,7 @@ impl Subgraphs {
             field_type,
             is_shareable,
             is_external,
+            is_inaccessible,
             provides,
             requires,
             deprecated,
@@ -77,6 +79,7 @@ impl Subgraphs {
             field_type,
             is_shareable,
             is_external,
+            is_inaccessible,
             arguments: Vec::new(),
             provides,
             requires,
@@ -103,6 +106,7 @@ pub(crate) struct FieldIngest<'a> {
     pub(crate) field_type: FieldTypeId,
     pub(crate) is_shareable: bool,
     pub(crate) is_external: bool,
+    pub(crate) is_inaccessible: bool,
     pub(crate) provides: Option<&'a str>,
     pub(crate) requires: Option<&'a str>,
     pub(crate) deprecated: Option<Deprecation>,
@@ -157,6 +161,10 @@ impl<'a> FieldWalker<'a> {
 
     pub fn is_shareable(self) -> bool {
         self.field().is_shareable
+    }
+
+    pub fn is_inaccessible(self) -> bool {
+        self.field().is_inaccessible
     }
 
     /// ```graphql,ignore

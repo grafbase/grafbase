@@ -44,6 +44,7 @@ pub(crate) struct FederationDirectivesMatcher<'a> {
     external: Cow<'a, str>,
     provides: Cow<'a, str>,
     requires: Cow<'a, str>,
+    inaccessible: Cow<'a, str>,
     interface_object: Cow<'a, str>,
     r#override: Cow<'a, str>,
 }
@@ -58,6 +59,7 @@ impl Default for FederationDirectivesMatcher<'_> {
             external: Cow::Borrowed("external"),
             provides: Cow::Borrowed("provides"),
             requires: Cow::Borrowed("requires"),
+            inaccessible: Cow::Borrowed("inaccessible"),
             interface_object: Cow::Borrowed("interfaceObject"),
             r#override: Cow::Borrowed("override"),
         }
@@ -109,6 +111,7 @@ impl<'a> FederationDirectivesMatcher<'a> {
             external: final_name("external"),
             provides: final_name("provides"),
             requires: final_name("requires"),
+            inaccessible: final_name("inaccessible"),
             interface_object: final_name("interfaceObject"),
             r#override: final_name("override"),
         }
@@ -140,6 +143,10 @@ impl<'a> FederationDirectivesMatcher<'a> {
 
     pub(crate) fn is_key(&self, directive_name: &str) -> bool {
         self.key == directive_name
+    }
+
+    pub(crate) fn is_inaccessible(&self, directive_name: &str) -> bool {
+        self.inaccessible == directive_name
     }
 }
 

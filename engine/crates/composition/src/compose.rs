@@ -47,6 +47,7 @@ fn merge_object_definitions<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
 ) {
+    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
     if let Some(incompatible) = definitions
         .iter()
         .find(|definition| definition.kind() != DefinitionKind::Object)
@@ -81,7 +82,7 @@ fn merge_object_definitions<'a>(
         ));
     }
 
-    let object_id = ctx.insert_object(first.name());
+    let object_id = ctx.insert_object(first.name(), is_inaccessible);
 
     for key in definitions
         .iter()

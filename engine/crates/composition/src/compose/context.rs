@@ -9,7 +9,6 @@ use graphql_federated_graph as federated;
 pub(crate) struct Context<'a> {
     pub(crate) subgraphs: &'a subgraphs::Subgraphs,
     pub(crate) diagnostics: &'a mut Diagnostics,
-
     /// This should stay private, composition IR should remain write-only during composition: the
     /// subgraphs are the source of truth.
     ir: CompositionIr,
@@ -73,8 +72,8 @@ impl<'a> Context<'a> {
             .insert_resolvable_key(federated::Definition::Interface(id), key, is_interface_object);
     }
 
-    pub(crate) fn insert_object(&mut self, name: StringWalker<'_>) -> federated::ObjectId {
-        self.ir.insert_object(name)
+    pub(crate) fn insert_object(&mut self, name: StringWalker<'_>, is_inaccessible: bool) -> federated::ObjectId {
+        self.ir.insert_object(name, is_inaccessible)
     }
 
     pub(crate) fn insert_scalar(&mut self, name: StringWalker<'_>) {

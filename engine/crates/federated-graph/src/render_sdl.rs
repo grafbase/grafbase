@@ -40,6 +40,8 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             }
         }
 
+        write_composed_directives_object(object, graph, &mut sdl)?;
+
         if object.resolvable_keys.is_empty() {
             sdl.push_str(" {\n");
         } else {
@@ -205,6 +207,16 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
     write_overrides(field, graph, sdl)?;
 
     sdl.push('\n');
+    Ok(())
+}
+
+fn write_composed_directives_object(object: &Object, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    for directive in &object.composed_directives {
+        let directive_name = &graph[directive.name];
+        let arguments = DirectiveArguments(&directive.arguments, graph);
+        write!(sdl, " @{directive_name}{arguments}")?;
+    }
+
     Ok(())
 }
 
