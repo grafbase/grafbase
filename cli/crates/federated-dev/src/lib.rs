@@ -66,11 +66,6 @@ pub fn add_subgraph(name: &str, url: &Url, dev_api_port: u16, headers: Vec<(&str
 }
 
 /// Runs the federated dev system.
-pub fn run(port: u16) -> Result<(), Error> {
-    let runtime = Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|error| Error::internal(error.to_string()))?;
-
-    runtime.block_on(dev::run(port))
+pub async fn run(port: u16) -> Result<(), Error> {
+    dev::run(port).await
 }

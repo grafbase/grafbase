@@ -48,6 +48,7 @@ pub enum ServerMessage {
     Ready {
         listen_address: IpAddr,
         port: u16,
+        is_federated: bool,
     },
     Reload(PathBuf),
     StartUdfBuildAll,

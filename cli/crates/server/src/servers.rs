@@ -43,6 +43,7 @@ pub struct ProductionServer {
     bridge_state: Box<dyn BridgeState>,
     environment_variables: HashMap<String, String>,
     message_sender: UnboundedSender<ServerMessage>,
+    is_federated: bool,
 }
 
 impl ProductionServer {
@@ -57,6 +58,7 @@ impl ProductionServer {
         let ParsingResponse {
             registry,
             detected_udfs,
+            is_federated,
         } = run_schema_parser(&environment_variables, None).await?;
         let registry = Arc::new(registry);
 
@@ -97,10 +99,21 @@ impl ProductionServer {
             bridge_state: Box::new(bridge_state),
             environment_variables,
             message_sender,
+            is_federated,
         })
     }
 
     pub async fn serve(self, listen_address: IpAddr, port: u16) -> Result<(), ServerError> {
+        if self.is_federated {
+            let _ = self.message_sender.send(ServerMessage::Ready {
+                listen_address,
+                port,
+                is_federated: self.is_federated,
+            });
+            return federated_dev::run(port)
+                .await
+                .map_err(|error| ServerError::GatewayError(error.to_string()));
+        }
         let bridge_server = axum::Server::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
             .serve(self.bridge_app.into_make_service());
         let bridge_port = bridge_server.local_addr().port();
@@ -117,7 +130,11 @@ impl ProductionServer {
         let gateway_server =
             axum::Server::bind(&SocketAddr::new(listen_address, port)).serve(gateway_app.into_make_service());
 
-        let _ = self.message_sender.send(ServerMessage::Ready { listen_address, port });
+        let _ = self.message_sender.send(ServerMessage::Ready {
+            listen_address,
+            port,
+            is_federated: self.is_federated,
+        });
         tokio::select! {
             result = gateway_server => {
                 result?;
@@ -243,6 +260,7 @@ async fn spawn_servers(
     let ParsingResponse {
         registry,
         mut detected_udfs,
+        is_federated,
     } = match run_schema_parser(&environment_variables, Some(event_bus)).await {
         Ok(parsing_response) => parsing_response,
         Err(error) => {
@@ -252,6 +270,19 @@ async fn spawn_servers(
             return Ok(());
         }
     };
+
+    if is_federated {
+        let _: Result<_, _> = message_sender.send(ServerMessage::Ready {
+            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
+            port: proxy_port,
+            is_federated,
+        });
+
+        return federated_dev::run(worker_port)
+            .await
+            .map_err(|error| ServerError::GatewayError(error.to_string()));
+    }
+
     let registry = Arc::new(registry);
     // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
     // determined by inspecting the modified time of final artifacts of detected resolvers compared to the modified time
@@ -322,6 +353,7 @@ async fn spawn_servers(
     let _: Result<_, _> = message_sender.send(ServerMessage::Ready {
         listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
         port: proxy_port,
+        is_federated,
     });
 
     tokio::select! {
@@ -403,6 +435,7 @@ pub struct DetectedUdf {
 pub struct ParsingResponse {
     pub(crate) registry: Registry,
     pub(crate) detected_udfs: Vec<DetectedUdf>,
+    pub(crate) is_federated: bool,
 }
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environment
@@ -435,6 +468,7 @@ pub(crate) async fn run_schema_parser(
     let crate::parser::ParserResult {
         registry,
         required_udfs,
+        is_federated,
     } = crate::parser::parse_schema(&schema, environment_variables).await?;
 
     let offset = REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.load(Ordering::Acquire);
@@ -477,6 +511,7 @@ pub(crate) async fn run_schema_parser(
     Ok(ParsingResponse {
         registry,
         detected_udfs: detected_resolvers,
+        is_federated,
     })
 }
 
