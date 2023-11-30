@@ -10,7 +10,6 @@ mod expectation;
 mod id;
 mod planner;
 mod plans;
-mod selection_set;
 
 pub use attribution::Attribution;
 pub use expectation::*;
