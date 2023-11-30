@@ -1,4 +1,4 @@
-use crate::federated_graph::*;
+use crate::{federated_graph::*, FederatedGraph};
 use std::fmt::{self, Display, Write as _};
 
 const INDENT: &str = "    ";
@@ -8,6 +8,7 @@ const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
 pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
+    let FederatedGraph::V1(graph) = graph;
 
     write_subgraphs_enum(graph, &mut sdl)?;
 
@@ -172,7 +173,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     Ok(sdl)
 }
 
-fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_subgraphs_enum(graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     sdl.push_str("enum join__Graph {\n");
 
     for subgraph in &graph.subgraphs {
@@ -189,7 +190,7 @@ fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result
     Ok(())
 }
 
-fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_field(field_id: FieldId, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     let field = &graph[field_id];
     let field_name = &graph[field.name];
     let field_type = render_field_type(&graph[field.field_type_id], graph);
@@ -210,7 +211,7 @@ fn write_field(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> f
     Ok(())
 }
 
-fn write_composed_directives_object(object: &Object, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_composed_directives_object(object: &Object, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     for directive in &object.composed_directives {
         let directive_name = &graph[directive.name];
         let arguments = DirectiveArguments(&directive.arguments, graph);
@@ -220,7 +221,7 @@ fn write_composed_directives_object(object: &Object, graph: &FederatedGraph, sdl
     Ok(())
 }
 
-fn write_composed_directives(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_composed_directives(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     for directive in &field.composed_directives {
         let directive_name = &graph[directive.name];
         let arguments = DirectiveArguments(&directive.arguments, graph);
@@ -230,7 +231,7 @@ fn write_composed_directives(field: &Field, graph: &FederatedGraph, sdl: &mut St
     Ok(())
 }
 
-fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     let subgraph_name = GraphEnumVariantName(&graph[graph[subgraph].name]);
     let provides = MaybeDisplay(
         field
@@ -251,7 +252,7 @@ fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGra
     Ok(())
 }
 
-fn write_overrides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_overrides(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     for Override {
         graph: overriding_graph,
         from,
@@ -267,7 +268,7 @@ fn write_overrides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> f
     Ok(())
 }
 
-fn write_provides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_provides(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     for provides in field
         .provides
         .iter()
@@ -281,7 +282,7 @@ fn write_provides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fm
     Ok(())
 }
 
-fn write_requires(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_requires(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
     for requires in field
         .requires
         .iter()
@@ -295,7 +296,7 @@ fn write_requires(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fm
     Ok(())
 }
 
-fn render_field_type(field_type: &FieldType, graph: &FederatedGraph) -> String {
+fn render_field_type(field_type: &FieldType, graph: &FederatedGraphV1) -> String {
     let maybe_bang = if field_type.inner_is_required { "!" } else { "" };
     let name_id = match field_type.kind {
         Definition::Scalar(scalar_id) => graph[scalar_id].name,
@@ -318,7 +319,7 @@ fn render_field_type(field_type: &FieldType, graph: &FederatedGraph) -> String {
     out
 }
 
-fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraph) -> String {
+fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraphV1) -> String {
     if args.is_empty() {
         String::new()
     } else {
@@ -342,7 +343,7 @@ fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraph) -> Str
     }
 }
 
-struct FieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraph);
+struct FieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraphV1);
 
 impl Display for FieldSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -395,7 +396,7 @@ impl<T: Display> Display for MaybeDisplay<T> {
     }
 }
 
-struct DirectiveArguments<'a>(&'a [(StringId, Value)], &'a FederatedGraph);
+struct DirectiveArguments<'a>(&'a [(StringId, Value)], &'a FederatedGraphV1);
 
 impl Display for DirectiveArguments<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -423,7 +424,7 @@ impl Display for DirectiveArguments<'_> {
     }
 }
 
-struct ValueDisplay<'a>(&'a Value, &'a FederatedGraph);
+struct ValueDisplay<'a>(&'a Value, &'a FederatedGraphV1);
 
 impl Display for ValueDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

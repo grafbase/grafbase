@@ -1,4 +1,4 @@
-use crate::federated_graph::*;
+use crate::{federated_graph::*, FederatedGraph};
 use async_graphql_parser::{types as ast, Positioned};
 use indexmap::IndexSet;
 use std::{collections::HashMap, error::Error as StdError, fmt};
@@ -111,7 +111,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
 
-    Ok(FederatedGraph {
+    Ok(FederatedGraph::V1(FederatedGraphV1 {
         subgraphs: state.subgraphs,
         root_operation_types: RootOperationTypes {
             query: state
@@ -131,7 +131,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
         field_types: state.field_types.into_iter().collect(),
-    })
+    }))
 }
 
 fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {

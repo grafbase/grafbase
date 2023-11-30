@@ -10,7 +10,7 @@
 ///
 /// - The ordering of items inside each `Vec`.
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct FederatedGraph {
+pub struct FederatedGraphV1 {
     pub subgraphs: Vec<Subgraph>,
 
     pub root_operation_types: RootOperationTypes,
@@ -41,9 +41,9 @@ pub struct RootOperationTypes {
     pub subscription: Option<ObjectId>,
 }
 
-impl std::fmt::Debug for FederatedGraph {
+impl std::fmt::Debug for FederatedGraphV1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<FederatedGraph>()).finish()
+        f.debug_struct(std::any::type_name::<FederatedGraphV1>()).finish()
     }
 }
 
@@ -277,7 +277,7 @@ macro_rules! id_newtypes {
             #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
             pub struct $name(pub usize);
 
-            impl std::ops::Index<$name> for FederatedGraph {
+            impl std::ops::Index<$name> for FederatedGraphV1 {
                 type Output = $out;
 
                 fn index(&self, index: $name) -> &$out {
@@ -285,7 +285,7 @@ macro_rules! id_newtypes {
                 }
             }
 
-            impl std::ops::IndexMut<$name> for FederatedGraph {
+            impl std::ops::IndexMut<$name> for FederatedGraphV1 {
                 fn index_mut(&mut self, index: $name) -> &mut $out {
                     &mut self.$storage[index.0]
                 }
