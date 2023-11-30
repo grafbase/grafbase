@@ -1,0 +1,18 @@
+union TVContent @inaccessible = Movie | Series
+
+type Movie {
+  id: ID!
+  title: String!
+  director: String!
+  releaseYear: Int
+}
+
+type Series {
+  id: ID!
+  title: String!
+  seasons: Int
+}
+
+type Query {
+  getTVContent(id: ID!): TVContent @inaccessible
+}

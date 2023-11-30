@@ -1,7 +1,7 @@
 use super::*;
 
 /// Fields of objects and interfaces.
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub(crate) struct Fields(Vec<Field>);
 
 /// The unique identifier for a field in an object, interface or input object field.
@@ -14,12 +14,11 @@ impl FieldId {
 }
 
 /// A field in an object, interface or input object type.
-#[derive(Debug)]
 pub(super) struct Field {
     pub(super) parent_definition_id: DefinitionId,
     pub(super) name: StringId,
     field_type: FieldTypeId,
-    arguments: Vec<(StringId, FieldTypeId)>,
+    arguments: Vec<FieldArgument>,
     provides: Option<Vec<Selection>>,
     requires: Option<Vec<Selection>>,
     overrides: Option<StringId>,
@@ -93,11 +92,28 @@ impl Subgraphs {
         Ok(id)
     }
 
-    pub(crate) fn push_field_argument(&mut self, field: FieldId, argument_name: &str, argument_type: FieldTypeId) {
+    pub(crate) fn push_field_argument(
+        &mut self,
+        field: FieldId,
+        argument_name: &str,
+        argument_type: FieldTypeId,
+        is_inaccessible: bool,
+    ) {
         let argument_name = self.strings.intern(argument_name);
         let field = &mut self.fields.0[field.0];
-        field.arguments.push((argument_name, argument_type));
+        field.arguments.push(FieldArgument {
+            name: argument_name,
+            r#type: argument_type,
+            is_inaccessible,
+        });
     }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct FieldArgument {
+    name: StringId,
+    r#type: FieldTypeId,
+    is_inaccessible: bool,
 }
 
 pub(crate) struct FieldIngest<'a> {
@@ -117,7 +133,7 @@ pub(crate) struct FieldIngest<'a> {
 }
 
 pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;
-pub(crate) type ArgumentWalker<'a> = Walker<'a, (StringId, FieldTypeId)>;
+pub(crate) type ArgumentWalker<'a> = Walker<'a, FieldArgument>;
 
 impl<'a> FieldWalker<'a> {
     pub(super) fn field(self) -> &'a Field {
@@ -231,7 +247,7 @@ impl<'a> ArgumentWalker<'a> {
     /// }
     /// ```
     pub(crate) fn argument_name(&self) -> StringWalker<'a> {
-        self.walk(self.id.0)
+        self.walk(self.id.name)
     }
 
     /// ```graphql,ignore
@@ -241,7 +257,11 @@ impl<'a> ArgumentWalker<'a> {
     /// }
     /// ```
     pub(crate) fn argument_type(&self) -> FieldTypeWalker<'a> {
-        self.walk(self.id.1)
+        self.walk(self.id.r#type)
+    }
+
+    pub(crate) fn is_inaccessible(&self) -> bool {
+        self.id.is_inaccessible
     }
 }
 

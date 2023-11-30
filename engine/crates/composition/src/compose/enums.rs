@@ -9,14 +9,15 @@ pub(super) fn merge_enum_definitions(
     ctx: &mut Context<'_>,
 ) {
     let enum_name = first.name().id;
+    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
 
     match (
         enum_is_used_in_input(enum_name, ctx.subgraphs),
         enum_is_used_in_return_position(enum_name, ctx.subgraphs),
     ) {
-        (true, false) => merge_intersection(first, definitions, ctx),
-        (false, true) => merge_union(first, definitions, ctx),
-        (true, true) => merge_exactly_matching(first, definitions, ctx),
+        (true, false) => merge_intersection(first, definitions, is_inaccessible, ctx),
+        (false, true) => merge_union(first, definitions, is_inaccessible, ctx),
+        (true, true) => merge_exactly_matching(first, definitions, is_inaccessible, ctx),
         (false, false) => {
             // The enum isn't used at all, omit it from the federated graph
         }
@@ -53,7 +54,12 @@ fn enum_is_used_in_return_position(enum_name: StringId, subgraphs: &Subgraphs) -
         .any(|field| field.r#type().type_name().id == enum_name)
 }
 
-fn merge_intersection(first: &DefinitionWalker<'_>, definitions: &[DefinitionWalker<'_>], ctx: &mut Context<'_>) {
+fn merge_intersection(
+    first: &DefinitionWalker<'_>,
+    definitions: &[DefinitionWalker<'_>],
+    is_inaccessible: bool,
+    ctx: &mut Context<'_>,
+) {
     let mut intersection: Vec<StringId> = first.enum_values().collect();
     let mut scratch = HashSet::new();
 
@@ -70,7 +76,7 @@ fn merge_intersection(first: &DefinitionWalker<'_>, definitions: &[DefinitionWal
         ));
     }
 
-    let enum_id = ctx.insert_enum(first.name());
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
 
     for value in intersection {
         let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));
@@ -78,8 +84,13 @@ fn merge_intersection(first: &DefinitionWalker<'_>, definitions: &[DefinitionWal
     }
 }
 
-fn merge_union(first: &DefinitionWalker<'_>, definitions: &[DefinitionWalker<'_>], ctx: &mut Context<'_>) {
-    let enum_id = ctx.insert_enum(first.name());
+fn merge_union(
+    first: &DefinitionWalker<'_>,
+    definitions: &[DefinitionWalker<'_>],
+    is_inaccessible: bool,
+    ctx: &mut Context<'_>,
+) {
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
 
     for value in definitions.iter().flat_map(|def| def.enum_values()) {
         let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));
@@ -87,7 +98,12 @@ fn merge_union(first: &DefinitionWalker<'_>, definitions: &[DefinitionWalker<'_>
     }
 }
 
-fn merge_exactly_matching(first: &DefinitionWalker<'_>, definitions: &[DefinitionWalker<'_>], ctx: &mut Context<'_>) {
+fn merge_exactly_matching(
+    first: &DefinitionWalker<'_>,
+    definitions: &[DefinitionWalker<'_>],
+    is_inaccessible: bool,
+    ctx: &mut Context<'_>,
+) {
     let expected: Vec<_> = first.enum_values().collect();
 
     for definition in definitions {
@@ -100,7 +116,7 @@ fn merge_exactly_matching(first: &DefinitionWalker<'_>, definitions: &[Definitio
         }
     }
 
-    let enum_id = ctx.insert_enum(first.name());
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
 
     for value in expected {
         let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));

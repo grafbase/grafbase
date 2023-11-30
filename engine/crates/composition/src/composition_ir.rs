@@ -40,57 +40,6 @@ pub(crate) struct CompositionIr {
 }
 
 impl CompositionIr {
-    pub(crate) fn insert_enum(&mut self, enum_name: StringWalker<'_>) -> federated::EnumId {
-        let name = self.insert_string(enum_name);
-        let r#enum = federated::Enum {
-            name,
-            values: Vec::new(),
-            composed_directives: Vec::new(),
-        };
-        let id = federated::EnumId(self.enums.push_return_idx(r#enum));
-        self.definitions_by_name
-            .insert(enum_name.id, federated::Definition::Enum(id));
-        id
-    }
-
-    pub(crate) fn insert_interface(&mut self, interface_name: StringWalker<'_>) -> federated::InterfaceId {
-        let name = self.insert_string(interface_name);
-        let interface = federated::Interface {
-            name,
-            implements_interfaces: Vec::new(),
-            resolvable_keys: Vec::new(),
-            composed_directives: Vec::new(),
-        };
-        let id = federated::InterfaceId(self.interfaces.push_return_idx(interface));
-        self.definitions_by_name
-            .insert(interface_name.id, federated::Definition::Interface(id));
-        id
-    }
-
-    pub(crate) fn insert_scalar(&mut self, scalar_name: StringWalker<'_>) {
-        let name = self.insert_string(scalar_name);
-        let scalar = federated::Scalar {
-            name,
-            composed_directives: Vec::new(),
-        };
-        let id = federated::ScalarId(self.scalars.push_return_idx(scalar));
-        self.definitions_by_name
-            .insert(scalar_name.id, federated::Definition::Scalar(id));
-    }
-
-    pub(crate) fn insert_input_object(&mut self, input_object_name: StringWalker<'_>) -> federated::InputObjectId {
-        let name = self.insert_string(input_object_name);
-        let object = federated::InputObject {
-            name,
-            fields: Vec::new(),
-            composed_directives: Vec::new(),
-        };
-        let id = federated::InputObjectId(self.input_objects.push_return_idx(object));
-        self.definitions_by_name
-            .insert(input_object_name.id, federated::Definition::InputObject(id));
-        id
-    }
-
     pub(crate) fn insert_resolvable_key(
         &mut self,
         parent: federated::Definition,
@@ -135,19 +84,6 @@ impl CompositionIr {
             _ => (),
         }
 
-        id
-    }
-
-    pub(crate) fn insert_union(&mut self, union_name: StringWalker<'_>) -> federated::UnionId {
-        let name = self.insert_string(union_name);
-        let union = federated::Union {
-            name,
-            members: Vec::new(),
-            composed_directives: Vec::new(),
-        };
-        let id = federated::UnionId(self.unions.push_return_idx(union));
-        self.definitions_by_name
-            .insert(union_name.id, federated::Definition::Union(id));
         id
     }
 
@@ -202,7 +138,7 @@ pub(crate) struct FieldIr {
     pub(crate) parent_name: subgraphs::StringId,
     pub(crate) field_name: subgraphs::StringId,
     pub(crate) field_type: subgraphs::FieldTypeId,
-    pub(crate) arguments: Vec<(subgraphs::StringId, subgraphs::FieldTypeId)>,
+    pub(crate) arguments: Vec<ArgumentIr>,
 
     pub(crate) resolvable_in: Option<federated::SubgraphId>,
 
@@ -215,6 +151,13 @@ pub(crate) struct FieldIr {
     // @join__field(graph: ..., override: ...)
     pub(crate) overrides: Vec<federated::Override>,
 
+    pub(crate) composed_directives: Vec<federated::Directive>,
+}
+
+#[derive(Clone)]
+pub(crate) struct ArgumentIr {
+    pub(crate) argument_name: subgraphs::StringId,
+    pub(crate) argument_type: subgraphs::FieldTypeId,
     pub(crate) composed_directives: Vec<federated::Directive>,
 }
 

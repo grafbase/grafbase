@@ -373,9 +373,10 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                 let type_name_id = state.insert_string(type_name);
                 match &typedef.node.kind {
                     ast::TypeKind::Scalar => {
+                        let composed_directives = collect_composed_directives(&typedef.node.directives, state);
                         let scalar_id = ScalarId(state.scalars.push_return_idx(Scalar {
                             name: type_name_id,
-                            composed_directives: Vec::new(),
+                            composed_directives,
                         }));
                         state.definition_names.insert(type_name, Definition::Scalar(scalar_id));
                     }
@@ -398,21 +399,23 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         state.definition_names.insert(type_name, Definition::Object(object_id));
                     }
                     ast::TypeKind::Interface(_) => {
+                        let composed_directives = collect_composed_directives(&typedef.node.directives, state);
                         let interface_id = InterfaceId(state.interfaces.push_return_idx(Interface {
                             name: type_name_id,
                             implements_interfaces: Vec::new(),
                             resolvable_keys: Vec::new(),
-                            composed_directives: Vec::new(),
+                            composed_directives,
                         }));
                         state
                             .definition_names
                             .insert(type_name, Definition::Interface(interface_id));
                     }
                     ast::TypeKind::Union(_) => {
+                        let composed_directives = collect_composed_directives(&typedef.node.directives, state);
                         let union_id = UnionId(state.unions.push_return_idx(Union {
                             name: type_name_id,
                             members: Vec::new(),
-                            composed_directives: Vec::new(),
+                            composed_directives,
                         }));
                         state.definition_names.insert(type_name, Definition::Union(union_id));
                     }
@@ -420,10 +423,11 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         ingest_join_graph_enum(enm, state)?;
                     }
                     ast::TypeKind::Enum(enm) => {
+                        let composed_directives = collect_composed_directives(&typedef.node.directives, state);
                         let enum_id = EnumId(state.enums.push_return_idx(Enum {
                             name: type_name_id,
                             values: Vec::new(),
-                            composed_directives: Vec::new(),
+                            composed_directives,
                         }));
                         state.definition_names.insert(type_name, Definition::Enum(enum_id));
 
@@ -437,10 +441,11 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         }
                     }
                     ast::TypeKind::InputObject(_) => {
+                        let composed_directives = collect_composed_directives(&typedef.node.directives, state);
                         let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
                             name: type_name_id,
                             fields: Vec::new(),
-                            composed_directives: Vec::new(),
+                            composed_directives,
                         }));
                         state
                             .definition_names
@@ -481,9 +486,13 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
     let arguments = ast_field
         .arguments
         .iter()
-        .map(|arg| FieldArgument {
-            name: state.insert_string(arg.node.name.node.as_str()),
-            type_id: state.insert_field_type(&arg.node.ty.node),
+        .map(|arg| {
+            let composed_directives = collect_composed_directives(&arg.node.directives, state);
+            FieldArgument {
+                name: state.insert_string(arg.node.name.node.as_str()),
+                type_id: state.insert_field_type(&arg.node.ty.node),
+                composed_directives,
+            }
         })
         .collect();
 
@@ -567,9 +576,12 @@ fn ingest_input_object<'a>(
     for field in &input_object.fields {
         let name = state.insert_string(field.node.name.node.as_str());
         let field_type_id = state.insert_field_type(&field.node.ty.node);
-        state.input_objects[input_object_id.0]
-            .fields
-            .push(InputObjectField { name, field_type_id });
+        let composed_directives = collect_composed_directives(&field.node.directives, state);
+        state.input_objects[input_object_id.0].fields.push(InputObjectField {
+            name,
+            field_type_id,
+            composed_directives,
+        });
     }
 }
 

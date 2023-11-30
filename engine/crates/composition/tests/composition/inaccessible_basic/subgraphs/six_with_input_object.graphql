@@ -1,0 +1,29 @@
+# Define a schema for a book management system
+
+# Input type for a book
+input BookInput @inaccessible {
+  title: String!
+  author: String! @inaccessible
+  publishedYear: Int
+  genre: String
+}
+
+# Book type
+type Book {
+  id: ID!
+  title: String!
+  author: String!
+  publishedYear: Int
+  genre: String
+}
+
+# Root query type
+type Query {
+  getBook(id: ID!): Book
+}
+
+# Root mutation type
+type Mutation {
+  addBook(input: BookInput! @inaccessible): Book
+  updateBook(id: ID!, input: BookInput! @inaccessible): Book
+}

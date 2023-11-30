@@ -4,6 +4,7 @@ mod enums;
 mod input_object;
 mod interface;
 mod object;
+mod scalar;
 
 pub(crate) use self::context::Context as ComposeContext;
 
@@ -11,6 +12,7 @@ use self::{context::Context, input_object::*};
 use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId};
 use graphql_federated_graph as federated;
 use itertools::Itertools;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     ctx.subgraphs.iter_definition_groups(|definitions| {
@@ -29,9 +31,7 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
             DefinitionKind::Union => merge_union_definitions(ctx, first, definitions),
             DefinitionKind::InputObject => merge_input_object_definitions(ctx, first, definitions),
             DefinitionKind::Interface => interface::merge_interface_definitions(ctx, first, definitions),
-            DefinitionKind::Scalar => {
-                ctx.insert_scalar(first.name());
-            }
+            DefinitionKind::Scalar => scalar::merge_scalar_definitions(*first, definitions, ctx),
             DefinitionKind::Enum => enums::merge_enum_definitions(first, definitions, ctx),
         }
     });
@@ -104,7 +104,8 @@ fn merge_union_definitions(
     definitions: &[DefinitionWalker<'_>],
 ) {
     let union_name = first_union.name();
-    ctx.insert_union(union_name);
+    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
+    ctx.insert_union(union_name, is_inaccessible);
 
     for member in definitions
         .iter()
