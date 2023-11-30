@@ -7,3 +7,7 @@ node_modules
 templates
 examples
 /target
+.direnv
+.idea
+/cli/target
+/engine/target

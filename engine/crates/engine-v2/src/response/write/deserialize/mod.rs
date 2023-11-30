@@ -22,7 +22,7 @@ use nullable::NullableSeed;
 use scalar::*;
 use selection_set::*;
 
-pub(super) struct SeedContext<'a> {
+pub struct SeedContext<'a> {
     pub schema_walker: SchemaWalker<'a, ()>,
     pub operation: &'a Operation,
     // We could probably avoid the RefCell, but didn't took the time to properly deal with it.
@@ -36,7 +36,7 @@ impl<'a> SeedContext<'a> {
     }
 }
 
-pub(super) struct UpdateSeed<'a> {
+pub struct UpdateSeed<'a> {
     pub ctx: SeedContext<'a>,
     pub root: ResponseObjectRoot,
     pub expected: &'a ExpectedSelectionSet,
