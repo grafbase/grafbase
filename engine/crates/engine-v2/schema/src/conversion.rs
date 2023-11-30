@@ -6,6 +6,7 @@ use crate::introspection::Introspection;
 
 impl From<federated_graph::FederatedGraph> for Schema {
     fn from(graph: federated_graph::FederatedGraph) -> Self {
+        let federated_graph::FederatedGraph::V1(graph) = graph;
         let mut schema = Schema {
             description: None,
             data_sources: (0..graph.subgraphs.len())

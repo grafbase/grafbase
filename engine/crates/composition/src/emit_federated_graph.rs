@@ -13,7 +13,7 @@ use std::{collections::BTreeSet, mem};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
-    let mut out = federated::FederatedGraph {
+    let mut out = federated::FederatedGraphV1 {
         enums: mem::take(&mut ir.enums),
         objects: mem::take(&mut ir.objects),
         interfaces: mem::take(&mut ir.interfaces),
@@ -41,7 +41,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.resolvable_keys, &mut ctx);
 
-    out
+    federated::FederatedGraph::V1(out)
 }
 
 fn emit_interface_impls(ctx: &mut Context<'_>) {

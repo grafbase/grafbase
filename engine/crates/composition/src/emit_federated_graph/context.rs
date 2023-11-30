@@ -4,7 +4,7 @@ use graphql_federated_graph as federated;
 use std::collections::HashMap;
 
 pub(super) struct Context<'a> {
-    pub(super) out: &'a mut federated::FederatedGraph,
+    pub(super) out: &'a mut federated::FederatedGraphV1,
     pub(super) subgraphs: &'a subgraphs::Subgraphs,
     pub(super) definitions: HashMap<subgraphs::StringId, federated::Definition>,
     pub(super) field_types_map: FieldTypesMap,
@@ -17,7 +17,7 @@ impl<'a> Context<'a> {
     pub(crate) fn new(
         ir: &mut CompositionIr,
         subgraphs: &'a subgraphs::Subgraphs,
-        out: &'a mut federated::FederatedGraph,
+        out: &'a mut federated::FederatedGraphV1,
     ) -> Self {
         Context {
             out,
