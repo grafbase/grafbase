@@ -1,5 +1,5 @@
 ---
-source: crates/parser-openapi/src/tests/mod.rs
+source: engine/crates/parser-openapi/src/tests/mod.rs
 expression: registry
 ---
 Registry {
@@ -2390,4 +2390,5 @@ Registry {
         },
     },
     enable_ai: false,
+    is_federated: false,
 }

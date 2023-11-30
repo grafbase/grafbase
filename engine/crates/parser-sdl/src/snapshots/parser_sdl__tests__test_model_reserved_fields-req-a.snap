@@ -1,5 +1,5 @@
 ---
-source: crates/parser-sdl/src/tests.rs
+source: engine/crates/parser-sdl/src/tests.rs
 expression: req_string_a
 ---
 {
@@ -85,6 +85,7 @@ expression: req_string_a
   "federation_subscription": false,
   "http_headers": {},
   "implements": {},
+  "is_federated": false,
   "mongodb_configurations": {},
   "mutation_type": "Mutation",
   "postgres_databases": {},
