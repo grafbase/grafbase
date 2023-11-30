@@ -1,8 +1,8 @@
 use clap::Parser;
 
 use super::{
-    ArgumentNames, BuildCommand, CompletionsCommand, CreateCommand, DevCommand, InitCommand, IntrospectCommand,
-    LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand, SubgraphsCommand,
+    ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand, InitCommand,
+    IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -50,6 +50,9 @@ pub enum SubCommand {
     /// Dump the registry as JSON.
     #[clap(hide = true)]
     DumpConfig,
+    /// Check a graph or a subgraph for validation, composition and breaking change errors.
+    #[clap(hide = true)]
+    Check(CheckCommand),
 }
 
 impl SubCommand {
@@ -81,6 +84,7 @@ impl ArgumentNames for SubCommand {
             SubCommand::Create(command) => command.argument_names(),
             SubCommand::Schema(_)
             | SubCommand::Publish(_)
+            | SubCommand::Check(_)
             | SubCommand::Subgraphs(_)
             | SubCommand::Introspect(_)
             | SubCommand::Reset

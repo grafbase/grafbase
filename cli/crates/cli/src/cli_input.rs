@@ -1,5 +1,6 @@
 mod argument_names;
 mod build;
+mod check;
 mod completions;
 mod create;
 mod dev;
@@ -16,6 +17,7 @@ mod start;
 mod sub_command;
 mod subgraphs;
 
+pub(crate) use self::check::CheckCommand;
 pub(crate) use argument_names::{filter_existing_arguments, ArgumentNames};
 pub(crate) use build::BuildCommand;
 pub(crate) use completions::CompletionsCommand;

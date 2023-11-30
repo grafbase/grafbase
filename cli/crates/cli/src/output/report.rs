@@ -415,7 +415,30 @@ pub fn create_success(name: &str, urls: &[String]) {
     }
 }
 
-pub fn subgraphs_command_success<'a>(subgraphs: impl ExactSizeIterator<Item = &'a str>) {
+pub(crate) fn check_success() {
+    watercolor::output!("✨ Successful check!", @BrightBlue);
+}
+
+pub(crate) fn check_errors<'a>(
+    validation_errors: impl ExactSizeIterator<Item = &'a str>,
+    composition_errors: impl ExactSizeIterator<Item = &'a str>,
+) {
+    if validation_errors.len() > 0 {
+        watercolor::output!("🔴 Validation errors:", @BrightRed);
+        for error in validation_errors {
+            watercolor::output!("- {error}", @BrightRed);
+        }
+    }
+
+    if composition_errors.len() > 0 {
+        watercolor::output!("🔴 Composition errors:", @BrightRed);
+        for error in composition_errors {
+            watercolor::output!("- {error}", @BrightRed);
+        }
+    }
+}
+
+pub(crate) fn subgraphs_command_success<'a>(subgraphs: impl ExactSizeIterator<Item = &'a str>) {
     if subgraphs.len() == 0 {
         println!("🈳 There are no published subgraphs in this branch\n");
         return;
@@ -436,6 +459,10 @@ pub(crate) fn schema_command_success(schema: Option<&str>) {
     } else {
         eprintln!("🤲 Found no schema");
     }
+}
+
+pub(crate) fn checking() {
+    println!("⏳ Checking...");
 }
 
 pub(crate) fn publishing() {
