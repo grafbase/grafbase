@@ -38,7 +38,7 @@ pub struct PublishCommand {
     pub(crate) url: Url,
 
     /// The listening port of the federated dev
-    #[arg(long, default_value_t = 4500)]
+    #[arg(long, default_value_t = 4000)]
     pub(crate) dev_api_port: u16,
 
     /// Add a header to the introspection request
