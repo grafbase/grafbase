@@ -7,7 +7,7 @@ use super::ExecutionContext;
 use crate::{
     execution::Variables,
     executor::{Executor, ExecutorError, ExecutorInput},
-    plan::{ExecutionPlan, ExecutionPlans, PlanId},
+    plan::{ExecutionPlans, PlanId},
     request::Operation,
     response::{GraphqlError, Response, ResponseBuilder, ResponsePartBuilder},
     Engine,
@@ -65,7 +65,7 @@ impl<'eng, 'op> ExecutorCoordinator<'eng, 'op> {
                             // SAFETY: We're never deleting plans during execution
                             // (lifetime of the futures using the ExecutionContext). And plans
                             // live inside a Vec<_> so they are also never moved.
-                            plan: unsafe { std::mem::transmute::<&ExecutionPlan, &ExecutionPlan>(plan) },
+                            plan,
                             variables: &self.variables,
                         };
                         match Executor::build(ctx.clone(), resolver, input) {

@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use super::{
     planner::{Planner, ToBePlanned},
     ExecutionPlan, ExecutionPlanRoot, PlanId,
@@ -8,12 +6,16 @@ use crate::{
     request::{Operation, QueryPath},
     Engine,
 };
+use std::{
+    collections::VecDeque,
+    sync::atomic::{AtomicUsize, Ordering::Relaxed},
+};
 
 pub struct ExecutionPlans {
     plans: Vec<ExecutionPlan>,              // nodes
     parent_to_child: Vec<(PlanId, PlanId)>, // outgoing edges (sorted by parent)
-    unexecuted_parent_count: Vec<usize>,
-    total_executed_count: usize,
+    unexecuted_parent_count: Vec<AtomicUsize>,
+    total_executed_count: AtomicUsize,
 }
 
 impl ExecutionPlans {
@@ -22,7 +24,7 @@ impl ExecutionPlans {
             plans: vec![],
             parent_to_child: vec![],
             unexecuted_parent_count: vec![],
-            total_executed_count: 0,
+            total_executed_count: AtomicUsize::new(0),
         };
         let to_be_planned = VecDeque::from([ToBePlanned {
             parent: None,
@@ -47,21 +49,21 @@ impl ExecutionPlans {
     pub(super) fn push(&mut self, plan: ExecutionPlan) -> PlanId {
         let id = PlanId::from(self.plans.len());
         self.plans.push(plan);
-        self.unexecuted_parent_count.push(0);
+        self.unexecuted_parent_count.push(AtomicUsize::new(0));
         id
     }
 
     pub(super) fn add_dependency(&mut self, child: PlanId, parent: PlanId) {
         self.parent_to_child.push((parent, child));
-        self.unexecuted_parent_count[usize::from(child)] += 1;
+        self.unexecuted_parent_count[usize::from(child)].fetch_add(1, Relaxed);
     }
 
     pub fn all_without_dependencies(&self) -> Vec<PlanId> {
         self.unexecuted_parent_count
             .iter()
             .enumerate()
-            .filter_map(|(plan_id, &in_degree)| {
-                if in_degree == 0 {
+            .filter_map(|(plan_id, in_degree)| {
+                if in_degree.load(Relaxed) == 0 {
                     Some(PlanId::from(plan_id))
                 } else {
                     None
@@ -70,8 +72,8 @@ impl ExecutionPlans {
             .collect()
     }
 
-    pub fn next_executable(&mut self, plan_id: PlanId) -> Vec<PlanId> {
-        self.total_executed_count += 1;
+    pub fn next_executable(&self, plan_id: PlanId) -> Vec<PlanId> {
+        self.total_executed_count.fetch_add(1, Relaxed);
         let start = self
             .parent_to_child
             .partition_point(|(parent_id, _)| *parent_id < plan_id);
@@ -80,8 +82,8 @@ impl ExecutionPlans {
             if parent_id != plan_id {
                 break;
             }
-            self.unexecuted_parent_count[usize::from(child_id)] -= 1;
-            if self.unexecuted_parent_count[usize::from(child_id)] == 0 {
+            self.unexecuted_parent_count[usize::from(child_id)].fetch_sub(1, Relaxed);
+            if self.unexecuted_parent_count[usize::from(child_id)].load(Relaxed) == 0 {
                 executable_plan_ids.push(child_id);
             }
         }
@@ -89,7 +91,7 @@ impl ExecutionPlans {
     }
 
     pub fn are_all_executed(&self) -> bool {
-        self.total_executed_count == self.unexecuted_parent_count.len()
+        self.total_executed_count.load(Relaxed) == self.unexecuted_parent_count.len()
     }
 }
 
