@@ -4,7 +4,7 @@ expression: "engine.execute(UNNAMESPACED_QUERY).variables(json!({\n             
 ---
 {
   "data": {
-    "pullRequestOrIssue": null,
-    "serverVersion": "1"
+    "serverVersion": "1",
+    "pullRequestOrIssue": null
   }
 }
