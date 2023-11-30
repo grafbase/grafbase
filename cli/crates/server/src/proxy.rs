@@ -71,6 +71,9 @@ pub async fn start(listener: TcpListener, event_bus: tokio::sync::broadcast::Sen
         .route("/graphql", get(graphql))
         .route("/graphql", head(graphql))
         .route("/graphql", post(graphql))
+        .route("/admin", get(admin))
+        .route("/admin", head(admin))
+        .route("/admin", post(admin))
         .nest_service("/static", ServeDir::new(static_asset_path))
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {
@@ -99,6 +102,21 @@ async fn graphql(
     State(ProxyState { client, .. }): State<ProxyState>,
     mut req: Request<Body>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    graphql_inner(client, req, "graphql").await
+}
+
+async fn admin(
+    State(ProxyState { client, .. }): State<ProxyState>,
+    mut req: Request<Body>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    graphql_inner(client, req, "admin").await
+}
+
+async fn graphql_inner(
+    client: Client,
+    mut req: Request<Body>,
+    path: &str,
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let query = req.uri().query().map_or(String::new(), |query| format!("?{query}"));
 
     // http::Request can't be cloned
@@ -115,7 +133,7 @@ async fn graphql(
             continue;
         }
 
-        let uri = format!("http://127.0.0.1:{worker_port}/graphql{query}");
+        let uri = format!("http://127.0.0.1:{worker_port}/{path}{query}");
 
         // http::Request can't be cloned
         let mut cloned_request = Request::builder()
