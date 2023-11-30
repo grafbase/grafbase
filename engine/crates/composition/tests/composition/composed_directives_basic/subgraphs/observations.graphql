@@ -1,4 +1,4 @@
-type Bird @shareable {
+type Bird @shareable @fieldMarks(plumage: "juvenile") {
     id: ID!
     name: String!
     species: String!
@@ -14,7 +14,7 @@ type BirdObservation @id(fields: "observationID") {
     timeOfObservation: DateTime!
 }
 
-type ObserverDetails {
+type ObserverDetails @notComposed {
     name: String!
     membershipNumber: String
     observerType: ObserverType!
@@ -38,6 +38,6 @@ type Query {
     birdObservation(observationID: ID!): BirdObservation
 }
 
-schema {
+schema @composeDirective(name: "@fieldMarks")  {
     query: Query
 }

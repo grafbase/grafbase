@@ -1,5 +1,4 @@
 use super::*;
-use crate::composition_ir as ir;
 
 /// The arguments of a federated graph's fields are the interseciton of the subgraph's arguments for
 /// that field. Returns (arg_name, arg_type, is_inaccessible).
@@ -61,8 +60,6 @@ pub(super) fn compose_object_fields<'a>(
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
 ) {
-    let is_inaccessible = fields.iter().any(|field| field.directives().inaccessible());
-
     if !object_is_shareable
         && fields
             .iter()
@@ -154,52 +151,12 @@ pub(super) fn compose_object_fields<'a>(
         .map(|f| f.id.0)
         .collect();
 
-    let mut composed_directives = Vec::new();
-
-    if let Some(reason) = fields
-        .iter()
-        .find_map(|f| f.directives().deprecated().map(|d| d.reason().map(|d| d.id)))
-    {
-        let arguments = match reason {
-            Some(reason) => vec![(
-                ctx.insert_static_str("reason"),
-                federated::Value::String(ctx.insert_string(reason)),
-            )],
-            None => Vec::new(),
-        };
-        let directive_name = ctx.insert_static_str("deprecated");
-        composed_directives.push(federated::Directive {
-            name: directive_name,
-            arguments,
-        });
-    }
-
-    for tag in fields
-        .iter()
-        .flat_map(|f| f.directives().tags().map(|t| t.id))
-        .collect::<BTreeSet<_>>()
-    {
-        let directive_name = ctx.insert_static_str("tag");
-        let argument_name = ctx.insert_static_str("name");
-        let tag_argument = federated::Value::String(ctx.insert_string(tag));
-        composed_directives.push(federated::Directive {
-            name: directive_name,
-            arguments: vec![(argument_name, tag_argument)],
-        });
-    }
-
-    if is_inaccessible {
-        let directive_name = ctx.insert_static_str("inaccessible");
-        composed_directives.push(graphql_federated_graph::Directive {
-            name: directive_name,
-            arguments: Vec::new(),
-        });
-    }
-
     let overrides = collect_overrides(fields, ctx);
     let description = fields
         .iter()
         .find_map(|f| f.description().map(|d| ctx.insert_string(d.id)));
+
+    let composed_directives = collect_composed_directives(fields.iter().map(|f| f.directives()), ctx);
 
     ctx.insert_field(ir::FieldIr {
         parent_name: first.parent_definition().name().id,

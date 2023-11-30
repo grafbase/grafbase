@@ -16,6 +16,8 @@ pub(crate) struct Context<'a> {
 
 impl<'a> Context<'a> {
     pub(crate) fn new(subgraphs: &'a subgraphs::Subgraphs, diagnostics: &'a mut Diagnostics) -> Self {
+        subgraphs.emit_ingestion_diagnostics(diagnostics);
+
         let mut context = Context {
             subgraphs,
             diagnostics,
@@ -181,18 +183,12 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_object(
         &mut self,
         object_name: StringWalker<'_>,
-        is_inaccessible: bool,
         description: Option<StringWalker<'_>>,
+        composed_directives: Vec<federated::Directive>,
     ) -> federated::ObjectId {
         let name = self.ir.insert_string(object_name);
         let description = description.map(|description| self.ir.insert_string(description));
-        let mut composed_directives = Vec::new();
-        if is_inaccessible {
-            composed_directives.push(federated::Directive {
-                name: self.insert_static_str("inaccessible"),
-                arguments: Vec::new(),
-            });
-        }
+
         let object = federated::Object {
             name,
             implements_interfaces: Vec::new(),

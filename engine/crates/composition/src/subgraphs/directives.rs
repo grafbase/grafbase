@@ -3,6 +3,19 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DirectiveContainerId(usize);
 
+type Arguments = Vec<(StringId, Value)>;
+
+#[derive(Debug)]
+pub(crate) enum Value {
+    String(StringId),
+    Int(i64),
+    Float(StringId),
+    Boolean(bool),
+    Enum(StringId),
+    Object(Vec<(StringId, Value)>),
+    List(Vec<Value>),
+}
+
 #[derive(Default)]
 pub(super) struct Directives {
     container_id_counter: usize,
@@ -18,9 +31,35 @@ pub(super) struct Directives {
     interface_object: HashSet<DirectiveContainerId>,
 
     tags: BTreeSet<(DirectiveContainerId, StringId)>,
+
+    /// From @composeDirective.
+    ///
+    /// (subgraph_id, directive_name)
+    composed_directives: BTreeSet<(SubgraphId, StringId)>,
+
+    composed_directive_instances: Vec<(DirectiveContainerId, StringId, Arguments)>,
 }
 
 impl Subgraphs {
+    pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: &str) {
+        let directive_name = self.strings.intern(directive_name);
+        self.directives
+            .composed_directives
+            .insert((subgraph_id, directive_name));
+    }
+
+    pub(crate) fn insert_composed_directive_instance(
+        &mut self,
+        id: DirectiveContainerId,
+        directive_name: &str,
+        arguments: Arguments,
+    ) {
+        let directive_name = self.strings.intern(directive_name);
+        self.directives
+            .composed_directive_instances
+            .push((id, directive_name, arguments));
+    }
+
     pub(crate) fn insert_deprecated(&mut self, id: DirectiveContainerId, reason: Option<&str>) {
         let reason = reason.map(|reason| self.strings.intern(reason));
         self.directives.deprecated.insert(id, Deprecated { reason });
@@ -91,6 +130,15 @@ impl<'a> DirectiveContainerWalker<'a> {
 
     pub(crate) fn interface_object(self) -> bool {
         self.subgraphs.directives.interface_object.contains(&self.id)
+    }
+
+    pub(crate) fn iter_composed_directives(&self) -> impl Iterator<Item = (StringId, &Arguments)> {
+        let instances = &self.subgraphs.directives.composed_directive_instances;
+        let partition_point = instances.partition_point(|(id, _, _)| id < &self.id);
+        instances[partition_point..]
+            .iter()
+            .take_while(|(id, _, _)| id == &self.id)
+            .map(|(_, name, args)| (*name, args))
     }
 
     /// ```graphql,ignore

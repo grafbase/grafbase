@@ -35,6 +35,8 @@ pub struct Subgraphs {
     keys: keys::Keys,
     unions: unions::Unions,
 
+    ingestion_diagnostics: crate::Diagnostics,
+
     // Secondary indexes.
 
     // We want a BTreeMap because we need range queries. The name comes first, then the subgraph,
@@ -67,6 +69,11 @@ impl Subgraphs {
         }
     }
 
+    pub(crate) fn push_ingestion_diagnostic(&mut self, subgraph: SubgraphId, message: String) {
+        self.ingestion_diagnostics
+            .push_fatal(format!("[{}]: {message}", self.walk(subgraph).name().as_str()));
+    }
+
     pub(crate) fn push_subgraph(&mut self, name: &str, url: &str) -> SubgraphId {
         let subgraph = Subgraph {
             name: self.strings.intern(name),
@@ -90,6 +97,10 @@ impl Subgraphs {
     pub(crate) fn iter_subgraphs(&self) -> impl Iterator<Item = SubgraphWalker<'_>> {
         (0..self.subgraphs.len()).map(|idx| self.walk(SubgraphId(idx)))
     }
+
+    pub(crate) fn emit_ingestion_diagnostics(&self, diagnostics: &mut crate::Diagnostics) {
+        diagnostics.clone_all_from(&self.ingestion_diagnostics);
+    }
 }
 
 pub(crate) struct Subgraph {
@@ -99,7 +110,7 @@ pub(crate) struct Subgraph {
     url: StringId,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct SubgraphId(usize);
 
 impl SubgraphId {

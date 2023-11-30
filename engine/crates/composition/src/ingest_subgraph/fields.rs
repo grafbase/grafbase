@@ -4,7 +4,7 @@ use crate::subgraphs::FieldId;
 pub(super) fn ingest_input_fields(
     parent_definition_id: DefinitionId,
     fields: &[Positioned<ast::InputValueDefinition>],
-    matcher: &FederationDirectivesMatcher<'_>,
+    matcher: &DirectiveMatcher<'_>,
     subgraphs: &mut Subgraphs,
 ) {
     for field in fields {
@@ -32,7 +32,7 @@ pub(super) fn ingest_input_fields(
 fn ingest_field_arguments(
     field_id: FieldId,
     arguments: &[Positioned<ast::InputValueDefinition>],
-    matcher: &FederationDirectivesMatcher<'_>,
+    matcher: &DirectiveMatcher<'_>,
     subgraphs: &mut Subgraphs,
 ) {
     for argument in arguments {
@@ -41,7 +41,7 @@ fn ingest_field_arguments(
 
         let argument_directives = subgraphs.new_directive_container();
 
-        super::directives::ingest_directives(argument_directives, &argument.node.directives, subgraphs, matcher);
+        ingest_directives(argument_directives, &argument.node.directives, subgraphs, matcher);
 
         let description = argument
             .node
@@ -56,7 +56,7 @@ fn ingest_field_arguments(
 pub(super) fn ingest_fields(
     definition_id: DefinitionId,
     fields: &[Positioned<ast::FieldDefinition>],
-    federation_directives_matcher: &FederationDirectivesMatcher<'_>,
+    directive_matcher: &DirectiveMatcher<'_>,
     subgraphs: &mut Subgraphs,
 ) {
     for field in fields {
@@ -69,7 +69,7 @@ pub(super) fn ingest_fields(
 
         let field_type = subgraphs.intern_field_type(&field.ty.node);
         let directives = subgraphs.new_directive_container();
-        directives::ingest_directives(directives, &field.directives, subgraphs, federation_directives_matcher);
+        directives::ingest_directives(directives, &field.directives, subgraphs, directive_matcher);
 
         let field_id = subgraphs.push_field(crate::subgraphs::FieldIngest {
             parent_definition_id: definition_id,
@@ -79,6 +79,6 @@ pub(super) fn ingest_fields(
             directives,
         });
 
-        ingest_field_arguments(field_id, &field.arguments, federation_directives_matcher, subgraphs);
+        ingest_field_arguments(field_id, &field.arguments, directive_matcher, subgraphs);
     }
 }

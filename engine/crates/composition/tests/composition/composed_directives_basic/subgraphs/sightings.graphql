@@ -1,4 +1,4 @@
-type Bird @shareable {
+type Bird @shareable @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
     id: ID!
     name: String!
     species: String!
@@ -9,7 +9,7 @@ type Bird @shareable {
 
 type BirdSighting @key(field: "id") @deprecated(reason: "we haven't seen any birds in a while :(") {
     sightingID: ID!
-    bird: Bird!
+    bird: Bird! @pelagic
     observer: String!
     weatherConditions: String
 }
@@ -19,7 +19,7 @@ type Query {
     birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting
 }
 
-schema {
+schema @composeDirective(name: "@pelagic") @composeDirective(name: "@fieldMarks") {
     query: Query
 }
 

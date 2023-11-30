@@ -5,9 +5,8 @@ mod directives;
 mod enums;
 mod fields;
 mod nested_key_fields;
-mod schema_definitions;
 
-use self::{nested_key_fields::ingest_nested_key_fields, schema_definitions::*};
+use self::{directives::*, nested_key_fields::ingest_nested_key_fields};
 use crate::{
     subgraphs::{self, DefinitionId, DefinitionKind, DirectiveContainerId, SubgraphId},
     Subgraphs,
@@ -18,18 +17,24 @@ use async_graphql_value::ConstValue;
 pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
     let subgraph_id = subgraphs.push_subgraph(name, url);
 
-    let federation_directives_matcher = ingest_schema_definitions(document);
+    let directive_matcher = ingest_directive_definitions(document, |error| {
+        subgraphs.push_ingestion_diagnostic(subgraph_id, error);
+    });
 
-    ingest_top_level_definitions(subgraph_id, document, subgraphs, &federation_directives_matcher);
-    ingest_definition_bodies(subgraph_id, document, subgraphs, &federation_directives_matcher);
+    ingest_top_level_definitions(subgraph_id, document, subgraphs, &directive_matcher);
+    ingest_definition_bodies(subgraph_id, document, subgraphs, &directive_matcher);
     ingest_nested_key_fields(subgraph_id, subgraphs);
+
+    for name in directive_matcher.iter_composed_directives() {
+        subgraphs.insert_composed_directive(subgraph_id, name)
+    }
 }
 
 fn ingest_top_level_definitions(
     subgraph_id: SubgraphId,
     document: &ast::ServiceDocument,
     subgraphs: &mut Subgraphs,
-    federation_directives_matcher: &FederationDirectivesMatcher<'_>,
+    directive_matcher: &DirectiveMatcher<'_>,
 ) {
     for definition in &document.definitions {
         match definition {
@@ -89,7 +94,7 @@ fn ingest_top_level_definitions(
                             description,
                             directives,
                         );
-                        enums::ingest_enum(definition_id, enum_type, subgraphs, federation_directives_matcher);
+                        enums::ingest_enum(definition_id, enum_type, subgraphs, directive_matcher);
                         definition_id
                     }
                 };
@@ -98,13 +103,14 @@ fn ingest_top_level_definitions(
                     directives,
                     &type_definition.node.directives,
                     subgraphs,
-                    federation_directives_matcher,
+                    directive_matcher,
                 );
+
                 directives::ingest_keys(
                     definition_id,
                     &type_definition.node.directives,
                     subgraphs,
-                    federation_directives_matcher,
+                    directive_matcher,
                 );
             }
             ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
@@ -116,7 +122,7 @@ fn ingest_definition_bodies(
     subgraph_id: SubgraphId,
     document: &ast::ServiceDocument,
     subgraphs: &mut Subgraphs,
-    federation_directives_matcher: &FederationDirectivesMatcher<'_>,
+    federation_directives_matcher: &DirectiveMatcher<'_>,
 ) {
     let type_definitions = document.definitions.iter().filter_map(|def| match def {
         ast::TypeSystemDefinition::Type(ty) => Some(ty),

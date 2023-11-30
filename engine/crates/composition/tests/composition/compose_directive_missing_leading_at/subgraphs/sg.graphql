@@ -1,0 +1,10 @@
+schema 
+    @composeDirective(name: "@dontAtMe")
+    @composeDirective(name: "noAt")
+{
+  query: Query
+}
+
+type Query {
+  sayHi: String
+}

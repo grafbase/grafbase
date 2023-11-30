@@ -132,13 +132,13 @@ pub struct FieldArgument {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Directive {
     pub name: StringId,
     pub arguments: Vec<(StringId, Value)>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Value {
     String(StringId),
     Int(i64),
