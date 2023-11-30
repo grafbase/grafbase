@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use async_runtime::make_send_on_wasm;
 use engine_value::Name;
 use futures_util::future::BoxFuture;
 use graph_entities::{CompactValue, QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
@@ -219,11 +220,11 @@ pub async fn resolve_list_native<'a, T: LegacyOutputType + 'a>(
     let mut futures = len.map(Vec::with_capacity).unwrap_or_default();
     for (idx, item) in iter.into_iter().enumerate() {
         let ctx_idx = ctx.with_index(idx);
-        futures.push(async move {
+        futures.push(make_send_on_wasm(async move {
             LegacyOutputType::resolve(&item, &ctx_idx, field)
                 .await
                 .map_err(|err| ctx_idx.set_error_path(err))
-        });
+        }));
     }
 
     let children = futures_util::future::try_join_all(futures).await?;

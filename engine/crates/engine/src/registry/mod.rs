@@ -1421,6 +1421,8 @@ pub struct Registry {
     pub federation_entities: BTreeMap<String, FederationEntity>,
     #[serde(default)]
     pub enable_ai: bool,
+    // FIXME: Make an enum.
+    pub is_federated: bool,
 }
 
 impl Default for Registry {
@@ -1444,6 +1446,7 @@ impl Default for Registry {
             enable_kv: false,
             federation_entities: Default::default(),
             enable_ai: false,
+            is_federated: false,
         }
     }
 }
