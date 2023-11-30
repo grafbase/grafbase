@@ -115,6 +115,10 @@ impl<'a> SchemaWalker<'a, ()> {
     pub fn subscription(&'a self) -> Option<ObjectWalker<'a>> {
         self.schema.root_operation_types.subscription.map(|id| self.walk(id))
     }
+
+    pub fn names(&self) -> &'a dyn Names {
+        self.names
+    }
 }
 
 impl<'a> std::ops::Deref for SchemaWalker<'a, ()> {

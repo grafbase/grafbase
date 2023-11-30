@@ -1,26 +1,30 @@
 use engine_value::ConstValue;
-use schema::ListWrapping;
+use schema::{ListWrapping, SchemaWalker};
 
-use super::WalkerContext;
 use crate::execution::{Variable, Variables};
 
+#[derive(Clone, Copy)]
 pub struct VariablesWalker<'a> {
-    pub(super) ctx: WalkerContext<'a, ()>,
-    pub(super) inner: &'a Variables<'a>,
+    schema: SchemaWalker<'a, ()>,
+    inner: &'a Variables<'a>,
 }
 
 impl<'a> VariablesWalker<'a> {
+    pub fn new(schema: SchemaWalker<'a, ()>, inner: &'a Variables<'a>) -> Self {
+        Self { schema, inner }
+    }
+
     #[allow(clippy::panic)]
     pub fn unchecked_get(&self, name: &str) -> VariableWalker<'a> {
         VariableWalker {
-            ctx: self.ctx,
+            schema: self.schema,
             inner: self.inner.unchecked_get(name),
         }
     }
 }
 
 pub struct VariableWalker<'a> {
-    ctx: WalkerContext<'a, ()>,
+    schema: SchemaWalker<'a, ()>,
     inner: &'a Variable<'a>,
 }
 
@@ -31,7 +35,7 @@ impl<'a> VariableWalker<'a> {
 
     pub fn type_name(&self) -> String {
         let ty = &self.inner.definition.r#type;
-        let mut name = self.ctx.schema_walker.walk(ty.inner).name().to_string();
+        let mut name = self.schema.walk(ty.inner).name().to_string();
         if ty.wrapping.inner_is_required {
             name.push('!');
         }

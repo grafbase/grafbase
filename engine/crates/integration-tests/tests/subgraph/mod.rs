@@ -216,18 +216,18 @@ fn test_returning_unresolvable_representations() {
                 .into_data::<Value>(),
                 @r###"
         {
-          "withList": {
-            "title": "Test a todo with a list",
-            "todoList": {
-              "__typename": "TodoList",
-              "id": "123"
-            },
-            "todoListId": "123"
-          },
           "withoutList": {
             "title": "Test a todo with no list",
-            "todoList": null,
-            "todoListId": null
+            "todoListId": null,
+            "todoList": null
+          },
+          "withList": {
+            "title": "Test a todo with a list",
+            "todoListId": "123",
+            "todoList": {
+              "id": "123",
+              "__typename": "TodoList"
+            }
           }
         }
         "###

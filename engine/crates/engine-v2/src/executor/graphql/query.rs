@@ -8,12 +8,12 @@ use engine_value::ConstValue;
 use itertools::Itertools;
 
 use crate::{
-    execution::walkers::{
+    execution::{
         FieldArgumentWalker, FieldWalker, FragmentSpreadWalker, InlineFragmentWalker, SelectionSetWalker,
         SelectionWalker, VariablesWalker,
     },
     plan::PlanId,
-    request::Operation,
+    request::{Operation, SelectionSetRoot},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -96,6 +96,13 @@ impl QueryBuilder {
     fn write_selection_set(&mut self, buffer: &mut Buffer, selection_set: SelectionSetWalker<'_>) -> Result<(), Error> {
         buffer.write_str(" {\n")?;
         buffer.indent += 1;
+        match selection_set.root() {
+            SelectionSetRoot::Object(_) => (),
+            // We always need to know the concrete object.
+            SelectionSetRoot::Interface(_) | SelectionSetRoot::Union(_) => {
+                buffer.indent_write("__typename\n")?;
+            }
+        }
         for selection in selection_set {
             match selection {
                 SelectionWalker::Field(field) => self.write_field(buffer, field)?,
@@ -141,7 +148,14 @@ impl QueryBuilder {
     }
 
     fn write_field(&mut self, buffer: &mut Buffer, field: FieldWalker<'_>) -> Result<(), Error> {
-        buffer.indent_write(field.name())?;
+        // GraphQL resolvers support aliases so we must use the final response key.
+        let name = field.name();
+        let response_key = field.response_key();
+        if response_key == name {
+            buffer.indent_write(name)?;
+        } else {
+            buffer.indent_write(&format!("{response_key}: {name}"))?;
+        }
         self.write_arguments(buffer, field.bound_arguments())?;
         if let Some(selection_set) = field.selection_set() {
             self.write_selection_set(buffer, selection_set)?;
@@ -157,20 +171,14 @@ impl QueryBuilder {
         arguments: impl ExactSizeIterator<Item = FieldArgumentWalker<'a>>,
     ) -> Result<(), Error> {
         if arguments.len() != 0 {
-            buffer.write_str("(")?;
-
-            let mut arguments = arguments.peekable();
-            while let Some(argument) = arguments.next() {
-                let value = argument.query_value();
-                self.add_variable_references(value.variables_used().map(|name| name.to_string()));
-                buffer.write_str(argument.name())?;
-                buffer.write_str(": ")?;
-                buffer.write_str(&value.to_string())?;
-                if arguments.peek().is_some() {
-                    buffer.write_str(", ")?;
-                }
-            }
-            buffer.write_str(")")?;
+            buffer.write_str(&format!(
+                "({})",
+                arguments.format_with(", ", |argument, f| {
+                    let value = argument.query_value();
+                    self.add_variable_references(value.variables_used().map(|name| name.to_string()));
+                    f(&format_args!("{name}: {value}", name = argument.name()))
+                })
+            ))?;
         }
         Ok(())
     }

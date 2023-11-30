@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use schema::SchemaWalker;
 
 use super::{BoundFieldWalker, BoundFragmentSpreadWalker, BoundInlineFragmentWalker};
-use crate::request::{path::ResolvedTypeCondition, BoundSelection, BoundSelectionSetId, Operation};
+use crate::request::{BoundSelection, BoundSelectionSetId, Operation};
 
 #[derive(Clone)]
 pub struct BoundSelectionSetWalker<'a> {
@@ -13,10 +13,8 @@ pub struct BoundSelectionSetWalker<'a> {
 }
 
 impl<'a> BoundSelectionSetWalker<'a> {
-    // Flatten all fields irrelevant of fragments. Only useful when type conditions are irrelevant.
-    pub fn flatten_fields(&self) -> FlattenFieldsIterator<'a> {
-        FlattenFieldsIterator {
-            resolved_type_condition: None,
+    pub fn fields(&self) -> FieldsIterator<'a> {
+        FieldsIterator {
             selections: self.clone().into_iter(),
             nested: None,
         }
@@ -58,7 +56,7 @@ impl<'a> Iterator for SelectionIterator<'a> {
             BoundSelection::Field(id) => {
                 let bound_field = &self.operation[*id];
                 BoundSelectionWalker::Field(BoundFieldWalker {
-                    schema_field: self.schema.walk(self.operation[bound_field.definition_id].field_id),
+                    schema: self.schema,
                     operation: self.operation,
                     bound_field,
                     id: *id,
@@ -82,48 +80,29 @@ impl<'a> Iterator for SelectionIterator<'a> {
     }
 }
 
-pub struct FlattenFieldsIterator<'a> {
-    pub(super) resolved_type_condition: Option<ResolvedTypeCondition>,
-    pub(super) selections: SelectionIterator<'a>,
-    pub(super) nested: Option<Box<FlattenFieldsIterator<'a>>>,
+pub struct FieldsIterator<'a> {
+    selections: SelectionIterator<'a>,
+    nested: Option<Box<FieldsIterator<'a>>>,
 }
 
-#[derive(Debug)]
-pub struct FlattenedBoundField<'a> {
-    pub resolved_type_condition: Option<ResolvedTypeCondition>,
-    pub inner: BoundFieldWalker<'a>,
-}
-
-impl<'a> std::ops::Deref for FlattenedBoundField<'a> {
-    type Target = BoundFieldWalker<'a>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl<'a> Iterator for FlattenFieldsIterator<'a> {
-    type Item = FlattenedBoundField<'a>;
+impl<'a> Iterator for FieldsIterator<'a> {
+    type Item = BoundFieldWalker<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(ref mut nested) = self.nested {
-            if let Some(item) = nested.next() {
-                return Some(item);
+        loop {
+            if let Some(ref mut nested) = self.nested {
+                if let Some(field) = nested.next() {
+                    return Some(field);
+                }
             }
-        }
-        let selection = self.selections.next()?;
-        match selection {
-            BoundSelectionWalker::Field(inner) => Some(FlattenedBoundField {
-                resolved_type_condition: self.resolved_type_condition.clone(),
-                inner,
-            }),
-            BoundSelectionWalker::FragmentSpread(fragment) => {
-                self.nested = Some(Box::new(fragment.nested_fields(self.resolved_type_condition.clone())));
-                self.next()
-            }
-            BoundSelectionWalker::InlineFragment(fragment) => {
-                self.nested = Some(Box::new(fragment.nested_fields(self.resolved_type_condition.clone())));
-                self.next()
+            match self.selections.next()? {
+                BoundSelectionWalker::Field(field) => return Some(field),
+                BoundSelectionWalker::FragmentSpread(spread) => {
+                    self.nested = Some(Box::new(spread.selection_set().fields()));
+                }
+                BoundSelectionWalker::InlineFragment(fragment) => {
+                    self.nested = Some(Box::new(fragment.selection_set().fields()));
+                }
             }
         }
     }

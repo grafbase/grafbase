@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use super::*;
 use crate::introspection::Introspection;
 
+#[allow(clippy::panic)]
 impl From<federated_graph::FederatedGraph> for Schema {
     fn from(graph: federated_graph::FederatedGraph) -> Self {
         let federated_graph::FederatedGraph::V1(graph) = graph;
@@ -26,7 +27,7 @@ impl From<federated_graph::FederatedGraph> for Schema {
             interface_fields: graph.interface_fields.into_iter().map(Into::into).collect(),
             enums: graph.enums.into_iter().map(Into::into).collect(),
             unions: graph.unions.into_iter().map(Into::into).collect(),
-            scalars: graph.scalars.into_iter().map(Into::into).collect(),
+            scalars: vec![],
             input_objects: vec![],
             strings: graph.strings,
             resolvers: vec![],
@@ -109,7 +110,7 @@ impl From<federated_graph::FederatedGraph> for Schema {
                 },
                 composed_directives: field.composed_directives.into_iter().map(Into::into).collect(),
                 is_deprecated: false,
-                deprecated_reason: None,
+                deprecation_reason: None,
             };
             schema.fields.push(field);
         }
@@ -145,27 +146,6 @@ impl From<federated_graph::FederatedGraph> for Schema {
             schema.input_objects.push(input_object);
         }
 
-        // -- DEFINITIONS --
-        // Adding all definitions for introspection & query binding
-        schema
-            .definitions
-            .extend((0..schema.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
-
         // -- INTERFACES --
         // Adding all implementations of an interface, used during introspection.
         for object_id in (0..schema.objects.len()).map(ObjectId::from) {
@@ -173,6 +153,23 @@ impl From<federated_graph::FederatedGraph> for Schema {
                 schema[interface_id].possible_types.push(object_id);
             }
         }
+
+        // -- SCALARS --
+        schema.scalars = graph
+            .scalars
+            .into_iter()
+            .map(|scalar| {
+                let name = StringId::from(scalar.name);
+                Scalar {
+                    name,
+                    data_type: DataType::from_scalar_name(&schema[name])
+                        .unwrap_or_else(|| panic!("Data type undefined for the scalar named '{}'", schema[name])),
+                    description: None,
+                    specified_by_url: None,
+                    composed_directives: scalar.composed_directives.into_iter().map(Into::into).collect(),
+                }
+            })
+            .collect();
 
         // -- INTROSPECTION --
         Introspection::finalize_schema(schema)
@@ -350,20 +347,9 @@ impl From<federated_graph::EnumValue> for EnumValue {
         EnumValue {
             name: enum_value.value.into(),
             description: None,
-            deprecated_reason: None,
+            deprecation_reason: None,
             is_deprecated: false,
             composed_directives: enum_value.composed_directives.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<federated_graph::Scalar> for Scalar {
-    fn from(scalar: federated_graph::Scalar) -> Self {
-        Scalar {
-            name: scalar.name.into(),
-            description: None,
-            specified_by_url: None,
-            composed_directives: scalar.composed_directives.into_iter().map(Into::into).collect(),
         }
     }
 }

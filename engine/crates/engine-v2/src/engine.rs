@@ -5,7 +5,6 @@ use schema::Schema;
 use crate::{
     error::EngineError,
     execution::{ExecutorCoordinator, Variables},
-    plan::OperationPlan,
     request::{parse_operation, Operation},
     response::Response,
 };
@@ -25,9 +24,9 @@ impl Engine {
 
     pub async fn execute(&self, request: engine::Request) -> Response {
         match self.prepare(&request).await {
-            Ok(plan) => match Variables::from_request(&plan.operation, request.variables) {
+            Ok(operation) => match Variables::from_request(&operation, request.variables) {
                 Ok(variables) => {
-                    let mut executor = ExecutorCoordinator::new(self, &plan, variables);
+                    let mut executor = ExecutorCoordinator::new(self, &operation, variables);
                     executor.execute().await;
                     executor.into_response()
                 }
@@ -37,10 +36,9 @@ impl Engine {
         }
     }
 
-    async fn prepare(&self, request: &engine::Request) -> Result<OperationPlan, EngineError> {
+    async fn prepare(&self, request: &engine::Request) -> Result<Operation, EngineError> {
         let unbound_operation = parse_operation(request)?;
         let operation = Operation::bind(&self.schema, unbound_operation)?;
-        let plan = OperationPlan::prepare(self, operation)?;
-        Ok(plan)
+        Ok(operation)
     }
 }

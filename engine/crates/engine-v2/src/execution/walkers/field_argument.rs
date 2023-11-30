@@ -1,16 +1,29 @@
 use std::ops::Deref;
 
 use engine_value::ConstValue;
-use schema::InputValueId;
+use schema::{InputValueId, SchemaWalker};
 
-use crate::request::BoundFieldArgument;
+use crate::{execution::Variables, request::BoundFieldArgument};
 
 pub struct FieldArgumentWalker<'a> {
-    pub(super) ctx: super::WalkerContext<'a, InputValueId>,
+    pub(super) input_value: SchemaWalker<'a, InputValueId>,
+    pub(super) variables: &'a Variables<'a>,
     pub(super) argument: &'a BoundFieldArgument,
 }
 
 impl<'a> FieldArgumentWalker<'a> {
+    pub fn new(
+        input_value: SchemaWalker<'a, InputValueId>,
+        variables: &'a Variables<'a>,
+        argument: &'a BoundFieldArgument,
+    ) -> Self {
+        Self {
+            input_value,
+            variables,
+            argument,
+        }
+    }
+
     // Value in the query, before variable resolution.
     pub fn query_value(&self) -> &engine_value::Value {
         &self.argument.value
@@ -21,7 +34,7 @@ impl<'a> FieldArgumentWalker<'a> {
         self.argument
             .value
             .clone()
-            .into_const_with::<()>(|name| Ok(self.ctx.variables.unchecked_get(&name).value.clone()))
+            .into_const_with::<()>(|name| Ok(self.variables.unchecked_get(&name).value.clone()))
             .unwrap()
     }
 }
@@ -30,7 +43,7 @@ impl<'a> Deref for FieldArgumentWalker<'a> {
     type Target = schema::InputValueWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
-        &self.ctx.schema_walker
+        &self.input_value
     }
 }
 

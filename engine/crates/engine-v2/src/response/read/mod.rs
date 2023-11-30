@@ -1,25 +1,14 @@
-use std::sync::Arc;
-
-use super::ResponseData;
-use crate::request::QueryPath;
+use super::ResponseBuilder;
+use crate::{request::QueryPath, response::ResponsePath};
 mod selection_set;
 mod ser;
 mod view;
 
 use schema::Schema;
-pub use selection_set::{ReadSelection, ReadSelectionSet};
-pub use ser::SerializableResponseData;
+pub use selection_set::ReadSelectionSet;
 pub use view::{ResponseObjectRoot, ResponseObjectsView};
 
-impl ResponseData {
-    pub fn into_serializable(self, schema: Arc<Schema>, selection_set: ReadSelectionSet) -> SerializableResponseData {
-        SerializableResponseData {
-            schema,
-            data: self,
-            selection_set,
-        }
-    }
-
+impl ResponseBuilder {
     /// Used to provide a view on the inputs objects of a plan.
     pub fn read_objects<'a>(
         &'a self,
@@ -40,50 +29,15 @@ impl ResponseData {
         }
     }
 
-    fn find_matching_object_node_ids(&self, path: &QueryPath) -> Vec<ResponseObjectRoot> {
+    // Will be removed later. We can keep track of those during the writing of the previous plan.
+    fn find_matching_object_node_ids(&self, _path: &QueryPath) -> Vec<ResponseObjectRoot> {
         let Some(root) = self.root else {
             return vec![];
         };
-        let mut nodes = vec![root];
-
-        for segment in path {
-            if let Some(ref type_condition) = segment.resolved_type_condition {
-                nodes = nodes
-                    .into_iter()
-                    .filter_map(|node_id| {
-                        let node = self.get(node_id);
-                        let object_id = node
-                            .object_id
-                            .expect("Missing object_id on a node that is subject to a type condition.");
-                        if type_condition.matches(object_id) {
-                            node.fields.get(&segment.name).and_then(|node| node.as_object())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-            } else {
-                nodes = nodes
-                    .into_iter()
-                    .filter_map(|node_id| {
-                        self.get(node_id)
-                            .fields
-                            .get(&segment.name)
-                            .and_then(|node| node.as_object())
-                    })
-                    .collect();
-            }
-            if nodes.is_empty() {
-                break;
-            }
-        }
-
-        nodes
-            .into_iter()
-            .map(|id| ResponseObjectRoot {
-                id,
-                object_id: self.get(id).object_id.unwrap(),
-            })
-            .collect()
+        vec![ResponseObjectRoot {
+            id: root,
+            object_id: self[root].object_id,
+            path: ResponsePath::default(),
+        }]
     }
 }

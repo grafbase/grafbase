@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::borrow::Cow;
+use std::{borrow::Cow, str::FromStr};
 
 mod conversion;
 mod field_set;
@@ -90,6 +90,13 @@ impl Schema {
         let mut definitions = std::mem::take(&mut self.definitions);
         definitions.sort_unstable_by_key(|definition| self.definition_name(*definition));
         self.definitions = definitions;
+
+        for interface in &mut self.interfaces {
+            interface.possible_types.sort_unstable();
+        }
+        for union in &mut self.unions {
+            union.possible_types.sort_unstable();
+        }
     }
 
     fn definition_name(&self, definition: Definition) -> &str {
@@ -171,7 +178,7 @@ pub struct Field {
     pub type_id: TypeId,
     pub resolvers: Vec<FieldResolver>,
     pub is_deprecated: bool,
-    pub deprecated_reason: Option<StringId>,
+    pub deprecation_reason: Option<StringId>,
 
     /// Special case when only going through this field children are accessible.
     provides: Vec<FieldProvides>,
@@ -204,6 +211,12 @@ impl Resolver {
         match self {
             Resolver::Subgraph(resolver) => DataSourceId::from(resolver.subgraph_id),
             Resolver::Introspection(resolver) => resolver.data_source_id,
+        }
+    }
+
+    pub fn supports_aliases(&self) -> bool {
+        match self {
+            Resolver::Subgraph(_) | Resolver::Introspection(_) => true,
         }
     }
 
@@ -298,21 +311,29 @@ pub struct Wrapping {
 }
 
 impl Wrapping {
-    fn nullable() -> Self {
+    pub fn is_required(&self) -> bool {
+        self.list_wrapping
+            .last()
+            .map(|lw| matches!(lw, ListWrapping::RequiredList))
+            .unwrap_or(self.inner_is_required)
+    }
+
+    pub fn nullable() -> Self {
         Wrapping {
             inner_is_required: false,
             list_wrapping: vec![],
         }
     }
 
-    fn required() -> Self {
+    pub fn required() -> Self {
         Wrapping {
             inner_is_required: true,
             list_wrapping: vec![],
         }
     }
 
-    fn nullable_list(self) -> Self {
+    #[must_use]
+    pub fn nullable_list(self) -> Self {
         Wrapping {
             list_wrapping: [ListWrapping::NullableList]
                 .into_iter()
@@ -322,7 +343,8 @@ impl Wrapping {
         }
     }
 
-    fn required_list(self) -> Self {
+    #[must_use]
+    pub fn required_list(self) -> Self {
         Wrapping {
             list_wrapping: [ListWrapping::RequiredList]
                 .into_iter()
@@ -352,6 +374,7 @@ pub struct Interface {
     pub description: Option<StringId>,
     pub interfaces: Vec<InterfaceId>,
 
+    /// sorted by ObjectId
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
@@ -379,7 +402,7 @@ pub struct EnumValue {
     pub name: StringId,
     pub description: Option<StringId>,
     pub is_deprecated: bool,
-    pub deprecated_reason: Option<StringId>,
+    pub deprecation_reason: Option<StringId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
@@ -389,6 +412,7 @@ pub struct EnumValue {
 pub struct Union {
     pub name: StringId,
     pub description: Option<StringId>,
+    /// sorted by ObjectId
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
@@ -398,10 +422,33 @@ pub struct Union {
 #[derive(Debug)]
 pub struct Scalar {
     pub name: StringId,
+    pub data_type: DataType,
     pub description: Option<StringId>,
     pub specified_by_url: Option<StringId>,
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+}
+
+/// Defines how a scalar should be represented and validated by the engine. They're almost the same
+/// as scalars, but scalars like ID which have no own data format are just mapped to String.
+/// https://the-guild.dev/graphql/scalars/docs
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
+pub enum DataType {
+    String,
+    Float,
+    Int,
+    BigInt,
+    JSON,
+    Boolean,
+}
+
+impl DataType {
+    pub fn from_scalar_name(name: &str) -> Option<DataType> {
+        DataType::from_str(name).ok().or(match name {
+            "ID" => Some(DataType::String),
+            _ => None,
+        })
+    }
 }
 
 #[derive(Debug)]

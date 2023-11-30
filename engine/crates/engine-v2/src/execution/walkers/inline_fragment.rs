@@ -24,7 +24,7 @@ impl<'a> InlineFragmentWalker<'a> {
     pub fn selection_set(&self) -> SelectionSetWalker<'a> {
         SelectionSetWalker {
             ctx: self.ctx,
-            id: self.inner.selection_set_id,
+            merged_selection_set_ids: vec![self.inner.selection_set_id],
         }
     }
 }

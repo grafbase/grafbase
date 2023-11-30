@@ -11,5 +11,5 @@ repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
 
 [dependencies]
+strum = { workspace = true, features = ["derive"] }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
-

@@ -2007,6 +2007,7 @@ dependencies = [
 name = "engine-v2"
 version = "3.0.31"
 dependencies = [
+ "anyhow",
  "async-runtime",
  "derive_more",
  "engine",
@@ -2020,6 +2021,7 @@ dependencies = [
  "lasso",
  "reqwest",
  "serde",
+ "serde-value",
  "serde_json",
  "thiserror",
 ]
@@ -2029,6 +2031,7 @@ name = "engine-v2-schema"
 version = "3.0.31"
 dependencies = [
  "graphql-federated-graph",
+ "strum",
 ]
 
 [[package]]
@@ -4445,6 +4448,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
+name = "ordered-float"
+version = "2.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68f19d67e5a2795c94e73e0bb1cc1a7edeb2e28efd39e2e1c9b7a40c1108b11c"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "os_pipe"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5957,6 +5969,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-value"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3a1a3341211875ef120e117ea7fd5228530ae7e7036a779fdc9117be6b3282c"
+dependencies = [
+ "ordered-float",
+ "serde",
+]
+
+[[package]]
 name = "serde-wasm-bindgen"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6005,6 +6027,7 @@ version = "1.0.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bdf3bf93142acad5821c99197022e170842cdbc1c30482b98750c688c640842a"
 dependencies = [
+ "indexmap 1.9.3",
  "itoa",
  "ryu",
  "serde",
