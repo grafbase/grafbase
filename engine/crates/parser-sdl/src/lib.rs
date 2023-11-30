@@ -140,6 +140,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<UniqueDirective>()
         .with::<SearchDirective>()
         .with::<OpenApiDirective>()
+        .with::<GraphDirective>()
         .with::<GraphqlDirective>()
         .with::<CacheDirective>()
         .with::<MongoDBDirective>()
