@@ -1,9 +1,7 @@
-use std::{collections::BTreeMap, rc::Rc};
-
-use openapiv3::v3_1::{self as openapiv3_1, Parameter};
-
 use super::{operations::RequestBody, Context};
 use crate::{parsing::Ref, Error};
+use openapiv3::v3_1::{self as openapiv3_1, Parameter};
+use std::{collections::BTreeMap, rc::Rc};
 
 /// Re-usable components that can be referenced in an OpenAPI v3 schema.
 #[derive(Default)]

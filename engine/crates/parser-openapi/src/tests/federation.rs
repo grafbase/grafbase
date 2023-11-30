@@ -15,3 +15,17 @@ fn test_stripe_federation_schema() {
 
     insta::assert_json_snapshot!(registry.federation_entities.into_iter().collect::<BTreeMap<_, _>>());
 }
+
+#[test]
+fn test_greenlake_federation_schema() {
+    super::init_tracing();
+
+    let metadata = ApiMetadata {
+        url: None,
+        ..metadata("greenlake", true)
+    };
+
+    let registry = build_registry("test_data/greenlake.yml", Format::Json, metadata).unwrap();
+
+    insta::assert_json_snapshot!(registry.federation_entities.into_iter().collect::<BTreeMap<_, _>>());
+}

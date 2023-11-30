@@ -1,0 +1,426 @@
+---
+source: engine/crates/parser-openapi/src/tests/federation.rs
+expression: "registry.federation_entities.into_iter().collect::<BTreeMap<_, _>>()"
+---
+{
+  "GreenlakeExternalServicesResponseV1Beta1": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta1/external-services/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeFilterV1Beta1": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta1/filters/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeFirmwareBundleV1Beta2": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta2/firmware-bundles/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeJobTemplateV1Beta2": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta2/job-templates/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeJobV1Beta2": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta2/jobs/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeJobV1Beta3": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta3/jobs/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeRawInventoryV1Beta2": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta2/servers/{id}/raw-inventory",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeReportDataV1Beta1": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta1/reports/{id}/data",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeReportV1Beta1": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta1/reports/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeServerSettingsResponseV1Beta1": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta1/server-settings/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeServerV1Beta2": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta2/servers/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  },
+  "GreenlakeUserPreferencesResponseV1Beta1": {
+    "keys": [
+      {
+        "selections": [
+          {
+            "field": "id",
+            "selections": []
+          }
+        ],
+        "resolver": {
+          "Http": {
+            "m": "GET",
+            "u": "https://us-west2-api.compute.cloud.hpe.com/compute-ops/v1beta1/user-preferences/{id}",
+            "a": "greenlake",
+            "p": [
+              {
+                "name": "id",
+                "variable_resolve_definition": {
+                  "LocalDataWithTransforms": [
+                    "id",
+                    "String!"
+                  ]
+                }
+              }
+            ],
+            "q": [],
+            "r": null,
+            "e": {
+              "Exact": 200
+            }
+          }
+        }
+      }
+    ]
+  }
+}

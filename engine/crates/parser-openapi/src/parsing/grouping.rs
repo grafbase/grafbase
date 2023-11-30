@@ -25,7 +25,8 @@ pub fn determine_resource_relationships(ctx: &mut super::Context) {
 fn find_operation_resource_schema(ctx: &super::Context, operation_index: NodeIndex) -> Option<NodeIndex> {
     // We only want to look in the response fields
     let filtered_graph = EdgeFiltered::from_fn(&ctx.graph, |edge| {
-        matches!(edge.weight(), Edge::HasResponseType { .. } | Edge::HasField { .. })
+        matches!(edge.weight(), Edge::HasResponseType { status_code, .. } if status_code.is_success())
+            || matches!(edge.weight(), Edge::HasField { .. })
     });
 
     let mut schema_indices = Dfs::new(&filtered_graph, operation_index)

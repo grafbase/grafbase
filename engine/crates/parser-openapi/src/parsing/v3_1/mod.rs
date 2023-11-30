@@ -57,7 +57,7 @@ fn extract_components(ctx: &mut Context, components: &openapiv3_1::Components) {
 
         // There's a title property on schemas that we _could_ use for a name,
         // but the spec doesn't enforce that it's unique and (certainly in stripes case) it is not.
-        // Might do some stuff to work around htat, but for now it's either "x-resourceId"
+        // Might do some stuff to work around that, but for now it's either "x-resourceId"
         // which stripe use or the name of the schema in components.
         let resource_id = schema.extensions.get("x-resourceId").map(|value| value.to_string());
 
