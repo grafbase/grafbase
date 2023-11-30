@@ -13,6 +13,7 @@ use common::environment::Environment;
 use handlebars::Handlebars;
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot};
+use tower_http::cors::CorsLayer;
 
 use self::{
     bus::{AdminBus, ComposeBus, RefreshBus, RequestSender},
@@ -33,7 +34,6 @@ const REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 
 #[derive(Clone)]
 struct ProxyState {
-    pathfinder_html: Html<String>,
     admin_pathfinder_html: Html<String>,
     request_sender: RequestSender,
 }
@@ -70,12 +70,11 @@ pub(super) async fn run(port: u16) -> Result<(), crate::Error> {
     let static_asset_path = environment.user_dot_grafbase_path.join("static");
 
     let app = axum::Router::new()
-        .route("/", get(root))
         .route("/admin", get(admin).post_service(GraphQL::new(schema)))
         .route("/graphql", get(engine_get).post(engine_post))
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
+        .layer(CorsLayer::permissive())
         .with_state(ProxyState {
-            pathfinder_html: Html(render_pathfinder(port, "/graphql")),
             admin_pathfinder_html: Html(render_pathfinder(port, "/admin")),
             request_sender,
         });
@@ -110,11 +109,6 @@ fn render_pathfinder(port: u16, graphql_url: &str) -> String {
             }),
         )
         .expect("must render")
-}
-
-#[allow(clippy::unused_async)]
-async fn root(State(ProxyState { pathfinder_html, .. }): State<ProxyState>) -> impl IntoResponse {
-    pathfinder_html
 }
 
 #[allow(clippy::unused_async)]

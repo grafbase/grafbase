@@ -1,7 +1,4 @@
-use super::{
-    filter_existing_arguments, ArgumentNames, LogLevelFilter, LogLevelFilters, DEFAULT_FEDERATION_PORT,
-    DEFAULT_SUBGRAPH_PORT,
-};
+use super::{filter_existing_arguments, ArgumentNames, LogLevelFilter, LogLevelFilters, DEFAULT_SUBGRAPH_PORT};
 use clap::{arg, Parser};
 
 #[derive(Debug, Parser)]
@@ -31,9 +28,6 @@ pub struct DevCommand {
     /// A shortcut to enable fairly detailed logging
     #[arg(short, long, conflicts_with = "log_level")]
     pub verbose: bool,
-    /// Start the service in federated mode
-    #[arg(short, long)]
-    pub federated: bool,
 }
 
 impl DevCommand {
@@ -65,22 +59,14 @@ impl DevCommand {
     pub fn subgraph_port(&self) -> u16 {
         self.port.unwrap_or(DEFAULT_SUBGRAPH_PORT)
     }
-
-    pub fn federation_port(&self) -> u16 {
-        self.port.unwrap_or(DEFAULT_FEDERATION_PORT)
-    }
 }
 
 impl ArgumentNames for DevCommand {
     fn argument_names(&self) -> Option<Vec<&'static str>> {
         filter_existing_arguments(&[
-            (
-                self.subgraph_port() != DEFAULT_SUBGRAPH_PORT || self.federation_port() != DEFAULT_FEDERATION_PORT,
-                "port",
-            ),
+            (self.subgraph_port() != DEFAULT_SUBGRAPH_PORT, "port"),
             (self.search, "search"),
             (self.disable_watch, "disable-watch"),
-            (self.federated, "federated"),
         ])
     }
 }

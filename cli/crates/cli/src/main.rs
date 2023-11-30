@@ -103,20 +103,13 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
-            if cmd.federated {
-                let port = cmd.federation_port();
-
-                report::start_federated_dev_server(port);
-                federated_dev::run(port).map_err(|error| CliError::FederatedDev(error.to_string()))
-            } else {
-                dev(
-                    cmd.search,
-                    !cmd.disable_watch,
-                    cmd.subgraph_port(),
-                    cmd.log_levels(),
-                    args.trace >= 2,
-                )
-            }
+            dev(
+                cmd.search,
+                !cmd.disable_watch,
+                cmd.subgraph_port(),
+                cmd.log_levels(),
+                args.trace >= 2,
+            )
         }
         SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.graph),
         SubCommand::Reset => reset(),

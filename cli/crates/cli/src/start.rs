@@ -85,7 +85,11 @@ async fn log_reporter(mut message_receiver: UnboundedReceiver<ServerMessage>, lo
     while let Some(message) = message_receiver.recv().await {
         #[allow(clippy::single_match)] // will certainly change in the future
         match message {
-            ServerMessage::Ready { listen_address, port } => {
+            ServerMessage::Ready {
+                listen_address,
+                port,
+                is_federated: _,
+            } => {
                 report::start_prod_server(listen_address, port);
             }
             ServerMessage::RequestScopedMessage { event_type, request_id } => match event_type {

@@ -57,8 +57,6 @@ pub enum CliError {
     Introspection(String),
     #[error("could not read the GraphQL schema")]
     SchemaReadError(#[source] io::Error),
-    #[error("error in federated dev: {0}")]
-    FederatedDev(String),
     #[error("error in publish: {0}")]
     Publish(String),
 }

@@ -39,8 +39,14 @@ pub fn dev(
 
         while let Some(message) = message_receiver.recv().await {
             match message {
-                ServerMessage::Ready { port, .. } => {
-                    READY.call_once(|| report::start_dev_server(resolvers_reported, port, external_port));
+                ServerMessage::Ready { port, is_federated, .. } => {
+                    READY.call_once(|| {
+                        if is_federated {
+                            report::start_federated_dev_server(port);
+                        } else {
+                            report::start_dev_server(resolvers_reported, port, external_port);
+                        }
+                    });
                 }
                 ServerMessage::Reload(path) => report::reload(path),
                 ServerMessage::StartUdfBuild { udf_kind, udf_name } => {

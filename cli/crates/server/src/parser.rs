@@ -13,6 +13,7 @@ use crate::errors::ServerError;
 pub struct ParserResult {
     pub registry: Registry,
     pub required_udfs: HashSet<(UdfKind, String)>,
+    pub is_federated: bool,
 }
 
 /// Transform the input schema into a Registry
@@ -30,6 +31,8 @@ pub async fn parse_schema(schema: &str, environment: &HashMap<String, String>) -
         .await
         .map_err(|e| ServerError::ParseSchema(e.to_string()))?;
 
+    let is_federated = registry.is_federated;
+
     // apply global caching rules
     global_cache_rules
         .apply(&mut registry)
@@ -38,6 +41,7 @@ pub async fn parse_schema(schema: &str, environment: &HashMap<String, String>) -
     Ok(ParserResult {
         registry,
         required_udfs,
+        is_federated,
     })
 }
 

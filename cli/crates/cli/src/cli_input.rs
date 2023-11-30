@@ -38,7 +38,6 @@ use common::consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER};
 use std::path::PathBuf;
 
 const DEFAULT_SUBGRAPH_PORT: u16 = 4000;
-const DEFAULT_FEDERATION_PORT: u16 = 4500;
 
 fn split_header(header: &str) -> Option<(&str, &str)> {
     header.find(':').map(|split_index| {

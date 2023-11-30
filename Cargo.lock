@@ -2795,6 +2795,7 @@ dependencies = [
  "common-types",
  "dotenv",
  "engine",
+ "federated-dev",
  "flate2",
  "fslock",
  "futures-util",

@@ -58,7 +58,7 @@ impl SubCommand {
             self,
             Self::Create(_)
                 | Self::Deploy
-                | Self::Dev(DevCommand { federated: false, .. })
+                | Self::Dev(DevCommand { .. })
                 | Self::Link(_)
                 | Self::Logs(LogsCommand {
                     project_branch: None,
