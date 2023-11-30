@@ -20,7 +20,7 @@ serde_with = { git = "https://github.com/grafbase/serde_with", rev = "00b1e328bf
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "6d06156193d51a2db3216f058cbfadd4923df2c7" }
 
 [workspace.package]
-version = "0.45.6"
+version = "0.45.7"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"
