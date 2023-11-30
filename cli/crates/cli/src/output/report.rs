@@ -49,8 +49,8 @@ pub fn start_dev_server(resolvers_reported: bool, port: u16, start_port: u16) {
 pub fn start_federated_dev_server(port: u16) {
     println!("📡 Listening on port {}\n", watercolor!("{port}", @BrightBlue));
     println!(
-        "Use {} to add subgraphs to the server\n",
-        watercolor!("gb publish --dev", @BrightBlue)
+        "Run {} to add subgraphs to the federated graph\n",
+        watercolor!("grafbase publish --dev", @BrightBlue)
     );
     println!(
         "- Pathfinder: {}",
@@ -440,6 +440,20 @@ pub(crate) fn schema_command_success(schema: Option<&str>) {
 
 pub(crate) fn publishing() {
     println!("⏳ Publishing...");
+}
+
+pub(crate) fn local_publish_command_failure(subgraph_name: &str, composition_errors: &str) {
+    println!("❌ Publish failed: could not compose subgraph {subgraph_name} with the other subgraphs. Errors:\n{composition_errors}",
+        subgraph_name = watercolor!("{subgraph_name}", @BrightBlue)
+
+             );
+}
+
+pub(crate) fn local_publish_command_success(subgraph_name: &str) {
+    println!(
+        "💾 Successfully published subgraph {} to the registry and composed",
+        watercolor!("{subgraph_name}", @BrightBlue)
+    );
 }
 
 pub(crate) fn publish_command_success(subgraph_name: &str) {
