@@ -144,8 +144,26 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Schema(cmd) => schema::schema(cmd),
         SubCommand::Publish(cmd) => {
             if cmd.dev {
-                federated_dev::add_subgraph(&cmd.subgraph_name, &cmd.url, cmd.dev_api_port, cmd.headers().collect())
-                    .map_err(|error| CliError::Publish(error.to_string()))
+                match federated_dev::add_subgraph(
+                    &cmd.subgraph_name,
+                    &cmd.url,
+                    cmd.dev_api_port,
+                    cmd.headers().collect(),
+                ) {
+                    Ok(_) => {
+                        report::local_publish_command_success(&cmd.subgraph_name);
+                        Ok(())
+                    }
+                    Err(federated_dev::Error::Internal(error)) => {
+                        report::local_publish_command_failure(&cmd.subgraph_name, &error.to_string());
+                        Ok(())
+                    }
+                    Err(federated_dev::Error::SubgraphComposition(error)) => {
+                        report::local_publish_command_failure(&cmd.subgraph_name, &error.to_string());
+                        Ok(())
+                    }
+                    Err(other) => Err(CliError::Publish(other.to_string())),
+                }
             } else {
                 publish::publish(cmd)
             }

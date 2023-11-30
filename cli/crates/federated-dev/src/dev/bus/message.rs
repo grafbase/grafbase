@@ -8,11 +8,15 @@ use url::Url;
 
 pub(crate) type ResponseSender<T> = oneshot::Sender<Result<T, Error>>;
 
+pub(crate) enum RecomposeDescription {
+    Removed(String),
+}
+
 pub(crate) enum ComposeMessage {
     Introspect(IntrospectSchema),
     Compose(ComposeSchema),
     RemoveSubgraph(RemoveSubgraph),
-    Recompose,
+    Recompose(RecomposeDescription),
     InitializeRefresh,
 }
 
