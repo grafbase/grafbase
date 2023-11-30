@@ -53,9 +53,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
         write_composed_directives(&object.composed_directives, graph, &mut sdl)?;
 
-        if object.resolvable_keys.is_empty() {
-            sdl.push_str(" {\n");
-        } else {
+        if !object.resolvable_keys.is_empty() {
             sdl.push('\n');
             for resolvable_key in &object.resolvable_keys {
                 let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
@@ -65,15 +63,24 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
                     r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
                 )?;
             }
+        }
 
+        let mut fields = graph
+            .object_fields
+            .iter()
+            .filter(|field| field.object_id.0 == idx)
+            .peekable();
+
+        if fields.peek().is_some() {
+            if object.resolvable_keys.is_empty() {
+                sdl.push_str(" ");
+            }
             sdl.push_str("{\n");
+            for field in fields {
+                write_field(field.field_id, graph, &mut sdl)?;
+            }
+            writeln!(sdl, "}}\n")?;
         }
-
-        for field in graph.object_fields.iter().filter(|field| field.object_id.0 == idx) {
-            write_field(field.field_id, graph, &mut sdl)?;
-        }
-
-        writeln!(sdl, "}}\n")?;
     }
 
     for (idx, interface) in graph.interfaces.iter().enumerate() {
@@ -499,4 +506,43 @@ impl Display for ValueDisplay<'_> {
             Value::List(_) => todo!(),
         }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn test_render_empty() {
+    use expect_test::expect;
+
+    let empty = super::from_sdl("type Query").unwrap();
+    let actual = super::render_sdl(&empty).expect("valid");
+    let expected = expect![[r#"
+        schema
+            @core(feature: "https://specs.apollo.dev/core/v1.0")
+            @core(feature: "https://specs.apollo.dev/join/v1.0") {
+            query: Query
+        }
+
+        directive @core(feature: String!) repeatable on SCHEMA
+
+        directive @join__owner(graph: join__Graph!) on OBJECT
+
+        directive @join__type(
+            graph: join__Graph!
+            key: String!
+        ) repeatable on OBJECT | INTERFACE
+
+        directive @join__field(
+            graph: join__Graph
+            requires: String
+            provides: String
+        ) on FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        enum join__Graph
+
+        type Query
+    "#]];
+
+    expected.assert_eq(&actual);
 }

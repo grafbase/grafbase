@@ -18,6 +18,9 @@ async-graphql-parser = { version = "6", optional = true }
 async-graphql-value = { version = "6", optional = true }
 indexmap = { optional = true, version = "2" }
 
+[dev-dependencies]
+expect-test = "1.4"
+
 [features]
 default = ["render_sdl", "from_sdl"]
 render_sdl = []
