@@ -1,3 +1,26 @@
+schema
+    @core(feature: "https://specs.apollo.dev/core/v1.0")
+    @core(feature: "https://specs.apollo.dev/join/v1.0") {
+    query: Query
+}
+
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
 enum join__Graph {
     ACTIVITIES @join__graph(name: "activities", url: "http://example.com/activities")
     EPISODES @join__graph(name: "episodes", url: "http://example.com/episodes")
