@@ -2904,6 +2904,7 @@ dependencies = [
  "async-graphql-parser 6.0.10",
  "async-graphql-value 6.0.10",
  "indexmap 2.0.0",
+ "indoc",
  "serde",
 ]
 

@@ -10,6 +10,8 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
     let FederatedGraph::V1(graph) = graph;
 
+    write_prelude(&mut sdl)?;
+
     write_subgraphs_enum(graph, &mut sdl)?;
 
     for scalar in &graph.scalars {
@@ -23,6 +25,11 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
         write_composed_directives(&scalar.composed_directives, graph, &mut sdl)?;
         sdl.push('\n');
         sdl.push('\n');
+    }
+
+    let query_type_exists = graph.objects.iter().any(|object| &graph[object.name] == "Query");
+    if !query_type_exists {
+        writeln!(sdl, "type Query\n")?;
     }
 
     for (idx, object) in graph.objects.iter().enumerate() {
@@ -186,20 +193,54 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     Ok(sdl)
 }
 
-fn write_subgraphs_enum(graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
-    sdl.push_str("enum join__Graph {\n");
+fn write_prelude(sdl: &mut String) -> fmt::Result {
+    sdl.push_str(indoc::indoc! {r#"
+        schema
+            @core(feature: "https://specs.apollo.dev/core/v1.0")
+            @core(feature: "https://specs.apollo.dev/join/v1.0") {
+            query: Query
+        }
 
-    for subgraph in &graph.subgraphs {
-        let name_str = &graph[subgraph.name];
-        let url = &graph[subgraph.url];
-        let loud_name = GraphEnumVariantName(name_str);
-        writeln!(
-            sdl,
-            r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
-        )?;
+        directive @core(feature: String!) repeatable on SCHEMA
+
+        directive @join__owner(graph: join__Graph!) on OBJECT
+
+        directive @join__type(
+            graph: join__Graph!
+            key: String!
+        ) repeatable on OBJECT | INTERFACE
+
+        directive @join__field(
+            graph: join__Graph
+            requires: String
+            provides: String
+        ) on FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+    "#});
+
+    sdl.push_str("\n");
+    Ok(())
+}
+
+fn write_subgraphs_enum(graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
+    sdl.push_str("enum join__Graph");
+
+    if !graph.subgraphs.is_empty() {
+        sdl.push_str(" {\n");
+        for subgraph in &graph.subgraphs {
+            let name_str = &graph[subgraph.name];
+            let url = &graph[subgraph.url];
+            let loud_name = GraphEnumVariantName(name_str);
+            writeln!(
+                sdl,
+                r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
+            )?;
+        }
+        sdl.push_str("}");
     }
 
-    sdl.push_str("}\n\n");
+    sdl.push_str("\n\n");
     Ok(())
 }
 
