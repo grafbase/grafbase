@@ -4,6 +4,7 @@
 //! that our engine supports all the things a normal GraphQL server should.
 
 mod fragments;
+mod scalars;
 mod variables;
 
 use engine_v2::Engine;

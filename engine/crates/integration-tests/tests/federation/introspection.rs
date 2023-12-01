@@ -29,6 +29,8 @@ fn can_run_pathfinder_introspection_query() {
       id: ID!
     }
 
+    scalar CustomRepoId
+
     type Header {
       name: String!
       value: String!
@@ -57,6 +59,7 @@ fn can_run_pathfinder_introspection_query() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      favoriteRepository: CustomRepoId!
       headers: [Header!]!
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
@@ -97,6 +100,8 @@ fn can_run_2018_introspection_query() {
       id: ID!
     }
 
+    scalar CustomRepoId
+
     type Header {
       name: String!
       value: String!
@@ -125,6 +130,7 @@ fn can_run_2018_introspection_query() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      favoriteRepository: CustomRepoId!
       headers: [Header!]!
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
@@ -165,6 +171,8 @@ fn can_run_2021_introspection_query() {
       id: ID!
     }
 
+    scalar CustomRepoId
+
     type Header {
       name: String!
       value: String!
@@ -193,6 +201,7 @@ fn can_run_2021_introspection_query() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      favoriteRepository: CustomRepoId!
       headers: [Header!]!
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
@@ -286,6 +295,8 @@ fn can_introsect_when_multiple_subgraphs() {
       id: ID!
     }
 
+    scalar CustomRepoId
+
     type Header {
       name: String!
       value: String!
@@ -326,6 +337,7 @@ fn can_introsect_when_multiple_subgraphs() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      favoriteRepository: CustomRepoId!
       float(input: Float!): Float!
       headers: [Header!]!
       id(input: ID!): ID!
