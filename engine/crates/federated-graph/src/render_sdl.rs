@@ -202,12 +202,6 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
 fn write_prelude(sdl: &mut String) -> fmt::Result {
     sdl.push_str(indoc::indoc! {r#"
-        schema
-            @core(feature: "https://specs.apollo.dev/core/v1.0")
-            @core(feature: "https://specs.apollo.dev/join/v1.0") {
-            query: Query
-        }
-
         directive @core(feature: String!) repeatable on SCHEMA
 
         directive @join__owner(graph: join__Graph!) on OBJECT
