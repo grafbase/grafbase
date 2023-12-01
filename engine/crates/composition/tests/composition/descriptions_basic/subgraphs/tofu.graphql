@@ -1,0 +1,181 @@
+"""
+The Tofu type represents various properties of tofu.
+"""
+type Tofu @shareable {
+  """
+  The unique ID of the tofu.
+  """
+  id: ID!
+
+  """
+  The name of the tofu.
+  """
+  name: String!
+
+  """
+  The type of tofu (e.g., silken, firm).
+  """
+  type: TofuType
+
+  """
+  Nutritional information about the tofu.
+  """
+  nutrition: Nutrition
+
+  """
+  List of recipes that include this tofu.
+  """
+  recipes(filter: RecipeFilter): [Recipe]
+
+  """
+  The texture profile of the tofu, expressed through a custom scalar.
+  """
+  texture: TextureProfile
+}
+
+"""
+Nutritional information for tofu.
+"""
+type Nutrition {
+  """
+  The amount of calories per serving.
+  """
+  calories: Int
+
+  """
+  The amount of protein per serving.
+  """
+  protein: Float
+
+  """
+  Total fat content per serving.
+  """
+  fat: Float
+}
+
+"""
+Defines different types of tofu.
+"""
+enum TofuType {
+  """
+  Silken tofu - soft and smooth, often used in soups and sauces.
+  """
+  SILKEN
+
+  """
+  Firm tofu - holds its shape well, good for grilling and frying.
+  """
+  FIRM
+
+  """
+  Extra firm tofu - very dense and solid, ideal for stir-fries.
+  """
+  EXTRA_FIRM
+}
+
+"""
+Filter criteria for tofu recipes.
+"""
+input RecipeFilter {
+  """
+  Minimum required protein content.
+  """
+  minProtein: Float
+
+  """
+  Maximum allowed calorie count.
+  """
+  maxCalories: Int
+}
+
+"""
+A recipe that includes tofu as an ingredient.
+"""
+type Recipe @shareable {
+  """
+  The unique ID of the recipe.
+  """
+  id: ID!
+
+  """
+  The name of the recipe.
+  """
+  name: String!
+
+  """
+  Description of the recipe.
+  """
+  description: String
+
+  """
+  The main type of tofu used in this recipe.
+  """
+  tofuType: TofuType
+
+  """
+  The ingredients used in the recipe, including tofu.
+  """
+  ingredients: [FoodItem]
+}
+
+"""
+Custom scalar to represent the texture profile of tofu.
+"""
+scalar TextureProfile
+
+"""
+Union representing different food items that can be part of a recipe.
+"""
+union FoodItem = Tofu | Vegetable | Spice
+
+"""
+Vegetable type used in tofu recipes.
+"""
+type Vegetable {
+  """
+  Name of the vegetable.
+  """
+  name: String
+
+  """
+  Nutritional information of the vegetable.
+  """
+  nutrition: Nutrition
+}
+
+"""
+Spice type used in tofu recipes.
+"""
+type Spice {
+  """
+  Name of the spice.
+  """
+  name: String
+
+  """
+  Description of the spice's flavor.
+  """
+  flavorDescription: String
+}
+
+"""
+Directives provide an extendable way to modify the execution behavior in GraphQL.
+"""
+directive @include(
+  """
+  Included if the argument is true.
+  """
+  if: Boolean!
+) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+directive @skip(
+  """
+  Skipped if the argument is true.
+  """
+  if: Boolean!
+) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+
+type Query {
+  allTheTofus: [Tofu]
+}

@@ -60,6 +60,7 @@ fn merge_intersection(
     is_inaccessible: bool,
     ctx: &mut Context<'_>,
 ) {
+    let description = definitions.iter().find_map(|def| def.description());
     let mut intersection: Vec<StringId> = first.enum_values().collect();
     let mut scratch = HashSet::new();
 
@@ -76,11 +77,11 @@ fn merge_intersection(
         ));
     }
 
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
 
     for value in intersection {
         let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));
-        ctx.insert_enum_value(enum_id, first.walk(value), deprecation);
+        ctx.insert_enum_value(enum_id, first.walk(value), deprecation, None);
     }
 }
 
@@ -90,11 +91,12 @@ fn merge_union(
     is_inaccessible: bool,
     ctx: &mut Context<'_>,
 ) {
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
+    let description = definitions.iter().find_map(|def| def.description());
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
 
     for value in definitions.iter().flat_map(|def| def.enum_values()) {
         let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));
-        ctx.insert_enum_value(enum_id, first.walk(value), deprecation);
+        ctx.insert_enum_value(enum_id, first.walk(value), deprecation, None);
     }
 }
 
@@ -116,11 +118,12 @@ fn merge_exactly_matching(
         }
     }
 
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
+    let description = definitions.iter().find_map(|def| def.description());
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
 
     for value in expected {
         let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));
-        ctx.insert_enum_value(enum_id, first.walk(value), deprecation);
+        ctx.insert_enum_value(enum_id, first.walk(value), deprecation, None);
     }
 }
 

@@ -90,6 +90,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
         requires,
         composed_directives,
         overrides,
+        description,
     } in ir_fields
     {
         let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
@@ -100,6 +101,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                 name: ctx.insert_string(ctx.subgraphs.walk(argument.argument_name)),
                 type_id: ctx.insert_field_type(ctx.subgraphs.walk(argument.argument_type)),
                 composed_directives: argument.composed_directives.clone(),
+                description,
             })
             .collect();
 
@@ -115,6 +117,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                     requires: Vec::new(),
                     resolvable_in,
                     composed_directives,
+                    description,
                 };
 
                 let id = federated::FieldId(ctx.out.fields.push_return_idx(field));
@@ -161,6 +164,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                     name: field_name,
                     field_type_id,
                     composed_directives,
+                    description,
                 });
             }
             _ => unreachable!(),

@@ -16,6 +16,7 @@ pub(crate) struct Definition {
     subgraph_id: SubgraphId,
     name: StringId,
     kind: DefinitionKind,
+    description: Option<StringId>,
     is_shareable: bool,
     is_external: bool,
     is_inaccessible: bool,
@@ -67,12 +68,14 @@ impl Subgraphs {
         subgraph_id: SubgraphId,
         name: &str,
         kind: DefinitionKind,
+        description: Option<StringId>,
     ) -> DefinitionId {
         let name = self.strings.intern(name);
         let definition = Definition {
             subgraph_id,
             name,
             kind,
+            description,
             is_shareable: false,
             is_external: false,
             is_inaccessible: false,
@@ -103,6 +106,19 @@ impl<'a> DefinitionWalker<'a> {
 
     pub fn kind(self) -> DefinitionKind {
         self.definition().kind
+    }
+
+    /// ```graphql,ignore
+    /// """
+    /// The root query type.
+    /// """
+    /// ^^^^^^^^^^^^^^^^^^^^
+    /// type Query {
+    ///   # ...
+    /// }
+    /// ```
+    pub fn description(self) -> Option<StringWalker<'a>> {
+        self.definition().description.map(|id| self.walk(id))
     }
 
     pub fn is_interface_object(self) -> bool {

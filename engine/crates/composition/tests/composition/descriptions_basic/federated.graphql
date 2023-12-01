@@ -1,0 +1,160 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    SELFEXPLANATORYTOFU @join__graph(name: "selfExplanatoryTofu", url: "http://example.com/selfExplanatoryTofu")
+    TOFU @join__graph(name: "tofu", url: "http://example.com/tofu")
+}
+
+"""
+Custom scalar to represent the texture profile of tofu.
+"""
+scalar TextureProfile
+
+"""
+The Tofu type represents various properties of tofu.
+"""
+type Tofu {
+    """
+    The unique ID of the tofu.
+    """
+    id: ID!
+    """
+    The name of the tofu.
+    """
+    name: String!
+    """
+    The type of tofu (e.g., silken, firm).
+    """
+    type: TofuType
+    """
+    Nutritional information about the tofu.
+    """
+    nutrition: Nutrition
+    """
+    List of recipes that include this tofu.
+    """
+    recipes(filter: RecipeFilter): [Recipe]
+    """
+    The texture profile of the tofu, expressed through a custom scalar.
+    """
+    texture: TextureProfile
+}
+
+"""
+Nutritional information for tofu.
+"""
+type Nutrition {
+    """
+    The amount of calories per serving.
+    """
+    calories: Int
+    """
+    The amount of protein per serving.
+    """
+    protein: Float
+    """
+    Total fat content per serving.
+    """
+    fat: Float
+}
+
+"""
+A recipe that includes tofu as an ingredient.
+"""
+type Recipe {
+    """
+    The unique ID of the recipe.
+    """
+    id: ID!
+    """
+    The name of the recipe.
+    """
+    name: String!
+    """
+    Description of the recipe.
+    """
+    description: String
+    """
+    The main type of tofu used in this recipe.
+    """
+    tofuType: TofuType
+    """
+    The ingredients used in the recipe, including tofu.
+    """
+    ingredients: [FoodItem]
+}
+
+"""
+Vegetable type used in tofu recipes.
+"""
+type Vegetable {
+    """
+    Name of the vegetable.
+    """
+    name: String
+    """
+    Nutritional information of the vegetable.
+    """
+    nutrition: Nutrition
+}
+
+"""
+Spice type used in tofu recipes.
+"""
+type Spice {
+    """
+    Name of the spice.
+    """
+    name: String
+    """
+    Description of the spice's flavor.
+    """
+    flavorDescription: String
+}
+
+type Query {
+    allTheTofus: [Tofu] @join__field(graph: TOFU)
+}
+
+"""
+Defines different types of tofu.
+"""
+enum TofuType {
+    SILKEN
+    FIRM
+    EXTRA_FIRM
+}
+
+"""
+Union representing different food items that can be part of a recipe.
+"""
+union FoodItem = Tofu | Vegetable | Spice
+
+"""
+Filter criteria for tofu recipes.
+"""
+input RecipeFilter {
+    """
+    Minimum required protein content.
+    """
+    minProtein: Float
+    """
+    Maximum allowed calorie count.
+    """
+    maxCalories: Int
+}

@@ -30,6 +30,8 @@ pub(super) struct Field {
 
     // @tag
     tags: Vec<StringId>,
+
+    description: Option<StringId>,
 }
 
 /// Corresponds to an `@deprecated` directive.
@@ -57,6 +59,7 @@ impl Subgraphs {
             deprecated,
             tags,
             overrides,
+            description,
         }: FieldIngest<'_>,
     ) -> Result<FieldId, String> {
         let provides = provides
@@ -85,6 +88,7 @@ impl Subgraphs {
             deprecated,
             tags,
             overrides,
+            description,
         };
         let id = FieldId(self.fields.0.push_return_idx(field));
         let parent_object_name = self.walk(parent_definition_id).name().id;
@@ -127,6 +131,7 @@ pub(crate) struct FieldIngest<'a> {
     pub(crate) requires: Option<&'a str>,
     pub(crate) deprecated: Option<Deprecation>,
     pub(crate) tags: Vec<&'a str>,
+    pub(crate) description: Option<StringId>,
 
     /// The @override(from: ...) directive.
     pub(crate) overrides: Option<StringId>,
@@ -148,6 +153,10 @@ impl<'a> FieldWalker<'a> {
     /// ```
     pub(crate) fn arguments(self) -> impl Iterator<Item = ArgumentWalker<'a>> {
         self.field().arguments.iter().map(move |id| self.walk(*id))
+    }
+
+    pub(crate) fn description(self) -> Option<StringWalker<'a>> {
+        self.field().description.map(|id| self.walk(id))
     }
 
     /// The contents of the `@deprecated` directive. `None` in the absence of directive,

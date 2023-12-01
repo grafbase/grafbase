@@ -7,9 +7,12 @@ pub(super) fn merge_input_object_definitions(
     first: &DefinitionWalker<'_>,
     definitions: &[DefinitionWalker<'_>],
 ) {
+    let description = definitions.iter().find_map(|def| def.description());
+
     // We want to take the intersection of the field sets.
     let mut common_fields: HashMap<StringId, _> = first.fields().map(|field| (field.name().id, field)).collect();
     let mut fields_buf = HashSet::<StringId>::new();
+
     let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
     let inaccessible_fields: HashSet<_> = definitions
         .iter()
@@ -36,7 +39,7 @@ pub(super) fn merge_input_object_definitions(
         }
     }
 
-    ctx.insert_input_object(first.name(), is_inaccessible);
+    ctx.insert_input_object(first.name(), is_inaccessible, description);
 
     for field in first.fields().filter(|f| common_fields.contains_key(&f.name().id)) {
         let composed_directives = if inaccessible_fields.contains(&field.name().id) {
@@ -47,6 +50,15 @@ pub(super) fn merge_input_object_definitions(
         } else {
             Vec::new()
         };
+
+        let field_name = field.name();
+
+        let description = definitions
+            .iter()
+            .filter_map(|definition| definition.find_field(field_name.id))
+            .find_map(|field| field.description())
+            .map(|description| ctx.insert_string(description.id));
+
         ctx.insert_field(ir::FieldIr {
             parent_name: first.name().id,
             field_name: field.name().id,
@@ -57,6 +69,7 @@ pub(super) fn merge_input_object_definitions(
             requires: Vec::new(),
             overrides: Vec::new(),
             composed_directives,
+            description,
         });
     }
 }

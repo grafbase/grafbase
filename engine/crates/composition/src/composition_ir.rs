@@ -1,7 +1,4 @@
-use crate::{
-    subgraphs::{self, StringWalker},
-    VecExt,
-};
+use crate::{subgraphs, VecExt};
 use graphql_federated_graph as federated;
 use std::collections::{BTreeSet, HashMap};
 
@@ -53,74 +50,6 @@ impl CompositionIr {
         });
     }
 
-    pub(crate) fn insert_object(
-        &mut self,
-        object_name: StringWalker<'_>,
-        is_inaccessible: bool,
-    ) -> federated::ObjectId {
-        let name = self.insert_string(object_name);
-        let mut composed_directives = Vec::new();
-        if is_inaccessible {
-            composed_directives.push(federated::Directive {
-                name: self.insert_static_str("inaccessible"),
-                arguments: Vec::new(),
-            });
-        }
-        let object = federated::Object {
-            name,
-            implements_interfaces: Vec::new(),
-            resolvable_keys: Vec::new(),
-            composed_directives,
-        };
-        let id = federated::ObjectId(self.objects.push_return_idx(object));
-        self.definitions_by_name
-            .insert(object_name.id, federated::Definition::Object(id));
-
-        // FIXME: Those roots probably shouldn't be hardcoded.
-        match object_name.as_str() {
-            "Query" => self.query_type = Some(id),
-            "Mutation" => self.mutation_type = Some(id),
-            "Subscription" => self.subscription_type = Some(id),
-            _ => (),
-        }
-
-        id
-    }
-
-    pub(crate) fn insert_enum_value(
-        &mut self,
-        enum_id: federated::EnumId,
-        value: StringWalker<'_>,
-        deprecation: Option<Option<StringWalker<'_>>>,
-    ) {
-        let mut composed_directives = Vec::new();
-
-        if let Some(deprecation) = deprecation {
-            let arguments = match deprecation {
-                Some(reason) => vec![(
-                    self.insert_static_str("reason"),
-                    federated::Value::String(self.insert_string(reason)),
-                )],
-                None => Vec::new(),
-            };
-            let name = self.insert_static_str("deprecated");
-
-            composed_directives.push(federated::Directive { name, arguments });
-        }
-
-        let value = self.insert_string(value);
-        let r#enum = &mut self.enums[enum_id.0];
-
-        if r#enum.values.iter().any(|v| v.value == value) {
-            return;
-        }
-
-        r#enum.values.push(federated::EnumValue {
-            value,
-            composed_directives,
-        });
-    }
-
     pub(crate) fn insert_union_member(&mut self, union_name: subgraphs::StringId, member_name: subgraphs::StringId) {
         self.union_members.insert((union_name, member_name));
     }
@@ -152,6 +81,8 @@ pub(crate) struct FieldIr {
     pub(crate) overrides: Vec<federated::Override>,
 
     pub(crate) composed_directives: Vec<federated::Directive>,
+
+    pub(crate) description: Option<federated::StringId>,
 }
 
 #[derive(Clone)]
