@@ -8,63 +8,70 @@ pub(super) fn merge_field_arguments<'a>(
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
 ) -> Vec<ir::ArgumentIr> {
-    let mut intersection: Vec<_> = first.arguments().map(|arg| arg.argument_name().id).collect();
+    let mut intersection: Vec<_> = first.arguments().map(|arg| arg.name().id).collect();
     let mut buf = HashSet::new();
     let inaccessible_arguments: HashSet<_> = fields
         .iter()
-        .filter(|f| f.is_inaccessible())
+        .filter(|f| f.directives().inaccessible())
         .map(|f| f.name().id)
         .collect();
 
     for field in &fields[1..] {
         buf.clear();
-        buf.extend(field.arguments().map(|arg| arg.argument_name().id));
+        buf.extend(field.arguments().map(|arg| arg.name().id));
         intersection.retain(|value| buf.contains(value));
     }
 
     for argument in first.arguments().filter(|arg| {
-        !arg.is_inaccessible()
+        !arg.directives().inaccessible()
             && arg
-                .argument_type()
+                .r#type()
                 .definition(first.parent_definition().subgraph().id)
-                .map(|def| def.is_inaccessible())
+                .map(|def| def.directives().inaccessible())
                 .unwrap_or(false)
     }) {
         ctx.diagnostics.push_fatal(format!(
             "The argument `{}` on `{}` is of an @inaccessible type, but is itself not marked as @inaccessible.",
-            argument.argument_name().as_str(),
+            argument.name().as_str(),
             first.name().as_str(),
         ));
     }
 
     first
         .arguments()
-        .filter(|arg| intersection.contains(&arg.argument_name().id))
-        .map(|arg| {
-            let argument_name = arg.argument_name().id;
-            ir::ArgumentIr {
-                argument_name,
-                argument_type: arg.argument_type().id,
-                composed_directives: if inaccessible_arguments.contains(&argument_name) {
-                    vec![federated::Directive {
-                        name: ctx.insert_static_str("inaccessible"),
-                        arguments: Vec::new(),
-                    }]
-                } else {
-                    Vec::new()
-                },
-            }
+        .filter(|arg| intersection.contains(&arg.name().id))
+        .map(|arg| ir::ArgumentIr {
+            argument_name: arg.name().id,
+            argument_type: arg.r#type().id,
+            composed_directives: if inaccessible_arguments.contains(&arg.name().id) {
+                vec![federated::Directive {
+                    name: ctx.insert_static_str("inaccessible"),
+                    arguments: Vec::new(),
+                }]
+            } else {
+                Vec::new()
+            },
         })
         .collect()
 }
 
-pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldWalker<'a>], ctx: &mut Context<'a>) {
-    let is_inaccessible = fields.iter().any(|field| field.is_inaccessible());
-    if fields
-        .iter()
-        .filter(|f| !(f.is_shareable() || f.is_external() || f.is_part_of_key() || f.overrides().is_some()))
-        .count()
-        > 1
+pub(super) fn compose_object_fields<'a>(
+    object_is_shareable: bool,
+    first: FieldWalker<'a>,
+    fields: &[FieldWalker<'a>],
+    ctx: &mut Context<'a>,
+) {
+    let is_inaccessible = fields.iter().any(|field| field.directives().inaccessible());
+
+    if !object_is_shareable
+        && fields
+            .iter()
+            .filter(|f| {
+                let d = f.directives();
+                !(d.shareable() || d.external() || f.is_part_of_key() || d.r#override().is_some())
+            })
+            .count()
+            > 1
     {
         let next = &fields[1];
 
@@ -105,11 +112,11 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
     }
 
     if fields.iter().any(|field| {
-        !field.is_inaccessible()
+        !field.directives().inaccessible()
             && field
                 .r#type()
                 .definition(field.parent_definition().subgraph().id)
-                .filter(|parent| parent.is_inaccessible())
+                .filter(|parent| parent.directives().inaccessible())
                 .is_some()
     }) {
         let name = format!(
@@ -117,7 +124,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
             first.parent_definition().name().as_str(),
             first.name().as_str()
         );
-        let non_marked_subgraphs = fields.iter().filter(|field| !field.is_inaccessible());
+        let non_marked_subgraphs = fields.iter().filter(|field| !field.directives().inaccessible());
 
         ctx.diagnostics.push_fatal(format!(
             "The field `{name}` is of an @inaccessible type, but is itself not marked as @inaccessible in subgraphs {}",
@@ -135,13 +142,24 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         .filter(|_| fields.len() == 1)
         .map(|field| federated::SubgraphId(field.parent_definition().subgraph().id.idx()));
 
-    let provides = fields.iter().filter(|f| f.provides().is_some()).map(|f| f.id).collect();
+    let provides = fields
+        .iter()
+        .filter(|f| f.directives().provides().is_some())
+        .map(|f| f.id.0)
+        .collect();
 
-    let requires = fields.iter().filter(|f| f.requires().is_some()).map(|f| f.id).collect();
+    let requires = fields
+        .iter()
+        .filter(|f| f.directives().requires().is_some())
+        .map(|f| f.id.0)
+        .collect();
 
     let mut composed_directives = Vec::new();
 
-    if let Some(reason) = fields.iter().find_map(|f| f.deprecated().map(|d| d.map(|d| d.id))) {
+    if let Some(reason) = fields
+        .iter()
+        .find_map(|f| f.directives().deprecated().map(|d| d.reason().map(|d| d.id)))
+    {
         let arguments = match reason {
             Some(reason) => vec![(
                 ctx.insert_static_str("reason"),
@@ -158,7 +176,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
 
     for tag in fields
         .iter()
-        .flat_map(|f| f.tags().map(|t| t.id))
+        .flat_map(|f| f.directives().tags().map(|t| t.id))
         .collect::<BTreeSet<_>>()
     {
         let directive_name = ctx.insert_static_str("tag");
@@ -200,7 +218,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
 fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<federated::Override> {
     let mut overrides = Vec::new();
 
-    for (field, from) in fields.iter().filter_map(|f| Some(f).zip(f.overrides())) {
+    for (field, from) in fields.iter().filter_map(|f| Some(f).zip(f.directives().r#override())) {
         let field_subgraph = field.parent_definition().subgraph();
 
         if from.id == field_subgraph.name().id {
@@ -217,7 +235,7 @@ fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<f
             .iter()
             .find(|f| f.parent_definition().subgraph().name().id == from.id)
         {
-            if override_source.overrides().is_some() {
+            if override_source.directives().r#override().is_some() {
                 ctx.diagnostics
                     .push_fatal(format!(r#"Field "{}.{}" on subgraph "{}" is also marked with directive @override in subgraph "{}". Only one @override directive is allowed per field."#,
                         override_source.parent_definition().name().as_str(),

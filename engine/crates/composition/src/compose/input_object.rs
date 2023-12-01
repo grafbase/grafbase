@@ -13,11 +13,14 @@ pub(super) fn merge_input_object_definitions(
     let mut common_fields: HashMap<StringId, _> = first.fields().map(|field| (field.name().id, field)).collect();
     let mut fields_buf = HashSet::<StringId>::new();
 
-    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
+    let is_inaccessible = definitions
+        .iter()
+        .any(|definition| definition.directives().inaccessible());
+
     let inaccessible_fields: HashSet<_> = definitions
         .iter()
         .flat_map(|def| def.fields())
-        .filter(|f| f.is_inaccessible())
+        .filter(|f| f.directives().inaccessible())
         .map(|field| field.name().id)
         .collect();
 

@@ -1,48 +1,68 @@
 use super::*;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct FieldId(pub(super) DefinitionId, pub(super) StringId);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct ArgumentId(DefinitionId, StringId, StringId);
+
 /// Fields of objects and interfaces.
 #[derive(Default)]
-pub(crate) struct Fields(Vec<Field>);
+pub(crate) struct Fields {
+    /// Output field arguments.
+    field_arguments: BTreeMap<ArgumentId, FieldTuple>,
 
-/// The unique identifier for a field in an object, interface or input object field.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct FieldId(usize);
+    /// Fields of objects, interfaces and input objects.
+    definition_fields: BTreeMap<FieldId, FieldTuple>,
 
-impl FieldId {
-    pub const MIN: Self = Self(usize::MIN);
-    pub const MAX: Self = Self(usize::MAX);
+    /// Groups of fields to compose. The fields are grouped by parent type name and field name.
+    field_groups: BTreeSet<(StringId, StringId, DefinitionId)>,
 }
 
 /// A field in an object, interface or input object type.
-pub(super) struct Field {
-    pub(super) parent_definition_id: DefinitionId,
-    pub(super) name: StringId,
-    field_type: FieldTypeId,
-    arguments: Vec<FieldArgument>,
-    provides: Option<Vec<Selection>>,
-    requires: Option<Vec<Selection>>,
-    overrides: Option<StringId>,
-    is_shareable: bool,
-    is_external: bool,
-    is_inaccessible: bool,
-    // @deprecated
-    deprecated: Option<Deprecation>,
-
-    // @tag
-    tags: Vec<StringId>,
-
+#[derive(Clone, Copy)]
+pub(crate) struct FieldTuple {
+    r#type: FieldTypeId,
     description: Option<StringId>,
-}
-
-/// Corresponds to an `@deprecated` directive.
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct Deprecation {
-    pub(crate) reason: Option<StringId>,
+    directives: DirectiveContainerId,
 }
 
 impl Subgraphs {
-    pub(crate) fn iter_fields(&self) -> impl Iterator<Item = FieldWalker<'_>> {
-        (0..self.fields.0.len()).map(FieldId).map(|id| self.walk(id))
+    pub(crate) fn iter_all_fields(&self) -> impl Iterator<Item = FieldWalker<'_>> + '_ {
+        self.fields
+            .definition_fields
+            .iter()
+            .map(move |(id, tuple)| FieldWalker {
+                id: (*id, *tuple),
+                subgraphs: self,
+            })
+    }
+
+    /// Iterate over groups of fields to compose. The fields are grouped by parent type name and
+    /// field name. The argument is a closure that receives each group as an argument. The order of
+    /// iteration is deterministic but unspecified.
+    pub(crate) fn iter_field_groups<'a>(
+        &'a self,
+        parent_name: StringId,
+        mut compose_fn: impl FnMut(&[FieldWalker<'a>]),
+    ) {
+        let mut buf = Vec::new();
+        for (_, group) in &self
+            .fields
+            .field_groups
+            .range((parent_name, StringId::MIN, DefinitionId::MIN)..(parent_name, StringId::MAX, DefinitionId::MAX))
+            .group_by(|(_, field_name, _)| field_name)
+        {
+            buf.clear();
+            buf.extend(group.into_iter().map(|(_, field_name, definition_id)| {
+                let field_id = FieldId(*definition_id, *field_name);
+                FieldWalker {
+                    id: (field_id, self.fields.definition_fields[&field_id]),
+                    subgraphs: self,
+                }
+            }));
+            compose_fn(&buf);
+        }
     }
 
     pub(crate) fn push_field(
@@ -51,159 +71,110 @@ impl Subgraphs {
             parent_definition_id,
             field_name,
             field_type,
-            is_shareable,
-            is_external,
-            is_inaccessible,
-            provides,
-            requires,
-            deprecated,
-            tags,
-            overrides,
+            directives,
             description,
         }: FieldIngest<'_>,
-    ) -> Result<FieldId, String> {
-        let provides = provides
-            .map(|provides| self.selection_set_from_str(provides))
-            .transpose()?;
-        let requires = requires
-            .map(|requires| self.selection_set_from_str(requires))
-            .transpose()?;
-        let tags = tags.into_iter().map(|tag| self.strings.intern(tag)).collect();
+    ) -> FieldId {
         let name = self.strings.intern(field_name);
 
-        if let Some(last_field) = self.fields.0.last() {
-            assert!(last_field.parent_definition_id <= parent_definition_id); // this should stay sorted
-        }
+        self.fields.definition_fields.insert(
+            FieldId(parent_definition_id, name),
+            FieldTuple {
+                r#type: field_type,
+                directives,
+                description,
+            },
+        );
 
-        let field = Field {
-            parent_definition_id,
-            name,
-            field_type,
-            is_shareable,
-            is_external,
-            is_inaccessible,
-            arguments: Vec::new(),
-            provides,
-            requires,
-            deprecated,
-            tags,
-            overrides,
-            description,
-        };
-        let id = FieldId(self.fields.0.push_return_idx(field));
-        let parent_object_name = self.walk(parent_definition_id).name().id;
-        self.field_names.insert((parent_object_name, name, id));
-        Ok(id)
+        let parent_definition_name = self.walk(parent_definition_id).name().id;
+        self.fields
+            .field_groups
+            .insert((parent_definition_name, name, parent_definition_id));
+
+        FieldId(parent_definition_id, name)
     }
 
-    pub(crate) fn push_field_argument(
+    pub(crate) fn insert_field_argument(
         &mut self,
-        field: FieldId,
-        argument_name: &str,
-        argument_type: FieldTypeId,
-        is_inaccessible: bool,
+        FieldId(definition_id, field_name): FieldId,
+        argument_name: StringId,
+        r#type: FieldTypeId,
+        directives: DirectiveContainerId,
+        description: Option<StringId>,
     ) {
-        let argument_name = self.strings.intern(argument_name);
-        let field = &mut self.fields.0[field.0];
-        field.arguments.push(FieldArgument {
-            name: argument_name,
-            r#type: argument_type,
-            is_inaccessible,
-        });
+        self.fields.field_arguments.insert(
+            ArgumentId(definition_id, field_name, argument_name),
+            FieldTuple {
+                r#type,
+                directives,
+                description,
+            },
+        );
     }
-}
 
-#[derive(Clone, Copy)]
-pub(crate) struct FieldArgument {
-    name: StringId,
-    r#type: FieldTypeId,
-    is_inaccessible: bool,
+    pub(crate) fn iter_all_field_arguments(&self) -> impl Iterator<Item = FieldArgumentWalker<'_>> + '_ {
+        self.fields
+            .field_arguments
+            .iter()
+            .map(|(id, tuple)| FieldArgumentWalker {
+                id: (*id, *tuple),
+                subgraphs: self,
+            })
+    }
+
+    pub(crate) fn walk_field(&self, field_id: FieldId) -> FieldWalker<'_> {
+        FieldWalker {
+            id: (field_id, self.fields.definition_fields[&field_id]),
+            subgraphs: self,
+        }
+    }
 }
 
 pub(crate) struct FieldIngest<'a> {
     pub(crate) parent_definition_id: DefinitionId,
     pub(crate) field_name: &'a str,
     pub(crate) field_type: FieldTypeId,
-    pub(crate) is_shareable: bool,
-    pub(crate) is_external: bool,
-    pub(crate) is_inaccessible: bool,
-    pub(crate) provides: Option<&'a str>,
-    pub(crate) requires: Option<&'a str>,
-    pub(crate) deprecated: Option<Deprecation>,
-    pub(crate) tags: Vec<&'a str>,
     pub(crate) description: Option<StringId>,
-
-    /// The @override(from: ...) directive.
-    pub(crate) overrides: Option<StringId>,
+    pub(crate) directives: DirectiveContainerId,
 }
 
-pub(crate) type FieldWalker<'a> = Walker<'a, FieldId>;
-pub(crate) type ArgumentWalker<'a> = Walker<'a, FieldArgument>;
+pub(crate) type FieldWalker<'a> = Walker<'a, (FieldId, FieldTuple)>;
 
 impl<'a> FieldWalker<'a> {
-    pub(super) fn field(self) -> &'a Field {
-        &self.subgraphs.fields.0[self.id.0]
-    }
-
     /// ```graphql,ignore
     /// type Query {
     ///   findManyUser(filters: FindManyUserFilter?, searchQuery: String?): [User!]!
     ///                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     /// }
     /// ```
-    pub(crate) fn arguments(self) -> impl Iterator<Item = ArgumentWalker<'a>> {
-        self.field().arguments.iter().map(move |id| self.walk(*id))
+    pub(crate) fn arguments(self) -> impl Iterator<Item = FieldArgumentWalker<'a>> {
+        let (FieldId(definition_id, field_name), _tuple) = self.id;
+        self.subgraphs
+            .fields
+            .field_arguments
+            .range(
+                ArgumentId(definition_id, field_name, StringId::MIN)
+                    ..ArgumentId(definition_id, field_name, StringId::MAX),
+            )
+            .map(|(argument_id, tuple)| FieldArgumentWalker {
+                id: (*argument_id, *tuple),
+                subgraphs: self.subgraphs,
+            })
     }
 
     pub(crate) fn description(self) -> Option<StringWalker<'a>> {
-        self.field().description.map(|id| self.walk(id))
+        let (_, tuple) = self.id;
+        tuple.description.map(|id| self.walk(id))
     }
 
-    /// The contents of the `@deprecated` directive. `None` in the absence of directive,
-    /// `Some(None)` when no reason is provided.
-    pub(crate) fn deprecated(self) -> Option<Option<StringWalker<'a>>> {
-        self.field()
-            .deprecated
-            .map(|deprecated| deprecated.reason.map(|deprecated| self.walk(deprecated)))
-    }
-
-    /// ```graphql,ignore
-    /// type Query {
-    ///     findManyUser(
-    ///       filters: FindManyUserFilter?,
-    ///       searchQuery: String?
-    ///     ): [User!]! @tag(name: "Taste") @tag(name: "the") @tag(name: "Rainbow")
-    ///                 ^^^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^
-    /// }
-    /// ```
-    pub(crate) fn tags(self) -> impl Iterator<Item = StringWalker<'a>> {
-        self.field().tags.iter().map(move |id| self.walk(*id))
-    }
-
-    pub fn is_external(self) -> bool {
-        self.field().is_external
-    }
-
-    pub fn is_shareable(self) -> bool {
-        self.field().is_shareable
-    }
-
-    pub fn is_inaccessible(self) -> bool {
-        self.field().is_inaccessible
-    }
-
-    /// ```graphql,ignore
-    /// type Query {
-    ///   getRandomMammoth: Mammoth @override(from: "steppe")
-    ///                             ^^^^^^^^^^^^^^^^^^^^^^^^^
-    /// }
-    /// ```
-    pub fn overrides(self) -> Option<StringWalker<'a>> {
-        self.field().overrides.map(|override_| self.walk(override_))
+    pub(crate) fn directives(self) -> DirectiveContainerWalker<'a> {
+        let (_, tuple) = self.id;
+        self.walk(tuple.directives)
     }
 
     pub fn parent_definition(self) -> DefinitionWalker<'a> {
-        self.walk(self.field().parent_definition_id)
+        let (FieldId(parent_definition_id, _), _) = self.id;
+        self.walk(parent_definition_id)
     }
 
     /// ```graphql,ignore
@@ -211,30 +182,8 @@ impl<'a> FieldWalker<'a> {
     /// ^^
     /// ```
     pub fn name(self) -> StringWalker<'a> {
-        self.walk(self.field().name)
-    }
-
-    /// ```ignore,graphql
-    /// type MyObject {
-    ///   id: ID!
-    ///   others: [OtherObject!] @provides("size weight")
-    ///                          ^^^^^^^^^^^^^^^^^^^^^^^^
-    /// }
-    /// ```
-    pub(crate) fn provides(self) -> Option<&'a [Selection]> {
-        self.field().provides.as_deref()
-    }
-
-    /// ```ignore.graphql
-    /// extend type Farm @federation__key(fields: "id") {
-    ///   id: ID! @federation__external
-    ///   chiliId: ID! @federation__external
-    ///   chiliDetails: ChiliVariety @federation__requires(fields: "chiliId")
-    ///                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    /// }
-    /// ```
-    pub(crate) fn requires(self) -> Option<&'a [Selection]> {
-        self.field().requires.as_deref()
+        let (FieldId(_, name), _) = self.id;
+        self.walk(name)
     }
 
     /// ```ignore,graphql
@@ -244,19 +193,40 @@ impl<'a> FieldWalker<'a> {
     ///           ^^^^^^^^^^
     /// }
     pub(crate) fn r#type(self) -> FieldTypeWalker<'a> {
-        self.walk(self.field().field_type)
+        let (_, tuple) = self.id;
+        self.walk(tuple.r#type)
     }
 }
 
-impl<'a> ArgumentWalker<'a> {
+impl<'a> DefinitionWalker<'a> {
+    pub(crate) fn fields(self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
+        self.subgraphs
+            .fields
+            .definition_fields
+            .range(FieldId(self.id, StringId::MIN)..FieldId(self.id, StringId::MAX))
+            .map(|(id, tuple)| FieldWalker {
+                id: (*id, *tuple),
+                subgraphs: self.subgraphs,
+            })
+    }
+
+    pub(crate) fn find_field(self, name: StringId) -> Option<FieldWalker<'a>> {
+        self.fields().find(|f| f.name().id == name)
+    }
+}
+
+pub(crate) type FieldArgumentWalker<'a> = Walker<'a, (ArgumentId, FieldTuple)>;
+
+impl<'a> FieldArgumentWalker<'a> {
     /// ```graphql,ignore
     /// type Query {
     ///   findManyUser(filters: FindManyUserFilter?): [User!]!
     ///                ^^^^^^^
     /// }
     /// ```
-    pub(crate) fn argument_name(&self) -> StringWalker<'a> {
-        self.walk(self.id.name)
+    pub(crate) fn name(&self) -> StringWalker<'a> {
+        let (ArgumentId(_, _, name), _) = self.id;
+        self.walk(name)
     }
 
     /// ```graphql,ignore
@@ -265,27 +235,13 @@ impl<'a> ArgumentWalker<'a> {
     ///                         ^^^^^^^^^^^^^^^^^^^
     /// }
     /// ```
-    pub(crate) fn argument_type(&self) -> FieldTypeWalker<'a> {
-        self.walk(self.id.r#type)
+    pub(crate) fn r#type(&self) -> FieldTypeWalker<'a> {
+        let (_, tuple) = self.id;
+        self.walk(tuple.r#type)
     }
 
-    pub(crate) fn is_inaccessible(&self) -> bool {
-        self.id.is_inaccessible
-    }
-}
-
-impl<'a> DefinitionWalker<'a> {
-    pub(crate) fn fields(self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
-        let fields = &self.subgraphs.fields.0;
-        let start = fields.partition_point(move |field| field.parent_definition_id < self.id);
-        fields[start..]
-            .iter()
-            .take_while(move |field| field.parent_definition_id == self.id)
-            .enumerate()
-            .map(move |(idx, _)| self.walk(FieldId(start + idx)))
-    }
-
-    pub(crate) fn find_field(self, name: StringId) -> Option<FieldWalker<'a>> {
-        self.fields().find(|f| f.name().id == name)
+    pub(crate) fn directives(&self) -> DirectiveContainerWalker<'a> {
+        let (_, tuple) = self.id;
+        self.walk(tuple.directives)
     }
 }

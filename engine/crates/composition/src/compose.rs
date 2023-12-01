@@ -9,7 +9,10 @@ mod scalar;
 pub(crate) use self::context::Context as ComposeContext;
 
 use self::{context::Context, input_object::*};
-use crate::subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId};
+use crate::{
+    composition_ir as ir,
+    subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId},
+};
 use graphql_federated_graph as federated;
 use itertools::Itertools;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -20,7 +23,7 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
             return;
         };
 
-        if first.is_interface_object()
+        if first.directives().interface_object()
             || (first.kind() == DefinitionKind::Interface && first.entity_keys().next().is_some())
         {
             return entity_interface::merge_entity_interface_definitions(ctx, *first, definitions);
@@ -47,7 +50,11 @@ fn merge_object_definitions<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
 ) {
-    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
+    let is_inaccessible = definitions
+        .iter()
+        .any(|definition| definition.directives().inaccessible());
+    let is_shareable = definitions.iter().any(|definition| definition.directives().shareable());
+
     if let Some(incompatible) = definitions
         .iter()
         .find(|definition| definition.kind() != DefinitionKind::Object)
@@ -96,7 +103,7 @@ fn merge_object_definitions<'a>(
 
     ctx.subgraphs.iter_field_groups(first.name().id, |fields| {
         let Some(first) = fields.first() else { return };
-        object::compose_object_fields(*first, fields, ctx);
+        object::compose_object_fields(is_shareable, *first, fields, ctx);
     });
 }
 
@@ -106,8 +113,13 @@ fn merge_union_definitions(
     definitions: &[DefinitionWalker<'_>],
 ) {
     let union_name = first_union.name();
-    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
+
+    let is_inaccessible = definitions
+        .iter()
+        .any(|definition| definition.directives().inaccessible());
+
     let description = definitions.iter().find_map(|def| def.description());
+
     ctx.insert_union(union_name, is_inaccessible, description);
 
     for member in definitions

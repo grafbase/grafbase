@@ -7,7 +7,9 @@ pub(crate) fn merge_entity_interface_definitions(
     definitions: &[DefinitionWalker<'_>],
 ) {
     let interface_name = first.name();
-    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
+    let is_inaccessible = definitions
+        .iter()
+        .any(|definition| definition.directives().inaccessible());
 
     let interface_defs = || definitions.iter().filter(|def| def.kind() == DefinitionKind::Interface);
     let mut interfaces = interface_defs();
@@ -51,7 +53,7 @@ pub(crate) fn merge_entity_interface_definitions(
                 ));
             }
 
-            if interface.is_interface_object() {
+            if interface.directives().interface_object() {
                 ctx.diagnostics.push_fatal(format!(
                     "[{}] The @interfaceObject directive is not valid on interfaces (on `{}`).",
                     interface.subgraph().name().as_str(),
@@ -74,9 +76,9 @@ pub(crate) fn merge_entity_interface_definitions(
             arguments: field
                 .arguments()
                 .map(|arg| ir::ArgumentIr {
-                    argument_name: arg.argument_name().id,
-                    argument_type: arg.argument_type().id,
-                    composed_directives: if arg.is_inaccessible() {
+                    argument_name: arg.name().id,
+                    argument_type: arg.r#type().id,
+                    composed_directives: if arg.directives().inaccessible() {
                         vec![federated::Directive {
                             name: ctx.insert_static_str("inaccessible"),
                             arguments: Vec::new(),
@@ -109,7 +111,7 @@ pub(crate) fn merge_entity_interface_definitions(
 
     // Each object has to have @interfaceObject and the same key as the entity interface.
     for definition in definitions.iter().filter(|def| def.kind() == DefinitionKind::Object) {
-        if !definition.is_interface_object() {
+        if !definition.directives().interface_object() {
             ctx.diagnostics.push_fatal(format!(
                 "`{}` is an entity interface but the object type `{}` is missing the @interfaceObject directive in the `{}` subgraph.",
                 definition.name().as_str(),
@@ -139,9 +141,9 @@ pub(crate) fn merge_entity_interface_definitions(
                 arguments: field
                     .arguments()
                     .map(|arg| ir::ArgumentIr {
-                        argument_name: arg.argument_name().id,
-                        argument_type: arg.argument_type().id,
-                        composed_directives: if arg.is_inaccessible() {
+                        argument_name: arg.name().id,
+                        argument_type: arg.r#type().id,
+                        composed_directives: if arg.directives().inaccessible() {
                             vec![federated::Directive {
                                 name: ctx.insert_static_str("inaccessible"),
                                 arguments: Vec::new(),
