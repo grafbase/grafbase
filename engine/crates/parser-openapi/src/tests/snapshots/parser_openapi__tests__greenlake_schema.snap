@@ -1,0 +1,991 @@
+---
+source: engine/crates/parser-openapi/src/tests/mod.rs
+expression: registry.export_sdl(false)
+---
+type GreenlakeActivityCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeActivityV1Beta2!]!
+	count: Int!
+}
+type GreenlakeActivityV1Beta2 {
+	updatedAt: String!
+	type: String!
+	title: String
+	source: GreenlakeActivityV1Beta2Source
+	recommendedAction: String
+	message: String
+	key: String
+	id: String!
+	generation: Int!
+	createdAt: String!
+	associatedServerUri: String
+}
+type GreenlakeActivityV1Beta2Source {
+	type: String
+	resourceUri: String
+	displayName: String
+}
+type GreenlakeAlertCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeAlertV1Beta2!]!
+	count: Int!
+}
+type GreenlakeAlertV1Beta2 {
+	updatedAt: String!
+	type: String!
+	timestamp: String
+	severity: GreenlakeAlertV1Beta2Severity
+	serviceNowIncident: GreenlakeServiceNowIncidentV1
+	serviceEvent: Boolean
+	serverId: String
+	resolution: String
+	message: String
+	id: String!
+	generation: Int!
+	description: String
+	createdAt: String!
+	category: String
+	caseUrl: String
+	caseId: Int
+}
+enum GreenlakeAlertV1Beta2Severity {
+	NON_REDUNDANT
+	REDUNDANT
+	NOT_PRESENT
+	UNKNOWN
+	CRITICAL
+	WARNING
+	OK
+}
+enum GreenlakeComplianceState {
+	NOT_APPLICABLE
+	UNKNOWN
+	NOT_COMPLIANT
+	COMPLIANT
+}
+type GreenlakeDeviceComplianceCollectionV1Beta2 {
+	total: Int
+	start: Int
+	offset: Int
+	items: [GreenlakeDeviceComplianceV1Beta2!]!
+	count: Int!
+}
+type GreenlakeDeviceComplianceV1Beta2 {
+	updatedAt: String!
+	type: String!
+	serverId: String
+	serial: String
+	resourceUri: String
+	productId: String
+	id: String!
+	groupId: String
+	generation: Int!
+	errorReason: String
+	deviations: [GreenlakeDeviceDeviationV1Beta2!]
+	createdAt: String!
+	complianceStatus: GreenlakeComplianceState
+}
+type GreenlakeDeviceDeviationV1Beta2 {
+	installedVersion: String
+	expectedVersion: String
+	componentName: String
+	componentFilename: String
+}
+input GreenlakeDeviceRequestV1Beta2Input {
+	serverId: String
+	serial: String
+	productId: String
+	eTag: String
+}
+type GreenlakeDeviceResponseCollectionNewV1Beta2 {
+	devices: [GreenlakeDeviceResponseV1Beta2!]!
+}
+type GreenlakeDeviceResponseCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeDeviceResponseV1Beta2!]!
+	count: Int!
+}
+type GreenlakeDeviceResponseV1Beta2 {
+	type: String!
+	subscriptionTier: GreenlakeSubscriptionTier
+	subscriptionState: GreenlakeSubscriptionState
+	state: GreenlakeDeviceState
+	serverUri: String
+	serverId: String
+	serial: String
+	resourceUri: String
+	productId: String
+	id: String!
+	groupId: String
+	eTag: String
+}
+enum GreenlakeDeviceState {
+	APPLYING_OS
+	APPLYING_SCHEMA
+	APPLYING_FIRMWARE
+	QUARANTINE
+	ACTIVE
+	FAILED
+	ASSIGNED
+}
+input GreenlakeExternalServicesAuthenticationInput {
+	refreshToken: String
+	clientSecret: String
+	clientId: String
+}
+type GreenlakeExternalServicesAuthenticationResponse {
+	refreshToken: String
+	clientSecret: String
+	clientId: String
+}
+type GreenlakeExternalServicesCollectionV1Beta1 {
+	total: Int
+	offset: Int
+	items: [GreenlakeExternalServicesResponseV1Beta1!]!
+	count: Int!
+}
+enum GreenlakeExternalServicesCreateRequestV1Beta1AuthenticationType {
+	OAUTH
+}
+input GreenlakeExternalServicesCreateRequestV1Beta1Input {
+	state: GreenlakeExternalServicesCreateRequestV1Beta1State = ENABLED
+	serviceType: GreenlakeExternalServicesCreateRequestV1Beta1ServiceType!
+	serviceData: GreenlakeExternalServicesServiceDataInput!
+	name: String!
+	description: String!
+	authenticationType: GreenlakeExternalServicesCreateRequestV1Beta1AuthenticationType!
+	authentication: GreenlakeExternalServicesAuthenticationInput!
+}
+enum GreenlakeExternalServicesCreateRequestV1Beta1ServiceType {
+	SERVICE_NOW
+}
+enum GreenlakeExternalServicesCreateRequestV1Beta1State {
+	DISABLED
+	ENABLED
+}
+type GreenlakeExternalServicesResponseV1Beta1 {
+	updatedAt: String
+	type: String
+	status: GreenlakeExternalServicesResponseV1Beta1Status
+	state: GreenlakeExternalServicesResponseV1Beta1State
+	serviceType: GreenlakeExternalServicesResponseV1Beta1ServiceType
+	serviceData: GreenlakeExternalServicesServiceData
+	resourceUri: String
+	name: String
+	id: String
+	generation: Int
+	description: String
+	createdAt: String
+	authenticationType: GreenlakeExternalServicesResponseV1Beta1AuthenticationType
+	authentication: GreenlakeExternalServicesAuthenticationResponse
+}
+enum GreenlakeExternalServicesResponseV1Beta1AuthenticationType {
+	OAUTH
+}
+enum GreenlakeExternalServicesResponseV1Beta1ServiceType {
+	SERVICE_NOW
+}
+enum GreenlakeExternalServicesResponseV1Beta1State {
+	DISABLED
+	ENABLED
+}
+enum GreenlakeExternalServicesResponseV1Beta1Status {
+	SUSPENDED
+	ENABLED
+}
+type GreenlakeExternalServicesServiceData {
+	refreshTokenExpiryInDays: Int
+	oauthUrl: String
+	incidentUrl: String
+}
+input GreenlakeExternalServicesServiceDataInput {
+	refreshTokenExpiryInDays: Int
+	oauthUrl: String
+	incidentUrl: String
+}
+type GreenlakeFilterCollectionV1Beta1 {
+	total: Int
+	offset: Int
+	items: [GreenlakeFilterV1Beta1!]!
+	count: Int!
+}
+type GreenlakeFilterMatchCollectionV1Beta1 {
+	total: Int
+	offset: Int
+	items: [GreenlakeFilterMatchV1Beta1!]!
+	count: Int!
+}
+type GreenlakeFilterMatchV1Beta1 {
+	type: GreenlakeFilterMatchV1Beta1Type
+	id: String
+}
+enum GreenlakeFilterMatchV1Beta1Type {
+	COMPUTE_OPS_SERVER
+}
+type GreenlakeFilterPropertiesResourceV1Beta1 {
+	schema: JSON
+}
+type GreenlakeFilterPropertiesV1Beta1 {
+	type: String
+	id: String
+	filterResourceTypes: GreenlakeFilterPropertiesV1Beta1FilterResourceTypes
+}
+type GreenlakeFilterPropertiesV1Beta1FilterResourceTypes {
+	computeOpsServer: GreenlakeFilterPropertiesResourceV1Beta1
+}
+type GreenlakeFilterV1Beta1 {
+	updatedAt: String
+	uiData: JSON
+	type: String
+	resourceUri: String
+	readOnly: Boolean
+	name: String
+	matchesUri: String
+	id: String
+	generation: Int
+	filterTags: String
+	filterResourceType: GreenlakeFilterV1Beta1FilterResourceType
+	filter: String
+	enabledForRRP: Boolean
+	description: String
+	createdAt: String
+}
+enum GreenlakeFilterV1Beta1FilterResourceType {
+	COMPUTE_OPS_SERVER
+}
+input GreenlakeFilterV1Beta1Input {
+	updatedAt: String
+	uiData: JSON
+	type: String
+	resourceUri: String
+	readOnly: Boolean = false
+	name: String
+	matchesUri: String
+	id: String
+	generation: Int
+	filterTags: String
+	filterResourceType: GreenlakeFilterV1Beta1FilterResourceType = COMPUTE_OPS_SERVER
+	filter: String
+	enabledForRRP: Boolean = false
+	description: String
+	createdAt: String
+}
+type GreenlakeFirmwareBundleCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeFirmwareBundleV1Beta2!]!
+	count: Int!
+}
+type GreenlakeFirmwareBundleV1Beta2 {
+	vmwareAddonInfo: [JSON!]
+	updatedAt: String!
+	type: String!
+	supportedOsList: [String!]
+	supportUrl: String
+	summary: String
+	resourceUri: String
+	releaseVersion: String
+	releaseNotes: String
+	releaseDate: String
+	name: String
+	isActive: Boolean
+	id: String!
+	hotfixBaseUri: String
+	generation: Int!
+	enhancements: String
+	createdAt: String!
+	bundleType: GreenlakeFirmwareBundleV1Beta2BundleType
+	bundleNameFormat: String
+	bundleGeneration: String
+	advisories: String
+}
+enum GreenlakeFirmwareBundleV1Beta2BundleType {
+	PATCH
+	SUPPLEMENT
+	HOTFIX
+	BASE
+}
+type GreenlakeFirmwareInventoryItemV1Beta2 {
+	version: String
+	name: String
+	deviceContext: String
+}
+type GreenlakeFirmwareInventoryUpdateV1Beta2 {
+	version: String
+	status: GreenlakeFirmwareInventoryUpdateV1Beta2Status
+	name: String
+}
+enum GreenlakeFirmwareInventoryUpdateV1Beta2Status {
+	FAILED
+	OK
+}
+input GreenlakeGroupAssignRequestV1Beta2Input {
+	devices: [GreenlakeDeviceRequestV1Beta2Input!]!
+}
+type GreenlakeGroupCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeGroupResponseV1Beta2!]!
+	count: Int!
+}
+input GreenlakeGroupCreateRequestV1Beta2Input {
+	serverSettingsUris: [String!]
+	serverPolicies: GreenlakeGroupCreateRequestV1Beta2ServerPoliciesInput
+	platformFamily: GreenlakeGroupCreateRequestV1Beta2PlatformFamily = ANY
+	name: String!
+	description: String
+	data: JSON
+	autoFwUpdateOnAdd: Boolean = false
+	autoAddServerTags: JSON
+}
+input GreenlakeGroupCreateRequestV1Beta2OnServerAddServerPoliciesInput {
+	storageVolumeName: String
+	storageVolumeDeletion: Boolean = false
+	storageConfiguration: Boolean = false
+	osImageSettings: Boolean = false
+	firmwareUpdate: Boolean = false
+	firmwareDowngrade: Boolean = false
+	biosApplySettings: Boolean = false
+}
+input GreenlakeGroupCreateRequestV1Beta2OnSettingsApplyServerPoliciesInput {
+	firmwareDowngrade: Boolean = false
+}
+enum GreenlakeGroupCreateRequestV1Beta2PlatformFamily {
+	PROLIANT
+	ANY
+}
+input GreenlakeGroupCreateRequestV1Beta2ServerPoliciesInput {
+	onSettingsApply: GreenlakeGroupCreateRequestV1Beta2OnSettingsApplyServerPoliciesInput
+	onServerAdd: GreenlakeGroupCreateRequestV1Beta2OnServerAddServerPoliciesInput
+}
+type GreenlakeGroupResponseV1Beta2 {
+	updatedAt: String!
+	type: String!
+	serverSettingsUris: [String!]
+	serverPolicies: GreenlakeGroupResponseV1Beta2ServerPolicies
+	resourceUri: String
+	platformFamily: GreenlakeGroupResponseV1Beta2PlatformFamily
+	name: String
+	id: String!
+	groupMeta: GreenlakeJSONOrSettingsAppliedMetaV1Beta2OrNoSettingsMetaV1Beta2Union
+	groupComplianceStatus: GreenlakeComplianceState
+	generation: Int!
+	devicesUri: String
+	devices: [GreenlakeDeviceResponseV1Beta2!]
+	description: String
+	createdAt: String!
+	autoFwUpdateOnAdd: Boolean
+	autoAddServerTags: JSON
+}
+type GreenlakeGroupResponseV1Beta2OnServerAddServerPolicies {
+	storageVolumeName: String
+	storageVolumeDeletion: Boolean
+	storageConfiguration: Boolean
+	osImageSettings: Boolean
+	firmwareUpdate: Boolean
+	firmwareDowngrade: Boolean
+	biosApplySettings: Boolean
+}
+type GreenlakeGroupResponseV1Beta2OnSettingsApplyServerPolicies {
+	firmwareDowngrade: Boolean
+}
+enum GreenlakeGroupResponseV1Beta2PlatformFamily {
+	PROLIANT
+	ANY
+}
+type GreenlakeGroupResponseV1Beta2ServerPolicies {
+	onSettingsApply: GreenlakeGroupResponseV1Beta2OnSettingsApplyServerPolicies
+	onServerAdd: GreenlakeGroupResponseV1Beta2OnServerAddServerPolicies
+}
+enum GreenlakeHealthState {
+	NOT_PRESENT
+	READY
+	CRITICAL
+	WARNING
+	OK
+	UNKNOWN
+}
+type GreenlakeJSON {
+	data: JSON
+}
+union GreenlakeJSONOrReportDataV1Beta1ServerSubjectSeriesUnion = GreenlakeJSON | GreenlakeReportDataV1Beta1ServerSubjectSeries
+union GreenlakeJSONOrSettingsAppliedMetaV1Beta2OrNoSettingsMetaV1Beta2Union = GreenlakeJSON | GreenlakeSettingsAppliedMetaV1Beta2 | GreenlakeNoSettingsMetaV1Beta2
+type GreenlakeJobCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeJobV1Beta2!]!
+	count: Int!
+}
+type GreenlakeJobCollectionV1Beta3 {
+	total: Int
+	offset: Int
+	items: [GreenlakeJobV1Beta3!]!
+	count: Int!
+}
+input GreenlakeJobCreateV1Beta2Input {
+	resourceUri: String!
+	jobTemplateUri: String!
+	data: JSON
+}
+input GreenlakeJobCreateV1Beta3Input {
+	resourceUri: String!
+	jobTemplateUri: String!
+	data: JSON
+}
+enum GreenlakeJobState {
+	COMPLETE
+	ERROR
+	STALLED
+	RUNNING
+	PENDING
+}
+type GreenlakeJobTemplateCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeJobTemplateV1Beta2!]!
+	count: Int!
+}
+type GreenlakeJobTemplateV1Beta2 {
+	updatedAt: String!
+	type: String!
+	schema: JSON
+	resourceUri: String
+	name: String
+	id: String!
+	generation: Int!
+	description: String
+	createdAt: String!
+}
+type GreenlakeJobV1Beta2 {
+	updatedAt: String!
+	type: String!
+	statusDetails: JSON
+	status: String
+	state: GreenlakeJobState
+	results: JSON
+	resourceUri: String
+	resource: GreenlakeJobV1Beta2Resource
+	parentJobId: String
+	name: String
+	jobTemplateUri: String
+	id: String!
+	generation: Int!
+	data: JSON
+	createdAt: String!
+	associatedResourceUri: String
+}
+type GreenlakeJobV1Beta2Resource {
+	type: String
+	resourceUri: String
+}
+type GreenlakeJobV1Beta3 {
+	resultCode: JSON
+	updatedAt: String!
+	type: String!
+	statusDetails: JSON
+	status: String
+	state: GreenlakeJobState
+	results: JSON
+	resourceUri: String
+	resource: GreenlakeJobV1Beta3Resource
+	parentJobId: String
+	name: String
+	jobTemplateUri: String
+	id: String!
+	generation: Int!
+	deleteOnComplete: Boolean
+	data: JSON
+	createdAt: String!
+	associatedResourceUri: String
+}
+type GreenlakeJobV1Beta3Resource {
+	type: String
+	resourceUri: String
+}
+type GreenlakeNoSettingsMetaV1Beta2 {
+	noSettingsReason: GreenlakeNoSettingsReason
+}
+enum GreenlakeNoSettingsReason {
+	SERVER_IS_NOT_LICENSED
+	GROUP_HAS_NO_AUTO_POLICY
+	GROUP_HAS_NO_SETTINGS
+}
+input GreenlakeNotificationsRequestV1Beta2Input {
+	healthNotification: Boolean
+	criticalNotification: Boolean!
+}
+type GreenlakeNotificationsResponseV1Beta2 {
+	serverId: String
+	healthNotification: Boolean
+	criticalNotification: Boolean
+}
+type GreenlakeRawInventoryV1Beta2 {
+	type: String!
+	storageInventory: JSON
+	softwareInventory: [JSON!]
+	smartUpdateTool: JSON
+	serial: String
+	productId: String
+	pciDevices: [JSON!]
+	id: String!
+	firmwareInventory: [JSON!]
+}
+enum GreenlakeRedundancyState {
+	UNKNOWN
+	NOT_PRESENT
+	REDUNDANT
+	NON_REDUNDANT
+}
+type GreenlakeReportCollectionV1Beta1 {
+	total: Int
+	offset: Int
+	items: [GreenlakeReportV1Beta1!]!
+	count: Int!
+}
+type GreenlakeReportDataV1Beta1 {
+	type: String
+	series: [GreenlakeReportDataV1Beta1Series!]
+	request: GreenlakeReportDataV1Beta1Request
+	name: String
+	id: String
+}
+type GreenlakeReportDataV1Beta1BucketsSeries {
+	noValueReason: JSON
+	value: Float
+	timestamp: String
+	numSamples: Float
+	extrapolated: Float
+}
+type GreenlakeReportDataV1Beta1HardwareServerSubjectSeries {
+	model: String
+}
+type GreenlakeReportDataV1Beta1Request {
+	reportType: GreenlakeReportType
+	reportDataStartAt: String
+	reportDataEndAt: String
+}
+type GreenlakeReportDataV1Beta1Series {
+	unitsDisplayName: String
+	units: String
+	type: GreenlakeReportDataV1Beta1TypeSeries
+	summary: GreenlakeReportDataV1Beta1SummarySeries
+	subject: GreenlakeReportDataV1Beta1SubjectSeries
+	name: String
+	expectedSamplesPerBucket: Float
+	buckets: [GreenlakeReportDataV1Beta1BucketsSeries!]
+	bucketDurationInSec: Float
+}
+type GreenlakeReportDataV1Beta1ServerSubjectSeries {
+	serverGeneration: String
+	processorVendor: String
+	hardware: GreenlakeReportDataV1Beta1HardwareServerSubjectSeries
+}
+type GreenlakeReportDataV1Beta1SubjectSeries {
+	type: GreenlakeReportDataV1Beta1TypeSubjectSeries
+	serverCount: Float
+	server: GreenlakeJSONOrReportDataV1Beta1ServerSubjectSeriesUnion
+	id: String
+	displayName: String
+}
+type GreenlakeReportDataV1Beta1SummarySeries {
+	sum: Float
+	avg: Float
+}
+enum GreenlakeReportDataV1Beta1TypeSeries {
+	CO2_EMISSIONS
+}
+enum GreenlakeReportDataV1Beta1TypeSubjectSeries {
+	TOTAL
+	SERVER_PROCESSOR_VENDOR
+	SERVER_GENERATION
+	SERVER_MODEL
+	SERVER
+}
+enum GreenlakeReportType {
+	CARBON_FOOTPRINT
+}
+type GreenlakeReportV1Beta1 {
+	updatedAt: String
+	type: String
+	resourceUri: String
+	reportTypeDisplayName: String
+	reportType: GreenlakeReportType
+	reportDataUri: String
+	reportDataStartAt: String
+	reportDataEndAt: String
+	name: String
+	id: String
+	generation: Int
+	deviceIds: [String!]
+	createdAt: String
+}
+type GreenlakeScheduleCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeScheduleV1Beta2!]!
+	count: Int!
+}
+type GreenlakeScheduleHistoryCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [JSON!]!
+	count: Int!
+}
+input GreenlakeSchedulePostV1Beta2Input {
+	schedule: GreenlakeSchedulePostV1Beta2ScheduleInput
+	purpose: String
+	operation: JSON!
+	name: String
+	description: String
+	associatedResourceUri: String
+}
+input GreenlakeSchedulePostV1Beta2ScheduleInput {
+	startAt: String
+	interval: String
+}
+type GreenlakeScheduleV1Beta2 {
+	schedule: GreenlakeScheduleV1Beta2Schedule!
+	operation: JSON!
+}
+type GreenlakeScheduleV1Beta2Schedule {
+}
+type GreenlakeServerCollectionV1Beta2 {
+	total: Int
+	offset: Int
+	items: [GreenlakeServerV1Beta2!]!
+	count: Int!
+}
+type GreenlakeServerSettingBIOSV1Beta1 {
+	attributes: GreenlakeServerSettingBIOSV1Beta1Attributes!
+}
+type GreenlakeServerSettingBIOSV1Beta1Attributes {
+	workloadProfile: GreenlakeServerSettingBIOSV1Beta1WorkloadProfileAttributes
+}
+union GreenlakeServerSettingBIOSV1Beta1OrServerSettingFirmwareV1Beta1Union = GreenlakeServerSettingBIOSV1Beta1 | GreenlakeServerSettingFirmwareV1Beta1
+enum GreenlakeServerSettingBIOSV1Beta1WorkloadProfileAttributes {
+	VIRTUALIZATION_MAX_PERFORMANCE
+	VIRTUALIZATION_POWER_EFFICIENT
+	LOW_LATENCY
+	GENERAL_THROUGHPUT_COMPUTE
+	GENERAL_POWER_EFFICIENT_COMPUTE
+	GENERAL_PEAK_FREQUENCY_COMPUTE
+}
+type GreenlakeServerSettingFirmwareV1Beta1 {
+	id: String!
+}
+type GreenlakeServerSettingOSV1Beta2 {
+	osImage: GreenlakeServerSettingOSV1Beta2OsImage!
+	mediaURL: String!
+}
+input GreenlakeServerSettingOSV1Beta2Input {
+	osImage: GreenlakeServerSettingOSV1Beta2OsImage!
+	mediaURL: String!
+}
+union GreenlakeServerSettingOSV1Beta2OrServerSettingStorageV1Beta1Union = GreenlakeServerSettingOSV1Beta2 | GreenlakeServerSettingStorageV1Beta1
+input GreenlakeServerSettingOSV1Beta2OrServerSettingsCreateRequestV1Beta1DEFAULTSettingsUnionInput {
+	greenlakeServerSettingOSV1Beta2Input: GreenlakeServerSettingOSV1Beta2Input!
+	greenlakeServerSettingsCreateRequestV1Beta1DEFAULTSettingsInput: GreenlakeServerSettingsCreateRequestV1Beta1DEFAULTSettingsInput
+}
+enum GreenlakeServerSettingOSV1Beta2OsImage {
+	SUSE_LINUX
+	RHEL
+	VMWARE_ESXI
+	MICROSOFT_WINDOWS
+}
+type GreenlakeServerSettingStorageV1Beta1 {
+	volumeSizeInGB: Float!
+	raidType: GreenlakeServerSettingStorageV1Beta1RaidType!
+}
+enum GreenlakeServerSettingStorageV1Beta1RaidType {
+	RAID5
+	RAID1
+	RAID0
+}
+type GreenlakeServerSettingsCollectionV1Beta1 {
+	total: Int
+	offset: Int
+	items: [GreenlakeServerSettingsResponseV1Beta1!]!
+	count: Int!
+}
+enum GreenlakeServerSettingsCreateRequestV1Beta1Category {
+	OS
+	STORAGE
+	FIRMWARE
+}
+input GreenlakeServerSettingsCreateRequestV1Beta1DEFAULTSettingsInput {
+	volumeSizeInGB: Float
+	raidType: GreenlakeServerSettingsCreateRequestV1Beta1RaidTypeDEFAULTSettings
+}
+input GreenlakeServerSettingsCreateRequestV1Beta1GEN10SettingsInput {
+	id: String
+}
+input GreenlakeServerSettingsCreateRequestV1Beta1GEN11SettingsInput {
+	id: String
+}
+input GreenlakeServerSettingsCreateRequestV1Beta1Input {
+	settings: GreenlakeServerSettingsCreateRequestV1Beta1SettingsInput
+	platformFamily: GreenlakeServerSettingsCreateRequestV1Beta1PlatformFamily = ANY
+	name: String!
+	description: String
+	category: GreenlakeServerSettingsCreateRequestV1Beta1Category!
+}
+enum GreenlakeServerSettingsCreateRequestV1Beta1PlatformFamily {
+	PROLIANT
+	ANY
+}
+enum GreenlakeServerSettingsCreateRequestV1Beta1RaidTypeDEFAULTSettings {
+	RAID5
+	RAID1
+	RAID0
+}
+input GreenlakeServerSettingsCreateRequestV1Beta1SettingsInput {
+	gen11: GreenlakeServerSettingsCreateRequestV1Beta1GEN11SettingsInput
+	gen10: GreenlakeServerSettingsCreateRequestV1Beta1GEN10SettingsInput
+	default: GreenlakeServerSettingOSV1Beta2OrServerSettingsCreateRequestV1Beta1DEFAULTSettingsUnionInput
+}
+type GreenlakeServerSettingsResponseV1Beta1 {
+	updatedAt: String!
+	type: String!
+	settings: GreenlakeServerSettingsResponseV1Beta1Settings
+	resourceUri: String
+	platformFamily: GreenlakeServerSettingsResponseV1Beta1PlatformFamily
+	name: String!
+	id: String!
+	generation: Int!
+	description: String
+	createdAt: String!
+	category: GreenlakeServerSettingsResponseV1Beta1Category!
+}
+enum GreenlakeServerSettingsResponseV1Beta1Category {
+	OS
+	BIOS
+	STORAGE
+	FIRMWARE
+}
+enum GreenlakeServerSettingsResponseV1Beta1PlatformFamily {
+	PROLIANT
+	ANY
+}
+type GreenlakeServerSettingsResponseV1Beta1Settings {
+	gen11: GreenlakeServerSettingBIOSV1Beta1OrServerSettingFirmwareV1Beta1Union
+	gen10: GreenlakeServerSettingBIOSV1Beta1OrServerSettingFirmwareV1Beta1Union
+	default: GreenlakeServerSettingOSV1Beta2OrServerSettingStorageV1Beta1Union
+}
+type GreenlakeServerV1Beta2 {
+	platformFamily: JSON
+	updatedAt: String!
+	type: String!
+	tags: JSON
+	state: GreenlakeServerV1Beta2State
+	softwareInventory: [GreenlakeSoftwareInventoryItemV1Beta2!]
+	serverGeneration: GreenlakeServerV1Beta2ServerGeneration
+	resourceUri: String
+	processorVendor: String
+	name: String
+	lastFirmwareUpdate: GreenlakeServerV1Beta2LastFirmwareUpdate
+	id: String!
+	host: GreenlakeServerV1Beta2Host
+	hardware: GreenlakeServerV1Beta2Hardware
+	generation: Int!
+	firmwareInventory: [GreenlakeFirmwareInventoryItemV1Beta2!]
+	firmwareBundleUri: String
+	createdAt: String!
+	biosFamily: String
+	autoIloFwUpdate: Boolean
+}
+type GreenlakeServerV1Beta2BmcHardware {
+	mac: String
+	ip: String
+	hostname: String
+}
+type GreenlakeServerV1Beta2Hardware {
+	uuid: String
+	serialNumber: String
+	productId: String
+	powerState: GreenlakeServerV1Beta2PowerStateHardware
+	model: String
+	indicatorLed: GreenlakeServerV1Beta2IndicatorLedHardware
+	health: GreenlakeServerV1Beta2HealthHardware
+	bmc: GreenlakeServerV1Beta2BmcHardware
+}
+type GreenlakeServerV1Beta2HealthHardware {
+	temperature: GreenlakeHealthState
+	summary: GreenlakeHealthState
+	storage: GreenlakeHealthState
+	smartStorage: GreenlakeHealthState
+	processor: GreenlakeHealthState
+	powerSupplyRedundancy: GreenlakeRedundancyState
+	powerSupplies: GreenlakeHealthState
+	network: GreenlakeHealthState
+	memory: GreenlakeHealthState
+	liquidCoolingRedundancy: GreenlakeRedundancyState
+	liquidCooling: GreenlakeHealthState
+	healthLED: GreenlakeHealthState
+	fans: GreenlakeHealthState
+	fanRedundancy: GreenlakeRedundancyState
+	bios: GreenlakeHealthState
+}
+type GreenlakeServerV1Beta2Host {
+	osVersion: String
+	osType: Int
+	osName: String
+	osDescription: String
+	hostname: String
+}
+enum GreenlakeServerV1Beta2IndicatorLedHardware {
+	OFF
+	BLINKING
+	LIT
+	UNKNOWN
+}
+type GreenlakeServerV1Beta2LastFirmwareUpdate {
+	status: GreenlakeServerV1Beta2StatusLastFirmwareUpdate
+	firmwareInventoryUpdates: [GreenlakeFirmwareInventoryUpdateV1Beta2!]
+	attemptedAt: String
+}
+enum GreenlakeServerV1Beta2PowerStateHardware {
+	RESET
+	POWERING_OFF
+	POWERING_ON
+	OFF
+	ON
+	UNKNOWN
+}
+enum GreenlakeServerV1Beta2ServerGeneration {
+	UNKNOWN
+	GEN_11
+	GEN_10
+}
+type GreenlakeServerV1Beta2State {
+	subscriptionTier: GreenlakeServerV1Beta2SubscriptionTierState
+	subscriptionState: GreenlakeServerV1Beta2SubscriptionStateState
+	subscriptionExpiresAt: String
+	managed: Boolean
+	connectedModifiedAt: String
+	connected: Boolean
+}
+enum GreenlakeServerV1Beta2StatusLastFirmwareUpdate {
+	FAILED
+	OK
+}
+enum GreenlakeServerV1Beta2SubscriptionStateState {
+	EXPIRED
+	SUBSCRIBED
+	REQUIRED
+}
+enum GreenlakeServerV1Beta2SubscriptionTierState {
+	ENHANCED
+}
+type GreenlakeServiceNowIncidentV1 {
+	url: String
+	state: GreenlakeServiceNowIncidentV1State
+	id: String
+}
+enum GreenlakeServiceNowIncidentV1State {
+	CREATION_FAILED
+	CREATION_IN_PROGRESS
+	CREATION_SUCCESS
+}
+type GreenlakeSettingsAppliedMetaV1Beta2 {
+	deviceCount: Int
+	appliedCount: Int
+}
+type GreenlakeSoftwareInventoryItemV1Beta2 {
+	version: String
+	name: String
+	deviceContext: String
+}
+enum GreenlakeSubscriptionState {
+	EXPIRED
+	SUBSCRIBED
+	REQUIRED
+}
+enum GreenlakeSubscriptionTier {
+	ENHANCED
+}
+type GreenlakeUserPreferencesCollectionV1Beta1 {
+	total: Int!
+	offset: Int
+	items: [GreenlakeUserPreferencesResponseV1Beta1!]!
+	count: Int!
+}
+input GreenlakeUserPreferencesRequestV1Beta1Input {
+	healthNotification: Boolean!
+	criticalNotification: Boolean!
+}
+type GreenlakeUserPreferencesResponseV1Beta1 {
+	updatedAt: String!
+	type: String!
+	id: String!
+	healthNotification: Boolean!
+	generation: Int!
+	criticalNotification: Boolean!
+	createdAt: String!
+}
+type Mutation {
+	createExternalServices(input: GreenlakeExternalServicesCreateRequestV1Beta1Input!): GreenlakeExternalServicesResponseV1Beta1
+	patchV1Beta1ExternalServicesById(id: String!): GreenlakeExternalServicesResponseV1Beta1
+	createFilter(dryRun: Boolean = false, input: GreenlakeFilterV1Beta1Input!): GreenlakeFilterV1Beta1
+	patchFilter(id: String!): GreenlakeFilterV1Beta1
+	createV1Beta2Group(input: GreenlakeGroupCreateRequestV1Beta2Input!): GreenlakeGroupResponseV1Beta2
+	patchV1Beta2GroupById(groupId: String!): GreenlakeGroupResponseV1Beta2
+	assignV1Beta2GroupDevices(groupId: String!, dryRun: Boolean = false, input: GreenlakeGroupAssignRequestV1Beta2Input!): GreenlakeDeviceResponseCollectionNewV1Beta2
+	createV1Beta3Job(input: GreenlakeJobCreateV1Beta3Input!): GreenlakeJobV1Beta3
+	patchV1Beta3JobById(id: String!): GreenlakeJobV1Beta3
+	createV1Beta2Job(input: GreenlakeJobCreateV1Beta2Input!): GreenlakeJobV1Beta2
+	patchV1Beta2JobById(id: String!): GreenlakeJobV1Beta2
+	createV1Beta2Schedule(input: GreenlakeSchedulePostV1Beta2Input!): GreenlakeScheduleV1Beta2
+	patchV1Beta2Schedule(id: String!): GreenlakeScheduleV1Beta2
+	createServerSettings(input: GreenlakeServerSettingsCreateRequestV1Beta1Input!): GreenlakeServerSettingsResponseV1Beta1
+	patchV1Beta1ServerSettingsById(id: String!): GreenlakeServerSettingsResponseV1Beta1
+	patchV1Beta2ServerById(id: String!): GreenlakeServerV1Beta2
+	updateV1Beta2ServerNotifications(id: String!, input: GreenlakeNotificationsRequestV1Beta2Input!): GreenlakeNotificationsResponseV1Beta2
+	postV1Beta1UserPreferences(input: GreenlakeUserPreferencesRequestV1Beta1Input!): GreenlakeUserPreferencesResponseV1Beta1
+	putV1Beta1UserPreferences(id: String!, input: GreenlakeUserPreferencesRequestV1Beta1Input!): GreenlakeUserPreferencesResponseV1Beta1
+}
+type Query {
+	v1Beta2Activities(sort: String, filter: String, limit: Int, offset: Int = 0, groups: Int): GreenlakeActivityCollectionV1Beta2
+	v1Beta1ExternalServices(filter: String): GreenlakeExternalServicesCollectionV1Beta1
+	v1Beta1ExternalServicesById(id: String!): GreenlakeExternalServicesResponseV1Beta1
+	filters(sort: String, filter: String, limit: Int, offset: Int = 0): GreenlakeFilterCollectionV1Beta1
+	filterProperties: GreenlakeFilterPropertiesV1Beta1
+	filter(id: String!): GreenlakeFilterV1Beta1
+	filterMatches(id: String!, sort: String, limit: Int, offset: Int = 0): GreenlakeFilterMatchCollectionV1Beta1
+	v1Beta2FirmwareBundles(limit: Int, offset: Int = 0): GreenlakeFirmwareBundleCollectionV1Beta2
+	v1Beta2FirmwareBundleById(id: String!): GreenlakeFirmwareBundleV1Beta2
+	v1Beta2Groups(sort: String, filter: String, limit: Int, offset: Int = 0): GreenlakeGroupCollectionV1Beta2
+	v1Beta2GroupById(groupId: String!): GreenlakeGroupResponseV1Beta2
+	v1Beta2GroupDevicesCompliance(groupId: String!, filter: String): GreenlakeDeviceComplianceCollectionV1Beta2
+	v1Beta2ComplianceByComplianceId(complianceId: String!, groupId: String!): GreenlakeDeviceComplianceV1Beta2
+	v1Beta2GroupDevices(groupId: String!, filter: String): GreenlakeDeviceResponseCollectionV1Beta2
+	v1Beta2JobTemplates(limit: Int, offset: Int = 0): GreenlakeJobTemplateCollectionV1Beta2
+	v1Beta2JobTemplateById(id: String!): GreenlakeJobTemplateV1Beta2
+	v1Beta3Jobs(limit: Int, offset: Int = 0): GreenlakeJobCollectionV1Beta3
+	v1Beta3JobById(id: String!): GreenlakeJobV1Beta3
+	v1Beta2Jobs(limit: Int, offset: Int = 0): GreenlakeJobCollectionV1Beta2
+	v1Beta2JobById(id: String!): GreenlakeJobV1Beta2
+	reports(sort: String, filter: String, limit: Int, offset: Int = 0): GreenlakeReportCollectionV1Beta1
+	report(id: String!): GreenlakeReportV1Beta1
+	reportData(id: String!, filter: String): GreenlakeReportDataV1Beta1
+	v1Beta2Schedules(sort: String, filter: String, limit: Int, offset: Int = 0): GreenlakeScheduleCollectionV1Beta2
+	v1Beta2Schedule(id: String!): GreenlakeScheduleV1Beta2
+	v1Beta2ScheduleHistory(id: String!, sort: String, filter: String, limit: Int, offset: Int = 0): GreenlakeScheduleHistoryCollectionV1Beta2
+	v1Beta2ScheduleHistoryEntry(historyId: String!, id: String!): JSON
+	v1Beta1ServerSettings(filter: String): GreenlakeServerSettingsCollectionV1Beta1
+	v1Beta1ServerSettingsById(id: String!): GreenlakeServerSettingsResponseV1Beta1
+	v1Beta2Servers(filter: String, limit: Int, offset: Int = 0): GreenlakeServerCollectionV1Beta2
+	v1Beta2ServerById(id: String!): GreenlakeServerV1Beta2
+	v1Beta2ServerAlerts(id: String!, filter: String, limit: Int, offset: Int = 0): GreenlakeAlertCollectionV1Beta2
+	v1Beta2ServerNotifications(id: String!): GreenlakeNotificationsResponseV1Beta2
+	v1Beta2ServerInventory(id: String!): GreenlakeRawInventoryV1Beta2
+	v1Beta1UserPreferences: GreenlakeUserPreferencesCollectionV1Beta1
+	v1Beta1UserPreferenceById(id: String!): GreenlakeUserPreferencesResponseV1Beta1
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+
