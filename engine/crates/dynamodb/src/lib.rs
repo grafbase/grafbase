@@ -23,6 +23,8 @@ cfg_if::cfg_if! {
         pub use batch_getitem::BatchGetItemLoaderError;
         pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
         pub use query_single_by_relation::{QuerySingleRelationKey, QuerySingleRelationLoader, QuerySingleRelationLoaderError};
+
+        pub struct LocalContext;
     } else {
         #[doc(hidden)]
         pub mod local;
@@ -360,7 +362,7 @@ impl DynamoDBBatchersData {
 
 #[cfg(not(feature = "sqlite"))]
 impl DynamoDBBatchersData {
-    pub fn new(ctx: &Arc<DynamoDBContext>) -> Arc<Self> {
+    pub fn new(ctx: &Arc<DynamoDBContext>, _local_ctx: Option<&Arc<LocalContext>>) -> Arc<Self> {
         Arc::new_cyclic(|b| Self {
             ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),
@@ -380,7 +382,8 @@ impl DynamoDBBatchersData {
 
 #[cfg(feature = "sqlite")]
 impl DynamoDBBatchersData {
-    pub fn new(ctx: &Arc<DynamoDBContext>, local_ctx: &Arc<LocalContext>) -> Arc<Self> {
+    pub fn new(ctx: &Arc<DynamoDBContext>, local_ctx: Option<&Arc<LocalContext>>) -> Arc<Self> {
+        let local_ctx = local_ctx.expect("need a local context here");
         Arc::new_cyclic(|b| Self {
             ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),

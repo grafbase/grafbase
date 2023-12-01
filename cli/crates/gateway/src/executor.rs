@@ -107,9 +107,9 @@ impl Executor {
         let dynamodb_batchers_data = DynamoDBBatchersData::new(
             &Arc::new(db_context.clone()),
             #[cfg(feature = "sqlite")]
-            &Arc::new(dynamodb::LocalContext {
+            Some(&Arc::new(dynamodb::LocalContext {
                 bridge_port: self.bridge.port().to_string(),
-            }),
+            })),
         );
         let runtime_ctx = runtime::context::Context::new(
             ctx,

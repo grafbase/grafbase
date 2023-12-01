@@ -66,7 +66,7 @@ fn dynamo_context() -> Arc<DynamoDBContext> {
 }
 
 fn batcher_data(dynamo_context: &Arc<DynamoDBContext>) -> Arc<DynamoDBBatchersData> {
-    DynamoDBBatchersData::new(dynamo_context)
+    DynamoDBBatchersData::new(dynamo_context, None)
 }
 
 fn string_attr(name: impl Into<String>) -> AttributeDefinition {
