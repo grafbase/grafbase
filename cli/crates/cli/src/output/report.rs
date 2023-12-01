@@ -453,6 +453,22 @@ pub(crate) fn publish_command_success(subgraph_name: &str) {
     println!("🧩 {subgraph_name} published successfully");
 }
 
+pub(crate) fn compose_after_addition_success(subgraph_name: &str) {
+    eprintln!("🧩 Successfully composed schema after adding subgraph {subgraph_name}");
+}
+
+pub(crate) fn compose_after_addition_failure(subgraph_name: &str) {
+    eprintln!("❌ Failed to compose schema after adding subgraph {subgraph_name}");
+}
+
+pub(crate) fn compose_after_removal_success(subgraph_name: &str) {
+    eprintln!("🧩 Successfully composed schema after removing subgraph {subgraph_name}");
+}
+
+pub(crate) fn compose_after_removal_failure(subgraph_name: &str, errors: &str) {
+    eprintln!("❌ Failed to compose schema after removing subgraph {subgraph_name}. Errors:\n{errors}");
+}
+
 pub fn print_log_entry(
     LogEvent {
         created_at,
@@ -474,4 +490,30 @@ pub fn print_log_entry(
         } => format!("[{log_level}] {function_kind} {function_name} | {message}"),
     };
     println!("{} {rest}", created_at.to_rfc3339());
+}
+
+// async to make sure this is called within a tokio context
+pub(crate) async fn listen_to_federated_dev_events() {
+    tokio::spawn(async move {
+        let mut receiver = federated_dev::subscribe();
+        while let Ok(event) = receiver.recv().await {
+            match event {
+                federated_dev::FederatedDevEvent::ComposeAfterAdditionSuccess { subgraph_name } => {
+                    compose_after_addition_success(&subgraph_name);
+                }
+                federated_dev::FederatedDevEvent::ComposeAfterAdditionFailure { subgraph_name } => {
+                    compose_after_addition_failure(&subgraph_name);
+                }
+                federated_dev::FederatedDevEvent::ComposeAfterRemovalSuccess { subgraph_name } => {
+                    compose_after_removal_success(&subgraph_name);
+                }
+                federated_dev::FederatedDevEvent::ComposeAfterRemovalFailure {
+                    subgraph_name,
+                    rendered_error,
+                } => {
+                    compose_after_removal_failure(&subgraph_name, &rendered_error);
+                }
+            }
+        }
+    });
 }

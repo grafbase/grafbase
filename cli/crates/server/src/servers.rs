@@ -215,6 +215,7 @@ async fn server_loop(
     })
     .fuse();
     let mut path_changed = None;
+
     loop {
         let receiver = event_bus.subscribe();
 

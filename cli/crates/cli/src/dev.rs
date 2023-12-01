@@ -30,6 +30,8 @@ pub fn dev(
 
     let server = server::start(external_port, search, watch, tracing, message_sender);
     let reporter = async move {
+        report::listen_to_federated_dev_events().await;
+
         let mut resolvers_reported = false;
 
         // We group messages by operation (request ID). Because messages come in as a stream of events,

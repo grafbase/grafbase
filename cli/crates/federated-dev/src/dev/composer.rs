@@ -6,7 +6,7 @@ use super::{
     bus::{ComposeBus, ComposeMessage, ComposeSchema, IntrospectSchema, RecomposeDescription, RemoveSubgraph},
     refresher::RefreshMessage,
 };
-use crate::{error::Error, report};
+use crate::{error::Error, events::emit_event};
 use async_graphql_parser::parse_schema;
 use grafbase_graphql_introspection::introspect;
 use graphql_composition::{compose, Subgraphs};
@@ -115,11 +115,15 @@ impl Composer {
 
         let graph = match compose(&subgraphs).into_result() {
             Ok(graph) => {
-                report::compose_after_addition_success(&name);
+                emit_event(crate::FederatedDevEvent::ComposeAfterAdditionSuccess {
+                    subgraph_name: name.clone(),
+                });
                 graph
             }
             Err(error) => {
-                report::compose_after_addition_failure(&name);
+                emit_event(crate::FederatedDevEvent::ComposeAfterAdditionFailure {
+                    subgraph_name: name.clone(),
+                });
                 responder
                     .send(Err(Error::composition(&error)))
                     .map_err(|_| Error::internal("compose channel is dead"))?;
@@ -166,7 +170,9 @@ impl Composer {
 
         match compose(&subgraphs).into_result() {
             Ok(graph) => {
-                report::compose_after_removal_success(&subgraph_name);
+                emit_event(crate::FederatedDevEvent::ComposeAfterRemovalSuccess {
+                    subgraph_name: subgraph_name.clone(),
+                });
                 self.bus.send_graph(graph).await?
             }
             Err(error) => {
@@ -178,7 +184,10 @@ impl Composer {
                     .collect::<Vec<_>>()
                     .join("\n");
 
-                report::compose_after_removal_failure(&subgraph_name, &rendered_error);
+                emit_event(crate::FederatedDevEvent::ComposeAfterRemovalFailure {
+                    subgraph_name: subgraph_name.clone(),
+                    rendered_error,
+                });
 
                 return Err(crate::Error::internal(
                     "Fatal: couldn't recompose existing subgraphs".to_string(),

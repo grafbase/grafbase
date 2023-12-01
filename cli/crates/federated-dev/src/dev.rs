@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 use axum::{
@@ -12,6 +10,7 @@ use axum::{
 use common::environment::Environment;
 use handlebars::Handlebars;
 use serde_json::json;
+use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 use tower_http::cors::CorsLayer;
 

@@ -49,10 +49,14 @@
 
 mod dev;
 mod error;
-mod report;
+mod events;
 mod subgraph;
 
-pub use error::Error;
+pub use self::{
+    error::Error,
+    events::{subscribe, FederatedDevEvent},
+};
+
 use tokio::runtime::Builder;
 use url::Url;
 
