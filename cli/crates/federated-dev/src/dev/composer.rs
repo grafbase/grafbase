@@ -3,7 +3,7 @@ mod subgraph;
 pub(crate) use self::subgraph::Subgraph;
 
 use super::{
-    bus::{ComposeBus, ComposeMessage, ComposeSchema, IntrospectSchema, RemoveSubgraph},
+    bus::{ComposeBus, ComposeMessage, ComposeSchema, IntrospectSchema, RecomposeDescription, RemoveSubgraph},
     refresher::RefreshMessage,
 };
 use crate::error::Error;
@@ -42,9 +42,9 @@ impl Composer {
                     log::trace!("composer handling removing a subgraph '{}'", message.name());
                     self.handle_remove_subgraph(message).await
                 }
-                Some(ComposeMessage::Recompose) => {
+                Some(ComposeMessage::Recompose(description)) => {
                     log::trace!("composer handling recomposition");
-                    self.handle_recompose().await
+                    self.handle_recompose(description).await
                 }
                 Some(ComposeMessage::InitializeRefresh) => {
                     log::trace!("composer initializing a refresh");
@@ -114,8 +114,12 @@ impl Composer {
         let (name, subgraph, responder) = message.into_parts();
 
         let graph = match compose(&subgraphs).into_result() {
-            Ok(graph) => graph,
+            Ok(graph) => {
+                eprintln!("Successfully composed schema after adding subgraph {name}.");
+                graph
+            }
             Err(error) => {
+                eprintln!("Failed to compose schema after adding subgraph {name}.");
                 responder
                     .send(Err(Error::composition(&error)))
                     .map_err(|_| Error::internal("compose channel is dead"))?;
@@ -138,13 +142,20 @@ impl Composer {
 
     async fn handle_remove_subgraph(&mut self, message: RemoveSubgraph) -> Result<(), crate::Error> {
         if self.graphs.remove(message.name()).is_some() {
-            self.bus.send_composer(ComposeMessage::Recompose).await?;
+            self.bus
+                .send_composer(ComposeMessage::Recompose(RecomposeDescription::Removed(
+                    message.name().to_owned(),
+                )))
+                .await?;
         }
 
         Ok(())
     }
 
-    async fn handle_recompose(&mut self) -> Result<(), crate::Error> {
+    async fn handle_recompose(
+        &mut self,
+        RecomposeDescription::Removed(subgraph_name): RecomposeDescription,
+    ) -> Result<(), crate::Error> {
         if self.graphs.is_empty() {
             // Composing an empty set of graphs is going to fail, so lets not do that.
             self.bus.clear_graph().await?;
@@ -154,9 +165,20 @@ impl Composer {
         let subgraphs = self.ingest_subgraphs(None);
 
         match compose(&subgraphs).into_result() {
-            Ok(graph) => self.bus.send_graph(graph).await?,
+            Ok(graph) => {
+                eprintln!("Successfully composed schema after removing subgraph {subgraph_name}.");
+                self.bus.send_graph(graph).await?
+            }
             Err(error) => {
                 log::warn!("Recomposition failed: {error:?}");
+                eprintln!(
+                    "Failed to recompose schema after removal of subgraph {subgraph_name}. Errors:{}\n",
+                    error
+                        .iter_messages()
+                        .map(|msg| format!("- {msg}"))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                );
                 return Err(crate::Error::internal(
                     "Fatal: couldn't recompose existing subgraphs".to_string(),
                 ));

@@ -1,13 +1,23 @@
+use std::borrow::Cow;
+
 use engine_parser::Pos;
-use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, UnionId};
+use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, Schema, UnionId};
 
-use super::{BoundFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId};
-use crate::execution::StrId;
+use super::{BoundAnyFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId};
+use crate::response::{BoundResponseKey, ResponseKey};
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundSelectionSet {
+    pub root: SelectionSetRoot,
     // Ordering matters and must be respected in the response.
     pub items: Vec<BoundSelection>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SelectionSetRoot {
+    Object(ObjectId),
+    Interface(InterfaceId),
+    Union(UnionId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,10 +29,11 @@ pub enum BoundSelection {
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BoundField {
-    pub definition_id: BoundFieldDefinitionId,
-    pub selection_set_id: BoundSelectionSetId,
+    pub bound_response_key: BoundResponseKey,
+    pub definition_id: BoundAnyFieldDefinitionId,
+    pub selection_set_id: Option<BoundSelectionSetId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,8 +52,6 @@ pub struct BoundInlineFragment {
     pub directives: Vec<()>,
 }
 
-/// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
-/// A BoundField is a field in the query *after* spreading all the named fragments.
 #[derive(Debug)]
 pub struct BoundFragmentDefinition {
     pub name: String,
@@ -58,6 +67,16 @@ pub enum TypeCondition {
     Union(UnionId),
 }
 
+impl TypeCondition {
+    pub fn resolve(self, schema: &Schema) -> Cow<'_, Vec<ObjectId>> {
+        match self {
+            TypeCondition::Interface(interface_id) => Cow::Borrowed(&schema[interface_id].possible_types),
+            TypeCondition::Object(object_id) => Cow::Owned(vec![object_id]),
+            TypeCondition::Union(union_id) => Cow::Borrowed(&schema[union_id].possible_types),
+        }
+    }
+}
+
 impl From<TypeCondition> for Definition {
     fn from(value: TypeCondition) -> Self {
         match value {
@@ -68,10 +87,48 @@ impl From<TypeCondition> for Definition {
     }
 }
 
+/// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
+/// A BoundField is a field in the query *after* spreading all the named fragments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BoundAnyFieldDefinition {
+    TypeName(BoundTypeNameFieldDefinition),
+    Field(BoundFieldDefinition),
+}
+
+#[allow(dead_code)]
+impl BoundAnyFieldDefinition {
+    pub fn as_field(&self) -> Option<&BoundFieldDefinition> {
+        match self {
+            BoundAnyFieldDefinition::TypeName(_) => None,
+            BoundAnyFieldDefinition::Field(field) => Some(field),
+        }
+    }
+
+    pub fn response_key(&self) -> ResponseKey {
+        match self {
+            BoundAnyFieldDefinition::TypeName(field) => field.response_key,
+            BoundAnyFieldDefinition::Field(field) => field.response_key,
+        }
+    }
+
+    pub fn name_location(&self) -> Pos {
+        match self {
+            BoundAnyFieldDefinition::TypeName(field) => field.name_location,
+            BoundAnyFieldDefinition::Field(field) => field.name_location,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundTypeNameFieldDefinition {
+    pub name_location: Pos,
+    pub response_key: ResponseKey,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFieldDefinition {
     pub name_location: Pos,
-    pub name: StrId,
+    pub response_key: ResponseKey,
     pub field_id: FieldId,
     pub arguments: Vec<BoundFieldArgument>,
 }
@@ -86,10 +143,6 @@ pub struct BoundFieldArgument {
 }
 
 impl BoundSelectionSet {
-    pub fn empty() -> Self {
-        Self { items: vec![] }
-    }
-
     pub fn len(&self) -> usize {
         self.items.len()
     }
@@ -100,20 +153,6 @@ impl BoundSelectionSet {
 
     pub fn iter(&self) -> impl Iterator<Item = &BoundSelection> {
         self.items.iter()
-    }
-}
-
-impl Extend<BoundSelection> for BoundSelectionSet {
-    fn extend<T: IntoIterator<Item = BoundSelection>>(&mut self, iter: T) {
-        self.items.extend(iter);
-    }
-}
-
-impl FromIterator<BoundSelection> for BoundSelectionSet {
-    fn from_iter<T: IntoIterator<Item = BoundSelection>>(iter: T) -> Self {
-        Self {
-            items: iter.into_iter().collect::<Vec<_>>(),
-        }
     }
 }
 

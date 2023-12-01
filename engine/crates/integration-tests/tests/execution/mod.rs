@@ -111,13 +111,13 @@ fn test_nullable_list_validation() {
           },
           "errors": [
             {
+              "message": "An error occurred while fetching `list`, a non-nullable value was expected but no value was found.",
               "locations": [
                 {
-                  "column": 9,
-                  "line": 1
+                  "line": 1,
+                  "column": 9
                 }
               ],
-              "message": "An error occurred while fetching `list`, a non-nullable value was expected but no value was found.",
               "path": [
                 "list",
                 2,
@@ -182,13 +182,13 @@ fn test_nullable_list_item_validation() {
           },
           "errors": [
             {
+              "message": "An error happened while fetching `name`, expected a non null value but found a null",
               "locations": [
                 {
-                  "column": 16,
-                  "line": 1
+                  "line": 1,
+                  "column": 16
                 }
               ],
-              "message": "An error happened while fetching `name`, expected a non null value but found a null",
               "path": [
                 "list",
                 1,

@@ -136,6 +136,7 @@ impl IntoMetaType for InputObject {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum OutputFieldKind {
     Scalar,
     ScalarWrapper,

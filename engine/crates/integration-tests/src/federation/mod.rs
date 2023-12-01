@@ -60,6 +60,12 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
 #[derive(serde::Serialize, Debug)]
 pub struct GraphqlResponse(serde_json::Value);
 
+impl std::fmt::Display for GraphqlResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string_pretty(&self.0).unwrap())
+    }
+}
+
 impl Deref for GraphqlResponse {
     type Target = serde_json::Value;
 

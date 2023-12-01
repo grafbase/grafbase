@@ -29,7 +29,6 @@ fn single_field_from_single_server() {
 }
 
 #[test]
-#[ignore]
 fn top_level_typename() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;

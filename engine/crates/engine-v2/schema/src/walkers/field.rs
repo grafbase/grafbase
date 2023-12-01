@@ -13,31 +13,28 @@ impl<'a> FieldWalker<'a> {
     }
 
     pub fn deprecated_reason(&self) -> Option<&'a str> {
-        self.deprecated_reason.map(|id| self.schema[id].as_str())
+        self.deprecation_reason.map(|id| self.schema[id].as_str())
     }
 
-    pub fn resolvers<'s>(&'s self) -> impl Iterator<Item = FieldResolverWalker<'s>> + 's
-    where
-        's: 'a,
-    {
-        self.resolvers.iter().map(|inner| FieldResolverWalker {
-            schema: self.schema,
-            inner,
-        })
+    pub fn resolvers(&self) -> impl Iterator<Item = FieldResolverWalker<'a>> + 'a {
+        let schema = self.schema;
+        self.schema[self.id]
+            .resolvers
+            .iter()
+            .map(move |inner| FieldResolverWalker { schema, inner })
     }
 
-    pub fn provides(&self, data_source_id: DataSourceId) -> Option<&FieldSet> {
-        self.provides
+    pub fn provides(&self, data_source_id: DataSourceId) -> Option<&'a FieldSet> {
+        self.schema[self.id]
+            .provides
             .iter()
             .find(|provides| provides.data_source_id == data_source_id)
             .map(|provides| &provides.fields)
     }
 
-    pub fn arguments<'s>(&'s self) -> impl Iterator<Item = InputValueWalker<'s>> + 's
-    where
-        'a: 's,
-    {
-        self.arguments.iter().map(|id| self.walk(*id))
+    pub fn arguments(&self) -> impl Iterator<Item = InputValueWalker<'a>> + 'a {
+        let walker = *self;
+        self.schema[self.id].arguments.iter().map(move |id| walker.walk(*id))
     }
 
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueWalker<'a>> {

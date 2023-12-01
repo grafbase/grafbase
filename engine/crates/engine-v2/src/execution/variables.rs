@@ -5,7 +5,7 @@ use engine_value::ConstValue;
 
 use crate::{
     request::{Operation, VariableDefinition},
-    response::GraphqlError,
+    response::ServerError,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -14,15 +14,14 @@ pub enum VariableError {
     MissingVariable { name: String, location: Pos },
 }
 
-impl From<VariableError> for GraphqlError {
+impl From<VariableError> for ServerError {
     fn from(err: VariableError) -> Self {
         let locations = match err {
             VariableError::MissingVariable { location, .. } => vec![location],
         };
-        GraphqlError {
+        ServerError {
             message: err.to_string(),
             locations,
-            path: vec![],
         }
     }
 }

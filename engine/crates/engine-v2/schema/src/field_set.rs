@@ -53,6 +53,12 @@ impl FieldSet {
         Some(&self.items[index])
     }
 
+    pub fn contains(&self, field: FieldId) -> bool {
+        self.items
+            .binary_search_by_key(&field, |selection| selection.field)
+            .is_ok()
+    }
+
     pub fn merge_opt(left_set: Option<&FieldSet>, right_set: Option<&FieldSet>) -> FieldSet {
         match (left_set, right_set) {
             (Some(left_set), Some(right_set)) => Self::merge(left_set, right_set),

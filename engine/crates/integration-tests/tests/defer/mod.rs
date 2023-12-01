@@ -63,10 +63,10 @@ fn simple_defer_test() {
                 "name": "Deferred Doggo"
               }
             },
-            "hasNext": false,
             "path": [
               "petstore"
-            ]
+            ],
+            "hasNext": false
           }
         ]
         "###
@@ -109,13 +109,13 @@ fn defer_on_non_streaming_request_doesnt_defer() {
         {
           "data": {
             "petstore": {
-              "deferredPet": {
-                "id": 456,
-                "name": "Deferred Doggo"
-              },
               "pet": {
                 "id": 123,
                 "name": "Immediate Doggo"
+              },
+              "deferredPet": {
+                "id": 456,
+                "name": "Deferred Doggo"
               }
             }
           }
@@ -150,13 +150,13 @@ fn test_defer_on_field_rejected() {
           "data": null,
           "errors": [
             {
+              "message": "Directive \"defer\" may not be used on \"FIELD\"",
               "locations": [
                 {
-                  "column": 30,
-                  "line": 3
+                  "line": 3,
+                  "column": 30
                 }
-              ],
-              "message": "Directive \"defer\" may not be used on \"FIELD\""
+              ]
             }
           ]
         }
@@ -218,10 +218,10 @@ fn test_defer_on_named_fragment() {
                 "name": "Deferred Doggo"
               }
             },
-            "hasNext": false,
             "path": [
               "petstore"
-            ]
+            ],
+            "hasNext": false
           }
         ]
         "###);
@@ -278,10 +278,10 @@ fn test_nested_defers() {
                 "name": "First Deferred Doggo"
               }
             },
-            "hasNext": true,
             "path": [
               "petstore"
-            ]
+            ],
+            "hasNext": true
           },
           {
             "data": {
@@ -290,10 +290,10 @@ fn test_nested_defers() {
                 "name": "Second Deferred Doggo"
               }
             },
-            "hasNext": false,
             "path": [
               "petstore"
-            ]
+            ],
+            "hasNext": false
           }
         ]
         "###
@@ -344,13 +344,13 @@ fn test_defer_with_errors() {
             },
             "errors": [
               {
+                "message": "Received an unexpected status from the downstream server: 404 Not Found",
                 "locations": [
                   {
-                    "column": 29,
-                    "line": 4
+                    "line": 4,
+                    "column": 29
                   }
                 ],
-                "message": "Received an unexpected status from the downstream server: 404 Not Found",
                 "path": [
                   "petstore",
                   "pet"
@@ -363,24 +363,24 @@ fn test_defer_with_errors() {
             "data": {
               "deferredPet": null
             },
+            "path": [
+              "petstore"
+            ],
+            "hasNext": false,
             "errors": [
               {
+                "message": "Received an unexpected status from the downstream server: 404 Not Found",
                 "locations": [
                   {
-                    "column": 33,
-                    "line": 9
+                    "line": 9,
+                    "column": 33
                   }
                 ],
-                "message": "Received an unexpected status from the downstream server: 404 Not Found",
                 "path": [
                   "petstore",
                   "deferredPet"
                 ]
               }
-            ],
-            "hasNext": false,
-            "path": [
-              "petstore"
             ]
           }
         ]
@@ -446,8 +446,8 @@ fn test_defer_at_root() {
                 }
               }
             },
-            "hasNext": false,
-            "path": []
+            "path": [],
+            "hasNext": false
           }
         ]
         "###
@@ -505,11 +505,11 @@ fn test_defer_with_labels() {
                 "name": "First Deferred Doggo"
               }
             },
-            "hasNext": true,
-            "label": "outer",
             "path": [
               "petstore"
-            ]
+            ],
+            "hasNext": true,
+            "label": "outer"
           },
           {
             "data": {
@@ -518,11 +518,11 @@ fn test_defer_with_labels() {
                 "name": "Second Deferred Doggo"
               }
             },
-            "hasNext": false,
-            "label": "inner",
             "path": [
               "petstore"
-            ]
+            ],
+            "hasNext": false,
+            "label": "inner"
           }
         ]
         "###
@@ -583,10 +583,10 @@ fn test_defer_with_if_true() {
                 "name": "Deferred Doggo"
               }
             },
-            "hasNext": false,
             "path": [
               "petstore"
-            ]
+            ],
+            "hasNext": false
           }
         ]
         "###
@@ -632,13 +632,13 @@ fn test_defer_with_if_false() {
           {
             "data": {
               "petstore": {
-                "notActuallyDeferredPet": {
-                  "id": 456,
-                  "name": "Deferred Doggo"
-                },
                 "pet": {
                   "id": 123,
                   "name": "Immediate Doggo"
+                },
+                "notActuallyDeferredPet": {
+                  "id": 456,
+                  "name": "Deferred Doggo"
                 }
               }
             },
@@ -682,13 +682,13 @@ fn test_invalid_defer_parameters() {
             "data": null,
             "errors": [
               {
+                "message": "Invalid value for argument \"if\", expected type \"Boolean\"",
                 "locations": [
                   {
-                    "column": 40,
-                    "line": 4
+                    "line": 4,
+                    "column": 40
                   }
-                ],
-                "message": "Invalid value for argument \"if\", expected type \"Boolean\""
+                ]
               }
             ],
             "hasNext": false
@@ -744,21 +744,21 @@ fn defer_a_custom_resolver() {
             "data": {
               "item": 1
             },
-            "hasNext": true,
             "path": [
               "list",
               0
-            ]
+            ],
+            "hasNext": true
           },
           {
             "data": {
               "item": 2
             },
-            "hasNext": false,
             "path": [
               "list",
               1
-            ]
+            ],
+            "hasNext": false
           }
         ]
         "###
@@ -813,50 +813,50 @@ fn defer_a_custom_resolver_that_errors() {
           },
           {
             "data": null,
+            "path": [
+              "list",
+              0
+            ],
+            "hasNext": true,
             "errors": [
               {
+                "message": "I'm afraid I can't do that Dave",
                 "locations": [
                   {
-                    "column": 29,
-                    "line": 1
+                    "line": 1,
+                    "column": 29
                   }
                 ],
-                "message": "I'm afraid I can't do that Dave",
                 "path": [
                   "list",
                   0,
                   "item"
                 ]
               }
-            ],
-            "hasNext": true,
-            "path": [
-              "list",
-              0
             ]
           },
           {
             "data": null,
+            "path": [
+              "list",
+              1
+            ],
+            "hasNext": false,
             "errors": [
               {
+                "message": "I'm afraid I can't do that Dave",
                 "locations": [
                   {
-                    "column": 29,
-                    "line": 1
+                    "line": 1,
+                    "column": 29
                   }
                 ],
-                "message": "I'm afraid I can't do that Dave",
                 "path": [
                   "list",
                   1,
                   "item"
                 ]
               }
-            ],
-            "hasNext": false,
-            "path": [
-              "list",
-              1
             ]
           }
         ]

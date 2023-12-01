@@ -1,16 +1,18 @@
-use super::{BoundField, BoundFieldDefinition, BoundFragmentDefinition, BoundSelectionSet, Operation};
+use std::num::NonZeroU16;
+
+use super::{BoundAnyFieldDefinition, BoundField, BoundFragmentDefinition, BoundSelectionSet, Operation};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, derive_more::Display)]
-pub struct BoundFieldDefinitionId(u32);
+pub struct BoundAnyFieldDefinitionId(u32);
 
-impl From<usize> for BoundFieldDefinitionId {
+impl From<usize> for BoundAnyFieldDefinitionId {
     fn from(value: usize) -> Self {
-        BoundFieldDefinitionId(value.try_into().expect("Too many fields."))
+        BoundAnyFieldDefinitionId(value.try_into().expect("Too many fields."))
     }
 }
 
-impl From<BoundFieldDefinitionId> for usize {
-    fn from(value: BoundFieldDefinitionId) -> Self {
+impl From<BoundAnyFieldDefinitionId> for usize {
+    fn from(value: BoundAnyFieldDefinitionId) -> Self {
         value.0 as usize
     }
 }
@@ -31,17 +33,22 @@ impl From<BoundFragmentDefinitionId> for usize {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, derive_more::Display)]
-pub struct BoundSelectionSetId(u16);
+pub struct BoundSelectionSetId(NonZeroU16);
 
 impl From<usize> for BoundSelectionSetId {
     fn from(value: usize) -> Self {
-        BoundSelectionSetId(value.try_into().expect("Too many selection sets."))
+        BoundSelectionSetId(
+            u16::try_from(value)
+                .ok()
+                .and_then(|value| NonZeroU16::new(value + 1))
+                .expect("Too many selection sets."),
+        )
     }
 }
 
 impl From<BoundSelectionSetId> for usize {
     fn from(value: BoundSelectionSetId) -> Self {
-        value.0 as usize
+        (value.0.get() - 1) as usize
     }
 }
 
@@ -64,7 +71,7 @@ impl std::ops::Index<BoundFieldId> for Operation {
     type Output = BoundField;
 
     fn index(&self, index: BoundFieldId) -> &Self::Output {
-        &self.fields[index.0 as usize]
+        &self.fields[usize::from(index)]
     }
 }
 
@@ -72,15 +79,15 @@ impl std::ops::Index<BoundSelectionSetId> for Operation {
     type Output = BoundSelectionSet;
 
     fn index(&self, index: BoundSelectionSetId) -> &Self::Output {
-        &self.selection_sets[index.0 as usize]
+        &self.selection_sets[usize::from(index)]
     }
 }
 
-impl std::ops::Index<BoundFieldDefinitionId> for Operation {
-    type Output = BoundFieldDefinition;
+impl std::ops::Index<BoundAnyFieldDefinitionId> for Operation {
+    type Output = BoundAnyFieldDefinition;
 
-    fn index(&self, index: BoundFieldDefinitionId) -> &Self::Output {
-        &self.field_definitions[index.0 as usize]
+    fn index(&self, index: BoundAnyFieldDefinitionId) -> &Self::Output {
+        &self.field_definitions[usize::from(index)]
     }
 }
 
@@ -88,6 +95,6 @@ impl std::ops::Index<BoundFragmentDefinitionId> for Operation {
     type Output = BoundFragmentDefinition;
 
     fn index(&self, index: BoundFragmentDefinitionId) -> &Self::Output {
-        &self.fragment_definitions[index.0 as usize]
+        &self.fragment_definitions[usize::from(index)]
     }
 }

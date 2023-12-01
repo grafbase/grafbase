@@ -1,17 +1,15 @@
-use std::sync::Arc;
-
-use futures_locks::Mutex;
 use schema::Resolver;
 
-use crate::response::{GraphqlErrors, ResponseData, ResponseObjectsView};
+use crate::{
+    execution::ExecutionContext,
+    response::{ResponseObjectsView, ResponsePartBuilder},
+};
 
 mod graphql;
 mod introspection;
 
 use graphql::GraphqlExecutor;
 use introspection::IntrospectionExecutor;
-
-use super::ExecutionContext;
 
 /// Executors are responsible to retrieve a selection_set from a certain point in the query.
 ///
@@ -58,7 +56,7 @@ pub enum Executor<'a> {
 
 impl<'exc> Executor<'exc> {
     pub fn build<'ctx, 'input>(
-        ctx: ExecutionContext<'ctx>,
+        ctx: ExecutionContext<'ctx, 'ctx>,
         resolver: &schema::Resolver,
         input: ExecutorInput<'input>,
     ) -> Result<Self, ExecutorError>
@@ -71,7 +69,11 @@ impl<'exc> Executor<'exc> {
         }
     }
 
-    pub async fn execute(self, ctx: ExecutionContext<'_>, output: &mut ExecutorOutput) -> Result<(), ExecutorError> {
+    pub async fn execute(
+        self,
+        ctx: ExecutionContext<'_, '_>,
+        output: &mut ResponsePartBuilder,
+    ) -> Result<(), ExecutorError> {
         match self {
             Executor::GraphQL(executor) => executor.execute(ctx, output).await,
             Executor::Introspection(executor) => executor.execute(ctx, output).await,
@@ -83,18 +85,12 @@ pub struct ExecutorInput<'a> {
     pub root_response_objects: ResponseObjectsView<'a>,
 }
 
-/// Executors manipulate the response data through this struct, registering any errors (without
-/// locking) and modifying the actual data when necessary. Will be tweaked later to reduce lock
-/// contention.
-pub struct ExecutorOutput {
-    pub data: Arc<Mutex<ResponseData>>,
-    pub errors: GraphqlErrors,
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum ExecutorError {
     #[error("Internal error: {0}")]
     InternalError(String),
+    #[error(transparent)]
+    WriteError(#[from] crate::response::WriteError),
 }
 
 impl From<&str> for ExecutorError {

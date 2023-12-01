@@ -1,4 +1,5 @@
 mod bind;
+// mod flat_selection_set;
 mod ids;
 mod parse;
 mod path;
@@ -8,18 +9,16 @@ mod walkers;
 
 pub use bind::{BindError, BindResult};
 pub use engine_parser::{types::OperationType, Pos};
+// pub use flat_selection_set::*;
 pub use ids::*;
 pub use parse::{parse_operation, ParseError, UnboundOperation};
-pub use path::{QueryPath, QueryPathSegment, ResolvedTypeCondition};
+pub use path::{FlatTypeCondition, QueryPath, QueryPathSegment};
 use schema::{ObjectId, Schema, SchemaWalker};
-pub use selection_set::{
-    BoundField, BoundFieldArgument, BoundFieldDefinition, BoundFragmentDefinition, BoundFragmentSpread,
-    BoundInlineFragment, BoundSelection, BoundSelectionSet, TypeCondition,
-};
+pub use selection_set::*;
 pub use variable::VariableDefinition;
 pub use walkers::*;
 
-use crate::execution::Strings;
+use crate::response::ResponseKeys;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VariableId(usize);
@@ -31,9 +30,9 @@ pub struct Operation {
     pub root_selection_set_id: BoundSelectionSetId,
     pub selection_sets: Vec<BoundSelectionSet>,
     pub fields: Vec<BoundField>,
-    pub strings: Strings,
+    pub response_keys: ResponseKeys,
     pub fragment_definitions: Vec<BoundFragmentDefinition>,
-    pub field_definitions: Vec<BoundFieldDefinition>,
+    pub field_definitions: Vec<BoundAnyFieldDefinition>,
     pub variable_definitions: Vec<VariableDefinition>,
 }
 
@@ -45,20 +44,40 @@ impl Operation {
         bind::bind(schema, unbound_operation)
     }
 
-    pub fn walk_root_selection_set<'a>(&'a self, schema: SchemaWalker<'a, ()>) -> BoundSelectionSetWalker<'a> {
+    pub fn walk_selection_set<'a>(
+        &'a self,
+        schema: SchemaWalker<'a, ()>,
+        selection_set_id: BoundSelectionSetId,
+    ) -> BoundSelectionSetWalker<'a> {
         BoundSelectionSetWalker {
             schema,
             operation: self,
-            id: self.root_selection_set_id,
+            id: selection_set_id,
         }
     }
 
     pub fn walk_field<'a>(&'a self, schema: SchemaWalker<'a, ()>, id: BoundFieldId) -> BoundFieldWalker<'a> {
         BoundFieldWalker {
-            schema_field: schema.walk(self[self[id].definition_id].field_id),
+            schema,
             operation: self,
             bound_field: &self[id],
             id,
+        }
+    }
+
+    pub fn walk_definition<'a>(
+        &'a self,
+        schema: SchemaWalker<'a, ()>,
+        definition_id: BoundAnyFieldDefinitionId,
+    ) -> BoundAnyFieldDefinitionWalker<'a> {
+        match &self[definition_id] {
+            BoundAnyFieldDefinition::TypeName(definition) => BoundAnyFieldDefinitionWalker::TypeName(definition),
+            BoundAnyFieldDefinition::Field(definition) => {
+                BoundAnyFieldDefinitionWalker::Field(BoundFieldDefinitionWalker {
+                    field: schema.walk(definition.field_id),
+                    definition,
+                })
+            }
         }
     }
 }

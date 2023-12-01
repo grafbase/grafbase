@@ -18,14 +18,14 @@ impl<'a> FragmentSpreadWalker<'a> {
     pub fn selection_set(&self) -> SelectionSetWalker<'a> {
         SelectionSetWalker {
             ctx: self.ctx,
-            id: self.inner.selection_set_id,
+            merged_selection_set_ids: vec![self.inner.selection_set_id],
         }
     }
 
     pub fn fragment(&self) -> FragmentDefinitionWalker<'a> {
         FragmentDefinitionWalker {
             ctx: self.ctx,
-            definition: &self.ctx.plan.operation[self.inner.fragment_id],
+            definition: &self.ctx.operation[self.inner.fragment_id],
         }
     }
 }
@@ -55,7 +55,7 @@ impl<'a> Deref for FragmentDefinitionWalker<'a> {
 
 impl<'a> std::fmt::Debug for FragmentSpreadWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let fragment = &self.ctx.plan.operation[self.inner.fragment_id];
+        let fragment = &self.ctx.operation[self.inner.fragment_id];
         f.debug_struct("FragmentSpreadWalker")
             .field("name", &fragment.name)
             .field("selection_set", &self.selection_set())

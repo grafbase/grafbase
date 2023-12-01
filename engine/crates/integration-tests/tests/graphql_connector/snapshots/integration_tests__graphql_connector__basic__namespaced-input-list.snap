@@ -7,20 +7,20 @@ expression: "engine.execute(r\"\n                    query GetPullRequests($bots
     "gothub": {
       "botPullRequests": [
         {
+          "checks": [
+            "Success!"
+          ],
           "author": {
             "__typename": "GothubUser"
-          },
-          "checks": [
-            "Success!"
-          ]
+          }
         },
         {
-          "author": {
-            "__typename": "GothubBot"
-          },
           "checks": [
             "Success!"
-          ]
+          ],
+          "author": {
+            "__typename": "GothubBot"
+          }
         }
       ]
     }

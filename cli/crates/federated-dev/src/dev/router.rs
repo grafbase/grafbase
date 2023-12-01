@@ -45,7 +45,7 @@ impl Router {
                     tokio::spawn(run_request(request, response_sender, Arc::clone(engine)));
                 }
                 (RouterMessage::Request(_, response_sender), None) => {
-                    log::trace!("router got a new request with a missingengine");
+                    log::trace!("router got a new request with a missing engine");
 
                     response_sender.send(Err(RouterError::NoSubgraphs)).ok();
                 }

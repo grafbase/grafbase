@@ -1,4 +1,4 @@
-use crate::execution::StrId;
+use crate::response::BoundResponseKey;
 
 /// Selection set used to read data from the response.
 /// Used for plan inputs.
@@ -9,7 +9,7 @@ pub struct ReadSelectionSet {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadSelection {
-    pub response_key: StrId,
+    pub response_key: BoundResponseKey,
     pub subselection: ReadSelectionSet,
 }
 
