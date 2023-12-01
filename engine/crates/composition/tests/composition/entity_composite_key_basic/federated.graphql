@@ -1,3 +1,20 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
 enum join__Graph {
     COURSES @join__graph(name: "courses", url: "http://example.com/courses")
     RATINGS @join__graph(name: "ratings", url: "http://example.com/ratings")

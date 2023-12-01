@@ -2903,7 +2903,9 @@ version = "0.1.0"
 dependencies = [
  "async-graphql-parser 6.0.10",
  "async-graphql-value 6.0.10",
+ "expect-test",
  "indexmap 2.0.0",
+ "indoc",
  "serde",
 ]
 

@@ -10,6 +10,8 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
     let FederatedGraph::V1(graph) = graph;
 
+    write_prelude(&mut sdl)?;
+
     write_subgraphs_enum(graph, &mut sdl)?;
 
     for scalar in &graph.scalars {
@@ -23,6 +25,11 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
         write_composed_directives(&scalar.composed_directives, graph, &mut sdl)?;
         sdl.push('\n');
         sdl.push('\n');
+    }
+
+    let query_type_exists = graph.objects.iter().any(|object| &graph[object.name] == "Query");
+    if !query_type_exists {
+        writeln!(sdl, "type Query\n")?;
     }
 
     for (idx, object) in graph.objects.iter().enumerate() {
@@ -46,9 +53,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
         write_composed_directives(&object.composed_directives, graph, &mut sdl)?;
 
-        if object.resolvable_keys.is_empty() {
-            sdl.push_str(" {\n");
-        } else {
+        if !object.resolvable_keys.is_empty() {
             sdl.push('\n');
             for resolvable_key in &object.resolvable_keys {
                 let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
@@ -58,15 +63,24 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
                     r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
                 )?;
             }
+        }
 
+        let mut fields = graph
+            .object_fields
+            .iter()
+            .filter(|field| field.object_id.0 == idx)
+            .peekable();
+
+        if fields.peek().is_some() {
+            if object.resolvable_keys.is_empty() {
+                sdl.push(' ');
+            }
             sdl.push_str("{\n");
+            for field in fields {
+                write_field(field.field_id, graph, &mut sdl)?;
+            }
+            writeln!(sdl, "}}\n")?;
         }
-
-        for field in graph.object_fields.iter().filter(|field| field.object_id.0 == idx) {
-            write_field(field.field_id, graph, &mut sdl)?;
-        }
-
-        writeln!(sdl, "}}\n")?;
     }
 
     for (idx, interface) in graph.interfaces.iter().enumerate() {
@@ -186,20 +200,48 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     Ok(sdl)
 }
 
-fn write_subgraphs_enum(graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
-    sdl.push_str("enum join__Graph {\n");
+fn write_prelude(sdl: &mut String) -> fmt::Result {
+    sdl.push_str(indoc::indoc! {r#"
+        directive @core(feature: String!) repeatable on SCHEMA
 
-    for subgraph in &graph.subgraphs {
-        let name_str = &graph[subgraph.name];
-        let url = &graph[subgraph.url];
-        let loud_name = GraphEnumVariantName(name_str);
-        writeln!(
-            sdl,
-            r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
-        )?;
+        directive @join__owner(graph: join__Graph!) on OBJECT
+
+        directive @join__type(
+            graph: join__Graph!
+            key: String!
+        ) repeatable on OBJECT | INTERFACE
+
+        directive @join__field(
+            graph: join__Graph
+            requires: String
+            provides: String
+        ) on FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+    "#});
+
+    sdl.push('\n');
+    Ok(())
+}
+
+fn write_subgraphs_enum(graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Result {
+    sdl.push_str("enum join__Graph");
+
+    if !graph.subgraphs.is_empty() {
+        sdl.push_str(" {\n");
+        for subgraph in &graph.subgraphs {
+            let name_str = &graph[subgraph.name];
+            let url = &graph[subgraph.url];
+            let loud_name = GraphEnumVariantName(name_str);
+            writeln!(
+                sdl,
+                r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
+            )?;
+        }
+        sdl.push('}');
     }
 
-    sdl.push_str("}\n\n");
+    sdl.push_str("\n\n");
     Ok(())
 }
 
@@ -458,4 +500,37 @@ impl Display for ValueDisplay<'_> {
             Value::List(_) => todo!(),
         }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn test_render_empty() {
+    use expect_test::expect;
+
+    let empty = super::from_sdl("type Query").unwrap();
+    let actual = super::render_sdl(&empty).expect("valid");
+    let expected = expect![[r#"
+        directive @core(feature: String!) repeatable on SCHEMA
+
+        directive @join__owner(graph: join__Graph!) on OBJECT
+
+        directive @join__type(
+            graph: join__Graph!
+            key: String!
+        ) repeatable on OBJECT | INTERFACE
+
+        directive @join__field(
+            graph: join__Graph
+            requires: String
+            provides: String
+        ) on FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        enum join__Graph
+
+        type Query
+    "#]];
+
+    expected.assert_eq(&actual);
 }
