@@ -162,8 +162,7 @@ impl From<federated_graph::FederatedGraph> for Schema {
                 let name = StringId::from(scalar.name);
                 Scalar {
                     name,
-                    data_type: DataType::from_scalar_name(&schema[name])
-                        .unwrap_or_else(|| panic!("Data type undefined for the scalar named '{}'", schema[name])),
+                    data_type: DataType::from_scalar_name(&schema[name]),
                     description: None,
                     specified_by_url: None,
                     composed_directives: scalar.composed_directives.into_iter().map(Into::into).collect(),
