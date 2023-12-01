@@ -143,6 +143,7 @@ export class TypeExtension {
   private name: string
   private queries: Query[]
   private keys: FederationKey[]
+  private fieldExtensions: FieldExtension[]
 
   constructor(type: string | Type) {
     if (type instanceof Type) {
@@ -154,6 +155,7 @@ export class TypeExtension {
 
     this.queries = []
     this.keys = []
+    this.fieldExtensions = []
   }
 
   /**
@@ -178,16 +180,82 @@ export class TypeExtension {
     return this
   }
 
+  /**
+   * Extends a field of this type with additional federation directives
+   *
+   * @param field The name of the field to extend
+   */
+  public extendField(field: string): FieldExtension {
+    const fieldExtension = new FieldExtension(field)
+    this.fieldExtensions.push(fieldExtension)
+    return fieldExtension
+  }
+
   public toString(): string {
     const queries =
       this.queries.length > 0
         ? `{\n${this.queries.map(String).join('\n')}\n}`
         : ''
 
-    const directives =
+    const keys =
       this.keys.length > 0 ? this.keys.map((key) => ` \n  ${key}`) : ''
 
-    return `extend type ${this.name} ${directives}${queries}`
+    const fieldExtends =
+      this.fieldExtensions.length > 0
+        ? this.fieldExtensions.map((field) => `\n  ${field}`)
+        : ''
+
+    return `extend type ${this.name} ${keys}${fieldExtends}${queries}`
+  }
+}
+
+export class FieldExtension {
+  private name: string
+  private directives: string[]
+
+  constructor(name: string) {
+    this.name = name
+    this.directives = []
+  }
+
+  /**
+   * Adds an inaccessible directive to the field.
+   */
+  public inaccessible(): this {
+    this.directives.push(`inaccesible: true`)
+    return this
+  }
+
+  /**
+   * Adds a shareable directive to the field.
+   */
+  public shareable(): this {
+    this.directives.push(`shareable: true`)
+    return this
+  }
+
+  /**
+   * Adds a override directive to the field.
+   */
+  public override(from: string): this {
+    this.directives.push(`override: {from: "${from}"}`)
+    return this
+  }
+
+  /**
+   * Adds a provides directive to the field.
+   */
+  public provides(fields: string): this {
+    this.directives.push(`provides: {fields: "${fields}"}`)
+    return this
+  }
+
+  public toString(): string {
+    const directives = this.directives
+      .map((directive) => `${directive}`)
+      .join(', ')
+
+    return `  @extendField(name: "${this.name}", ${directives})`
   }
 }
 

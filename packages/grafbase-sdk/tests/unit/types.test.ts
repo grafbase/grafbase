@@ -453,4 +453,17 @@ describe('Type generator', () => {
   @key(fields: "id" resolvable: false)"
 `)
   })
+
+  it('can extend fields of types', () => {
+    g.extend('StripeCustomer', (extend) => {
+      extend.extendField('id').shareable().inaccessible()
+      extend.extendField('other').provides('id blah').override('Product')
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+"extend type StripeCustomer 
+    @extendField(name: "id", shareable: true, inaccesible: true),
+    @extendField(name: "other", provides: {fields: "id blah"}, override: {from: "Product"})"
+`)
+  })
 })
