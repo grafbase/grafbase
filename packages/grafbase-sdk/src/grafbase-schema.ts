@@ -404,22 +404,30 @@ export class SingleGraph {
    * @param type - Either a type if the given type is directly in the schema,
    *               or a string if extending an external type introspected from an
    *               external datasource.
-   * @param definition - A collection of queries to be added to the extension.
+   * @param definition - A collection of fields to be added to the extension
+   *                     or a builder function if extending with directives
    */
-  public extend(type: string | Type, definition: Record<string, QueryInput>) {
+  public extend(
+    type: string | Type,
+    definitionOrBuilder: Record<string, QueryInput> | DirectiveExtendFn
+  ) {
     const extension = new TypeExtension(type)
 
-    Object.entries(definition).forEach(([name, input]) => {
-      const query = new Query(name, input.returns, input.resolver)
+    if (typeof definitionOrBuilder === 'function') {
+      definitionOrBuilder(extension)
+    } else {
+      Object.entries(definitionOrBuilder).forEach(([name, input]) => {
+        const query = new Query(name, input.returns, input.resolver)
 
-      if (input.args != null) {
-        Object.entries(input.args).forEach(([name, type]) =>
-          query.argument(name, type)
-        )
-      }
+        if (input.args != null) {
+          Object.entries(input.args).forEach(([name, type]) =>
+            query.argument(name, type)
+          )
+        }
 
-      extension.query(query)
-    })
+        extension.query(query)
+      })
+    }
 
     this.extendedTypes.push(extension)
   }
@@ -496,3 +504,5 @@ export class FederatedGraph {
     return `\nextend schema @graph(type: federated)\n`
   }
 }
+
+export type DirectiveExtendFn = (extend: TypeExtension) => void
