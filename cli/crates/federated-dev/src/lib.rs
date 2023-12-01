@@ -49,6 +49,7 @@
 
 mod dev;
 mod error;
+mod report;
 mod subgraph;
 
 pub use error::Error;

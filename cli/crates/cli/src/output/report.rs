@@ -449,15 +449,8 @@ pub(crate) fn local_publish_command_failure(subgraph_name: &str, composition_err
              );
 }
 
-pub(crate) fn local_publish_command_success(subgraph_name: &str) {
-    println!(
-        "💾 Successfully published subgraph {} to the registry and composed",
-        watercolor!("{subgraph_name}", @BrightBlue)
-    );
-}
-
 pub(crate) fn publish_command_success(subgraph_name: &str) {
-    println!("🌐 {subgraph_name} published successfully");
+    println!("🧩 {subgraph_name} published successfully");
 }
 
 pub fn print_log_entry(
