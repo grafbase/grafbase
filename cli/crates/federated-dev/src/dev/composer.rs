@@ -6,7 +6,7 @@ use super::{
     bus::{ComposeBus, ComposeMessage, ComposeSchema, IntrospectSchema, RecomposeDescription, RemoveSubgraph},
     refresher::RefreshMessage,
 };
-use crate::error::Error;
+use crate::{error::Error, events::emit_event};
 use async_graphql_parser::parse_schema;
 use grafbase_graphql_introspection::introspect;
 use graphql_composition::{compose, Subgraphs};
@@ -115,11 +115,15 @@ impl Composer {
 
         let graph = match compose(&subgraphs).into_result() {
             Ok(graph) => {
-                eprintln!("Successfully composed schema after adding subgraph {name}.");
+                emit_event(crate::FederatedDevEvent::ComposeAfterAdditionSuccess {
+                    subgraph_name: name.clone(),
+                });
                 graph
             }
             Err(error) => {
-                eprintln!("Failed to compose schema after adding subgraph {name}.");
+                emit_event(crate::FederatedDevEvent::ComposeAfterAdditionFailure {
+                    subgraph_name: name.clone(),
+                });
                 responder
                     .send(Err(Error::composition(&error)))
                     .map_err(|_| Error::internal("compose channel is dead"))?;
@@ -166,19 +170,25 @@ impl Composer {
 
         match compose(&subgraphs).into_result() {
             Ok(graph) => {
-                eprintln!("Successfully composed schema after removing subgraph {subgraph_name}.");
+                emit_event(crate::FederatedDevEvent::ComposeAfterRemovalSuccess {
+                    subgraph_name: subgraph_name.clone(),
+                });
                 self.bus.send_graph(graph).await?
             }
             Err(error) => {
                 log::warn!("Recomposition failed: {error:?}");
-                eprintln!(
-                    "Failed to recompose schema after removal of subgraph {subgraph_name}. Errors:{}\n",
-                    error
-                        .iter_messages()
-                        .map(|msg| format!("- {msg}"))
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                );
+
+                let rendered_error = error
+                    .iter_messages()
+                    .map(|msg| format!("- {msg}"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                emit_event(crate::FederatedDevEvent::ComposeAfterRemovalFailure {
+                    subgraph_name: subgraph_name.clone(),
+                    rendered_error,
+                });
+
                 return Err(crate::Error::internal(
                     "Fatal: couldn't recompose existing subgraphs".to_string(),
                 ));

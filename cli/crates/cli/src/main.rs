@@ -144,6 +144,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Schema(cmd) => schema::schema(cmd),
         SubCommand::Publish(cmd) => {
             if cmd.dev {
+                report::publishing();
                 match federated_dev::add_subgraph(
                     &cmd.subgraph_name,
                     &cmd.url,
@@ -151,7 +152,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
                     cmd.headers().collect(),
                 ) {
                     Ok(_) => {
-                        report::local_publish_command_success(&cmd.subgraph_name);
+                        report::publish_command_success(&cmd.subgraph_name);
                         Ok(())
                     }
                     Err(federated_dev::Error::Internal(error)) => {
