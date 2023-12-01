@@ -510,12 +510,6 @@ fn test_render_empty() {
     let empty = super::from_sdl("type Query").unwrap();
     let actual = super::render_sdl(&empty).expect("valid");
     let expected = expect![[r#"
-        schema
-            @core(feature: "https://specs.apollo.dev/core/v1.0")
-            @core(feature: "https://specs.apollo.dev/join/v1.0") {
-            query: Query
-        }
-
         directive @core(feature: String!) repeatable on SCHEMA
 
         directive @join__owner(graph: join__Graph!) on OBJECT

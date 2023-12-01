@@ -1,9 +1,3 @@
-schema
-    @core(feature: "https://specs.apollo.dev/core/v1.0")
-    @core(feature: "https://specs.apollo.dev/join/v1.0") {
-    query: Query
-}
-
 directive @core(feature: String!) repeatable on SCHEMA
 
 directive @join__owner(graph: join__Graph!) on OBJECT
