@@ -15,6 +15,7 @@ pub mod directive;
 pub mod enum_type;
 pub mod experimental;
 pub mod extend_connector_types;
+pub mod extend_field;
 pub mod extend_query_and_mutation_types;
 pub mod federation;
 pub mod graph_directive;

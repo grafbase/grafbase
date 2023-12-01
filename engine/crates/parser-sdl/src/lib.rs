@@ -28,6 +28,7 @@ use rules::{
     directive::Directives,
     enum_type::EnumType,
     extend_connector_types::ExtendConnectorTypes,
+    extend_field::{ExtendFieldDirective, ExtendFieldVisitor},
     extend_query_and_mutation_types::ExtendQueryAndMutationTypes,
     federation::{
         ExternalDirective, FederationDirective, FederationDirectiveVisitor, InaccessibleDirective, KeyDirective,
@@ -156,7 +157,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<ProvidesDirective>()
         .with::<DeprecatedDirective>()
         .with::<InaccessibleDirective>()
-        .with::<TagDirective>();
+        .with::<TagDirective>()
+        .with::<ExtendFieldDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -350,7 +352,8 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(UniqueObjectFields)
         .with(CheckAllDirectivesAreKnown::default())
         .with(ExperimentalDirectiveVisitor)
-        .with(FederationDirectiveVisitor); // This will likely need moved.  Here'll do for now though
+        .with(FederationDirectiveVisitor) // This will likely need moved.  Here'll do for now though
+        .with(ExtendFieldVisitor);
 
     visit(&mut rules, ctx, schema);
 }

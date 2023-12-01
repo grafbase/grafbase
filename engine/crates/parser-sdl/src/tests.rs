@@ -676,7 +676,7 @@ fn test_name_clashes_dont_cause_panic() {
             id: ID!
         }
 
-        type UserInput {
+        input UserInput {
             id: ID!
         }
     ";
