@@ -73,7 +73,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
         if fields.peek().is_some() {
             if object.resolvable_keys.is_empty() {
-                sdl.push_str(" ");
+                sdl.push(' ');
             }
             sdl.push_str("{\n");
             for field in fields {
@@ -220,7 +220,7 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
         directive @join__graph(name: String!, url: String!) on ENUM_VALUE
     "#});
 
-    sdl.push_str("\n");
+    sdl.push('\n');
     Ok(())
 }
 
@@ -238,7 +238,7 @@ fn write_subgraphs_enum(graph: &FederatedGraphV1, sdl: &mut String) -> fmt::Resu
                 r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
             )?;
         }
-        sdl.push_str("}");
+        sdl.push('}');
     }
 
     sdl.push_str("\n\n");
