@@ -142,6 +142,7 @@ export class Type {
 export class TypeExtension {
   private name: string
   private queries: Query[]
+  private keys: FederationKey[]
 
   constructor(type: string | Type) {
     if (type instanceof Type) {
@@ -152,6 +153,7 @@ export class TypeExtension {
     }
 
     this.queries = []
+    this.keys = []
   }
 
   /**
@@ -165,14 +167,27 @@ export class TypeExtension {
     return this
   }
 
-  public toString(): string {
-    if (this.queries.length > 0) {
-      const queries = this.queries.map(String).join('\n')
+  /**
+   * Extends this type as a federation entity with the given key
+   *
+   * @param fields The fields that make up this key, in FieldSet format
+   * @param params The parameters for this key
+   */
+  public key(fields: string, params?: FederationKeyParameters): this {
+    this.keys.push(new FederationKey(fields, params))
+    return this
+  }
 
-      return `extend type ${this.name} {\n${queries}\n}`
-    } else {
-      return ''
-    }
+  public toString(): string {
+    const queries =
+      this.queries.length > 0
+        ? `{\n${this.queries.map(String).join('\n')}\n}`
+        : ''
+
+    const directives =
+      this.keys.length > 0 ? this.keys.map((key) => ` \n  ${key}`) : ''
+
+    return `extend type ${this.name} ${directives}${queries}`
   }
 }
 

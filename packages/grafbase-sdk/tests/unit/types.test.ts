@@ -442,4 +442,15 @@ describe('Type generator', () => {
       }"
 `)
   })
+
+  it('can extend types with keys', () => {
+    g.extend('StripeCustomer', (extend) => {
+      extend.key('id', { resolvable: false })
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+"extend type StripeCustomer  
+  @key(fields: "id" resolvable: false)"
+`)
+  })
 })
