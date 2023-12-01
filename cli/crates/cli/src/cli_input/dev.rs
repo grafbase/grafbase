@@ -35,7 +35,7 @@ impl DevCommand {
         let default_log_levels = if self.verbose {
             LogLevelFilters {
                 functions: LogLevelFilter::Debug,
-                graphql_operations: LogLevelFilter::Info,
+                graphql_operations: LogLevelFilter::Debug,
                 fetch_requests: LogLevelFilter::Debug,
             }
         } else {
