@@ -303,10 +303,10 @@ fn can_introsect_when_multiple_subgraphs() {
     }
 
     input InputObj {
+      id: ID
       string: String
       int: Int
       float: Float
-      id: ID
       annoyinglyOptionalStrings: [[String!]]!
       recursiveObject: InputObj
       recursiveObjectList: [InputObj!]!
