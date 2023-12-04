@@ -168,13 +168,9 @@ impl Hash for ConstValue {
 }
 
 impl ConstValue {
-    /// Check if this is neither a null or a list of null
+    /// Check if this is a null
     pub fn is_null(&self) -> bool {
-        match self {
-            ConstValue::Null => true,
-            ConstValue::List(vals) => !vals.iter().any(|x| !x.is_null()),
-            _ => false,
-        }
+        matches!(self, ConstValue::Null)
     }
 
     /// Check the [`ConstValue`] is an array

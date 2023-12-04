@@ -12,3 +12,12 @@ impl<'a> InputValueWalker<'a> {
         self.walk(self.type_id)
     }
 }
+
+impl<'a> std::fmt::Debug for InputValueWalker<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InputValue")
+            .field("name", &self.name())
+            .field("ty", &self.ty())
+            .finish()
+    }
+}

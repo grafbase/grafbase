@@ -173,7 +173,10 @@ impl QueryBuilder {
                     .variables()
                     .get(name)
                     .expect("we just found it in the query so validation wouldn't have passed otherwise.");
-                variables.insert(name.to_string(), variable.value());
+
+                let Some(value) = variable.value() else { return Ok(()) };
+
+                variables.insert(name.to_string(), value);
                 if let Some(default_value) = variable.default_value() {
                     f(&format_args!(
                         "${name}: {ty} = {default_value}",

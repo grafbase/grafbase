@@ -222,6 +222,49 @@ fn can_run_2021_introspection_query() {
 }
 
 #[test]
+fn echo_subgraph_introspection() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+
+        engine
+            .execute(IntrospectionQuery::with_capabilities(
+                SpecificationVersion::October2021.capabilities(),
+            ))
+            .await
+    });
+    assert!(response.errors().is_empty(), "{response}");
+
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    input InputObj {
+      string: String
+      int: Int
+      float: Float
+      id: ID
+      annoyinglyOptionalStrings: [[String]]
+      recursiveObject: InputObj
+      recursiveObjectList: [InputObj!]
+    }
+
+    scalar JSON
+
+    type Query {
+      float(input: Float!): Float!
+      id(input: ID!): ID!
+      inputObject(input: InputObj!): JSON!
+      int(input: Int!): Int!
+      listOfInputObject(input: InputObj!): JSON!
+      listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
+      listOfStrings(input: [String!]!): [String!]!
+      optionalListOfOptionalStrings(input: [String]): [String]
+      string(input: String!): String!
+    }
+
+    "###);
+}
+
+#[test]
 fn can_run_capability_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
@@ -310,9 +353,9 @@ fn can_introsect_when_multiple_subgraphs() {
       string: String
       int: Int
       float: Float
-      annoyinglyOptionalStrings: [[String!]]
+      annoyinglyOptionalStrings: [[String]]
       recursiveObject: InputObj
-      recursiveObjectList: [InputObj!]!
+      recursiveObjectList: [InputObj!]
     }
 
     type Issue implements PullRequestOrIssue {
@@ -346,9 +389,10 @@ fn can_introsect_when_multiple_subgraphs() {
       id(input: ID!): ID!
       inputObject(input: InputObj!): JSON!
       int(input: Int!): Int!
+      listOfInputObject(input: InputObj!): JSON!
       listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
       listOfStrings(input: [String!]!): [String!]!
-      optionalListOfOptionalStrings(input: [[String!]]): [[String!]]
+      optionalListOfOptionalStrings(input: [String]): [String]
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!

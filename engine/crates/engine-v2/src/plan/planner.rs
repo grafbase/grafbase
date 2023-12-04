@@ -27,7 +27,7 @@ pub enum PlanningError {
         query_path: Vec<String>,
         missing: Vec<String>,
     },
-    #[error("Could satisfy required fields")]
+    #[error("Could not satisfy required fields")]
     CouldNotSatisfyRequires,
 }
 

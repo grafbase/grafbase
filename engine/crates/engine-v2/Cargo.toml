@@ -17,12 +17,14 @@ workspace = true
 async-runtime = { workspace = true }
 derive_more = "0.99"
 im = "15"
+indexmap.workspace = true
 lasso = "0.7"
 anyhow = "1"
 itertools.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde-value = "0.7"
+strum.workspace = true
 thiserror.workspace = true
 futures-util.workspace = true
 

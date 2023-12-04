@@ -1,4 +1,4 @@
-use async_graphql::{EmptyMutation, EmptySubscription, InputObject, Json, Object, ID};
+use async_graphql::{EmptyMutation, EmptySubscription, InputObject, Json, MaybeUndefined, Object, ID};
 
 /// A schema that just echoes stuff back at you.
 ///
@@ -36,23 +36,35 @@ impl Query {
 
     async fn optional_list_of_optional_strings(
         &self,
-        input: Option<Vec<Option<Vec<String>>>>,
-    ) -> Option<Vec<Option<Vec<String>>>> {
+        input: Option<Vec<Option<String>>>,
+    ) -> Option<Vec<Option<String>>> {
         input
     }
 
     async fn input_object(&self, input: InputObj) -> Json<InputObj> {
         Json(input)
     }
+
+    async fn list_of_input_object(&self, input: InputObj) -> Json<InputObj> {
+        Json(input)
+    }
 }
 
 #[derive(InputObject, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 struct InputObj {
-    string: Option<String>,
-    int: Option<u32>,
-    float: Option<f32>,
-    id: Option<ID>,
-    annoyingly_optional_strings: Option<Vec<Option<Vec<String>>>>,
-    recursive_object: Option<Box<InputObj>>,
-    recursive_object_list: Vec<InputObj>,
+    #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
+    string: MaybeUndefined<String>,
+    #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
+    int: MaybeUndefined<u32>,
+    #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
+    float: MaybeUndefined<f32>,
+    #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
+    id: MaybeUndefined<ID>,
+    #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
+    annoyingly_optional_strings: MaybeUndefined<Vec<Option<Vec<Option<String>>>>>,
+    #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
+    recursive_object: MaybeUndefined<Box<InputObj>>,
+    #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
+    recursive_object_list: MaybeUndefined<Vec<InputObj>>,
 }

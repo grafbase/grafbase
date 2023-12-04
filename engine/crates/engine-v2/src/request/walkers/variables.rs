@@ -19,8 +19,8 @@ impl<'a> VariablesWalker<'a> {
 }
 
 impl<'a> VariableWalker<'a> {
-    pub fn value(&self) -> &'a ConstValue {
-        &self.inner.value
+    pub fn value(&self) -> Option<&'a ConstValue> {
+        self.inner.value.as_ref()
     }
 
     pub fn type_name(&self) -> String {
