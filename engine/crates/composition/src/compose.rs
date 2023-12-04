@@ -82,7 +82,9 @@ fn merge_object_definitions<'a>(
         ));
     }
 
-    let object_id = ctx.insert_object(first.name(), is_inaccessible);
+    let description = definitions.iter().find_map(|def| def.description());
+
+    let object_id = ctx.insert_object(first.name(), is_inaccessible, description);
 
     for key in definitions
         .iter()
@@ -105,7 +107,8 @@ fn merge_union_definitions(
 ) {
     let union_name = first_union.name();
     let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
-    ctx.insert_union(union_name, is_inaccessible);
+    let description = definitions.iter().find_map(|def| def.description());
+    ctx.insert_union(union_name, is_inaccessible, description);
 
     for member in definitions
         .iter()

@@ -39,22 +39,32 @@ fn ingest_top_level_definitions(
         match definition {
             ast::TypeSystemDefinition::Type(type_definition) => {
                 let type_name = &type_definition.node.name.node;
+                let description = type_definition
+                    .node
+                    .description
+                    .as_ref()
+                    .map(|description| subgraphs.strings.intern(description.node.as_str()));
                 let definition_id = match &type_definition.node.kind {
                     ast::TypeKind::Object(_) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Object)
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Object, description)
                     }
                     ast::TypeKind::Interface(_interface_type) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Interface)
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Interface, description)
                     }
-                    ast::TypeKind::Union(_) => subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union),
+                    ast::TypeKind::Union(_) => {
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Union, description)
+                    }
                     ast::TypeKind::InputObject(_) => {
-                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::InputObject)
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::InputObject, description)
                     }
 
-                    ast::TypeKind::Scalar => subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Scalar),
+                    ast::TypeKind::Scalar => {
+                        subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Scalar, description)
+                    }
 
                     ast::TypeKind::Enum(enum_type) => {
-                        let definition_id = subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Enum);
+                        let definition_id =
+                            subgraphs.push_definition(subgraph_id, type_name, DefinitionKind::Enum, description);
                         enums::ingest_enum(definition_id, enum_type, subgraphs);
                         definition_id
                     }
@@ -98,6 +108,11 @@ fn ingest_definition_bodies(
                     let field_type = subgraphs.intern_field_type(&field.node.ty.node);
                     let deprecated = find_deprecated_directive(&field.node.directives, subgraphs);
                     let tags = find_tag_directives(&field.node.directives);
+                    let description = field
+                        .node
+                        .description
+                        .as_ref()
+                        .map(|description| subgraphs.strings.intern(description.node.as_str()));
                     subgraphs
                         .push_field(subgraphs::FieldIngest {
                             parent_definition_id: definition_id,
@@ -114,6 +129,7 @@ fn ingest_definition_bodies(
                             overrides: None,
                             deprecated,
                             tags,
+                            description,
                         })
                         .unwrap();
                 }
@@ -131,6 +147,11 @@ fn ingest_definition_bodies(
                     let field_type = subgraphs.intern_field_type(&field.node.ty.node);
                     let tags = find_tag_directives(&field.node.directives);
                     let deprecated = find_deprecated_directive(&field.node.directives, subgraphs);
+                    let description = field
+                        .node
+                        .description
+                        .as_ref()
+                        .map(|description| subgraphs.strings.intern(description.node.as_str()));
                     subgraphs
                         .push_field(subgraphs::FieldIngest {
                             parent_definition_id: definition_id,
@@ -147,6 +168,7 @@ fn ingest_definition_bodies(
                             overrides: None,
                             deprecated,
                             tags,
+                            description,
                         })
                         .unwrap();
                 }

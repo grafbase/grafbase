@@ -61,7 +61,8 @@ pub(crate) fn merge_entity_interface_definitions(
         }
     }
 
-    let interface_id = ctx.insert_interface(interface_name, is_inaccessible);
+    let description = interface_def.description();
+    let interface_id = ctx.insert_interface(interface_name, is_inaccessible, description);
 
     let mut fields = BTreeMap::new();
 
@@ -90,6 +91,7 @@ pub(crate) fn merge_entity_interface_definitions(
             requires: Vec::new(),
             composed_directives: Vec::new(),
             overrides: Vec::new(),
+            description: field.description().map(|description| ctx.insert_string(description.id)),
         });
     }
 
@@ -129,6 +131,7 @@ pub(crate) fn merge_entity_interface_definitions(
         }
 
         for field in definition.fields() {
+            let description = field.description().map(|description| ctx.insert_string(description.id));
             fields.entry(field.name().id).or_insert_with(|| ir::FieldIr {
                 parent_name: definition.name().id,
                 field_name: field.name().id,
@@ -153,6 +156,7 @@ pub(crate) fn merge_entity_interface_definitions(
                 requires: Vec::new(),
                 composed_directives: Vec::new(),
                 overrides: Vec::new(),
+                description,
             });
         }
     }
@@ -185,6 +189,7 @@ pub(crate) fn merge_entity_interface_definitions(
             requires,
             composed_directives,
             overrides,
+            description,
         } in fields.values()
         {
             ctx.insert_field(ir::FieldIr {
@@ -197,6 +202,7 @@ pub(crate) fn merge_entity_interface_definitions(
                 requires: requires.clone(),
                 composed_directives: composed_directives.clone(),
                 overrides: overrides.clone(),
+                description: *description,
             });
         }
     }

@@ -1,0 +1,47 @@
+type Tofu @shareable {
+  id: ID!
+  name: String!
+  type: TofuType
+  nutrition: Nutrition
+  recipes(filter: RecipeFilter): [Recipe]
+  texture: TextureProfile
+}
+
+type Nutrition @shareable {
+  calories: Int
+  protein: Float
+  fat: Float
+}
+
+enum TofuType {
+  SILKEN
+  FIRM
+  EXTRA_FIRM
+}
+
+input RecipeFilter {
+  minProtein: Float
+  maxCalories: Int
+}
+
+type Recipe @shareable {
+  id: ID!
+  name: String!
+  description: String
+  tofuType: TofuType
+  ingredients: [FoodItem]
+}
+
+scalar TextureProfile
+
+union FoodItem = Tofu | Vegetable | Spice
+
+type Vegetable @shareable {
+  name: String
+  nutrition: Nutrition
+}
+
+type Spice @shareable {
+  name: String
+  flavorDescription: String
+}

@@ -17,6 +17,10 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     for scalar in &graph.scalars {
         let name = &graph[scalar.name];
 
+        if let Some(description) = scalar.description {
+            write!(sdl, "{}", Description(&graph[description], ""))?;
+        }
+
         if BUILTIN_SCALARS.contains(&name.as_str()) {
             continue;
         }
@@ -34,6 +38,10 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for (idx, object) in graph.objects.iter().enumerate() {
         let object_name = &graph[object.name];
+
+        if let Some(description) = object.description {
+            write!(sdl, "{}", Description(&graph[description], ""))?;
+        }
 
         sdl.push_str("type ");
         sdl.push_str(object_name);
@@ -87,6 +95,10 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
         let interface_name = &graph[interface.name];
         write!(sdl, "interface {interface_name}")?;
 
+        if let Some(description) = interface.description {
+            write!(sdl, "{}", Description(&graph[description], ""))?;
+        }
+
         if !interface.implements_interfaces.is_empty() {
             sdl.push_str(" implements ");
 
@@ -136,12 +148,22 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for r#enum in &graph.enums {
         let enum_name = &graph[r#enum.name];
+
+        if let Some(description) = r#enum.description {
+            write!(sdl, "{}", Description(&graph[description], ""))?;
+        }
+
         write!(sdl, "enum {enum_name}")?;
         write_composed_directives(&r#enum.composed_directives, graph, &mut sdl)?;
         sdl.push_str(" {\n");
 
         for value in &r#enum.values {
             let value_name = &graph[value.value];
+
+            if let Some(description) = value.description {
+                write!(sdl, "{}", Description(&graph[description], INDENT))?;
+            }
+
             write!(sdl, "{INDENT}{value_name}")?;
 
             for directive in &value.composed_directives {
@@ -158,6 +180,11 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for union in &graph.unions {
         let union_name = &graph[r#union.name];
+
+        if let Some(description) = union.description {
+            write!(sdl, "{}", Description(&graph[description], ""))?;
+        }
+
         write!(sdl, "union {union_name}")?;
         write_composed_directives(&union.composed_directives, graph, &mut sdl)?;
         sdl.push_str(" = ");
@@ -177,6 +204,10 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for input_object in &graph.input_objects {
         let name = &graph[input_object.name];
+
+        if let Some(description) = input_object.description {
+            write!(sdl, "{}", Description(&graph[description], ""))?;
+        }
 
         write!(sdl, "input {name}")?;
 
@@ -249,6 +280,10 @@ fn write_input_field(field: &InputObjectField, graph: &FederatedGraphV1, sdl: &m
     let field_name = &graph[field.name];
     let field_type = render_field_type(&graph[field.field_type_id], graph);
 
+    if let Some(description) = field.description {
+        write!(sdl, "{}", Description(&graph[description], INDENT))?;
+    }
+
     write!(sdl, "{INDENT}{field_name}: {field_type}")?;
 
     write_composed_directives(&field.composed_directives, graph, sdl)?;
@@ -262,6 +297,10 @@ fn write_field(field_id: FieldId, graph: &FederatedGraphV1, sdl: &mut String) ->
     let field_name = &graph[field.name];
     let field_type = render_field_type(&graph[field.field_type_id], graph);
     let args = render_field_arguments(&field.arguments, graph);
+
+    if let Some(description) = field.description {
+        write!(sdl, "{}", Description(&graph[description], INDENT))?;
+    }
 
     write!(sdl, "{INDENT}{field_name}{args}: {field_type}")?;
 
@@ -499,6 +538,22 @@ impl Display for ValueDisplay<'_> {
             Value::Object(_) => todo!(),
             Value::List(_) => todo!(),
         }
+    }
+}
+
+struct Description<'a>(&'a str, &'a str);
+
+impl Display for Description<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Description(description, indentation) = self;
+
+        writeln!(f, r#"{indentation}""""#)?;
+
+        for line in description.lines() {
+            writeln!(f, r#"{indentation}{line}"#)?;
+        }
+
+        writeln!(f, r#"{indentation}""""#)
     }
 }
 

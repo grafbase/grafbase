@@ -179,6 +179,9 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
     }
 
     let overrides = collect_overrides(fields, ctx);
+    let description = fields
+        .iter()
+        .find_map(|f| f.description().map(|d| ctx.insert_string(d.id)));
 
     ctx.insert_field(ir::FieldIr {
         parent_name: first.parent_definition().name().id,
@@ -190,6 +193,7 @@ pub(super) fn compose_object_fields<'a>(first: FieldWalker<'a>, fields: &[FieldW
         requires,
         composed_directives,
         overrides,
+        description,
     });
 }
 

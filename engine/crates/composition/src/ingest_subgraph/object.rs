@@ -58,6 +58,11 @@ pub(super) fn ingest_fields(
                 _ => None,
             });
 
+        let description = field
+            .description
+            .as_ref()
+            .map(|description| subgraphs.strings.intern(description.node.as_str()));
+
         let deprecated = super::find_deprecated_directive(&field.directives, subgraphs);
         let overrides = find_override_directive(&field.directives, subgraphs, federation_directives_matcher);
         let tags = super::find_tag_directives(&field.directives);
@@ -75,6 +80,7 @@ pub(super) fn ingest_fields(
                 deprecated,
                 tags,
                 overrides,
+                description,
             })
             .unwrap();
 
