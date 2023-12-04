@@ -20,6 +20,8 @@ fn graphql_test_with_transforms() {
           id: ID!
         }
 
+        scalar CustomRepoId
+
         type Header {
           name: String!
           value: String!
@@ -43,6 +45,7 @@ fn graphql_test_with_transforms() {
         }
 
         type Query {
+          favoriteRepository: CustomRepoId!
           serverVersion: String!
           pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
           botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
