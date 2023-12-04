@@ -421,14 +421,21 @@ fn render_field_arguments(args: &[FieldArgument], graph: &FederatedGraphV1) -> S
     } else {
         let mut inner = args
             .iter()
-            .map(|arg| (&graph[arg.name], render_field_type(&graph[arg.type_id], graph)))
+            .map(|arg| {
+                let name = &graph[arg.name];
+                let r#type = render_field_type(&graph[arg.type_id], graph);
+                let directives = &arg.composed_directives;
+                (name, r#type, directives)
+            })
             .peekable();
         let mut out = String::from('(');
 
-        while let Some((name, ty)) = inner.next() {
+        while let Some((name, ty, directives)) = inner.next() {
             out.push_str(name);
             out.push_str(": ");
             out.push_str(&ty);
+
+            write_composed_directives(directives, graph, &mut out).unwrap();
 
             if inner.peek().is_some() {
                 out.push_str(", ");

@@ -1,0 +1,53 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    APPLE @join__graph(name: "apple", url: "http://example.com/apple")
+    ORANGE @join__graph(name: "orange", url: "http://example.com/orange")
+}
+
+scalar Texture @tag(name: "appleTexture") @tag(name: "orangeTexture")
+
+type Query @tag(name: "appleQuery") @tag(name: "orangeQuery") {
+    tags(filter: String @tag(name: "appleTagsFilter") @tag(name: "orangeTagsFilter")): [String] @tag(name: "appleField") @tag(name: "orangeField")
+}
+
+type Apple implements HasId @tag(name: "appleType") {
+    id: ID! @join__field(graph: APPLE)
+    variety: AppleVariety @join__field(graph: APPLE)
+    texture: Texture @join__field(graph: APPLE)
+}
+
+type Orange implements HasId @tag(name: "orangeType") {
+    id: ID! @join__field(graph: ORANGE)
+    variety: String @join__field(graph: ORANGE)
+    texture: Texture @join__field(graph: ORANGE)
+}
+
+interface HasId @tag(name: "appleInterface") @tag(name: "orangeInterface") {
+    id: ID! @tag(name: "appleField") @tag(name: "orangeField")
+}
+
+enum AppleVariety @tag(name: "appleEnum") {
+    FUJI
+    GRANNY_SMITH
+    HONEYCRISP @tag(name: "appleEnumValue")
+}
+
+input Filter @tag(name: "appleInput") @tag(name: "orangeInput") {
+    value: String @tag(name: "appleInputField") @tag(name: "orangeInputField")
+}

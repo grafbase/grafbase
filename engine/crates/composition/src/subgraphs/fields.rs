@@ -162,6 +162,19 @@ impl<'a> FieldWalker<'a> {
             })
     }
 
+    pub(crate) fn argument_by_name(self, name: StringId) -> Option<FieldArgumentWalker<'a>> {
+        let (FieldId(definition_id, field_name), _tuple) = self.id;
+        let argument_id = ArgumentId(definition_id, field_name, name);
+        self.subgraphs
+            .fields
+            .field_arguments
+            .get(&argument_id)
+            .map(|tuple| FieldArgumentWalker {
+                id: (argument_id, *tuple),
+                subgraphs: self.subgraphs,
+            })
+    }
+
     pub(crate) fn description(self) -> Option<StringWalker<'a>> {
         let (_, tuple) = self.id;
         tuple.description.map(|id| self.walk(id))

@@ -7,13 +7,8 @@ pub(super) fn merge_field_arguments<'a>(
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
 ) -> Vec<ir::ArgumentIr> {
-    let mut intersection: Vec<_> = first.arguments().map(|arg| arg.name().id).collect();
+    let mut intersection: Vec<StringId> = first.arguments().map(|arg| arg.name().id).collect();
     let mut buf = HashSet::new();
-    let inaccessible_arguments: HashSet<_> = fields
-        .iter()
-        .filter(|f| f.directives().inaccessible())
-        .map(|f| f.name().id)
-        .collect();
 
     for field in &fields[1..] {
         buf.clear();
@@ -36,20 +31,22 @@ pub(super) fn merge_field_arguments<'a>(
         ));
     }
 
-    first
-        .arguments()
-        .filter(|arg| intersection.contains(&arg.name().id))
-        .map(|arg| ir::ArgumentIr {
-            argument_name: arg.name().id,
-            argument_type: arg.r#type().id,
-            composed_directives: if inaccessible_arguments.contains(&arg.name().id) {
-                vec![federated::Directive {
-                    name: ctx.insert_static_str("inaccessible"),
-                    arguments: Vec::new(),
-                }]
-            } else {
-                Vec::new()
-            },
+    intersection
+        .into_iter()
+        .map(|argument_name| {
+            let argument_type = first.argument_by_name(argument_name).unwrap().r#type().id;
+            let directive_containers = fields
+                .iter()
+                .filter_map(|field| field.argument_by_name(argument_name))
+                .map(|arg| arg.directives());
+
+            let composed_directives = collect_composed_directives(directive_containers, ctx);
+
+            ir::ArgumentIr {
+                argument_name,
+                argument_type,
+                composed_directives,
+            }
         })
         .collect()
 }

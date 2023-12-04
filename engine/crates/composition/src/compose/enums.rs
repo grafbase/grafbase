@@ -3,23 +3,22 @@ use std::collections::HashSet;
 use super::*;
 use crate::subgraphs::{StringId, Subgraphs};
 
-pub(super) fn merge_enum_definitions(
-    first: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
-    ctx: &mut Context<'_>,
+pub(super) fn merge_enum_definitions<'a>(
+    first: &DefinitionWalker<'a>,
+    definitions: &[DefinitionWalker<'a>],
+    ctx: &mut Context<'a>,
 ) {
     let enum_name = first.name().id;
-    let is_inaccessible = definitions
-        .iter()
-        .any(|definition| definition.directives().inaccessible());
+    let directive_containers = definitions.iter().map(|def| def.directives());
+    let composed_directives = collect_composed_directives(directive_containers, ctx);
 
     match (
         enum_is_used_in_input(enum_name, ctx.subgraphs),
         enum_is_used_in_return_position(enum_name, ctx.subgraphs),
     ) {
-        (true, false) => merge_intersection(first, definitions, is_inaccessible, ctx),
-        (false, true) => merge_union(first, definitions, is_inaccessible, ctx),
-        (true, true) => merge_exactly_matching(first, definitions, is_inaccessible, ctx),
+        (true, false) => merge_intersection(first, definitions, composed_directives, ctx),
+        (false, true) => merge_union(first, definitions, composed_directives, ctx),
+        (true, true) => merge_exactly_matching(first, definitions, composed_directives, ctx),
         (false, false) => {
             // The enum isn't used at all, omit it from the federated graph
         }
@@ -55,11 +54,11 @@ fn enum_is_used_in_return_position(enum_name: StringId, subgraphs: &Subgraphs) -
         .any(|field| field.r#type().type_name().id == enum_name)
 }
 
-fn merge_intersection(
-    first: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
-    is_inaccessible: bool,
-    ctx: &mut Context<'_>,
+fn merge_intersection<'a>(
+    first: &DefinitionWalker<'a>,
+    definitions: &[DefinitionWalker<'a>],
+    composed_directives: Vec<federated::Directive>,
+    ctx: &mut Context<'a>,
 ) {
     let description = definitions.iter().find_map(|def| def.description());
     let mut intersection: Vec<StringId> = first.enum_values().map(|value| value.name().id).collect();
@@ -78,41 +77,58 @@ fn merge_intersection(
         ));
     }
 
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
+    let enum_id = ctx.insert_enum(first.name(), description, composed_directives);
 
     for value in intersection {
-        let deprecation = definitions
+        let containers = definitions
             .iter()
-            .find_map(|def| {
-                def.enum_value_by_name(value)
-                    .and_then(|val| val.directives().deprecated())
-            })
-            .map(|dep| dep.reason());
-
-        ctx.insert_enum_value(enum_id, first.walk(value), deprecation, None);
+            .filter_map(|enm| enm.enum_value_by_name(value))
+            .map(|value| value.directives());
+        let composed_directives = collect_composed_directives(containers, ctx);
+        ctx.insert_enum_value(enum_id, first.walk(value), None, composed_directives);
     }
 }
 
-fn merge_union(
-    first: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
-    is_inaccessible: bool,
-    ctx: &mut Context<'_>,
+fn merge_union<'a>(
+    first: &DefinitionWalker<'a>,
+    definitions: &[DefinitionWalker<'a>],
+    composed_directives: Vec<federated::Directive>,
+    ctx: &mut Context<'a>,
 ) {
     let description = definitions.iter().find_map(|def| def.description());
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
+    let enum_id = ctx.insert_enum(first.name(), description, composed_directives);
+    let mut all_values: Vec<(StringId, _)> = definitions
+        .iter()
+        .flat_map(|def| def.enum_values().map(|value| (value.name().id, value.directives().id)))
+        .collect();
 
-    for value in definitions.iter().flat_map(|def| def.enum_values()) {
-        let deprecation = value.directives().deprecated().map(|dep| dep.reason());
-        ctx.insert_enum_value(enum_id, value.name(), deprecation, None);
+    all_values.sort();
+
+    let mut start = 0;
+
+    loop {
+        let name = all_values[start].0;
+        let end = all_values[start..].partition_point(|(n, _)| *n == name) + start;
+        let containers = all_values[start..end]
+            .iter()
+            .map(|(_, directives)| first.walk(*directives));
+        let composed_directives = collect_composed_directives(containers, ctx);
+
+        ctx.insert_enum_value(enum_id, first.walk(name), None, composed_directives);
+
+        if end == all_values.len() {
+            break;
+        } else {
+            start = end;
+        }
     }
 }
 
-fn merge_exactly_matching(
-    first: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
-    is_inaccessible: bool,
-    ctx: &mut Context<'_>,
+fn merge_exactly_matching<'a>(
+    first: &DefinitionWalker<'a>,
+    definitions: &[DefinitionWalker<'a>],
+    composed_directives: Vec<federated::Directive>,
+    ctx: &mut Context<'a>,
 ) {
     let expected: Vec<_> = first.enum_values().map(|v| v.name().id).collect();
 
@@ -127,14 +143,15 @@ fn merge_exactly_matching(
     }
 
     let description = definitions.iter().find_map(|def| def.description());
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
+    let enum_id = ctx.insert_enum(first.name(), description, composed_directives);
 
     for value in expected {
-        let deprecated = definitions
+        let containers = definitions
             .iter()
-            .find_map(|def| def.enum_value_by_name(value))
-            .and_then(|val| val.directives().deprecated().map(|dep| dep.reason()));
-        ctx.insert_enum_value(enum_id, first.walk(value), deprecated, None);
+            .filter_map(|enm| enm.enum_value_by_name(value))
+            .map(|value| value.directives());
+        let composed_directives = collect_composed_directives(containers, ctx);
+        ctx.insert_enum_value(enum_id, first.walk(value), None, composed_directives);
     }
 }
 

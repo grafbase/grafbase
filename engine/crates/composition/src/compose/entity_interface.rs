@@ -1,15 +1,13 @@
 use super::*;
 use crate::composition_ir as ir;
 
-pub(crate) fn merge_entity_interface_definitions(
-    ctx: &mut Context<'_>,
-    first: DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
+pub(crate) fn merge_entity_interface_definitions<'a>(
+    ctx: &mut Context<'a>,
+    first: DefinitionWalker<'a>,
+    definitions: &[DefinitionWalker<'a>],
 ) {
     let interface_name = first.name();
-    let is_inaccessible = definitions
-        .iter()
-        .any(|definition| definition.directives().inaccessible());
+    let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
     let interface_defs = || definitions.iter().filter(|def| def.kind() == DefinitionKind::Interface);
     let mut interfaces = interface_defs();
@@ -64,7 +62,7 @@ pub(crate) fn merge_entity_interface_definitions(
     }
 
     let description = interface_def.description();
-    let interface_id = ctx.insert_interface(interface_name, is_inaccessible, description);
+    let interface_id = ctx.insert_interface(interface_name, description, composed_directives);
 
     let mut fields = BTreeMap::new();
 
