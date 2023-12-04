@@ -7,6 +7,10 @@ impl Diagnostics {
         self.0.iter().any(|diagnostic| diagnostic.is_fatal)
     }
 
+    pub(crate) fn clone_all_from(&mut self, other: &Diagnostics) {
+        self.0.extend(other.0.iter().cloned())
+    }
+
     /// Iterate over all diagnostic messages.
     pub fn iter_messages(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|diagnostic| diagnostic.message.as_str())
@@ -21,7 +25,7 @@ impl Diagnostics {
 }
 
 /// A composition diagnostic.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Diagnostic {
     message: String,
     /// Should this diagnostic be interpreted as a composition failure?

@@ -1,4 +1,5 @@
 mod context;
+mod directives;
 mod entity_interface;
 mod enums;
 mod input_object;
@@ -8,10 +9,10 @@ mod scalar;
 
 pub(crate) use self::context::Context as ComposeContext;
 
-use self::{context::Context, input_object::*};
+use self::{context::Context, directives::collect_composed_directives, input_object::*};
 use crate::{
     composition_ir as ir,
-    subgraphs::{DefinitionKind, DefinitionWalker, FieldWalker, StringId},
+    subgraphs::{self, DefinitionKind, DefinitionWalker, FieldWalker, StringId},
 };
 use graphql_federated_graph as federated;
 use itertools::Itertools;
@@ -46,13 +47,10 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
 }
 
 fn merge_object_definitions<'a>(
-    ctx: &mut Context<'_>,
+    ctx: &mut Context<'a>,
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
 ) {
-    let is_inaccessible = definitions
-        .iter()
-        .any(|definition| definition.directives().inaccessible());
     let is_shareable = definitions.iter().any(|definition| definition.directives().shareable());
 
     if let Some(incompatible) = definitions
@@ -90,8 +88,9 @@ fn merge_object_definitions<'a>(
     }
 
     let description = definitions.iter().find_map(|def| def.description());
+    let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
-    let object_id = ctx.insert_object(first.name(), is_inaccessible, description);
+    let object_id = ctx.insert_object(first.name(), description, composed_directives);
 
     for key in definitions
         .iter()

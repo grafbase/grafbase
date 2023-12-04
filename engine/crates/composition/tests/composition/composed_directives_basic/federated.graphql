@@ -23,7 +23,7 @@ enum join__Graph {
 
 scalar DateTime
 
-type Bird {
+type Bird @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
     id: ID!
     name: String!
     species: String!
@@ -54,8 +54,8 @@ type ObserverDetails {
     observerType: ObserverType! @join__field(graph: OBSERVATIONS)
 }
 
-type BirdSighting {
-    bird: Bird! @join__field(graph: SIGHTINGS)
+type BirdSighting @deprecated(reason: "we haven't seen any birds in a while :(") {
+    bird: Bird! @join__field(graph: SIGHTINGS) @pelagic
     sightingID: ID! @join__field(graph: SIGHTINGS)
     observer: String! @join__field(graph: SIGHTINGS)
     weatherConditions: String @join__field(graph: SIGHTINGS)

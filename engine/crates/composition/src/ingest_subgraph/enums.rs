@@ -4,7 +4,7 @@ pub(super) fn ingest_enum(
     definition_id: DefinitionId,
     enum_type: &ast::EnumType,
     subgraphs: &mut Subgraphs,
-    federation_directives_matcher: &FederationDirectivesMatcher<'_>,
+    federation_directives_matcher: &DirectiveMatcher<'_>,
 ) {
     for value in &enum_type.values {
         let value_name = subgraphs.strings.intern(value.node.value.node.as_str());
