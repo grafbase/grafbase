@@ -1,16 +1,15 @@
 use super::*;
-use crate::{
-    composition_ir as ir,
-    subgraphs::{FieldId, StringId},
-};
 
 pub(super) fn merge_interface_definitions(
     ctx: &mut Context<'_>,
     first: &DefinitionWalker<'_>,
     definitions: &[DefinitionWalker<'_>],
 ) {
-    let mut all_fields: indexmap::IndexMap<StringId, FieldId> = indexmap::IndexMap::new();
-    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
+    let mut all_fields: indexmap::IndexMap<StringId, _> = indexmap::IndexMap::new();
+    let is_inaccessible = definitions
+        .iter()
+        .any(|definition| definition.directives().inaccessible());
+
     let interface_description = definitions.iter().find_map(|def| def.description());
 
     for field in definitions.iter().flat_map(|def| def.fields()) {

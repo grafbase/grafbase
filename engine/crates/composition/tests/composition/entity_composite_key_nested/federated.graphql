@@ -23,7 +23,7 @@ enum join__Graph {
 type Query {
     patient(id: ID!): Patient @join__field(graph: PATIENT_INFO)
     patients: [Patient] @join__field(graph: PATIENT_INFO)
-    patientRecord(patientId: ID!, recordId: ID!): PatientRecord @join__field(graph: PATIENT_RECORD)
+    patientRecord(recordId: ID!, patientId: ID!): PatientRecord @join__field(graph: PATIENT_RECORD)
     patientRecords: [PatientRecord] @join__field(graph: PATIENT_RECORD)
 }
 

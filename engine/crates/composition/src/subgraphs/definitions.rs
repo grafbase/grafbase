@@ -3,6 +3,11 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DefinitionId(pub(super) usize);
 
+impl DefinitionId {
+    pub(crate) const MIN: DefinitionId = DefinitionId(usize::MIN);
+    pub(crate) const MAX: DefinitionId = DefinitionId(usize::MAX);
+}
+
 // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
 #[derive(Default, Debug)]
 pub(crate) struct Definitions {
@@ -17,10 +22,7 @@ pub(crate) struct Definition {
     name: StringId,
     kind: DefinitionKind,
     description: Option<StringId>,
-    is_shareable: bool,
-    is_external: bool,
-    is_inaccessible: bool,
-    is_interface_object: bool,
+    directives: DirectiveContainerId,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -47,28 +49,13 @@ impl Subgraphs {
         self.definitions.interface_impls.iter().copied()
     }
 
-    pub(crate) fn set_external(&mut self, definition_id: DefinitionId) {
-        self.definitions.definitions[definition_id.0].is_external = true;
-    }
-
-    pub(crate) fn set_interface_object(&mut self, definition_id: DefinitionId) {
-        self.definitions.definitions[definition_id.0].is_interface_object = true;
-    }
-
-    pub(crate) fn set_shareable(&mut self, definition_id: DefinitionId) {
-        self.definitions.definitions[definition_id.0].is_shareable = true;
-    }
-
-    pub(crate) fn set_inaccessible(&mut self, definition_id: DefinitionId) {
-        self.definitions.definitions[definition_id.0].is_inaccessible = true;
-    }
-
     pub(crate) fn push_definition(
         &mut self,
         subgraph_id: SubgraphId,
         name: &str,
         kind: DefinitionKind,
         description: Option<StringId>,
+        directives: DirectiveContainerId,
     ) -> DefinitionId {
         let name = self.strings.intern(name);
         let definition = Definition {
@@ -76,10 +63,7 @@ impl Subgraphs {
             name,
             kind,
             description,
-            is_shareable: false,
-            is_external: false,
-            is_inaccessible: false,
-            is_interface_object: false,
+            directives,
         };
         let id = DefinitionId(self.definitions.definitions.push_return_idx(definition));
         self.definition_names.insert((name, subgraph_id), id);
@@ -121,24 +105,12 @@ impl<'a> DefinitionWalker<'a> {
         self.definition().description.map(|id| self.walk(id))
     }
 
-    pub fn is_interface_object(self) -> bool {
-        self.definition().is_interface_object
-    }
-
-    pub fn is_shareable(self) -> bool {
-        self.definition().is_shareable
-    }
-
-    pub fn is_external(self) -> bool {
-        self.definition().is_external
-    }
-
-    pub fn is_inaccessible(self) -> bool {
-        self.definition().is_inaccessible
-    }
-
-    pub fn subgraph(self) -> SubgraphWalker<'a> {
+    pub(crate) fn subgraph(self) -> SubgraphWalker<'a> {
         self.walk(self.definition().subgraph_id)
+    }
+
+    pub(crate) fn directives(self) -> DirectiveContainerWalker<'a> {
+        self.walk(self.definition().directives)
     }
 }
 

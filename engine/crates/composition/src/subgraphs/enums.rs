@@ -2,35 +2,55 @@ use super::*;
 
 #[derive(Default)]
 pub(super) struct Enums {
-    values: BTreeSet<(DefinitionId, StringId)>,
-    // (enum name, enum value) -> deprecation
-    deprecated: HashMap<(StringId, StringId), Deprecation>,
+    values: BTreeMap<(DefinitionId, StringId), DirectiveContainerId>,
 }
 
 impl Subgraphs {
-    pub(crate) fn get_enum_value_deprecation(&self, path: (StringId, StringId)) -> Option<Option<StringWalker<'_>>> {
-        self.enums
-            .deprecated
-            .get(&path)
-            .map(|deprecation| deprecation.reason.map(|reason| self.walk(reason)))
-    }
-
-    pub(crate) fn push_enum_value(&mut self, enum_id: DefinitionId, enum_value: StringId) {
-        self.enums.values.insert((enum_id, enum_value));
-    }
-
-    pub(crate) fn deprecate_enum_value(&mut self, path: (StringId, StringId), reason: Deprecation) {
-        self.enums.deprecated.insert(path, reason);
+    pub(crate) fn push_enum_value(
+        &mut self,
+        enum_id: DefinitionId,
+        enum_value: StringId,
+        directives: DirectiveContainerId,
+    ) {
+        self.enums.values.insert((enum_id, enum_value), directives);
     }
 }
 
 impl<'a> DefinitionWalker<'a> {
-    pub(crate) fn enum_values(self) -> impl Iterator<Item = StringId> + 'a {
+    pub(crate) fn enum_value_by_name(self, name: StringId) -> Option<EnumValueWalker<'a>> {
+        self.subgraphs
+            .enums
+            .values
+            .get(&(self.id, name))
+            .map(|directives| EnumValueWalker {
+                id: (self.id, name, *directives),
+                subgraphs: self.subgraphs,
+            })
+    }
+
+    pub(crate) fn enum_values(self) -> impl Iterator<Item = EnumValueWalker<'a>> + 'a {
         let id = self.id;
         self.subgraphs
             .enums
             .values
             .range((id, StringId::MIN)..(id, StringId::MAX))
-            .map(|(_, value)| *value)
+            .map(|((enum_id, value_name), directives)| EnumValueWalker {
+                id: (*enum_id, *value_name, *directives),
+                subgraphs: self.subgraphs,
+            })
+    }
+}
+
+pub(crate) type EnumValueWalker<'a> = Walker<'a, (DefinitionId, StringId, DirectiveContainerId)>;
+
+impl<'a> EnumValueWalker<'a> {
+    pub(crate) fn name(self) -> StringWalker<'a> {
+        let (_enum_id, value_name, _directives) = self.id;
+        self.walk(value_name)
+    }
+
+    pub(crate) fn directives(self) -> DirectiveContainerWalker<'a> {
+        let (_enum_id, _value_name, directives) = self.id;
+        self.walk(directives)
     }
 }
