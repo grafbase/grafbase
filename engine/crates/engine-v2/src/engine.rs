@@ -13,12 +13,32 @@ pub struct Engine {
     // We use an Arc for the schema to have a self-contained response which may still
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
+
+    // Cloudflare Workers only.
+    // Domain requests against which should be routed through a service binding.
+    #[cfg(feature = "cf-workers")]
+    pub(crate) self_domain_configuration: Option<(String, send_wrapper::SendWrapper<worker::Fetcher>)>,
 }
 
 impl Engine {
     pub fn new(schema: Schema) -> Self {
+        #[cfg(feature = "cf-workers")]
+        return Self {
+            schema: Arc::new(schema),
+            self_domain_configuration: None,
+        };
+
+        #[cfg(not(feature = "cf-workers"))]
+        return Self {
+            schema: Arc::new(schema),
+        };
+    }
+
+    #[cfg(feature = "cf-workers")]
+    pub fn new_with_self_domain_routing(schema: Schema, self_domain: String, service: worker::Fetcher) -> Self {
         Self {
             schema: Arc::new(schema),
+            self_domain_configuration: Some((self_domain, send_wrapper::SendWrapper::new(service))),
         }
     }
 
