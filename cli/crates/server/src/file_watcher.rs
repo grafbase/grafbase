@@ -66,7 +66,7 @@ const EXTENSION_WHITELIST: &[&str] = &[
     "js", "ts", "jsx", "tsx", "mjs", "mts", "wasm", "cjs", "json", "yaml", "yml",
 ];
 const DIRECTORY_BLACKLIST: &[&str] = &[DOT_GRAFBASE_DIRECTORY_NAME, "node_modules", "generated"];
-const ROOT_WHITELIST: &[&str] = &[GRAFBASE_DIRECTORY_NAME, "resolvers"];
+const ROOT_WHITELIST: &[&str] = &[GRAFBASE_DIRECTORY_NAME, "resolvers", "auth"];
 
 fn should_handle_change(path: &Path, root: &Path) -> bool {
     is_whitelisted_root_file(path, root)
@@ -127,6 +127,7 @@ fn test_should_handle_change() {
         "schema.graphql",
         "grafbase/file.yml",
         "resolvers/file.js",
+        "auth/file.js",
         ".env",
     ];
 
