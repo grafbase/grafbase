@@ -64,6 +64,9 @@ pub struct Object {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -115,6 +118,9 @@ pub struct Field {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -122,6 +128,8 @@ pub struct FieldArgument {
     pub name: StringId,
     pub type_id: FieldTypeId,
     pub composed_directives: Vec<Directive>,
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -215,6 +223,9 @@ pub struct Interface {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -230,6 +241,9 @@ pub struct Enum {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -238,6 +252,9 @@ pub struct EnumValue {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -247,6 +264,9 @@ pub struct Union {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -255,6 +275,9 @@ pub struct Scalar {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -264,6 +287,9 @@ pub struct InputObject {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -271,6 +297,8 @@ pub struct InputObjectField {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
     pub composed_directives: Vec<Directive>,
+    #[serde(default)]
+    pub description: Option<StringId>,
 }
 
 macro_rules! id_newtypes {

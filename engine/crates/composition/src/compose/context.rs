@@ -23,7 +23,7 @@ impl<'a> Context<'a> {
         };
 
         for builtin_scalar in subgraphs.iter_builtin_scalars() {
-            context.insert_scalar(builtin_scalar, false);
+            context.insert_scalar(builtin_scalar, false, None);
         }
 
         context
@@ -37,8 +37,15 @@ impl<'a> Context<'a> {
         self.ir
     }
 
-    pub(crate) fn insert_enum(&mut self, enum_name: StringWalker<'_>, is_inaccessible: bool) -> federated::EnumId {
+    pub(crate) fn insert_enum(
+        &mut self,
+        enum_name: StringWalker<'_>,
+        is_inaccessible: bool,
+        description: Option<StringWalker<'_>>,
+    ) -> federated::EnumId {
         let name = self.ir.insert_string(enum_name);
+        let description = description.map(|description| self.ir.insert_string(description));
+
         let composed_directives = if is_inaccessible {
             vec![federated::Directive {
                 name: self.insert_static_str("inaccessible"),
@@ -47,10 +54,12 @@ impl<'a> Context<'a> {
         } else {
             Vec::new()
         };
+
         let r#enum = federated::Enum {
             name,
             values: Vec::new(),
             composed_directives,
+            description,
         };
         let id = federated::EnumId(self.ir.enums.push_return_idx(r#enum));
         self.ir
@@ -64,8 +73,36 @@ impl<'a> Context<'a> {
         enum_id: federated::EnumId,
         value: StringWalker<'_>,
         deprecation: Option<Option<StringWalker<'_>>>,
+        description: Option<StringWalker<'_>>,
     ) {
-        self.ir.insert_enum_value(enum_id, value, deprecation);
+        let mut composed_directives = Vec::new();
+
+        if let Some(deprecation) = deprecation {
+            let arguments = match deprecation {
+                Some(reason) => vec![(
+                    self.insert_static_str("reason"),
+                    federated::Value::String(self.ir.insert_string(reason)),
+                )],
+                None => Vec::new(),
+            };
+            let name = self.insert_static_str("deprecated");
+
+            composed_directives.push(federated::Directive { name, arguments });
+        }
+
+        let value = self.ir.insert_string(value);
+        let description = description.map(|description| self.ir.insert_string(description));
+        let r#enum = &mut self.ir.enums[enum_id.0];
+
+        if r#enum.values.iter().any(|v| v.value == value) {
+            return;
+        }
+
+        r#enum.values.push(federated::EnumValue {
+            value,
+            composed_directives,
+            description,
+        });
     }
 
     pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) -> federated::FieldId {
@@ -76,8 +113,10 @@ impl<'a> Context<'a> {
         &mut self,
         input_object_name: StringWalker<'_>,
         is_inaccessible: bool,
+        description: Option<StringWalker<'_>>,
     ) -> federated::InputObjectId {
         let name = self.ir.insert_string(input_object_name);
+        let description = description.map(|description| self.ir.insert_string(description));
         let object = federated::InputObject {
             name,
             fields: Vec::new(),
@@ -89,6 +128,7 @@ impl<'a> Context<'a> {
             } else {
                 Vec::new()
             },
+            description,
         };
         let id = federated::InputObjectId(self.ir.input_objects.push_return_idx(object));
         self.ir
@@ -101,8 +141,10 @@ impl<'a> Context<'a> {
         &mut self,
         interface_name: StringWalker<'_>,
         is_inaccessible: bool,
+        description: Option<StringWalker<'_>>,
     ) -> federated::InterfaceId {
         let name = self.ir.insert_string(interface_name);
+        let description = description.map(|description| self.ir.insert_string(description));
         let mut composed_directives = Vec::new();
 
         if is_inaccessible {
@@ -117,6 +159,7 @@ impl<'a> Context<'a> {
             implements_interfaces: Vec::new(),
             resolvable_keys: Vec::new(),
             composed_directives,
+            description,
         };
         let id = federated::InterfaceId(self.ir.interfaces.push_return_idx(interface));
         self.ir
@@ -135,12 +178,52 @@ impl<'a> Context<'a> {
             .insert_resolvable_key(federated::Definition::Interface(id), key, is_interface_object);
     }
 
-    pub(crate) fn insert_object(&mut self, name: StringWalker<'_>, is_inaccessible: bool) -> federated::ObjectId {
-        self.ir.insert_object(name, is_inaccessible)
+    pub(crate) fn insert_object(
+        &mut self,
+        object_name: StringWalker<'_>,
+        is_inaccessible: bool,
+        description: Option<StringWalker<'_>>,
+    ) -> federated::ObjectId {
+        let name = self.ir.insert_string(object_name);
+        let description = description.map(|description| self.ir.insert_string(description));
+        let mut composed_directives = Vec::new();
+        if is_inaccessible {
+            composed_directives.push(federated::Directive {
+                name: self.insert_static_str("inaccessible"),
+                arguments: Vec::new(),
+            });
+        }
+        let object = federated::Object {
+            name,
+            implements_interfaces: Vec::new(),
+            resolvable_keys: Vec::new(),
+            composed_directives,
+            description,
+        };
+        let id = federated::ObjectId(self.ir.objects.push_return_idx(object));
+        self.ir
+            .definitions_by_name
+            .insert(object_name.id, federated::Definition::Object(id));
+
+        // FIXME: Those roots probably shouldn't be hardcoded.
+        match object_name.as_str() {
+            "Query" => self.ir.query_type = Some(id),
+            "Mutation" => self.ir.mutation_type = Some(id),
+            "Subscription" => self.ir.subscription_type = Some(id),
+            _ => (),
+        }
+
+        id
     }
 
-    pub(crate) fn insert_scalar(&mut self, scalar_name: StringWalker<'_>, is_inaccessible: bool) {
+    pub(crate) fn insert_scalar(
+        &mut self,
+        scalar_name: StringWalker<'_>,
+        is_inaccessible: bool,
+        description: Option<StringWalker<'_>>,
+    ) {
         let name = self.ir.insert_string(scalar_name);
+        let description = description.map(|description| self.ir.insert_string(description));
         let mut composed_directives = Vec::new();
 
         if is_inaccessible {
@@ -153,6 +236,7 @@ impl<'a> Context<'a> {
         let scalar = federated::Scalar {
             name,
             composed_directives,
+            description,
         };
 
         let id = federated::ScalarId(self.ir.scalars.push_return_idx(scalar));
@@ -161,8 +245,15 @@ impl<'a> Context<'a> {
             .insert(scalar_name.id, federated::Definition::Scalar(id));
     }
 
-    pub(crate) fn insert_union(&mut self, union_name: StringWalker<'_>, is_inaccessible: bool) -> federated::UnionId {
+    pub(crate) fn insert_union(
+        &mut self,
+        union_name: StringWalker<'_>,
+        is_inaccessible: bool,
+        description: Option<StringWalker<'_>>,
+    ) -> federated::UnionId {
         let name = self.ir.insert_string(union_name);
+        let description = description.map(|description| self.ir.insert_string(description));
+
         let composed_directives = if is_inaccessible {
             vec![federated::Directive {
                 name: self.insert_static_str("inaccessible"),
@@ -175,6 +266,7 @@ impl<'a> Context<'a> {
             name,
             members: Vec::new(),
             composed_directives,
+            description,
         };
         let id = federated::UnionId(self.ir.unions.push_return_idx(union));
         self.ir

@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  The API platform for developers
+  The GraphQL platform
 </p>
 
 <p align="center">
@@ -20,5 +20,5 @@
 </p>
 
 <p align="center">
-  Connect your APIs, databases and microservices and deploy a globally fast GraphQL API in minutes
+  Connect APIs, databases and microservices and deploy a GraphQL API to production in minutes
 </p>

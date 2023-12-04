@@ -7,7 +7,9 @@ pub(crate) fn merge_entity_interface_definitions(
     definitions: &[DefinitionWalker<'_>],
 ) {
     let interface_name = first.name();
-    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
+    let is_inaccessible = definitions
+        .iter()
+        .any(|definition| definition.directives().inaccessible());
 
     let interface_defs = || definitions.iter().filter(|def| def.kind() == DefinitionKind::Interface);
     let mut interfaces = interface_defs();
@@ -51,7 +53,7 @@ pub(crate) fn merge_entity_interface_definitions(
                 ));
             }
 
-            if interface.is_interface_object() {
+            if interface.directives().interface_object() {
                 ctx.diagnostics.push_fatal(format!(
                     "[{}] The @interfaceObject directive is not valid on interfaces (on `{}`).",
                     interface.subgraph().name().as_str(),
@@ -61,7 +63,8 @@ pub(crate) fn merge_entity_interface_definitions(
         }
     }
 
-    let interface_id = ctx.insert_interface(interface_name, is_inaccessible);
+    let description = interface_def.description();
+    let interface_id = ctx.insert_interface(interface_name, is_inaccessible, description);
 
     let mut fields = BTreeMap::new();
 
@@ -73,9 +76,9 @@ pub(crate) fn merge_entity_interface_definitions(
             arguments: field
                 .arguments()
                 .map(|arg| ir::ArgumentIr {
-                    argument_name: arg.argument_name().id,
-                    argument_type: arg.argument_type().id,
-                    composed_directives: if arg.is_inaccessible() {
+                    argument_name: arg.name().id,
+                    argument_type: arg.r#type().id,
+                    composed_directives: if arg.directives().inaccessible() {
                         vec![federated::Directive {
                             name: ctx.insert_static_str("inaccessible"),
                             arguments: Vec::new(),
@@ -90,6 +93,7 @@ pub(crate) fn merge_entity_interface_definitions(
             requires: Vec::new(),
             composed_directives: Vec::new(),
             overrides: Vec::new(),
+            description: field.description().map(|description| ctx.insert_string(description.id)),
         });
     }
 
@@ -107,7 +111,7 @@ pub(crate) fn merge_entity_interface_definitions(
 
     // Each object has to have @interfaceObject and the same key as the entity interface.
     for definition in definitions.iter().filter(|def| def.kind() == DefinitionKind::Object) {
-        if !definition.is_interface_object() {
+        if !definition.directives().interface_object() {
             ctx.diagnostics.push_fatal(format!(
                 "`{}` is an entity interface but the object type `{}` is missing the @interfaceObject directive in the `{}` subgraph.",
                 definition.name().as_str(),
@@ -129,6 +133,7 @@ pub(crate) fn merge_entity_interface_definitions(
         }
 
         for field in definition.fields() {
+            let description = field.description().map(|description| ctx.insert_string(description.id));
             fields.entry(field.name().id).or_insert_with(|| ir::FieldIr {
                 parent_name: definition.name().id,
                 field_name: field.name().id,
@@ -136,9 +141,9 @@ pub(crate) fn merge_entity_interface_definitions(
                 arguments: field
                     .arguments()
                     .map(|arg| ir::ArgumentIr {
-                        argument_name: arg.argument_name().id,
-                        argument_type: arg.argument_type().id,
-                        composed_directives: if arg.is_inaccessible() {
+                        argument_name: arg.name().id,
+                        argument_type: arg.r#type().id,
+                        composed_directives: if arg.directives().inaccessible() {
                             vec![federated::Directive {
                                 name: ctx.insert_static_str("inaccessible"),
                                 arguments: Vec::new(),
@@ -153,6 +158,7 @@ pub(crate) fn merge_entity_interface_definitions(
                 requires: Vec::new(),
                 composed_directives: Vec::new(),
                 overrides: Vec::new(),
+                description,
             });
         }
     }
@@ -185,6 +191,7 @@ pub(crate) fn merge_entity_interface_definitions(
             requires,
             composed_directives,
             overrides,
+            description,
         } in fields.values()
         {
             ctx.insert_field(ir::FieldIr {
@@ -197,6 +204,7 @@ pub(crate) fn merge_entity_interface_definitions(
                 requires: requires.clone(),
                 composed_directives: composed_directives.clone(),
                 overrides: overrides.clone(),
+                description: *description,
             });
         }
     }

@@ -9,7 +9,9 @@ pub(super) fn merge_enum_definitions(
     ctx: &mut Context<'_>,
 ) {
     let enum_name = first.name().id;
-    let is_inaccessible = definitions.iter().any(|definition| definition.is_inaccessible());
+    let is_inaccessible = definitions
+        .iter()
+        .any(|definition| definition.directives().inaccessible());
 
     match (
         enum_is_used_in_input(enum_name, ctx.subgraphs),
@@ -28,13 +30,12 @@ pub(super) fn merge_enum_definitions(
 fn enum_is_used_in_input(enum_name: StringId, subgraphs: &Subgraphs) -> bool {
     let in_field_arguments = || {
         subgraphs
-            .iter_fields()
-            .flat_map(|field| field.arguments())
-            .any(|arg| arg.argument_type().type_name().id == enum_name)
+            .iter_all_field_arguments()
+            .any(|arg| arg.r#type().type_name().id == enum_name)
     };
     let in_input_type_fields = || {
         subgraphs
-            .iter_fields()
+            .iter_all_fields()
             .filter(|field| field.parent_definition().kind() == DefinitionKind::InputObject)
             .any(|field| field.r#type().type_name().id == enum_name)
     };
@@ -44,7 +45,7 @@ fn enum_is_used_in_input(enum_name: StringId, subgraphs: &Subgraphs) -> bool {
 /// Returns whether the enum is returned by a field anywhere.
 fn enum_is_used_in_return_position(enum_name: StringId, subgraphs: &Subgraphs) -> bool {
     subgraphs
-        .iter_fields()
+        .iter_all_fields()
         .filter(|field| {
             matches!(
                 field.parent_definition().kind(),
@@ -60,12 +61,13 @@ fn merge_intersection(
     is_inaccessible: bool,
     ctx: &mut Context<'_>,
 ) {
-    let mut intersection: Vec<StringId> = first.enum_values().collect();
+    let description = definitions.iter().find_map(|def| def.description());
+    let mut intersection: Vec<StringId> = first.enum_values().map(|value| value.name().id).collect();
     let mut scratch = HashSet::new();
 
     for definition in definitions {
         scratch.clear();
-        scratch.extend(definition.enum_values());
+        scratch.extend(definition.enum_values().map(|val| val.name().id));
         intersection.retain(|elem| scratch.contains(elem));
     }
 
@@ -76,11 +78,18 @@ fn merge_intersection(
         ));
     }
 
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
 
     for value in intersection {
-        let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));
-        ctx.insert_enum_value(enum_id, first.walk(value), deprecation);
+        let deprecation = definitions
+            .iter()
+            .find_map(|def| {
+                def.enum_value_by_name(value)
+                    .and_then(|val| val.directives().deprecated())
+            })
+            .map(|dep| dep.reason());
+
+        ctx.insert_enum_value(enum_id, first.walk(value), deprecation, None);
     }
 }
 
@@ -90,11 +99,12 @@ fn merge_union(
     is_inaccessible: bool,
     ctx: &mut Context<'_>,
 ) {
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
+    let description = definitions.iter().find_map(|def| def.description());
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
 
     for value in definitions.iter().flat_map(|def| def.enum_values()) {
-        let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));
-        ctx.insert_enum_value(enum_id, first.walk(value), deprecation);
+        let deprecation = value.directives().deprecated().map(|dep| dep.reason());
+        ctx.insert_enum_value(enum_id, value.name(), deprecation, None);
     }
 }
 
@@ -104,10 +114,10 @@ fn merge_exactly_matching(
     is_inaccessible: bool,
     ctx: &mut Context<'_>,
 ) {
-    let expected: Vec<_> = first.enum_values().collect();
+    let expected: Vec<_> = first.enum_values().map(|v| v.name().id).collect();
 
     for definition in definitions {
-        if !is_slice_match(&expected, definition.enum_values()) {
+        if !is_slice_match(&expected, definition.enum_values().map(|v| v.name().id)) {
             ctx.diagnostics.push_fatal(format!(
                 "The enum {} should match exactly in all subgraphs, but it does not",
                 first.name().as_str()
@@ -116,11 +126,15 @@ fn merge_exactly_matching(
         }
     }
 
-    let enum_id = ctx.insert_enum(first.name(), is_inaccessible);
+    let description = definitions.iter().find_map(|def| def.description());
+    let enum_id = ctx.insert_enum(first.name(), is_inaccessible, description);
 
     for value in expected {
-        let deprecation = ctx.subgraphs.get_enum_value_deprecation((first.name().id, value));
-        ctx.insert_enum_value(enum_id, first.walk(value), deprecation);
+        let deprecated = definitions
+            .iter()
+            .find_map(|def| def.enum_value_by_name(value))
+            .and_then(|val| val.directives().deprecated().map(|dep| dep.reason()));
+        ctx.insert_enum_value(enum_id, first.walk(value), deprecated, None);
     }
 }
 

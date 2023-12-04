@@ -114,7 +114,8 @@ pub(crate) struct NestedKeyFields {
 
 impl NestedKeyFields {
     pub(crate) fn insert(&mut self, field: FieldWalker<'_>) {
-        self.fields.insert(field.id);
+        let (id, _) = field.id;
+        self.fields.insert(id);
         self.objects_with_nested_keys.insert(field.parent_definition().id);
     }
 }
@@ -181,11 +182,11 @@ impl<'a> FieldWalker<'a> {
     /// Returns true iff there is an `@key` directive containing this field, possibly with others
     /// as part of a composite key.
     pub(crate) fn is_part_of_key(self) -> bool {
-        let field = self.field();
+        let (field_id @ FieldId(_, field_name), _) = self.id;
         self.parent_definition()
             .entity_keys()
             .flat_map(|key| key.fields().iter())
-            .any(|key_field| key_field.field == field.name)
-            || self.subgraphs.keys.nested_key_fields.fields.contains(&self.id)
+            .any(|key_field| key_field.field == field_name)
+            || self.subgraphs.keys.nested_key_fields.fields.contains(&field_id)
     }
 }

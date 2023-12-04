@@ -1,4 +1,6 @@
-use async_graphql::{EmptyMutation, EmptySubscription, InputObject, Interface, Object, SimpleObject, Union, ID};
+use async_graphql::{
+    scalar, EmptyMutation, EmptySubscription, InputObject, Interface, Object, SimpleObject, Union, ID,
+};
 
 pub struct FakeGithubSchema;
 
@@ -33,8 +35,23 @@ struct Query {
     headers: Vec<(String, String)>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct CustomRepoId {
+    owner: String,
+    name: String,
+}
+
+scalar!(CustomRepoId);
+
 #[Object]
 impl Query {
+    async fn favorite_repository(&self) -> CustomRepoId {
+        CustomRepoId {
+            owner: "rust-lang".to_string(),
+            name: "rust".to_string(),
+        }
+    }
+
     // A top level scalar field for testing
     async fn server_version(&self) -> &str {
         "1"

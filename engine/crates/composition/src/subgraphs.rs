@@ -1,4 +1,5 @@
 mod definitions;
+mod directives;
 mod enums;
 mod field_types;
 mod fields;
@@ -9,6 +10,7 @@ mod walkers;
 
 pub(crate) use self::{
     definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
+    directives::*,
     field_types::*,
     fields::*,
     keys::*,
@@ -18,7 +20,7 @@ pub(crate) use self::{
 
 use crate::VecExt;
 use itertools::Itertools;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 /// A set of subgraphs to be composed.
 #[derive(Default)]
@@ -26,6 +28,7 @@ pub struct Subgraphs {
     pub(super) strings: strings::Strings,
     subgraphs: Vec<Subgraph>,
     definitions: definitions::Definitions,
+    directives: directives::Directives,
     enums: enums::Enums,
     fields: fields::Fields,
     field_types: field_types::FieldTypes,
@@ -40,12 +43,6 @@ pub struct Subgraphs {
     //
     // (definition name, subgraph_id) -> definition id
     definition_names: BTreeMap<(StringId, SubgraphId), DefinitionId>,
-
-    // We want a set and not a map, because each name corresponds to one _or more_ fields (in
-    // different subgrahs). And a BTreeSet because we need range queries.
-    //
-    // `(definition name, field name, field id)`
-    field_names: BTreeSet<(StringId, StringId, FieldId)>,
 }
 
 impl Subgraphs {
@@ -66,26 +63,6 @@ impl Subgraphs {
                     .into_iter()
                     .map(move |(_, definition_id)| self.walk(*definition_id)),
             );
-            compose_fn(&buf);
-        }
-    }
-
-    /// Iterate over groups of fields to compose. The fields are grouped by parent type name and
-    /// field name. The argument is a closure that receives each group as an argument. The order of
-    /// iteration is deterministic but unspecified.
-    pub(crate) fn iter_field_groups<'a>(
-        &'a self,
-        parent_name: StringId,
-        mut compose_fn: impl FnMut(&[FieldWalker<'a>]),
-    ) {
-        let mut buf = Vec::new();
-        for (_, group) in &self
-            .field_names
-            .range((parent_name, StringId::MIN, FieldId::MIN)..(parent_name, StringId::MAX, FieldId::MAX))
-            .group_by(|(_, field_name, _)| field_name)
-        {
-            buf.clear();
-            buf.extend(group.into_iter().map(|(_, _, field_id)| self.walk(*field_id)));
             compose_fn(&buf);
         }
     }

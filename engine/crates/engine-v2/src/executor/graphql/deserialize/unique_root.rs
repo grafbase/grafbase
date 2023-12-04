@@ -66,7 +66,10 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for UniqueRootSeed<'ctx, 'parent> {
                         });
                     }
                 }
-                _ => (),
+                _ => {
+                    // Discarding data.
+                    map.next_value::<serde::de::IgnoredAny>()?;
+                }
             };
         }
         Ok(())

@@ -443,10 +443,10 @@ pub enum DataType {
 }
 
 impl DataType {
-    pub fn from_scalar_name(name: &str) -> Option<DataType> {
-        DataType::from_str(name).ok().or(match name {
-            "ID" => Some(DataType::String),
-            _ => None,
+    pub fn from_scalar_name(name: &str) -> DataType {
+        DataType::from_str(name).ok().unwrap_or(match name {
+            "ID" => DataType::String,
+            _ => DataType::JSON,
         })
     }
 }

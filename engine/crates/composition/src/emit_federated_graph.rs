@@ -90,6 +90,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
         requires,
         composed_directives,
         overrides,
+        description,
     } in ir_fields
     {
         let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
@@ -100,6 +101,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                 name: ctx.insert_string(ctx.subgraphs.walk(argument.argument_name)),
                 type_id: ctx.insert_field_type(ctx.subgraphs.walk(argument.argument_type)),
                 composed_directives: argument.composed_directives.clone(),
+                description,
             })
             .collect();
 
@@ -115,13 +117,14 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                     requires: Vec::new(),
                     resolvable_in,
                     composed_directives,
+                    description,
                 };
 
                 let id = federated::FieldId(ctx.out.fields.push_return_idx(field));
 
                 for (subgraph_id, definition, provides) in provides.iter().filter_map(|field_id| {
-                    let field = ctx.subgraphs.walk(*field_id);
-                    field.provides().map(|provides| {
+                    let field = ctx.subgraphs.walk_field(*field_id);
+                    field.directives().provides().map(|provides| {
                         (
                             federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
                             ctx.definitions[&field.r#type().type_name().id],
@@ -133,8 +136,8 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                 }
 
                 for (subgraph_id, provides) in requires.iter().filter_map(|field_id| {
-                    let field = ctx.subgraphs.walk(*field_id);
-                    field.requires().map(|provides| {
+                    let field = ctx.subgraphs.walk_field(*field_id);
+                    field.directives().requires().map(|provides| {
                         (
                             federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
                             provides,
@@ -161,6 +164,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                     name: field_name,
                     field_type_id,
                     composed_directives,
+                    description,
                 });
             }
             _ => unreachable!(),

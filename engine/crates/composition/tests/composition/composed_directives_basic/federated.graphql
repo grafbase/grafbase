@@ -68,8 +68,8 @@ enum ObserverType {
 }
 
 input BirdObservationFilters {
-    observerName: String
-    observerType: ObserverType
     observedAt: DateTime
+    observerType: ObserverType
+    observerName: String
     first: Int
 }
