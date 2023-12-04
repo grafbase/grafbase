@@ -22,7 +22,7 @@ pub(crate) struct Definition {
     name: StringId,
     kind: DefinitionKind,
     description: Option<StringId>,
-    directives: DirectiveContainerId,
+    directives: DirectiveSiteId,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -45,8 +45,27 @@ impl Subgraphs {
         self.definition_by_name_id(interned_name, subgraph_id).unwrap()
     }
 
+    pub(crate) fn iter_definitions_with_name(
+        &self,
+        name: StringId,
+    ) -> impl Iterator<Item = (SubgraphId, DefinitionId)> + '_ {
+        self.definition_names
+            .range((name, SubgraphId::MIN)..(name, SubgraphId::MAX))
+            .map(|((_, subgraph_id), definition_id)| (*subgraph_id, *definition_id))
+    }
+
     pub(crate) fn iter_interface_impls(&self) -> impl Iterator<Item = (StringId, StringId)> + '_ {
         self.definitions.interface_impls.iter().copied()
+    }
+
+    pub(crate) fn iter_implementers_for_interface(
+        &self,
+        interface_name: StringId,
+    ) -> impl Iterator<Item = StringId> + '_ {
+        self.definitions
+            .interface_impls
+            .range((interface_name, StringId::MIN)..(interface_name, StringId::MAX))
+            .map(|(_, implementer)| *implementer)
     }
 
     pub(crate) fn push_definition(
@@ -55,7 +74,7 @@ impl Subgraphs {
         name: &str,
         kind: DefinitionKind,
         description: Option<StringId>,
-        directives: DirectiveContainerId,
+        directives: DirectiveSiteId,
     ) -> DefinitionId {
         let name = self.strings.intern(name);
         let definition = Definition {
@@ -109,7 +128,7 @@ impl<'a> DefinitionWalker<'a> {
         self.walk(self.definition().subgraph_id)
     }
 
-    pub(crate) fn directives(self) -> DirectiveContainerWalker<'a> {
+    pub(crate) fn directives(self) -> DirectiveSiteWalker<'a> {
         self.walk(self.definition().directives)
     }
 }

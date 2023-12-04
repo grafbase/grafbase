@@ -2,7 +2,7 @@ use super::*;
 use std::{borrow::Cow, collections::BTreeSet};
 
 pub(super) fn ingest_directives(
-    directives: DirectiveContainerId,
+    directives: DirectiveSiteId,
     directives_node: &[Positioned<ast::ConstDirective>],
     subgraphs: &mut Subgraphs,
     directive_matcher: &DirectiveMatcher<'_>,

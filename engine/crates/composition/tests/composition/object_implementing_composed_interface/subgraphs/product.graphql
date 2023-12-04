@@ -1,0 +1,28 @@
+type Query {
+  getDessert: PuddingDessert
+}
+
+interface Edible {
+  id: ID!
+  name: String!
+  isVegan: Boolean!
+}
+
+interface Perishable {
+  expirationDate: String!
+  storageTemperature: Float!
+  originCountry: String!
+  packageType: String!
+}
+
+type PuddingDessert implements Edible & Perishable {
+  id: ID!
+  name: String!
+  isVegan: Boolean!
+  expirationDate: String!
+  storageTemperature: Float!
+  originCountry: String!
+  packageType: String!
+  flavor: String!
+  texture: String!
+}

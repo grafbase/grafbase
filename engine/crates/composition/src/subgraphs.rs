@@ -114,6 +114,9 @@ pub(crate) struct Subgraph {
 pub(crate) struct SubgraphId(usize);
 
 impl SubgraphId {
+    pub(crate) const MIN: SubgraphId = SubgraphId(usize::MIN);
+    pub(crate) const MAX: SubgraphId = SubgraphId(usize::MAX);
+
     pub(crate) fn idx(self) -> usize {
         self.0
     }

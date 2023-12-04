@@ -80,11 +80,11 @@ fn merge_intersection<'a>(
     let enum_id = ctx.insert_enum(first.name(), description, composed_directives);
 
     for value in intersection {
-        let containers = definitions
+        let sites = definitions
             .iter()
             .filter_map(|enm| enm.enum_value_by_name(value))
             .map(|value| value.directives());
-        let composed_directives = collect_composed_directives(containers, ctx);
+        let composed_directives = collect_composed_directives(sites, ctx);
         ctx.insert_enum_value(enum_id, first.walk(value), None, composed_directives);
     }
 }
@@ -106,21 +106,17 @@ fn merge_union<'a>(
 
     let mut start = 0;
 
-    loop {
+    while start < all_values.len() {
         let name = all_values[start].0;
         let end = all_values[start..].partition_point(|(n, _)| *n == name) + start;
-        let containers = all_values[start..end]
+        let sites = all_values[start..end]
             .iter()
             .map(|(_, directives)| first.walk(*directives));
-        let composed_directives = collect_composed_directives(containers, ctx);
+        let composed_directives = collect_composed_directives(sites, ctx);
 
         ctx.insert_enum_value(enum_id, first.walk(name), None, composed_directives);
 
-        if end == all_values.len() {
-            break;
-        } else {
-            start = end;
-        }
+        start = end;
     }
 }
 
@@ -146,11 +142,11 @@ fn merge_exactly_matching<'a>(
     let enum_id = ctx.insert_enum(first.name(), description, composed_directives);
 
     for value in expected {
-        let containers = definitions
+        let sites = definitions
             .iter()
             .filter_map(|enm| enm.enum_value_by_name(value))
             .map(|value| value.directives());
-        let composed_directives = collect_composed_directives(containers, ctx);
+        let composed_directives = collect_composed_directives(sites, ctx);
         ctx.insert_enum_value(enum_id, first.walk(value), None, composed_directives);
     }
 }

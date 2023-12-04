@@ -6,11 +6,17 @@ interface FurbyType {
 }
 
 type Furby implements FurbyType & SocialFurby {
-    id: ID!
+  id: ID!
   languages: [String!]
   canSing: Boolean!
   canDance: Boolean!
   friends: [Furby!]
+  batteryType: String!
+  connectivity: String
+  sensorTypes: [String!]
+  color: String!
+  height: Float! # in centimeters
+  weight: Float! # in grams
 }
 
 interface SocialFurby {

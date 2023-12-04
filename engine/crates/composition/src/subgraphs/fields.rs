@@ -24,7 +24,7 @@ pub(crate) struct Fields {
 pub(crate) struct FieldTuple {
     r#type: FieldTypeId,
     description: Option<StringId>,
-    directives: DirectiveContainerId,
+    directives: DirectiveSiteId,
 }
 
 impl Subgraphs {
@@ -99,7 +99,7 @@ impl Subgraphs {
         FieldId(definition_id, field_name): FieldId,
         argument_name: StringId,
         r#type: FieldTypeId,
-        directives: DirectiveContainerId,
+        directives: DirectiveSiteId,
         description: Option<StringId>,
     ) {
         self.fields.field_arguments.insert(
@@ -135,7 +135,7 @@ pub(crate) struct FieldIngest<'a> {
     pub(crate) field_name: &'a str,
     pub(crate) field_type: FieldTypeId,
     pub(crate) description: Option<StringId>,
-    pub(crate) directives: DirectiveContainerId,
+    pub(crate) directives: DirectiveSiteId,
 }
 
 pub(crate) type FieldWalker<'a> = Walker<'a, (FieldId, FieldTuple)>;
@@ -180,7 +180,7 @@ impl<'a> FieldWalker<'a> {
         tuple.description.map(|id| self.walk(id))
     }
 
-    pub(crate) fn directives(self) -> DirectiveContainerWalker<'a> {
+    pub(crate) fn directives(self) -> DirectiveSiteWalker<'a> {
         let (_, tuple) = self.id;
         self.walk(tuple.directives)
     }
@@ -253,7 +253,7 @@ impl<'a> FieldArgumentWalker<'a> {
         self.walk(tuple.r#type)
     }
 
-    pub(crate) fn directives(&self) -> DirectiveContainerWalker<'a> {
+    pub(crate) fn directives(&self) -> DirectiveSiteWalker<'a> {
         let (_, tuple) = self.id;
         self.walk(tuple.directives)
     }

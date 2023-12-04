@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn collect_composed_directives<'a>(
-    containers: impl Iterator<Item = subgraphs::DirectiveContainerWalker<'a>> + Clone,
+    sites: impl Iterator<Item = subgraphs::DirectiveSiteWalker<'a>> + Clone,
     ctx: &mut ComposeContext<'_>,
 ) -> Vec<federated::Directive> {
     let mut tags: BTreeSet<StringId> = BTreeSet::new();
@@ -9,7 +9,7 @@ pub(super) fn collect_composed_directives<'a>(
     let mut extra_directives = BTreeSet::new();
     let mut composed_directives = Vec::new();
 
-    if let Some(deprecated) = containers.clone().find_map(|directives| directives.deprecated()) {
+    if let Some(deprecated) = sites.clone().find_map(|directives| directives.deprecated()) {
         composed_directives.push(federated::Directive {
             name: ctx.insert_static_str("deprecated"),
             arguments: deprecated
@@ -25,13 +25,13 @@ pub(super) fn collect_composed_directives<'a>(
         });
     }
 
-    for container in containers {
-        tags.extend(container.tags().map(|t| t.id));
+    for site in sites {
+        tags.extend(site.tags().map(|t| t.id));
 
         // The inaccessible directive is added whenever the item is inaccessible in any subgraph.
-        is_inaccessible = is_inaccessible || container.inaccessible();
+        is_inaccessible = is_inaccessible || site.inaccessible();
 
-        for (name, arguments) in container.iter_composed_directives() {
+        for (name, arguments) in site.iter_composed_directives() {
             let name = ctx.insert_string(name);
             let arguments = arguments
                 .iter()
