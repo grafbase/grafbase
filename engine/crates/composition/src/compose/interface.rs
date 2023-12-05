@@ -42,4 +42,33 @@ pub(super) fn merge_interface_definitions<'a>(
 
         start = end;
     }
+
+    all_fields.dedup_by_key(|(name, _)| *name);
+
+    check_implementers(first.name().id, all_fields.iter().map(|(name, _)| *name), ctx);
+}
+
+fn check_implementers(
+    interface_name: StringId,
+    field_names: impl Iterator<Item = StringId> + Clone,
+    ctx: &mut Context<'_>,
+) {
+    for implementer_name in ctx.subgraphs.iter_implementers_for_interface(interface_name) {
+        let field_names = field_names.clone();
+
+        for field_name in field_names {
+            if !ctx
+                .subgraphs
+                .iter_definitions_with_name(implementer_name)
+                .any(|(_, def)| ctx.subgraphs.walk(def).find_field(field_name).is_some())
+            {
+                ctx.diagnostics.push_fatal(format!(
+                    "The `{}.{}` field is not implemented by `{}`, but it should be.",
+                    ctx.subgraphs.walk(interface_name).as_str(),
+                    ctx.subgraphs.walk(field_name).as_str(),
+                    ctx.subgraphs.walk(implementer_name).as_str(),
+                ));
+            }
+        }
+    }
 }

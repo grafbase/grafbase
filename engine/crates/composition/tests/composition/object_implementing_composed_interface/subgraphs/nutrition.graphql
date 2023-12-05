@@ -1,0 +1,25 @@
+interface Edible {
+  id: ID!
+  calories: Int!
+}
+
+interface Perishable {
+  expirationDate: String!
+  storageTemperature: Float!
+  originCountry: String!
+  packageType: String!
+}
+
+type PuddingSnack implements Edible & Perishable {
+  id: ID!
+  name: String!
+  calories: Int!
+  isVegan: Boolean!
+  expirationDate: String!
+  storageTemperature: Float!
+  originCountry: String!
+  packageType: String!
+  servingSize: Int!
+  containsNuts: Boolean!
+}
+

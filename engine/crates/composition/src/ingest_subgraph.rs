@@ -8,7 +8,7 @@ mod nested_key_fields;
 
 use self::{directives::*, nested_key_fields::ingest_nested_key_fields};
 use crate::{
-    subgraphs::{self, DefinitionId, DefinitionKind, DirectiveContainerId, SubgraphId},
+    subgraphs::{self, DefinitionId, DefinitionKind, DirectiveSiteId, SubgraphId},
     Subgraphs,
 };
 use async_graphql_parser::{types as ast, Positioned};
@@ -46,7 +46,7 @@ fn ingest_top_level_definitions(
                     .as_ref()
                     .map(|description| subgraphs.strings.intern(description.node.as_str()));
 
-                let directives = subgraphs.new_directive_container();
+                let directives = subgraphs.new_directive_site();
 
                 let definition_id = match &type_definition.node.kind {
                     ast::TypeKind::Object(_) => subgraphs.push_definition(

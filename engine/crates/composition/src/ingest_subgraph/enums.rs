@@ -8,7 +8,7 @@ pub(super) fn ingest_enum(
 ) {
     for value in &enum_type.values {
         let value_name = subgraphs.strings.intern(value.node.value.node.as_str());
-        let value_directives = subgraphs.new_directive_container();
+        let value_directives = subgraphs.new_directive_site();
 
         subgraphs.push_enum_value(definition_id, value_name, value_directives);
 

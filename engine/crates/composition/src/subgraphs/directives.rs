@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct DirectiveContainerId(usize);
+pub(crate) struct DirectiveSiteId(usize);
 
 type Arguments = Vec<(StringId, Value)>;
 
@@ -18,26 +18,26 @@ pub(crate) enum Value {
 
 #[derive(Default)]
 pub(super) struct Directives {
-    container_id_counter: usize,
+    site_id_counter: usize,
 
-    deprecated: BTreeMap<DirectiveContainerId, Deprecated>,
-    r#override: BTreeMap<DirectiveContainerId, StringId>,
-    provides: BTreeMap<DirectiveContainerId, Vec<Selection>>,
-    requires: BTreeMap<DirectiveContainerId, Vec<Selection>>,
+    deprecated: BTreeMap<DirectiveSiteId, Deprecated>,
+    r#override: BTreeMap<DirectiveSiteId, StringId>,
+    provides: BTreeMap<DirectiveSiteId, Vec<Selection>>,
+    requires: BTreeMap<DirectiveSiteId, Vec<Selection>>,
 
-    inaccessible: HashSet<DirectiveContainerId>,
-    shareable: HashSet<DirectiveContainerId>,
-    external: HashSet<DirectiveContainerId>,
-    interface_object: HashSet<DirectiveContainerId>,
+    inaccessible: HashSet<DirectiveSiteId>,
+    shareable: HashSet<DirectiveSiteId>,
+    external: HashSet<DirectiveSiteId>,
+    interface_object: HashSet<DirectiveSiteId>,
 
-    tags: BTreeSet<(DirectiveContainerId, StringId)>,
+    tags: BTreeSet<(DirectiveSiteId, StringId)>,
 
     /// From @composeDirective.
     ///
     /// (subgraph_id, directive_name)
     composed_directives: BTreeSet<(SubgraphId, StringId)>,
 
-    composed_directive_instances: Vec<(DirectiveContainerId, StringId, Arguments)>,
+    composed_directive_instances: Vec<(DirectiveSiteId, StringId, Arguments)>,
 }
 
 impl Subgraphs {
@@ -50,7 +50,7 @@ impl Subgraphs {
 
     pub(crate) fn insert_composed_directive_instance(
         &mut self,
-        id: DirectiveContainerId,
+        id: DirectiveSiteId,
         directive_name: &str,
         arguments: Arguments,
     ) {
@@ -60,58 +60,58 @@ impl Subgraphs {
             .push((id, directive_name, arguments));
     }
 
-    pub(crate) fn insert_deprecated(&mut self, id: DirectiveContainerId, reason: Option<&str>) {
+    pub(crate) fn insert_deprecated(&mut self, id: DirectiveSiteId, reason: Option<&str>) {
         let reason = reason.map(|reason| self.strings.intern(reason));
         self.directives.deprecated.insert(id, Deprecated { reason });
     }
 
-    pub(crate) fn insert_provides(&mut self, id: DirectiveContainerId, fields: &str) -> Result<(), String> {
+    pub(crate) fn insert_provides(&mut self, id: DirectiveSiteId, fields: &str) -> Result<(), String> {
         let fields = self.selection_set_from_str(fields)?;
         self.directives.provides.insert(id, fields);
         Ok(())
     }
 
-    pub(crate) fn insert_requires(&mut self, id: DirectiveContainerId, fields: &str) -> Result<(), String> {
+    pub(crate) fn insert_requires(&mut self, id: DirectiveSiteId, fields: &str) -> Result<(), String> {
         let fields = self.selection_set_from_str(fields)?;
         self.directives.requires.insert(id, fields);
         Ok(())
     }
 
-    pub(crate) fn insert_tag(&mut self, id: DirectiveContainerId, tag: &str) {
+    pub(crate) fn insert_tag(&mut self, id: DirectiveSiteId, tag: &str) {
         let tag = self.strings.intern(tag);
         self.directives.tags.insert((id, tag));
     }
 
-    pub(crate) fn new_directive_container(&mut self) -> DirectiveContainerId {
-        let id = DirectiveContainerId(self.directives.container_id_counter);
-        self.directives.container_id_counter += 1;
+    pub(crate) fn new_directive_site(&mut self) -> DirectiveSiteId {
+        let id = DirectiveSiteId(self.directives.site_id_counter);
+        self.directives.site_id_counter += 1;
         id
     }
 
-    pub(crate) fn set_external(&mut self, id: DirectiveContainerId) {
+    pub(crate) fn set_external(&mut self, id: DirectiveSiteId) {
         self.directives.external.insert(id);
     }
 
-    pub(crate) fn set_inaccessible(&mut self, id: DirectiveContainerId) {
+    pub(crate) fn set_inaccessible(&mut self, id: DirectiveSiteId) {
         self.directives.inaccessible.insert(id);
     }
 
-    pub(crate) fn set_interface_object(&mut self, id: DirectiveContainerId) {
+    pub(crate) fn set_interface_object(&mut self, id: DirectiveSiteId) {
         self.directives.interface_object.insert(id);
     }
 
-    pub(crate) fn set_override(&mut self, id: DirectiveContainerId, from: StringId) {
+    pub(crate) fn set_override(&mut self, id: DirectiveSiteId, from: StringId) {
         self.directives.r#override.insert(id, from);
     }
 
-    pub(crate) fn set_shareable(&mut self, id: DirectiveContainerId) {
+    pub(crate) fn set_shareable(&mut self, id: DirectiveSiteId) {
         self.directives.shareable.insert(id);
     }
 }
 
-pub(crate) type DirectiveContainerWalker<'a> = Walker<'a, DirectiveContainerId>;
+pub(crate) type DirectiveSiteWalker<'a> = Walker<'a, DirectiveSiteId>;
 
-impl<'a> DirectiveContainerWalker<'a> {
+impl<'a> DirectiveSiteWalker<'a> {
     pub(crate) fn deprecated(self) -> Option<DeprecatedWalker<'a>> {
         self.subgraphs
             .directives

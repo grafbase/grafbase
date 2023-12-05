@@ -9,7 +9,7 @@ pub(super) fn ingest_input_fields(
 ) {
     for field in fields {
         let field_type = subgraphs.intern_field_type(&field.node.ty.node);
-        let directives = subgraphs.new_directive_container();
+        let directives = subgraphs.new_directive_site();
 
         directives::ingest_directives(directives, &field.node.directives, subgraphs, matcher);
 
@@ -39,7 +39,7 @@ fn ingest_field_arguments(
         let r#type = subgraphs.intern_field_type(&argument.node.ty.node);
         let name = subgraphs.strings.intern(argument.node.name.node.as_str());
 
-        let argument_directives = subgraphs.new_directive_container();
+        let argument_directives = subgraphs.new_directive_site();
 
         ingest_directives(argument_directives, &argument.node.directives, subgraphs, matcher);
 
@@ -68,7 +68,7 @@ pub(super) fn ingest_fields(
             .map(|description| subgraphs.strings.intern(description.node.as_str()));
 
         let field_type = subgraphs.intern_field_type(&field.ty.node);
-        let directives = subgraphs.new_directive_container();
+        let directives = subgraphs.new_directive_site();
         directives::ingest_directives(directives, &field.directives, subgraphs, directive_matcher);
 
         let field_id = subgraphs.push_field(crate::subgraphs::FieldIngest {
