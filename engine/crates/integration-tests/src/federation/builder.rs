@@ -44,7 +44,12 @@ impl FederationEngineBuilder {
             .expect("schemas to compose succesfully");
 
         TestFederationEngine {
-            engine: Engine::new(graph.into()),
+            engine: Engine::new(
+                graph.into(),
+                engine_v2::EngineRuntime {
+                    fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+                },
+            ),
         }
     }
 }

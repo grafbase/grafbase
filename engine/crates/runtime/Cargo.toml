@@ -22,6 +22,7 @@ thiserror = { workspace = true }
 ulid = { workspace = true }
 http = { workspace = true }
 headers = { workspace = true }
+bytes = { workspace = true }
 
 search-protocol = { path = "../search-protocol" }
 postgres-connector-types = { path = "../postgres-connector-types" }
