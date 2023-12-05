@@ -88,19 +88,21 @@ pub struct ExecutorInput<'a> {
 #[derive(thiserror::Error, Debug)]
 pub enum ExecutorError {
     #[error("Internal error: {0}")]
-    InternalError(String),
+    Internal(String),
     #[error(transparent)]
-    WriteError(#[from] crate::response::WriteError),
+    Write(#[from] crate::response::WriteError),
+    #[error(transparent)]
+    Fetch(#[from] runtime::fetch::FetchError),
 }
 
 impl From<&str> for ExecutorError {
     fn from(message: &str) -> Self {
-        Self::InternalError(message.to_string())
+        Self::Internal(message.to_string())
     }
 }
 
 impl From<String> for ExecutorError {
     fn from(message: String) -> Self {
-        Self::InternalError(message)
+        Self::Internal(message)
     }
 }

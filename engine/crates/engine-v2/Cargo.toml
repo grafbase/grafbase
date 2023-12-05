@@ -13,32 +13,18 @@ keywords = ["graphql", "engine", "grafbase"]
 [lints]
 workspace = true
 
-[features]
-default = []
-cf-workers = ["serde-wasm-bindgen", "worker"]
-
 [dependencies]
 async-runtime = { workspace = true }
-bytes = "1"
 derive_more = "0.99"
 im = "15"
 lasso = "0.7"
 anyhow = "1"
 itertools.workspace = true
-send_wrapper.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-serde-wasm-bindgen = { workspace = true, optional = true }
 serde-value = "0.7"
 thiserror.workspace = true
-futures-locks = "0.7"
 futures-util.workspace = true
-reqwest = { version = "0.11", default-features = false, features = [
-  "json",
-  "rustls-tls",
-] }
-url = "2"
-worker = { version = "0.0.18", optional = true }
 
 engine-value = { path = "../engine/value" }
 engine-parser = { path = "../engine/parser" }
@@ -47,4 +33,5 @@ schema = { path = "./schema", package = "engine-v2-schema" }
 # might move it back to engine, the goal isn't to rewrite everything from engine per se
 # but having more explicit dependencies for now.
 engine = { path = "../engine" }
+runtime.workspace = true
 
