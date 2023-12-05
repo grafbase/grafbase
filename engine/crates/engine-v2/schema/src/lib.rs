@@ -1,18 +1,17 @@
-#![allow(dead_code)]
-
-use std::{borrow::Cow, str::FromStr};
+use std::str::FromStr;
 
 mod conversion;
 mod field_set;
 mod ids;
-pub mod introspection;
 mod names;
+mod resolver;
+pub mod sources;
 mod walkers;
 
 pub use field_set::*;
 pub use ids::*;
-use introspection::{IntrospectionDataSource, IntrospectionResolver};
 pub use names::Names;
+pub use resolver::*;
 pub use walkers::*;
 
 /// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
@@ -20,10 +19,9 @@ pub use walkers::*;
 /// federated_graph::FederatedGraph.
 pub struct Schema {
     pub description: Option<StringId>,
-    data_sources: Vec<DataSource>,
-    subgraphs: Vec<Subgraph>,
-
     pub root_operation_types: RootOperationTypes,
+    data_sources: DataSources,
+
     objects: Vec<Object>,
     // Sorted by object_id, field name (actual string)
     object_fields: Vec<ObjectField>,
@@ -47,6 +45,12 @@ pub struct Schema {
     types: Vec<Type>,
     // All definitions sorted by their name (actual string)
     definitions: Vec<Definition>,
+}
+
+#[derive(Default)]
+struct DataSources {
+    federation: sources::federation::DataSource,
+    introspection: sources::introspection::DataSource,
 }
 
 impl Schema {
@@ -75,7 +79,34 @@ impl Schema {
             .ok()
     }
 
-    fn ensure_proper_ordering(&mut self) {
+    // Used as the default resolver
+    pub fn introspection_resolver_id(&self) -> ResolverId {
+        (self.resolvers.len() - 1).into()
+    }
+
+    fn finalize(mut self) -> Self {
+        self.definitions = Vec::with_capacity(
+            self.scalars.len()
+                + self.objects.len()
+                + self.interfaces.len()
+                + self.unions.len()
+                + self.enums.len()
+                + self.input_objects.len(),
+        );
+        // Adding all definitions for introspection & query binding
+        self.definitions
+            .extend((0..self.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
+        self.definitions
+            .extend((0..self.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
+        self.definitions
+            .extend((0..self.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
+        self.definitions
+            .extend((0..self.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
+        self.definitions
+            .extend((0..self.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
+        self.definitions
+            .extend((0..self.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
+
         let mut object_fields = std::mem::take(&mut self.object_fields);
         object_fields
             .sort_unstable_by_key(|ObjectField { object_id, field_id }| (*object_id, &self[self[*field_id].name]));
@@ -97,6 +128,10 @@ impl Schema {
         for union in &mut self.unions {
             union.possible_types.sort_unstable();
         }
+
+        assert!(matches!(self.resolvers.last(), Some(Resolver::Introspection(_))));
+
+        self
     }
 
     fn definition_name(&self, definition: Definition) -> &str {
@@ -125,33 +160,11 @@ impl std::fmt::Debug for Schema {
     }
 }
 
-pub enum DataSource {
-    Introspection(Box<IntrospectionDataSource>),
-    Subgraph(SubgraphId),
-}
-
-impl DataSource {
-    pub fn as_introspection(&self) -> Option<&IntrospectionDataSource> {
-        match self {
-            DataSource::Introspection(introspection) => Some(introspection),
-            DataSource::Subgraph(_) => None,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Subgraph {
-    pub name: StringId,
-    pub url: StringId,
-}
-
 #[derive(Debug)]
 pub struct Object {
     pub name: StringId,
     pub description: Option<StringId>,
     pub interfaces: Vec<InterfaceId>,
-    /// All _resolvable_ keys.
-    resolvable_keys: Vec<Key>,
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
@@ -160,15 +173,6 @@ pub struct Object {
 pub struct ObjectField {
     pub object_id: ObjectId,
     pub field_id: FieldId,
-}
-
-#[derive(Debug)]
-pub struct Key {
-    /// The subgraph that can resolve the entity with these fields.
-    pub subgraph_id: SubgraphId,
-
-    /// Corresponds to the fields in an `@key` directive.
-    pub fields: FieldSet,
 }
 
 #[derive(Debug)]
@@ -181,7 +185,9 @@ pub struct Field {
     pub deprecation_reason: Option<StringId>,
 
     /// Special case when only going through this field children are accessible.
-    provides: Vec<FieldProvides>,
+    /// If this field is shared across different sources, we assume identical behavior
+    /// and thus identical `@provides` if any.
+    pub provides: FieldSet,
 
     pub arguments: Vec<InputValueId>,
 
@@ -191,38 +197,8 @@ pub struct Field {
 
 #[derive(Debug)]
 pub struct FieldResolver {
-    pub resolver_id: ResolverId,
-    pub requires: FieldSet,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Resolver {
-    Introspection(IntrospectionResolver),
-    Subgraph(SubgraphResolver),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SubgraphResolver {
-    pub subgraph_id: SubgraphId,
-}
-
-impl Resolver {
-    pub fn data_source_id(&self) -> DataSourceId {
-        match self {
-            Resolver::Subgraph(resolver) => DataSourceId::from(resolver.subgraph_id),
-            Resolver::Introspection(resolver) => resolver.data_source_id,
-        }
-    }
-
-    pub fn supports_aliases(&self) -> bool {
-        match self {
-            Resolver::Subgraph(_) | Resolver::Introspection(_) => true,
-        }
-    }
-
-    pub fn requires(&self) -> Cow<'_, FieldSet> {
-        Cow::Owned(FieldSet::default())
-    }
+    resolver_id: ResolverId,
+    requires: FieldSet,
 }
 
 #[derive(Debug)]
@@ -361,13 +337,6 @@ pub enum ListWrapping {
     NullableList,
 }
 
-/// Represents an `@provides` directive on a field in a subgraph.
-#[derive(Debug)]
-pub struct FieldProvides {
-    pub data_source_id: DataSourceId,
-    pub fields: FieldSet,
-}
-
 #[derive(Debug)]
 pub struct Interface {
     pub name: StringId,
@@ -470,11 +439,11 @@ pub struct InputValue {
 }
 
 impl Schema {
-    pub fn default_walker(&self) -> SchemaWalker<'_, ()> {
-        self.walker(self)
+    pub fn walker(&self) -> SchemaWalker<'_, ()> {
+        self.walker_with(&())
     }
 
-    pub fn walker<'a>(&'a self, names: &'a dyn Names) -> SchemaWalker<'a, ()> {
+    pub fn walker_with<'a>(&'a self, names: &'a dyn Names) -> SchemaWalker<'a, ()> {
         SchemaWalker::new((), self, names)
     }
 }

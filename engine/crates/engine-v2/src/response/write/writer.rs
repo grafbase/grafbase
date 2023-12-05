@@ -1,17 +1,15 @@
 use std::{cell::RefCell, collections::HashMap, sync::atomic::AtomicBool};
 
-use schema::SchemaWalker;
 use serde::{de::DeserializeSeed, Deserializer};
 
 use super::{
     deserialize::{SeedContext, UpdateSeed},
-    ExpectedSelectionSetWriter, GroupedFieldWriter, ResponsePartBuilder,
+    ExecutorOutput, ExpectedSelectionSetWriter, GroupedFieldWriter,
 };
 use crate::{
-    execution::Variables,
     plan::ExpectedSelectionSet,
-    request::Operation,
-    response::{GraphqlError, ResponseObjectRoot, ResponseValue},
+    request::PlanWalker,
+    response::{GraphqlError, ResponseBoundaryItem, ResponseValue},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -37,46 +35,38 @@ impl From<String> for WriteError {
 pub type WriteResult<T> = Result<T, WriteError>;
 
 pub struct ResponseObjectWriter<'a> {
-    schema_walker: SchemaWalker<'a, ()>,
-    operation: &'a Operation,
-    variables: &'a Variables<'a>,
-    data: &'a mut ResponsePartBuilder,
-    root: ResponseObjectRoot,
+    walker: PlanWalker<'a>,
+    data: &'a mut ExecutorOutput,
+    boundary_item: &'a ResponseBoundaryItem,
     expectation: &'a ExpectedSelectionSet,
 }
 
 impl<'a> ResponseObjectWriter<'a> {
     pub fn new(
-        schema_walker: SchemaWalker<'a, ()>,
-        operation: &'a Operation,
-        variables: &'a Variables<'a>,
-        data: &'a mut ResponsePartBuilder,
-        root: ResponseObjectRoot,
+        walker: PlanWalker<'a>,
+        data: &'a mut ExecutorOutput,
+        boundary_item: &'a ResponseBoundaryItem,
         expectation: &'a ExpectedSelectionSet,
     ) -> Self {
         Self {
-            schema_walker,
-            operation,
-            variables,
+            walker,
             data,
-            root,
+            boundary_item,
             expectation,
         }
     }
 
     pub fn update_with(self, f: impl Fn(GroupedFieldWriter<'_>) -> WriteResult<ResponseValue>) {
         let writer = ExpectedSelectionSetWriter {
-            schema_walker: self.schema_walker,
-            operation: self.operation,
-            variables: self.variables,
+            walker: self.walker,
             data: self.data,
-            path: &self.root.path,
+            path: &self.boundary_item.response_path,
             selection_set: self.expectation,
         };
-        match writer.write_fields(self.root.object_id, f) {
+        match writer.write_fields(self.boundary_item.object_id, f) {
             Ok(fields) => {
                 self.data.push_update(super::ResponseObjectUpdate {
-                    id: self.root.id,
+                    id: self.boundary_item.response_object_id,
                     fields,
                 });
             }
@@ -87,11 +77,12 @@ impl<'a> ResponseObjectWriter<'a> {
                         // TODO: should include locations & path of all root fields retrieved by
                         // the plan.
                         locations: vec![],
-                        path: Some(self.root.path.clone()),
+                        path: Some(self.boundary_item.response_path.clone()),
                         extensions: HashMap::with_capacity(0),
                     });
                 }
-                self.data.push_error_to_propagate(self.root.path.clone());
+                self.data
+                    .push_error_to_propagate(self.boundary_item.response_path.clone());
             }
         }
     }
@@ -106,12 +97,11 @@ impl<'de, 'ctx> DeserializeSeed<'de> for ResponseObjectWriter<'ctx> {
     {
         UpdateSeed {
             ctx: SeedContext {
-                schema_walker: self.schema_walker,
-                operation: self.operation,
+                walker: self.walker,
                 data: RefCell::new(self.data),
                 propagating_error: AtomicBool::new(false),
             },
-            root: self.root,
+            boundary_item: self.boundary_item,
             expected: self.expectation,
         }
         .deserialize(deserializer)

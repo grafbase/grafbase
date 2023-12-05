@@ -19,13 +19,13 @@ impl<'a> TypeWalker<'a> {
     }
 
     pub fn inner(&self) -> DefinitionWalker<'a> {
-        self.walk(self.inner)
+        self.walk(self.get().inner)
     }
 }
 
 impl<'a> std::fmt::Debug for TypeWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TypeWalker")
+        f.debug_struct("Type")
             .field("name", &self.name())
             .field("inner", &self.inner())
             .finish()

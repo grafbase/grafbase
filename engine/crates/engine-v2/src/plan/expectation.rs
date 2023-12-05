@@ -1,8 +1,10 @@
 use itertools::Itertools;
 use schema::{DataType, Wrapping};
 
+use super::PlanBoundaryId;
+
 use crate::{
-    request::{BoundAnyFieldDefinitionId, BoundFieldId, BoundSelectionSetId, FlatTypeCondition, SelectionSetRoot},
+    request::{BoundAnyFieldDefinitionId, BoundFieldId, BoundSelectionSetId, FlatTypeCondition, SelectionSetType},
     response::BoundResponseKey,
 };
 
@@ -14,7 +16,8 @@ pub enum ExpectedSelectionSet {
 
 #[derive(Debug)]
 pub struct ExpectedGroupedFields {
-    pub root: SelectionSetRoot,
+    pub maybe_boundary_id: Option<PlanBoundaryId>,
+    pub ty: SelectionSetType,
     // sorted by expected name
     pub fields: Vec<ExpectedGoupedField>,
     pub typename_fields: Vec<BoundResponseKey>,
@@ -26,7 +29,11 @@ pub enum FieldOrTypeName {
 }
 
 impl ExpectedGroupedFields {
-    pub fn new(root: SelectionSetRoot, fields: impl IntoIterator<Item = FieldOrTypeName>) -> Self {
+    pub fn new(
+        maybe_boundary_id: Option<PlanBoundaryId>,
+        ty: SelectionSetType,
+        fields: impl IntoIterator<Item = FieldOrTypeName>,
+    ) -> Self {
         let (mut fields, typename_fields): (Vec<_>, Vec<_>) = fields
             .into_iter()
             .map(|field| match field {
@@ -36,7 +43,8 @@ impl ExpectedGroupedFields {
             .partition_result();
         fields.sort_unstable_by_key(|field| field.expected_name.clone());
         Self {
-            root,
+            maybe_boundary_id,
+            ty,
             fields,
             typename_fields,
         }
@@ -53,19 +61,20 @@ pub struct ExpectedGoupedField {
 }
 
 #[derive(Debug, Clone)]
+pub struct ExpectedArbitraryFields {
+    pub maybe_boundary_id: Option<PlanBoundaryId>,
+    // needed to know where to look for __typename
+    pub ty: SelectionSetType,
+    pub fields: Vec<ExpectedUngroupedField>,
+}
+
+#[derive(Debug, Clone)]
 pub struct ExpectedUngroupedField {
     pub expected_name: Option<String>,
     pub type_condition: Option<FlatTypeCondition>,
     pub origin: BoundSelectionSetId,
     pub bound_field_id: BoundFieldId,
     pub ty: ExpectedType<ExpectedArbitraryFields>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ExpectedArbitraryFields {
-    // needed to know where to look for __typename
-    pub root: SelectionSetRoot,
-    pub fields: Vec<ExpectedUngroupedField>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

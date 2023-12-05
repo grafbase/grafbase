@@ -1,50 +1,62 @@
-use schema::{ObjectId, Schema};
+use schema::{ObjectId, SchemaWalker};
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use super::ReadSelectionSet;
-use crate::response::{ResponseBuilder, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue};
+use crate::{
+    plan::PlanInput,
+    response::{ResponseBuilder, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue},
+};
 
-pub struct ResponseObjectsView<'a> {
-    pub(super) schema: &'a Schema,
+pub struct ResponseBoundaryObjectsView<'a> {
+    pub(super) schema: SchemaWalker<'a, ()>,
     pub(super) response: &'a ResponseBuilder,
-    pub(super) roots: Vec<ResponseObjectRoot>,
-    pub(super) selection_set: &'a ReadSelectionSet,
+    pub(super) plan_input: PlanInput,
+    pub(super) extra_constant_fields: Vec<(String, serde_json::Value)>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ResponseObjectRoot {
-    pub id: ResponseObjectId,
-    pub path: ResponsePath,
+pub struct ResponseBoundaryItem {
+    pub response_object_id: ResponseObjectId,
+    pub response_path: ResponsePath,
     pub object_id: ObjectId,
 }
 
-impl<'a> ResponseObjectsView<'a> {
-    pub fn root(&self) -> ResponseObjectRoot {
-        self.roots
-            .first()
-            .cloned()
-            .expect("At least one object node id must be present in a Input.")
+impl<'a> ResponseBoundaryObjectsView<'a> {
+    pub fn into_single_boundary_item(self) -> ResponseBoundaryItem {
+        self.plan_input
+            .response_boundary
+            .into_iter()
+            .next()
+            .expect("There is always at least one input, there would be no plan otherwise.")
     }
 
     // Guaranteed to be in the same order as the response objects themselves
-    #[allow(dead_code)]
-    pub fn roots(&self) -> &[ResponseObjectRoot] {
-        &self.roots
+    pub fn boundary(&self) -> Vec<ResponseBoundaryItem> {
+        self.plan_input.response_boundary.clone()
+    }
+
+    pub fn with_extra_constant_fields(
+        mut self,
+        extra_constant_fields: Vec<(String, serde_json::Value)>,
+    ) -> ResponseBoundaryObjectsView<'a> {
+        self.extra_constant_fields = extra_constant_fields;
+        self
     }
 }
 
-impl<'a> serde::Serialize for ResponseObjectsView<'a> {
+impl<'a> serde::Serialize for ResponseBoundaryObjectsView<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.roots.len()))?;
-        for root in &self.roots {
+        let mut seq = serializer.serialize_seq(Some(self.plan_input.response_boundary.len()))?;
+        for item in &self.plan_input.response_boundary {
             seq.serialize_element(&SerializableFilteredResponseObject {
                 schema: self.schema,
                 response: self.response,
-                object: &self.response[root.id],
-                selection_set: self.selection_set,
+                response_object: &self.response[item.response_object_id],
+                selection_set: &self.plan_input.selection_set,
+                extra_constant_fields: &self.extra_constant_fields,
             })?;
         }
         seq.end()
@@ -52,10 +64,11 @@ impl<'a> serde::Serialize for ResponseObjectsView<'a> {
 }
 
 struct SerializableFilteredResponseObject<'a> {
-    schema: &'a Schema,
+    schema: SchemaWalker<'a, ()>,
     response: &'a ResponseBuilder,
-    object: &'a ResponseObject,
+    response_object: &'a ResponseObject,
     selection_set: &'a ReadSelectionSet,
+    extra_constant_fields: &'a [(String, serde_json::Value)],
 }
 
 impl<'a> serde::Serialize for SerializableFilteredResponseObject<'a> {
@@ -63,10 +76,18 @@ impl<'a> serde::Serialize for SerializableFilteredResponseObject<'a> {
     where
         S: serde::Serializer,
     {
-        let mut map = serializer.serialize_map(Some(self.selection_set.len()))?;
+        let mut map = serializer.serialize_map(Some(self.selection_set.len() + self.extra_constant_fields.len()))?;
+        for (name, value) in self.extra_constant_fields {
+            map.serialize_key(name)?;
+            map.serialize_value(value)?;
+        }
         for selection in self.selection_set {
-            map.serialize_key(&self.response.keys[selection.response_key])?;
-            match self.object.find(selection.response_key).unwrap_or(&ResponseValue::Null) {
+            map.serialize_key(self.schema.walk(selection.field_id).name())?;
+            match self
+                .response_object
+                .find(selection.bound_response_key)
+                .unwrap_or(&ResponseValue::Null)
+            {
                 ResponseValue::Null => map.serialize_value(&serde_json::Value::Null)?,
                 ResponseValue::Boolean { value, .. } => map.serialize_value(value)?,
                 ResponseValue::Int { value, .. } => map.serialize_value(value)?,
@@ -77,14 +98,16 @@ impl<'a> serde::Serialize for SerializableFilteredResponseObject<'a> {
                 ResponseValue::List { id, .. } => map.serialize_value(&SerializableFilteredResponseList {
                     schema: self.schema,
                     response: self.response,
-                    value: &self.response[*id],
+                    response_list: &self.response[*id],
                     selection_set: &selection.subselection,
+                    extra_constant_fields: self.extra_constant_fields,
                 })?,
                 ResponseValue::Object { id, .. } => map.serialize_value(&SerializableFilteredResponseObject {
                     schema: self.schema,
                     response: self.response,
-                    object: &self.response[*id],
+                    response_object: &self.response[*id],
                     selection_set: &selection.subselection,
+                    extra_constant_fields: self.extra_constant_fields,
                 })?,
                 ResponseValue::Json { value, .. } => map.serialize_value(value)?,
             }
@@ -95,10 +118,11 @@ impl<'a> serde::Serialize for SerializableFilteredResponseObject<'a> {
 }
 
 struct SerializableFilteredResponseList<'a> {
-    schema: &'a Schema,
+    schema: SchemaWalker<'a, ()>,
     response: &'a ResponseBuilder,
-    value: &'a [ResponseValue],
+    response_list: &'a [ResponseValue],
     selection_set: &'a ReadSelectionSet,
+    extra_constant_fields: &'a [(String, serde_json::Value)],
 }
 
 impl<'a> serde::Serialize for SerializableFilteredResponseList<'a> {
@@ -106,8 +130,8 @@ impl<'a> serde::Serialize for SerializableFilteredResponseList<'a> {
     where
         S: serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.value.len()))?;
-        for node in self.value {
+        let mut seq = serializer.serialize_seq(Some(self.response_list.len()))?;
+        for node in self.response_list {
             match node {
                 ResponseValue::Null => seq.serialize_element(&serde_json::Value::Null)?,
                 ResponseValue::Boolean { value, .. } => seq.serialize_element(value)?,
@@ -119,14 +143,16 @@ impl<'a> serde::Serialize for SerializableFilteredResponseList<'a> {
                 ResponseValue::List { id, .. } => seq.serialize_element(&SerializableFilteredResponseList {
                     schema: self.schema,
                     response: self.response,
-                    value: &self.response[*id],
+                    response_list: &self.response[*id],
                     selection_set: self.selection_set,
+                    extra_constant_fields: self.extra_constant_fields,
                 })?,
                 ResponseValue::Object { id, .. } => seq.serialize_element(&SerializableFilteredResponseObject {
                     schema: self.schema,
                     response: self.response,
-                    object: &self.response[*id],
+                    response_object: &self.response[*id],
                     selection_set: self.selection_set,
+                    extra_constant_fields: self.extra_constant_fields,
                 })?,
                 ResponseValue::Json { value, .. } => seq.serialize_element(value)?,
             }

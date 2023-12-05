@@ -5,6 +5,8 @@ use integration_tests::{
     runtime, MockGraphQlServer,
 };
 
+mod simple_key;
+
 #[test]
 fn root_fields_from_different_subgraphs() {
     let response = runtime().block_on(async move {

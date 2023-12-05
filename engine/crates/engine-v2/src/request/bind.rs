@@ -8,7 +8,7 @@ use super::{
     selection_set::BoundField, variable::VariableDefinition, BoundAnyFieldDefinition, BoundAnyFieldDefinitionId,
     BoundFieldArgument, BoundFieldDefinition, BoundFieldId, BoundFragmentDefinition, BoundFragmentDefinitionId,
     BoundFragmentSpread, BoundInlineFragment, BoundSelection, BoundSelectionSet, BoundSelectionSetId,
-    BoundTypeNameFieldDefinition, Operation, Pos, ResponseKeys, SelectionSetRoot, TypeCondition, UnboundOperation,
+    BoundTypeNameFieldDefinition, Operation, Pos, ResponseKeys, SelectionSetType, TypeCondition, UnboundOperation,
 };
 use crate::response::ServerError;
 
@@ -100,7 +100,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
         next_response_position: 0,
     };
     let root_selection_set_id = binder.bind_field_selection_set(
-        SelectionSetRoot::Object(root_object_id),
+        SelectionSetType::Object(root_object_id),
         unbound.definition.selection_set,
     )?;
     let variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
@@ -178,7 +178,7 @@ impl<'a> Binder<'a> {
                 ) {
                     return Err(BindError::InvalidVariableType {
                         name: name.to_string(),
-                        ty: self.schema.default_walker().walk(definition).name().to_string(),
+                        ty: self.schema.walker().walk(definition).name().to_string(),
                         location,
                     });
                 }
@@ -203,7 +203,7 @@ impl<'a> Binder<'a> {
 
     fn bind_field_selection_set(
         &mut self,
-        root: SelectionSetRoot,
+        root: SelectionSetType,
         selection_set: Positioned<engine_parser::types::SelectionSet>,
     ) -> BindResult<BoundSelectionSetId> {
         self.bind_selection_set(root, selection_set)
@@ -211,7 +211,7 @@ impl<'a> Binder<'a> {
 
     fn bind_selection_set(
         &mut self,
-        root: SelectionSetRoot,
+        root: SelectionSetType,
         selection_set: Positioned<engine_parser::types::SelectionSet>,
     ) -> BindResult<BoundSelectionSetId> {
         let Positioned {
@@ -233,20 +233,20 @@ impl<'a> Binder<'a> {
             })
             .collect::<BindResult<Vec<_>>>()?;
         let id = BoundSelectionSetId::from(self.selection_sets.len());
-        let selection_set = BoundSelectionSet { root, items };
+        let selection_set = BoundSelectionSet { ty: root, items };
         self.selection_sets.push(selection_set);
         Ok(id)
     }
 
     fn bind_field(
         &mut self,
-        root: SelectionSetRoot,
+        root: SelectionSetType,
         Positioned {
             pos: name_location,
             node: field,
         }: Positioned<engine_parser::types::Field>,
     ) -> BindResult<BoundSelection> {
-        let walker = self.schema.default_walker();
+        let walker = self.schema.walker();
         let name = field.name.node.as_str();
         let response_key = self.response_keys.get_or_intern(
             &field
@@ -273,11 +273,11 @@ impl<'a> Binder<'a> {
 
             name => {
                 let schema_field: FieldWalker<'_> = match root {
-                    SelectionSetRoot::Object(object_id) => self.schema.object_field_by_name(object_id, name),
-                    SelectionSetRoot::Interface(interface_id) => {
+                    SelectionSetType::Object(object_id) => self.schema.object_field_by_name(object_id, name),
+                    SelectionSetType::Interface(interface_id) => {
                         self.schema.interface_field_by_name(interface_id, name)
                     }
-                    SelectionSetRoot::Union(union_id) => {
+                    SelectionSetType::Union(union_id) => {
                         return Err(BindError::UnionHaveNoFields {
                             name: name.to_string(),
                             ty: walker.walk(union_id).name().to_string(),
@@ -311,7 +311,7 @@ impl<'a> Binder<'a> {
                                 .argument_by_name(&name)
                                 .map(|input_value| BoundFieldArgument {
                                     name_location,
-                                    input_value_id: input_value.id,
+                                    input_value_id: input_value.id(),
                                     value_location,
                                     value,
                                 })
@@ -326,7 +326,7 @@ impl<'a> Binder<'a> {
 
                 let selection_set_id = if field.selection_set.node.items.is_empty() {
                     if !matches!(
-                        schema_field.ty().inner().id,
+                        schema_field.ty().inner().id(),
                         Definition::Scalar(_) | Definition::Enum(_)
                     ) {
                         return Err(BindError::LeafMustBeAScalarOrEnum {
@@ -337,14 +337,14 @@ impl<'a> Binder<'a> {
                     }
                     None
                 } else {
-                    Some(match schema_field.ty().inner().id {
+                    Some(match schema_field.ty().inner().id() {
                         Definition::Object(object_id) => {
-                            self.bind_field_selection_set(SelectionSetRoot::Object(object_id), field.selection_set)
+                            self.bind_field_selection_set(SelectionSetType::Object(object_id), field.selection_set)
                         }
                         Definition::Interface(interface_id) => self
-                            .bind_field_selection_set(SelectionSetRoot::Interface(interface_id), field.selection_set),
+                            .bind_field_selection_set(SelectionSetType::Interface(interface_id), field.selection_set),
                         Definition::Union(union_id) => {
-                            self.bind_field_selection_set(SelectionSetRoot::Union(union_id), field.selection_set)
+                            self.bind_field_selection_set(SelectionSetType::Union(union_id), field.selection_set)
                         }
                         _ => Err(BindError::CannotHaveSelectionSet {
                             name: name.to_string(),
@@ -357,7 +357,7 @@ impl<'a> Binder<'a> {
                     BoundAnyFieldDefinition::Field(BoundFieldDefinition {
                         response_key,
                         name_location,
-                        field_id: schema_field.id,
+                        field_id: schema_field.id(),
                         arguments,
                     }),
                     selection_set_id,
@@ -380,7 +380,7 @@ impl<'a> Binder<'a> {
 
     fn bind_fragment_spread(
         &mut self,
-        root: SelectionSetRoot,
+        root: SelectionSetType,
         Positioned {
             pos: location,
             node: spread,
@@ -429,7 +429,7 @@ impl<'a> Binder<'a> {
 
     fn bind_inline_fragment(
         &mut self,
-        root: SelectionSetRoot,
+        root: SelectionSetType,
         Positioned {
             pos: location,
             node: fragment,
@@ -451,7 +451,7 @@ impl<'a> Binder<'a> {
 
     fn bind_type_condition(
         &self,
-        root: SelectionSetRoot,
+        root: SelectionSetType,
         Positioned { pos: location, node }: &Positioned<engine_parser::types::TypeCondition>,
     ) -> BindResult<TypeCondition> {
         let location = *location;
@@ -485,7 +485,7 @@ impl<'a> Binder<'a> {
             .copied()
             .collect::<HashSet<_>>();
         if possible_types.is_disjoint(&frament_possible_types) {
-            let walker = self.schema.default_walker();
+            let walker = self.schema.walker();
             return Err(BindError::DisjointTypeCondition {
                 parent: walker.walk(Definition::from(root)).name().to_string(),
                 name: name.to_string(),
@@ -496,17 +496,17 @@ impl<'a> Binder<'a> {
     }
 }
 
-impl From<SelectionSetRoot> for TypeCondition {
-    fn from(parent: SelectionSetRoot) -> Self {
+impl From<SelectionSetType> for TypeCondition {
+    fn from(parent: SelectionSetType) -> Self {
         match parent {
-            SelectionSetRoot::Interface(id) => Self::Interface(id),
-            SelectionSetRoot::Object(id) => Self::Object(id),
-            SelectionSetRoot::Union(id) => Self::Union(id),
+            SelectionSetType::Interface(id) => Self::Interface(id),
+            SelectionSetType::Object(id) => Self::Object(id),
+            SelectionSetType::Union(id) => Self::Union(id),
         }
     }
 }
 
-impl From<TypeCondition> for SelectionSetRoot {
+impl From<TypeCondition> for SelectionSetType {
     fn from(cond: TypeCondition) -> Self {
         match cond {
             TypeCondition::Interface(id) => Self::Interface(id),
@@ -516,12 +516,12 @@ impl From<TypeCondition> for SelectionSetRoot {
     }
 }
 
-impl From<SelectionSetRoot> for Definition {
-    fn from(parent: SelectionSetRoot) -> Self {
+impl From<SelectionSetType> for Definition {
+    fn from(parent: SelectionSetType) -> Self {
         match parent {
-            SelectionSetRoot::Interface(id) => Self::Interface(id),
-            SelectionSetRoot::Object(id) => Self::Object(id),
-            SelectionSetRoot::Union(id) => Self::Union(id),
+            SelectionSetType::Interface(id) => Self::Interface(id),
+            SelectionSetType::Object(id) => Self::Object(id),
+            SelectionSetType::Union(id) => Self::Union(id),
         }
     }
 }

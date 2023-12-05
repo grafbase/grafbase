@@ -5,7 +5,7 @@ pub type InputValueWalker<'a> = SchemaWalker<'a, InputValueId>;
 
 impl<'a> InputValueWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.input_value(self.id)
+        self.names.input_value(self.schema, self.inner)
     }
 
     pub fn ty(&self) -> TypeWalker<'a> {

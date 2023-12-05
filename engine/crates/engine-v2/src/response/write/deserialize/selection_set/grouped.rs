@@ -42,7 +42,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ObjectFieldsSeed<'ctx, 'parent> {
     where
         A: MapAccess<'de>,
     {
-        let mut identifier = super::ObjectIdentifier::new(self.ctx, self.expected.root);
+        let mut identifier = super::ObjectIdentifier::new(self.ctx, self.expected.ty);
         let mut fields = BTreeMap::<BoundResponseKey, ResponseValue>::new();
         while let Some(key) = map.next_key::<&str>()? {
             let start = self
@@ -105,7 +105,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ObjectFieldsSeed<'ctx, 'parent> {
             for field in &self.expected.fields {
                 if let Entry::Vacant(entry) = fields.entry(field.bound_response_key) {
                     if field.wrapping.is_required() {
-                        let missing_key = &self.ctx.operation.response_keys[field.bound_response_key];
+                        let missing_key = &self.ctx.walker.operation().response_keys[field.bound_response_key];
                         if field.expected_name == missing_key {
                             return Err(serde::de::Error::custom(format!(
                                 "Missing required field named '{missing_key}'"
@@ -124,7 +124,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ObjectFieldsSeed<'ctx, 'parent> {
             fields.insert(
                 *bound_response_key,
                 ResponseValue::StringId {
-                    id: self.ctx.schema_walker[object_id].name,
+                    id: self.ctx.walker.schema()[object_id].name,
                     nullable: false,
                 },
             );

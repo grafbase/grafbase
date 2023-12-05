@@ -1,5 +1,5 @@
 mod bind;
-// mod flat_selection_set;
+mod flat;
 mod ids;
 mod parse;
 mod path;
@@ -9,10 +9,10 @@ mod walkers;
 
 pub use bind::{BindError, BindResult};
 pub use engine_parser::{types::OperationType, Pos};
-// pub use flat_selection_set::*;
+pub use flat::*;
 pub use ids::*;
 pub use parse::{parse_operation, ParseError, UnboundOperation};
-pub use path::{FlatTypeCondition, QueryPath, QueryPathSegment};
+pub use path::QueryPath;
 use schema::{ObjectId, Schema, SchemaWalker};
 pub use selection_set::*;
 pub use variable::VariableDefinition;
@@ -44,40 +44,19 @@ impl Operation {
         bind::bind(schema, unbound_operation)
     }
 
-    pub fn walk_selection_set<'a>(
-        &'a self,
-        schema: SchemaWalker<'a, ()>,
-        selection_set_id: BoundSelectionSetId,
-    ) -> BoundSelectionSetWalker<'a> {
-        BoundSelectionSetWalker {
-            schema,
+    pub fn walker_with<'op, 'schema, E>(
+        &'op self,
+        schema: SchemaWalker<'schema, ()>,
+        ext: E,
+    ) -> OperationWalker<'op, (), (), E>
+    where
+        'schema: 'op,
+    {
+        OperationWalker {
             operation: self,
-            id: selection_set_id,
-        }
-    }
-
-    pub fn walk_field<'a>(&'a self, schema: SchemaWalker<'a, ()>, id: BoundFieldId) -> BoundFieldWalker<'a> {
-        BoundFieldWalker {
             schema,
-            operation: self,
-            bound_field: &self[id],
-            id,
-        }
-    }
-
-    pub fn walk_definition<'a>(
-        &'a self,
-        schema: SchemaWalker<'a, ()>,
-        definition_id: BoundAnyFieldDefinitionId,
-    ) -> BoundAnyFieldDefinitionWalker<'a> {
-        match &self[definition_id] {
-            BoundAnyFieldDefinition::TypeName(definition) => BoundAnyFieldDefinitionWalker::TypeName(definition),
-            BoundAnyFieldDefinition::Field(definition) => {
-                BoundAnyFieldDefinitionWalker::Field(BoundFieldDefinitionWalker {
-                    field: schema.walk(definition.field_id),
-                    definition,
-                })
-            }
+            ext,
+            inner: (),
         }
     }
 }

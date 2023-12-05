@@ -55,7 +55,6 @@ fn input_objects() {
 }
 
 #[test]
-#[ignore]
 fn list_coercion() {
     let query = "query($input: String!) { listOfListOfStrings(input: $input) }";
     let input = json!("hello");
@@ -72,7 +71,7 @@ fn list_coercion() {
     });
     assert!(response.errors().is_empty(), "{response:#?}");
 
-    assert_eq!(response.into_data(), json!([["hello"]]));
+    assert_eq!(response.into_data(), json!({"listOfListOfStrings": [["hello"]]}));
 }
 
 #[test]

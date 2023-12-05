@@ -3,7 +3,10 @@ use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVe
 use engine_v2::Engine;
 use integration_tests::{
     federation::EngineV2Ext,
-    mocks::graphql::{EchoSchema, FakeGithubSchema},
+    mocks::graphql::{
+        EchoSchema, FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema,
+        FakeGithubSchema,
+    },
     runtime, MockGraphQlServer,
 };
 
@@ -677,6 +680,73 @@ fn rejects_bogus_introspection_queries() {
       ]
     }
     "###);
+}
+
+#[test]
+fn introspection_on_multiple_federation_subgraphs() {
+    let response = runtime().block_on(async move {
+        let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
+        let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
+        let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
+
+        let engine = Engine::build()
+            .with_schema("accounts", &accounts)
+            .await
+            .with_schema("products", &products)
+            .await
+            .with_schema("reviews", &reviews)
+            .await
+            .finish();
+
+        engine.execute(PATHFINDER_INTROSPECTION_QUERY).await
+    });
+    assert!(response.errors().is_empty(), "{response}");
+
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    type Picture {
+      altText: String!
+      height: Int!
+      url: String!
+      width: Int!
+    }
+
+    type Product {
+      name: String!
+      price: Int!
+      reviews: [Review!]!
+      upc: String!
+    }
+
+    type Query {
+      me: User!
+      topProducts: [Product!]!
+    }
+
+    type Review {
+      author: User!
+      body: String!
+      id: ID!
+      pictures: [Picture!]!
+      product: Product!
+    }
+
+    enum Trustworthiness {
+      REALLY_TRUSTED
+      KINDA_TRUSTED
+      NOT_TRUSTED
+    }
+
+    type User {
+      id: ID!
+      joinedTimestamp: Int!
+      profilePicture: Picture
+      reviewCount: Int!
+      reviews: [Review!]!
+      trustworthiness: Trustworthiness!
+      username: String!
+    }
+
+    "###)
 }
 
 #[allow(clippy::panic)]

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 // All of that should be in federated_graph actually.
+use super::sources::*;
 use super::*;
-use crate::introspection::Introspection;
 
 #[allow(clippy::panic)]
 impl From<federated_graph::FederatedGraph> for Schema {
@@ -10,45 +10,88 @@ impl From<federated_graph::FederatedGraph> for Schema {
         let federated_graph::FederatedGraph::V1(graph) = graph;
         let mut schema = Schema {
             description: None,
-            data_sources: (0..graph.subgraphs.len())
-                .map(|i| DataSource::Subgraph(SubgraphId::from(i)))
-                .collect(),
-            subgraphs: graph.subgraphs.into_iter().map(Into::into).collect(),
             root_operation_types: RootOperationTypes {
                 query: graph.root_operation_types.query.into(),
                 mutation: graph.root_operation_types.mutation.map(Into::into),
                 subscription: graph.root_operation_types.subscription.map(Into::into),
             },
-            objects: graph.objects.into_iter().map(Into::into).collect(),
-            object_fields: graph.object_fields.into_iter().map(Into::into).collect(),
-            fields: vec![],
+            objects: Vec::with_capacity(graph.objects.len()),
+            object_fields: Vec::with_capacity(graph.object_fields.len()),
+            fields: Vec::with_capacity(graph.fields.len()),
             types: graph.field_types.into_iter().map(Into::into).collect(),
             interfaces: graph.interfaces.into_iter().map(Into::into).collect(),
             interface_fields: graph.interface_fields.into_iter().map(Into::into).collect(),
             enums: graph.enums.into_iter().map(Into::into).collect(),
             unions: graph.unions.into_iter().map(Into::into).collect(),
-            scalars: vec![],
-            input_objects: vec![],
+            scalars: Vec::with_capacity(graph.scalars.len()),
+            input_objects: Vec::with_capacity(graph.input_objects.len()),
             strings: graph.strings,
             resolvers: vec![],
             definitions: vec![],
             input_values: vec![],
+            data_sources: DataSources {
+                federation: federation::DataSource {
+                    subgraphs: graph.subgraphs.into_iter().map(Into::into).collect(),
+                },
+                ..Default::default()
+            },
         };
+
+        // -- OBJECTS --
+        let mut entity_resolvers = HashMap::<ObjectId, Vec<(ResolverId, SubgraphId)>>::new();
+        for object in graph.objects {
+            let object_id = ObjectId::from(schema.objects.len());
+            let keys = object.resolvable_keys;
+            schema.objects.push(Object {
+                name: object.name.into(),
+                description: None,
+                interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
+                composed_directives: object.composed_directives.into_iter().map(Into::into).collect(),
+            });
+            for key in keys {
+                let resolver_id = ResolverId::from(schema.resolvers.len());
+                let subgraph_id = key.subgraph_id.into();
+                schema
+                    .resolvers
+                    .push(Resolver::FederationEntity(federation::EntityResolver {
+                        subgraph_id,
+                        key: federation::Key {
+                            fields: key.fields.into_iter().map(Into::into).collect(),
+                        },
+                    }));
+                entity_resolvers
+                    .entry(object_id)
+                    .or_default()
+                    .push((resolver_id, subgraph_id));
+            }
+        }
+
+        // -- OBJECT FIELDS --
+        let mut field_entity_resolvers = HashMap::<FieldId, Vec<(ResolverId, SubgraphId)>>::new();
+        for object_field in graph.object_fields {
+            if let Some(resolvers) = entity_resolvers.get(&object_field.object_id.into()) {
+                field_entity_resolvers
+                    .entry(object_field.field_id.into())
+                    .or_default()
+                    .extend(resolvers);
+            }
+            schema.object_fields.push(object_field.into());
+        }
 
         let root_fields = {
             let mut root_fields = vec![];
-            let walker = schema.default_walker();
+            let walker = schema.walker();
             for field in walker.walk(schema.root_operation_types.query).fields() {
-                root_fields.push(field.id);
+                root_fields.push(field.inner);
             }
             if let Some(mutation) = schema.root_operation_types.mutation {
                 for field in walker.walk(mutation).fields() {
-                    root_fields.push(field.id);
+                    root_fields.push(field.inner);
                 }
             }
             if let Some(subscription) = schema.root_operation_types.subscription {
                 for field in walker.walk(subscription).fields() {
-                    root_fields.push(field.id);
+                    root_fields.push(field.inner);
                 }
             }
             root_fields.sort_unstable();
@@ -62,36 +105,59 @@ impl From<federated_graph::FederatedGraph> for Schema {
         //    for federation entities.
         // 2. Field arguments are converted to input values. That's how the GraphQL spec defines
         //    them and having an id allows data sources to rename those more easily.
-        let mut resolvers = HashMap::<Resolver, ResolverId>::new();
+        let mut root_field_resolvers = HashMap::<SubgraphId, ResolverId>::new();
         for (i, field) in graph.fields.into_iter().enumerate() {
             let field_id = FieldId::from(i);
-            let mut field_resolvers = vec![];
-            let mut field_requires = field
+            let mut resolvers = vec![];
+            let subgraph_requires = field
                 .requires
                 .into_iter()
-                .map(|federated_graph::FieldRequires { subgraph_id, fields }| (subgraph_id, fields))
+                .map(|federated_graph::FieldRequires { subgraph_id, fields }| {
+                    (
+                        SubgraphId::from(subgraph_id),
+                        FieldSet::from_iter(fields.into_iter().map(Into::into)),
+                    )
+                })
                 .collect::<HashMap<_, _>>();
             if let Some(subgraph_id) = field.resolvable_in {
+                let subgraph_id = subgraph_id.into();
                 if root_fields.binary_search(&field_id).is_ok() {
-                    let n = resolvers.len();
-                    let resolver_id = *resolvers
-                        .entry(Resolver::Subgraph(SubgraphResolver {
-                            subgraph_id: subgraph_id.into(),
-                        }))
-                        .or_insert_with(|| ResolverId::from(n));
-                    let requires = field_requires.remove(&subgraph_id).unwrap_or_default();
-                    field_resolvers.push(FieldResolver {
-                        resolver_id,
-                        requires: requires.into_iter().map(Into::into).collect(),
+                    let resolver_id = *root_field_resolvers.entry(subgraph_id).or_insert_with(|| {
+                        let resolver_id = ResolverId::from(schema.resolvers.len());
+                        schema
+                            .resolvers
+                            .push(Resolver::FederationRootField(federation::RootFieldResolver {
+                                subgraph_id,
+                            }));
+                        resolver_id
                     });
+                    resolvers.push(FieldResolver {
+                        resolver_id,
+                        requires: FieldSet::default(),
+                    });
+                } else if let Some(entity_resolvers) = field_entity_resolvers.remove(&field_id) {
+                    for (resolver_id, entity_subgraph_id) in entity_resolvers {
+                        if entity_subgraph_id == subgraph_id {
+                            resolvers.push(FieldResolver {
+                                resolver_id,
+                                requires: subgraph_requires.get(&entity_subgraph_id).cloned().unwrap_or_default(),
+                            });
+                        }
+                    }
                 }
             }
+
             let field = Field {
                 name: field.name.into(),
                 description: None,
                 type_id: field.field_type_id.into(),
-                resolvers: field_resolvers,
-                provides: field.provides.into_iter().map(Into::into).collect(),
+                resolvers,
+                provides: field
+                    .provides
+                    .into_iter()
+                    .find(|provides| Some(provides.subgraph_id) == field.resolvable_in)
+                    .map(|provides| provides.fields.into_iter().map(Into::into).collect())
+                    .unwrap_or_default(),
                 arguments: {
                     field
                         .arguments
@@ -114,9 +180,6 @@ impl From<federated_graph::FederatedGraph> for Schema {
             };
             schema.fields.push(field);
         }
-        let mut resolvers = resolvers.into_iter().collect::<Vec<_>>();
-        resolvers.sort_unstable_by_key(|(_, resolver_id)| *resolver_id);
-        schema.resolvers = resolvers.into_iter().map(|(resolver, _)| resolver).collect();
 
         // -- INPUT OBJECTS --
         // Separating the input fields into a separate input_value vec with an id. This additional
@@ -171,13 +234,13 @@ impl From<federated_graph::FederatedGraph> for Schema {
             .collect();
 
         // -- INTROSPECTION --
-        Introspection::finalize_schema(schema)
+        introspection::Introspection::finalize_schema(schema)
     }
 }
 
-impl From<federated_graph::Subgraph> for Subgraph {
+impl From<federated_graph::Subgraph> for federation::Subgraph {
     fn from(subgraph: federated_graph::Subgraph) -> Self {
-        Subgraph {
+        federation::Subgraph {
             name: subgraph.name.into(),
             url: subgraph.url.into(),
         }
@@ -190,7 +253,6 @@ impl From<federated_graph::Object> for Object {
             name: object.name.into(),
             description: None,
             interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-            resolvable_keys: object.resolvable_keys.into_iter().map(Into::into).collect(),
             composed_directives: object.composed_directives.into_iter().map(Into::into).collect(),
         }
     }
@@ -214,15 +276,6 @@ impl From<federated_graph::ObjectField> for ObjectField {
         ObjectField {
             object_id: object_field.object_id.into(),
             field_id: object_field.field_id.into(),
-        }
-    }
-}
-
-impl From<federated_graph::FieldProvides> for FieldProvides {
-    fn from(provides: federated_graph::FieldProvides) -> Self {
-        FieldProvides {
-            data_source_id: DataSourceId::from_subgraph_id(provides.subgraph_id),
-            fields: provides.fields.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -323,19 +376,10 @@ impl From<federated_graph::Union> for Union {
     }
 }
 
-impl From<federated_graph::Key> for Key {
-    fn from(key: federated_graph::Key) -> Self {
-        Key {
-            subgraph_id: key.subgraph_id.into(),
-            fields: key.fields.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
 impl From<federated_graph::FieldSetItem> for FieldSetItem {
     fn from(selection: federated_graph::FieldSetItem) -> Self {
         FieldSetItem {
-            field: selection.field.into(),
+            field_id: selection.field.into(),
             selection_set: selection.subselection.into_iter().map(Into::into).collect(),
         }
     }
@@ -387,10 +431,4 @@ from_id_newtypes! {
     StringId => StringId,
     SubgraphId => SubgraphId,
     UnionId => UnionId,
-}
-
-impl DataSourceId {
-    fn from_subgraph_id(id: federated_graph::SubgraphId) -> Self {
-        Self::from(id.0)
-    }
 }
