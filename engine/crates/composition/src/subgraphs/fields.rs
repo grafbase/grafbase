@@ -224,7 +224,16 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub(crate) fn find_field(self, name: StringId) -> Option<FieldWalker<'a>> {
-        self.fields().find(|f| f.name().id == name)
+        let field_id = FieldId(self.id, name);
+
+        self.subgraphs
+            .fields
+            .definition_fields
+            .get(&field_id)
+            .map(|tuple| FieldWalker {
+                id: (field_id, *tuple),
+                subgraphs: self.subgraphs,
+            })
     }
 }
 

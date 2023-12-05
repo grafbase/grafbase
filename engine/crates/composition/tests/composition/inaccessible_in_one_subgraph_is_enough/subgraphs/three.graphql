@@ -1,0 +1,6 @@
+type Color @shareable {
+  red: Int
+  green: Int
+  blue: Int
+  alpha: Int @inaccessible
+}

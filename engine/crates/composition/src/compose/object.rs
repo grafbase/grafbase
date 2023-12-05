@@ -213,3 +213,33 @@ fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<f
 
     overrides
 }
+
+pub(crate) fn validate_shareable_object_fields_match(
+    definitions: &[DefinitionWalker<'_>],
+    ctx: &mut ComposeContext<'_>,
+) {
+    let all_fields: BTreeSet<StringId> = definitions
+        .iter()
+        .flat_map(|def| def.fields())
+        .map(|field| field.name().id)
+        .collect();
+    let inaccessible_fields: BTreeSet<StringId> = definitions
+        .iter()
+        .flat_map(|def| def.fields())
+        .filter(|field| field.directives().inaccessible())
+        .map(|field| field.name().id)
+        .collect();
+
+    for definition in definitions {
+        for field in all_fields.difference(&inaccessible_fields) {
+            if definition.find_field(*field).is_none() {
+                ctx.diagnostics.push_fatal(format!(
+                    "[{}] The shareable object `{}` is missing the `{}` field defined in other subgraphs.",
+                    definition.subgraph().name().as_str(),
+                    definition.name().as_str(),
+                    definition.walk(*field).as_str(),
+                ));
+            }
+        }
+    }
+}

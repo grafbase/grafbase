@@ -1,0 +1,33 @@
+type Query {
+  getAlgaeFarms: [AlgaeFarm]
+}
+
+type AlgaeFarm @shareable {
+  id: ID!
+  name: String!
+  location: String
+  waterType: WaterType
+  size: Float # in hectares
+  productionCapacity: Float # in tons per year
+}
+
+type AlgaeSpecies {
+  id: ID! @shareable
+  name: String! @shareable
+  scientificName: String @shareable
+  preferredEnvironment: Environment @shareable
+  uses: [String] @shareable # such as biofuel, food, cosmetics
+}
+
+enum WaterType {
+  FRESHWATER
+  BRACKISH
+  MARINE
+}
+
+enum Environment {
+  OPEN_POND
+  PHOTOBIOREACTOR
+  RACEWAY_POND
+}
+

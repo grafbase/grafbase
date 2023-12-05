@@ -65,6 +65,7 @@ fn merge_object_definitions<'a>(
         ctx.diagnostics.push_fatal(format!(
             "Cannot merge {first_kind:?} with {second_kind:?} (`{name}` in `{first_subgraph}` and `{second_subgraph}`)",
         ));
+        return;
     }
 
     let first_is_entity = first.is_entity();
@@ -98,6 +99,10 @@ fn merge_object_definitions<'a>(
         .filter(|key| key.is_resolvable())
     {
         ctx.insert_resolvable_key(object_id, key.id);
+    }
+
+    if is_shareable {
+        object::validate_shareable_object_fields_match(definitions, ctx);
     }
 
     ctx.subgraphs.iter_field_groups(first.name().id, |fields| {
