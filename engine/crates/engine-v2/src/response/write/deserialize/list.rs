@@ -66,7 +66,7 @@ where
                     if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
                         self.ctx.data.borrow_mut().push_error(GraphqlError {
                             message: err.to_string(),
-                            locations: vec![self.ctx.walk(self.definition_id).name_location()],
+                            locations: vec![self.ctx.walker.walk(self.definition_id).name_location()],
                             path: Some(self.path.clone()),
                             extensions: HashMap::with_capacity(0),
                         });

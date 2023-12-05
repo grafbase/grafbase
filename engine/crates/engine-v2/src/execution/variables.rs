@@ -58,10 +58,7 @@ impl<'a> Variables<'a> {
         })
     }
 
-    #[allow(clippy::panic)]
-    pub fn unchecked_get(&self, name: &str) -> &Variable<'_> {
-        self.inner
-            .get(name)
-            .unwrap_or_else(|| panic!("Missing variable '{name}'"))
+    pub fn get(&self, name: &str) -> Option<&Variable<'_>> {
+        self.inner.get(name)
     }
 }

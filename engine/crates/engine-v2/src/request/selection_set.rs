@@ -8,13 +8,13 @@ use crate::response::{BoundResponseKey, ResponseKey};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundSelectionSet {
-    pub root: SelectionSetRoot,
+    pub ty: SelectionSetType,
     // Ordering matters and must be respected in the response.
     pub items: Vec<BoundSelection>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SelectionSetRoot {
+pub enum SelectionSetType {
     Object(ObjectId),
     Interface(InterfaceId),
     Union(UnionId),

@@ -1,72 +1,59 @@
-use schema::Names;
+use schema::SchemaWalker;
 
-use super::{
-    walkers::{SelectionSetWalker, VariablesWalker, WalkerContext},
-    Variables,
-};
+use super::Variables;
 use crate::{
-    plan::{ExecutionPlan, PlanId},
-    request::Operation,
-    response::{ResponseObjectRoot, ResponseObjectWriter, ResponsePartBuilder},
+    plan::PlanOutput,
+    request::{OperationWalker, PlanExt, PlanOperationWalker, VariablesWalker},
+    response::{ExecutorOutput, ResponseBoundaryItem, ResponseObjectWriter},
     Engine,
 };
 
 /// Data available during the executor life during its build & execution phases.
-#[derive(Clone)]
-pub struct ExecutionContext<'ctx, 'names> {
+#[derive(Clone, Copy)]
+pub struct ExecutionContext<'ctx> {
     pub engine: &'ctx Engine,
-    pub names: &'names dyn Names,
-    pub operation: &'ctx Operation,
-    pub plan_id: PlanId,
-    pub(super) plan: &'ctx ExecutionPlan,
+    pub walker: OperationWalker<'ctx>,
     pub(super) variables: &'ctx Variables<'ctx>,
 }
 
-impl<'ctx, 'names> ExecutionContext<'ctx, 'names> {
-    // Not exactly how to handle Names overall, the Planner already needs it so we could provide it
-    // to the context directly.
-    #[allow(dead_code)]
-    fn with_names<'other>(self, names: &'other dyn Names) -> ExecutionContext<'ctx, 'other> {
-        ExecutionContext { names, ..self }
+impl<'ctx> ExecutionContext<'ctx> {
+    pub fn schema(&self) -> SchemaWalker<'ctx, ()> {
+        self.walker.schema()
     }
 
-    /// If you do no need to rename anything, use this walker with the schema names.
-    pub fn selection_set(&self) -> SelectionSetWalker<'names>
+    pub fn variables(&self) -> VariablesWalker<'ctx> {
+        self.walker.walk(self.variables)
+    }
+
+    pub fn walk<'p>(&self, output: &'p PlanOutput) -> PlanOperationWalker<'p>
     where
-        'ctx: 'names,
+        'ctx: 'p,
     {
-        WalkerContext {
-            schema_walker: self.engine.schema.walker(self.names),
-            operation: self.operation,
-            attribution: &self.plan.attribution,
-            variables: self.variables,
-        }
-        .walk_selection_set(self.plan.root.merged_selection_set_ids.clone())
+        self.walker
+            .with_ext(PlanExt {
+                attibution: &output.attribution,
+                variables: self.variables,
+            })
+            .walk(output)
     }
 
-    pub fn variables(&self) -> VariablesWalker<'names>
-    where
-        'ctx: 'names,
-    {
-        VariablesWalker::new(self.engine.schema.walker(self.names), self.variables)
-    }
-
-    pub fn writer<'w>(
+    pub fn writer<'a>(
         &self,
-        data_part: &'w mut ResponsePartBuilder,
-        root: ResponseObjectRoot,
-    ) -> ResponseObjectWriter<'w>
+        data_part: &'a mut ExecutorOutput,
+        boundary_item: &'a ResponseBoundaryItem,
+        output: &'a PlanOutput,
+    ) -> ResponseObjectWriter<'a>
     where
-        'ctx: 'w,
-        'names: 'w,
+        'ctx: 'a,
     {
         ResponseObjectWriter::new(
-            self.engine.schema.walker(self.names),
-            self.operation,
-            self.variables,
+            self.walker.with_ext(PlanExt {
+                attibution: &output.attribution,
+                variables: self.variables,
+            }),
             data_part,
-            root,
-            &self.plan.expectation,
+            boundary_item,
+            &output.expectation,
         )
     }
 }

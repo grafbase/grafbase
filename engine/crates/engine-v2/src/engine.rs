@@ -32,7 +32,7 @@ impl Engine {
         match self.prepare(&request).await {
             Ok(operation) => match Variables::from_request(&operation, request.variables) {
                 Ok(variables) => {
-                    let mut executor = ExecutorCoordinator::new(self, &operation, variables);
+                    let mut executor = ExecutorCoordinator::new(self, &operation, &variables);
                     executor.execute().await;
                     executor.into_response()
                 }

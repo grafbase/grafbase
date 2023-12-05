@@ -1,11 +1,11 @@
-use super::SchemaWalker;
-use crate::{DataSourceId, FieldId, FieldResolver, FieldSet, InputValueWalker, Resolver, Schema, TypeWalker};
+use super::{resolver::ResolverWalker, SchemaWalker};
+use crate::{FieldId, FieldResolver, FieldSet, InputValueWalker, TypeWalker};
 
 pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
 impl<'a> FieldWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.field(self.id)
+        self.names.field(self.schema, self.inner)
     }
 
     pub fn description(&self) -> Option<&'a str> {
@@ -17,24 +17,19 @@ impl<'a> FieldWalker<'a> {
     }
 
     pub fn resolvers(&self) -> impl Iterator<Item = FieldResolverWalker<'a>> + 'a {
-        let schema = self.schema;
-        self.schema[self.id]
+        let walker = self.walk(());
+        self.schema[self.inner]
             .resolvers
             .iter()
-            .map(move |inner| FieldResolverWalker { schema, inner })
-    }
-
-    pub fn provides(&self, data_source_id: DataSourceId) -> Option<&'a FieldSet> {
-        self.schema[self.id]
-            .provides
-            .iter()
-            .find(|provides| provides.data_source_id == data_source_id)
-            .map(|provides| &provides.fields)
+            .map(move |FieldResolver { resolver_id, requires }| FieldResolverWalker {
+                resolver: walker.walk(*resolver_id),
+                requires,
+            })
     }
 
     pub fn arguments(&self) -> impl Iterator<Item = InputValueWalker<'a>> + 'a {
         let walker = *self;
-        self.schema[self.id].arguments.iter().map(move |id| walker.walk(*id))
+        self.schema[self.inner].arguments.iter().map(move |id| walker.walk(*id))
     }
 
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueWalker<'a>> {
@@ -50,34 +45,17 @@ impl<'a> FieldWalker<'a> {
 }
 
 pub struct FieldResolverWalker<'a> {
-    schema: &'a Schema,
-    inner: &'a FieldResolver,
-}
-
-impl<'a> FieldResolverWalker<'a> {
-    pub fn resolver(&self) -> &Resolver {
-        &self.schema[self.inner.resolver_id]
-    }
-}
-
-impl<'a> std::ops::Deref for FieldResolverWalker<'a> {
-    type Target = FieldResolver;
-
-    fn deref(&self) -> &Self::Target {
-        self.inner
-    }
+    pub resolver: ResolverWalker<'a>,
+    pub requires: &'a FieldSet,
 }
 
 impl<'a> std::fmt::Debug for FieldWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("FieldWalker")
-            .field("id", &usize::from(self.id))
+        f.debug_struct("Field")
+            .field("id", &usize::from(self.inner))
             .field("name", &self.name())
-            .field("description", &self.description())
-            .field("type", &self.ty())
-            .field("resolvers", &self.resolvers)
-            .field("is_deprecated", &self.is_deprecated)
-            .field("deprecated_reason", &self.deprecated_reason())
+            .field("type", &self.ty().name())
+            .field("resolvers", &self.resolvers().map(|fr| fr.resolver).collect::<Vec<_>>())
             .field(
                 "arguments",
                 &self

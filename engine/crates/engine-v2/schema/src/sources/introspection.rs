@@ -1,25 +1,36 @@
-// Missing:
-//  - interfaces of interfaces
-//  - description
-//  - directives
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
 };
 
 use crate::{
-    DataSourceId, DataType, Definition, EnumId, EnumValue, Field, FieldId, FieldSet, InputObjectId, InputValue,
-    InputValueId, InterfaceId, ObjectField, ObjectId, Resolver, ResolverId, ScalarId, Schema, StringId, Type, TypeId,
-    UnionId, Value, Wrapping,
+    DataType, Definition, EnumId, EnumValue, Field, FieldId, FieldSet, InputValue, InputValueId, ObjectField, ObjectId,
+    ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct IntrospectionResolver {
-    pub data_source_id: DataSourceId,
+#[derive(Debug, PartialEq, Eq)]
+pub struct Resolver;
+
+pub type ResolverWalker<'a> = SchemaWalker<'a, &'a Resolver>;
+
+impl<'a> ResolverWalker<'a> {
+    pub fn metadata(&self) -> &'a Metadata {
+        self.schema
+            .data_sources
+            .introspection
+            .metadata
+            .as_ref()
+            .expect("Schema wasn't properly finalized with Introspection.")
+    }
 }
 
-// the builder is not that necessary, but helps avoiding forgetting to set fields.
-pub struct IntrospectionDataSource {
+#[derive(Default)]
+pub struct DataSource {
+    // Ugly until we have some from of SchemaBuilder
+    metadata: Option<Metadata>,
+}
+
+pub struct Metadata {
     pub meta_fields: [FieldId; 2],
     pub type_kind: TypeKind,
     pub directive_location: DirectiveLocation,
@@ -86,30 +97,7 @@ impl Introspection {
             .collect();
         let mut inserter = Self { schema, strings_map };
         inserter.create_fields_and_insert_them();
-        let mut schema = inserter.schema;
-
-        // Adding all definitions for introspection & query binding
-        schema
-            .definitions
-            .extend((0..schema.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
-        schema
-            .definitions
-            .extend((0..schema.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
-
-        schema.ensure_proper_ordering();
-        schema
+        inserter.schema.finalize()
     }
 
     #[allow(non_snake_case)]
@@ -397,30 +385,19 @@ impl Introspection {
         */
         let field_type_id = self.insert_field_type(__type, Wrapping::nullable());
         let __type_field_id = self.insert_object_field(self.root_operation_types.query, "__type", field_type_id);
-
-        // DataSource
-        self.data_sources
-            .push(crate::DataSource::Introspection(Box::new(IntrospectionDataSource {
-                meta_fields: [__type_field_id, __schema_field_id],
-                type_kind,
-                directive_location,
-            })));
-        let data_source_id = DataSourceId::from(self.data_sources.len() - 1);
-
-        // __schema resolver
-        let resolver_id = self.insert_resolver(data_source_id);
-        self[__schema_field_id].resolvers.push(crate::FieldResolver {
-            resolver_id,
-            requires: FieldSet::default(),
-        });
-        // __type resolver
         let input_value_id = self.insert_input_value("name", required_string, None);
         self[__type_field_id].arguments.push(input_value_id);
-        let resolver_id = self.insert_resolver(data_source_id);
-        self[__type_field_id].resolvers.push(crate::FieldResolver {
-            resolver_id,
-            requires: FieldSet::default(),
+
+        // DataSource
+        self.data_sources.introspection.metadata = Some(Metadata {
+            meta_fields: [__type_field_id, __schema_field_id],
+            type_kind,
+            directive_location,
         });
+
+        // Introspection resolver is used as the default one which allows to also handle the query
+        // `query { __typename }` in a more natural way.
+        self.resolvers.push(crate::Resolver::Introspection(Resolver));
     }
 
     fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumId {
@@ -456,7 +433,6 @@ impl Introspection {
             name,
             description: None,
             interfaces: vec![],
-            resolvable_keys: vec![],
             composed_directives: vec![],
         });
         ObjectId::from(self.objects.len() - 1)
@@ -469,7 +445,7 @@ impl Introspection {
             type_id: field_type_id,
             composed_directives: vec![],
             resolvers: vec![],
-            provides: vec![],
+            provides: FieldSet::default(),
             arguments: vec![],
             description: None,
             is_deprecated: false,
@@ -495,12 +471,6 @@ impl Introspection {
             wrapping,
         });
         TypeId::from(self.types.len() - 1)
-    }
-
-    fn insert_resolver(&mut self, data_source_id: DataSourceId) -> ResolverId {
-        let resolver = Resolver::Introspection(IntrospectionResolver { data_source_id });
-        self.resolvers.push(resolver);
-        ResolverId::from(self.resolvers.len() - 1)
     }
 
     fn insert_input_value(&mut self, name: &str, type_id: TypeId, default_value: Option<Value>) -> InputValueId {

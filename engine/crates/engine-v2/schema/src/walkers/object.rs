@@ -5,7 +5,7 @@ pub type ObjectWalker<'a> = SchemaWalker<'a, ObjectId>;
 
 impl<'a> ObjectWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.object(self.id)
+        self.names.object(self.schema, self.inner)
     }
 
     pub fn description(&self) -> Option<&'a str> {
@@ -16,8 +16,8 @@ impl<'a> ObjectWalker<'a> {
         let start = self
             .schema
             .object_fields
-            .partition_point(|item| item.object_id < self.id);
-        let id = self.id;
+            .partition_point(|item| item.object_id < self.inner);
+        let id = self.inner;
         RangeWalker {
             schema: self.schema,
             names: self.names,
@@ -41,8 +41,8 @@ impl<'a> ObjectWalker<'a> {
 
 impl<'a> std::fmt::Debug for ObjectWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ObjectWalker")
-            .field("id", &usize::from(self.id))
+        f.debug_struct("Object")
+            .field("id", &usize::from(self.inner))
             .field("name", &self.name())
             .field("description", &self.description())
             .field("fields", &self.fields().map(|f| f.name()).collect::<Vec<_>>())

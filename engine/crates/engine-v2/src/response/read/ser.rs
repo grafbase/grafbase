@@ -66,13 +66,15 @@ impl<'a> serde::Serialize for SerializableError<'a> {
     where
         S: serde::Serializer,
     {
-        let mut size_hint = 1;
-        if !self.error.locations.is_empty() {
-            size_hint += 1;
-        }
-        if self.error.path.is_some() {
-            size_hint += 1;
-        }
+        let size_hint = [
+            true,
+            !self.error.locations.is_empty(),
+            self.error.path.is_some(),
+            !self.error.extensions.is_empty(),
+        ]
+        .into_iter()
+        .filter(|b| *b)
+        .count();
         let mut map = serializer.serialize_map(Some(size_hint))?;
         map.serialize_entry("message", &self.error.message)?;
         if !self.error.locations.is_empty() {
@@ -80,6 +82,9 @@ impl<'a> serde::Serialize for SerializableError<'a> {
         }
         if let Some(ref path) = self.error.path {
             map.serialize_entry("path", &SerializableResponsePath { keys: self.keys, path })?;
+        }
+        if !self.error.extensions.is_empty() {
+            map.serialize_entry("extensions", &self.error.extensions)?;
         }
         map.end()
     }

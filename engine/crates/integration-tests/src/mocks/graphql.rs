@@ -16,6 +16,7 @@ pub use {
 };
 
 pub struct MockGraphQlServer {
+    pub schema: Arc<dyn Schema>,
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
     port: u16,
 }
@@ -30,13 +31,11 @@ impl Drop for MockGraphQlServer {
 
 impl MockGraphQlServer {
     pub async fn new(schema: impl Schema + 'static) -> MockGraphQlServer {
-        let state = AppState {
-            schema: Arc::new(schema),
-        };
-        Self::new_impl(state).await
+        Self::new_impl(Arc::new(schema)).await
     }
 
-    async fn new_impl(state: AppState) -> Self {
+    async fn new_impl(schema: Arc<dyn Schema>) -> Self {
+        let state = AppState { schema: schema.clone() };
         let app = Router::new().route("/", post(graphql_handler)).with_state(state);
 
         let socket = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -59,6 +58,7 @@ impl MockGraphQlServer {
         tokio::time::sleep(Duration::from_millis(20)).await;
 
         MockGraphQlServer {
+            schema,
             shutdown: Some(shutdown_tx),
             port,
         }

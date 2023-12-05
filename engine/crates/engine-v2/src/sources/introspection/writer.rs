@@ -1,14 +1,14 @@
 use engine_value::ConstValue;
 use schema::{
-    introspection::IntrospectionDataSource, Definition, DefinitionWalker, EnumValue, FieldWalker, InputValueWalker,
-    Schema, TypeWalker,
+    sources::introspection::Metadata, Definition, DefinitionWalker, EnumValue, FieldWalker, InputValueWalker, Schema,
+    TypeWalker,
 };
 
 use crate::response::{GroupedFieldWriter, ResponseValue, WriteResult};
 
 pub struct IntrospectionWriter<'a> {
     pub schema: &'a Schema,
-    pub types: &'a IntrospectionDataSource,
+    pub types: &'a Metadata,
 }
 
 impl<'a> IntrospectionWriter<'a> {
@@ -17,6 +17,7 @@ impl<'a> IntrospectionWriter<'a> {
         // There is a single argument if any so don't need to match anything, the
         // query is already validated.
         let name = writer
+            .expected_field
             .bound_arguments()
             .next()
             .map(|arg| match arg.resolved_value() {
@@ -25,13 +26,13 @@ impl<'a> IntrospectionWriter<'a> {
             })
             .expect("Validation failure: missing argument");
         match self.schema.definition_by_name(&name) {
-            Some(definition) => self.__type_inner(writer, self.schema.default_walker().walk(definition)),
+            Some(definition) => self.__type_inner(writer, self.schema.walker().walk(definition)),
             None => writer.write_null(),
         }
     }
 
     pub fn write_schema_field(&self, mut writer: GroupedFieldWriter<'_>) -> WriteResult<ResponseValue> {
-        let schema = self.schema.default_walker();
+        let schema = self.schema.walker();
         writer.write_known_object_with(|mut writer| match writer.expected_field.name() {
             "description" => writer.write_opt_string_id(writer.expected_field.description),
             "types" => writer.write_list_with(schema.definitions(), |field, item| self.__type_inner(field, item)),
@@ -46,7 +47,7 @@ impl<'a> IntrospectionWriter<'a> {
             },
             // TODO: Need to implemented directives...
             "directives" => writer.write_empty_list(),
-            name => unknown(name),
+            name => unresolvable(name),
         })
     }
 
@@ -58,7 +59,7 @@ impl<'a> IntrospectionWriter<'a> {
         definition: DefinitionWalker<'_>,
     ) -> WriteResult<ResponseValue> {
         writer.write_known_object_with(|mut writer| match writer.expected_field.name() {
-            "kind" => writer.write_string_id(match definition.id {
+            "kind" => writer.write_string_id(match definition.id() {
                 Definition::Scalar(_) => self.types.type_kind.scalar,
                 Definition::Object(_) => self.types.type_kind.object,
                 Definition::Interface(_) => self.types.type_kind.interface,
@@ -71,6 +72,7 @@ impl<'a> IntrospectionWriter<'a> {
             "fields" => writer.write_opt_list_with(
                 definition.fields().map(|fields| {
                     let include_deprecated = writer
+                        .expected_field
                         .bound_arguments()
                         .next()
                         .map(|arg| match arg.resolved_value() {
@@ -79,7 +81,7 @@ impl<'a> IntrospectionWriter<'a> {
                         })
                         .unwrap_or_default();
                     fields.filter(move |field| {
-                        (!field.is_deprecated || include_deprecated) && !self.types.meta_fields.contains(&field.id)
+                        (!field.is_deprecated || include_deprecated) && !self.types.meta_fields.contains(&field.id())
                     })
                 }),
                 |writer, item| self.__field(writer, item),
@@ -104,7 +106,7 @@ impl<'a> IntrospectionWriter<'a> {
             "specifiedByURL" => {
                 writer.write_opt_string_id(definition.as_scalar().and_then(|scalar| scalar.specified_by_url))
             }
-            name => unknown(name),
+            name => unresolvable(name),
         })
     }
 
@@ -116,7 +118,7 @@ impl<'a> IntrospectionWriter<'a> {
             "type" => self.__type(writer, field.ty()),
             "isDeprecated" => writer.write_boolean(field.is_deprecated),
             "deprecationReason" => writer.write_opt_string_id(field.deprecation_reason),
-            name => unknown(name),
+            name => unresolvable(name),
         })
     }
 
@@ -126,7 +128,7 @@ impl<'a> IntrospectionWriter<'a> {
             "description" => writer.write_opt_string_id(field.description),
             "isDeprecated" => writer.write_boolean(field.is_deprecated),
             "deprecationReason" => writer.write_opt_string_id(field.deprecation_reason),
-            name => unknown(name),
+            name => unresolvable(name),
         })
     }
 
@@ -141,7 +143,7 @@ impl<'a> IntrospectionWriter<'a> {
             "type" => self.__type(writer, input_value.ty()),
             // TODO: add default value...
             "defaultValue" => writer.write_null(),
-            name => unknown(name),
+            name => unresolvable(name),
         })
     }
 
@@ -175,7 +177,7 @@ impl<'a> IntrospectionWriter<'a> {
                     "ofType" => self.__type_recursive(writer, definition, wrapping.clone()),
                     "name" | "description" | "interfaces" | "possibleTypes" | "enumValues" | "inputFields"
                     | "specifiedByURL" => writer.write_null(),
-                    name => unknown(name),
+                    name => unresolvable(name),
                 })
             }
             Some(WrappingType::List) => {
@@ -184,7 +186,7 @@ impl<'a> IntrospectionWriter<'a> {
                     "ofType" => self.__type_recursive(writer, definition, wrapping.clone()),
                     "name" | "description" | "interfaces" | "possibleTypes" | "enumValues" | "inputFields"
                     | "specifiedByURL" => writer.write_null(),
-                    name => unknown(name),
+                    name => unresolvable(name),
                 })
             }
             None => self.__type_inner(writer, definition),
@@ -192,8 +194,8 @@ impl<'a> IntrospectionWriter<'a> {
     }
 }
 
-pub fn unknown(name: &str) -> WriteResult<ResponseValue> {
-    Err(format!("Invalid introspection field named: '{name}'").into())
+pub fn unresolvable(name: &str) -> WriteResult<ResponseValue> {
+    Err(format!("Unresolvable field named: '{name}'").into())
 }
 
 // Innermort to outermost
