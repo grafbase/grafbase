@@ -1,14 +1,13 @@
 use super::*;
 
-pub(crate) fn merge_scalar_definitions(
-    first: DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
-    ctx: &mut Context<'_>,
+pub(crate) fn merge_scalar_definitions<'a>(
+    first: DefinitionWalker<'a>,
+    definitions: &[DefinitionWalker<'a>],
+    ctx: &mut Context<'a>,
 ) {
-    let is_inaccessible = definitions
-        .iter()
-        .any(|definition| definition.directives().inaccessible());
+    let directive_containers = definitions.iter().map(|def| def.directives());
+    let directives = collect_composed_directives(directive_containers, ctx);
     let description = definitions.iter().find_map(|def| def.description());
 
-    ctx.insert_scalar(first.name(), is_inaccessible, description);
+    ctx.insert_scalar(first.name(), description, directives);
 }

@@ -1,6 +1,4 @@
 use super::*;
-use crate::composition_ir as ir;
-use std::collections::{HashMap, HashSet};
 
 pub(super) fn merge_input_object_definitions(
     ctx: &mut Context<'_>,
@@ -10,29 +8,18 @@ pub(super) fn merge_input_object_definitions(
     let description = definitions.iter().find_map(|def| def.description());
 
     // We want to take the intersection of the field sets.
-    let mut common_fields: HashMap<StringId, _> = first.fields().map(|field| (field.name().id, field)).collect();
+    let mut common_fields: Vec<StringId> = first.fields().map(|field| field.name().id).collect();
     let mut fields_buf = HashSet::<StringId>::new();
-
-    let is_inaccessible = definitions
-        .iter()
-        .any(|definition| definition.directives().inaccessible());
-
-    let inaccessible_fields: HashSet<_> = definitions
-        .iter()
-        .flat_map(|def| def.fields())
-        .filter(|f| f.directives().inaccessible())
-        .map(|field| field.name().id)
-        .collect();
 
     for input_object in definitions {
         fields_buf.clear();
         fields_buf.extend(input_object.fields().map(|f| f.name().id));
-        common_fields.retain(|field_name, _| fields_buf.contains(field_name));
+        common_fields.retain(|field_name| fields_buf.contains(field_name));
     }
 
     // Check that no required field was excluded.
     for field in definitions.iter().flat_map(|input_object| input_object.fields()) {
-        if field.r#type().is_required() && !common_fields.contains_key(&field.name().id) {
+        if field.r#type().is_required() && !common_fields.contains(&field.name().id) {
             ctx.diagnostics.push_fatal(format!(
                 "The {input_type_name}.{field_name} field is not defined in all subgraphs, but it is required in {bad_subgraph}",
                 input_type_name = first.name().as_str(),
@@ -42,17 +29,18 @@ pub(super) fn merge_input_object_definitions(
         }
     }
 
-    ctx.insert_input_object(first.name(), is_inaccessible, description);
+    let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
-    for field in first.fields().filter(|f| common_fields.contains_key(&f.name().id)) {
-        let composed_directives = if inaccessible_fields.contains(&field.name().id) {
-            vec![federated::Directive {
-                name: ctx.insert_static_str("inaccessible"),
-                arguments: Vec::new(),
-            }]
-        } else {
-            Vec::new()
-        };
+    ctx.insert_input_object(first.name(), description, composed_directives);
+
+    for field_name in common_fields {
+        let field = first.find_field(field_name).unwrap(); // safe because we just filtered by common_fields
+        let directive_containers = definitions
+            .iter()
+            .filter_map(|input_object| input_object.find_field(field_name))
+            .map(|field| field.directives());
+
+        let composed_directives = collect_composed_directives(directive_containers, ctx);
 
         let field_name = field.name();
 

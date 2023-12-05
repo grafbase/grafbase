@@ -127,6 +127,7 @@ pub struct Field {
 pub struct FieldArgument {
     pub name: StringId,
     pub type_id: FieldTypeId,
+    #[serde(default)]
     pub composed_directives: Vec<Directive>,
     #[serde(default)]
     pub description: Option<StringId>,

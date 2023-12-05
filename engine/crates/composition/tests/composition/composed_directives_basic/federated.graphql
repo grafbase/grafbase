@@ -38,7 +38,7 @@ type Query {
     birdObservations(filters: BirdObservationFilters): [BirdObservation] @join__field(graph: OBSERVATIONS)
     birdObservation(observationID: ID!): BirdObservation @join__field(graph: OBSERVATIONS)
     birdSightings: [BirdSighting] @join__field(graph: SIGHTINGS)
-    birdSighting(sightingID: ID!, private: Boolean): BirdSighting @join__field(graph: SIGHTINGS)
+    birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting @join__field(graph: SIGHTINGS)
 }
 
 type BirdObservation {
@@ -68,7 +68,7 @@ enum ObserverType {
 }
 
 input BirdObservationFilters {
-    observedAt: DateTime
+    observedAt: DateTime @deprecated(reason: "UNIX timestamps instead, as usual in bird watching")
     observerType: ObserverType
     observerName: String
     first: Int

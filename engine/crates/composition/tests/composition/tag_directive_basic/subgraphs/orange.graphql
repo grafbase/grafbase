@@ -1,0 +1,20 @@
+type Query @tag(name: "orangeQuery") @shareable {
+  tags(filter: String @tag(name: "orangeTagsFilter")): [String] @tag(name: "orangeField")
+}
+
+interface HasId @tag(name: "orangeInterface") {
+  id: ID! @tag(name: "orangeField")
+}
+
+type Orange implements HasId @tag(name: "orangeType") {
+  id: ID!
+  variety: String
+  texture: Texture
+}
+
+scalar Texture @tag(name: "orangeTexture")
+
+input Filter @tag(name: "orangeInput") {
+    value: String @tag(name: "orangeInputField")
+}
+

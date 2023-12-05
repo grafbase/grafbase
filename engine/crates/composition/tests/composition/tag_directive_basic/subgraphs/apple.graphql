@@ -1,0 +1,25 @@
+type Query @tag(name: "appleQuery") @shareable {
+  tags(filter: String @tag(name: "appleTagsFilter")): [String] @tag(name: "appleField")
+}
+
+interface HasId @tag(name: "appleInterface") {
+  id: ID! @tag(name: "appleField")
+}
+
+enum AppleVariety @tag(name: "appleEnum") {
+  FUJI
+  GRANNY_SMITH
+  HONEYCRISP @tag(name: "appleEnumValue")
+}
+
+type Apple implements HasId @tag(name: "appleType") @shareable {
+  id: ID!
+  variety: AppleVariety
+  texture: Texture
+}
+
+scalar Texture @tag(name: "appleTexture")
+
+input Filter @tag(name: "appleInput") {
+    value: String @tag(name: "appleInputField")
+}

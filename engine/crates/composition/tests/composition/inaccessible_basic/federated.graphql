@@ -74,8 +74,8 @@ type Book {
 }
 
 type Mutation {
-    addBook(input: BookInput!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
-    updateBook(id: ID!, input: BookInput!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    addBook(input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    updateBook(id: ID!, input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
 }
 
 type Quadratic implements Polynomial {
@@ -97,7 +97,7 @@ interface Polynomial @inaccessible {
 
 enum UngulateType @inaccessible {
     DEER
-    HORSE
+    HORSE @inaccessible
     CAMEL
     RHINOCEROS
     GIRAFFE

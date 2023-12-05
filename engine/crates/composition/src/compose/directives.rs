@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) fn collect_composed_directives<'a>(
     containers: impl Iterator<Item = subgraphs::DirectiveContainerWalker<'a>> + Clone,
-    ctx: &mut ComposeContext<'a>,
+    ctx: &mut ComposeContext<'_>,
 ) -> Vec<federated::Directive> {
     let mut tags: BTreeSet<StringId> = BTreeSet::new();
     let mut is_inaccessible = false;
