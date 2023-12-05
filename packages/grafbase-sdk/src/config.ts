@@ -5,8 +5,6 @@ import { Experimental, ExperimentalParams } from './experimental'
 import { Federation, FederationParams } from './federation'
 
 /**
- * DO NOT USE - experimental
- *
  * An interface to create the complete config definition.
  */
 export interface SingleGraphConfigInput {
@@ -31,8 +29,6 @@ export interface DeprecatedSingleGraphConfigInput {
 }
 
 /**
- * DO NOT USE - experimental
- *
  * An interface to create the federation config definition.
  */
 export interface FederatedGraphConfigInput {
