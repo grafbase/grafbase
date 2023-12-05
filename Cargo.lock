@@ -2009,6 +2009,7 @@ version = "3.0.31"
 dependencies = [
  "anyhow",
  "async-runtime",
+ "bytes",
  "derive_more",
  "engine",
  "engine-parser",
@@ -2020,10 +2021,14 @@ dependencies = [
  "itertools 0.11.0",
  "lasso",
  "reqwest",
+ "send_wrapper 0.6.0",
  "serde",
  "serde-value",
+ "serde-wasm-bindgen 0.6.1",
  "serde_json",
  "thiserror",
+ "url",
+ "worker",
 ]
 
 [[package]]
@@ -5992,6 +5997,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-wasm-bindgen"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17ba92964781421b6cef36bf0d7da26d201e96d84e1b10e7ae6ed416e516906d"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "serde_cbor"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8151,7 +8167,7 @@ dependencies = [
  "matchit 0.4.6",
  "pin-project",
  "serde",
- "serde-wasm-bindgen",
+ "serde-wasm-bindgen 0.5.0",
  "serde_json",
  "tokio",
  "url",
@@ -8172,7 +8188,7 @@ checksum = "3d4b9fe1a87b7aef252fceb4f30bf6303036a5de329c81ccad9be9c35d1fdbc7"
 dependencies = [
  "js-sys",
  "serde",
- "serde-wasm-bindgen",
+ "serde-wasm-bindgen 0.5.0",
  "serde_json",
  "thiserror",
  "wasm-bindgen",
