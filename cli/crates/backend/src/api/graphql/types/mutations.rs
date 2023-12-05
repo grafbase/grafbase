@@ -216,3 +216,59 @@ pub struct SubgraphPublish {
     #[arguments(input: $input)]
     pub publish: Option<PublishPayload>,
 }
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct SchemaCheck {
+    pub id: cynic::Id,
+    pub validation_check_errors: Vec<ValidationCheckError>,
+    pub composition_check_errors: Vec<CompositionCheckError>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct ValidationCheckError {
+    pub message: String,
+    pub title: String,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct CompositionCheckError {
+    pub message: String,
+    pub title: String,
+}
+
+#[derive(cynic::InlineFragments, Debug)]
+pub enum SchemaCheckPayload {
+    SchemaCheck(SchemaCheck),
+    #[cynic(fallback)]
+    Unknown(String),
+}
+
+#[derive(cynic::InputObject, Debug)]
+pub struct SchemaCheckCreateInput<'a> {
+    pub account_slug: &'a str,
+    pub project_slug: &'a str,
+    pub branch: Option<&'a str>,
+    pub subgraph_name: Option<&'a str>,
+    pub schema: &'a str,
+    pub git_commit: Option<SchemaCheckGitCommitInput>,
+}
+
+#[derive(cynic::InputObject, Debug)]
+pub struct SchemaCheckGitCommitInput {
+    pub branch: String,
+    pub commit_sha: String,
+    pub message: String,
+    pub author_name: String,
+}
+
+#[derive(cynic::QueryVariables)]
+pub struct SchemaCheckCreateArguments<'a> {
+    pub input: SchemaCheckCreateInput<'a>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Mutation", variables = "SchemaCheckCreateArguments")]
+pub struct SchemaCheckCreate {
+    #[arguments(input: $input)]
+    pub schema_check_create: Option<SchemaCheckPayload>,
+}

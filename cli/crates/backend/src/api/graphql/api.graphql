@@ -1,4 +1,4 @@
-type AccessToken {
+type AccessToken implements Node {
   id: ID!
   name: String!
   accountId: ID
@@ -58,7 +58,7 @@ type AccessTokenEdge {
   cursor: String!
 }
 
-interface Account {
+interface Account implements Node {
   id: ID!
   slug: String!
   name: String!
@@ -153,7 +153,7 @@ type ArchiveFileSizeLimitExceededError {
   limit: Int!
 }
 
-type Branch {
+type Branch implements Node {
   id: ID!
   name: String!
   domains: [String!]!
@@ -163,6 +163,7 @@ type Branch {
   project: Project!
   environment: BranchEnvironment!
   schema: String
+  federatedSchema: String
   subgraphs: [Subgraph!]!
 }
 
@@ -205,6 +206,11 @@ union BranchMetricsPayload = BranchMetricsSuccess | ProjectDoesNotExistError
 type BranchMetricsSuccess {
   latency: Distribution!
   request: Distribution!
+}
+
+type CompositionCheckError {
+  title: String!
+  message: String!
 }
 
 type CurrentPlanLimitReachedError {
@@ -306,7 +312,7 @@ scalar DateTime
 """
 Deployment
 """
-type Deployment {
+type Deployment implements Node {
   id: ID!
   commit: GitCommit
   branch: Branch!
@@ -439,7 +445,7 @@ type EmptyDatabaseRegionsError {
   query: Query!
 }
 
-type EnvironmentVariable {
+type EnvironmentVariable implements Node {
   id: ID!
   name: String!
   value: String!
@@ -545,6 +551,11 @@ union EnvironmentVariableUpdatePayload =
 type EnvironmentVariableUpdateSuccess {
   environmentVariable: EnvironmentVariable!
   query: Query!
+}
+
+type FederatedGraphCompositionError {
+  query: Query!
+  messages: [String!]!
 }
 
 enum FunctionKind {
@@ -680,7 +691,7 @@ type InvalidProjectRootPathError {
   query: Query!
 }
 
-type Invite {
+type Invite implements Node {
   id: ID!
   role: MemberRole!
   email: String!
@@ -849,7 +860,7 @@ enum LogLevel {
   ERROR
 }
 
-type Member {
+type Member implements Node {
   id: ID!
   role: MemberRole!
   createdAt: DateTime!
@@ -1018,6 +1029,10 @@ type Mutation {
   projectUpdate(input: ProjectUpdateInput!): ProjectUpdatePayload!
   projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
   """
+  Run checks against the given schema
+  """
+  schemaCheckCreate(input: SchemaCheckCreateInput!): SchemaCheckPayload!
+  """
   Publish a new subgraph.
   """
   publish(input: PublishInput!): PublishPayload!
@@ -1042,6 +1057,10 @@ type NameTooLongError {
   query: Query!
 }
 
+interface Node {
+  id: ID!
+}
+
 type NotAllowedError {
   query: Query!
 }
@@ -1064,6 +1083,51 @@ type NotAllowedToSlugUpdateError {
 
 type NotAllowedToUpdateOrganizationError {
   query: Query!
+}
+
+input OperationRequestAnalyticsFilter {
+  branch: String
+  period: ProjectRequestAnalyticsPeriod!
+  now: DateTime!
+  operationName: String
+  operationTypes: [OperationType!]
+}
+
+type OperationRequestMetrics {
+  operationType: OperationType!
+  operationName: String!
+  operationId: String!
+  operationContent: String!
+  requestCount: Int!
+}
+
+type OperationRequestMetricsConnection {
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+  """
+  A list of edges.
+  """
+  edges: [OperationRequestMetricsEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [OperationRequestMetrics!]!
+}
+
+"""
+An edge in a connection.
+"""
+type OperationRequestMetricsEdge {
+  """
+  The item at the end of the edge
+  """
+  node: OperationRequestMetrics!
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
 }
 
 enum OperationType {
@@ -1503,10 +1567,12 @@ type PersonalAccountUpdateSuccess {
   query: Query!
 }
 
-type Project {
+type Project implements Node {
   id: ID!
   accountSlug: String!
   slug: String!
+  projectRootPath: String!
+  projectType: ProjectType
   createdAt: DateTime!
   repository: GitRepository
   branches(after: String, before: String, first: Int, last: Int): BranchConnection!
@@ -1519,10 +1585,15 @@ type Project {
   databaseRegionChangeStatus: DatabaseRegionChangeStatus!
   customDomains: [String!]!
   requestAnalytics(filter: ProjectRequestAnalyticsFilter!): RequestAnalytics!
+  operationAnalytics(
+    first: Int
+    after: String
+    filter: OperationRequestAnalyticsFilter!
+  ): OperationRequestMetricsConnection!
   logEvents(first: Int, after: String, last: Int, before: String, filter: LogEventFilter!): LogEventConnection!
 }
 
-type ProjectApiKey {
+type ProjectApiKey implements Node {
   id: ID!
   key: String!
   environment: BranchEnvironment!
@@ -1771,6 +1842,7 @@ input ProjectRequestAnalyticsFilter {
   period: ProjectRequestAnalyticsPeriod!
   now: DateTime!
   graphqlOperation: String
+  operationId: String
 }
 
 enum ProjectRequestAnalyticsPeriod {
@@ -1782,6 +1854,11 @@ enum ProjectRequestAnalyticsPeriod {
 enum ProjectStatus {
   ACTIVE
   INACTIVE
+}
+
+enum ProjectType {
+  SINGLE
+  FEDERATED
 }
 
 input ProjectUpdateInput {
@@ -1812,7 +1889,7 @@ input PublishInput {
   schema: String!
 }
 
-union PublishPayload = PublishSuccess | ProjectDoesNotExistError
+union PublishPayload = PublishSuccess | ProjectDoesNotExistError | FederatedGraphCompositionError
 
 type PublishSuccess {
   query: Query!
@@ -1927,7 +2004,7 @@ type Query {
     ID of the project
     """
     id: ID!
-  ): Project
+  ): Project @deprecated(reason: "use the top-level `node` query")
   """
   Get subgraph.
   """
@@ -1949,10 +2026,34 @@ type Query {
     """
     subgraphName: String!
   ): Subgraph
+  schemaVersion(id: ID!): SchemaVersion
+  schemaVersions(
+    """
+    account slug
+    """
+    accountSlug: String!
+    """
+    project slug
+    """
+    projectSlug: String!
+    """
+    name of the branch
+    """
+    branch: String
+    """
+    name of the subgraph
+    """
+    subgraphName: String
+    after: String
+    before: String
+    first: Int
+    last: Int
+  ): SchemaVersionConnection!
   """
   Give the actual connected user.
   """
   viewer: User
+  node(id: ID!): Node
 }
 
 type RepositoryContainsNoBranchesError {
@@ -2032,6 +2133,189 @@ type ResourceStatus {
   limit: Int
   remaining: Int
   percentage: Float
+}
+
+enum SchemaChangeType {
+  FIELD_ARGUMENT_DESCRIPTION_CHANGED
+  FIELD_ARGUMENT_DEFAULT_CHANGED
+  FIELD_ARGUMENT_TYPE_CHANGED
+  DIRECTIVE_REMOVED
+  DIRECTIVE_ADDED
+  DIRECTIVE_DESCRIPTION_CHANGED
+  DIRECTIVE_LOCATION_ADDED
+  DIRECTIVE_LOCATION_REMOVED
+  DIRECTIVE_ARGUMENT_ADDED
+  DIRECTIVE_ARGUMENT_REMOVED
+  DIRECTIVE_ARGUMENT_DESCRIPTION_CHANGED
+  DIRECTIVE_ARGUMENT_DEFAULT_VALUE_CHANGED
+  DIRECTIVE_ARGUMENT_TYPE_CHANGED
+  ENUM_VALUE_REMOVED
+  ENUM_VALUE_ADDED
+  ENUM_VALUE_DESCRIPTION_CHANGED
+  ENUM_VALUE_DEPRECATION_REASON_CHANGED
+  ENUM_VALUE_DEPRECATION_REASON_ADDED
+  ENUM_VALUE_DEPRECATION_REASON_REMOVED
+  FIELD_REMOVED
+  FIELD_ADDED
+  FIELD_DESCRIPTION_CHANGED
+  FIELD_DESCRIPTION_ADDED
+  FIELD_DESCRIPTION_REMOVED
+  FIELD_DEPRECATION_ADDED
+  FIELD_DEPRECATION_REMOVED
+  FIELD_DEPRECATION_REASON_CHANGED
+  FIELD_DEPRECATION_REASON_ADDED
+  FIELD_DEPRECATION_REASON_REMOVED
+  FIELD_TYPE_CHANGED
+  FIELD_ARGUMENT_ADDED
+  FIELD_ARGUMENT_REMOVED
+  INPUT_FIELD_REMOVED
+  INPUT_FIELD_ADDED
+  INPUT_FIELD_DESCRIPTION_ADDED
+  INPUT_FIELD_DESCRIPTION_REMOVED
+  INPUT_FIELD_DESCRIPTION_CHANGED
+  INPUT_FIELD_DEFAULT_VALUE_CHANGED
+  INPUT_FIELD_TYPE_CHANGED
+  OBJECT_TYPE_INTERFACE_ADDED
+  OBJECT_TYPE_INTERFACE_REMOVED
+  SCHEMA_QUERY_TYPE_CHANGED
+  SCHEMA_MUTATION_TYPE_CHANGED
+  SCHEMA_SUBSCRIPTION_TYPE_CHANGED
+  TYPE_REMOVED
+  TYPE_ADDED
+  TYPE_KIND_CHANGED
+  TYPE_DESCRIPTION_CHANGED
+  TYPE_DESCRIPTION_REMOVED
+  TYPE_DESCRIPTION_ADDED
+  UNION_MEMBER_REMOVED
+  UNION_MEMBER_ADDED
+}
+
+type SchemaCheck {
+  id: ID!
+  schema: String!
+  subgraphName: String
+  publishedSchemaVersion: ID
+  errorCount: Int!
+  validationCheckErrors: [ValidationCheckError!]!
+  compositionCheckErrors: [CompositionCheckError!]!
+  createdAt: DateTime!
+  gitCommit: SchemaCheckGitCommit
+}
+
+input SchemaCheckCreateInput {
+  accountSlug: String!
+  projectSlug: String!
+  branch: String
+  subgraphName: String
+  schema: String!
+  gitCommit: SchemaCheckGitCommitInput
+}
+
+type SchemaCheckGitCommit {
+  branch: String!
+  commitSha: String!
+  commitUrl: String
+  message: String!
+  authorName: String!
+  authorAvatarUrl: String
+}
+
+input SchemaCheckGitCommitInput {
+  branch: String!
+  commitSha: String!
+  commitUrl: String
+  message: String!
+  authorName: String!
+  authorAvatarUrl: String
+}
+
+union SchemaCheckPayload = SchemaCheck | ProjectDoesNotExistError
+
+type SchemaVersion {
+  id: ID!
+  schema: String!
+  delta: SchemaVersionDelta!
+  changes(after: String, before: String, first: Int, last: Int): SchemaVersionChangeConnection!
+  createdAt: DateTime!
+}
+
+type SchemaVersionChange {
+  path: String
+  type: SchemaChangeType!
+  message: String!
+}
+
+type SchemaVersionChangeConnection {
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+  """
+  A list of edges.
+  """
+  edges: [SchemaVersionChangeEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [SchemaVersionChange!]!
+}
+
+"""
+An edge in a connection.
+"""
+type SchemaVersionChangeEdge {
+  """
+  The item at the end of the edge
+  """
+  node: SchemaVersionChange!
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+}
+
+type SchemaVersionConnection {
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+  """
+  A list of edges.
+  """
+  edges: [SchemaVersionEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [SchemaVersion!]!
+}
+
+type SchemaVersionDelta {
+  """
+  Additions.
+  """
+  added: Int!
+  """
+  Removals.
+  """
+  removed: Int!
+  """
+  Modifications.
+  """
+  modified: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type SchemaVersionEdge {
+  """
+  The item at the end of the edge
+  """
+  node: SchemaVersion!
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
 }
 
 type SlugAlreadyExistsError {
@@ -2188,7 +2472,7 @@ URL is a String implementing the [URL Standard](http://url.spec.whatwg.org/)
 """
 scalar Url
 
-type User {
+type User implements Node {
   id: ID!
   name: String!
   email: String!
@@ -2198,6 +2482,11 @@ type User {
   organizationMemberships: [Member!]!
   personalAccount: PersonalAccount
   limits: ViewerLimits! @deprecated(reason: "Moved to account level")
+}
+
+type ValidationCheckError {
+  title: String!
+  message: String!
 }
 
 type ValueTooLongError {

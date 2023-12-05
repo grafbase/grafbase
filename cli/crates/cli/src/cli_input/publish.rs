@@ -1,7 +1,6 @@
+use super::ProjectRef;
 use clap::{ArgGroup, Parser};
 use url::Url;
-
-use super::ProjectRef;
 
 /// Publish a subgraph
 #[derive(Debug, Parser)]

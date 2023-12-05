@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 mod build;
+mod check;
 mod cli_input;
 mod create;
 mod deploy;
@@ -171,5 +172,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
         }
         SubCommand::Introspect(cmd) => introspect::introspect(&cmd),
         SubCommand::DumpConfig => dump_config::dump_config(),
+        SubCommand::Check(cmd) => check::check(cmd),
     }
 }
