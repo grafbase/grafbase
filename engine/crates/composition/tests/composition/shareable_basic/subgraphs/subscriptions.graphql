@@ -1,7 +1,7 @@
 extend schema
     @link(
         url: "https://specs.apollo.dev/federation/v2.3",
-        import: ["@key", "@shareable"]
+        import: ["@key", "@shareable", "@inaccessible"]
      )
 
 enum Plan {
@@ -12,5 +12,5 @@ enum Plan {
 type Customer {
     id: ID! @shareable
     name: String @shareable
-    subscriptionPlan: Plan!
+    subscriptionPlan: Plan! @inaccessible
 }

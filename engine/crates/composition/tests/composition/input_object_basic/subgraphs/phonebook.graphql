@@ -4,11 +4,11 @@ type Query {
   searchPerson(input: InputPerson!): [Person]
 }
 
-type Person @federation__shareable {
+type Person @federation__key(fields: "id") {
   id: ID!
-  firstName: String!
-  lastName: String!
-  age: Int!
+  firstName: String! @federation__shareable
+  lastName: String! @federation__shareable
+  age: Int! @federation__shareable
   phoneNumber: String
 }
 
