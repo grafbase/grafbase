@@ -1,5 +1,5 @@
 use crate::{cli_input::PublishCommand, errors::CliError, output::report};
-use std::fs;
+use std::{fs, io::Read};
 
 #[tokio::main]
 pub(crate) async fn publish(
@@ -12,9 +12,18 @@ pub(crate) async fn publish(
     }: PublishCommand,
 ) -> Result<(), CliError> {
     let project_ref = project_ref.ok_or_else(|| CliError::MissingArgument("PROJECT_REF"))?;
-    let schema_path = schema_path.ok_or_else(|| CliError::MissingArgument("schema"))?;
+    let schema = match schema_path {
+        Some(path) => fs::read_to_string(path).map_err(CliError::SchemaReadError)?,
+        None => {
+            let mut schema = String::new();
 
-    let schema = fs::read_to_string(schema_path).map_err(CliError::SchemaReadError)?;
+            std::io::stdin()
+                .read_to_string(&mut schema)
+                .map_err(CliError::SchemaReadError)?;
+
+            schema
+        }
+    };
 
     report::publishing();
 
