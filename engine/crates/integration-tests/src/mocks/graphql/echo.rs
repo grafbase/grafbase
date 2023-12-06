@@ -1,4 +1,4 @@
-use async_graphql::{EmptyMutation, EmptySubscription, InputObject, Json, MaybeUndefined, Object, ID};
+use async_graphql::{EmptyMutation, EmptySubscription, Enum, InputObject, Json, MaybeUndefined, Object, ID};
 
 /// A schema that just echoes stuff back at you.
 ///
@@ -48,6 +48,17 @@ impl Query {
     async fn list_of_input_object(&self, input: InputObj) -> Json<InputObj> {
         Json(input)
     }
+
+    async fn fancy_bool(&self, input: FancyBool) -> FancyBool {
+        input
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Enum, serde::Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum FancyBool {
+    Yes,
+    No,
 }
 
 #[derive(InputObject, serde::Serialize)]
@@ -67,4 +78,6 @@ struct InputObj {
     recursive_object: MaybeUndefined<Box<InputObj>>,
     #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
     recursive_object_list: MaybeUndefined<Vec<InputObj>>,
+    #[serde(skip_serializing_if = "MaybeUndefined::is_undefined")]
+    fancy_bool: MaybeUndefined<FancyBool>,
 }

@@ -237,6 +237,11 @@ fn echo_subgraph_introspection() {
     assert!(response.errors().is_empty(), "{response}");
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    enum FancyBool {
+      YES
+      NO
+    }
+
     input InputObj {
       string: String
       int: Int
@@ -245,11 +250,13 @@ fn echo_subgraph_introspection() {
       annoyinglyOptionalStrings: [[String]]
       recursiveObject: InputObj
       recursiveObjectList: [InputObj!]
+      fancyBool: FancyBool
     }
 
     scalar JSON
 
     type Query {
+      fancyBool(input: FancyBool!): FancyBool!
       float(input: Float!): Float!
       id(input: ID!): ID!
       inputObject(input: InputObj!): JSON!
@@ -343,6 +350,11 @@ fn can_introsect_when_multiple_subgraphs() {
 
     scalar CustomRepoId
 
+    enum FancyBool {
+      YES
+      NO
+    }
+
     type Header {
       name: String!
       value: String!
@@ -356,6 +368,7 @@ fn can_introsect_when_multiple_subgraphs() {
       annoyinglyOptionalStrings: [[String]]
       recursiveObject: InputObj
       recursiveObjectList: [InputObj!]
+      fancyBool: FancyBool
     }
 
     type Issue implements PullRequestOrIssue {
@@ -383,6 +396,7 @@ fn can_introsect_when_multiple_subgraphs() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]!]): [PullRequest!]!
+      fancyBool(input: FancyBool!): FancyBool!
       favoriteRepository: CustomRepoId!
       float(input: Float!): Float!
       headers: [Header!]!

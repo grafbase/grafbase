@@ -32,6 +32,11 @@ fn id() {
 }
 
 #[test]
+fn enum_roundtrip() {
+    roundtrip_test("fancyBool", "FancyBool!", "YES");
+}
+
+#[test]
 fn lists() {
     roundtrip_test(
         "listOfStrings",
@@ -121,6 +126,13 @@ fn input_objects() {
         "InputObj!",
         json!({
             "recursiveObjectList": [{"recursiveObject": {"string": "hello"}}]
+        }),
+    );
+    roundtrip_test(
+        "inputObject",
+        "InputObj!",
+        json!({
+            "recursiveObjectList": [{"recursiveObject": {"fancyBool": "YES"}}]
         }),
     );
 }
@@ -419,6 +431,26 @@ fn invalid_input_objects() {
         @r###"
     [
       "Variable $input got an invalid value: found a null where we expected a non-null type at $input.recursiveObjectList.0.recursiveObjectList.0"
+    ]
+    "###
+    );
+}
+
+#[test]
+fn invalid_enum() {
+    insta::assert_json_snapshot!(
+        error_test("fancyBool", "FancyBool!", json!("bloo")),
+        @r###"
+    [
+      "Variable $input got an invalid value: found the value 'bloo' value where we expected a value of the 'FancyBool' enum at $input"
+    ]
+    "###
+    );
+    insta::assert_json_snapshot!(
+        error_test("inputObject", "InputObj!", json!({"fancyBool": "blah"})),
+        @r###"
+    [
+      "Variable $input got an invalid value: found the value 'blah' value where we expected a value of the 'FancyBool' enum at $input.fancyBool"
     ]
     "###
     );
