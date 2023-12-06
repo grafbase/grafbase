@@ -1,19 +1,19 @@
 use crate::{cli_input::CheckCommand, errors::CliError, report};
 use backend::api::check;
-use std::{io::Read, process::Command};
+use std::{fs, io::Read, process::Command};
 
 #[tokio::main]
 pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
     let CheckCommand {
         project_ref,
-        subgraph,
+        subgraph_name,
         schema,
     } = command;
 
     let git_commit = find_git_commit();
 
     let schema = match schema {
-        Some(schema) => schema,
+        Some(schema) => fs::read_to_string(schema).map_err(CliError::SchemaReadError)?,
         None => {
             let mut schema = String::new();
 
@@ -31,7 +31,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         project_ref.account(),
         project_ref.project(),
         project_ref.branch(),
-        subgraph.as_deref(),
+        subgraph_name.as_deref(),
         &schema,
         git_commit,
     )
