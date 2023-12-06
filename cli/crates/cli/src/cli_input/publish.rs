@@ -28,7 +28,8 @@ pub struct PublishCommand {
     #[arg(long("name"))]
     pub(crate) subgraph_name: String,
 
-    /// The path to the schema file
+    /// The path to the GraphQL schema file to publish. If this argument is not provided, the
+    /// schema will be read from stdin.
     #[arg(long("schema"))]
     pub(crate) schema_path: Option<String>,
 
