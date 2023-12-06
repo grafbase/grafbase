@@ -1,1 +1,1 @@
-# The argument `expected` on `checkNutritionalInfo` is of an @inaccessible type, but is itself not marked as @inaccessible.
+# The argument `ChiaSeedProduct.checkNutritionalInfo(expected:)` is of an @inaccessible type, but is itself not marked as @inaccessible.

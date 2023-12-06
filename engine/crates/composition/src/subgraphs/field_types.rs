@@ -17,7 +17,7 @@ pub(crate) struct FieldTypeId(usize);
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
 struct WrapperTypeId(usize);
 
-#[derive(Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
 pub(crate) enum WrapperTypeKind {
     List,
     NonNullList,
@@ -45,7 +45,7 @@ impl Subgraphs {
             match &ty.base {
                 ast::BaseType::List(inner) => {
                     let wrapper = WrapperType {
-                        kind: if inner.nullable {
+                        kind: if ty.nullable {
                             WrapperTypeKind::List
                         } else {
                             WrapperTypeKind::NonNullList
@@ -84,6 +84,58 @@ impl<'a> FieldTypeWalker<'a> {
             .map(|id| self.walk(id))
     }
 
+    /// Compose two field types for input. The most required of the two is picked.
+    pub(crate) fn compose_for_input(self, other: Self) -> Option<Self> {
+        Some(if self.compose(other)? { other } else { self })
+    }
+
+    /// Compose two field types for output. The less required of the two is picked.
+    pub(crate) fn compose_for_output(self, other: Self) -> Option<Self> {
+        Some(if self.compose(other)? { self } else { other })
+    }
+
+    /// Returns whether `other` is nonnullable. This is enough to make a decision about which to
+    /// pick. The function returns `None` whenever the two types mismatch to such extend that they
+    /// can't be composed.
+    fn compose(self, other: Self) -> Option<bool> {
+        // This should be the most frequent path: the two types are identical.
+        if self.id == other.id {
+            return Some(true); // true or false doesn't matter, they're identical
+        }
+
+        if self.inner().name != other.inner().name {
+            return None;
+        }
+
+        let mut self_wrappers = self.iter_wrappers();
+        let mut other_wrappers = other.iter_wrappers();
+        let mut zipped_wrappers = (&mut self_wrappers).zip(&mut other_wrappers).peekable();
+
+        // Check that the inner requiredness matches if there are wrappers.
+        if zipped_wrappers.peek().is_some() && (self.inner_is_required() != other.inner_is_required()) {
+            return None;
+        }
+
+        while let Some((self_wrapper, other_wrapper)) = zipped_wrappers.next() {
+            if zipped_wrappers.peek().is_none() {
+                // The wrappers should have the same level of nesting.
+                if self_wrappers.next().is_some() || other_wrappers.next().is_some() {
+                    return None;
+                }
+
+                // We reached the outermost list wrappers: return which is required.
+                return Some(matches!(other_wrapper, WrapperTypeKind::NonNullList));
+            }
+
+            // Inner list wrappers do not match in nullability.
+            if self_wrapper != other_wrapper {
+                return None;
+            }
+        }
+
+        Some(other.is_required())
+    }
+
     /// ```ignore,graphql
     /// type MyObject {
     ///   id: ID!
@@ -118,5 +170,24 @@ impl<'a> FieldTypeWalker<'a> {
                 WrapperTypeKind::NonNullList => true,
             })
             .unwrap_or_else(|| self.inner().is_required)
+    }
+}
+
+impl std::fmt::Display for FieldTypeWalker<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = self.type_name().as_str().to_owned();
+
+        if self.inner_is_required() {
+            out = format!("{}!", out);
+        }
+
+        for wrapper in self.iter_wrappers() {
+            out = match wrapper {
+                WrapperTypeKind::List => format!("[{out}]"),
+                WrapperTypeKind::NonNullList => format!("[{out}]!"),
+            };
+        }
+
+        f.write_str(&out)
     }
 }

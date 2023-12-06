@@ -50,7 +50,7 @@ type Episode {
     title: String! @join__field(graph: EPISODES)
     duration: Int! @join__field(graph: EPISODES)
     featuredTeletubby: Teletubby! @join__field(graph: EPISODES)
-    featuredToys: [FavoriteToy!]! @join__field(graph: EPISODES)
+    featuredToys: [FavoriteToy!] @join__field(graph: EPISODES)
 }
 
 enum FavoriteToy {

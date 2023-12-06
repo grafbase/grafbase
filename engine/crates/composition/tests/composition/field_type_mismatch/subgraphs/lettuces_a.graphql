@@ -1,0 +1,29 @@
+# Interface defining common fields for types that implement it
+interface LettuceInterface {
+  id: ID!
+  variety: String! # Additional field representing the variety of the lettuce
+}
+
+# Type representing a specific lettuce, implementing the interface
+type Lettuce implements LettuceInterface @shareable {
+  id: ID!
+  variety: String! # Field representing the variety of the lettuce
+  origin: Int! # Zip code of the area of origin
+  leaves(onlyEdible: Int): [Leaf]!
+}
+
+type Leaf @key(fields: "id") {
+    id: ID!
+}
+
+# Input type for creating or updating lettuce details
+input LettuceInput @shareable {
+  variety: String!
+  origin: String! # Field representing the origin of the lettuce
+}
+
+# Root Query type with a field to fetch a lettuce by its ID
+type Query {
+  getLettuce(id: ID!): Lettuce
+}
+

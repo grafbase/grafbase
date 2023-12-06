@@ -240,6 +240,11 @@ impl<'a> DefinitionWalker<'a> {
 pub(crate) type FieldArgumentWalker<'a> = Walker<'a, (ArgumentId, FieldTuple)>;
 
 impl<'a> FieldArgumentWalker<'a> {
+    pub(crate) fn field(&self) -> FieldWalker<'a> {
+        let (ArgumentId(definition_id, field_name, _), _) = self.id;
+        self.subgraphs.walk_field(FieldId(definition_id, field_name))
+    }
+
     /// ```graphql,ignore
     /// type Query {
     ///   findManyUser(filters: FindManyUserFilter?): [User!]!

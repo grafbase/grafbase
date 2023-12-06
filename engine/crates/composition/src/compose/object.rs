@@ -7,48 +7,75 @@ pub(super) fn merge_field_arguments<'a>(
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
 ) -> Vec<ir::ArgumentIr> {
-    let mut intersection: Vec<StringId> = first.arguments().map(|arg| arg.name().id).collect();
-    let mut buf = HashSet::new();
+    let parent_definition_name = first.parent_definition().name().id;
+    let field_name = first.name().id;
+    let mut arguments_ir = Vec::new();
 
-    for field in &fields[1..] {
-        buf.clear();
-        buf.extend(field.arguments().map(|arg| arg.name().id));
-        intersection.retain(|value| buf.contains(value));
-    }
+    // We want to take the intersection of the field sets.
+    let intersection: HashSet<StringId> = first
+        .arguments()
+        .map(|arg| arg.name().id)
+        .filter(|arg_name| fields[1..].iter().all(|def| def.argument_by_name(*arg_name).is_some()))
+        .collect();
 
-    for argument in first.arguments().filter(|arg| {
-        !arg.directives().inaccessible()
-            && arg
-                .r#type()
-                .definition(first.parent_definition().subgraph().id)
+    let mut all_arguments = fields
+        .iter()
+        .flat_map(|def| def.arguments())
+        .map(|arg| (arg.name().id, arg))
+        .collect::<Vec<_>>();
+
+    all_arguments.sort_by_key(|(name, _)| *name);
+
+    let mut start = 0;
+
+    while start < all_arguments.len() {
+        let argument_name = all_arguments[start].0;
+        let end = all_arguments[start..].partition_point(|(name, _)| *name == argument_name) + start;
+        let arguments = &all_arguments[start..end];
+
+        start = end;
+
+        if !intersection.contains(&argument_name) {
+            continue;
+        }
+
+        let directive_containers = arguments.iter().map(|(_, arg)| arg.directives());
+        let composed_directives = collect_composed_directives(directive_containers, ctx);
+
+        let Some(argument_type) = fields::compose_argument_types(
+            parent_definition_name,
+            field_name,
+            arguments.iter().map(|(_, arg)| *arg),
+            ctx,
+        ) else {
+            continue;
+        };
+
+        let argument_is_inaccessible = || arguments.iter().any(|(_, arg)| arg.directives().inaccessible());
+        let argument_type_is_inaccessible = arguments.iter().any(|(_, arg)| {
+            arg.r#type()
+                .definition(arg.field().parent_definition().subgraph().id)
                 .map(|def| def.directives().inaccessible())
                 .unwrap_or(false)
-    }) {
-        ctx.diagnostics.push_fatal(format!(
-            "The argument `{}` on `{}` is of an @inaccessible type, but is itself not marked as @inaccessible.",
-            argument.name().as_str(),
-            first.name().as_str(),
-        ));
+        });
+
+        if argument_type_is_inaccessible && !argument_is_inaccessible() {
+            ctx.diagnostics.push_fatal(format!(
+                "The argument `{}.{}({}:)` is of an @inaccessible type, but is itself not marked as @inaccessible.",
+                ctx.subgraphs.walk(parent_definition_name).as_str(),
+                ctx.subgraphs.walk(field_name).as_str(),
+                ctx.subgraphs.walk(argument_name).as_str(),
+            ));
+        }
+
+        arguments_ir.push(ir::ArgumentIr {
+            argument_name,
+            argument_type,
+            composed_directives,
+        })
     }
 
-    intersection
-        .into_iter()
-        .map(|argument_name| {
-            let argument_type = first.argument_by_name(argument_name).unwrap().r#type().id;
-            let directive_containers = fields
-                .iter()
-                .filter_map(|field| field.argument_by_name(argument_name))
-                .map(|arg| arg.directives());
-
-            let composed_directives = collect_composed_directives(directive_containers, ctx);
-
-            ir::ArgumentIr {
-                argument_name,
-                argument_type,
-                composed_directives,
-            }
-        })
-        .collect()
+    arguments_ir
 }
 
 pub(super) fn compose_object_fields<'a>(
@@ -57,6 +84,9 @@ pub(super) fn compose_object_fields<'a>(
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
 ) {
+    let parent_name = first.parent_definition().name();
+    let field_name = first.name();
+
     if !object_is_shareable
         && fields
             .iter()
@@ -155,10 +185,14 @@ pub(super) fn compose_object_fields<'a>(
 
     let composed_directives = collect_composed_directives(fields.iter().map(|f| f.directives()), ctx);
 
+    let Some(field_type) = fields::compose_output_field_types(fields.iter().copied(), ctx) else {
+        return;
+    };
+
     ctx.insert_field(ir::FieldIr {
-        parent_name: first.parent_definition().name().id,
-        field_name: first.name().id,
-        field_type: first.r#type().id,
+        parent_name: parent_name.id,
+        field_name: field_name.id,
+        field_type,
         arguments,
         resolvable_in,
         provides,

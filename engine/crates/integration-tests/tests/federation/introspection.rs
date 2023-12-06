@@ -61,7 +61,7 @@ fn can_run_pathfinder_introspection_query() {
 
     type Query {
       allBotPullRequests: [PullRequest!]!
-      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      botPullRequests(bots: [[BotInput!]!]): [PullRequest!]!
       favoriteRepository: CustomRepoId!
       headers: [Header!]!
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
@@ -132,7 +132,7 @@ fn can_run_2018_introspection_query() {
 
     type Query {
       allBotPullRequests: [PullRequest!]!
-      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      botPullRequests(bots: [[BotInput!]!]): [PullRequest!]!
       favoriteRepository: CustomRepoId!
       headers: [Header!]!
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
@@ -203,7 +203,7 @@ fn can_run_2021_introspection_query() {
 
     type Query {
       allBotPullRequests: [PullRequest!]!
-      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      botPullRequests(bots: [[BotInput!]!]): [PullRequest!]!
       favoriteRepository: CustomRepoId!
       headers: [Header!]!
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
@@ -310,7 +310,7 @@ fn can_introsect_when_multiple_subgraphs() {
       string: String
       int: Int
       float: Float
-      annoyinglyOptionalStrings: [[String!]]!
+      annoyinglyOptionalStrings: [[String!]]
       recursiveObject: InputObj
       recursiveObjectList: [InputObj!]!
     }
@@ -339,7 +339,7 @@ fn can_introsect_when_multiple_subgraphs() {
 
     type Query {
       allBotPullRequests: [PullRequest!]!
-      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      botPullRequests(bots: [[BotInput!]!]): [PullRequest!]!
       favoriteRepository: CustomRepoId!
       float(input: Float!): Float!
       headers: [Header!]!
@@ -348,7 +348,7 @@ fn can_introsect_when_multiple_subgraphs() {
       int(input: Int!): Int!
       listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
       listOfStrings(input: [String!]!): [String!]!
-      optionalListOfOptionalStrings(input: [[String!]]!): [[String!]]!
+      optionalListOfOptionalStrings(input: [[String!]]): [[String!]]
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!

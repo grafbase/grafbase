@@ -21,16 +21,23 @@ pub(super) fn merge_interface_definitions<'a>(
     while start < all_fields.len() {
         let (name, field) = all_fields[start];
         let end = start + all_fields[start..].partition_point(|(n, _)| *n == name);
+        let fields = &all_fields[start..end];
+
+        start = end;
 
         let description = field.description().map(|description| ctx.insert_string(description.id));
 
-        let directive_containers = all_fields[start..end].iter().map(|(_, field)| field.directives());
+        let directive_containers = fields.iter().map(|(_, field)| field.directives());
         let composed_directives = collect_composed_directives(directive_containers, ctx);
+
+        let Some(field_type) = fields::compose_output_field_types(fields.iter().map(|(_, field)| *field), ctx) else {
+            continue;
+        };
 
         ctx.insert_field(ir::FieldIr {
             parent_name: first.name().id,
             field_name: field.name().id,
-            field_type: field.r#type().id,
+            field_type,
             arguments: Vec::new(),
             resolvable_in: None,
             provides: Vec::new(),
@@ -39,8 +46,6 @@ pub(super) fn merge_interface_definitions<'a>(
             composed_directives,
             description,
         });
-
-        start = end;
     }
 
     all_fields.dedup_by_key(|(name, _)| *name);

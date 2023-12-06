@@ -1,0 +1,47 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    SPINNERS_A @join__graph(name: "spinners_a", url: "http://example.com/spinners_a")
+    SPINNERS_B @join__graph(name: "spinners_b", url: "http://example.com/spinners_b")
+}
+
+type Query {
+    fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner]
+}
+
+type FidgetSpinner implements Spinner {
+    id: ID!
+    model: String
+    manufacturer: Manufacturer
+    buttonDescriptions: [String!]
+}
+
+type Manufacturer {
+    name: String!
+    location: String
+}
+
+interface Spinner {
+    id: ID!
+    model: String
+}
+
+input SpinnerFilter {
+    manufacturer: String
+    maxPrice: Float!
+}
