@@ -1,31 +1,28 @@
 import { AuthParams, Authentication } from './auth'
 import { CacheParams, GlobalCache } from './cache'
-import { FederatedGraph, SingleGraph } from './grafbase-schema'
+import { FederatedGraph, Graph } from './grafbase-schema'
 import { Experimental, ExperimentalParams } from './experimental'
-import { Federation, FederationParams } from './federation'
 
 /**
  * An interface to create the complete config definition.
  */
-export interface SingleGraphConfigInput {
-  graph: SingleGraph
+export interface GraphConfigInput {
+  graph: Graph
   auth?: AuthParams
   cache?: CacheParams
   experimental?: ExperimentalParams
-  federation?: FederationParams
 }
 
 /**
  * @deprecated use `graph` instead of `schema`
  * An interface to create the complete config definition.
  */
-export interface DeprecatedSingleGraphConfigInput {
+export interface DeprecatedGraphConfigInput {
   /** @deprecated use `graph` instead */
-  schema: SingleGraph
+  schema: Graph
   auth?: AuthParams
   cache?: CacheParams
   experimental?: ExperimentalParams
-  federation?: FederationParams
 }
 
 /**
@@ -38,19 +35,16 @@ export interface FederatedGraphConfigInput {
 /**
  * Defines the complete Grafbase configuration.
  */
-export class SingleGraphConfig {
-  private graph: SingleGraph
+export class GraphConfig {
+  private graph: Graph
   private readonly auth?: Authentication
   private readonly cache?: GlobalCache
   private readonly experimental?: Experimental
-  private readonly federation?: Federation
 
-  constructor(input: SingleGraphConfigInput)
+  constructor(input: GraphConfigInput)
   /** @deprecated use `graph` instead of `schema` */
-  constructor(input: DeprecatedSingleGraphConfigInput)
-  constructor(
-    input: SingleGraphConfigInput | DeprecatedSingleGraphConfigInput
-  ) {
+  constructor(input: DeprecatedGraphConfigInput)
+  constructor(input: GraphConfigInput | DeprecatedGraphConfigInput) {
     this.graph = 'graph' in input ? input.graph : input.schema
 
     if (input.auth) {
@@ -64,10 +58,6 @@ export class SingleGraphConfig {
     if (input.experimental) {
       this.experimental = new Experimental(input.experimental)
     }
-
-    if (input.federation) {
-      this.federation = new Federation(input.federation)
-    }
   }
 
   public toString(): string {
@@ -75,9 +65,8 @@ export class SingleGraphConfig {
     const auth = this.auth ? this.auth.toString() : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
-    const federation = this.federation ? this.federation.toString() : ''
 
-    return `${experimental}${auth}${cache}${federation}${graph}`
+    return `${experimental}${auth}${cache}${graph}`
   }
 }
 

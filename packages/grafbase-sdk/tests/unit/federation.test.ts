@@ -2,7 +2,7 @@ import { config, graph } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
 import { renderGraphQL } from '../utils'
 
-const g = graph.Single()
+const g = graph.Standalone({ subgraph: true })
 
 describe('Federation generator', () => {
   beforeEach(() => g.clear())
@@ -12,15 +12,12 @@ describe('Federation generator', () => {
       id: g.id()
     })
     const cfg = config({
-      schema: g,
-      federation: {
-        version: '2.3'
-      }
+      graph: g
     })
 
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "
-      extend schema @federation(version: "2.3")
+      "extend schema @federation(version: "2.3")
+
       type Post {
         id: ID!
       }"
