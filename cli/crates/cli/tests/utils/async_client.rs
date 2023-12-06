@@ -11,16 +11,19 @@ use tokio::time::sleep;
 
 use crate::utils::consts::INTROSPECTION_QUERY;
 
+use super::environment::CommandHandles;
+
 pub struct AsyncClient {
     endpoint: String,
     playground_endpoint: String,
     headers: HeaderMap,
     client: reqwest::Client,
     snapshot: Option<String>,
+    commands: CommandHandles,
 }
 
 impl AsyncClient {
-    pub fn new(endpoint: String, playground_endpoint: String) -> Self {
+    pub fn new(endpoint: String, playground_endpoint: String, commands: CommandHandles) -> Self {
         Self {
             endpoint,
             playground_endpoint,
@@ -31,6 +34,7 @@ impl AsyncClient {
                 .unwrap(),
             snapshot: None,
             headers: HeaderMap::new(),
+            commands,
         }
     }
 
@@ -102,6 +106,11 @@ impl AsyncClient {
         let start = SystemTime::now();
 
         loop {
+            assert!(
+                self.commands.still_running(),
+                "all commands terminated, polling is unlikely to succeed"
+            );
+
             let valid_response = self
                 .client
                 .head(&self.endpoint)
