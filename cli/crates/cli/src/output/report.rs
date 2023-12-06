@@ -423,15 +423,17 @@ pub(crate) fn check_errors<'a>(
     validation_errors: impl ExactSizeIterator<Item = &'a str>,
     composition_errors: impl ExactSizeIterator<Item = &'a str>,
 ) {
+    watercolor::output!("🔴 The schema check failed.\n", @BrightRed);
+
     if validation_errors.len() > 0 {
-        watercolor::output!("🔴 Validation errors:", @BrightRed);
+        watercolor::output!("Validation errors:", @BrightRed);
         for error in validation_errors {
             watercolor::output!("- {error}", @BrightRed);
         }
     }
 
     if composition_errors.len() > 0 {
-        watercolor::output!("🔴 Composition errors:", @BrightRed);
+        watercolor::output!("Composition errors:", @BrightRed);
         for error in composition_errors {
             watercolor::output!("- {error}", @BrightRed);
         }
