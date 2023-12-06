@@ -1,0 +1,27 @@
+type Query {
+  # Filter arg is required in the other subgraph
+  fidgetSpinners(filter: SpinnerFilter): [FidgetSpinner] @shareable
+}
+
+type FidgetSpinner implements Spinner @shareable {
+  id: ID!
+  model: String
+  manufacturer: Manufacturer
+  buttonDescriptions: [String!]
+}
+
+interface Spinner {
+  id: ID!
+  model: String! # model is nullable in the other subgraph
+}
+
+type Manufacturer @shareable {
+  name: String!
+  location: String
+}
+
+input SpinnerFilter {
+  manufacturer: String
+  maxPrice: Float!
+}
+

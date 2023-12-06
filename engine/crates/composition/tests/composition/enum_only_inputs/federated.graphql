@@ -22,9 +22,9 @@ enum join__Graph {
 }
 
 type Query {
-    searchFood(filterName: FilterName, filterValue: String): [String!]! @join__field(graph: FOODSEARCH)
-    searchProduct(filterName: FilterName, filterValue: String): [String!]! @join__field(graph: PRODUCTSEARCH)
-    searchUser(filterName: FilterName, filterValue: String): [String!]! @join__field(graph: USERSEARCH)
+    searchFood(filterName: FilterName, filterValue: String): [String!] @join__field(graph: FOODSEARCH)
+    searchProduct(filterName: FilterName, filterValue: String): [String!] @join__field(graph: PRODUCTSEARCH)
+    searchUser(filterName: FilterName, filterValue: String): [String!] @join__field(graph: USERSEARCH)
 }
 
 enum FilterName {

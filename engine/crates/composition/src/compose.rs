@@ -2,6 +2,7 @@ mod context;
 mod directives;
 mod entity_interface;
 mod enums;
+mod fields;
 mod input_object;
 mod interface;
 mod object;
