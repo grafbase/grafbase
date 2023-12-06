@@ -1,0 +1,21 @@
+[package]
+name = "operation-normalizer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", version = "0.4.0" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+expect-test = "1.4.1"
+indoc = "2.0.4"
