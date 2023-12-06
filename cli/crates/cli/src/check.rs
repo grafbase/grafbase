@@ -6,7 +6,7 @@ use std::{fs, io::Read, process::Command};
 pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
     let CheckCommand {
         project_ref,
-        subgraph,
+        subgraph_name,
         schema,
     } = command;
 
@@ -31,7 +31,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         project_ref.account(),
         project_ref.project(),
         project_ref.branch(),
-        subgraph.as_deref(),
+        subgraph_name.as_deref(),
         &schema,
         git_commit,
     )
