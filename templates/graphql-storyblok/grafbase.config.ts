@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const storyblok = connector.GraphQL('Storyblok', {
   url: 'https://gapi.storyblok.com/v1/api',
@@ -8,11 +10,10 @@ const storyblok = connector.GraphQL('Storyblok', {
   }
 })
 
-// Disabling namespace may cause conflicts with other connectors
-g.datasource(storyblok, { namespace: false })
+g.datasource(storyblok)
 
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

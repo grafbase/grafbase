@@ -1,8 +1,0 @@
-extend schema
-  @graphql(
-    name: "Contentful"
-    # Disabling namespace may cause conficts with other connectors
-    # namespace: false
-    url: "{{ env.CONTENTFUL_API_URL }}"
-    headers: [{ name: "Authorization", forward: "Authorization" }]
-  )

@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const github = connector.GraphQL('GitHub', {
   url: 'https://api.github.com/graphql',
@@ -9,11 +11,8 @@ const github = connector.GraphQL('GitHub', {
 
 g.datasource(github)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(github, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

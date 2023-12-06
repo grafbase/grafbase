@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const datocms = connector.GraphQL('DatoCMS', {
   url: 'https://graphql.datocms.com',
@@ -7,11 +9,10 @@ const datocms = connector.GraphQL('DatoCMS', {
   }
 })
 
-// Disabling namespace may cause conflicts with other connectors
-g.datasource(datocms, { namespace: false })
+g.datasource(datocms)
 
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

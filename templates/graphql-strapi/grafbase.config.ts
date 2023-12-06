@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const strapi = connector.GraphQL('Strapi', {
   url: g.env('STRAPI_API_URL'),
@@ -9,11 +11,8 @@ const strapi = connector.GraphQL('Strapi', {
 
 g.datasource(strapi)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(strapi, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

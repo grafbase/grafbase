@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const saleor = connector.GraphQL('Saleor', {
   url: g.env('ENVIRONMENT_DOMAIN'),
@@ -9,11 +11,8 @@ const saleor = connector.GraphQL('Saleor', {
 
 g.datasource(saleor)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(saleor, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

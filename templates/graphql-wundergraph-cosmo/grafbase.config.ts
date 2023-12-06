@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const cosmo = connector.GraphQL('Cosmo', {
   url: g.env('COSMO_API_URL'),
@@ -8,11 +10,10 @@ const cosmo = connector.GraphQL('Cosmo', {
   }
 })
 
-// Disabling namespace may cause conficts with other connectors
-g.datasource(cosmo, { namespace: false })
+g.datasource(cosmo)
 
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

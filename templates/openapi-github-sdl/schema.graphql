@@ -1,9 +1,0 @@
-extend schema
-  @openapi(
-    name: "GitHub"
-    # Disabling namespace may cause conficts with other connectors
-    # namespace: false
-    url: "https://api.github.com/"
-    schema: "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/ghes-3.0/ghes-3.0.json"
-    headers: [{ name: "Authorization", forward: "Authorization" }]
-  )

@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const mux = connector.OpenAPI('Mux', {
   schema: 'https://docs.mux.com/api-spec.json',
@@ -10,11 +12,8 @@ const mux = connector.OpenAPI('Mux', {
 
 g.datasource(mux)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(mux, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

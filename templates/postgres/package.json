@@ -2,12 +2,12 @@
   "author": "",
   "description": "",
   "devDependencies": {
-    "@grafbase/sdk": "~0.12"
+    "@grafbase/sdk": "~0.12.0"
   },
   "keywords": [],
   "license": "ISC",
   "main": "index.js",
-  "name": "federated",
+  "name": "postgres",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

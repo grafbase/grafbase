@@ -1,9 +1,0 @@
-extend schema
-  @openapi(
-    name: "Mux"
-    # Disabling namespace may cause conficts with other connectors
-    # namespace: false
-    schema: "https://docs.mux.com/api-spec.json"
-    headers: [{ name: "Authorization", forward: "Authorization" }]
-    transforms: { queryNaming: OPERATION_ID }
-  )

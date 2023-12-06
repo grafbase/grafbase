@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const neon = connector.OpenAPI('Neon', {
   schema: 'https://console.neon.tech/api/v2/',
@@ -10,11 +12,8 @@ const neon = connector.OpenAPI('Neon', {
 
 g.datasource(neon)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(neon, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

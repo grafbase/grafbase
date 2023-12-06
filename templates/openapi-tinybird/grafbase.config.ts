@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const tinybird = connector.OpenAPI('Tinybird', {
   schema: g.env('TINYBIRD_API_SCHEMA'),
@@ -10,11 +12,8 @@ const tinybird = connector.OpenAPI('Tinybird', {
 
 g.datasource(tinybird)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(tinybird, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {
