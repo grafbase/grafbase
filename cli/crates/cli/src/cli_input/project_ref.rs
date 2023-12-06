@@ -39,8 +39,9 @@ impl str::FromStr for ProjectRef {
             return Err("The account name is missing before '/'.");
         }
 
-        let Some((project, branch)) = rest.split_once('@') else {
-            return Err(GENERIC_ERR);
+        let (project, branch) = match rest.split_once('@') {
+            Some((project, branch)) => (project, Some(branch)),
+            None => (rest, None),
         };
 
         if project.is_empty() {
@@ -50,7 +51,7 @@ impl str::FromStr for ProjectRef {
         Ok(ProjectRef {
             account: account.to_owned(),
             project: project.to_owned(),
-            branch: Some(branch).filter(|s| !s.is_empty()).map(String::from),
+            branch: branch.filter(|s| !s.is_empty()).map(String::from),
         })
     }
 }
@@ -81,6 +82,7 @@ mod tests {
             "test/project@master",
             "__my__/_____project-with-things@branch-here",
             "1/2@3",
+            "accnt/prjct", // no branch
         ];
 
         for case in cases {
