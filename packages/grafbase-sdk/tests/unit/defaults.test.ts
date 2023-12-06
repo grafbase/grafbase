@@ -2,7 +2,7 @@ import { graph } from '../../src/index'
 import { describe, expect, it } from '@jest/globals'
 import { renderGraphQL } from '../utils'
 
-const g = graph.Single()
+const g = graph.Standalone()
 
 describe('Default value generation', () => {
   it('generates String default', () => {

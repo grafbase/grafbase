@@ -1,7 +1,7 @@
 import { graph, connector, config } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
 
-const g = graph.Single()
+const g = graph.Standalone()
 
 describe('Env var accessor', () => {
   beforeEach(() => g.clear())

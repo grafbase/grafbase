@@ -2,7 +2,7 @@ import { config, graph, auth } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
 import { renderGraphQL } from '../utils'
 
-const g = graph.Single()
+const g = graph.Standalone()
 
 describe('Authorizer auth provider', () => {
   beforeEach(() => g.clear())

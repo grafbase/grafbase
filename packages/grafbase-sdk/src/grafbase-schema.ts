@@ -60,7 +60,9 @@ export interface IntrospectParams {
   namespace?: boolean
 }
 
-export class SingleGraph {
+const FEDERATION_VERSION = '2.3'
+
+export class Graph {
   private enums: Enum<any, any>[]
   private types: Type[]
   private unions: Union[]
@@ -71,8 +73,9 @@ export class SingleGraph {
   private datasources: Datasources
   private extendedTypes: TypeExtension[]
   private inputs: Input[]
+  private subgraph: boolean
 
-  constructor() {
+  constructor(subgraph: boolean) {
     this.enums = []
     this.types = []
     this.unions = []
@@ -81,6 +84,7 @@ export class SingleGraph {
     this.datasources = new Datasources()
     this.extendedTypes = []
     this.inputs = []
+    this.subgraph = subgraph
   }
 
   /**
@@ -471,6 +475,9 @@ export class SingleGraph {
       }
     })
 
+    const subgraph = this.subgraph
+      ? `extend schema @federation(version: "${FEDERATION_VERSION}")`
+      : ''
     const datasources = this.datasources.toString()
     const interfaces = this.interfaces.map(String).join('\n\n')
     const types = this.types.map(String).join('\n\n')
@@ -483,6 +490,7 @@ export class SingleGraph {
     const models = this.models.map(String).join('\n\n')
 
     const renderOrder = [
+      subgraph,
       datasources,
       interfaces,
       enums,
