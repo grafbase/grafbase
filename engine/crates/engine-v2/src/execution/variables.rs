@@ -37,10 +37,14 @@ impl From<VariableError> for ServerError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CoercionError {
-    #[error("found a null where we expected a non-null type{0}")]
-    UnexpectedNull(String),
-    #[error("found a {actual} value where we expected a list{path}")]
-    MissingList { actual: ValueKind, path: String },
+    #[error("found a null where we expected a {expected}{path}")]
+    UnexpectedNull { expected: String, path: String },
+    #[error("found a {actual} value where we expected a {expected}{path}")]
+    MissingList {
+        actual: ValueKind,
+        expected: String,
+        path: String,
+    },
     #[error("found a {actual} value where we expected a '{name}' input object{path}")]
     MissingObject {
         name: String,
@@ -50,7 +54,7 @@ pub enum CoercionError {
     #[error("found a {actual} value where we expected a {expected} scalar{path}")]
     IncorrectScalar {
         actual: ValueKind,
-        expected: DataType,
+        expected: String,
         path: String,
     },
     #[error("found a {actual} value where we expected a '{name}' enum{path}")]
@@ -157,7 +161,10 @@ fn coerce_variable_value(
             return Err(VariableError::Coercion {
                 name: variable_name.to_string(),
                 location: variable_definition.name_location,
-                error: CoercionError::UnexpectedNull(path.to_error_string(schema)),
+                error: CoercionError::UnexpectedNull {
+                    expected: type_to_string(&variable_definition.r#type, schema),
+                    path: path.to_error_string(schema),
+                },
             });
         }
     }
@@ -192,7 +199,10 @@ fn coerce_value(
     path: VariablePath,
 ) -> Result<ConstValue, CoercionError> {
     if r#type.wrapping.is_required() && value.is_null() {
-        return Err(CoercionError::UnexpectedNull(path.to_error_string(schema)));
+        return Err(CoercionError::UnexpectedNull {
+            expected: type_to_string(r#type, schema),
+            path: path.to_error_string(schema),
+        });
     }
 
     if r#type.wrapping.is_list() && !&value.is_array() && !value.is_null() {
@@ -203,12 +213,12 @@ fn coerce_value(
         return Ok(value);
     }
 
-    let lists = r#type.wrapping.list_wrapping.iter().rev().collect::<Vec<_>>();
+    let lists = r#type.wrapping.list_wrapping.iter().rev().copied().collect::<Vec<_>>();
     coerce_list(&lists, value, r#type, schema, path)
 }
 
 fn coerce_list(
-    lists: &[&ListWrapping],
+    lists: &[ListWrapping],
     value: ConstValue,
     r#type: &schema::Type,
     schema: &Schema,
@@ -219,9 +229,10 @@ fn coerce_list(
     };
 
     match (value, expected_nullability) {
-        (ConstValue::Null, ListWrapping::RequiredList) => {
-            Err(CoercionError::UnexpectedNull(path.to_error_string(schema)))
-        }
+        (ConstValue::Null, ListWrapping::RequiredList) => Err(CoercionError::UnexpectedNull {
+            expected: unwrapped_type_to_string(r#type, schema, lists),
+            path: path.to_error_string(schema),
+        }),
         (ConstValue::Null, ListWrapping::NullableList) => Ok(ConstValue::Null),
         (ConstValue::List(list), _) => Ok(ConstValue::List(
             list.into_iter()
@@ -231,6 +242,7 @@ fn coerce_list(
         )),
         (value, _) => Err(CoercionError::MissingList {
             actual: ValueKind::of_value(&value),
+            expected: unwrapped_type_to_string(r#type, schema, lists),
             path: path.to_error_string(schema),
         }),
     }
@@ -244,7 +256,10 @@ fn coerce_named_type(
 ) -> Result<ConstValue, CoercionError> {
     if value.is_null() {
         return if r#type.wrapping.inner_is_required {
-            Err(CoercionError::UnexpectedNull(path.to_error_string(schema)))
+            Err(CoercionError::UnexpectedNull {
+                expected: unwrapped_type_to_string(r#type, schema, &[]),
+                path: path.to_error_string(schema),
+            })
         } else {
             Ok(ConstValue::Null)
         };
@@ -275,9 +290,9 @@ fn coerce_scalar(
         (ConstValue::Boolean(value), DataType::Boolean) => Ok(ConstValue::Boolean(value)),
         (ConstValue::Binary(value), DataType::String) => Ok(ConstValue::Binary(value)),
         (ConstValue::Enum(value), DataType::String) => Ok(ConstValue::Enum(value)),
-        (actual, expected) => Err(CoercionError::IncorrectScalar {
+        (actual, _) => Err(CoercionError::IncorrectScalar {
             actual: ValueKind::of_value(&actual),
-            expected,
+            expected: schema[scalar.name].to_string(),
             path: path.to_error_string(schema),
         }),
     }
@@ -330,7 +345,10 @@ fn coerce_input_object(
     for field in schema.walker().walk(object_id).input_fields() {
         match fields.remove(field.name()) {
             None | Some(ConstValue::Null) if field.ty().wrapping.is_required() => {
-                return Err(CoercionError::UnexpectedNull(path.to_error_string(schema)));
+                return Err(CoercionError::UnexpectedNull {
+                    expected: field.ty().to_string(),
+                    path: path.to_error_string(schema),
+                });
             }
             None => {}
             Some(value) => {
@@ -393,4 +411,27 @@ impl VariablePath {
 
         output
     }
+}
+
+fn type_to_string(ty: &schema::Type, schema: &Schema) -> String {
+    unwrapped_type_to_string(ty, schema, &ty.wrapping.list_wrapping)
+}
+
+fn unwrapped_type_to_string(ty: &schema::Type, schema: &Schema, wrapping: &[ListWrapping]) -> String {
+    let mut output = String::new();
+    for _ in wrapping.iter() {
+        write!(&mut output, "[").ok();
+    }
+    write!(&mut output, "{}", schema.walker().walk(ty.inner).name()).ok();
+    if ty.wrapping.inner_is_required {
+        write!(&mut output, "!").ok();
+    }
+    for wrapping in wrapping.iter().rev() {
+        write!(&mut output, "]").ok();
+        if *wrapping == ListWrapping::RequiredList {
+            write!(&mut output, "!").ok();
+        }
+    }
+
+    output
 }

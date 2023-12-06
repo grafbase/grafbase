@@ -54,13 +54,13 @@ impl<'a> std::fmt::Debug for FieldWalker<'a> {
         f.debug_struct("Field")
             .field("id", &usize::from(self.inner))
             .field("name", &self.name())
-            .field("type", &self.ty().name())
+            .field("type", &self.ty().to_string())
             .field("resolvers", &self.resolvers().map(|fr| fr.resolver).collect::<Vec<_>>())
             .field(
                 "arguments",
                 &self
                     .arguments()
-                    .map(|arg| (arg.name(), arg.ty().name()))
+                    .map(|arg| (arg.name(), arg.ty().to_string()))
                     .collect::<Vec<_>>(),
             )
             .finish()
