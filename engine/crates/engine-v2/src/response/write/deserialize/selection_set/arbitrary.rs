@@ -11,7 +11,7 @@ use crate::{
         ExpectedArbitraryFields, ExpectedGoupedField, ExpectedGroupedFields, ExpectedSelectionSet, ExpectedType,
         FieldOrTypeName,
     },
-    request::{BoundFieldId, SelectionSetRoot},
+    request::{BoundFieldId, SelectionSetType},
     response::{
         write::deserialize::{ObjectFieldsSeed, SeedContext},
         BoundResponseKey, ResponseKey, ResponseObject, ResponsePath,
@@ -47,7 +47,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ArbitraryFieldsSeed<'ctx, 'parent> {
     where
         A: MapAccess<'de>,
     {
-        let mut identifier = super::ObjectIdentifier::new(self.ctx, self.expected.root);
+        let mut identifier = super::ObjectIdentifier::new(self.ctx, self.expected.ty);
         let mut content = VecDeque::<(&str, serde_value::Value)>::new();
         while let Some(key) = map.next_key::<&str>()? {
             if identifier.discriminant_key_matches(key) {
@@ -126,10 +126,10 @@ impl<'ctx, 'parent> ArbitraryFieldsSeed<'ctx, 'parent> {
                 if field
                     .type_condition
                     .as_ref()
-                    .map(|cond| cond.matches(&self.ctx.schema_walker, object_id))
+                    .map(|cond| cond.matches(&self.ctx.walker.schema(), object_id))
                     .unwrap_or(true)
                 {
-                    let key = self.ctx.operation[field.bound_field_id].bound_response_key;
+                    let key = self.ctx.walker.walk(field.bound_field_id).bound_response_key;
                     if let Some(ref expected_name) = field.expected_name {
                         acc.fields
                             .entry(key.into())
@@ -163,10 +163,7 @@ impl<'ctx, 'parent> ArbitraryFieldsSeed<'ctx, 'parent> {
                 acc
             });
         let fields = fields.into_values().map(|field| {
-            let bound_field = &self
-                .ctx
-                .operation
-                .walk_field(self.ctx.schema_walker, field.bound_field_id);
+            let bound_field = &self.ctx.walker.walk(field.bound_field_id);
             let ty = match field.expected {
                 ExpectedTypeCollector::Scalar(data_type) => ExpectedType::Scalar(data_type),
                 ExpectedTypeCollector::Object(selection_sets) => self.merge_selection_sets(selection_sets),
@@ -175,7 +172,7 @@ impl<'ctx, 'parent> ArbitraryFieldsSeed<'ctx, 'parent> {
                 bound_response_key: field.key,
                 expected_name: field.expected_name.to_string(),
                 ty,
-                definition_id: bound_field.bound_definition_id(),
+                definition_id: bound_field.definition_id,
                 wrapping: bound_field
                     .definition()
                     .as_field()
@@ -186,21 +183,23 @@ impl<'ctx, 'parent> ArbitraryFieldsSeed<'ctx, 'parent> {
             })
         });
         ExpectedGroupedFields::new(
-            SelectionSetRoot::Object(object_id),
+            self.expected.maybe_boundary_id,
+            SelectionSetType::Object(object_id),
             fields.chain(typename_fields.into_iter().map(FieldOrTypeName::TypeName)),
         )
     }
 
     fn merge_selection_sets(&self, selection_sets: Vec<&'parent ExpectedArbitraryFields>) -> ExpectedType {
         // not entirely about this root.
-        let root = selection_sets[0].root;
-        if let SelectionSetRoot::Object(object_id) = root {
+        let root = selection_sets[0].ty;
+        if let SelectionSetType::Object(object_id) = root {
             ExpectedType::Object(Box::new(ExpectedSelectionSet::Grouped(
                 self.collect_fields(object_id, selection_sets),
             )))
         } else {
             ExpectedType::Object(Box::new(ExpectedSelectionSet::Arbitrary(ExpectedArbitraryFields {
-                root,
+                maybe_boundary_id: self.expected.maybe_boundary_id,
+                ty: root,
                 // Should be reworked later to use references instead of cloning everything.
                 fields: selection_sets
                     .into_iter()

@@ -7,46 +7,38 @@ mod input_object;
 mod input_value;
 mod interface;
 mod object;
+mod resolver;
 mod scalar;
 mod r#type;
 mod union;
 
 pub use definition::DefinitionWalker;
-pub use field::{FieldResolverWalker, FieldWalker};
+pub use field::FieldWalker;
 pub use input_object::InputObjectWalker;
 pub use input_value::InputValueWalker;
 pub use interface::InterfaceWalker;
 pub use object::ObjectWalker;
 pub use r#enum::EnumWalker;
 pub use r#type::TypeWalker;
+pub use resolver::ResolverWalker;
 pub use scalar::ScalarWalker;
 pub use union::UnionWalker;
 
 #[derive(Clone, Copy)]
-pub struct SchemaWalker<'a, Id> {
-    pub id: Id,
-    schema: &'a Schema,
-    names: &'a dyn Names,
+pub struct SchemaWalker<'a, I> {
+    pub(crate) inner: I,
+    pub(crate) schema: &'a Schema,
+    pub(crate) names: &'a dyn Names,
 }
 
-impl<'a, Id> SchemaWalker<'a, Id>
-where
-    Id: Copy,
-{
-    pub fn new(id: Id, schema: &'a Schema, names: &'a dyn Names) -> Self {
-        Self { id, schema, names }
+impl<'a, I> SchemaWalker<'a, I> {
+    pub fn new(inner: I, schema: &'a Schema, names: &'a dyn Names) -> Self {
+        Self { inner, schema, names }
     }
 
-    pub fn id(self) -> Id {
-        self.id
-    }
-
-    pub fn walk<OtherId>(self, id: OtherId) -> SchemaWalker<'a, OtherId>
-    where
-        OtherId: Copy,
-    {
+    pub fn walk<Other>(self, inner: Other) -> SchemaWalker<'a, Other> {
         SchemaWalker {
-            id,
+            inner,
             schema: self.schema,
             names: self.names,
         }
@@ -57,8 +49,12 @@ impl<'a, Id: Copy> SchemaWalker<'a, Id>
 where
     Schema: std::ops::Index<Id>,
 {
-    pub fn get(&self) -> &<Schema as std::ops::Index<Id>>::Output {
-        &self.schema[self.id]
+    pub fn get(&self) -> &'a <Schema as std::ops::Index<Id>>::Output {
+        &self.schema[self.inner]
+    }
+
+    pub fn id(&self) -> Id {
+        self.inner
     }
 }
 
@@ -68,7 +64,7 @@ where
 {
     type Target = <Schema as std::ops::Index<Id>>::Output;
     fn deref(&self) -> &Self::Target {
-        &self.schema[self.id]
+        &self.schema[self.inner]
     }
 }
 
@@ -119,12 +115,16 @@ impl<'a> SchemaWalker<'a, ()> {
     pub fn names(&self) -> &'a dyn Names {
         self.names
     }
+
+    pub fn get(&self) -> &'a Schema {
+        self.schema
+    }
 }
 
 impl<'a> std::ops::Deref for SchemaWalker<'a, ()> {
     type Target = Schema;
 
-    fn deref(&self) -> &Self::Target {
+    fn deref(&self) -> &'a Self::Target {
         self.schema
     }
 }

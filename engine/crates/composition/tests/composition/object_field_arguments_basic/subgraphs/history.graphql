@@ -1,7 +1,7 @@
 extend schema
     @link(
         url: "https://specs.apollo.dev/federation/v2.3",
-        import: [{ name: "@shareable" }]
+        import: [{ name: "@shareable" }, "@inaccessible"]
      )
 
 type Query {
@@ -14,7 +14,7 @@ type RollerCoaster @shareable {
   height: Float! # height in meters
   speed: Float! # speed in km/h
   manufacturer: String!
-  historicalData: [HistoricalData]
+  historicalData: [HistoricalData] @inaccessible
 }
 
 type HistoricalData @shareable {

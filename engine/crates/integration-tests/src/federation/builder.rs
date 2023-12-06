@@ -44,7 +44,12 @@ impl FederationEngineBuilder {
             .expect("schemas to compose succesfully");
 
         TestFederationEngine {
-            engine: Engine::new(graph.into()),
+            engine: Engine::new(
+                graph.into(),
+                engine_v2::EngineRuntime {
+                    fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+                },
+            ),
         }
     }
 }
@@ -78,9 +83,7 @@ where
 #[async_trait::async_trait]
 impl SchemaSource for MockGraphQlServer {
     async fn sdl(&self) -> String {
-        grafbase_graphql_introspection::introspect(&self.url(), &[] as &[(&str, &str)])
-            .await
-            .expect("introspection to succeed")
+        self.schema.sdl()
     }
 
     fn url(&self) -> String {

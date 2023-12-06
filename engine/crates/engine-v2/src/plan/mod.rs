@@ -1,33 +1,80 @@
-use schema::ResolverId;
+use schema::{Definition, InterfaceId, ObjectId, ResolverId};
 
 use crate::{
-    request::{BoundSelectionSetId, QueryPath},
-    response::ReadSelectionSet,
+    request::{BoundFieldId, FlatTypeCondition, QueryPath, SelectionSetType},
+    response::{ReadSelectionSet, ResponseBoundaryItem},
 };
 
 mod attribution;
 mod expectation;
-mod id;
+mod ids;
 mod planner;
-mod plans;
 
 pub use attribution::Attribution;
 pub use expectation::*;
-pub use id::PlanId;
-pub use plans::ExecutionPlans;
+pub use ids::*;
+pub use planner::Planner;
 
-#[derive(Debug, Clone)]
-pub struct ExecutionPlanRoot {
-    pub path: QueryPath,
-    pub merged_selection_set_ids: Vec<BoundSelectionSetId>,
+#[derive(Debug)]
+pub struct Plan {
+    pub id: PlanId,
+    pub resolver_id: ResolverId,
+    pub input: PlanInput,
+    pub output: PlanOutput,
+    /// Boundaries between this plan and its children. ResponseObjectRoots will be collected at
+    /// those during execution.
+    pub boundaries: Vec<PlanBoundary>,
 }
 
-// the actual selection_set that will be resolved is determined at runtime after @skip/@include
-// have been computed.
-pub struct ExecutionPlan {
-    pub root: ExecutionPlanRoot,
-    pub input: ReadSelectionSet,
-    pub resolver_id: ResolverId,
+#[derive(Debug)]
+pub struct PlanInput {
+    /// Response objects which the plan must update.
+    pub response_boundary: Vec<ResponseBoundaryItem>,
+    /// if the plan `@requires` any data it will be included in the ReadSelectionSet.
+    pub selection_set: ReadSelectionSet,
+}
+
+#[derive(Debug)]
+pub struct PlanOutput {
+    pub entity_type: EntityType,
+    /// Part of the selection set the plan is responsible for.
+    pub fields: Vec<BoundFieldId>,
+    /// Attribution is necessary to filter the nested selection sets.
     pub attribution: Attribution,
+    /// Expectation of the actual output data.
     pub expectation: ExpectedSelectionSet,
+}
+
+#[derive(Debug)]
+pub struct PlanBoundary {
+    pub selection_set_type: SelectionSetType,
+    /// A child plan isn't entirely planned yet. We only ensure that any `@requires` of children
+    /// will be provided by the parent. Its actual output is only planned once we have the
+    /// ResponseObjectRoots.
+    pub children: Vec<ChildPlan>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum EntityType {
+    Interface(InterfaceId),
+    Object(ObjectId),
+}
+
+impl From<EntityType> for Definition {
+    fn from(value: EntityType) -> Self {
+        match value {
+            EntityType::Interface(id) => Definition::Interface(id),
+            EntityType::Object(id) => Definition::Object(id),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ChildPlan {
+    pub id: PlanId,
+    pub path: QueryPath,
+    pub entity_type: EntityType,
+    pub resolver_id: ResolverId,
+    pub input_selection_set: ReadSelectionSet,
+    pub bound_field_ids: Vec<BoundFieldId>,
 }

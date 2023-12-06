@@ -1,10 +1,33 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use crate::request::{BoundFieldId, BoundSelectionSetId};
+use schema::FieldId;
 
+use crate::{
+    request::{BoundFieldId, BoundSelectionSetId},
+    response::BoundResponseKey,
+};
+
+/// Keeps track of all fields associated to a certain plan. All selection_sets that have at least
+/// one field, eventually nested inside a fragment, are also tracked to ensure we the plan doesn't
+/// see any empty selection sets.
+#[derive(Debug)]
 pub struct Attribution {
     selection_sets: Vec<BoundSelectionSetId>,
     fields: Vec<BoundFieldId>,
+    #[allow(unused)]
+    extras: HashMap<BoundSelectionSetId, ExtraSelectionSet>,
+}
+
+#[derive(Debug)]
+pub struct ExtraField {
+    pub bound_response_object_id: BoundResponseKey,
+    pub field_id: FieldId,
+    pub selection_set: Option<ExtraSelectionSet>,
+}
+
+#[derive(Debug)]
+pub struct ExtraSelectionSet {
+    pub items: Vec<ExtraField>,
 }
 
 impl Attribution {
@@ -17,9 +40,17 @@ impl Attribution {
     }
 }
 
+#[derive(Default, Debug)]
 pub(super) struct AttributionBuilder {
-    pub(super) selection_sets: HashSet<BoundSelectionSetId>,
-    pub(super) fields: Vec<BoundFieldId>,
+    pub selection_sets: HashSet<BoundSelectionSetId>,
+    pub fields: Vec<BoundFieldId>,
+    #[allow(unused)]
+    pub extras: HashMap<BoundSelectionSetId, ExtraSelectionSetBuilder>,
+}
+
+#[derive(Debug)]
+pub struct ExtraSelectionSetBuilder {
+    pub fields: HashMap<FieldId, Option<ExtraSelectionSetBuilder>>,
 }
 
 impl AttributionBuilder {
@@ -27,6 +58,7 @@ impl AttributionBuilder {
         let mut attribution = Attribution {
             selection_sets: self.selection_sets.into_iter().collect(),
             fields: self.fields,
+            extras: HashMap::with_capacity(0),
         };
         attribution.selection_sets.sort_unstable();
         attribution.fields.sort_unstable();

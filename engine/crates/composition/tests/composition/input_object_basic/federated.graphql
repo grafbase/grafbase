@@ -25,7 +25,10 @@ type Query {
     searchPerson(input: InputPerson!): [Person] @join__field(graph: PHONEBOOK)
 }
 
-type Person {
+type Person
+    @join__type(graph: EMAILBOOK, key: "id")
+    @join__type(graph: PHONEBOOK, key: "id")
+{
     id: ID!
     firstName: String!
     lastName: String!

@@ -24,9 +24,9 @@ enum join__Graph {
 type Customer {
     id: ID!
     name: String
-    other: Int @join__field(graph: ACCOUNTS)
-    newsletterSubscribed: Boolean @join__field(graph: MARKETING)
-    subscriptionPlan: Plan! @join__field(graph: SUBSCRIPTIONS)
+    other: Int @join__field(graph: ACCOUNTS) @inaccessible
+    newsletterSubscribed: Boolean @join__field(graph: MARKETING) @inaccessible
+    subscriptionPlan: Plan! @join__field(graph: SUBSCRIPTIONS) @inaccessible
 }
 
 type Query {

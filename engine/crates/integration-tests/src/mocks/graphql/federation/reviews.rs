@@ -56,7 +56,7 @@ impl super::super::Schema for FakeFederationReviewsSchema {
     }
 
     fn sdl(&self) -> String {
-        Self::schema().sdl_with_options(async_graphql::SDLExportOptions::new())
+        Self::schema().sdl_with_options(async_graphql::SDLExportOptions::new().federation())
     }
 }
 

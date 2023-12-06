@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::bus::{GraphReceiver, RequestReceiver, ResponseSender};
-use engine_v2::Engine;
+use engine_v2::{Engine, EngineRuntime};
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
 use graphql_composition::FederatedGraph;
@@ -55,7 +55,12 @@ impl Router {
 }
 
 fn new_engine(graph: FederatedGraph) -> Arc<Engine> {
-    Arc::new(Engine::new(graph.into()))
+    Arc::new(Engine::new(
+        graph.into(),
+        EngineRuntime {
+            fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+        },
+    ))
 }
 
 async fn run_request(request: engine::Request, response_sender: ResponseSender, engine: Arc<Engine>) {

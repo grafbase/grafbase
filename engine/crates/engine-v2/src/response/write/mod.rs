@@ -1,4 +1,3 @@
-// mod de;
 mod deserialize;
 mod ids;
 mod manual;
@@ -13,12 +12,14 @@ use schema::Schema;
 pub use writer::*;
 
 use super::{
-    BoundResponseKey, GraphqlError, InitialResponse, ResponseData, ResponseKeys, ResponseObject, ResponsePath,
-    ResponseValue,
+    BoundResponseKey, GraphqlError, InitialResponse, ResponseBoundaryItem, ResponseData, ResponseKeys, ResponseObject,
+    ResponsePath, ResponseValue,
 };
-// use de::AnyFieldsSeed;
-// use serde::de::DeserializeSeed;
-use crate::{request::Operation, Response};
+use crate::{
+    plan::{PlanBoundary, PlanBoundaryId},
+    request::Operation,
+    Response,
+};
 
 #[derive(Default)]
 pub struct ResponseDataPart {
@@ -46,56 +47,46 @@ pub struct ResponseBuilder {
 // least wait until we face actual problems. We're focused on OLTP workloads, so might never
 // happen.
 impl ResponseBuilder {
-    pub fn new(schema: &Schema, operation: &Operation) -> Self {
-        let mut builder = ResponsePartBuilder::new(ResponseDataPartId::from(0));
-        let root_id = {
-            let typename = schema[operation.root_object_id].name;
-            builder.push_object(ResponseObject {
-                object_id: operation.root_object_id,
-                fields: operation
-                    .walk_selection_set(schema.default_walker(), operation.root_selection_set_id)
-                    .fields()
-                    .filter(|field| field.definition().is_typename_meta_field())
-                    .map(|field| {
-                        (
-                            field.bound_response_key(),
-                            ResponseValue::StringId {
-                                id: typename,
-                                nullable: false,
-                            },
-                        )
-                    })
-                    .collect(),
-            })
-        };
+    pub fn new(operation: &Operation) -> Self {
+        let mut builder = ExecutorOutput::new(ResponseDataPartId::from(0), vec![]);
+        let root_id = builder.push_object(ResponseObject {
+            object_id: operation.root_object_id,
+            fields: BTreeMap::new(),
+        });
         Self {
             keys: operation.response_keys.clone(),
             root: Some(root_id),
-            parts: vec![builder.part],
+            parts: vec![builder.data_part],
             errors: vec![],
         }
     }
 
-    pub fn new_part(&mut self) -> ResponsePartBuilder {
+    pub fn root_response_object_id(&self) -> Option<ResponseObjectId> {
+        self.root
+    }
+
+    pub fn new_output(&mut self, boundaries: Vec<PlanBoundary>) -> ExecutorOutput {
         let id = ResponseDataPartId::from(self.parts.len());
         // reserving the spot until the actual data is written. It's safe as no one can reference
         // any data in this part before it's added. And a part can only be overwritten if it's
         // empty.
         self.parts.push(ResponseDataPart::default());
-        ResponsePartBuilder::new(id)
+        ExecutorOutput::new(id, boundaries)
     }
 
-    pub fn ingest_part(&mut self, builder: ResponsePartBuilder) {
-        let reservation = &mut self.parts[usize::from(builder.id)];
+    pub fn ingest(&mut self, output: ExecutorOutput) -> Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)> {
+        let reservation = &mut self.parts[usize::from(output.id)];
         assert!(reservation.is_empty(), "Part already has data");
-        *reservation = builder.part;
-        self.errors.extend(builder.errors);
-        for update in builder.updates {
+        *reservation = output.data_part;
+        self.errors.extend(output.errors);
+        for update in output.updates {
             self[update.id].fields.extend(update.fields);
         }
-        for error in builder.errors_to_propagate {
+        for error in output.errors_to_propagate {
             self.propagate_error(error);
         }
+        // The boundary objects are only accessible after we ingested them
+        output.boundaries
     }
 
     pub fn push_error(&mut self, error: impl Into<GraphqlError>) {
@@ -187,22 +178,24 @@ pub enum ResponseValueId {
     },
 }
 
-pub struct ResponsePartBuilder {
+pub struct ExecutorOutput {
     id: ResponseDataPartId,
-    part: ResponseDataPart,
+    data_part: ResponseDataPart,
     errors: Vec<GraphqlError>,
     updates: Vec<ResponseObjectUpdate>,
     errors_to_propagate: Vec<ResponsePath>,
+    boundaries: Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)>,
 }
 
-impl ResponsePartBuilder {
-    pub fn new(id: ResponseDataPartId) -> ResponsePartBuilder {
-        ResponsePartBuilder {
+impl ExecutorOutput {
+    pub fn new(id: ResponseDataPartId, boundaries: Vec<PlanBoundary>) -> ExecutorOutput {
+        ExecutorOutput {
             id,
-            part: ResponseDataPart::default(),
+            data_part: ResponseDataPart::default(),
             errors: Vec::new(),
             updates: Vec::new(),
             errors_to_propagate: Vec::new(),
+            boundaries: boundaries.into_iter().map(|plan| (plan, vec![])).collect(),
         }
     }
 
@@ -214,8 +207,26 @@ impl ResponsePartBuilder {
         self.errors.push(error.into());
     }
 
+    pub fn push_errors(&mut self, errors: impl IntoIterator<Item = GraphqlError>) {
+        self.errors.extend(errors);
+    }
+
     pub fn push_error_to_propagate(&mut self, path: ResponsePath) {
         self.errors_to_propagate.push(path);
+    }
+}
+
+impl std::ops::Index<PlanBoundaryId> for ExecutorOutput {
+    type Output = Vec<ResponseBoundaryItem>;
+
+    fn index(&self, index: PlanBoundaryId) -> &Self::Output {
+        &self.boundaries[usize::from(index)].1
+    }
+}
+
+impl std::ops::IndexMut<PlanBoundaryId> for ExecutorOutput {
+    fn index_mut(&mut self, index: PlanBoundaryId) -> &mut Self::Output {
+        &mut self.boundaries[usize::from(index)].1
     }
 }
 

@@ -5,7 +5,7 @@ pub type ScalarWalker<'a> = SchemaWalker<'a, ScalarId>;
 
 impl<'a> ScalarWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.scalar(self.id)
+        self.names.scalar(self.schema, self.inner)
     }
 
     pub fn specified_by_url(&self) -> Option<&'a str> {
@@ -19,8 +19,8 @@ impl<'a> ScalarWalker<'a> {
 
 impl<'a> std::fmt::Debug for ScalarWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ScalarWalker")
-            .field("id", &usize::from(self.id))
+        f.debug_struct("Scalar")
+            .field("id", &usize::from(self.inner))
             .field("name", &self.name())
             .field("description", &self.description())
             .field("specified_by_url", &self.specified_by_url())

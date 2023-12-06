@@ -1,4 +1,5 @@
 type New @shareable {
+    other: String!
     name: String! @inaccessible
     message: String! @inaccessible
     old: Old! @inaccessible

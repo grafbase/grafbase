@@ -1,254 +1,481 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::{
+    cell::Cell,
+    collections::{HashMap, HashSet},
+};
 
 use itertools::Itertools;
-use schema::{DataSourceId, Definition, FieldSet, InterfaceId, Names, ObjectId, ResolverId};
+use schema::{FieldId, FieldSet, InterfaceId, Names, ObjectId, ResolverId, ResolverWalker, Schema};
 
 use super::{
-    attribution::AttributionBuilder, ExecutionPlan, ExecutionPlanRoot, ExecutionPlans, ExpectedArbitraryFields,
-    ExpectedGoupedField, ExpectedGroupedFields, ExpectedUngroupedField, FieldOrTypeName, PlanId,
+    attribution::AttributionBuilder, ExpectedArbitraryFields, ExpectedGoupedField, ExpectedGroupedFields,
+    ExpectedUngroupedField, FieldOrTypeName, FlatTypeCondition, Plan, PlanBoundary, PlanBoundaryId, PlanId, PlanInput,
+    PlanOutput,
 };
 use crate::{
-    plan::{ExpectedSelectionSet, ExpectedType},
+    plan::{ChildPlan, EntityType, ExpectedSelectionSet, ExpectedType},
     request::{
-        BoundAnyFieldDefinition, BoundAnyFieldDefinitionId, BoundAnyFieldDefinitionWalker, BoundFieldId,
-        BoundFieldWalker, BoundSelection, BoundSelectionSetId, FlatTypeCondition, Operation, QueryPath,
-        QueryPathSegment, SelectionSetRoot, TypeCondition,
+        BoundAnyFieldDefinitionId, BoundFieldDefinitionWalker, BoundFieldId, BoundSelectionSetId, FlatField,
+        FlatSelectionSet, Operation, OperationWalker, QueryPath, SelectionSetType,
     },
-    response::{BoundResponseKey, ReadSelectionSet, ResponseKey},
-    Engine,
+    response::{BoundResponseKey, GraphqlError, ReadField, ReadSelectionSet, ResponseBoundaryItem, ResponseKey},
 };
 
-pub(super) struct Planner<'a> {
-    pub(super) engine: &'a Engine,
-    pub(super) operation: &'a Operation,
-    pub(super) plans: &'a mut ExecutionPlans,
-    pub(super) to_be_planned: VecDeque<ToBePlanned>,
+#[derive(Debug, thiserror::Error)]
+pub enum PlanningError {
+    #[error("Could not plan fields: {}", .missing.join(", "))]
+    CouldNotPlanAnyField {
+        query_path: Vec<String>,
+        missing: Vec<String>,
+    },
+    #[error("Could satisfy required fields")]
+    CouldNotSatisfyRequires,
 }
 
-#[derive(Debug)]
-pub(super) struct ToBePlanned {
-    pub(super) parent: Option<PlanId>,
-    pub(super) root: ExecutionPlanRoot,
-    pub(super) object_id: ObjectId,
+impl From<PlanningError> for GraphqlError {
+    fn from(err: PlanningError) -> Self {
+        let message = err.to_string();
+        let query_path = match err {
+            PlanningError::CouldNotPlanAnyField { query_path, .. } => query_path,
+            PlanningError::CouldNotSatisfyRequires { .. } => vec![],
+        };
+        GraphqlError {
+            message,
+            locations: vec![],
+            path: None,
+            extensions: HashMap::from([(
+                "queryPath".into(),
+                serde_json::Value::Array(query_path.into_iter().map(serde_json::Value::String).collect()),
+            )]),
+        }
+    }
+}
+
+pub type PlanningResult<T> = Result<T, PlanningError>;
+
+pub struct Planner<'a> {
+    schema: &'a Schema,
+    operation: &'a Operation,
+    next_plan_id: Cell<usize>,
 }
 
 impl<'a> Planner<'a> {
-    pub(super) fn plan_fields(
-        &mut self,
-        ToBePlanned {
-            parent,
-            root,
-            object_id,
-        }: ToBePlanned,
-    ) {
-        let mut grouped_fields = self
-            .collect_fields(object_id, &root.merged_selection_set_ids)
+    pub fn new(schema: &'a Schema, operation: &'a Operation) -> Self {
+        Planner {
+            schema,
+            operation,
+            next_plan_id: Cell::new(0),
+        }
+    }
+
+    pub fn generate_initial_boundary(&mut self) -> PlanningResult<PlanBoundary> {
+        let walker = self.default_operation_walker();
+        let flat_selection_set = walker.flatten_selection_sets(vec![self.operation.root_selection_set_id]);
+
+        // The default resolver is the introspection one which allows use deal nicely with queries
+        // like `query { __typename }`. So all fields without a resolvers are considered to be provideable by introspection.
+        let (provideable, missing): (Vec<_>, Vec<_>) = flat_selection_set
+            .fields
             .into_iter()
-            .filter_map(|(key, group)| match &self.operation[group.definition_id] {
-                // Meta fields don't need to be planned.
-                BoundAnyFieldDefinition::Field(field) => Some((key, (field, group))),
-                _ => None,
+            .map(|flat_field| {
+                let field = walker.walk(flat_field.bound_field_id);
+                if field
+                    .definition()
+                    .as_field()
+                    .map(|field| field.resolvers.is_empty())
+                    .unwrap_or(true)
+                {
+                    Ok(flat_field.bound_field_id)
+                } else {
+                    Err(flat_field)
+                }
             })
-            .collect::<HashMap<_, _>>();
-        while !grouped_fields.is_empty() {
-            pub struct Candidate {
+            .partition_result();
+        let mut boundary = self.create_plan_boundary(
+            &FlatSelectionSet {
+                ty: SelectionSetType::Object(self.operation.root_object_id),
+                fields: vec![],
+            },
+            None,
+            FlatSelectionSet {
+                fields: missing,
+                ..flat_selection_set
+            },
+        )?;
+
+        // Are there actually any introspection related fields?
+        if !provideable.is_empty() {
+            let resolver_id = self.schema.introspection_resolver_id();
+            boundary.children.push(ChildPlan {
+                id: self.next_plan_id(),
+                path: QueryPath::default(),
+                entity_type: EntityType::Object(match walker.walk(self.operation.root_selection_set_id).ty {
+                    SelectionSetType::Object(id) => id,
+                    _ => unreachable!("The root selection set is always an object"),
+                }),
+                resolver_id,
+                input_selection_set: ReadSelectionSet::default(),
+                bound_field_ids: provideable,
+            });
+        }
+        Ok(boundary)
+    }
+
+    pub fn generate_plans(
+        &mut self,
+        boundary: PlanBoundary,
+        response_objects: &Vec<ResponseBoundaryItem>,
+    ) -> PlanningResult<Vec<Plan>> {
+        if response_objects.is_empty() {
+            return Ok(vec![]);
+        }
+        boundary
+            .children
+            .into_iter()
+            .filter_map(|mut child| {
+                // we could certainly be smarter and avoids copies with an Arc.
+                let root_response_objects = match (boundary.selection_set_type, child.entity_type) {
+                    (SelectionSetType::Object(_), _) => response_objects.clone(),
+                    (SelectionSetType::Interface(a), EntityType::Interface(b)) if a == b => response_objects.clone(),
+                    (_, EntityType::Interface(id)) => {
+                        let possible_types = &self.schema[id].possible_types;
+                        response_objects
+                            .iter()
+                            .filter(|root| possible_types.binary_search(&root.object_id).is_ok())
+                            .cloned()
+                            .collect()
+                    }
+                    (_, EntityType::Object(id)) => response_objects
+                        .iter()
+                        .filter(|root| root.object_id == id)
+                        .cloned()
+                        .collect(),
+                };
+                if root_response_objects.is_empty() {
+                    None
+                } else {
+                    let id = child.id;
+                    let resolver_id = child.resolver_id;
+                    let selection_set = std::mem::take(&mut child.input_selection_set);
+                    Some(
+                        self.create_plan_output(self.schema.walker().walk(resolver_id).names(), child)
+                            .map(|(output, boundaries)| Plan {
+                                id,
+                                resolver_id,
+                                input: PlanInput {
+                                    response_boundary: root_response_objects,
+                                    selection_set,
+                                },
+                                output,
+                                boundaries,
+                            }),
+                    )
+                }
+            })
+            .collect()
+    }
+
+    fn next_plan_id(&self) -> PlanId {
+        let current = self.next_plan_id.get();
+        let id = PlanId::from(current);
+        self.next_plan_id.set(current + 1);
+        id
+    }
+
+    fn partition_provideable_missing(
+        &self,
+        ctx: &mut AttributionContext<'_>,
+        FlatSelectionSet { ty, fields }: FlatSelectionSet,
+    ) -> PlanningResult<(FlatSelectionSet, Option<PlanBoundaryId>)> {
+        let (provideable, missing): (Vec<_>, Vec<_>) = fields
+            .into_iter()
+            .map(
+                |flat_field| match ctx.walker.walk(flat_field.bound_field_id).definition().as_field() {
+                    Some(field) => {
+                        if ctx.is_provideable(field) {
+                            Ok(flat_field)
+                        } else {
+                            Err(flat_field)
+                        }
+                    }
+                    None => Ok(flat_field),
+                },
+            )
+            .partition_result();
+
+        let provideable = FlatSelectionSet {
+            ty,
+            fields: provideable,
+        };
+        let maybe_boundary_id = if missing.is_empty() {
+            None
+        } else {
+            let missing = FlatSelectionSet { ty, fields: missing };
+            let boundary = self.create_plan_boundary(&provideable, Some(ctx), missing)?;
+            Some(ctx.push_boundary(boundary))
+        };
+
+        Ok((provideable, maybe_boundary_id))
+    }
+
+    fn create_plan_boundary(
+        &self,
+        provideable: &FlatSelectionSet,
+        maybe_parent: Option<&mut AttributionContext<'_>>,
+        missing: FlatSelectionSet,
+    ) -> PlanningResult<PlanBoundary> {
+        let walker = self.default_operation_walker();
+        let field_id_to_bound_field_id =
+            provideable
+                .fields
+                .iter()
+                .fold(HashMap::<FieldId, BoundFieldId>::new(), |mut acc, flat_field| {
+                    if let Some(field) = walker.walk(flat_field.bound_field_id).definition().as_field() {
+                        let id = acc.entry(field.id()).or_insert(flat_field.bound_field_id);
+                        // If the field is actually read by a child plan input it means the object is present and any present
+                        // type condition was satisfied for this flat field, the one with the lowesed
+                        // bound_field_id will be present as it's the one with the lowest position in
+                        // the query.
+                        *id = (*id).min(flat_field.bound_field_id);
+                    }
+                    acc
+                });
+        let mut id_to_missing_fields: HashMap<BoundFieldId, FlatField> = missing
+            .fields
+            .into_iter()
+            .map(|field| (field.bound_field_id, field))
+            .collect();
+
+        let mut children = Vec::new();
+        'candidates_generation: while !id_to_missing_fields.is_empty() {
+            let count = id_to_missing_fields.len();
+            pub struct ChildPlanCandidate<'a> {
+                entity_type: EntityType,
                 resolver_id: ResolverId,
-                requires: FieldSet,
-                output: Vec<ResponseKey>,
+                fields: Vec<(BoundFieldId, &'a FieldSet)>,
             }
 
-            let mut candidates = HashMap::<ResolverId, Candidate>::new();
-            for (key, (definition, _)) in &grouped_fields {
-                for field_resolver in self
-                    .engine
-                    .schema
-                    .default_walker()
-                    .walk(definition.field_id)
+            let mut candidates = HashMap::<ResolverId, ChildPlanCandidate<'_>>::new();
+            for field in id_to_missing_fields.values() {
+                for field_resolver in walker
+                    .walk(field.bound_field_id)
+                    .definition()
+                    .as_field()
+                    .expect("Meta fields are always provideable so a missing field can't be one.")
                     .resolvers()
                 {
+                    // We don't need to care about type conditions here as the resolver naturally
+                    // enforces that only fields of the same interface/object can be grouped
+                    // together.
+                    let entity_type = match self.operation[*field.selection_set_path.last().unwrap()].ty {
+                        SelectionSetType::Object(id) => EntityType::Object(id),
+                        SelectionSetType::Interface(id) => EntityType::Interface(id),
+                        SelectionSetType::Union(_) => unreachable!("An union doesn't have fields"),
+                    };
                     let candidate = candidates
-                        .entry(field_resolver.resolver_id)
-                        .or_insert_with_key(|&resolver_id| Candidate {
+                        .entry(field_resolver.resolver.id())
+                        .or_insert_with_key(|&resolver_id| ChildPlanCandidate {
+                            entity_type,
                             resolver_id,
-                            requires: FieldSet::default(),
-                            output: Vec::new(),
+                            fields: Vec::new(),
                         });
-                    candidate.requires = schema::FieldSet::merge(&candidate.requires, &field_resolver.requires);
-                    candidate.output.push(*key);
+                    candidate.fields.push((field.bound_field_id, field_resolver.requires));
                 }
             }
-
-            // We assume no inputs and separate outputs for now.
-            // Later we could:
-            // - Determine which candidate need additional data (mapping requires to actual fields or
-            //   check whether they could be provided from parent/sibling plans).
-            // - plan the one with most fields.
-            let candidate = candidates.into_iter().next().unwrap().1;
-            assert!(candidate.requires.is_empty());
-            // We must progress by at least one field.
-            assert!(!candidate.output.is_empty());
-
-            let resolver = &self.engine.schema[candidate.resolver_id];
-            let mut attribution = AttributionBuilder {
-                selection_sets: HashSet::new(),
-                fields: Vec::new(),
-            };
-            let expectation = {
-                let mut ctx = AttributionContext {
-                    names: self.engine.schema.as_ref(),
-                    path: root.path.clone(),
-                    provideable: schema::FieldSet::default(),
-                    data_source_id: resolver.data_source_id(),
-                    supports_aliases: resolver.supports_aliases(),
-                    continuous: true,
-                    attribution: &mut attribution,
-                };
-                let fields = candidate
-                    .output
+            let mut candidates = candidates.into_values().collect::<Vec<_>>();
+            candidates.sort_unstable_by_key(|candidate| std::cmp::Reverse(candidate.fields.len()));
+            for candidate in candidates {
+                // if we just planned any fields, we're ensuring there is no intersection with the
+                // previous candidate. Otherwise we regenerate the candidates as their ordering is
+                // incorrect now.
+                if id_to_missing_fields.len() < count {
+                    for (id, _) in &candidate.fields {
+                        if !id_to_missing_fields.contains_key(id) {
+                            continue 'candidates_generation;
+                        }
+                    }
+                }
+                let mut bound_field_ids = vec![];
+                let mut requires = walker.schema().walk(candidate.resolver_id).requires().into_owned();
+                for (id, field_requires) in candidate.fields {
+                    let flat_field = id_to_missing_fields.remove(&id).unwrap();
+                    bound_field_ids.push(flat_field.bound_field_id);
+                    requires = FieldSet::merge(&requires, field_requires);
+                }
+                let input_selection_set = requires
                     .into_iter()
-                    .map(|key| grouped_fields.remove(&key).unwrap())
-                    .map(|(_, group)| self.expected_grouped_field(&mut ctx, group, true));
-                ExpectedSelectionSet::Grouped(ExpectedGroupedFields::new(SelectionSetRoot::Object(object_id), fields))
-            };
-            let plan_id = self.plans.push(ExecutionPlan {
-                root: root.clone(),
-                input: ReadSelectionSet::empty(),
-                resolver_id: candidate.resolver_id,
+                    .map(
+                        |schema::FieldSetItem {
+                             field_id,
+                             selection_set,
+                         }| {
+                            // For now we only support the most basic requires. root fields already
+                            // present in the selection.
+                            if !selection_set.is_empty() {
+                                return Err(PlanningError::CouldNotSatisfyRequires);
+                            }
+                            let bound_field_id = field_id_to_bound_field_id
+                                .get(&field_id)
+                                .ok_or(PlanningError::CouldNotSatisfyRequires)?;
+                            let bound_field = walker.walk(*bound_field_id);
+                            Ok(ReadField {
+                                bound_response_key: bound_field.bound_response_key,
+                                field_id,
+                                subselection: ReadSelectionSet::default(),
+                            })
+                        },
+                    )
+                    .collect::<PlanningResult<ReadSelectionSet>>()?;
+                children.push(ChildPlan {
+                    id: self.next_plan_id(),
+                    path: maybe_parent
+                        .as_ref()
+                        .map(|parent| parent.path.clone())
+                        .unwrap_or_default(),
+                    entity_type: candidate.entity_type,
+                    resolver_id: candidate.resolver_id,
+                    input_selection_set,
+                    bound_field_ids,
+                });
+            }
+
+            // No fields were planned
+            if count == id_to_missing_fields.len() {
+                let query_path = maybe_parent
+                    .map(|parent| {
+                        parent
+                            .path
+                            .into_iter()
+                            .map(|key| self.operation.response_keys[*key].to_string())
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let missing = id_to_missing_fields
+                    .into_keys()
+                    .map(|id| walker.walk(id).response_key_str().to_string())
+                    .collect();
+                return Err(PlanningError::CouldNotPlanAnyField { query_path, missing });
+            }
+        }
+        Ok(PlanBoundary {
+            selection_set_type: missing.ty,
+            children,
+        })
+    }
+
+    fn create_plan_output(
+        &self,
+        names: &'a dyn Names,
+        ChildPlan {
+            path,
+            entity_type,
+            resolver_id,
+            bound_field_ids: fields,
+            ..
+        }: ChildPlan,
+    ) -> PlanningResult<(PlanOutput, Vec<PlanBoundary>)> {
+        let walker = self.operation.walker_with(self.schema.walker_with(names), ());
+        let resolver = walker.schema().walk(resolver_id);
+        let mut groups = HashMap::<ResponseKey, Vec<BoundFieldId>>::new();
+        let walker = self.default_operation_walker();
+        for id in &fields {
+            groups.entry(walker.walk(*id).response_key()).or_default().push(*id)
+        }
+
+        let mut boundaries = Vec::new();
+        let mut attribution = AttributionBuilder::default();
+        let mut ctx = AttributionContext {
+            path,
+            walker,
+            resolver,
+            logic: AttributionLogic::CompatibleResolver,
+            provideable: FieldSet::default(),
+            attribution: &mut attribution,
+            boundaries: &mut boundaries,
+        };
+        let ty = match entity_type {
+            EntityType::Interface(id) => SelectionSetType::Interface(id),
+            EntityType::Object(id) => SelectionSetType::Object(id),
+        };
+        let grouped_fields = groups
+            .into_values()
+            .map(|ids| {
+                let first_bound_field = &self.operation[*ids.iter().min().unwrap()];
+                let group = GroupForResponseKey {
+                    key: first_bound_field.bound_response_key,
+                    // the min id is the first field to appear as BoundFieldId are produced as we
+                    // traverse the query in the right order..
+                    definition_id: first_bound_field.definition_id,
+                    origin_selection_set_ids: HashSet::with_capacity(0),
+                    bound_field_ids: ids,
+                };
+                self.expected_grouped_field(&mut ctx, group)
+            })
+            .collect::<PlanningResult<Vec<_>>>()?;
+        let expectation = ExpectedSelectionSet::Grouped(ExpectedGroupedFields::new(None, ty, grouped_fields));
+        Ok((
+            PlanOutput {
+                entity_type,
+                fields,
                 attribution: attribution.build(),
                 expectation,
-            });
-            if let Some(parent) = parent {
-                self.plans.add_dependency(plan_id, parent);
-            }
-        }
+            },
+            boundaries,
+        ))
     }
-}
 
-struct GroupForResponseKey {
-    key: BoundResponseKey,
-    definition_id: BoundAnyFieldDefinitionId,
-    origin_selection_set_ids: HashSet<BoundSelectionSetId>,
-    bound_field_ids: Vec<BoundFieldId>,
-}
-
-type GoupedFields = HashMap<ResponseKey, GroupForResponseKey>;
-
-impl<'a> Planner<'a> {
-    fn collect_fields(&self, object_id: ObjectId, selection_set_ids: &Vec<BoundSelectionSetId>) -> GoupedFields {
-        let mut fields = GoupedFields::new();
-        let mut selections = VecDeque::new();
-        for &id in selection_set_ids {
-            selections.extend(self.operation[id].items.iter().map(|selection| (vec![id], selection)));
+    fn expected_grouped_field(
+        &self,
+        ctx: &mut AttributionContext<'_>,
+        group: GroupForResponseKey,
+    ) -> PlanningResult<FieldOrTypeName> {
+        for &id in &group.bound_field_ids {
+            ctx.attribution.fields.push(id);
         }
-        while let Some((mut selection_set_ids, selection)) = selections.pop_front() {
-            match selection {
-                BoundSelection::Field(id) => {
-                    let field = &self.operation[*id];
-                    let definition = &self.operation[field.definition_id];
-                    let group = fields
-                        .entry(definition.response_key())
-                        .or_insert_with(|| GroupForResponseKey {
-                            key: field.bound_response_key,
-                            definition_id: field.definition_id,
-                            bound_field_ids: vec![],
-                            origin_selection_set_ids: HashSet::new(),
-                        });
-                    group.key = group.key.min(field.bound_response_key);
-                    group.bound_field_ids.push(*id);
-                    group.origin_selection_set_ids.extend(selection_set_ids);
-                }
-
-                BoundSelection::FragmentSpread(spread) => {
-                    let type_condition = self.operation[spread.fragment_id].type_condition;
-                    selection_set_ids.push(spread.selection_set_id);
-                    if self.does_fragment_type_apply(object_id, type_condition) {
-                        selections.extend(
-                            self.operation[spread.selection_set_id]
-                                .items
-                                .iter()
-                                .map(|selection| (selection_set_ids.clone(), selection)),
-                        );
+        ctx.attribution.selection_sets.extend(group.origin_selection_set_ids);
+        ctx.walker
+            .walk(group.definition_id)
+            .as_field()
+            .map(|field| {
+                let expected_name = if ctx.resolver.supports_aliases() {
+                    field.response_key_str().to_string()
+                } else {
+                    field.name().to_string()
+                };
+                let ty = match field.ty().inner().data_type() {
+                    Some(data_type) => ExpectedType::Scalar(data_type),
+                    None => {
+                        ExpectedType::Object(Box::new(self.expected_object(ctx.child(field), group.bound_field_ids)?))
                     }
-                }
-                BoundSelection::InlineFragment(fragment) => {
-                    if let Some(type_condition) = fragment.type_condition {
-                        if self.does_fragment_type_apply(object_id, type_condition) {
-                            selection_set_ids.push(fragment.selection_set_id);
-                            selections.extend(
-                                self.operation[fragment.selection_set_id]
-                                    .items
-                                    .iter()
-                                    .map(|selection| (selection_set_ids.clone(), selection)),
-                            );
-                        }
-                    } else {
-                        selection_set_ids.push(fragment.selection_set_id);
-                        selections.extend(
-                            self.operation[fragment.selection_set_id]
-                                .items
-                                .iter()
-                                .map(|selection| (selection_set_ids.clone(), selection)),
-                        );
-                    }
-                }
-            }
-        }
-        fields
-    }
-
-    fn does_fragment_type_apply(&self, object_id: ObjectId, type_condition: TypeCondition) -> bool {
-        match type_condition {
-            TypeCondition::Interface(interface_id) => {
-                self.engine.schema[interface_id].possible_types.contains(&object_id)
-            }
-            TypeCondition::Object(id) => object_id == id,
-            TypeCondition::Union(union_id) => self.engine.schema[union_id].possible_types.contains(&object_id),
-        }
-    }
-}
-
-struct AttributionContext<'a> {
-    path: QueryPath,
-    names: &'a dyn Names,
-    provideable: FieldSet,
-    data_source_id: DataSourceId,
-    supports_aliases: bool,
-    continuous: bool,
-    attribution: &'a mut AttributionBuilder,
-}
-
-#[derive(Debug)]
-struct FlatField {
-    type_condition: Option<FlatTypeCondition>,
-    selection_set_path: Vec<BoundSelectionSetId>,
-    bound_field_id: BoundFieldId,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum InterfaceOrObject {
-    Interface(InterfaceId),
-    Object(ObjectId),
-}
-
-impl<'a> Planner<'a> {
-    fn walk(&self, field: &FlatField) -> BoundFieldWalker<'a> {
-        self.operation
-            .walk_field(self.engine.schema.default_walker(), field.bound_field_id)
+                };
+                Ok(FieldOrTypeName::Field(ExpectedGoupedField {
+                    expected_name,
+                    bound_response_key: group.key,
+                    definition_id: group.definition_id,
+                    wrapping: field.ty().wrapping.clone(),
+                    ty,
+                }))
+            })
+            .transpose()
+            .map(|maybe_field| maybe_field.unwrap_or(FieldOrTypeName::TypeName(group.key)))
     }
 
     fn expected_object(
-        &mut self,
+        &self,
         mut ctx: AttributionContext<'_>,
-        root: SelectionSetRoot,
         bound_field_ids: Vec<BoundFieldId>,
-    ) -> ExpectedSelectionSet {
-        let flat_fields = self.flatten_selection_set(root, bound_field_ids);
-        let (provideable, to_be_planned) = self.split_provideable_fields(&ctx, flat_fields);
-        assert!(to_be_planned.is_empty());
+    ) -> PlanningResult<ExpectedSelectionSet> {
+        let flat_selection_set = ctx.walker.flatten_selection_sets(
+            bound_field_ids
+                .iter()
+                .filter_map(|id| self.operation[*id].selection_set_id)
+                .collect(),
+        );
+        let ty = flat_selection_set.ty;
+        let (provideable, maybe_boundary_id) = self.partition_provideable_missing(&mut ctx, flat_selection_set)?;
 
         let mut conditions = HashSet::<Option<InterfaceOrObject>>::new();
         let mut too_complex = false;
-        for field in &provideable {
+        for field in &provideable.fields {
             match &field.type_condition {
                 Some(type_condition) => match type_condition {
                     FlatTypeCondition::Interface(id) => {
@@ -268,130 +495,32 @@ impl<'a> Planner<'a> {
             }
         }
 
-        if !too_complex && conditions == HashSet::from([None]) {
+        Ok(if !too_complex && conditions == HashSet::from([None]) {
             ExpectedSelectionSet::Grouped(ExpectedGroupedFields::new(
-                root,
-                self.optimize_arbitrary_flat_fields_into_expected_grouped_fields(&mut ctx, provideable),
+                maybe_boundary_id,
+                ty,
+                self.optimize_arbitrary_flat_fields_into_expected_grouped_fields(&mut ctx, provideable)?,
             ))
         } else {
             ExpectedSelectionSet::Arbitrary(ExpectedArbitraryFields {
-                root,
+                maybe_boundary_id,
+                ty,
                 fields: provideable
+                    .fields
                     .into_iter()
                     .map(|flat_field| self.expected_ungrouped_field(&mut ctx, flat_field))
-                    .collect(),
+                    .collect::<PlanningResult<_>>()?,
             })
-        }
-    }
-
-    fn expected_arbitrary_fields(
-        &mut self,
-        mut ctx: AttributionContext<'_>,
-        root: SelectionSetRoot,
-        bound_field_ids: Vec<BoundFieldId>,
-    ) -> ExpectedArbitraryFields {
-        let flat_fields = self.flatten_selection_set(root, bound_field_ids);
-        let (provideable, to_be_planned) = self.split_provideable_fields(&ctx, flat_fields);
-        assert!(to_be_planned.is_empty());
-
-        ExpectedArbitraryFields {
-            root,
-            fields: provideable
-                .into_iter()
-                .map(|flat_field| self.expected_ungrouped_field(&mut ctx, flat_field))
-                .collect(),
-        }
-    }
-
-    fn split_provideable_fields(
-        &self,
-        ctx: &AttributionContext<'_>,
-        flat_fields: Vec<FlatField>,
-    ) -> (Vec<FlatField>, Vec<FlatField>) {
-        flat_fields
-            .into_iter()
-            .map(|flat_field| {
-                match self.walk(&flat_field).definition() {
-                    // __typename is always provideable if you could provide the object in the
-                    // first place.
-                    BoundAnyFieldDefinitionWalker::TypeName(_) => Ok(flat_field),
-                    BoundAnyFieldDefinitionWalker::Field(field) => {
-                        let provideable_field = ctx.provideable.get(field.id);
-                        if provideable_field.is_some() || (ctx.continuous && field.resolvers.is_empty()) {
-                            Ok(flat_field)
-                        } else {
-                            Err(flat_field)
-                        }
-                    }
-                }
-            })
-            .partition_result()
-    }
-
-    fn flatten_selection_set(
-        &self,
-        root: SelectionSetRoot,
-        grouped_bound_field_ids: Vec<BoundFieldId>,
-    ) -> Vec<FlatField> {
-        let mut fields = Vec::new();
-        let mut selections = VecDeque::new();
-        selections.extend(
-            grouped_bound_field_ids
-                .into_iter()
-                .filter_map(|bound_field_id| self.operation[bound_field_id].selection_set_id)
-                .flat_map(|selection_set_id| {
-                    self.operation[selection_set_id]
-                        .items
-                        .iter()
-                        .map(move |selection| (Vec::<TypeCondition>::new(), vec![selection_set_id], selection))
-                }),
-        );
-        while let Some((mut type_condition_chain, mut selection_set_path, selection)) = selections.pop_front() {
-            match selection {
-                &BoundSelection::Field(id) => {
-                    let type_condition = FlatTypeCondition::flatten(&self.engine.schema, root, type_condition_chain);
-                    if type_condition.as_ref().map(|cond| cond.is_possible()).unwrap_or(true) {
-                        fields.push(FlatField {
-                            type_condition,
-                            selection_set_path,
-                            bound_field_id: id,
-                        });
-                    }
-                }
-                BoundSelection::FragmentSpread(spread) => {
-                    let fragment = &self.operation[spread.fragment_id];
-                    type_condition_chain.push(fragment.type_condition);
-                    selection_set_path.push(spread.selection_set_id);
-                    selections.extend(
-                        self.operation[spread.selection_set_id]
-                            .items
-                            .iter()
-                            .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
-                    );
-                }
-                BoundSelection::InlineFragment(fragment) => {
-                    if let Some(type_condition) = fragment.type_condition {
-                        type_condition_chain.push(type_condition);
-                    }
-                    selection_set_path.push(fragment.selection_set_id);
-                    selections.extend(
-                        self.operation[fragment.selection_set_id]
-                            .items
-                            .iter()
-                            .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
-                    );
-                }
-            }
-        }
-        fields
+        })
     }
 
     fn optimize_arbitrary_flat_fields_into_expected_grouped_fields(
-        &mut self,
+        &self,
         ctx: &mut AttributionContext<'_>,
-        flat_fields: Vec<FlatField>,
-    ) -> Vec<FieldOrTypeName> {
-        flat_fields
+        flat_selection_set: FlatSelectionSet,
+    ) -> PlanningResult<Vec<FieldOrTypeName>> {
+        flat_selection_set
+            .fields
             .into_iter()
             .fold(
                 HashMap::<ResponseKey, GroupForResponseKey>::new(),
@@ -414,150 +543,159 @@ impl<'a> Planner<'a> {
                 },
             )
             .into_values()
-            .map(|group| self.expected_grouped_field(ctx, group, false))
+            .map(|group| self.expected_grouped_field(ctx, group))
             .collect()
     }
 
-    fn expected_grouped_field(
-        &mut self,
-        ctx: &mut AttributionContext<'_>,
-        group: GroupForResponseKey,
-        plan_root_field: bool,
-    ) -> FieldOrTypeName {
-        for &id in &group.bound_field_ids {
-            ctx.attribution.fields.push(id);
-        }
-        ctx.attribution.selection_sets.extend(group.origin_selection_set_ids);
-        match &self.operation[group.definition_id] {
-            BoundAnyFieldDefinition::TypeName(_) => FieldOrTypeName::TypeName(group.key),
-            BoundAnyFieldDefinition::Field(definition) => {
-                let field = self.engine.schema.default_walker().walk(definition.field_id);
-                let expected_name = if ctx.supports_aliases {
-                    self.operation.response_keys[group.key].to_string()
-                } else {
-                    ctx.names.field(field.id).to_string()
-                };
-
-                let ctx = AttributionContext {
-                    path: ctx.path.child(QueryPathSegment {
-                        type_condition: None,
-                        bound_response_key: group.key,
-                    }),
-                    provideable: FieldSet::merge_opt(
-                        ctx.provideable.get(definition.field_id).map(|s| &s.selection_set),
-                        field.provides(ctx.data_source_id),
-                    ),
-                    continuous: plan_root_field || field.resolvers.is_empty(),
-                    data_source_id: ctx.data_source_id,
-                    supports_aliases: ctx.supports_aliases,
-                    attribution: ctx.attribution,
-                    names: ctx.names,
-                };
-                let ty = match field.ty().inner().id {
-                    Definition::Object(object_id) => ExpectedType::Object(Box::new(self.expected_object(
-                        ctx,
-                        SelectionSetRoot::Object(object_id),
-                        group.bound_field_ids,
-                    ))),
-                    Definition::Interface(interface_id) => ExpectedType::Object(Box::new(self.expected_object(
-                        ctx,
-                        SelectionSetRoot::Interface(interface_id),
-                        group.bound_field_ids,
-                    ))),
-                    Definition::Union(union_id) => ExpectedType::Object(Box::new(self.expected_object(
-                        ctx,
-                        SelectionSetRoot::Union(union_id),
-                        group.bound_field_ids,
-                    ))),
-                    _ => ExpectedType::Scalar(
-                        field
-                            .ty()
-                            .inner()
-                            .data_type()
-                            .expect("Only Scalar and Enum should be left"),
-                    ),
-                };
-
-                FieldOrTypeName::Field(ExpectedGoupedField {
-                    expected_name,
-                    bound_response_key: group.key,
-                    definition_id: group.definition_id,
-                    wrapping: field.ty().wrapping.clone(),
-                    ty,
-                })
-            }
-        }
-    }
-
     fn expected_ungrouped_field(
-        &mut self,
+        &self,
         ctx: &mut AttributionContext<'_>,
         flat_field: FlatField,
-    ) -> ExpectedUngroupedField {
+    ) -> PlanningResult<ExpectedUngroupedField> {
         ctx.attribution.fields.push(flat_field.bound_field_id);
         ctx.attribution
             .selection_sets
             .extend(flat_field.selection_set_path.clone());
-        let bound_field = self.walk(&flat_field);
-        let (expected_name, ty) = match bound_field.definition() {
-            BoundAnyFieldDefinitionWalker::TypeName(_) => (None, ExpectedType::TypeName),
-            BoundAnyFieldDefinitionWalker::Field(field) => {
-                let expected_name = Some(if ctx.supports_aliases {
-                    self.operation.response_keys[self.operation[flat_field.bound_field_id].bound_response_key]
-                        .to_string()
+        let (expected_name, ty) = ctx
+            .walker
+            .walk(flat_field.bound_field_id)
+            .definition()
+            .as_field()
+            .map(|field| {
+                let expected_name = Some(if ctx.resolver.supports_aliases() {
+                    field.response_key_str().to_string()
                 } else {
-                    ctx.names.field(field.id).to_string()
+                    field.name().to_string()
                 });
-                let ctx = AttributionContext {
-                    path: ctx.path.child(QueryPathSegment {
-                        type_condition: flat_field.type_condition.clone(),
-                        bound_response_key: bound_field.bound_response_key(),
-                    }),
-                    provideable: FieldSet::merge_opt(
-                        ctx.provideable.get(field.id).map(|s| &s.selection_set),
-                        field.provides(ctx.data_source_id),
-                    ),
-                    continuous: field.resolvers.is_empty(),
-                    data_source_id: ctx.data_source_id,
-                    supports_aliases: ctx.supports_aliases,
-                    attribution: ctx.attribution,
-                    names: ctx.names,
-                };
-                let ty = match field.ty().inner().id {
-                    Definition::Object(object_id) => ExpectedType::Object(Box::new(self.expected_arbitrary_fields(
-                        ctx,
-                        SelectionSetRoot::Object(object_id),
-                        vec![flat_field.bound_field_id],
-                    ))),
-                    Definition::Interface(interface_id) => {
-                        ExpectedType::Object(Box::new(self.expected_arbitrary_fields(
-                            ctx,
-                            SelectionSetRoot::Interface(interface_id),
-                            vec![flat_field.bound_field_id],
-                        )))
-                    }
-                    Definition::Union(union_id) => ExpectedType::Object(Box::new(self.expected_arbitrary_fields(
-                        ctx,
-                        SelectionSetRoot::Union(union_id),
-                        vec![flat_field.bound_field_id],
-                    ))),
-                    _ => ExpectedType::Scalar(
-                        field
-                            .ty()
-                            .inner()
-                            .data_type()
-                            .expect("Only Scalar and Enum should be left"),
-                    ),
-                };
-                (expected_name, ty)
-            }
-        };
-        ExpectedUngroupedField {
+                match field.ty().inner().data_type() {
+                    Some(data_type) => Ok((expected_name, ExpectedType::Scalar(data_type))),
+                    None => self
+                        .expected_arbitrary_fields(ctx.child(field), vec![flat_field.bound_field_id])
+                        .map(|object| {
+                            let ty = ExpectedType::Object(Box::new(object));
+                            (expected_name, ty)
+                        }),
+                }
+            })
+            .transpose()?
+            .unwrap_or((None, ExpectedType::TypeName));
+        Ok(ExpectedUngroupedField {
             expected_name,
             type_condition: flat_field.type_condition,
             origin: *flat_field.selection_set_path.last().unwrap(),
             bound_field_id: flat_field.bound_field_id,
             ty,
+        })
+    }
+
+    fn expected_arbitrary_fields(
+        &self,
+        mut ctx: AttributionContext<'_>,
+        bound_field_ids: Vec<BoundFieldId>,
+    ) -> PlanningResult<ExpectedArbitraryFields> {
+        let flat_selection_set = ctx.walker.flatten_selection_sets(
+            bound_field_ids
+                .iter()
+                .filter_map(|id| self.operation[*id].selection_set_id)
+                .collect(),
+        );
+        let ty = flat_selection_set.ty;
+        let (provideable, maybe_boundary_id) = self.partition_provideable_missing(&mut ctx, flat_selection_set)?;
+
+        Ok(ExpectedArbitraryFields {
+            maybe_boundary_id,
+            ty,
+            fields: provideable
+                .fields
+                .into_iter()
+                .map(|flat_field| self.expected_ungrouped_field(&mut ctx, flat_field))
+                .collect::<PlanningResult<_>>()?,
+        })
+    }
+
+    fn default_operation_walker(&self) -> OperationWalker<'a> {
+        self.operation.walker_with(self.schema.walker(), ())
+    }
+}
+
+struct GroupForResponseKey {
+    key: BoundResponseKey,
+    definition_id: BoundAnyFieldDefinitionId,
+    origin_selection_set_ids: HashSet<BoundSelectionSetId>,
+    bound_field_ids: Vec<BoundFieldId>,
+}
+
+#[derive(Debug)]
+struct AttributionContext<'a> {
+    path: QueryPath,
+    walker: OperationWalker<'a>,
+    provideable: FieldSet,
+    resolver: ResolverWalker<'a>,
+    logic: AttributionLogic,
+    attribution: &'a mut AttributionBuilder,
+    boundaries: &'a mut Vec<PlanBoundary>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum AttributionLogic {
+    /// Having a resolver in the same group or having no resolver at all.
+    CompatibleResolver,
+    /// Only an explicitly provideable (@provide) field can be attributed. This is an optimization
+    /// overriding the CompatibleResolver logic
+    Provideable,
+}
+
+impl AttributionLogic {
+    fn must_be_provideable(&self) -> bool {
+        matches!(self, AttributionLogic::Provideable)
+    }
+}
+
+impl<'a> AttributionContext<'a> {
+    fn push_boundary(&mut self, boundary: PlanBoundary) -> PlanBoundaryId {
+        let id = PlanBoundaryId::from(self.boundaries.len());
+        self.boundaries.push(boundary);
+        id
+    }
+
+    fn is_provideable(&self, field: BoundFieldDefinitionWalker<'_>) -> bool {
+        let provideable_field = self.provideable.get(field.id());
+        provideable_field.is_some() || (!self.logic.must_be_provideable() && self.has_compatible_resolver(field))
+    }
+
+    fn has_compatible_resolver(&self, field: BoundFieldDefinitionWalker<'_>) -> bool {
+        if let Some(compatible_group) = self.resolver.group() {
+            field.resolvers.is_empty()
+                || field
+                    .resolvers()
+                    .filter_map(|fr| fr.resolver.group())
+                    .any(|group| group == compatible_group)
+        } else {
+            field.resolvers.is_empty()
         }
     }
+
+    fn child<'s>(&'s mut self, field: BoundFieldDefinitionWalker<'_>) -> AttributionContext<'s> {
+        AttributionContext {
+            path: self.path.child(field.response_key()),
+            walker: self.walker,
+            resolver: self.resolver,
+            logic: match (self.logic, self.has_compatible_resolver(field)) {
+                (AttributionLogic::CompatibleResolver, true) => AttributionLogic::CompatibleResolver,
+                _ => AttributionLogic::Provideable,
+            },
+            provideable: FieldSet::merge_opt(
+                self.provideable.get(field.id()).map(|s| &s.selection_set),
+                Some(&field.provides),
+            ),
+            attribution: self.attribution,
+            boundaries: self.boundaries,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum InterfaceOrObject {
+    Interface(InterfaceId),
+    Object(ObjectId),
 }
