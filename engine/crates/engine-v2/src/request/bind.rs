@@ -348,7 +348,7 @@ impl<'a> Binder<'a> {
                         }
                         _ => Err(BindError::CannotHaveSelectionSet {
                             name: name.to_string(),
-                            ty: schema_field.ty().name().to_string(),
+                            ty: schema_field.ty().to_string(),
                             location: name_location,
                         }),
                     }?)
