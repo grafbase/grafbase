@@ -57,257 +57,13 @@ jobs:
               - '.github/actions/**/*'
               - '!**/*.md'
 
-  lint:
-    needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: buildjet-8vcpu-ubuntu-2204
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v3
-
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
-        with:
-          platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
-
-      - name: Prepare CLI assets
-        uses: ./.github/actions/cli_assets
-        with:
-          cdn: ${{ env.PROD_ASSETS }}
-          assets_version: ${{ env.ASSETS_VERSION }}
-
-      - name: Sanitize
-        uses: ./.github/actions/sanitize
-
-  individual-builds:
-    needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    strategy:
-      fail-fast: false
-      matrix:
-        package: [common, server, backend, cli]
-    runs-on: buildjet-8vcpu-ubuntu-2204
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v3
-
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
-        with:
-          platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build-${{ matrix.package }}-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build
-
-      - name: Fetch CDN assets
-        uses: ./.github/actions/cli_assets
-        with:
-          cdn: ${{ env.PROD_ASSETS }}
-          assets_version: ${{ env.ASSETS_VERSION }}
-
-      - name: Individual package build
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd cli/crates
-          # The actual features used for each dependency depends on what is being built simultaneously.
-          # However, each package is published individually, so we're checking that all packages compile
-          # with only their defined features.
-          # See: https://github.com/rust-lang/cargo/issues/4463
-          cd ${{ matrix.package }} && cargo check --all-features
-
-  docker:
-    needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: buildjet-8vcpu-ubuntu-2204
-    permissions:
-      packages: write
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v3
-
-      - name: Fetch CDN assets
-        uses: ./.github/actions/cli_assets
-        with:
-          cdn: ${{ env.PROD_ASSETS }}
-          assets_version: ${{ env.ASSETS_VERSION }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build docker image
-        run: |
-          docker build -t ghcr.io/grafbase/grafbase:$SHA_TAG .
-        env:
-          SHA_TAG: ${{ github.sha }}
-
-      - name: Tag released version
-        if: ${{ startsWith(github.ref, 'refs/tags') }}
-        run: |
-          docker tag ghcr.io/grafbase/grafbase:$SHA_TAG ghcr.io/grafbase/grafbase:latest
-          docker tag ghcr.io/grafbase/grafbase:$SHA_TAG ghcr.io/grafbase/grafbase:$(echo "$REF" | sed -e "s/^refs\/tags\/cli-//") 
-        env:
-          SHA_TAG: ${{ github.sha }}
-          REF: ${{ github.ref }}
-
-      - name: Push docker image
-        run: |
-          docker push --all-tags ghcr.io/grafbase/grafbase
-
-  windows:
-    needs: [lint]
-    runs-on: windows-latest-8-cores
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v3
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
-        with:
-          platform: windows
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
-
-      - name: Prepare CLI assets
-        uses: ./.github/actions/cli_assets
-        with:
-          cdn: ${{ env.PROD_ASSETS }}
-          assets_version: ${{ env.ASSETS_VERSION }}
-
-      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        name: Sanitize
-        uses: ./.github/actions/sanitize
-        with:
-          lint: false
-
-      - name: Build release
-        run: |
-          cd cli
-          cargo build --release -p grafbase --target x86_64-pc-windows-msvc --timings
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: windows-release-timings.html
-          path: target/cargo-timings/cargo-timing.html
-
-      - if: ${{ false }}
-        name: Upload the binary of the change to R2
-        run: |
-          aws s3api put-object \
-            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
-            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/x86_64-pc-windows-msvc/grafbase.exe \
-            --body target/x86_64-pc-windows-msvc.exe/release/grafbase.exe
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
-
-      - name: Parse version tag
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          VERSION_BUMP="${{ github.ref_name }}"
-          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
-          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
-
-      - if: startsWith(github.ref, 'refs/tags/')
-        name: Upload binaries
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.VERSION_BUMP }}-windows
-          path: |
-            target/x86_64-pc-windows-msvc/release/grafbase.exe
-
-  linux:
-    needs: [lint]
-    strategy:
-      fail-fast: false
-      matrix:
-        archs:
-          [
-            {
-              runner: buildjet-8vcpu-ubuntu-2204,
-              target: x86_64-unknown-linux-musl,
-              platform: linux
-            },
-            {
-              runner: buildjet-8vcpu-ubuntu-2204-arm,
-              target: aarch64-unknown-linux-musl,
-              platform: linux-arm
-            }
-          ]
-    runs-on: ${{ matrix.archs.runner }}
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v3
-
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
-        with:
-          platform: ${{ matrix.archs.platform }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
-
-      - name: Prepare CLI assets
-        uses: ./.github/actions/cli_assets
-        with:
-          cdn: ${{ env.PROD_ASSETS }}
-          assets_version: ${{ env.ASSETS_VERSION }}
-
-      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        name: Sanitize
-        uses: ./.github/actions/sanitize
-        with:
-          lint: false
-
-      - name: Build release
-        run: |
-          cd cli
-          cargo build --release -p grafbase --target ${{ matrix.archs.target }} --timings
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: linux-release-timings.html
-          path: target/cargo-timings/cargo-timing.html
-
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
-        name: Upload the binary of the change to R2
-        run: |
-          aws s3api put-object \
-            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
-            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/${{ matrix.archs.target }}/grafbase \
-            --body target/${{ matrix.archs.target }}/release/grafbase
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
-
-      - name: Parse version tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          VERSION_BUMP="${{ github.ref_name }}"
-          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
-          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
-
-      - if: startsWith(github.ref, 'refs/tags/')
-        name: Upload binaries
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
-          path: |
-            target/${{ matrix.archs.target }}/release/grafbase
-
   darwin:
-    needs: [lint]
+    needs: [detect-change-type]
     runs-on: macos-latest-xlarge
     strategy:
       fail-fast: false
       matrix:
-        target: [aarch64-apple-darwin, x86_64-apple-darwin]
+        target: [aarch64-apple-darwin]
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -369,23 +125,11 @@ jobs:
           name: ${{ env.VERSION_BUMP }}-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/grafbase
 
-  release-cli:
-    needs: [windows, linux, darwin]
-    if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-')
-    uses: ./.github/workflows/cli-partial-release.yml
-    with:
-      draft: false
-      tag: ${{ github.ref_name }}
-      prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
-    secrets:
-      CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
-      NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
-
   after-build:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
-    needs: [windows, linux, darwin]
+    needs: [darwin]
     runs-on: buildjet-2vcpu-ubuntu-2204
     if: ${{ always() }}
     steps:
@@ -399,49 +143,15 @@ jobs:
           message: |
             ### Built binaries:
 
-            * [Linux (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase)
             * [Mac (M1)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase)
-            * [Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase)
 
       - name: Report release failures
         if: ${{ failure() &&  startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-') }}
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
-          notification_title: "({workflow}) CLI release failed"
-          message_format: "Check the link below to see what failed."
-          footer: "<{run_url}|View Run>"
+          notification_title: '({workflow}) CLI release failed'
+          message_format: 'Check the link below to see what failed.'
+          footer: '<{run_url}|View Run>'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-  cargo-integration-tests:
-    needs: [lint]
-    name: Run Rust integration tests
-    runs-on: buildjet-16vcpu-ubuntu-2204
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@beta
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Start local databases
-        run: |
-          docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
-
-      - name: Install cargo-nextest
-        run: |
-          curl \
-            --config ${GITHUB_WORKSPACE}/.github/curl_options \
-            https://get.nexte.st/latest/linux \
-            | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
-
-      - name: Test Engine
-        working-directory: ./engine/crates/integration-tests
-        run: |
-          cargo nextest run --profile ci
-          exitcode="$?"

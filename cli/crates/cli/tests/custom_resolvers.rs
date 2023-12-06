@@ -46,7 +46,7 @@ enum JavaScriptPackageManager {
     "fetch-grafbase-graphql.js",
     r"
         export default function Resolver(parent, args, context, info) {
-            return fetch('https://api.grafbase.com/graphql', {
+            return fetch('https://api.grafbase.dev/graphql', {
                 headers: {
                     'content-type': 'application/json'
                 },

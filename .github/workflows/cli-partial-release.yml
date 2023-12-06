@@ -60,35 +60,11 @@ jobs:
           cdn: ${{ steps.lookup-prod-assets.outputs.result }}
           assets_version: ${{ steps.lookup-assets-version.outputs.result }}
 
-      - name: Download darwin-x86_64 artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.VERSION_BUMP }}-x86_64-apple-darwin
-          path: cli/npm/x86_64-apple-darwin
-
       - name: Download darwin-aarch64 artifact
         uses: actions/download-artifact@v3
         with:
           name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
           path: cli/npm/aarch64-apple-darwin
-
-      - name: Download linux amd artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.VERSION_BUMP }}-linux
-          path: cli/npm/x86_64-unknown-linux-musl
-
-      - name: Download linux arm artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.VERSION_BUMP }}-linux-arm
-          path: cli/npm/aarch64-unknown-linux-musl
-
-      - name: Download windows artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.VERSION_BUMP }}-windows
-          path: cli/npm/x86_64-pc-windows-msvc
 
       - name: Process artifacts
         shell: bash
@@ -96,15 +72,8 @@ jobs:
           cd cli/npm
           mkdir github
           cp aarch64-apple-darwin/grafbase github/grafbase-aarch64-apple-darwin
-          cp x86_64-apple-darwin/grafbase github/grafbase-x86_64-apple-darwin
-          cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
-          cp x86_64-unknown-linux-musl/grafbase github/grafbase-x86_64-unknown-linux-musl
-          cp aarch64-unknown-linux-musl/grafbase github/grafbase-aarch64-unknown-linux-musl
 
           chmod +x aarch64-apple-darwin/grafbase
-          chmod +x x86_64-apple-darwin/grafbase
-          chmod +x x86_64-unknown-linux-musl/grafbase
-          chmod +x aarch64-unknown-linux-musl/grafbase
 
       - name: Install cargo-binstall and cargo-about
         shell: bash
@@ -118,25 +87,6 @@ jobs:
           cargo about generate -c cli/about.toml -o "licenses.html" cli/about.hbs
           find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
-
-      - name: Publish npm
-        shell: bash
-        env:
-          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
-        run: |
-          npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
-          cd cli/npm
-          PUBLISH_ARGUMENTS=()
-          if [[ $INPUT_PRERELEASE != "false" ]]; then
-              echo "Running prerelease: $INPUT_PRERELEASE"
-              PUBLISH_ARGUMENTS+=(--tag next)
-          fi
-          (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
 
       - name: Github Release
         id: gh-release
