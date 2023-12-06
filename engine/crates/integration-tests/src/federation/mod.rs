@@ -80,6 +80,8 @@ impl GraphqlResponse {
     }
 
     pub fn into_data(self) -> serde_json::Value {
+        assert!(self.errors().is_empty(), "{self:#?}");
+
         match self.0 {
             serde_json::Value::Object(mut value) => value.remove("data"),
             _ => None,

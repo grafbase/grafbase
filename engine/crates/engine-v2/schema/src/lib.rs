@@ -294,6 +294,10 @@ impl Wrapping {
             .unwrap_or(self.inner_is_required)
     }
 
+    pub fn is_list(&self) -> bool {
+        !self.list_wrapping.is_empty()
+    }
+
     pub fn nullable() -> Self {
         Wrapping {
             inner_is_required: false,

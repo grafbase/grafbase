@@ -29,7 +29,10 @@ impl<'a> std::fmt::Debug for InputObjectWalker<'a> {
             .field("description", &self.description())
             .field(
                 "input_fields",
-                &self.input_fields().map(|f| (f.name(), f.ty())).collect::<Vec<_>>(),
+                &self
+                    .input_fields()
+                    .map(|f| (f.name(), f.ty().name()))
+                    .collect::<Vec<_>>(),
             )
             .finish()
     }

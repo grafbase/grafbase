@@ -30,13 +30,13 @@ impl Engine {
 
     pub async fn execute(&self, request: engine::Request) -> Response {
         match self.prepare(&request).await {
-            Ok(operation) => match Variables::from_request(&operation, request.variables) {
+            Ok(operation) => match Variables::from_request(&operation, self.schema.as_ref(), request.variables) {
                 Ok(variables) => {
                     let mut executor = ExecutorCoordinator::new(self, &operation, &variables);
                     executor.execute().await;
                     executor.into_response()
                 }
-                Err(err) => Response::from_error(err),
+                Err(err) => Response::from_errors(err),
             },
             Err(err) => Response::from_error(err),
         }

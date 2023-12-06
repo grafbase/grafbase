@@ -31,7 +31,8 @@ impl<'a, E> BoundFieldArgumentWalker<'a, E> {
                     .get(&name)
                     .expect("Would have failed at validation")
                     .value
-                    .clone())
+                    .clone()
+                    .unwrap_or_default())
             })
             .unwrap()
     }

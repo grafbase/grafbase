@@ -41,6 +41,15 @@ impl Response {
             errors: vec![error.into()],
         })
     }
+
+    pub fn from_errors<E>(errors: impl IntoIterator<Item = E>) -> Self
+    where
+        E: Into<ServerError>,
+    {
+        Self::Error(ServerErrorResponse {
+            errors: errors.into_iter().map(Into::into).collect(),
+        })
+    }
 }
 
 impl std::fmt::Debug for Response {
