@@ -3,6 +3,8 @@ name: cli
 on:
   workflow_dispatch:
   pull_request:
+    paths-ignore:
+      - '**/*.md'
   push:
     tags:
       - 'cli-*'
