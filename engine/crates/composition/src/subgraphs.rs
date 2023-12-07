@@ -23,7 +23,6 @@ use itertools::Itertools;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 /// A set of subgraphs to be composed.
-#[derive(Default)]
 pub struct Subgraphs {
     pub(super) strings: strings::Strings,
     subgraphs: Vec<Subgraph>,
@@ -46,6 +45,31 @@ pub struct Subgraphs {
     // (definition name, subgraph_id) -> definition id
     definition_names: BTreeMap<(StringId, SubgraphId), DefinitionId>,
 }
+
+impl Default for Subgraphs {
+    fn default() -> Self {
+        let mut strings = strings::Strings::default();
+        BUILTIN_SCALARS.into_iter().for_each(|scalar| {
+            strings.intern(scalar);
+        });
+
+        Self {
+            strings,
+            subgraphs: Default::default(),
+            definitions: Default::default(),
+            directives: Default::default(),
+            enums: Default::default(),
+            fields: Default::default(),
+            field_types: Default::default(),
+            keys: Default::default(),
+            unions: Default::default(),
+            ingestion_diagnostics: Default::default(),
+            definition_names: Default::default(),
+        }
+    }
+}
+
+const BUILTIN_SCALARS: [&str; 5] = ["ID", "String", "Boolean", "Int", "Float"];
 
 impl Subgraphs {
     /// Add a subgraph to compose.
@@ -88,9 +112,9 @@ impl Subgraphs {
 
     /// Iterates all builtin scalars _that are in use in at least one subgraph_.
     pub(crate) fn iter_builtin_scalars(&self) -> impl Iterator<Item = StringWalker<'_>> + '_ {
-        ["ID", "String", "Boolean", "Int", "Float"]
+        BUILTIN_SCALARS
             .into_iter()
-            .filter_map(|name| self.strings.lookup(name))
+            .map(|name| self.strings.lookup(name).expect("all built in scalars to be interned"))
             .map(|string| self.walk(string))
     }
 
