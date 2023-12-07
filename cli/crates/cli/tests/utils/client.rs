@@ -9,12 +9,15 @@ use std::{
 
 use crate::utils::consts::INTROSPECTION_QUERY;
 
+use super::environment::CommandHandles;
+
 pub struct Client {
     endpoint: String,
     playground_endpoint: String,
     client: reqwest::blocking::Client,
     headers: HeaderMap,
     snapshot: Option<String>,
+    commands: CommandHandles,
 }
 
 #[allow(clippy::module_name_repetitions)]
@@ -38,7 +41,12 @@ impl ClientOptionsBuilder {
 }
 
 impl Client {
-    pub fn new(endpoint: String, playground_endpoint: String, client_options: ClientOptions) -> Self {
+    pub fn new(
+        endpoint: String,
+        playground_endpoint: String,
+        client_options: ClientOptions,
+        commands: CommandHandles,
+    ) -> Self {
         Self {
             endpoint,
             playground_endpoint,
@@ -49,6 +57,7 @@ impl Client {
                 .build()
                 .unwrap(),
             snapshot: None,
+            commands,
         }
     }
 
@@ -117,6 +126,11 @@ impl Client {
         let start = SystemTime::now();
 
         loop {
+            assert!(
+                self.commands.still_running(),
+                "all commands terminated, polling is unlikely to succeed"
+            );
+
             let valid_response = self
                 .client
                 .head(&self.endpoint)

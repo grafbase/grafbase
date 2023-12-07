@@ -10,7 +10,7 @@ use duct::{cmd, Handle};
 use std::env::VarError;
 use std::path::Path;
 use std::process::Output;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::{env, fs, io::Write, path::PathBuf};
 use std::{io, mem};
 use tempfile::{tempdir, TempDir};
@@ -22,7 +22,7 @@ pub struct Environment {
     pub port: u16,
     temp_dir: Option<Arc<TempDir>>,
     schema_path: PathBuf,
-    commands: Vec<Handle>,
+    commands: CommandHandles,
     home: Option<PathBuf>,
     ts_config_dependencies_prepared: bool,
     #[cfg(feature = "dynamodb")]
@@ -110,7 +110,6 @@ impl Environment {
         let schema_path = temp_dir.path().join(subdirectory_path).join(GRAFBASE_SCHEMA_FILE_NAME);
         let directory_path = temp_dir.path().to_owned();
         println!("Using temporary directory {:?}", directory_path.as_os_str());
-        let commands = vec![];
         let endpoint = format!("http://127.0.0.1:{port}/graphql");
         let playground_endpoint = format!("http://127.0.0.1:{port}");
         let keep_temp_dir = std::env::var("KEEP_TEMP_DIR")
@@ -129,7 +128,7 @@ impl Environment {
             port,
             temp_dir,
             schema_path,
-            commands,
+            commands: CommandHandles::new(),
             home: None,
             ts_config_dependencies_prepared: false,
             #[cfg(feature = "dynamodb")]
@@ -143,11 +142,10 @@ impl Environment {
         let temp_dir = other.temp_dir.clone();
         let endpoint = format!("http://127.0.0.1:{port}/graphql");
         let playground_endpoint = format!("http://127.0.0.1:{port}");
-        let commands = vec![];
 
         Self {
             directory_path: other.directory_path.clone(),
-            commands,
+            commands: CommandHandles::new(),
             endpoint,
             playground_endpoint,
             schema_path: other.schema_path.clone(),
@@ -164,7 +162,12 @@ impl Environment {
     }
 
     pub fn create_client_with_options(&self, options: super::client::ClientOptions) -> Client {
-        Client::new(self.endpoint.clone(), self.playground_endpoint.clone(), options)
+        Client::new(
+            self.endpoint.clone(),
+            self.playground_endpoint.clone(),
+            options,
+            self.commands.clone(),
+        )
     }
 
     pub fn create_client(&self) -> Client {
@@ -172,11 +175,16 @@ impl Environment {
             self.endpoint.clone(),
             self.playground_endpoint.clone(),
             super::client::ClientOptions::default(),
+            self.commands.clone(),
         )
     }
 
     pub fn create_async_client(&self) -> AsyncClient {
-        AsyncClient::new(self.endpoint.clone(), self.playground_endpoint.clone())
+        AsyncClient::new(
+            self.endpoint.clone(),
+            self.playground_endpoint.clone(),
+            self.commands.clone(),
+        )
     }
 
     // TODO: change this to set_schema
@@ -330,7 +338,7 @@ impl Environment {
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
 
-        self.commands.push(command);
+        self.commands.0.lock().unwrap().push(command);
     }
 
     pub fn grafbase_start(&mut self) {
@@ -347,7 +355,7 @@ impl Environment {
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
 
-        self.commands.push(command);
+        self.commands.0.lock().unwrap().push(command);
     }
 
     pub fn grafbase_dev_with_home_flag(&mut self) {
@@ -370,7 +378,7 @@ impl Environment {
         .start()
         .unwrap();
 
-        self.commands.push(command);
+        self.commands.0.lock().unwrap().push(command);
     }
 
     pub fn grafbase_dev_output(&mut self) -> io::Result<Output> {
@@ -426,7 +434,7 @@ impl Environment {
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
 
-        self.commands.push(command);
+        self.commands.0.lock().unwrap().push(command);
     }
 
     pub fn append_to_schema(&self, contents: &'static str) {
@@ -440,11 +448,10 @@ impl Environment {
     }
 
     pub fn kill_processes(&mut self) {
-        self.commands.iter().for_each(|command| {
+        let commands = std::mem::take(&mut *self.commands.0.lock().unwrap());
+        commands.iter().for_each(|command| {
             kill_with_children(*command.pids().first().unwrap());
         });
-
-        self.commands = vec![];
     }
 
     pub fn has_database_directory(&mut self) -> bool {
@@ -591,5 +598,22 @@ impl Drop for Environment {
                 }
             }
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct CommandHandles(Arc<Mutex<Vec<Handle>>>);
+
+impl CommandHandles {
+    fn new() -> Self {
+        CommandHandles(Arc::new(Mutex::new(vec![])))
+    }
+
+    pub fn still_running(&self) -> bool {
+        self.0
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|handle| handle.try_wait().unwrap().is_none())
     }
 }
