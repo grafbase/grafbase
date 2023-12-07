@@ -2,6 +2,8 @@ use crate::{cli_input::CheckCommand, errors::CliError, report};
 use backend::api::check;
 use std::{fs, io::Read, process::Command};
 
+const FAILED_CHECK_EXIT_STATUS: i32 = 1;
+
 #[tokio::main]
 pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
     let CheckCommand {
@@ -51,6 +53,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
             validation_check_errors.iter().map(|err| err.message.as_str()),
             composition_check_errors.iter().map(|err| err.message.as_str()),
         );
+        std::process::exit(FAILED_CHECK_EXIT_STATUS);
     }
 
     Ok(())
