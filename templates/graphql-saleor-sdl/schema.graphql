@@ -1,8 +1,0 @@
-extend schema
-  @graphql(
-    name: "Saleor"
-    # Disabling namespace may cause conficts with other connectors
-    # namespace: false
-    url: "{{ env.ENVIRONMENT_DOMAIN }}"
-    headers: [{ name: "Authorization", forward: "Authorization" }]
-  )

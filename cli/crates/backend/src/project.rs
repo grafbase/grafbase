@@ -1,4 +1,4 @@
-use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_FEDERATED, DEFAULT_SCHEMA_SINGLE, USER_AGENT};
+use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_FEDERATED, DEFAULT_SCHEMA_STANDALONE, USER_AGENT};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use common::consts::{
@@ -167,7 +167,7 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<(), BackendErr
                         .map_err(Into::into);
 
                         let write_schema =
-                            fs::write(schema_path, DEFAULT_SCHEMA_SINGLE).map_err(BackendError::WriteSchema);
+                            fs::write(schema_path, DEFAULT_SCHEMA_STANDALONE).map_err(BackendError::WriteSchema);
 
                         add_sdk.and(write_schema)
                     }

@@ -1,8 +1,0 @@
-extend schema
-  @graphql(
-    name: "Cloudflare"
-    # Disabling namespace may cause conficts with other connectors
-    # namespace: false
-    url: "https://api.cloudflare.com/client/v4/graphql"
-    headers: [{ name: "Authorization", forward: "Authorization" }]
-  )

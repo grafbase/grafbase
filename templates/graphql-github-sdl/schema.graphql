@@ -1,7 +1,0 @@
-extend schema
-  @graphql(
-    # Use namespaces if you connect multiple APIs to avoid conflicts
-    # namespace: "GitHub"
-    url: "https://api.github.com/graphql"
-    headers: [{ name: "Authorization", forward: "Authorization" }]
-  )

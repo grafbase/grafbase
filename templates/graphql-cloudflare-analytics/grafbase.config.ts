@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const cloudflare = connector.GraphQL('Cloudflare', {
   url: 'https://api.cloudflare.com/client/v4/graphql',
@@ -9,11 +11,8 @@ const cloudflare = connector.GraphQL('Cloudflare', {
 
 g.datasource(cloudflare)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(cloudflare, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const shopify = connector.GraphQL('Shopify', {
   url: `https://${g.env(
@@ -13,11 +15,8 @@ const shopify = connector.GraphQL('Shopify', {
 
 g.datasource(shopify)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(shopify, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

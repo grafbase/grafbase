@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const dgraph = connector.GraphQL('Dgraph', {
   url: g.env('DGRAPH_API_URL')
@@ -6,11 +8,8 @@ const dgraph = connector.GraphQL('Dgraph', {
 
 g.datasource(dgraph)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(dgraph, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {

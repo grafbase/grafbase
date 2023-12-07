@@ -2,15 +2,11 @@ import { graph, connector, config } from '@grafbase/sdk'
 
 const g = graph.Standalone()
 
-const openapi = connector.OpenAPI('OpenAPI', {
-  schema: g.env('SCHEMA_URL')
-})
-
-g.datasource(openapi, { namespace: false })
+const pg = connector.Postgres('pg', { url: g.env('DATABASE_URL') })
+g.datasource(pg)
 
 export default config({
   graph: g,
-  federation: { version: '2.3' },
   auth: {
     rules: (rules) => {
       rules.public()

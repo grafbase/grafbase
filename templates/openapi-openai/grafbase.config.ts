@@ -1,4 +1,6 @@
-import { g, connector, config } from '@grafbase/sdk'
+import { graph, connector, config } from '@grafbase/sdk'
+
+const g = graph.Standalone()
 
 const openai = connector.OpenAPI('OpenAI', {
   schema:
@@ -11,11 +13,8 @@ const openai = connector.OpenAPI('OpenAI', {
 
 g.datasource(openai)
 
-// Disabling namespace may cause conficts with other connectors
-// g.datasource(openai, { namespace: false })
-
 export default config({
-  schema: g,
+  graph: g,
   cache: {
     rules: [
       {
