@@ -43,17 +43,6 @@ pub async fn log_event_endpoint(
                 body,
                 content_type,
             }),
-            InputLogEventType::SqlQuery {
-                successful,
-                sql,
-                duration,
-                body,
-            } => OutputLogEventType::NestedEvent(crate::types::NestedRequestScopedMessage::SqlQuery {
-                successful,
-                sql,
-                duration,
-                body,
-            }),
         },
     };
     handler_state.message_sender.send(message).unwrap();

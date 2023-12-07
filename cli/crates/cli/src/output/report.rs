@@ -293,40 +293,6 @@ fn log_nested_events(nested_events: Vec<NestedRequestScopedMessage>, log_level_f
                     }
                 }
             }
-            NestedRequestScopedMessage::SqlQuery {
-                successful,
-                sql,
-                duration,
-                body,
-            } => {
-                let required_log_level = if successful { LogLevel::Debug } else { LogLevel::Error };
-
-                if !log_level_filters.fetch_requests.should_display(required_log_level) {
-                    continue;
-                }
-
-                let formatted_duration = format_duration(duration);
-
-                let status = if successful {
-                    watercolor!("OK", @Green)
-                } else {
-                    watercolor!("ERROR", @Red)
-                };
-
-                println!(
-                    "{indent}{} {} {status} {formatted_duration}",
-                    watercolor!("sql", @Yellow),
-                    sql.bold(),
-                );
-
-                if log_level_filters.fetch_requests.should_display(LogLevel::Debug) {
-                    let content_type = Some(String::from("application/json"));
-
-                    if let Some(formatted_body) = format_response_body(indent, body, content_type) {
-                        println!("{formatted_body}");
-                    }
-                }
-            }
         }
     }
 }

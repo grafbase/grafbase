@@ -1,6 +1,6 @@
 /*!
 The server crate provides a server with the gateway worker (via miniflare)
-and a bridge server connecting the worker to an sqlite db
+and a bridge server
 
 # Example
 

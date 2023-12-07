@@ -40,7 +40,6 @@ const EVENT_BUS_BOUND: usize = 5;
 pub struct ProductionServer {
     registry: Arc<Registry>,
     bridge_app: axum::Router,
-    bridge_state: Box<dyn BridgeState>,
     environment_variables: HashMap<String, String>,
     message_sender: UnboundedSender<ServerMessage>,
     federated_graph_config: Option<parser_sdl::federation::FederatedGraphConfig>,
@@ -96,7 +95,6 @@ impl ProductionServer {
         Ok(Self {
             registry,
             bridge_app,
-            bridge_state: Box::new(bridge_state),
             environment_variables,
             message_sender,
             federated_graph_config,
@@ -145,7 +143,6 @@ impl ProductionServer {
                 result?;
             }
         }
-        self.bridge_state.close().await;
         Ok(())
     }
 }

@@ -16,16 +16,12 @@ workspace = true
 [dependencies]
 async-trait = "0.1"
 axum = { workspace = true }
-base64 = "0.21"
-chrono = { version = "0.4", features = ["serde"] }
-combine = "4"
 dotenv = "0.15"
 flate2 = "1.0"
 fslock = "0.2"
 futures-util = { workspace = true }
 handlebars = "4"
 hyper = { version = "0.14", features = ["tcp"] }
-integer-encoding = "4"
 itertools = "0.11"
 log = "0.4"
 notify = { version = "6", default-features = false, features = [
@@ -48,7 +44,6 @@ sqlx = { version = "0.7", features = [
 ] }
 strip-ansi-escapes = "0.1"
 strum = { version = "0.25", features = ["derive"] }
-tantivy = { version = "0.19", default-features = false, features = ["mmap"] }
 tar.workspace = true
 tempfile = "3"
 thiserror = "1"
@@ -56,23 +51,17 @@ tokio = { workspace = true, features = ["full"] }
 tokio-stream = { version = "0.1", features = ["io-util"] }
 tower-http = { version = "0.4", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
-unicode-normalization = "0.1"
-ulid = "1"
 version-compare = "0.1"
 which = "4"
 cfg-if = "1"
 walkdir = "2"
 sha2 = "0.10"
 
-# Same version as Tantivy
-tantivy-fst = "0.4.0"
-
-common = { package = "grafbase-local-common", path = "../common", version = "0.50.1" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.48.0" }
 gateway = { path = "../gateway" }
 typed-resolvers = { path = "../typed-resolvers" }
 federated-dev = { path = "../federated-dev" }
 engine = { path = "../../../engine/crates/engine" }
-runtime = { path = "../../../engine/crates/runtime" }
 parser-sdl = { path = "../../../engine/crates/parser-sdl", features = [
   "local",
 ] }
