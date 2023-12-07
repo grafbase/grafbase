@@ -5,11 +5,13 @@ use std::{net::TcpListener, sync::Arc, time::Duration};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{extract::State, http::HeaderMap, routing::post, Router};
 
+mod almost_empty;
 mod echo;
 mod fake_github;
 mod federation;
 
 pub use {
+    almost_empty::AlmostEmptySchema,
     echo::EchoSchema,
     fake_github::FakeGithubSchema,
     federation::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
