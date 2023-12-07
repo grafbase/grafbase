@@ -3,7 +3,9 @@ use crate::bridge::log::log_event_endpoint;
 use crate::bridge::udf::invoke_udf_endpoint;
 use crate::config::DetectedUdf;
 use crate::errors::ServerError;
-use crate::types::MessageSender;
+use crate::event::{wait_for_event, Event};
+use crate::servers::DetectedUdf;
+use crate::types::ServerMessage;
 use axum::{routing::post, Router};
 use common::environment::Project;
 
@@ -16,7 +18,7 @@ use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 
 pub struct HandlerState {
-    pub message_sender: MessageSender,
+    pub message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
     pub udf_runtime: UdfRuntime,
     pub tracing: bool,
     pub registry: Arc<engine::Registry>,
@@ -76,6 +78,7 @@ pub async fn start(
     start_signal: tokio::sync::oneshot::Sender<()>,
     tracing: bool,
 ) -> Result<(), ServerError> {
+    trace!("starting bridge at port {port}");
     let (router, ..) = build_router(message_sender, registry, tracing).await?;
 
     let server = axum::Server::from_tcp(tcp_listener)?.serve(router.into_make_service());
