@@ -546,3 +546,7 @@ pub(crate) async fn listen_to_federated_dev_events() {
         }
     });
 }
+
+pub(crate) fn federated_schema_local_introspection_not_implemented() {
+    eprintln!("⚠️ The introspected schema is empty. Introspecting federated graphs is not implemented yet.")
+}

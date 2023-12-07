@@ -72,6 +72,11 @@ impl SubCommand {
                 | Self::Build(_)
                 | Self::Unlink
                 | Self::DumpConfig
+                | Self::Introspect(IntrospectCommand {
+                    dev: true,
+                    url: None,
+                    ..
+                })
         )
     }
 }
