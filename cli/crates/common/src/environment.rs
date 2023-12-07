@@ -145,6 +145,11 @@ impl Project {
         self.dot_grafbase_directory_path.join(subdirectory_name)
     }
 
+    /// The target directory for generated code.
+    pub fn generated_directory_path(&self) -> std::path::PathBuf {
+        self.schema_path.parent().expect("must have a parent").join("generated")
+    }
+
     // reads and deserializes to json the contents of `&self.registry_path` in a blocking fashion
     pub fn registry(&self) -> Result<Value, CommonError> {
         let file = File::open(&self.registry_path)

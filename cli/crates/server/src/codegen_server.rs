@@ -25,7 +25,7 @@ async fn codegen_worker_loop(
     let resolvers_path = project.udfs_source_path(common_types::UdfKind::Resolver);
     let schema_path = &project.schema_path;
     let mut last_seen_sdl = None;
-    let generated_ts_resolver_types_path = project.path.join("generated/index.ts");
+    let generated_ts_resolver_types_path = project.generated_directory_path().join("index.ts");
 
     // Try generating types on start up.
     if let SchemaLocation::Graphql(schema_path) = schema_path.location() {
