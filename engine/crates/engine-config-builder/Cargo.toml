@@ -1,0 +1,20 @@
+[package]
+name = "engine-config-builder"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+indexmap.workspace = true
+
+engine-v2-config = { path = "../engine-v2/config" }
+federated-graph = { path = "../federated-graph", package = "graphql-federated-graph" }
+parser-sdl = { path = "../parser-sdl" }
+
+[lints]
+workspace = true

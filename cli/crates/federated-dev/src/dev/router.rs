@@ -5,20 +5,23 @@ use engine_v2::{Engine, EngineRuntime};
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
 use graphql_composition::FederatedGraph;
+use parser_sdl::federation::FederatedGraphConfig;
 use tokio_stream::wrappers::ReceiverStream;
 
 pub(crate) struct Router {
     graph_bus: GraphReceiver,
     request_bus: RequestReceiver,
     engine: Option<Arc<Engine>>,
+    config: FederatedGraphConfig,
 }
 
 impl Router {
-    pub fn new(graph_bus: GraphReceiver, request_bus: RequestReceiver) -> Self {
+    pub fn new(graph_bus: GraphReceiver, request_bus: RequestReceiver, config: FederatedGraphConfig) -> Self {
         Self {
             graph_bus,
             request_bus,
             engine: None,
+            config,
         }
     }
 
@@ -37,7 +40,7 @@ impl Router {
                 (RouterMessage::Graph(graph), _) => {
                     log::trace!("router got a new graph");
 
-                    self.engine = graph.map(new_engine);
+                    self.engine = graph.map(|graph| new_engine(&self.config, graph));
                 }
                 (RouterMessage::Request(request, response_sender), Some(engine)) => {
                     log::trace!("router got a new request with an existing engine");
@@ -54,11 +57,11 @@ impl Router {
     }
 }
 
-fn new_engine(graph: FederatedGraph) -> Arc<Engine> {
-    let FederatedGraph::V1(v1_graph) = graph;
+fn new_engine(config: &FederatedGraphConfig, graph: FederatedGraph) -> Arc<Engine> {
+    let config = engine_config_builder::build_config(config, graph);
 
     Arc::new(Engine::new(
-        engine_v2::VersionedConfig::V1(v1_graph).into_latest().into(),
+        config.into_latest().into(),
         EngineRuntime {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         },

@@ -10,7 +10,7 @@ pub async fn dump_config(cli_version: String) -> Result<String, ServerError> {
     let ParsingResponse {
         registry,
         detected_udfs: _,
-        is_federated: _,
+        federated_graph_config: _,
     } = run_schema_parser(&env, None).await?;
 
     serde_json::to_string(&RegistryWithVersion { cli_version, registry }).map_err(ServerError::SchemaParserResultJson)

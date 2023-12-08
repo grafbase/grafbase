@@ -9,6 +9,7 @@ use axum::{
 };
 use common::environment::Environment;
 use handlebars::Handlebars;
+use parser_sdl::federation::FederatedGraphConfig;
 use serde_json::json;
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
@@ -37,7 +38,7 @@ struct ProxyState {
     request_sender: RequestSender,
 }
 
-pub(super) async fn run(port: u16, expose: bool) -> Result<(), crate::Error> {
+pub(super) async fn run(port: u16, expose: bool, config: FederatedGraphConfig) -> Result<(), crate::Error> {
     log::trace!("starting the federated dev server");
 
     let (graph_sender, graph_receiver) = mpsc::channel(16);
@@ -55,7 +56,7 @@ pub(super) async fn run(port: u16, expose: bool) -> Result<(), crate::Error> {
     let refresher = Refresher::new(refresh_bus);
     tokio::spawn(refresher.handler());
 
-    let router = Router::new(graph_receiver, request_receiver);
+    let router = Router::new(graph_receiver, request_receiver, config);
     tokio::spawn(router.handler());
 
     let ticker = Ticker::new(REFRESH_INTERVAL, compose_sender);

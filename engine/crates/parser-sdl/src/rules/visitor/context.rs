@@ -21,8 +21,8 @@ use engine_value::{indexmap::IndexMap, Name};
 
 use super::{warnings::Warnings, RuleError, TypeStackType, Warning, MUTATION_TYPE, QUERY_TYPE};
 use crate::{
-    rules::federation::FederationVersion, GlobalCacheRules, GlobalCacheTarget, GraphqlDirective, MongoDBDirective,
-    OpenApiDirective, ParseResult, PostgresDirective,
+    federation::FederatedGraphConfig, rules::federation::FederationVersion, GlobalCacheRules, GlobalCacheTarget,
+    GraphqlDirective, MongoDBDirective, OpenApiDirective, ParseResult, PostgresDirective,
 };
 
 /// The VisitorContext to visit every types from the Schema.
@@ -62,6 +62,8 @@ pub struct VisitorContext<'a> {
 
     pub database_models_enabled: bool,
     pub federation: Option<FederationVersion>,
+
+    pub federated_graph_config: FederatedGraphConfig,
 }
 
 impl<'a> VisitorContext<'a> {
@@ -145,6 +147,7 @@ impl<'a> VisitorContext<'a> {
             global_cache_rules: Default::default(),
             database_models_enabled,
             federation: None,
+            federated_graph_config: Default::default(),
         }
     }
 
@@ -218,6 +221,7 @@ impl<'a> VisitorContext<'a> {
 
         ParseResult {
             global_cache_rules: self.global_cache_rules,
+            federated_graph_config: registry.is_federated.then_some(self.federated_graph_config),
             registry,
             required_udfs,
         }

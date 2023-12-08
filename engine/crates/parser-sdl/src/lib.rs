@@ -49,11 +49,13 @@ use rules::{
     requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
     search_directive::SearchDirective,
+    subgraph_directive::{SubgraphDirective, SubgraphDirectiveVisitor},
     unique_directive::UniqueDirective,
     unique_fields::UniqueObjectFields,
     visitor::{visit, RuleError, Visitor, VisitorContext},
 };
 
+pub mod federation;
 mod type_names;
 mod validations;
 
@@ -126,6 +128,7 @@ pub struct ParseResult<'a> {
     pub registry: Registry,
     pub required_udfs: HashSet<(UdfKind, String)>,
     pub global_cache_rules: GlobalCacheRules<'a>,
+    pub federated_graph_config: Option<federation::FederatedGraphConfig>,
 }
 
 fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
@@ -158,7 +161,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<DeprecatedDirective>()
         .with::<InaccessibleDirective>()
         .with::<TagDirective>()
-        .with::<ExtendFieldDirective>();
+        .with::<ExtendFieldDirective>()
+        .with::<SubgraphDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -353,7 +357,8 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CheckAllDirectivesAreKnown::default())
         .with(ExperimentalDirectiveVisitor)
         .with(FederationDirectiveVisitor) // This will likely need moved.  Here'll do for now though
-        .with(ExtendFieldVisitor);
+        .with(ExtendFieldVisitor)
+        .with(SubgraphDirectiveVisitor);
 
     visit(&mut rules, ctx, schema);
 }

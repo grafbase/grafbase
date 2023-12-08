@@ -27,7 +27,7 @@ impl Directive for GraphDirective {
             SINGLE
             FEDERATED
         }
-         
+
         directive @graph(
           """
           The type of the graph.

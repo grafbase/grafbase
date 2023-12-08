@@ -9,11 +9,11 @@ use postgres_connector_types::transport::TcpTransport;
 use crate::errors::ServerError;
 
 // Contract between this crate and CLI
-#[derive(serde::Serialize)]
+// #[derive(serde::Serialize)]
 pub struct ParserResult {
     pub registry: Registry,
     pub required_udfs: HashSet<(UdfKind, String)>,
-    pub is_federated: bool,
+    pub federated_graph_config: Option<parser_sdl::federation::FederatedGraphConfig>,
 }
 
 /// Transform the input schema into a Registry
@@ -26,12 +26,11 @@ pub async fn parse_schema(schema: &str, environment: &HashMap<String, String>) -
         mut registry,
         required_udfs,
         global_cache_rules,
+        federated_graph_config,
         // FIXME: Revisit the `true` once we have settled on how to handle the migration story in the CLI.
     } = parser_sdl::parse(schema, environment, true, &connector_parsers)
         .await
         .map_err(|e| ServerError::ParseSchema(e.to_string()))?;
-
-    let is_federated = registry.is_federated;
 
     // apply global caching rules
     global_cache_rules
@@ -41,7 +40,7 @@ pub async fn parse_schema(schema: &str, environment: &HashMap<String, String>) -
     Ok(ParserResult {
         registry,
         required_udfs,
-        is_federated,
+        federated_graph_config,
     })
 }
 
