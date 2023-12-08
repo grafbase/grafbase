@@ -10,7 +10,7 @@ use super::{
     BoundFragmentSpread, BoundInlineFragment, BoundSelection, BoundSelectionSet, BoundSelectionSetId,
     BoundTypeNameFieldDefinition, Operation, Pos, ResponseKeys, SelectionSetType, TypeCondition, UnboundOperation,
 };
-use crate::response::ServerError;
+use crate::response::GraphqlError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
@@ -52,7 +52,7 @@ pub enum BindError {
     TooManyFields { location: Pos },
 }
 
-impl From<BindError> for ServerError {
+impl From<BindError> for GraphqlError {
     fn from(err: BindError) -> Self {
         let locations = match err {
             BindError::UnknownField { location, .. }
@@ -68,9 +68,10 @@ impl From<BindError> for ServerError {
             | BindError::LeafMustBeAScalarOrEnum { location, .. } => vec![location],
             BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
         };
-        ServerError {
+        GraphqlError {
             message: err.to_string(),
             locations,
+            ..Default::default()
         }
     }
 }
@@ -91,7 +92,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
     };
     let mut binder = Binder {
         schema,
-        response_keys: ResponseKeys::new(),
+        response_keys: ResponseKeys::default(),
         fragment_definitions: HashMap::new(),
         field_definitions: Vec::new(),
         fields: Vec::new(),

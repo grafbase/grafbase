@@ -7,7 +7,7 @@ use schema::{DataType, InputObjectId, ListWrapping, Schema, StringId};
 
 use crate::{
     request::{Operation, VariableDefinition},
-    response::ServerError,
+    response::GraphqlError,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -22,15 +22,16 @@ pub enum VariableError {
     },
 }
 
-impl From<VariableError> for ServerError {
+impl From<VariableError> for GraphqlError {
     fn from(err: VariableError) -> Self {
         let locations = match err {
             VariableError::MissingVariable { location, .. } => vec![location],
             VariableError::Coercion { location, .. } => vec![location],
         };
-        ServerError {
+        GraphqlError {
             message: err.to_string(),
             locations,
+            ..Default::default()
         }
     }
 }

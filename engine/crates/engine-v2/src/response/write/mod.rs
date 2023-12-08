@@ -12,8 +12,8 @@ use schema::Schema;
 pub use writer::*;
 
 use super::{
-    BoundResponseKey, GraphqlError, InitialResponse, ResponseBoundaryItem, ResponseData, ResponseKeys, ResponseObject,
-    ResponsePath, ResponseValue,
+    BoundResponseKey, ExecutionMetadata, GraphqlError, InitialResponse, ResponseBoundaryItem, ResponseData,
+    ResponseKeys, ResponseObject, ResponsePath, ResponseValue,
 };
 use crate::{
     plan::{PlanBoundary, PlanBoundaryId},
@@ -93,7 +93,7 @@ impl ResponseBuilder {
         self.errors.push(error.into());
     }
 
-    pub fn build(self, schema: Arc<Schema>) -> Response {
+    pub fn build(self, schema: Arc<Schema>, metadata: ExecutionMetadata) -> Response {
         Response::Initial(InitialResponse {
             data: ResponseData {
                 schema,
@@ -102,6 +102,7 @@ impl ResponseBuilder {
                 parts: self.parts,
             },
             errors: self.errors,
+            metadata,
         })
     }
 

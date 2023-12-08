@@ -1,5 +1,4 @@
 mod engine;
-mod error;
 mod execution;
 mod plan;
 mod request;

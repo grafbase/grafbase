@@ -64,11 +64,13 @@ impl From<usize> for ResponsePathSegment {
 #[derive(Debug, Clone)]
 pub struct ResponseKeys(lasso::Rodeo<ResponseKey>);
 
-impl ResponseKeys {
-    pub fn new() -> Self {
+impl Default for ResponseKeys {
+    fn default() -> Self {
         Self(lasso::Rodeo::new())
     }
+}
 
+impl ResponseKeys {
     pub fn get_or_intern(&mut self, s: &str) -> ResponseKey {
         self.0.get_or_intern(s)
     }

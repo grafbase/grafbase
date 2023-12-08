@@ -3,10 +3,9 @@ use std::sync::Arc;
 use schema::Schema;
 
 use crate::{
-    error::EngineError,
     execution::{ExecutorCoordinator, Variables},
     request::{parse_operation, Operation},
-    response::Response,
+    response::{ExecutionMetadata, GraphqlError, Response},
 };
 
 pub struct Engine {
@@ -36,13 +35,13 @@ impl Engine {
                     executor.execute().await;
                     executor.into_response()
                 }
-                Err(err) => Response::from_errors(err),
+                Err(err) => Response::from_errors(err, ExecutionMetadata::build(&operation)),
             },
-            Err(err) => Response::from_error(err),
+            Err(err) => Response::from_error(err, ExecutionMetadata::default()),
         }
     }
 
-    async fn prepare(&self, request: &engine::Request) -> Result<Operation, EngineError> {
+    async fn prepare(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {
         let unbound_operation = parse_operation(request)?;
         let operation = Operation::bind(&self.schema, unbound_operation)?;
         Ok(operation)

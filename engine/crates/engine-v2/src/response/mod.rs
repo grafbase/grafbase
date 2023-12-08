@@ -1,4 +1,5 @@
 mod error;
+mod metadata;
 mod path;
 mod read;
 mod value;
@@ -6,7 +7,8 @@ mod write;
 
 use std::sync::Arc;
 
-pub use error::{GraphqlError, ServerError};
+pub(crate) use error::GraphqlError;
+pub use metadata::*;
 pub use path::{BoundResponseKey, ResponseKey, ResponseKeys, ResponsePath};
 pub use read::*;
 use schema::Schema;
@@ -15,13 +17,18 @@ pub use write::*;
 
 pub enum Response {
     Initial(InitialResponse),
-    Error(ServerErrorResponse),
+    RequestError(RequestErrorResponse),
 }
+
+// Our internal error struct shouldn't be accessible. It'll also need some context like
+// ResponseKeys to even just present paths correctly.
+pub struct Error<'a>(&'a GraphqlError);
 
 pub struct InitialResponse {
     // will be None if an error propagated up to the root.
     data: ResponseData,
     errors: Vec<GraphqlError>,
+    metadata: ExecutionMetadata,
 }
 
 struct ResponseData {
@@ -31,24 +38,41 @@ struct ResponseData {
     parts: Vec<ResponseDataPart>,
 }
 
-pub struct ServerErrorResponse {
-    errors: Vec<ServerError>,
+pub struct RequestErrorResponse {
+    errors: Vec<GraphqlError>,
+    metadata: ExecutionMetadata,
 }
 
 impl Response {
-    pub fn from_error(error: impl Into<ServerError>) -> Self {
-        Self::Error(ServerErrorResponse {
+    pub(crate) fn from_error(error: impl Into<GraphqlError>, metadata: ExecutionMetadata) -> Self {
+        Self::RequestError(RequestErrorResponse {
             errors: vec![error.into()],
+            metadata,
         })
     }
 
-    pub fn from_errors<E>(errors: impl IntoIterator<Item = E>) -> Self
+    pub(crate) fn from_errors<E>(errors: impl IntoIterator<Item = E>, metadata: ExecutionMetadata) -> Self
     where
-        E: Into<ServerError>,
+        E: Into<GraphqlError>,
     {
-        Self::Error(ServerErrorResponse {
+        Self::RequestError(RequestErrorResponse {
             errors: errors.into_iter().map(Into::into).collect(),
+            metadata,
         })
+    }
+
+    pub fn errors(&self) -> Vec<Error<'_>> {
+        match self {
+            Self::Initial(initial) => initial.errors.iter().map(Error).collect(),
+            Self::RequestError(request_error) => request_error.errors.iter().map(Error).collect(),
+        }
+    }
+
+    pub fn metadata(&self) -> &ExecutionMetadata {
+        match self {
+            Self::Initial(initial) => &initial.metadata,
+            Self::RequestError(request_error) => &request_error.metadata,
+        }
     }
 }
 
