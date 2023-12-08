@@ -131,6 +131,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
         field_types: state.field_types.into_iter().collect(),
+        headers: vec![],
     }))
 }
 
@@ -715,7 +716,11 @@ fn ingest_join_graph_enum<'a>(enm: &'a ast::EnumType, state: &mut State<'a>) -> 
 
         let name = state.insert_string(name);
         let url = state.insert_string(url);
-        let id = SubgraphId(state.subgraphs.push_return_idx(Subgraph { name, url }));
+        let id = SubgraphId(state.subgraphs.push_return_idx(Subgraph {
+            name,
+            url,
+            headers: vec![],
+        }));
         state.graph_sdl_names.insert(sdl_name, id);
     }
 

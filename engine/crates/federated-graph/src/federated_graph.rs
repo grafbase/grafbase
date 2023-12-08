@@ -32,6 +32,10 @@ pub struct FederatedGraphV1 {
 
     /// All the field types in the supergraph, deduplicated.
     pub field_types: Vec<FieldType>,
+
+    /// Any headers that we need to forward to subgraphs
+    #[serde(default)]
+    pub headers: Vec<Header>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -51,6 +55,25 @@ impl std::fmt::Debug for FederatedGraphV1 {
 pub struct Subgraph {
     pub name: StringId,
     pub url: StringId,
+
+    /// Headers that should be sent in requests to this subgraph
+    #[serde(default)]
+    pub headers: Vec<HeaderId>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Header {
+    pub name: StringId,
+    pub value: HeaderValue,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum HeaderValue {
+    /// The given header from the current request should be forwarded
+    /// to the subgraph
+    ForwardFrom(StringId),
+    /// The given string should always be sent
+    Value(StringId),
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -336,4 +359,5 @@ id_newtypes! {
     StringId + strings + String,
     SubgraphId + subgraphs + Subgraph,
     UnionId + unions + Union,
+    HeaderId + headers + Header,
 }

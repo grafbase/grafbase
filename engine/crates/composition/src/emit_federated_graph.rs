@@ -31,6 +31,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         interface_fields: vec![],
         fields: vec![],
         field_types: vec![],
+        headers: vec![],
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
@@ -254,6 +255,10 @@ fn emit_subgraphs(ctx: &mut Context<'_>) {
     for subgraph in ctx.subgraphs.iter_subgraphs() {
         let name = ctx.insert_string(subgraph.name());
         let url = ctx.insert_string(subgraph.url());
-        ctx.out.subgraphs.push(federated::Subgraph { name, url });
+        ctx.out.subgraphs.push(federated::Subgraph {
+            name,
+            url,
+            headers: vec![],
+        });
     }
 }
