@@ -4,10 +4,12 @@ use std::collections::HashMap;
 use super::sources::*;
 use super::*;
 
+use config::latest::Config;
+
 #[allow(clippy::panic)]
-impl From<federated_graph::FederatedGraph> for Schema {
-    fn from(graph: federated_graph::FederatedGraph) -> Self {
-        let federated_graph::FederatedGraph::V1(graph) = graph;
+impl From<Config> for Schema {
+    fn from(config: Config) -> Self {
+        let graph = config.graph;
         let mut schema = Schema {
             description: None,
             root_operation_types: RootOperationTypes {

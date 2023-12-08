@@ -55,8 +55,10 @@ impl Router {
 }
 
 fn new_engine(graph: FederatedGraph) -> Arc<Engine> {
+    let FederatedGraph::V1(v1_graph) = graph;
+
     Arc::new(Engine::new(
-        graph.into(),
+        engine_v2::VersionedConfig::V1(v1_graph).into_latest().into(),
         EngineRuntime {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         },

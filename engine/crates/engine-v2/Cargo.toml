@@ -28,6 +28,7 @@ strum.workspace = true
 thiserror.workspace = true
 futures-util.workspace = true
 
+config = { package = "engine-v2-config", path = "./config" }
 engine-value = { path = "../engine/value" }
 engine-parser = { path = "../engine/parser" }
 schema = { path = "./schema", package = "engine-v2-schema" }
@@ -36,4 +37,3 @@ schema = { path = "./schema", package = "engine-v2-schema" }
 # but having more explicit dependencies for now.
 engine = { path = "../engine" }
 runtime.workspace = true
-

@@ -1,5 +1,6 @@
 use async_graphql_parser::types::ServiceDocument;
 use engine_v2::Engine;
+use graphql_composition::FederatedGraph;
 
 use crate::MockGraphQlServer;
 
@@ -43,9 +44,12 @@ impl FederationEngineBuilder {
             .into_result()
             .expect("schemas to compose succesfully");
 
+        let FederatedGraph::V1(graph) = graph;
+        let config = engine_v2::VersionedConfig::V1(graph).into_latest();
+
         TestFederationEngine {
             engine: Engine::new(
-                graph.into(),
+                config.into(),
                 engine_v2::EngineRuntime {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                 },
