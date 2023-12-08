@@ -11,7 +11,7 @@ use crate::{
 
 use super::{deserialize, query};
 
-pub struct FederationEntityExecutor<'ctx> {
+pub(crate) struct FederationEntityExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
     subgraph: SubgraphWalker<'ctx>,
     json_body: String,

@@ -25,13 +25,17 @@ pub enum Error {
 }
 
 #[derive(serde::Serialize)]
-pub struct Query<'a> {
+pub(super) struct Query<'a> {
     pub query: String,
     pub variables: HashMap<String, &'a ConstValue>,
 }
 
 impl<'ctx> Query<'ctx> {
-    pub fn build(ctx: ExecutionContext<'ctx>, plan_id: PlanId, plan_output: &PlanOutput) -> Result<Query<'ctx>, Error> {
+    pub(super) fn build(
+        ctx: ExecutionContext<'ctx>,
+        plan_id: PlanId,
+        plan_output: &PlanOutput,
+    ) -> Result<Query<'ctx>, Error> {
         let operation = ctx.walk(plan_output);
         let mut builder = QueryBuilder::default();
         let selection_set = {
@@ -65,13 +69,13 @@ impl<'ctx> Query<'ctx> {
 }
 
 #[derive(serde::Serialize)]
-pub struct FederationEntityQuery<'a> {
+pub(super) struct FederationEntityQuery<'a> {
     pub query: String,
     pub variables: FederationEntityVariables<'a>,
 }
 
 #[derive(Default)]
-pub struct FederationEntityVariables<'a> {
+pub(super) struct FederationEntityVariables<'a> {
     pub query_variables: HashMap<String, &'a ConstValue>,
     pub representations: HashMap<String, ResponseBoundaryObjectsView<'a>>,
 }
@@ -93,7 +97,7 @@ impl<'a> serde::Serialize for FederationEntityVariables<'a> {
 }
 
 impl<'a> FederationEntityQuery<'a> {
-    pub fn build(
+    pub(super) fn build(
         ctx: ExecutionContext<'a>,
         plan_id: PlanId,
         plan_output: &PlanOutput,

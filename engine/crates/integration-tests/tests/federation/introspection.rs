@@ -727,13 +727,13 @@ fn rejects_bogus_introspection_queries() {
       "data": null,
       "errors": [
         {
+          "message": "__Type does not have a field named 'blarg'",
           "locations": [
             {
               "line": 5,
               "column": 33
             }
-          ],
-          "message": "__Type does not have a field named 'blarg'"
+          ]
         }
       ]
     }

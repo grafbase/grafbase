@@ -1,8 +1,8 @@
 mod arbitrary;
 mod grouped;
 
-pub use arbitrary::*;
-pub use grouped::*;
+use arbitrary::*;
+pub(crate) use grouped::*;
 use schema::ObjectId;
 use serde::de::DeserializeSeed;
 
@@ -13,7 +13,7 @@ use crate::{
     response::{ResponseBoundaryItem, ResponsePath, ResponseValue},
 };
 
-pub struct SelectionSetSeed<'ctx, 'parent> {
+pub(super) struct SelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
     pub path: &'parent ResponsePath,
     pub expected: &'parent ExpectedSelectionSet,

@@ -7,11 +7,11 @@ mod selection_set;
 mod variable;
 mod walkers;
 
-pub use bind::{BindError, BindResult};
+pub use bind::BindResult;
 pub use engine_parser::{types::OperationType, Pos};
 pub use flat::*;
 pub use ids::*;
-pub use parse::{parse_operation, ParseError, UnboundOperation};
+pub use parse::{parse_operation, UnboundOperation};
 pub use path::QueryPath;
 use schema::{ObjectId, Schema, SchemaWalker};
 pub use selection_set::*;

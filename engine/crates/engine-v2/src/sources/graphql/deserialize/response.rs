@@ -8,7 +8,7 @@ use serde::{
 use super::UpstreamGraphqlErrorsSeed;
 use crate::response::{GraphqlError, ResponsePath};
 
-pub struct GraphqlResponseSeed<DataSeed> {
+pub(crate) struct GraphqlResponseSeed<DataSeed> {
     data: Option<DataSeed>,
     err_path: Option<ResponsePath>,
 }

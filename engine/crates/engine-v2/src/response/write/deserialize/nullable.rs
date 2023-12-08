@@ -11,7 +11,7 @@ use crate::{
     response::{GraphqlError, ResponsePath, ResponseValue},
 };
 
-pub struct NullableSeed<'ctx, 'parent, Seed> {
+pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
     pub path: &'parent ResponsePath,
     pub definition_id: BoundAnyFieldDefinitionId,
     pub ctx: &'parent SeedContext<'ctx>,

@@ -9,7 +9,7 @@ use crate::{
 
 mod writer;
 
-pub struct IntrospectionExecutionPlan<'ctx> {
+pub(crate) struct IntrospectionExecutionPlan<'ctx> {
     ctx: ExecutionContext<'ctx>,
     response_object: ResponseBoundaryItem,
     metadata: &'ctx Metadata,

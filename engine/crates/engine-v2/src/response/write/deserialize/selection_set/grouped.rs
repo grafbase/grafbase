@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-pub struct ObjectFieldsSeed<'ctx, 'parent> {
+pub(crate) struct ObjectFieldsSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
     pub path: &'parent ResponsePath,
     pub expected: &'parent ExpectedGroupedFields,

@@ -12,7 +12,7 @@ mod deserialize;
 pub mod federation;
 mod query;
 
-pub struct GraphqlExecutor<'ctx> {
+pub(crate) struct GraphqlExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
     subgraph: SubgraphWalker<'ctx>,
     json_body: String,

@@ -10,7 +10,7 @@ use crate::{
 
 /// Data available during the executor life during its build & execution phases.
 #[derive(Clone, Copy)]
-pub struct ExecutionContext<'ctx> {
+pub(crate) struct ExecutionContext<'ctx> {
     pub engine: &'ctx Engine,
     pub walker: OperationWalker<'ctx>,
     pub(super) variables: &'ctx Variables<'ctx>,

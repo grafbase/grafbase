@@ -13,7 +13,7 @@ use crate::{
     response::{GraphqlError, ResponsePath, ResponseValue},
 };
 
-pub struct FieldSeed<'ctx, 'parent> {
+pub(super) struct FieldSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
     pub path: ResponsePath,
     pub definition_id: BoundAnyFieldDefinitionId,

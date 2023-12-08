@@ -12,7 +12,7 @@ use crate::{
     sources::ExecutorError,
 };
 
-pub struct EntitiesDataSeed<'a> {
+pub(crate) struct EntitiesDataSeed<'a> {
     pub ctx: ExecutionContext<'a>,
     pub response_boundary: &'a Vec<ResponseBoundaryItem>,
     pub output: &'a mut ExecutorOutput,
