@@ -37,7 +37,7 @@ struct ProxyState {
     request_sender: RequestSender,
 }
 
-pub(super) async fn run(port: u16) -> Result<(), crate::Error> {
+pub(super) async fn run(port: u16, expose: bool) -> Result<(), crate::Error> {
     log::trace!("starting the federated dev server");
 
     let (graph_sender, graph_receiver) = mpsc::channel(16);
@@ -78,7 +78,11 @@ pub(super) async fn run(port: u16) -> Result<(), crate::Error> {
             request_sender,
         });
 
-    let host = format!("127.0.0.1:{port}");
+    let host = if expose {
+        format!("0.0.0.0:{port}")
+    } else {
+        format!("127.0.0.1:{port}")
+    };
     let address = host.parse().expect("we just defined it above, it _must work_");
 
     Server::bind(&address)
