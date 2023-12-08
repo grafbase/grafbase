@@ -1,7 +1,6 @@
 mod deserialize;
 mod ids;
 mod manual;
-mod scalar;
 mod writer;
 
 use std::{collections::BTreeMap, sync::Arc};
@@ -22,7 +21,7 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct ResponseDataPart {
+pub(crate) struct ResponseDataPart {
     objects: Vec<ResponseObject>,
     lists: Vec<ResponseValue>,
 }
@@ -33,7 +32,7 @@ impl ResponseDataPart {
     }
 }
 
-pub struct ResponseBuilder {
+pub(crate) struct ResponseBuilder {
     pub(super) keys: ResponseKeys,
     // will be None if an error propagated up to the root.
     pub(super) root: Option<ResponseObjectId>,
@@ -179,7 +178,7 @@ pub enum ResponseValueId {
     },
 }
 
-pub struct ExecutorOutput {
+pub(crate) struct ExecutorOutput {
     id: ResponseDataPartId,
     data_part: ResponseDataPart,
     errors: Vec<GraphqlError>,

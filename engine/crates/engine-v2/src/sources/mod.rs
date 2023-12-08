@@ -53,13 +53,13 @@ use introspection::IntrospectionExecutionPlan;
 ///
 /// The executor for the catalog plan would have a single response object root and the price plan
 /// executor will have a root for each product in the response.
-pub enum Executor<'a> {
+pub(crate) enum Executor<'a> {
     GraphQL(GraphqlExecutor<'a>),
     Introspection(IntrospectionExecutionPlan<'a>),
     FederationEntity(FederationEntityExecutor<'a>),
 }
 
-pub struct ResolverInput<'ctx, 'input> {
+pub(crate) struct ResolverInput<'ctx, 'input> {
     pub ctx: ExecutionContext<'ctx>,
     pub boundary_objects_view: ResponseBoundaryObjectsView<'input>,
     pub plan_id: PlanId,

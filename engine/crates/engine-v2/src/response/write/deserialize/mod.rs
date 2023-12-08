@@ -21,14 +21,14 @@ use nullable::NullableSeed;
 use scalar::*;
 use selection_set::*;
 
-pub struct SeedContext<'a> {
+pub(crate) struct SeedContext<'a> {
     pub walker: PlanWalker<'a>,
     // We could probably avoid the RefCell, but didn't took the time to properly deal with it.
     pub data: RefCell<&'a mut ExecutorOutput>,
     pub propagating_error: AtomicBool, // using an atomic bool for convenience of fetch_or & fetch_and
 }
 
-pub struct UpdateSeed<'a> {
+pub(crate) struct UpdateSeed<'a> {
     pub ctx: SeedContext<'a>,
     pub boundary_item: &'a ResponseBoundaryItem,
     pub expected: &'a ExpectedSelectionSet,

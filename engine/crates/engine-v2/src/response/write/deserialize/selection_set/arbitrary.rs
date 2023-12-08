@@ -18,7 +18,7 @@ use crate::{
     },
 };
 
-pub struct ArbitraryFieldsSeed<'ctx, 'parent> {
+pub(super) struct ArbitraryFieldsSeed<'ctx, 'parent> {
     pub path: &'parent ResponsePath,
     pub ctx: &'parent SeedContext<'ctx>,
     pub expected: &'parent ExpectedArbitraryFields,

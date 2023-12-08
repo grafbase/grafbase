@@ -34,7 +34,7 @@ impl From<String> for WriteError {
 
 pub type WriteResult<T> = Result<T, WriteError>;
 
-pub struct ResponseObjectWriter<'a> {
+pub(crate) struct ResponseObjectWriter<'a> {
     walker: PlanWalker<'a>,
     data: &'a mut ExecutorOutput,
     boundary_item: &'a ResponseBoundaryItem,
