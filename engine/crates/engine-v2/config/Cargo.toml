@@ -1,17 +1,15 @@
 [package]
-name = "engine-v2-schema"
-version = "3.0.31"
+name = "engine-v2-config"
+version = "0.1.0"
 authors = ["Grafbase"]
-description = "The engine schema graph"
+description = "Engine configuration structs"
 edition = "2021"
-readme = "README.md"
 license = "MPL-2.0"
 homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
 
 [dependencies]
-strum = { workspace = true, features = ["derive"] }
+serde.workspace = true
 
-config = { package = "engine-v2-config", path = "../config" }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }

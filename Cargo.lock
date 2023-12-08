@@ -2012,6 +2012,7 @@ dependencies = [
  "derive_more",
  "engine",
  "engine-parser",
+ "engine-v2-config",
  "engine-v2-schema",
  "engine-value",
  "futures-util",
@@ -2028,9 +2029,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-v2-config"
+version = "0.1.0"
+dependencies = [
+ "graphql-federated-graph",
+ "serde",
+]
+
+[[package]]
 name = "engine-v2-schema"
 version = "3.0.31"
 dependencies = [
+ "engine-v2-config",
  "graphql-federated-graph",
  "strum",
 ]
