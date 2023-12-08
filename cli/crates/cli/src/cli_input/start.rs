@@ -43,6 +43,6 @@ impl StartCommand {
     }
 
     pub fn listen_address(&self) -> IpAddr {
-        self.listen_address.unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST))
+        self.listen_address.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED))
     }
 }

@@ -110,7 +110,7 @@ impl ProductionServer {
                 port,
                 is_federated: self.is_federated,
             });
-            return federated_dev::run(port)
+            return federated_dev::run(port, true)
                 .await
                 .map_err(|error| ServerError::GatewayError(error.to_string()));
         }
@@ -279,7 +279,7 @@ async fn spawn_servers(
             is_federated,
         });
 
-        return federated_dev::run(worker_port)
+        return federated_dev::run(worker_port, false)
             .await
             .map_err(|error| ServerError::GatewayError(error.to_string()));
     }

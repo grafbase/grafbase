@@ -71,6 +71,6 @@ pub fn add_subgraph(name: &str, url: &Url, dev_api_port: u16, headers: Vec<(&str
 }
 
 /// Runs the federated dev system.
-pub async fn run(port: u16) -> Result<(), Error> {
-    dev::run(port).await
+pub async fn run(port: u16, expose: bool) -> Result<(), Error> {
+    dev::run(port, expose).await
 }
