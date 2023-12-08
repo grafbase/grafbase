@@ -460,11 +460,7 @@ fn invalid_enum() {
 fn multiple_invalid_variables() {
     let query = "query($one: String!, $two: Int!) { string(input: $one) int(input: $two) }";
 
-    let errors = run_query(query, &json!({"one": true, "two": "hello"}))
-        .errors()
-        .iter()
-        .map(|error| error["message"].as_str().expect("message to be a string").to_string())
-        .collect::<Vec<_>>();
+    let errors = do_error_test(query, json!({"one": true, "two": "hello"}));
 
     insta::assert_json_snapshot!(errors, @r###"
     [
@@ -472,6 +468,145 @@ fn multiple_invalid_variables() {
       "Variable $two got an invalid value: found a String value where we expected a Int scalar at $two"
     ]
     "###);
+}
+
+#[test]
+fn variable_uniqueness_validation() {
+    insta::assert_json_snapshot!(
+        do_error_test(
+            "query($one: String!, $one: String!) { one: string(input: $one) }",
+            json!({})
+        ),
+        @r###"
+    [
+      "There can only be one variable named '$one'"
+    ]
+    "###
+    );
+}
+
+#[test]
+fn variables_are_input_types_validation() {
+    insta::assert_json_snapshot!(
+        do_error_test(
+            "query($one: Query) { string(input: $one)}",
+            json!({})
+        ),
+        @r###"
+    [
+      "Variable named '$one' does not have a valid input type. Can only be a scalar, enum or input object. Found: 'Query'."
+    ]
+    "###
+    );
+}
+
+#[test]
+fn variables_are_defined_validation() {
+    insta::assert_json_snapshot!(
+        do_error_test(
+            "query { string(input: $one) }",
+            json!({})
+        ),
+        @r###"
+    [
+      "Variable '$one' is not defined"
+    ]
+    "###
+    );
+
+    insta::assert_json_snapshot!(
+        do_error_test(
+            "query MyOperation { string(input: $one) }",
+            json!({})
+        ),
+        @r###"
+    [
+      "Variable '$one' is not defined by operation 'MyOperation'"
+    ]
+    "###
+    );
+
+    insta::assert_json_snapshot!(
+        do_error_test(
+            r#"
+                query Blah {
+                    ...MyFragment
+                }
+
+                fragment MyFragment on Query {
+                    string(input: $one)
+                }
+            "#,
+            json!({})
+        ),
+        @r###"
+    [
+      "Variable '$one' is not defined by operation 'Blah'"
+    ]
+    "###
+    );
+
+    insta::assert_json_snapshot!(
+        do_error_test(
+            r#"
+            query {
+                ... {
+                    string(input: $one)
+                }
+            }
+            "#,
+            json!({})
+        ),
+        @r###"
+    [
+      "Variable '$one' is not defined"
+    ]
+    "###
+    );
+}
+
+#[test]
+fn variables_are_used_validation() {
+    insta::assert_json_snapshot!(
+        do_error_test(
+            r#"query($one: String!) { string(input: "hello") }"#,
+            json!({})
+        ),
+        @r###"
+    [
+      "Variable '$one' is not used"
+    ]
+    "###
+    );
+
+    insta::assert_json_snapshot!(
+        do_error_test(
+            r#"query Blah($one: String!) { string(input: "hello") }"#,
+            json!({})
+        ),
+        @r###"
+    [
+      "Variable '$one' is not used by operation 'Blah'"
+    ]
+    "###
+    );
+
+    // This one should pass because it's used transient
+    insta::assert_json_snapshot!(
+        do_error_test(
+            r#"
+                query($one: String!) {
+                    ...MyFragment
+                }
+
+                fragment MyFragment on Query {
+                    string(input: $one)
+                }
+            "#,
+            json!({"one": "hello"})
+        ),
+        @"[]"
+    );
 }
 
 fn roundtrip_test<T>(field: &str, ty: &str, input: T)

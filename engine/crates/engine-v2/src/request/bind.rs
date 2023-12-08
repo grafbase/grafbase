@@ -45,11 +45,25 @@ pub enum BindError {
     #[error("Leaf field '{name}' must be a scalar or an enum, but is a {ty}.")]
     LeafMustBeAScalarOrEnum { name: String, ty: String, location: Pos },
     #[error(
-        "Variable named '{name}' does not have a valid input type. Can only be a scalar, enum or input object. Found: '{ty}'."
+        "Variable named '${name}' does not have a valid input type. Can only be a scalar, enum or input object. Found: '{ty}'."
     )]
     InvalidVariableType { name: String, ty: String, location: Pos },
     #[error("Too many fields selection set.")]
     TooManyFields { location: Pos },
+    #[error("There can only be one variable named '${name}'")]
+    DuplicateVariable { name: String, location: Pos },
+    #[error("Variable '${name}' is not defined{operation}")]
+    UndefinedVariable {
+        name: String,
+        operation: ErrorOperationName,
+        location: Pos,
+    },
+    #[error("Variable '${name}' is not used{operation}")]
+    UnusedVariable {
+        name: String,
+        operation: ErrorOperationName,
+        location: Pos,
+    },
 }
 
 impl From<BindError> for GraphqlError {
@@ -65,7 +79,10 @@ impl From<BindError> for GraphqlError {
             | BindError::DisjointTypeCondition { location, .. }
             | BindError::InvalidVariableType { location, .. }
             | BindError::TooManyFields { location }
-            | BindError::LeafMustBeAScalarOrEnum { location, .. } => vec![location],
+            | BindError::LeafMustBeAScalarOrEnum { location, .. }
+            | BindError::DuplicateVariable { location, .. }
+            | BindError::UndefinedVariable { location, .. }
+            | BindError::UnusedVariable { location, .. } => vec![location],
             BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
         };
         GraphqlError {
@@ -92,19 +109,27 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
     };
     let mut binder = Binder {
         schema,
+        operation_name: ErrorOperationName(unbound.name.clone()),
         response_keys: ResponseKeys::default(),
         fragment_definitions: HashMap::new(),
         field_definitions: Vec::new(),
         fields: Vec::new(),
         selection_sets: vec![],
         unbound_fragments: unbound.fragments,
+        variable_definitions: vec![],
+        variables_used: HashSet::new(),
         next_response_position: 0,
     };
+
+    binder.variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
+
     let root_selection_set_id = binder.bind_field_selection_set(
         SelectionSetType::Object(root_object_id),
         unbound.definition.selection_set,
     )?;
-    let variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
+
+    binder.validate_all_variables_used()?;
+
     Ok(Operation {
         ty: unbound.definition.ty,
         root_object_id,
@@ -119,18 +144,21 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
         response_keys: binder.response_keys,
         field_definitions: binder.field_definitions,
         fields: binder.fields,
-        variable_definitions,
+        variable_definitions: binder.variable_definitions,
     })
 }
 
 pub struct Binder<'a> {
     schema: &'a Schema,
+    operation_name: ErrorOperationName,
     response_keys: ResponseKeys,
     unbound_fragments: HashMap<String, Positioned<engine_parser::types::FragmentDefinition>>,
     fragment_definitions: HashMap<String, (BoundFragmentDefinitionId, BoundFragmentDefinition)>,
     field_definitions: Vec<BoundAnyFieldDefinition>,
     fields: Vec<BoundField>,
     selection_sets: Vec<BoundSelectionSet>,
+    variable_definitions: Vec<VariableDefinition>,
+    variables_used: HashSet<String>,
     // We keep track of the position of fields within the response object that will be
     // returned. With type conditions it's not obvious to know which field will be present or
     // not, but we can order all bound fields. This needs to be done at the request binding
@@ -146,31 +174,49 @@ impl<'a> Binder<'a> {
         &self,
         variables: Vec<Positioned<engine_parser::types::VariableDefinition>>,
     ) -> BindResult<Vec<VariableDefinition>> {
-        variables
-            .into_iter()
-            .map(|Positioned { node, .. }| {
-                let name_location = node.name.pos;
-                let name = node.name.node.to_string();
-                let default_value = node.default_value.map(|Positioned { pos: _, node }| node);
-                Ok(VariableDefinition {
+        let mut seen_names = HashSet::new();
+        let mut bound_variables = vec![];
+
+        for Positioned { node, .. } in variables {
+            let name = node.name.node.to_string();
+            let name_location = node.name.pos;
+
+            if seen_names.contains(&name) {
+                return Err(BindError::DuplicateVariable {
                     name,
-                    name_location,
-                    directives: vec![],
-                    default_value,
-                    r#type: self.convert_type(node.var_type.pos, node.var_type.node)?,
-                })
-            })
-            .collect()
+                    location: name_location,
+                });
+            }
+            seen_names.insert(name.clone());
+
+            let default_value = node.default_value.map(|Positioned { pos: _, node }| node);
+            let r#type = self.convert_type(&name, node.var_type.pos, node.var_type.node)?;
+
+            bound_variables.push(VariableDefinition {
+                name,
+                name_location,
+                directives: vec![],
+                default_value,
+                r#type,
+            });
+        }
+
+        Ok(bound_variables)
     }
 
-    fn convert_type(&self, location: Pos, ty: engine_parser::types::Type) -> BindResult<schema::Type> {
+    fn convert_type(
+        &self,
+        variable_name: &str,
+        location: Pos,
+        ty: engine_parser::types::Type,
+    ) -> BindResult<schema::Type> {
         match ty.base {
-            engine_parser::types::BaseType::Named(name) => {
+            engine_parser::types::BaseType::Named(type_name) => {
                 let definition =
                     self.schema
-                        .definition_by_name(name.as_str())
+                        .definition_by_name(type_name.as_str())
                         .ok_or_else(|| BindError::UnknownType {
-                            name: name.to_string(),
+                            name: type_name.to_string(),
                             location,
                         })?;
                 if !matches!(
@@ -178,7 +224,7 @@ impl<'a> Binder<'a> {
                     Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
                 ) {
                     return Err(BindError::InvalidVariableType {
-                        name: name.to_string(),
+                        name: variable_name.to_string(),
                         ty: self.schema.walker().walk(definition).name().to_string(),
                         location,
                     });
@@ -191,14 +237,16 @@ impl<'a> Binder<'a> {
                     },
                 })
             }
-            engine_parser::types::BaseType::List(nested) => self.convert_type(location, *nested).map(|mut r#type| {
-                r#type.wrapping.list_wrapping.push(if ty.nullable {
-                    schema::ListWrapping::NullableList
-                } else {
-                    schema::ListWrapping::RequiredList
-                });
-                r#type
-            }),
+            engine_parser::types::BaseType::List(nested) => {
+                self.convert_type(variable_name, location, *nested).map(|mut r#type| {
+                    r#type.wrapping.list_wrapping.push(if ty.nullable {
+                        schema::ListWrapping::NullableList
+                    } else {
+                        schema::ListWrapping::RequiredList
+                    });
+                    r#type
+                })
+            }
         }
     }
 
@@ -323,7 +371,9 @@ impl<'a> Binder<'a> {
                                 })
                         },
                     )
-                    .collect::<BindResult<_>>()?;
+                    .collect::<BindResult<Vec<_>>>()?;
+
+                self.validate_argument_variables(&arguments)?;
 
                 let selection_set_id = if field.selection_set.node.items.is_empty() {
                     if !matches!(
@@ -495,6 +545,41 @@ impl<'a> Binder<'a> {
         }
         Ok(type_condition)
     }
+
+    fn validate_argument_variables(&mut self, arguments: &[BoundFieldArgument]) -> BindResult<()> {
+        for argument in arguments {
+            for variable in argument.value.variables_used() {
+                if !self
+                    .variable_definitions
+                    .iter()
+                    .any(|definition| definition.name == *variable)
+                {
+                    return Err(BindError::UndefinedVariable {
+                        name: variable.to_string(),
+                        operation: self.operation_name.clone(),
+                        location: argument.value_location,
+                    });
+                }
+                self.variables_used.insert(variable.to_string());
+            }
+        }
+
+        Ok(())
+    }
+
+    fn validate_all_variables_used(&self) -> BindResult<()> {
+        for variable in &self.variable_definitions {
+            if !self.variables_used.contains(&variable.name) {
+                return Err(BindError::UnusedVariable {
+                    name: variable.name.clone(),
+                    location: variable.name_location,
+                    operation: self.operation_name.clone(),
+                });
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl From<SelectionSetType> for TypeCondition {
@@ -524,5 +609,18 @@ impl From<SelectionSetType> for Definition {
             SelectionSetType::Object(id) => Self::Object(id),
             SelectionSetType::Union(id) => Self::Union(id),
         }
+    }
+}
+
+/// A helper struct for optionally including operation names in error messages
+#[derive(Debug, Clone)]
+pub struct ErrorOperationName(Option<String>);
+
+impl std::fmt::Display for ErrorOperationName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(name) = &self.0 {
+            write!(f, " by operation '{name}'")?;
+        }
+        Ok(())
     }
 }
