@@ -57,6 +57,7 @@ pub use self::{
     events::{subscribe, FederatedDevEvent},
 };
 
+use parser_sdl::federation::FederatedGraphConfig;
 use tokio::runtime::Builder;
 use url::Url;
 
@@ -71,6 +72,6 @@ pub fn add_subgraph(name: &str, url: &Url, dev_api_port: u16, headers: Vec<(&str
 }
 
 /// Runs the federated dev system.
-pub async fn run(port: u16, expose: bool) -> Result<(), Error> {
-    dev::run(port, expose).await
+pub async fn run(port: u16, expose: bool, config: FederatedGraphConfig) -> Result<(), Error> {
+    dev::run(port, expose, config).await
 }

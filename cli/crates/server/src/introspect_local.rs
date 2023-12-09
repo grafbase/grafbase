@@ -15,8 +15,10 @@ pub async fn introspect_local() -> Result<IntrospectLocalOutput, ServerError> {
     let ParsingResponse {
         registry,
         detected_udfs: _,
-        is_federated,
+        federated_graph_config,
     } = run_schema_parser(&env, None).await?;
+
+    let is_federated = federated_graph_config.is_some();
 
     let rendered_sdl = registry.export_sdl(is_federated);
 

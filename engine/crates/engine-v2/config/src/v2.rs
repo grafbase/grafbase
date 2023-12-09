@@ -10,7 +10,7 @@ pub struct Config {
     pub headers: Vec<Header>,
 
     /// Additional configuration for our subgraphs
-    pub subgraph_config: BTreeMap<SubgraphId, SubgraphConfig>,
+    pub subgraph_configs: BTreeMap<SubgraphId, SubgraphConfig>,
 }
 
 /// Additional configuration for a particular subgraph
@@ -31,13 +31,13 @@ pub struct Header {
 pub enum HeaderValue {
     /// The given header from the current request should be forwarded
     /// to the subgraph
-    ForwardFrom(StringId),
+    Forward(StringId),
     /// The given string should always be sent
-    Value(StringId),
+    Static(StringId),
 }
 
 #[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct StringId(usize);
+pub struct StringId(pub usize);
 
 impl std::ops::Index<StringId> for Config {
     type Output = String;
@@ -48,7 +48,7 @@ impl std::ops::Index<StringId> for Config {
 }
 
 #[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct HeaderId(usize);
+pub struct HeaderId(pub usize);
 
 impl std::ops::Index<HeaderId> for Config {
     type Output = Header;

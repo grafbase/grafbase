@@ -1980,6 +1980,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-config-builder"
+version = "0.48.2"
+dependencies = [
+ "engine-v2-config",
+ "graphql-federated-graph",
+ "indexmap 2.0.0-pre",
+ "parser-sdl",
+]
+
+[[package]]
 name = "engine-derive"
 version = "3.0.31"
 dependencies = [
@@ -2224,6 +2234,7 @@ dependencies = [
  "async-graphql-parser 6.0.11",
  "axum",
  "engine",
+ "engine-config-builder",
  "engine-v2",
  "futures-concurrency",
  "futures-util",
@@ -2233,6 +2244,7 @@ dependencies = [
  "handlebars",
  "indoc",
  "log 0.4.20",
+ "parser-sdl",
  "reqwest",
  "runtime-local",
  "serde",

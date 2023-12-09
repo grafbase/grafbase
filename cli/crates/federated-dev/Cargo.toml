@@ -12,27 +12,30 @@ repository.workspace = true
 [dependencies]
 async-graphql = { version = "6.0.10", features = ["url"] }
 async-graphql-axum = "6.0.10"
-graphql-composition.workspace = true
-axum = { workspace = true, features = ["headers"] }
-tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 async-graphql-parser = "6.0.10"
-grafbase-graphql-introspection = { path = "../graphql-introspection" }
-url = "2.4.1"
-indoc = "2.0.4"
-reqwest = { version = "0.11.22", default-features = false, features = ["json", "rustls"] }
-serde_json.workspace = true
-serde = "1.0.192"
-thiserror = "1.0.50"
-handlebars = "4.5.0"
-engine = { path = "../../../engine/crates/engine" }
-engine-v2 = { path = "../../../engine/crates/engine-v2" }
+axum = { workspace = true, features = ["headers"] }
 futures-concurrency = "7"
 futures-util = "0.3"
+graphql-composition.workspace = true
+handlebars = "4.5.0"
+indoc = "2.0.4"
+log = "0.4.20"
+reqwest = { version = "0.11.22", default-features = false, features = ["json", "rustls"] }
+runtime-local.workspace = true
+serde = "1.0.192"
+serde_json.workspace = true
+thiserror = "1.0.50"
+tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 tokio-stream = "0.1"
 tower-http = { version = "0.4", features = ["cors", "fs", "trace"] }
-log = "0.4.20"
-common = { package = "grafbase-local-common", path = "../common", version = "0.48.2" }
-runtime-local.workspace = true
+url = "2.4.1"
+
+common = { package = "grafbase-local-common", path = "../common", version = "0.48.1" }
+engine = { path = "../../../engine/crates/engine" }
+engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
+engine-v2 = { path = "../../../engine/crates/engine-v2" }
+grafbase-graphql-introspection = { path = "../graphql-introspection" }
+parser-sdl = { path = "../../../engine/crates/parser-sdl" }
 
 [lints]
 workspace = true
