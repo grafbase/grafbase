@@ -809,6 +809,41 @@ fn introspection_on_multiple_federation_subgraphs() {
     "###)
 }
 
+#[test]
+fn introspecting_with_grafbase_openapi_subgraph() {
+    let response = runtime().block_on(async move {
+        let engine_v1_schema = r#"
+            extend schema
+                @openapi(
+                    name: "petstore"
+                    namespace: false
+                    url: "http://example.com",
+                    schema: "http://example.com/petstore.json",
+                )
+        "#;
+
+        let engine_v1 = integration_tests::EngineBuilder::new(engine_v1_schema)
+            .with_openapi_schema(
+                "http://example.com/petstore.json",
+                include_str!("../openapi/petstore.json"),
+            )
+            .build()
+            .await;
+
+        let petstore_mock = MockGraphQlServer::new(engine_v1).await;
+
+        let engine = Engine::build()
+            .with_schema("github", &petstore_mock)
+            .await
+            .finish()
+            .await;
+
+        engine.execute(IntrospectionQuery::build(())).await
+    });
+
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()));
+}
+
 #[allow(clippy::panic)]
 fn introspection_to_sdl(data: serde_json::Value) -> String {
     serde_json::from_value::<IntrospectionQuery>(data)

@@ -5,6 +5,7 @@ use std::{collections::HashMap, future::IntoFuture, sync::Arc};
 
 use engine::{Request, RequestHeaders, Response, Schema, StreamingPayload, Variables};
 use futures::{future::BoxFuture, Stream, StreamExt};
+use serde::Deserialize;
 
 pub use self::builder::EngineBuilder;
 
@@ -163,5 +164,41 @@ where
             variables: Some(serde_json::from_value(serde_json::to_value(operation.variables).unwrap()).unwrap()),
             operation_name: operation.operation_name.map(|name| name.to_string()),
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl crate::mocks::graphql::Schema for Engine {
+    async fn execute(
+        &self,
+        headers: Vec<(String, String)>,
+        request: async_graphql::Request,
+    ) -> async_graphql::Response {
+        let operation = crate::engine::GraphQlRequest {
+            query: request.query,
+            operation_name: request.operation_name,
+            variables: Some(engine::Variables::deserialize(serde_json::to_value(request.variables).unwrap()).unwrap()),
+        };
+
+        let mut request = self.execute(operation);
+        for (name, value) in headers {
+            request = request.header(name, value);
+        }
+
+        let response = request.await;
+
+        // Not sure this will work but lets see
+        async_graphql::Response::deserialize(serde_json::to_value(response).unwrap()).unwrap()
+        // async_graphql::Response {
+        //     data: async_graphql::Value::from_json(response.data.to_json_value().unwrap()).unwrap(),
+        //     extensions: response.extensions,
+        //     cache_control: response.cache_control.into(),
+        //     errors: response.errors,
+        //     http_headers: response.http_headers,
+        // }
+    }
+
+    fn sdl(&self) -> String {
+        self.inner.schema.federation_sdl()
     }
 }
