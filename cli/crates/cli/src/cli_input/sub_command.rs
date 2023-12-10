@@ -39,19 +39,15 @@ pub enum SubCommand {
     /// Introspect a subgraph endpoint and print its schema
     Introspect(IntrospectCommand),
     /// List subgraphs
-    #[clap(hide = true)]
     Subgraphs(SubgraphsCommand),
     /// Fetch a federated graph or a subgraph
-    #[clap(hide = true)]
     Schema(SchemaCommand),
     /// Publish a subgraph to a federated graph
-    #[clap(hide = true)]
     Publish(PublishCommand),
     /// Dump the registry as JSON.
     #[clap(hide = true)]
     DumpConfig,
     /// Check a graph or a subgraph for validation, composition and breaking change errors.
-    #[clap(hide = true)]
     Check(CheckCommand),
 }
 
