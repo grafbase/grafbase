@@ -24,6 +24,7 @@ import { InputDefinition } from './typedefs/input'
 import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
 import { DynamoDBModel, ModelFields } from './connector/dynamodb/model'
 import { PostgresAPI, PartialPostgresAPI } from './connector/postgres'
+import { FederatedGraphHeaders } from './federated/headers'
 
 export type PartialDatasource =
   | PartialOpenAPI
@@ -507,9 +508,22 @@ export class Graph {
   }
 }
 
+export interface FederatedGraphInput {
+  headers?: (headers: FederatedGraphHeaders) => void
+}
+
 export class FederatedGraph {
+  private headers: FederatedGraphHeaders
+
+  public constructor(input?: FederatedGraphInput) {
+    this.headers = new FederatedGraphHeaders()
+    if (input?.headers) {
+      input.headers(this.headers)
+    }
+  }
+
   public toString(): string {
-    return `\nextend schema @graph(type: federated)\n`
+    return `\nextend schema\n  @graph(type: federated)${this.headers}\n`
   }
 }
 

@@ -1,4 +1,4 @@
-import { FederatedGraph, Graph } from './grafbase-schema'
+import { FederatedGraph, FederatedGraphInput, Graph } from './grafbase-schema'
 
 export interface StandaloneInput {
   subgraph: boolean
@@ -8,6 +8,6 @@ export interface StandaloneInput {
  * A builder for a Grafbase schema definition.
  */
 export const graph = {
-  Federated: () => new FederatedGraph(),
+  Federated: (input?: FederatedGraphInput) => new FederatedGraph(input),
   Standalone: (input?: StandaloneInput) => new Graph(Boolean(input?.subgraph))
 }
