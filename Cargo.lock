@@ -1981,7 +1981,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "engine-v2-config",
  "graphql-federated-graph",
@@ -2227,7 +2227,7 @@ dependencies = [
 
 [[package]]
 name = "federated-dev"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "async-graphql 6.0.10",
  "async-graphql-axum 6.0.10",
@@ -2541,7 +2541,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "async-graphql 6.0.10",
  "async-trait",
@@ -2667,7 +2667,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "async-graphql 5.0.10",
  "async-graphql-axum 5.0.10",
@@ -2736,7 +2736,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "apollo-encoder",
  "apollo-parser",
@@ -2749,7 +2749,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -2782,7 +2782,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "chrono",
  "common-types",
@@ -2798,7 +2798,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -4465,7 +4465,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -7521,7 +7521,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.48.2"
+version = "0.50.0"
 dependencies = [
  "datatest-stable",
  "engine-parser",
