@@ -550,3 +550,14 @@ pub(crate) async fn listen_to_federated_dev_events() {
 pub(crate) fn federated_schema_local_introspection_not_implemented() {
     eprintln!("⚠️ The introspected schema is empty. Introspecting federated graphs is not implemented yet.")
 }
+
+pub(crate) fn publish_command_composition_failure(messages: &[String]) {
+    watercolor::output!("🔴 Published with composition error(s).\n", @BrightRed);
+
+    if !messages.is_empty() {
+        watercolor::output!("Composition errors:", @BrightRed);
+        for error in messages {
+            watercolor::output!("- {error}", @BrightRed);
+        }
+    }
+}

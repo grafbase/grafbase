@@ -186,9 +186,15 @@ pub struct PublishSuccess {
     pub __typename: String,
 }
 
+#[derive(cynic::QueryFragment, Debug)]
+pub struct FederatedGraphCompositionError {
+    pub messages: Vec<String>,
+}
+
 #[derive(cynic::InlineFragments, Debug)]
 pub enum PublishPayload {
     PublishSuccess(PublishSuccess),
+    FederatedGraphCompositionError(FederatedGraphCompositionError),
     #[cynic(fallback)]
     Unknown(String),
 }
