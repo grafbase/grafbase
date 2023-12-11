@@ -440,13 +440,13 @@ pub(crate) fn check_errors<'a>(
     }
 }
 
-pub(crate) fn subgraphs_command_success<'a>(subgraphs: impl ExactSizeIterator<Item = &'a str>) {
+pub(crate) fn subgraphs_command_success<'a>(branch_name: &str, subgraphs: impl ExactSizeIterator<Item = &'a str>) {
     if subgraphs.len() == 0 {
-        println!("🈳 There are no published subgraphs in this branch\n");
+        println!("🈳 There are no published subgraphs in the {branch_name} branch\n");
         return;
     }
 
-    println!("Subgraphs:\n");
+    println!("Subgraphs in branch \"{branch_name}\":\n");
 
     for name in subgraphs {
         println!("-  {name}");
