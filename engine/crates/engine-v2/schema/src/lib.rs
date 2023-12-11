@@ -45,6 +45,11 @@ pub struct Schema {
     types: Vec<Type>,
     // All definitions sorted by their name (actual string)
     definitions: Vec<Definition>,
+
+    /// Headers we might want to send to a subgraph
+    headers: Vec<SubgraphHeader>,
+
+    default_headers: Vec<HeaderId>,
 }
 
 #[derive(Default)]
@@ -450,4 +455,16 @@ impl Schema {
     pub fn walker_with<'a>(&'a self, names: &'a dyn Names) -> SchemaWalker<'a, ()> {
         SchemaWalker::new((), self, names)
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct SubgraphHeader {
+    pub name: StringId,
+    pub value: SubgraphHeaderValue,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum SubgraphHeaderValue {
+    Forward(StringId),
+    Static(StringId),
 }

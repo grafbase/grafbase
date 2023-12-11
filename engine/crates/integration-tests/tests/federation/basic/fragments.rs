@@ -6,7 +6,7 @@ fn named_fragment_on_object() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
 
         engine
             .execute(
@@ -64,7 +64,7 @@ fn inline_fragment_on_object() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
 
         engine
             .execute(
@@ -109,7 +109,7 @@ fn inline_fragment_on_object_with_type_condition() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
 
         engine
             .execute(
@@ -165,7 +165,7 @@ fn inline_fragments_on_polymorphic_types() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
 
         engine
             .execute(
@@ -236,7 +236,7 @@ fn named_fragments_on_polymorphic_types() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
 
         engine
             .execute(

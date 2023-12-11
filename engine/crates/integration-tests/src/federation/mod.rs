@@ -53,7 +53,9 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
     fn into_future(self) -> Self::IntoFuture {
         let request = self.graphql.into_engine_request();
 
-        Box::pin(async move { GraphqlResponse(serde_json::to_value(self.engine.execute(request).await).unwrap()) })
+        Box::pin(async move {
+            GraphqlResponse(serde_json::to_value(self.engine.execute(request, (&self.headers).into()).await).unwrap())
+        })
     }
 }
 

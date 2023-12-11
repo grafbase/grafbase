@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use engine::RequestHeaders;
 use schema::Schema;
 
 use crate::{
@@ -27,11 +28,11 @@ impl Engine {
         }
     }
 
-    pub async fn execute(&self, request: engine::Request) -> Response {
+    pub async fn execute(&self, request: engine::Request, headers: RequestHeaders) -> Response {
         match self.prepare(&request).await {
             Ok(operation) => match Variables::from_request(&operation, self.schema.as_ref(), request.variables) {
                 Ok(variables) => {
-                    let mut executor = ExecutorCoordinator::new(self, &operation, &variables);
+                    let mut executor = ExecutorCoordinator::new(self, &operation, &variables, &headers);
                     executor.execute().await;
                     executor.into_response()
                 }

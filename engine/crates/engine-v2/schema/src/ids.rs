@@ -2,7 +2,8 @@
 /// They can only be created by From<usize>
 use crate::{
     sources::federation::{DataSource as FederationMetadata, Subgraph},
-    Definition, Enum, Field, InputObject, InputValue, Interface, Object, Resolver, Scalar, Schema, Type, Union,
+    Definition, Enum, Field, InputObject, InputValue, Interface, Object, Resolver, Scalar, Schema, SubgraphHeader,
+    Type, Union,
 };
 
 macro_rules! id_newtypes {
@@ -54,5 +55,6 @@ id_newtypes! {
     Schema.resolvers[ResolverId] => Resolver,
     Schema.definitions[DefinitionId] => Definition,
     Schema.input_values[InputValueId] => InputValue,
+    Schema.headers[HeaderId] => SubgraphHeader,
     FederationMetadata.subgraphs[SubgraphId] => Subgraph,
 }

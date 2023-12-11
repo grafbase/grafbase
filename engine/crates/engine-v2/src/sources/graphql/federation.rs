@@ -1,5 +1,5 @@
 use runtime::fetch::FetchRequest;
-use schema::sources::federation::{EntityResolverWalker, SubgraphWalker};
+use schema::sources::federation::{EntityResolverWalker, SubgraphHeaderValueRef, SubgraphWalker};
 use serde::de::DeserializeSeed;
 
 use crate::{
@@ -65,6 +65,19 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
             .post(FetchRequest {
                 url: self.subgraph.url(),
                 json_body: self.json_body,
+                headers: self
+                    .subgraph
+                    .headers()
+                    .filter_map(|header| {
+                        Some((
+                            header.name(),
+                            match header.value() {
+                                SubgraphHeaderValueRef::Forward(name) => self.ctx.header(name)?,
+                                SubgraphHeaderValueRef::Static(value) => value,
+                            },
+                        ))
+                    })
+                    .collect(),
             })
             .await?
             .bytes;

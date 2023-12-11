@@ -1,4 +1,5 @@
 use async_runtime::make_send_on_wasm;
+use engine::RequestHeaders;
 use futures_util::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 
 use crate::{
@@ -16,16 +17,23 @@ pub struct ExecutorCoordinator<'ctx> {
     planner: Planner<'ctx>,
     response: ResponseBuilder,
     variables: &'ctx Variables<'ctx>,
+    request_headers: &'ctx RequestHeaders,
 }
 
 impl<'ctx> ExecutorCoordinator<'ctx> {
-    pub fn new(engine: &'ctx Engine, operation: &'ctx Operation, variables: &'ctx Variables<'ctx>) -> Self {
+    pub fn new(
+        engine: &'ctx Engine,
+        operation: &'ctx Operation,
+        variables: &'ctx Variables<'ctx>,
+        request_headers: &'ctx RequestHeaders,
+    ) -> Self {
         Self {
             engine,
             operation,
             planner: Planner::new(&engine.schema, operation),
             response: ResponseBuilder::new(operation),
             variables,
+            request_headers,
         }
     }
 
@@ -90,6 +98,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                                     engine: self.engine,
                                     variables: self.variables,
                                     walker: self.operation.walker_with(schema, ()),
+                                    request_headers: self.request_headers,
                                 },
                                 boundary_objects_view: self.response.read(schema, plan.input),
                                 plan_id: plan.id,

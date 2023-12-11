@@ -4,6 +4,7 @@
 //! that our engine supports all the things a normal GraphQL server should.
 
 mod fragments;
+mod headers;
 mod scalars;
 mod variables;
 
@@ -15,7 +16,7 @@ fn single_field_from_single_server() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
 
         engine.execute("query { serverVersion }").await
     });
@@ -34,7 +35,7 @@ fn top_level_typename() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
 
         engine.execute("query { __typename }").await
     });
@@ -53,7 +54,7 @@ fn response_with_lists() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish();
+        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
 
         engine.execute("query { allBotPullRequests { title } }").await
     });

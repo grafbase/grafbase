@@ -1,3 +1,4 @@
+use engine::RequestHeaders;
 use schema::SchemaWalker;
 
 use super::Variables;
@@ -14,6 +15,7 @@ pub(crate) struct ExecutionContext<'ctx> {
     pub engine: &'ctx Engine,
     pub walker: OperationWalker<'ctx>,
     pub(super) variables: &'ctx Variables<'ctx>,
+    pub(super) request_headers: &'ctx RequestHeaders,
 }
 
 impl<'ctx> ExecutionContext<'ctx> {
@@ -55,5 +57,9 @@ impl<'ctx> ExecutionContext<'ctx> {
             boundary_item,
             &output.expectation,
         )
+    }
+
+    pub fn header(&self, name: &str) -> Option<&'ctx str> {
+        self.request_headers.find(name)
     }
 }

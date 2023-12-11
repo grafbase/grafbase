@@ -1,3 +1,4 @@
+use reqwest::header::HeaderValue;
 use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, Fetcher, FetcherInner};
 
 pub struct NativeFetcher {
@@ -20,6 +21,13 @@ impl FetcherInner for NativeFetcher {
             .post(request.url)
             .body(request.json_body)
             .header("Content-Type", "application/json")
+            .headers(
+                request
+                    .headers
+                    .iter()
+                    .filter_map(|(name, value)| Some((name.parse().ok()?, HeaderValue::from_str(value).ok()?)))
+                    .collect(),
+            )
             .send()
             .await
             .map_err(|e| FetchError::AnyError(e.to_string()))?;

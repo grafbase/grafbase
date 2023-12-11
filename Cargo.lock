@@ -3519,6 +3519,7 @@ dependencies = [
  "cynic-introspection",
  "dynamodb",
  "engine",
+ "engine-config-builder",
  "engine-parser",
  "engine-v2",
  "expect-test",
