@@ -14,6 +14,7 @@ use engine::{
 };
 use engine_parser::{types::ServiceDocument, Error as ParserError};
 use rules::{
+    all_subgraphs_directive::{AllSubgraphsDirective, AllSubgraphsDirectiveVisitor},
     auth_directive::AuthDirective,
     basic_type::BasicType,
     check_field_lowercase::CheckFieldCamelCase,
@@ -162,7 +163,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<InaccessibleDirective>()
         .with::<TagDirective>()
         .with::<ExtendFieldDirective>()
-        .with::<SubgraphDirective>();
+        .with::<SubgraphDirective>()
+        .with::<AllSubgraphsDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -358,7 +360,8 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(ExperimentalDirectiveVisitor)
         .with(FederationDirectiveVisitor) // This will likely need moved.  Here'll do for now though
         .with(ExtendFieldVisitor)
-        .with(SubgraphDirectiveVisitor);
+        .with(SubgraphDirectiveVisitor)
+        .with(AllSubgraphsDirectiveVisitor);
 
     visit(&mut rules, ctx, schema);
 }
