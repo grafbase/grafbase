@@ -4,10 +4,10 @@ use serde::{de::DeserializeSeed, Deserializer};
 
 use super::{
     deserialize::{SeedContext, UpdateSeed},
-    ExecutorOutput, ExpectedSelectionSetWriter, GroupedFieldWriter,
+    ExecutorOutput, ExpectedObjectFieldsWriter, GroupedFieldWriter,
 };
 use crate::{
-    plan::ExpectedSelectionSet,
+    plan::PlanOutput,
     request::PlanWalker,
     response::{GraphqlError, ResponseBoundaryItem, ResponseValue},
 };
@@ -37,33 +37,34 @@ pub type WriteResult<T> = Result<T, WriteError>;
 pub(crate) struct ResponseObjectWriter<'a> {
     walker: PlanWalker<'a>,
     data: &'a mut ExecutorOutput,
+    output: &'a PlanOutput,
     boundary_item: &'a ResponseBoundaryItem,
-    expectation: &'a ExpectedSelectionSet,
 }
 
 impl<'a> ResponseObjectWriter<'a> {
     pub fn new(
         walker: PlanWalker<'a>,
         data: &'a mut ExecutorOutput,
+        output: &'a PlanOutput,
         boundary_item: &'a ResponseBoundaryItem,
-        expectation: &'a ExpectedSelectionSet,
     ) -> Self {
         Self {
             walker,
             data,
+            output,
             boundary_item,
-            expectation,
         }
     }
 
     pub fn update_with(self, f: impl Fn(GroupedFieldWriter<'_>) -> WriteResult<ResponseValue>) {
-        let writer = ExpectedSelectionSetWriter {
+        let mut writer = ExpectedObjectFieldsWriter {
             walker: self.walker,
             data: self.data,
             path: &self.boundary_item.response_path,
-            selection_set: self.expectation,
+            object_id: self.boundary_item.object_id,
+            selection_set: &self.output.expectations.root_selection_set,
         };
-        match writer.write_fields(self.boundary_item.object_id, f) {
+        match writer.write_fields(f) {
             Ok(fields) => {
                 self.data.push_update(super::ResponseObjectUpdate {
                     id: self.boundary_item.response_object_id,
@@ -100,9 +101,11 @@ impl<'de, 'ctx> DeserializeSeed<'de> for ResponseObjectWriter<'ctx> {
                 walker: self.walker,
                 data: RefCell::new(self.data),
                 propagating_error: AtomicBool::new(false),
+                expectations: &self.output.expectations,
+                attribution: &self.output.attribution,
             },
             boundary_item: self.boundary_item,
-            expected: self.expectation,
+            expected: &self.output.expectations.root_selection_set,
         }
         .deserialize(deserializer)
     }

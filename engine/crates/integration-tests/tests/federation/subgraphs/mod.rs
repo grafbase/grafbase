@@ -58,6 +58,14 @@ fn root_fields_from_different_subgraphs() {
           {
             "name": "Boater",
             "price": 33
+          },
+          {
+            "name": "Jeans",
+            "price": 44
+          },
+          {
+            "name": "Pink Jeans",
+            "price": 55
           }
         ]
       }
@@ -120,6 +128,14 @@ fn root_fragment_on_different_subgraphs() {
           {
             "name": "Boater",
             "price": 33
+          },
+          {
+            "name": "Jeans",
+            "price": 44
+          },
+          {
+            "name": "Pink Jeans",
+            "price": 55
           }
         ]
       }

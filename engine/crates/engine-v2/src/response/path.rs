@@ -1,40 +1,95 @@
-// There isn't a lot of margin, but paying the cost of 4 additional bytes for every feels a bit
-// excessive and the numbers are still huge for any sane query. So let's try. Easy to change
-// otherwise.
-// We support at most 32_768 different response key strings
-const STRING_ID_MASK: u32 = 0b0000_0000_0000_0000_0111_1111_1111_1111;
-const POSITION_BIT_SHIFT: u32 = STRING_ID_MASK.trailing_ones();
-// We support at most 65_535 different bound fields (after spreading fragments).
-// The last one is reserved for internal fields (inputs not present in the query) leaving them at
-// the end of the response fields which is ordered by the bound response key. We don't really care
-// about their ordering and having the same response key (string part) is all that actually
-// matters.
+use schema::FieldId;
+
+/// ResponseEdge is a single u32 with all the information bitpacked to have an effecient key
+/// for the BTreeMap storing fields. It structured as follows:
+///
+///  0000_0000_0000_0000_0000_0000_0000_0000
+///  ↑
+///  BoundResponseKey flag
+///
+///  0 -> BoundResponseKey
+///
+///     ↓ Position (max 65_536) in the query, ensuring proper ordering of the response fields
+///   ┌──────────────────┐
+///  0000_0000_0000_0000_0000_0000_0000_0000
+///                       └────────────────┘
+///                         ↑ ResponseKey (max 32_768), interned string id of the response key
+///  1 -> Other
+///
+///     0000_0000_0000_0000_0000_0000_0000_0000
+///      ↑
+///      Extra/Index flag
+///
+///      0 -> Extra
+///
+///     1000_0000_0000_0000_0000_0000_0000_0000
+///       └───────────────────────────────────┘
+///         ↑ FieldId
+///
+///      1 -> Index
+///
+///     1100_0000_0000_0000_0000_0000_0000_0000
+///       └───────────────────────────────────┘
+///         ↑ Index (within a list)
+///
+/// The GraphQL spec requires that fields are orderd in the same order as the query. To keep track
+/// of it, we bitpack the query position of each field with its ResponseKey (interned string id).
+/// The Response stores all object fields in a BTreeMap, and with the position at the front, we
+/// ensure proper order by iterating over the BTreeMap in order.
+///
+/// Additionally to BoundResponseKeys there are two other kinds of edges:
+/// - extra fields: Fields added during the planning because a child plan required them. As they
+///                 don't exist in the query they must not be send back. So we put them at the end,
+///                 after any possible BoundResponseKey. We use the FieldId for the rest of the
+///                 value to ensure its uniqueness and have a simpler field collection when merging
+///                 selection sets.
+/// - indices: Only used in ResponsePath to for errors. As the path is copied a lot bitpacking it
+///            is a nice bonus.
+///
+/// Due to bitpacking we have the following constraints on the Query:
+/// - At most 65_536 bound fields (after spreading named fragments)
+/// - At most 32_768 different response keys
+/// Which I consider to be a decent enough margin for any sane query. At worst we'll increase it if
+/// really necessary.
+const RESPONSE_KEY_MASK: u32 = 0b0000_0000_0000_0000_0111_1111_1111_1111;
 const POSITION_MASK: u32 = 0b0111_1111_1111_1111_1000_0000_0000_0000;
-// Using a single bit to differentiate between an index and a key
-const INDEX_FLAG: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
-const MAX_POSITION: u32 = (1 << 16) - 1;
+const POSITION_BIT_SHIFT: u32 = RESPONSE_KEY_MASK.trailing_ones();
+const MAX_POSITION: u32 = (1 << (POSITION_MASK.count_ones() + 1)) - 1;
+const OTHER_FLAG: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
+const EXTRA_FIELD_FLAG: u32 = OTHER_FLAG;
+const INDEX_FLAG: u32 = OTHER_FLAG | 0b0100_0000_0000_0000_0000_0000_0000_0000;
+const OTHER_DATA_MASK: u32 = 0b0011_1111_1111_1111_1111_1111_1111_1111;
 
 #[derive(Default, Debug, Clone)]
-pub struct ResponsePath(im::Vector<ResponsePathSegment>);
+pub struct ResponsePath(im::Vector<ResponseEdge>);
 
-#[derive(Debug, Clone, Copy)]
-pub struct ResponsePathSegment(u32);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ResponseEdge(u32);
 
-impl ResponsePathSegment {
-    pub fn try_into_bound_response_key(self) -> Result<BoundResponseKey, usize> {
-        if self.0 & INDEX_FLAG == INDEX_FLAG {
-            // 1-indexed
-            // https://spec.graphql.org/October2021/#sec-Errors.Error-result-format
-            let n = (self.0 & !INDEX_FLAG) + 1;
-            Err(n as usize)
+pub enum UnpackedResponseEdge {
+    Index(usize),
+    BoundResponseKey(BoundResponseKey),
+    ExtraField(FieldId),
+}
+
+impl ResponseEdge {
+    pub fn unpack(self) -> UnpackedResponseEdge {
+        if self.0 & OTHER_FLAG == 0 {
+            UnpackedResponseEdge::BoundResponseKey(BoundResponseKey(self.0 & !OTHER_FLAG))
+        } else if self.0 & !OTHER_DATA_MASK == INDEX_FLAG {
+            UnpackedResponseEdge::Index((self.0 & OTHER_DATA_MASK) as usize)
         } else {
-            Ok(BoundResponseKey(self.0))
+            UnpackedResponseEdge::ExtraField(FieldId::from((self.0 & OTHER_DATA_MASK) as usize))
         }
+    }
+
+    pub fn is_extra(&self) -> bool {
+        self.0 & !OTHER_DATA_MASK == EXTRA_FIELD_FLAG
     }
 }
 
 impl ResponsePath {
-    pub fn child(&self, segment: impl Into<ResponsePathSegment>) -> ResponsePath {
+    pub fn child(&self, segment: impl Into<ResponseEdge>) -> ResponsePath {
         let mut path = self.0.clone();
         path.push_back(segment.into());
         ResponsePath(path)
@@ -44,20 +99,31 @@ impl ResponsePath {
         self.0.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &ResponsePathSegment> {
+    pub fn iter(&self) -> impl Iterator<Item = &ResponseEdge> {
         self.0.iter()
     }
 }
 
-impl From<BoundResponseKey> for ResponsePathSegment {
+impl From<BoundResponseKey> for ResponseEdge {
     fn from(value: BoundResponseKey) -> Self {
-        ResponsePathSegment(value.0)
+        ResponseEdge(value.0)
     }
 }
 
-impl From<usize> for ResponsePathSegment {
-    fn from(value: usize) -> Self {
-        ResponsePathSegment((value as u32) | INDEX_FLAG)
+impl From<usize> for ResponseEdge {
+    #[allow(clippy::panic)]
+    fn from(index: usize) -> Self {
+        let index = index as u32;
+        if index > OTHER_DATA_MASK {
+            panic!("Index is too high.");
+        }
+        ResponseEdge(index | INDEX_FLAG)
+    }
+}
+
+impl From<FieldId> for ResponseEdge {
+    fn from(field_id: FieldId) -> Self {
+        ResponseEdge((u32::from(field_id) & OTHER_DATA_MASK) | EXTRA_FIELD_FLAG)
     }
 }
 
@@ -74,21 +140,17 @@ impl ResponseKeys {
     pub fn get_or_intern(&mut self, s: &str) -> ResponseKey {
         self.0.get_or_intern(s)
     }
+
+    pub fn contains(&self, s: &str) -> bool {
+        self.0.contains(s)
+    }
 }
 
 impl std::ops::Index<ResponseKey> for ResponseKeys {
     type Output = str;
 
-    fn index(&self, index: ResponseKey) -> &Self::Output {
-        &self.0[index]
-    }
-}
-
-impl std::ops::Index<BoundResponseKey> for ResponseKeys {
-    type Output = str;
-
-    fn index(&self, index: BoundResponseKey) -> &Self::Output {
-        &self.0[ResponseKey(index.0 & STRING_ID_MASK)]
+    fn index(&self, key: ResponseKey) -> &Self::Output {
+        &self.0[key]
     }
 }
 
@@ -113,7 +175,7 @@ pub struct BoundResponseKey(u32);
 impl std::fmt::Debug for BoundResponseKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let position = (self.0 & POSITION_MASK) >> POSITION_BIT_SHIFT;
-        let key = self.0 & STRING_ID_MASK;
+        let key = self.0 & RESPONSE_KEY_MASK;
         f.debug_struct("BoundResponseKey")
             .field("position", &position)
             .field("key", &key)
@@ -121,21 +183,15 @@ impl std::fmt::Debug for BoundResponseKey {
     }
 }
 
-impl BoundResponseKey {
-    pub fn is_internal(self) -> bool {
-        self.0 & POSITION_MASK == POSITION_MASK
-    }
-}
-
 impl From<BoundResponseKey> for ResponseKey {
     fn from(key: BoundResponseKey) -> Self {
-        ResponseKey(key.0 & STRING_ID_MASK)
+        ResponseKey(key.0 & RESPONSE_KEY_MASK)
     }
 }
 
 impl From<&BoundResponseKey> for ResponseKey {
     fn from(key: &BoundResponseKey) -> Self {
-        ResponseKey(key.0 & STRING_ID_MASK)
+        ResponseKey(key.0 & RESPONSE_KEY_MASK)
     }
 }
 
@@ -146,7 +202,7 @@ unsafe impl lasso::Key for ResponseKey {
 
     fn try_from_usize(id: usize) -> Option<Self> {
         let id = u32::try_from(id).ok()?;
-        if id <= STRING_ID_MASK {
+        if id <= RESPONSE_KEY_MASK {
             Some(Self(id))
         } else {
             None
@@ -165,13 +221,13 @@ mod tests {
         let key = ResponseKey::try_from_usize(0).unwrap();
         assert_eq!(key.into_usize(), 0);
 
-        let key = ResponseKey::try_from_usize(STRING_ID_MASK as usize).unwrap();
-        assert_eq!(key.into_usize(), (STRING_ID_MASK as usize));
+        let key = ResponseKey::try_from_usize(RESPONSE_KEY_MASK as usize).unwrap();
+        assert_eq!(key.into_usize(), (RESPONSE_KEY_MASK as usize));
     }
 
     #[test]
     fn field_name_value_out_of_range() {
-        let key = ResponseKey::try_from_usize((STRING_ID_MASK + 1) as usize);
+        let key = ResponseKey::try_from_usize((RESPONSE_KEY_MASK + 1) as usize);
         assert!(key.is_none());
 
         let key = ResponseKey::try_from_usize(u32::max_value() as usize);

@@ -8,7 +8,7 @@ use super::{
     StringSeed,
 };
 use crate::{
-    plan::ExpectedType,
+    plan::ConcreteType,
     request::BoundAnyFieldDefinitionId,
     response::{GraphqlError, ResponsePath, ResponseValue},
 };
@@ -16,8 +16,8 @@ use crate::{
 pub(super) struct FieldSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
     pub path: ResponsePath,
-    pub definition_id: BoundAnyFieldDefinitionId,
-    pub expected_type: &'parent ExpectedType,
+    pub definition_id: Option<BoundAnyFieldDefinitionId>,
+    pub expected_type: &'parent ConcreteType,
     pub wrapping: Wrapping,
 }
 
@@ -75,10 +75,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             }
         } else if self.wrapping.inner_is_required {
             match self.expected_type {
-                ExpectedType::TypeName => {
-                    unreachable!("Not added through a seed field, added at the object seed directly.")
-                }
-                ExpectedType::Scalar(data_type) => match data_type {
+                ConcreteType::Scalar(data_type) => match data_type {
                     DataType::String => StringSeed.deserialize(deserializer),
                     DataType::Float => FloatSeed.deserialize(deserializer),
                     DataType::Int => IntSeed.deserialize(deserializer),
@@ -86,19 +83,17 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                     DataType::JSON => JSONSeed.deserialize(deserializer),
                     DataType::Boolean => BooleanSeed.deserialize(deserializer),
                 },
-                ExpectedType::Object(selection_set) => SelectionSetSeed {
+                ConcreteType::SelectionSet(expected) => SelectionSetSeed {
                     ctx: self.ctx,
                     path: &self.path,
-                    expected: selection_set.as_ref(),
+                    expected,
                 }
                 .deserialize(deserializer),
+                ConcreteType::ExtraSelectionSet(_) => todo!(),
             }
         } else {
             match self.expected_type {
-                ExpectedType::TypeName => {
-                    unreachable!("Not added through a seed field, added at the object seed directly.")
-                }
-                ExpectedType::Scalar(data_type) => match data_type {
+                ConcreteType::Scalar(data_type) => match data_type {
                     DataType::String => deserialize_nullable_scalar!(self, StringSeed, deserializer),
                     DataType::Float => deserialize_nullable_scalar!(self, FloatSeed, deserializer),
                     DataType::Int => deserialize_nullable_scalar!(self, IntSeed, deserializer),
@@ -106,24 +101,29 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                     DataType::JSON => deserialize_nullable_scalar!(self, JSONSeed, deserializer),
                     DataType::Boolean => deserialize_nullable_scalar!(self, BooleanSeed, deserializer),
                 },
-                ExpectedType::Object(selection_set) => NullableSeed {
+                ConcreteType::SelectionSet(expected) => NullableSeed {
                     definition_id: self.definition_id,
                     path: &self.path,
                     ctx: self.ctx,
                     seed: SelectionSetSeed {
                         ctx: self.ctx,
                         path: &self.path,
-                        expected: selection_set.as_ref(),
+                        expected,
                     },
                 }
                 .deserialize(deserializer),
+                ConcreteType::ExtraSelectionSet(_) => todo!(),
             }
         };
         result.map_err(move |err| {
             if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
                 self.ctx.data.borrow_mut().push_error(GraphqlError {
                     message: err.to_string(),
-                    locations: vec![self.ctx.walker.walk(self.definition_id).name_location()],
+                    locations: self
+                        .definition_id
+                        .map(|id| self.ctx.walker.walk(id).name_location())
+                        .into_iter()
+                        .collect(),
                     path: Some(self.path.clone()),
                     extensions: HashMap::with_capacity(0),
                 });

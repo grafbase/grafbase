@@ -1,7 +1,7 @@
-use schema::{Definition, InterfaceId, ObjectId, ResolverId};
+use schema::ResolverId;
 
 use crate::{
-    request::{BoundFieldId, FlatTypeCondition, QueryPath, SelectionSetType},
+    request::{BoundFieldId, EntityType, FlatSelectionSet, FlatTypeCondition, QueryPath, SelectionSetType},
     response::{ReadSelectionSet, ResponseBoundaryItem},
 };
 
@@ -10,7 +10,7 @@ mod expectation;
 mod ids;
 mod planner;
 
-pub use attribution::Attribution;
+pub use attribution::*;
 pub use expectation::*;
 pub use ids::*;
 pub use planner::Planner;
@@ -38,11 +38,11 @@ pub struct PlanInput {
 pub struct PlanOutput {
     pub entity_type: EntityType,
     /// Part of the selection set the plan is responsible for.
-    pub fields: Vec<BoundFieldId>,
+    pub root_fields: Vec<BoundFieldId>,
     /// Attribution is necessary to filter the nested selection sets.
     pub attribution: Attribution,
     /// Expectation of the actual output data.
-    pub expectation: ExpectedSelectionSet,
+    pub expectations: Expectations,
 }
 
 #[derive(Debug)]
@@ -54,27 +54,11 @@ pub struct PlanBoundary {
     pub children: Vec<ChildPlan>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum EntityType {
-    Interface(InterfaceId),
-    Object(ObjectId),
-}
-
-impl From<EntityType> for Definition {
-    fn from(value: EntityType) -> Self {
-        match value {
-            EntityType::Interface(id) => Definition::Interface(id),
-            EntityType::Object(id) => Definition::Object(id),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct ChildPlan {
     pub id: PlanId,
     pub path: QueryPath,
-    pub entity_type: EntityType,
     pub resolver_id: ResolverId,
     pub input_selection_set: ReadSelectionSet,
-    pub bound_field_ids: Vec<BoundFieldId>,
+    pub providable: FlatSelectionSet<EntityType>,
 }

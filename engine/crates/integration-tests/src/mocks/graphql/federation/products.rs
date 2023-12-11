@@ -21,6 +21,16 @@ impl FakeFederationProductsSchema {
                 name: "Boater".to_string(),
                 price: 33,
             },
+            Product {
+                upc: "top-4".to_string(),
+                name: "Jeans".to_string(),
+                price: 44,
+            },
+            Product {
+                upc: "top-5".to_string(),
+                name: "Pink Jeans".to_string(),
+                price: 55,
+            },
         ];
         Schema::build(Query, EmptyMutation, EmptySubscription)
             .enable_federation()

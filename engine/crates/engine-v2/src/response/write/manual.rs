@@ -4,10 +4,10 @@ use schema::{DataType, ListWrapping, ObjectId, StringId, Wrapping};
 
 use super::{ExecutorOutput, ResponseObjectId, WriteResult};
 use crate::{
-    plan::{ExpectedGoupedField, ExpectedGroupedFields, ExpectedSelectionSet, ExpectedType, PlanBoundaryId},
+    plan::{CollectedSelectionSet, ConcreteType, ExpectedSelectionSet},
     request::{PlanFieldDefinition, PlanWalker, SelectionSetType},
     response::{
-        BoundResponseKey, GraphqlError, ResponseBoundaryItem, ResponseObject, ResponsePath, ResponseValue, WriteError,
+        GraphqlError, ResponseBoundaryItem, ResponseEdge, ResponseObject, ResponsePath, ResponseValue, WriteError,
     },
 };
 
@@ -21,61 +21,28 @@ pub struct ExpectedSelectionSetWriter<'a> {
 impl<'a> ExpectedSelectionSetWriter<'a> {
     #[allow(clippy::panic)]
     pub fn expect_known_object(self) -> ExpectedObjectFieldsWriter<'a> {
-        match self.selection_set {
-            ExpectedSelectionSet::Grouped(ExpectedGroupedFields {
-                maybe_boundary_id,
-                ty: SelectionSetType::Object(object_id),
-                fields,
-                typename_fields,
-            }) => ExpectedObjectFieldsWriter {
-                maybe_boundary_id: *maybe_boundary_id,
-                walker: self.walker,
-                data: self.data,
-                path: self.path,
-                object_id: *object_id,
-                fields,
-                typename_fields,
-            },
-            _ => panic!("Selection set wasn't a known object."),
-        }
-    }
-
-    pub(super) fn write_fields(
-        self,
-        object_id: ObjectId,
-        f: impl Fn(GroupedFieldWriter<'_>) -> WriteResult<ResponseValue>,
-    ) -> WriteResult<BTreeMap<BoundResponseKey, ResponseValue>> {
-        match self.selection_set {
-            ExpectedSelectionSet::Grouped(ExpectedGroupedFields {
-                maybe_boundary_id,
-                fields,
-                typename_fields,
-                ..
-            }) => ExpectedObjectFieldsWriter {
-                maybe_boundary_id: *maybe_boundary_id,
-                walker: self.walker,
-                data: self.data,
-                path: self.path,
-                object_id,
-                fields,
-                typename_fields,
-            }
-            .write_fields(f),
-            ExpectedSelectionSet::Arbitrary(_arbitrary) => {
-                todo!()
+        // quite ugly...
+        if let ExpectedSelectionSet::Collected(selection_set) = self.selection_set {
+            if let SelectionSetType::Object(object_id) = selection_set.ty {
+                return ExpectedObjectFieldsWriter {
+                    walker: self.walker,
+                    data: self.data,
+                    path: self.path,
+                    object_id,
+                    selection_set,
+                };
             }
         }
+        panic!("Selection set wasn't a known object.")
     }
 }
 
 pub struct ExpectedObjectFieldsWriter<'a> {
-    maybe_boundary_id: Option<PlanBoundaryId>,
-    walker: PlanWalker<'a>,
-    data: &'a mut ExecutorOutput,
-    path: &'a ResponsePath,
-    object_id: ObjectId,
-    fields: &'a Vec<ExpectedGoupedField>,
-    typename_fields: &'a Vec<BoundResponseKey>,
+    pub(super) walker: PlanWalker<'a>,
+    pub(super) data: &'a mut ExecutorOutput,
+    pub(super) path: &'a ResponsePath,
+    pub(super) object_id: ObjectId,
+    pub(super) selection_set: &'a CollectedSelectionSet,
 }
 
 impl<'a> ExpectedObjectFieldsWriter<'a> {
@@ -88,8 +55,8 @@ impl<'a> ExpectedObjectFieldsWriter<'a> {
             fields: self.write_fields(f)?,
         };
         let id = self.data.push_object(object);
-        if let Some(boundary_id) = self.maybe_boundary_id {
-            self.data[boundary_id].push(ResponseBoundaryItem {
+        for boundary_id in &self.selection_set.boundary_ids {
+            self.data[*boundary_id].push(ResponseBoundaryItem {
                 response_object_id: id,
                 response_path: self.path.clone(),
                 object_id: self.object_id,
@@ -98,34 +65,45 @@ impl<'a> ExpectedObjectFieldsWriter<'a> {
         Ok(id)
     }
 
-    fn write_fields(
+    pub(super) fn write_fields(
         &mut self,
         f: impl Fn(GroupedFieldWriter<'_>) -> WriteResult<ResponseValue>,
-    ) -> WriteResult<BTreeMap<BoundResponseKey, ResponseValue>> {
-        let typename_fields = self.typename_fields.clone();
+    ) -> WriteResult<BTreeMap<ResponseEdge, ResponseValue>> {
         let typename = self.walker.schema()[self.object_id].name;
-        self.fields
+        self.selection_set
+            .fields
             .iter()
-            .map(move |grouped_field| {
-                let expected_field = self
-                    .walker
-                    .walk(grouped_field.definition_id)
-                    .as_field()
-                    .expect("meta fields aren't included in fields");
-                let wrapping = expected_field.ty().wrapping.clone();
-                let key = grouped_field.bound_response_key;
+            .map(|grouped_field| {
+                let expected_field = if let Some(definition_id) = grouped_field.definition_id {
+                    PlanFieldDefinition::Query(
+                        self.walker
+                            .walk(definition_id)
+                            .as_field()
+                            .expect("meta fields aren't included in self.fields"),
+                    )
+                } else {
+                    // Only used for introspection currently. Not sure whether all of this makes
+                    // sense or not.
+                    #[allow(unreachable_code)]
+                    PlanFieldDefinition::Extra {
+                        schema_field: todo!(),
+                        extra: todo!(),
+                    }
+                };
+
+                let edge = grouped_field.edge;
                 let writer = GroupedFieldWriter {
                     expected_field,
                     data: self.data,
-                    path: self.path.child(key),
+                    path: self.path.child(edge),
                     expected_type: &grouped_field.ty,
-                    wrapping,
+                    wrapping: grouped_field.wrapping.clone(),
                 };
-                f(writer).map(|value| (key, value))
+                f(writer).map(|value| (edge, value))
             })
-            .chain(typename_fields.into_iter().map(|bound_response_key| {
+            .chain(self.selection_set.typename_fields.iter().map(|edge| {
                 Ok((
-                    bound_response_key,
+                    *edge,
                     ResponseValue::StringId {
                         id: typename,
                         nullable: false,
@@ -140,7 +118,7 @@ pub struct GroupedFieldWriter<'a> {
     pub expected_field: PlanFieldDefinition<'a>,
     data: &'a mut ExecutorOutput,
     path: ResponsePath,
-    expected_type: &'a ExpectedType,
+    expected_type: &'a ConcreteType,
     wrapping: Wrapping,
 }
 
@@ -160,7 +138,7 @@ impl<'a> GroupedFieldWriter<'a> {
         if !self.wrapping.list_wrapping.is_empty() {
             return self.err("Expected a list, found a Boolean");
         }
-        if !matches!(self.expected_type, ExpectedType::Scalar(DataType::Boolean)) {
+        if !matches!(self.expected_type, ConcreteType::Scalar(DataType::Boolean)) {
             return self.err(format!("Expected a {}, found a Boolean", self.expected_type));
         }
         Ok(ResponseValue::Boolean {
@@ -173,7 +151,7 @@ impl<'a> GroupedFieldWriter<'a> {
         if !self.wrapping.list_wrapping.is_empty() {
             return self.err("Expected a list, found a String");
         }
-        if !matches!(self.expected_type, ExpectedType::Scalar(DataType::String)) {
+        if !matches!(self.expected_type, ConcreteType::Scalar(DataType::String)) {
             return self.err(format!("Expected a {}, found a String", self.expected_type));
         }
         Ok(ResponseValue::StringId {
@@ -203,9 +181,14 @@ impl<'a> GroupedFieldWriter<'a> {
         if !self.wrapping.list_wrapping.is_empty() {
             return self.err("Expected a list, found a String");
         }
-        if let ExpectedType::Object(selection_set) = &self.expected_type {
+        if let ConcreteType::SelectionSet(selection_set) = &self.expected_type {
+            let PlanFieldDefinition::Query(field) = &self.expected_field else {
+                unreachable!(
+                    "no extra fields in introspection for now... not sure any of this code makes sense in the end."
+                );
+            };
             let writer = ExpectedSelectionSetWriter {
-                walker: self.expected_field.walk_with((), ()),
+                walker: field.walk_with((), ()),
                 data: self.data,
                 path: &self.path,
                 selection_set,
@@ -273,7 +256,7 @@ impl<'a> GroupedFieldWriter<'a> {
                         if let WriteError::Any(err) = err {
                             self.data.push_error(GraphqlError {
                                 message: err.to_string(),
-                                locations: vec![self.expected_field.name_location()],
+                                locations: self.expected_field.name_location().into_iter().collect(),
                                 path: Some(self.path.clone()),
                                 extensions: HashMap::with_capacity(0),
                             });
@@ -297,7 +280,7 @@ impl<'a> GroupedFieldWriter<'a> {
     fn err(&mut self, message: impl Into<String>) -> WriteResult<ResponseValue> {
         self.data.push_error(GraphqlError {
             message: message.into(),
-            locations: vec![self.expected_field.name_location()],
+            locations: self.expected_field.name_location().into_iter().collect(),
             path: Some(self.path.clone()),
             extensions: HashMap::with_capacity(0),
         });

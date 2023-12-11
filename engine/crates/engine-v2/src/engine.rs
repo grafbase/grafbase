@@ -29,17 +29,17 @@ impl Engine {
     }
 
     pub async fn execute(&self, request: engine::Request, headers: RequestHeaders) -> Response {
-        match self.prepare(&request).await {
-            Ok(operation) => match Variables::from_request(&operation, self.schema.as_ref(), request.variables) {
-                Ok(variables) => {
-                    let mut executor = ExecutorCoordinator::new(self, &operation, &variables, &headers);
-                    executor.execute().await;
-                    executor.into_response()
-                }
-                Err(err) => Response::from_errors(err, ExecutionMetadata::build(&operation)),
-            },
-            Err(err) => Response::from_error(err, ExecutionMetadata::default()),
-        }
+        let operation = match self.prepare(&request).await {
+            Ok(operation) => operation,
+            Err(error) => return Response::from_error(error, ExecutionMetadata::default()),
+        };
+        let variables = match Variables::from_request(&operation, self.schema.as_ref(), request.variables) {
+            Ok(variables) => variables,
+            Err(errors) => return Response::from_errors(errors, ExecutionMetadata::build(&operation)),
+        };
+        let mut executor = ExecutorCoordinator::new(self, &operation, &variables, &headers);
+        executor.execute().await;
+        executor.into_response()
     }
 
     async fn prepare(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {

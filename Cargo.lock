@@ -2025,6 +2025,7 @@ dependencies = [
  "engine-v2-schema",
  "engine-value",
  "futures-util",
+ "hex",
  "im",
  "indexmap 2.0.0-pre",
  "itertools 0.11.0",

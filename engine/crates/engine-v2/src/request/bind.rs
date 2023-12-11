@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
@@ -141,7 +144,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
             fragment_definitions.sort_unstable_by_key(|(id, _)| *id);
             fragment_definitions.into_iter().map(|(_, def)| def).collect()
         },
-        response_keys: binder.response_keys,
+        response_keys: Arc::new(binder.response_keys),
         field_definitions: binder.field_definitions,
         fields: binder.fields,
         variable_definitions: binder.variable_definitions,

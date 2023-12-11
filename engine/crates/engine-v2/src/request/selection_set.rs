@@ -20,6 +20,17 @@ pub enum SelectionSetType {
     Union(UnionId),
 }
 
+impl SelectionSetType {
+    pub fn maybe_from(definition: Definition) -> Option<Self> {
+        match definition {
+            Definition::Object(id) => Some(SelectionSetType::Object(id)),
+            Definition::Interface(id) => Some(Self::Interface(id)),
+            Definition::Union(id) => Some(Self::Union(id)),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundSelection {
     Field(BoundFieldId),

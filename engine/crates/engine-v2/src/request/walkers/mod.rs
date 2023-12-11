@@ -1,19 +1,22 @@
 mod field;
 mod field_argument;
 mod field_definition;
-mod filter;
+mod flat;
 mod fragment;
 mod inline_fragment;
 mod plan;
 mod selection_set;
 mod variables;
 
-use std::collections::{HashSet, VecDeque};
+use std::{
+    borrow::Cow,
+    collections::{HashSet, VecDeque},
+};
 
 pub use field::*;
 pub use field_argument::*;
 pub use field_definition::*;
-use filter::PlanFilter;
+pub use flat::*;
 pub use fragment::*;
 pub use inline_fragment::*;
 pub use plan::*;
@@ -24,15 +27,20 @@ pub use variables::*;
 use crate::request::SelectionSetType;
 
 use super::{
-    BoundSelection, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatTypeCondition, Operation, TypeCondition,
+    BoundFieldId, BoundSelection, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatTypeCondition, Operation,
+    TypeCondition,
 };
 
 #[derive(Clone, Copy)]
 pub struct OperationWalker<'a, Walkable = (), SchemaId = (), Extension = ()> {
+    /// The operation MUST NOT be accessible directly in any form. Elans may have additional
+    /// internal fields which we can't add to the operation easily. It's shared during execution.
+    /// Those internal fields must present themselves like real proper operation fields for plan
+    /// which direct access to the Operation can't do obviously.
     pub(super) operation: &'a Operation,
-    pub(super) schema: SchemaWalker<'a, SchemaId>,
+    pub(super) schema_walker: SchemaWalker<'a, SchemaId>,
     pub(super) ext: Extension,
-    pub(super) inner: Walkable,
+    pub(super) wrapped: Walkable,
 }
 
 impl<'a> std::fmt::Debug for OperationWalker<'a, (), (), ()> {
@@ -45,8 +53,12 @@ impl<'a, W: Copy, I, E> OperationWalker<'a, W, I, E>
 where
     Operation: std::ops::Index<W>,
 {
-    fn inner(&self) -> &'a <Operation as std::ops::Index<W>>::Output {
-        &self.operation[self.inner]
+    pub fn get(&self) -> &'a <Operation as std::ops::Index<W>>::Output {
+        &self.operation[self.wrapped]
+    }
+
+    pub fn id(&self) -> W {
+        self.wrapped
     }
 }
 
@@ -57,29 +69,17 @@ where
     type Target = <Operation as std::ops::Index<W>>::Output;
 
     fn deref(&self) -> &Self::Target {
-        &self.operation[self.inner]
-    }
-}
-
-impl<'a> std::ops::Deref for OperationWalker<'a> {
-    type Target = Operation;
-
-    fn deref(&self) -> &'a Self::Target {
-        self.operation
+        &self.operation[self.wrapped]
     }
 }
 
 impl<'a, E> OperationWalker<'a, (), (), E> {
-    pub fn operation(&self) -> &'a Operation {
-        self.operation
-    }
-
     pub fn schema(&self) -> SchemaWalker<'a, ()> {
-        self.schema
+        self.schema_walker
     }
 
     pub fn names(&self) -> &'a dyn schema::Names {
-        self.schema.names()
+        self.schema_walker.names()
     }
 }
 
@@ -91,9 +91,9 @@ impl<'a, W, I, E> OperationWalker<'a, W, I, E> {
     {
         OperationWalker {
             operation: self.operation,
-            schema: self.schema,
+            schema_walker: self.schema_walker,
             ext: self.ext,
-            inner,
+            wrapped: inner,
         }
     }
 
@@ -104,28 +104,41 @@ impl<'a, W, I, E> OperationWalker<'a, W, I, E> {
     {
         OperationWalker {
             operation: self.operation,
-            schema: self.schema.walk(schema_id),
+            schema_walker: self.schema_walker.walk(schema_id),
             ext: self.ext,
-            inner,
+            wrapped: inner,
         }
     }
 
-    pub fn with_ext<E2>(&self, ext: E2) -> OperationWalker<'a, W, I, E2>
+    pub fn with_plan<E2>(&self, plan: E2) -> OperationWalker<'a, W, I, E2>
     where
         W: Copy,
         I: Copy,
     {
         OperationWalker {
             operation: self.operation,
-            schema: self.schema,
-            ext,
-            inner: self.inner,
+            schema_walker: self.schema_walker,
+            ext: plan,
+            wrapped: self.wrapped,
         }
     }
 }
 
 impl<'a> OperationWalker<'a> {
-    pub fn flatten_selection_sets(&self, merged_selection_set_ids: Vec<BoundSelectionSetId>) -> FlatSelectionSet {
+    pub fn merged_selection_sets(&self, bound_field_ids: &[BoundFieldId]) -> FlatSelectionSetWalker<'a> {
+        self.flatten_selection_sets(
+            bound_field_ids
+                .iter()
+                .filter_map(|id| self.operation[*id].selection_set_id)
+                .collect(),
+        )
+    }
+
+    pub fn flatten_selection_sets(
+        &self,
+        merged_selection_set_ids: Vec<BoundSelectionSetId>,
+    ) -> FlatSelectionSetWalker<'a> {
+        let any_selection_set_id = merged_selection_set_ids[0];
         let selection_set_type = {
             let ty = merged_selection_set_ids
                 .iter()
@@ -143,14 +156,14 @@ impl<'a> OperationWalker<'a> {
         }));
         while let Some((mut type_condition_chain, mut selection_set_path, selection)) = selections.pop_front() {
             match selection {
-                &BoundSelection::Field(id) => {
+                &BoundSelection::Field(bound_field_id) => {
                     let type_condition =
-                        FlatTypeCondition::flatten(&self.schema, selection_set_type, type_condition_chain);
+                        FlatTypeCondition::flatten(&self.schema_walker, selection_set_type, type_condition_chain);
                     if FlatTypeCondition::is_possible(&type_condition) {
                         fields.push(FlatField {
                             type_condition,
                             selection_set_path,
-                            bound_field_id: id,
+                            bound_field_id,
                         });
                     }
                 }
@@ -180,10 +193,11 @@ impl<'a> OperationWalker<'a> {
             }
         }
 
-        FlatSelectionSet {
+        self.walk(Cow::Owned(FlatSelectionSet {
+            any_selection_set_id,
             ty: selection_set_type,
             fields,
-        }
+        }))
     }
 }
 

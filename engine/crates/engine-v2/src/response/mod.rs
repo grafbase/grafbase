@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 pub(crate) use error::GraphqlError;
 pub use metadata::*;
-pub use path::{BoundResponseKey, ResponseKey, ResponseKeys, ResponsePath};
+pub use path::*;
 pub use read::*;
 use schema::Schema;
 pub use value::{ResponseObject, ResponseValue};
@@ -33,7 +33,7 @@ pub struct InitialResponse {
 
 struct ResponseData {
     schema: Arc<Schema>,
-    keys: ResponseKeys,
+    keys: Arc<ResponseKeys>,
     root: Option<ResponseObjectId>,
     parts: Vec<ResponseDataPart>,
 }

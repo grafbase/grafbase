@@ -5,7 +5,7 @@ use serde::de::DeserializeSeed;
 use super::{ExecutionContext, Executor, ExecutorError, ExecutorResult, ResolverInput};
 use crate::{
     plan::PlanOutput,
-    response::{ExecutorOutput, ResponseBoundaryItem},
+    response::{ExecutorOutput, GraphqlError, ResponseBoundaryItem},
 };
 
 mod deserialize;
@@ -71,19 +71,32 @@ impl<'ctx> GraphqlExecutor<'ctx> {
             })
             .await?
             .bytes;
-        let errors = deserialize::GraphqlResponseSeed::new(
+        let err_path = Some(
+            self.boundary_item
+                .response_path
+                .child(self.ctx.walker.walk(self.plan_output.root_fields[0]).bound_response_key),
+        );
+        let mut upstream_errors = vec![];
+        let result = deserialize::GraphqlResponseSeed::new(
+            err_path.clone(),
+            &mut upstream_errors,
             self.ctx
                 .writer(&mut self.output, &self.boundary_item, &self.plan_output),
-            Some(
-                self.boundary_item
-                    .response_path
-                    .child(self.ctx.walker.walk(self.plan_output.fields[0]).bound_response_key),
-            ),
         )
-        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))
-        .expect("All errors have been handled.");
+        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes));
 
-        self.output.push_errors(errors);
+        if !upstream_errors.is_empty() {
+            self.output.push_errors(upstream_errors);
+        } else if let Err(err) = result {
+            // Only adding this if no other more precise errors were added.
+            if !self.output.has_errors() {
+                self.output.push_error(GraphqlError {
+                    message: format!("Upstream response error: {err}"),
+                    path: err_path,
+                    ..Default::default()
+                });
+            }
+        }
 
         Ok(self.output)
     }

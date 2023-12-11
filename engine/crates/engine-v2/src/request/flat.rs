@@ -1,16 +1,17 @@
 use std::cmp::Ordering;
 
-use schema::{InterfaceId, ObjectId, Schema};
+use schema::{Definition, InterfaceId, ObjectId, Schema};
 
 use crate::request::{BoundFieldId, BoundSelectionSetId, SelectionSetType, TypeCondition};
 
-#[derive(Debug)]
-pub struct FlatSelectionSet {
-    pub ty: SelectionSetType,
+#[derive(Debug, Clone)]
+pub struct FlatSelectionSet<Ty = SelectionSetType> {
+    pub ty: Ty,
+    pub any_selection_set_id: BoundSelectionSetId,
     pub fields: Vec<FlatField>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FlatField {
     pub type_condition: Option<FlatTypeCondition>,
     // There is always at least one element.
@@ -18,11 +19,54 @@ pub struct FlatField {
     pub bound_field_id: BoundFieldId,
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EntityType {
+    Interface(InterfaceId),
+    Object(ObjectId),
+}
+
+impl From<EntityType> for Definition {
+    fn from(value: EntityType) -> Self {
+        match value {
+            EntityType::Interface(id) => Definition::Interface(id),
+            EntityType::Object(id) => Definition::Object(id),
+        }
+    }
+}
+
+impl From<EntityType> for SelectionSetType {
+    fn from(value: EntityType) -> Self {
+        match value {
+            EntityType::Interface(id) => SelectionSetType::Interface(id),
+            EntityType::Object(id) => SelectionSetType::Object(id),
+        }
+    }
+}
+
+impl From<EntityType> for TypeCondition {
+    fn from(value: EntityType) -> Self {
+        match value {
+            EntityType::Interface(id) => TypeCondition::Interface(id),
+            EntityType::Object(id) => TypeCondition::Object(id),
+        }
+    }
+}
+
+impl EntityType {
+    pub fn maybe_from(definition: Definition) -> Option<EntityType> {
+        match definition {
+            Definition::Object(id) => Some(EntityType::Object(id)),
+            Definition::Interface(id) => Some(EntityType::Interface(id)),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FlatTypeCondition {
     Interface(InterfaceId),
     // sorted by ObjectId
-    Objects(Vec<ObjectId>),
+    Objects(Box<[ObjectId]>),
 }
 
 impl FlatTypeCondition {
@@ -54,7 +98,7 @@ impl FlatTypeCondition {
                         TypeCondition::Interface(id) if schema[object_id].interfaces.contains(&id) => (),
                         TypeCondition::Object(id) if object_id == id => (),
                         TypeCondition::Union(id) if schema[id].possible_types.contains(&object_id) => (),
-                        _ => return Some(FlatTypeCondition::Objects(vec![])),
+                        _ => return Some(FlatTypeCondition::Objects(Box::new([]))),
                     }
                 }
                 return None;
@@ -100,9 +144,9 @@ impl FlatTypeCondition {
                     )),
                     TypeCondition::Object(id) => {
                         if schema[union_id].possible_types.contains(&id) {
-                            FlatTypeCondition::Objects(vec![id])
+                            FlatTypeCondition::Objects(Box::new([id]))
                         } else {
-                            FlatTypeCondition::Objects(vec![])
+                            FlatTypeCondition::Objects(Box::new([]))
                         }
                     }
                     TypeCondition::Union(id) => FlatTypeCondition::Objects(sorted_intersection(
@@ -133,9 +177,9 @@ impl FlatTypeCondition {
                 TypeCondition::Object(object_id) => match candidate {
                     FlatTypeCondition::Interface(id) => {
                         if schema[object_id].interfaces.contains(&id) {
-                            FlatTypeCondition::Objects(vec![object_id])
+                            FlatTypeCondition::Objects(Box::new([object_id]))
                         } else {
-                            FlatTypeCondition::Objects(vec![])
+                            FlatTypeCondition::Objects(Box::new([]))
                         }
                     }
                     FlatTypeCondition::Objects(ids) => {
@@ -158,7 +202,7 @@ impl FlatTypeCondition {
     }
 }
 
-fn sorted_intersection(left: &[ObjectId], right: &[ObjectId]) -> Vec<ObjectId> {
+fn sorted_intersection(left: &[ObjectId], right: &[ObjectId]) -> Box<[ObjectId]> {
     let mut l = 0;
     let mut r = 0;
     let mut result = vec![];
@@ -173,5 +217,5 @@ fn sorted_intersection(left: &[ObjectId], right: &[ObjectId]) -> Vec<ObjectId> {
             Ordering::Greater => r += 1,
         }
     }
-    result
+    result.into_boxed_slice()
 }

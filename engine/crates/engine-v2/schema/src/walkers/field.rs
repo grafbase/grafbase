@@ -5,7 +5,7 @@ pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
 impl<'a> FieldWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.field(self.schema, self.inner)
+        self.names.field(self.schema, self.wrapped)
     }
 
     pub fn description(&self) -> Option<&'a str> {
@@ -18,7 +18,7 @@ impl<'a> FieldWalker<'a> {
 
     pub fn resolvers(&self) -> impl Iterator<Item = FieldResolverWalker<'a>> + 'a {
         let walker = self.walk(());
-        self.schema[self.inner]
+        self.schema[self.wrapped]
             .resolvers
             .iter()
             .map(move |FieldResolver { resolver_id, requires }| FieldResolverWalker {
@@ -29,7 +29,10 @@ impl<'a> FieldWalker<'a> {
 
     pub fn arguments(&self) -> impl Iterator<Item = InputValueWalker<'a>> + 'a {
         let walker = *self;
-        self.schema[self.inner].arguments.iter().map(move |id| walker.walk(*id))
+        self.schema[self.wrapped]
+            .arguments
+            .iter()
+            .map(move |id| walker.walk(*id))
     }
 
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueWalker<'a>> {
@@ -52,7 +55,7 @@ pub struct FieldResolverWalker<'a> {
 impl<'a> std::fmt::Debug for FieldWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Field")
-            .field("id", &usize::from(self.inner))
+            .field("id", &usize::from(self.wrapped))
             .field("name", &self.name())
             .field("type", &self.ty().to_string())
             .field("resolvers", &self.resolvers().map(|fr| fr.resolver).collect::<Vec<_>>())

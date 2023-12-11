@@ -2,34 +2,35 @@ use std::collections::BTreeMap;
 
 use schema::{ObjectId, StringId};
 
-use super::{BoundResponseKey, ResponseKey, ResponseListId, ResponseObjectId};
+use super::{ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
 #[derive(Debug)]
 pub struct ResponseObject {
     pub object_id: ObjectId,
     // fields are ordered by the position they appear in the query.
-    pub fields: BTreeMap<BoundResponseKey, ResponseValue>,
+    pub fields: BTreeMap<ResponseEdge, ResponseValue>,
 }
 
 impl ResponseObject {
-    // Until acutal field collection with the concre object id we're not certain of which bound
+    // Until acutal field collection with the concrete object id we're not certain of which bound
     // response key (field position & name) will be used but the actual response key (field name)
-    // should still be there. So trying first with the actual bound key as this will be the most
-    // common case and iterating over the fields otherwise. This is only used for executor input creation
-    // so usually a few fields and will only fallback if the selection had type conditions and field duplication.
+    // should still be there. So, first trying with the bound key and then searching for a matching
+    // response key. This is only used for executor input creation, usually a few fields, and may
+    // only fallback if the selection had type conditions and field duplication.
     // So should be a decent tradeoff as this allows us to serialize the whole response without any
-    // additional metadata as both position and key as encoded.
-    pub(super) fn find(&self, key: BoundResponseKey) -> Option<&ResponseValue> {
-        self.fields.get(&key).or_else(|| self.find_by_name(key.into()))
+    // additional metadata as both position and key are encoded.
+    pub(super) fn find(&self, edge: ResponseEdge) -> Option<&ResponseValue> {
+        self.fields.get(&edge).or_else(|| match edge.unpack() {
+            super::UnpackedResponseEdge::BoundResponseKey(key) => self.find_by_name(key.into()),
+            _ => None,
+        })
     }
 
-    pub(super) fn find_by_name(&self, target: ResponseKey) -> Option<&ResponseValue> {
-        for (key, field) in &self.fields {
-            if ResponseKey::from(*key) == target {
-                return Some(field);
-            }
-        }
-        None
+    fn find_by_name(&self, target: ResponseKey) -> Option<&ResponseValue> {
+        self.fields.iter().find_map(|(key, field)| match key.unpack() {
+            super::UnpackedResponseEdge::BoundResponseKey(key) if ResponseKey::from(key) == target => Some(field),
+            _ => None,
+        })
     }
 }
 
@@ -40,9 +41,7 @@ impl ResponseObject {
 ///
 /// For the same reason we don't use a boxed slice for `List` to make it easier to for error
 /// propagation to change a list item to null. So it's a slice id (offset + length in u32) into a
-/// specific ResponseDataPart. As we're doing for `List`, I also did for `String` as this allows
-/// ResponseValue to be only `u64 + enum overhead + word padding` long instead of
-/// `max(2 words, u64) + enum overhead + word padding`.
+/// specific ResponseDataPart.
 #[derive(Default, Debug, Clone)]
 pub enum ResponseValue {
     #[default]
@@ -66,7 +65,6 @@ pub enum ResponseValue {
         nullable: bool,
     },
     String {
-        // Maybe we should the same a lists, might be more memory efficient
         value: Box<str>,
         nullable: bool,
     },

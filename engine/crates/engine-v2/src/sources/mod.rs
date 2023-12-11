@@ -4,7 +4,8 @@ use schema::{Resolver, ResolverWalker};
 
 use crate::{
     execution::ExecutionContext,
-    plan::{EntityType, PlanId, PlanOutput},
+    plan::{PlanId, PlanOutput},
+    request::EntityType,
     response::{ExecutorOutput, GraphqlError, ResponseBoundaryObjectsView},
 };
 

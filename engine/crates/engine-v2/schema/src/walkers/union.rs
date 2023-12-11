@@ -5,7 +5,7 @@ pub type UnionWalker<'a> = SchemaWalker<'a, UnionId>;
 
 impl<'a> UnionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.union(self.schema, self.inner)
+        self.names.union(self.schema, self.wrapped)
     }
 
     pub fn description(&self) -> Option<&'a str> {
@@ -21,7 +21,7 @@ impl<'a> UnionWalker<'a> {
 impl<'a> std::fmt::Debug for UnionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Union")
-            .field("id", &usize::from(self.inner))
+            .field("id", &usize::from(self.wrapped))
             .field("name", &self.name())
             .field("description", &self.description())
             .field(

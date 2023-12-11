@@ -5,9 +5,11 @@ pub struct FakeFederationReviewsSchema;
 
 impl FakeFederationReviewsSchema {
     fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {
-        let reviews = vec![
+        let reviews =
+            vec![
             Review {
                 id: "review-1".into(),
+                author_id: Some("1234".into()),
                 body: "A highly effective form of birth control.".into(),
                 pictures: vec![
                     Picture {
@@ -23,18 +25,39 @@ impl FakeFederationReviewsSchema {
                         alt_text: "The troll face meme".to_string(),
                     },
                 ],
+                product: Product {
+                    upc: "top-1".to_string(),
+                    price: 10,
+                },
             },
             Review {
                 id: "review-2".into(),
+                author_id: Some("1234".into()),
                 body:
                     "Fedoras are one of the most fashionable hats around and can look great with a variety of outfits."
                         .into(),
                 pictures: vec![],
+                product: Product {
+                    upc: "top-2".to_string(),
+                    price: 20,
+                },
             },
             Review {
                 id: "review-3".into(),
+                author_id: Some("7777".into()),
                 body: "This is the last straw. Hat you will wear. 11/10".into(),
                 pictures: vec![],
+                product: Product {
+                    upc: "top-3".to_string(),
+                    price: 30,
+                },
+            },
+            Review {
+                id: "review-5".into(),
+                author_id: None,
+                body: "Beautiful Pink, my parrot loves it. Definitely recommend!".into(),
+                pictures: vec![],
+                product: Product { upc: "top-5".into(), price: 50 }
             },
         ];
 
@@ -82,10 +105,8 @@ enum Trustworthiness {
 impl User {
     async fn reviews<'a>(&self, ctx: &'a Context<'_>) -> Vec<&'a Review> {
         let reviews = ctx.data_unchecked::<Vec<Review>>();
-        reviews
-            .iter()
-            .filter(|review| review.get_author().id == self.id)
-            .collect()
+        let maybe_id = Some(self.id.clone());
+        reviews.iter().filter(|review| review.author_id == maybe_id).collect()
     }
 
     #[graphql(requires = "joinedTimestamp")]
@@ -112,10 +133,7 @@ struct Product {
 impl Product {
     async fn reviews<'a>(&self, ctx: &'a Context<'_>) -> Vec<&'a Review> {
         let reviews = ctx.data_unchecked::<Vec<Review>>();
-        reviews
-            .iter()
-            .filter(|review| review.get_product().upc == self.upc)
-            .collect()
+        reviews.iter().filter(|review| review.product.upc == self.upc).collect()
     }
 }
 
@@ -125,47 +143,16 @@ struct Review {
     id: ID,
     body: String,
     pictures: Vec<Picture>,
+    #[graphql(skip)]
+    author_id: Option<ID>,
+    #[graphql(provides = "price")]
+    product: Product,
 }
 
 #[ComplexObject]
 impl Review {
-    #[graphql(provides = "price")]
-    async fn product<'a>(&self) -> Product {
-        self.get_product()
-    }
-
-    async fn author(&self) -> User {
-        self.get_author()
-    }
-}
-
-impl Review {
-    fn get_product(&self) -> Product {
-        match self.id.as_str() {
-            "review-1" => Product {
-                upc: "top-1".to_string(),
-                price: 10,
-            },
-            "review-2" => Product {
-                upc: "top-2".to_string(),
-                price: 20,
-            },
-            "review-3" => Product {
-                upc: "top-3".to_string(),
-                price: 30,
-            },
-            _ => panic!("Unknown review id"),
-        }
-    }
-
-    fn get_author(&self) -> User {
-        let user_id: ID = match self.id.as_str() {
-            "review-1" | "review-2" => "1234",
-            "review-3" => "7777",
-            _ => panic!("Unknown review id"),
-        }
-        .into();
-        user_by_id(user_id, None)
+    async fn author(&self) -> Option<User> {
+        self.author_id.as_ref().map(|user_id| user_by_id(user_id.clone(), None))
     }
 }
 
