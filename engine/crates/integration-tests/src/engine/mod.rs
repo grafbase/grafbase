@@ -189,13 +189,6 @@ impl crate::mocks::graphql::Schema for Engine {
 
         // Not sure this will work but lets see
         async_graphql::Response::deserialize(serde_json::to_value(response).unwrap()).unwrap()
-        // async_graphql::Response {
-        //     data: async_graphql::Value::from_json(response.data.to_json_value().unwrap()).unwrap(),
-        //     extensions: response.extensions,
-        //     cache_control: response.cache_control.into(),
-        //     errors: response.errors,
-        //     http_headers: response.http_headers,
-        // }
     }
 
     fn sdl(&self) -> String {
