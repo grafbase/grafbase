@@ -2,7 +2,7 @@ use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{Html, IntoResponse},
     routing::get,
     Json, Server,
@@ -126,21 +126,37 @@ async fn admin(
 
 async fn engine_get(
     Query(request): Query<engine::Request>,
+    headers: HeaderMap,
     State(ProxyState { request_sender, .. }): State<ProxyState>,
 ) -> impl IntoResponse {
-    handle_engine_request(request, request_sender).await
+    handle_engine_request(request, request_sender, headers).await
 }
 
 async fn engine_post(
     State(ProxyState { request_sender, .. }): State<ProxyState>,
+    headers: HeaderMap,
     Json(request): Json<engine::Request>,
 ) -> impl IntoResponse {
-    handle_engine_request(request, request_sender).await
+    handle_engine_request(request, request_sender, headers).await
 }
 
-async fn handle_engine_request(request: engine::Request, request_sender: RequestSender) -> impl IntoResponse {
+async fn handle_engine_request(
+    request: engine::Request,
+    request_sender: RequestSender,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let headers = headers
+        .into_iter()
+        .map(|(name, value)| {
+            (
+                name.map(|name| name.to_string()).unwrap_or_default(),
+                String::from_utf8_lossy(value.as_bytes()).to_string(),
+            )
+        })
+        .collect();
+
     let (response_sender, response_receiver) = oneshot::channel();
-    request_sender.send((request, response_sender)).await.unwrap();
+    request_sender.send((request, headers, response_sender)).await.unwrap();
 
     match response_receiver.await {
         Ok(Ok(response)) => Json(response).into_response(),

@@ -27,6 +27,7 @@ impl From<Config> for Schema {
             unions: graph.unions.into_iter().map(Into::into).collect(),
             scalars: Vec::with_capacity(graph.scalars.len()),
             input_objects: Vec::with_capacity(graph.input_objects.len()),
+            headers: convert_headers(config.headers, graph.strings.len()),
             strings: graph.strings,
             resolvers: vec![],
             definitions: vec![],
@@ -37,7 +38,13 @@ impl From<Config> for Schema {
                 },
                 ..Default::default()
             },
+            default_headers: config.default_headers.into_iter().map(Into::into).collect(),
         };
+
+        schema.strings.extend(config.strings);
+        for (id, config) in config.subgraph_configs {
+            schema.update_subgraph_config(id, config);
+        }
 
         // -- OBJECTS --
         let mut entity_resolvers = HashMap::<ObjectId, Vec<(ResolverId, SubgraphId)>>::new();
@@ -245,6 +252,7 @@ impl From<federated_graph::Subgraph> for federation::Subgraph {
         federation::Subgraph {
             name: subgraph.name.into(),
             url: subgraph.url.into(),
+            headers: vec![],
         }
     }
 }
@@ -410,11 +418,31 @@ impl From<federated_graph::InputObjectField> for InputValue {
     }
 }
 
+fn convert_headers(headers: Vec<config::latest::Header>, base_string_index: usize) -> Vec<Header> {
+    headers
+        .into_iter()
+        .map(|header| Header {
+            name: (base_string_index + header.name.0).into(),
+            value: match header.value {
+                config::latest::HeaderValue::Forward(id) => HeaderValue::Forward((base_string_index + id.0).into()),
+                config::latest::HeaderValue::Static(id) => HeaderValue::Static((base_string_index + id.0).into()),
+            },
+        })
+        .collect()
+}
+
+impl Schema {
+    fn update_subgraph_config(&mut self, id: federated_graph::SubgraphId, config: config::latest::SubgraphConfig) {
+        let subgraph = &mut self.data_sources.federation[id.into()];
+        subgraph.headers = config.headers.into_iter().map(Into::into).collect()
+    }
+}
+
 macro_rules! from_id_newtypes {
-    ($($from:ident => $name:ident,)*) => {
+    ($($from:ty => $name:ident,)*) => {
         $(
-            impl From<federated_graph::$from> for $name {
-                fn from(id: federated_graph::$from) -> Self {
+            impl From<$from> for $name {
+                fn from(id: $from) -> Self {
                     $name::from(id.0)
                 }
             }
@@ -423,14 +451,15 @@ macro_rules! from_id_newtypes {
 }
 
 from_id_newtypes! {
-    EnumId => EnumId,
-    FieldId => FieldId,
-    FieldTypeId => TypeId,
-    InputObjectId => InputObjectId,
-    InterfaceId => InterfaceId,
-    ObjectId => ObjectId,
-    ScalarId => ScalarId,
-    StringId => StringId,
-    SubgraphId => SubgraphId,
-    UnionId => UnionId,
+    federated_graph::EnumId => EnumId,
+    federated_graph::FieldId => FieldId,
+    federated_graph::FieldTypeId => TypeId,
+    federated_graph::InputObjectId => InputObjectId,
+    federated_graph::InterfaceId => InterfaceId,
+    federated_graph::ObjectId => ObjectId,
+    federated_graph::ScalarId => ScalarId,
+    federated_graph::StringId => StringId,
+    federated_graph::SubgraphId => SubgraphId,
+    federated_graph::UnionId => UnionId,
+    config::latest::HeaderId => HeaderId,
 }

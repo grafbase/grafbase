@@ -19,7 +19,8 @@ fn simple_key() {
             .await
             .with_schema("reviews", &reviews)
             .await
-            .finish();
+            .finish()
+            .await;
 
         engine
             .execute(

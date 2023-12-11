@@ -18,7 +18,8 @@ fn root_fields_from_different_subgraphs() {
             .await
             .with_schema("products", &products)
             .await
-            .finish();
+            .finish()
+            .await;
 
         engine
             .execute(
@@ -75,7 +76,8 @@ fn root_fragment_on_different_subgraphs() {
             .await
             .with_schema("products", &products)
             .await
-            .finish();
+            .finish()
+            .await;
 
         engine
             .execute(

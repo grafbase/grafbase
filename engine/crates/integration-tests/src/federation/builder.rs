@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use async_graphql_parser::types::ServiceDocument;
 use engine_v2::Engine;
-use graphql_composition::FederatedGraph;
+use parser_sdl::connector_parsers::MockConnectorParsers;
 
 use crate::MockGraphQlServer;
 
@@ -9,11 +11,15 @@ use super::TestFederationEngine;
 #[must_use]
 pub struct FederationEngineBuilder {
     schemas: Vec<(String, String, ServiceDocument)>,
+    config_sdl: Option<String>,
 }
 
 pub trait EngineV2Ext {
     fn build() -> FederationEngineBuilder {
-        FederationEngineBuilder { schemas: vec![] }
+        FederationEngineBuilder {
+            schemas: vec![],
+            config_sdl: None,
+        }
     }
 }
 
@@ -26,6 +32,11 @@ pub trait SchemaSource {
 }
 
 impl FederationEngineBuilder {
+    pub fn with_supergraph_config(mut self, sdl: impl Into<String>) -> Self {
+        self.config_sdl = Some(format!("{}\nextend schema @graph(type: federated)", sdl.into()));
+        self
+    }
+
     pub async fn with_schema(mut self, name: &str, schema: &impl SchemaSource) -> Self {
         self.schemas.push((
             name.to_string(),
@@ -35,7 +46,7 @@ impl FederationEngineBuilder {
         self
     }
 
-    pub fn finish(self) -> TestFederationEngine {
+    pub async fn finish(self) -> TestFederationEngine {
         let mut subgraphs = graphql_composition::Subgraphs::default();
         for (name, url, schema) in self.schemas {
             subgraphs.ingest(&schema, &name, &url);
@@ -44,8 +55,18 @@ impl FederationEngineBuilder {
             .into_result()
             .expect("schemas to compose succesfully");
 
-        let FederatedGraph::V1(graph) = graph;
-        let config = engine_v2::VersionedConfig::V1(graph).into_latest();
+        let federated_graph_config = match self.config_sdl {
+            Some(sdl) => {
+                parser_sdl::parse(&sdl, &HashMap::new(), false, &MockConnectorParsers::default())
+                    .await
+                    .expect("supergraph config SDL to be valid")
+                    .federated_graph_config
+            }
+            None => None,
+        }
+        .unwrap_or_default();
+
+        let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
 
         TestFederationEngine {
             engine: Engine::new(

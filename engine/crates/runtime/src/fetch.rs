@@ -13,6 +13,7 @@ pub type FetchResult<T> = Result<T, FetchError>;
 // very minimal for now, but will be expanded as we need it.
 pub struct FetchRequest<'a> {
     pub url: &'a str,
+    pub headers: Vec<(&'a str, &'a str)>,
     pub json_body: String,
 }
 

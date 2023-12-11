@@ -1,5 +1,5 @@
 use runtime::fetch::FetchRequest;
-use schema::sources::federation::{RootFieldResolverWalker, SubgraphWalker};
+use schema::sources::federation::{RootFieldResolverWalker, SubgraphHeaderValueRef, SubgraphWalker};
 use serde::de::DeserializeSeed;
 
 use super::{ExecutionContext, Executor, ExecutorError, ExecutorResult, ResolverInput};
@@ -55,6 +55,19 @@ impl<'ctx> GraphqlExecutor<'ctx> {
             .post(FetchRequest {
                 url: self.subgraph.url(),
                 json_body: self.json_body,
+                headers: self
+                    .subgraph
+                    .headers()
+                    .filter_map(|header| {
+                        Some((
+                            header.name(),
+                            match header.value() {
+                                SubgraphHeaderValueRef::Forward(name) => self.ctx.header(name)?,
+                                SubgraphHeaderValueRef::Static(value) => value,
+                            },
+                        ))
+                    })
+                    .collect(),
             })
             .await?
             .bytes;

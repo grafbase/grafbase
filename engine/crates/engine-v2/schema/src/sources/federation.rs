@@ -1,4 +1,4 @@
-use crate::{FieldSet, SchemaWalker, StringId, SubgraphId};
+use crate::{FieldSet, Header, HeaderId, HeaderValue, SchemaWalker, StringId, SubgraphId};
 
 #[derive(Default)]
 pub struct DataSource {
@@ -9,6 +9,7 @@ pub struct DataSource {
 pub struct Subgraph {
     pub name: StringId,
     pub url: StringId,
+    pub headers: Vec<HeaderId>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -108,6 +109,14 @@ impl<'a> SubgraphWalker<'a> {
     pub fn url(&self) -> &'a str {
         &self.schema[self.inner.url]
     }
+
+    pub fn headers(&self) -> impl Iterator<Item = SubgraphHeaderWalker<'a>> + '_ {
+        self.schema
+            .default_headers
+            .iter()
+            .chain(self.inner.headers.iter())
+            .map(|id| self.walk(&self.schema[*id]))
+    }
 }
 
 impl<'a> std::fmt::Debug for SubgraphWalker<'a> {
@@ -115,6 +124,36 @@ impl<'a> std::fmt::Debug for SubgraphWalker<'a> {
         f.debug_struct("Subgraph")
             .field("name", &self.name())
             .field("url", &self.url())
+            .finish()
+    }
+}
+
+pub type SubgraphHeaderWalker<'a> = SchemaWalker<'a, &'a Header>;
+
+impl<'a> SubgraphHeaderWalker<'a> {
+    pub fn name(&self) -> &'a str {
+        &self.schema[self.inner.name]
+    }
+
+    pub fn value(&self) -> SubgraphHeaderValueRef<'a> {
+        match self.inner.value {
+            HeaderValue::Forward(id) => SubgraphHeaderValueRef::Forward(&self.schema[id]),
+            HeaderValue::Static(id) => SubgraphHeaderValueRef::Static(&self.schema[id]),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum SubgraphHeaderValueRef<'a> {
+    Forward(&'a str),
+    Static(&'a str),
+}
+
+impl<'a> std::fmt::Debug for SubgraphHeaderWalker<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SubgraphHeaderWalker")
+            .field("name", &self.name())
+            .field("value", &self.value())
             .finish()
     }
 }

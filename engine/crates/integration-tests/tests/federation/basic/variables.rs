@@ -646,7 +646,7 @@ fn run_query(query: &str, input: &serde_json::Value) -> GraphqlResponse {
         async move {
             let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-            let engine = Engine::build().with_schema("schema", &echo_mock).await.finish();
+            let engine = Engine::build().with_schema("schema", &echo_mock).await.finish().await;
 
             engine.execute(query).variables(input).await
         }

@@ -38,3 +38,13 @@ impl From<&HashMap<String, String>> for RequestHeaders {
         RequestHeaders::new(value.clone())
     }
 }
+
+impl<N, V> std::iter::FromIterator<(N, V)> for RequestHeaders
+where
+    N: Into<String>,
+    V: Into<String>,
+{
+    fn from_iter<T: IntoIterator<Item = (N, V)>>(iter: T) -> Self {
+        RequestHeaders::new(iter)
+    }
+}

@@ -152,6 +152,7 @@ impl Query {
         self.headers
             .clone()
             .into_iter()
+            .filter(|(name, _)| name != "host" && name != "content-length")
             .map(|(name, value)| Header { name, value })
             .collect()
     }

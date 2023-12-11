@@ -1,5 +1,4 @@
 use integration_tests::{mocks::graphql::FakeGithubSchema, runtime, EngineBuilder, MockGraphQlServer, ResponseExt};
-use serde_json::json;
 
 #[test]
 fn test_header_forwarding() {
@@ -11,7 +10,7 @@ fn test_header_forwarding() {
             .build()
             .await;
 
-        let mut response = engine
+        let response = engine
             .execute(
                 r"
                 query {
@@ -28,21 +27,6 @@ fn test_header_forwarding() {
             .header("Authorization", "Basic XYZ")
             .await
             .into_value();
-
-        // Remove the host header because it's dynamic
-        response.get_mut("data").and_then(|data| {
-            let headers = data.get_mut("headers")?;
-
-            let host_header_index = headers
-                .as_array()?
-                .iter()
-                .enumerate()
-                .find(|(_, header)| header.get("name") == Some(&json!("host")))?
-                .0;
-
-            headers.as_array_mut()?.remove(host_header_index);
-            Some(())
-        });
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -71,10 +55,6 @@ fn test_header_forwarding() {
               {
                 "name": "accept",
                 "value": "*/*"
-              },
-              {
-                "name": "content-length",
-                "value": "96"
               }
             ]
           }

@@ -19,6 +19,7 @@ cynic-introspection = "3"
 dynamodb.workspace = true
 engine-parser.workspace = true
 engine-v2.workspace = true
+engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.4"
 futures = "0.3"
 grafbase-graphql-introspection = { path = "../../../cli/crates/graphql-introspection" }

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use super::bus::{GraphReceiver, RequestReceiver, ResponseSender};
+use engine::RequestHeaders;
 use engine_v2::{Engine, EngineRuntime};
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
@@ -42,12 +43,12 @@ impl Router {
 
                     self.engine = graph.map(|graph| new_engine(&self.config, graph));
                 }
-                (RouterMessage::Request(request, response_sender), Some(engine)) => {
+                (RouterMessage::Request(request, headers, response_sender), Some(engine)) => {
                     log::trace!("router got a new request with an existing engine");
 
-                    tokio::spawn(run_request(request, response_sender, Arc::clone(engine)));
+                    tokio::spawn(run_request(request, headers, response_sender, Arc::clone(engine)));
                 }
-                (RouterMessage::Request(_, response_sender), None) => {
+                (RouterMessage::Request(_, _, response_sender), None) => {
                     log::trace!("router got a new request with a missing engine");
 
                     response_sender.send(Err(RouterError::NoSubgraphs)).ok();
@@ -68,18 +69,23 @@ fn new_engine(config: &FederatedGraphConfig, graph: FederatedGraph) -> Arc<Engin
     ))
 }
 
-async fn run_request(request: engine::Request, response_sender: ResponseSender, engine: Arc<Engine>) {
-    response_sender.send(Ok(engine.execute(request).await)).ok();
+async fn run_request(
+    request: engine::Request,
+    headers: RequestHeaders,
+    response_sender: ResponseSender,
+    engine: Arc<Engine>,
+) {
+    response_sender.send(Ok(engine.execute(request, headers).await)).ok();
 }
 
 enum RouterMessage {
     Graph(Option<FederatedGraph>),
-    Request(engine::Request, ResponseSender),
+    Request(engine::Request, RequestHeaders, ResponseSender),
 }
 
 impl RouterMessage {
-    fn request((request, sender): (engine::Request, ResponseSender)) -> Self {
-        RouterMessage::Request(request, sender)
+    fn request((request, headers, sender): (engine::Request, RequestHeaders, ResponseSender)) -> Self {
+        RouterMessage::Request(request, headers, sender)
     }
 }
 
