@@ -14,6 +14,24 @@ pub struct ListSubgraphsQuery {
     pub branch: Option<Branch>,
 }
 
+#[derive(cynic::QueryVariables)]
+pub struct ListSubgraphsForProductionBranchArguments<'a> {
+    pub account: &'a str,
+    pub project: &'a str,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Query", variables = "ListSubgraphsForProductionBranchArguments")]
+pub struct ListSubgraphsForProductionBranchQuery {
+    #[arguments(accountSlug: $account, projectSlug: $project)]
+    pub project_by_account_slug: Option<Project>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Project {
+    pub production_branch: Branch,
+}
+
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Branch {
     pub name: String,
