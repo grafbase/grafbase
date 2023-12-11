@@ -47,7 +47,7 @@ pub struct Schema {
     definitions: Vec<Definition>,
 
     /// Headers we might want to send to a subgraph
-    headers: Vec<SubgraphHeader>,
+    headers: Vec<Header>,
 
     default_headers: Vec<HeaderId>,
 }
@@ -458,13 +458,13 @@ impl Schema {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct SubgraphHeader {
+pub struct Header {
     pub name: StringId,
-    pub value: SubgraphHeaderValue,
+    pub value: HeaderValue,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum SubgraphHeaderValue {
+pub enum HeaderValue {
     Forward(StringId),
     Static(StringId),
 }

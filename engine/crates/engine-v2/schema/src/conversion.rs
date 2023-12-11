@@ -418,18 +418,14 @@ impl From<federated_graph::InputObjectField> for InputValue {
     }
 }
 
-fn convert_headers(headers: Vec<config::latest::Header>, base_string_index: usize) -> Vec<SubgraphHeader> {
+fn convert_headers(headers: Vec<config::latest::Header>, base_string_index: usize) -> Vec<Header> {
     headers
         .into_iter()
-        .map(|header| SubgraphHeader {
+        .map(|header| Header {
             name: (base_string_index + header.name.0).into(),
             value: match header.value {
-                config::latest::HeaderValue::Forward(id) => {
-                    SubgraphHeaderValue::Forward((base_string_index + id.0).into())
-                }
-                config::latest::HeaderValue::Static(id) => {
-                    SubgraphHeaderValue::Static((base_string_index + id.0).into())
-                }
+                config::latest::HeaderValue::Forward(id) => HeaderValue::Forward((base_string_index + id.0).into()),
+                config::latest::HeaderValue::Static(id) => HeaderValue::Static((base_string_index + id.0).into()),
             },
         })
         .collect()

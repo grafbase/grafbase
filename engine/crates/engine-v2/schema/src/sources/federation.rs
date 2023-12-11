@@ -1,4 +1,4 @@
-use crate::{FieldSet, HeaderId, SchemaWalker, StringId, SubgraphHeader, SubgraphHeaderValue, SubgraphId};
+use crate::{FieldSet, Header, HeaderId, HeaderValue, SchemaWalker, StringId, SubgraphId};
 
 #[derive(Default)]
 pub struct DataSource {
@@ -128,7 +128,7 @@ impl<'a> std::fmt::Debug for SubgraphWalker<'a> {
     }
 }
 
-pub type SubgraphHeaderWalker<'a> = SchemaWalker<'a, &'a SubgraphHeader>;
+pub type SubgraphHeaderWalker<'a> = SchemaWalker<'a, &'a Header>;
 
 impl<'a> SubgraphHeaderWalker<'a> {
     pub fn name(&self) -> &'a str {
@@ -137,8 +137,8 @@ impl<'a> SubgraphHeaderWalker<'a> {
 
     pub fn value(&self) -> SubgraphHeaderValueRef<'a> {
         match self.inner.value {
-            SubgraphHeaderValue::Forward(id) => SubgraphHeaderValueRef::Forward(&self.schema[id]),
-            SubgraphHeaderValue::Static(id) => SubgraphHeaderValueRef::Static(&self.schema[id]),
+            HeaderValue::Forward(id) => SubgraphHeaderValueRef::Forward(&self.schema[id]),
+            HeaderValue::Static(id) => SubgraphHeaderValueRef::Static(&self.schema[id]),
         }
     }
 }
