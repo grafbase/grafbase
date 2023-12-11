@@ -41,9 +41,7 @@ export class GraphConfig {
   private readonly cache?: GlobalCache
   private readonly experimental?: Experimental
 
-  constructor(input: GraphConfigInput)
   /** @deprecated use `graph` instead of `schema` */
-  constructor(input: DeprecatedGraphConfigInput)
   constructor(input: GraphConfigInput | DeprecatedGraphConfigInput) {
     this.graph = 'graph' in input ? input.graph : input.schema
 
