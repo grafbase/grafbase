@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use engine::registry::ConnectorHeaderValue;
 
 /// Configuration for a federated graph
 #[derive(Clone, Debug, Default)]
 pub struct FederatedGraphConfig {
-    pub subgraphs: HashMap<String, SubgraphConfig>,
+    pub subgraphs: BTreeMap<String, SubgraphConfig>,
 
     pub default_headers: Vec<(String, SubgraphHeaderValue)>,
 }
