@@ -3,52 +3,74 @@
 use std::collections::BTreeMap;
 
 use engine_v2_config::{
-    latest::{self as config},
+    latest::{self as config, Header, HeaderId},
     VersionedConfig,
 };
 use federated_graph::{FederatedGraph, FederatedGraphV1, SubgraphId};
-use parser_sdl::federation::FederatedGraphConfig;
+use parser_sdl::federation::{FederatedGraphConfig, SubgraphHeaderValue};
 
 mod strings;
 
 pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> VersionedConfig {
     let FederatedGraph::V1(graph) = graph;
 
-    let mut strings = strings::Strings::default();
-    let mut headers = vec![];
+    let mut context = BuildContext::default();
     let mut subgraph_configs = BTreeMap::new();
+
+    let default_headers = context.insert_headers(&config.default_headers);
 
     for (name, config) in &config.subgraphs {
         let Some(subgraph_id) = graph.find_subgraph(name) else {
             continue;
         };
 
-        let mut header_ids = Vec::with_capacity(config.headers.len());
-        for (name, value) in &config.headers {
-            let name = strings.intern(name);
+        let headers = context.insert_headers(&config.headers);
 
-            let value = match value {
-                parser_sdl::federation::SubgraphHeaderValue::Static(value) => {
-                    config::HeaderValue::Static(strings.intern(value))
-                }
-                parser_sdl::federation::SubgraphHeaderValue::Forward(value) => {
-                    config::HeaderValue::Forward(strings.intern(value))
-                }
-            };
-
-            header_ids.push(config::HeaderId(headers.len()));
-            headers.push(config::Header { name, value })
-        }
-
-        subgraph_configs.insert(subgraph_id, config::SubgraphConfig { headers: header_ids });
+        subgraph_configs.insert(subgraph_id, config::SubgraphConfig { headers });
     }
 
     VersionedConfig::V2(config::Config {
         graph,
-        strings: strings.into_vec(),
-        headers,
+        default_headers,
+        strings: context.strings.into_vec(),
+        headers: context.headers,
         subgraph_configs,
     })
+}
+
+#[derive(Default)]
+struct BuildContext<'a> {
+    strings: strings::Strings<'a>,
+    headers: Vec<Header>,
+}
+
+impl<'a> BuildContext<'a> {
+    pub fn insert_headers(
+        &mut self,
+        headers: impl IntoIterator<Item = &'a (String, SubgraphHeaderValue)>,
+    ) -> Vec<HeaderId> {
+        headers
+            .into_iter()
+            .map(|(name, value)| self.insert_header(name, value))
+            .collect()
+    }
+
+    pub fn insert_header(&mut self, name: &'a str, value: &'a SubgraphHeaderValue) -> HeaderId {
+        let name = self.strings.intern(name);
+
+        let value = match value {
+            parser_sdl::federation::SubgraphHeaderValue::Static(value) => {
+                config::HeaderValue::Static(self.strings.intern(value))
+            }
+            parser_sdl::federation::SubgraphHeaderValue::Forward(value) => {
+                config::HeaderValue::Forward(self.strings.intern(value))
+            }
+        };
+
+        let id = config::HeaderId(self.headers.len());
+        self.headers.push(config::Header { name, value });
+        id
+    }
 }
 
 pub trait FederatedGraphExt {

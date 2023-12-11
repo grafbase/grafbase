@@ -9,6 +9,9 @@ pub struct Config {
     pub strings: Vec<String>,
     pub headers: Vec<Header>,
 
+    /// Default headers that should be sent to every subgraph
+    pub default_headers: Vec<HeaderId>,
+
     /// Additional configuration for our subgraphs
     pub subgraph_configs: BTreeMap<SubgraphId, SubgraphConfig>,
 }

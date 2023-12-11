@@ -1,3 +1,4 @@
+pub mod all_subgraphs_directive;
 pub mod auth_directive;
 pub mod basic_type;
 pub mod cache_directive;
