@@ -833,7 +833,7 @@ fn introspecting_with_grafbase_openapi_subgraph() {
         let petstore_mock = MockGraphQlServer::new(engine_v1).await;
 
         let engine = Engine::build()
-            .with_schema("github", &petstore_mock)
+            .with_schema("petstore", &petstore_mock)
             .await
             .finish()
             .await;
