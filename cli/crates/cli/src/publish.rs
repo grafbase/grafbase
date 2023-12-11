@@ -27,7 +27,7 @@ pub(crate) async fn publish(
 
     report::publishing();
 
-    backend::api::publish::publish(
+    let outcome = backend::api::publish::publish(
         project_ref.account(),
         project_ref.project(),
         project_ref.branch(),
@@ -38,7 +38,12 @@ pub(crate) async fn publish(
     .await
     .map_err(CliError::BackendApiError)?;
 
-    report::publish_command_success(&subgraph_name);
+    match outcome {
+        Ok(()) => report::publish_command_success(&subgraph_name),
+        Err(messages) => {
+            report::publish_command_composition_failure(&messages);
+        }
+    }
 
     Ok(())
 }
