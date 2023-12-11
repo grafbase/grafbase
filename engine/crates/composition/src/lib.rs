@@ -22,6 +22,17 @@ use self::{
 /// Compose subgraphs into a federated graph.
 pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
     let mut diagnostics = Diagnostics::default();
+
+    if subgraphs.iter_subgraphs().len() == 0 {
+        let error = "No graphs found for composition build. You must have at least one active graph.";
+        diagnostics.push_fatal(error.to_owned());
+
+        return CompositionResult {
+            federated_graph: None,
+            diagnostics,
+        };
+    }
+
     let mut context = ComposeContext::new(subgraphs, &mut diagnostics);
 
     compose_subgraphs(&mut context);

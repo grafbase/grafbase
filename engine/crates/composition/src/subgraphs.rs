@@ -118,7 +118,7 @@ impl Subgraphs {
             .map(|string| self.walk(string))
     }
 
-    pub(crate) fn iter_subgraphs(&self) -> impl Iterator<Item = SubgraphWalker<'_>> {
+    pub(crate) fn iter_subgraphs(&self) -> impl ExactSizeIterator<Item = SubgraphWalker<'_>> {
         (0..self.subgraphs.len()).map(|idx| self.walk(SubgraphId(idx)))
     }
 

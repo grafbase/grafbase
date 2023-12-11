@@ -21,6 +21,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
 
     let mut subgraphs_sdl = fs::read_dir(subgraphs_dir)?
         .filter_map(Result::ok)
+        .filter(|file| file.file_name() != ".gitignore")
         .map(|file| fs::read_to_string(file.path()).map(|contents| (contents, file.path())))
         .collect::<Result<Vec<_>, _>>()?;
 
