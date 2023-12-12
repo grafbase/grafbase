@@ -25,7 +25,7 @@ SUBCOMMANDS:
     link         Connect a local project to a remote project
     unlink       Disconnect a local project from a remote project
     logs         Tails logs from a remote project
-    start        Run your Grafbase project locally in production mode
+    start        Run your Grafbase project in production mode
     build        Build the Grafbase project in advance to avoid the resolver build step in the start command
     introspect   Introspect a subgraph endpoint and print its schema
     subgraphs    List subgraphs
