@@ -19,7 +19,7 @@ SUBCOMMANDS:
     completions  Output completions for the chosen shell to use, write the output to the appropriate location for your shell
     init         Sets up the current or a new project for Grafbase
     login        Log in to your Grafbase account
-    logout       Logs out of your Grafbase account
+    logout       Logout of your Grafbase account
     create       Set up and deploy a new project
     deploy       Deploy your project
     link         Connect a local project to a remote project
