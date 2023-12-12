@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use serde::{de::DeserializeSeed, Deserializer};
 
@@ -29,7 +29,7 @@ impl<'de, 'a> DeserializeSeed<'de> for UpstreamGraphqlErrorsSeed<'a> {
     {
         let errors = <Vec<UpstreamGraphqlError> as serde::Deserialize>::deserialize(deserializer)?;
         for error in errors {
-            let mut extensions = HashMap::new();
+            let mut extensions = BTreeMap::new();
             if !error.locations.is_null() {
                 extensions.insert("upstream_locations".to_string(), error.locations);
             }

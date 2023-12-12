@@ -5,6 +5,7 @@
 
 mod fragments;
 mod headers;
+mod mutation;
 mod scalars;
 mod variables;
 

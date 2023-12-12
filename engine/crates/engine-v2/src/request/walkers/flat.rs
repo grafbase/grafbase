@@ -67,7 +67,10 @@ impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
                         origin_selection_set_ids: HashSet::new(),
                         bound_field_ids: vec![],
                     });
-                group.key = group.key.min(field.bound_response_key);
+                if field.bound_response_key < group.key {
+                    group.key = field.bound_response_key;
+                    group.definition_id = field.definition_id;
+                }
                 group.bound_field_ids.push(flat_field.bound_field_id);
                 group.origin_selection_set_ids.extend(&flat_field.selection_set_path);
 

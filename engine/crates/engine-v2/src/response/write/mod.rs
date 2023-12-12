@@ -80,13 +80,16 @@ impl ResponseBuilder {
         for update in output.updates {
             self[update.id].fields.extend(update.fields);
         }
-        for error in output.errors_to_propagate {
-            self.propagate_error(error);
+        for path in output.error_paths_to_propagate {
+            self.propagate_error(&path);
         }
         // The boundary objects are only accessible after we ingested them
         output.boundaries
     }
 
+    // FIXME: this method is improperly used, when pushing an error we need to propagate it which
+    // parent callers never do currently. It's a bit tricky to handle that correctly in the
+    // Coordinator during the planning phase.
     pub fn push_error(&mut self, error: impl Into<GraphqlError>) {
         self.errors.push(error.into());
     }
@@ -108,7 +111,7 @@ impl ResponseBuilder {
     // was in a different part (provided by a parent plan).
     // To correctly propagate error we're finding the last nullable element in the path and make it
     // nullable. If there's nothing, then root will be null.
-    fn propagate_error(&mut self, path: ResponsePath) {
+    fn propagate_error(&mut self, path: &ResponsePath) {
         let Some(root) = self.root else {
             return;
         };
@@ -189,7 +192,7 @@ pub(crate) struct ExecutorOutput {
     data_part: ResponseDataPart,
     errors: Vec<GraphqlError>,
     updates: Vec<ResponseObjectUpdate>,
-    errors_to_propagate: Vec<ResponsePath>,
+    error_paths_to_propagate: Vec<ResponsePath>,
     boundaries: Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)>,
 }
 
@@ -200,7 +203,7 @@ impl ExecutorOutput {
             data_part: ResponseDataPart::default(),
             errors: Vec::new(),
             updates: Vec::new(),
-            errors_to_propagate: Vec::new(),
+            error_paths_to_propagate: Vec::new(),
             boundaries: boundaries.into_iter().map(|plan| (plan, vec![])).collect(),
         }
     }
@@ -217,8 +220,8 @@ impl ExecutorOutput {
         self.errors.extend(errors);
     }
 
-    pub fn push_error_to_propagate(&mut self, path: ResponsePath) {
-        self.errors_to_propagate.push(path);
+    pub fn push_error_path_to_propagate(&mut self, path: ResponsePath) {
+        self.error_paths_to_propagate.push(path);
     }
 
     pub fn has_errors(&self) -> bool {

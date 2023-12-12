@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use schema::{DataType, ListWrapping, ObjectId, StringId, Wrapping};
 
@@ -258,7 +258,7 @@ impl<'a> GroupedFieldWriter<'a> {
                                 message: err.to_string(),
                                 locations: self.expected_field.name_location().into_iter().collect(),
                                 path: Some(self.path.clone()),
-                                extensions: HashMap::with_capacity(0),
+                                ..Default::default()
                             });
                         }
                         if inner_is_required {
@@ -282,7 +282,7 @@ impl<'a> GroupedFieldWriter<'a> {
             message: message.into(),
             locations: self.expected_field.name_location().into_iter().collect(),
             path: Some(self.path.clone()),
-            extensions: HashMap::with_capacity(0),
+            ..Default::default()
         });
         Err(WriteError::ErrorPropagation)
     }

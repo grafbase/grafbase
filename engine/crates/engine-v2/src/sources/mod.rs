@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use schema::{Resolver, ResolverWalker};
 
 use crate::{
@@ -111,9 +109,7 @@ impl From<ExecutorError> for GraphqlError {
     fn from(err: ExecutorError) -> Self {
         GraphqlError {
             message: err.to_string(),
-            locations: vec![],
-            path: None,
-            extensions: HashMap::with_capacity(0),
+            ..Default::default()
         }
     }
 }

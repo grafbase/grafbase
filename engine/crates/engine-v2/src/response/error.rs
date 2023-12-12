@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use super::ResponsePath;
 use crate::request::Pos;
@@ -8,5 +8,6 @@ pub(crate) struct GraphqlError {
     pub message: String,
     pub locations: Vec<Pos>,
     pub path: Option<ResponsePath>,
-    pub extensions: HashMap<String, serde_json::Value>,
+    // ensures consistent ordering for tests
+    pub extensions: BTreeMap<String, serde_json::Value>,
 }
