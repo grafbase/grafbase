@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fmt,
     sync::atomic::{AtomicBool, Ordering},
 };
@@ -74,9 +74,11 @@ impl<'de, 'a> DeserializeSeed<'de> for UpdateSeed<'a> {
             path: &self.boundary_item.response_path,
             expected: self.expected,
         }));
+
+        let mut data = self.ctx.data.borrow_mut();
         match result {
             Ok(Some(object)) => {
-                self.ctx.data.borrow_mut().push_update(ResponseObjectUpdate {
+                data.push_update(ResponseObjectUpdate {
                     id: self.boundary_item.response_object_id,
                     fields: object.fields,
                 });
@@ -86,33 +88,30 @@ impl<'de, 'a> DeserializeSeed<'de> for UpdateSeed<'a> {
                     id: self.boundary_item.response_object_id,
                     fields: BTreeMap::new(),
                 };
-                let mut data = self.ctx.data.borrow_mut();
                 for field in &self.expected.fields {
                     if field.wrapping.is_required() {
-                        self.ctx.data.borrow_mut().push_error(GraphqlError {
+                        data.push_error(GraphqlError {
                             message: self.ctx.missing_field_error_message(field),
                             path: Some(self.boundary_item.response_path.child(field.edge)),
                             ..Default::default()
                         });
-                        data.push_error_to_propagate(self.boundary_item.response_path.clone());
+                        data.push_error_path_to_propagate(self.boundary_item.response_path.clone());
                         return Ok(());
                     } else {
                         update.fields.insert(field.edge, ResponseValue::Null);
                     }
                 }
-                self.ctx.data.borrow_mut().push_update(update);
+                data.push_update(update);
             }
             Err(err) => {
-                let mut data = self.ctx.data.borrow_mut();
                 if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
                     data.push_error(GraphqlError {
                         message: err.to_string(),
-                        locations: vec![],
                         path: Some(self.boundary_item.response_path.clone()),
-                        extensions: HashMap::with_capacity(0),
+                        ..Default::default()
                     });
                 }
-                data.push_error_to_propagate(self.boundary_item.response_path.clone());
+                data.push_error_path_to_propagate(self.boundary_item.response_path.clone());
             }
         }
         Ok(())

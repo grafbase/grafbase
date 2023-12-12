@@ -9,12 +9,14 @@ mod almost_empty;
 mod echo;
 mod fake_github;
 mod federation;
+mod state_mutation;
 
 pub use {
     almost_empty::AlmostEmptySchema,
     echo::EchoSchema,
     fake_github::FakeGithubSchema,
     federation::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
+    state_mutation::StateMutationSchema,
 };
 
 pub struct MockGraphQlServer {

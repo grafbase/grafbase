@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, sync::atomic::AtomicBool};
+use std::{cell::RefCell, sync::atomic::AtomicBool};
 
 use serde::{de::DeserializeSeed, Deserializer};
 
@@ -75,15 +75,12 @@ impl<'a> ResponseObjectWriter<'a> {
                 if let WriteError::Any(err) = err {
                     self.data.push_error(GraphqlError {
                         message: err.to_string(),
-                        // TODO: should include locations & path of all root fields retrieved by
-                        // the plan.
-                        locations: vec![],
                         path: Some(self.boundary_item.response_path.clone()),
-                        extensions: HashMap::with_capacity(0),
+                        ..Default::default()
                     });
                 }
                 self.data
-                    .push_error_to_propagate(self.boundary_item.response_path.clone());
+                    .push_error_path_to_propagate(self.boundary_item.response_path.clone());
             }
         }
     }

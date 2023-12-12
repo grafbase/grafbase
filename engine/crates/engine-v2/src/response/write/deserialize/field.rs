@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::atomic::Ordering};
+use std::sync::atomic::Ordering;
 
 use schema::{DataType, ListWrapping, Wrapping};
 use serde::de::DeserializeSeed;
@@ -125,7 +125,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                         .into_iter()
                         .collect(),
                     path: Some(self.path.clone()),
-                    extensions: HashMap::with_capacity(0),
+                    ..Default::default()
                 });
             }
             err

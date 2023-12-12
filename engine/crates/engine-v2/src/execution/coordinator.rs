@@ -1,12 +1,17 @@
+use std::collections::{BTreeMap, VecDeque};
+
 use async_runtime::make_send_on_wasm;
 use engine::RequestHeaders;
-use futures_util::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
+use engine_parser::types::OperationType;
+use futures_util::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt};
 
 use crate::{
     execution::{ExecutionContext, Variables},
-    plan::{PlanBoundary, Planner},
-    request::Operation,
-    response::{ExecutionMetadata, ExecutorOutput, Response, ResponseBoundaryItem, ResponseBuilder, ResponsePath},
+    plan::{PlanBoundary, Planner, PlanningError},
+    request::{Operation, QueryPath},
+    response::{
+        ExecutionMetadata, ExecutorOutput, GraphqlError, Response, ResponseBoundaryItem, ResponseBuilder, ResponsePath,
+    },
     sources::{Executor, ExecutorResult, ResolverInput},
     Engine,
 };
@@ -38,34 +43,74 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
     }
 
     pub async fn execute(&mut self) {
-        let mut futures = FuturesUnordered::<BoxFuture<'_, ExecutorResult<ExecutorOutput>>>::new();
-        match self.planner.generate_initial_boundary() {
-            Ok(plans) => {
-                let boundary = vec![ResponseBoundaryItem {
-                    response_object_id: self
-                        .response
-                        .root_response_object_id()
-                        .expect("No errors could have propagated to root yet."),
-                    response_path: ResponsePath::default(),
-                    object_id: self.operation.root_object_id,
-                }];
-
-                let executors = self.generate_executors(vec![(plans, boundary)]);
-                for executor in executors {
-                    futures.push(Box::pin(make_send_on_wasm(executor.execute())));
+        let mut futures = FuturesUnordered::<BoxFuture<'_, ExecutorFutResult<'ctx>>>::new();
+        let response_boundary = vec![ResponseBoundaryItem {
+            response_object_id: self
+                .response
+                .root_response_object_id()
+                .expect("No errors could have propagated to root yet."),
+            response_path: ResponsePath::default(),
+            object_id: self.operation.root_object_id,
+        }];
+        match self.operation.ty {
+            OperationType::Query => match self.planner.generate_root_plan_boundary() {
+                Ok(plan_boundary) => {
+                    for executor in self.generate_executors(vec![(plan_boundary, response_boundary)]) {
+                        futures.push(Box::pin(make_send_on_wasm(
+                            executor.execute().map(ExecutorFutResult::from),
+                        )));
+                    }
                 }
-            }
-            Err(err) => {
-                self.response.push_error(err);
-            }
+                Err(err) => {
+                    self.push_planning_error(QueryPath::default(), err);
+                }
+            },
+            OperationType::Mutation => match self.planner.generate_root_plan_boundary() {
+                Ok(plan_boundary) => {
+                    let mut executors =
+                        VecDeque::from(self.generate_executors(vec![(plan_boundary, response_boundary)]));
+                    if let Some(executor) = executors.pop_front() {
+                        futures.push(Box::pin(make_send_on_wasm(async move {
+                            ExecutorFutResult {
+                                result: executor.execute().await,
+                                next_executors: executors,
+                            }
+                        })));
+                    }
+                }
+                Err(err) => {
+                    self.push_planning_error(QueryPath::default(), err);
+                }
+            },
+            OperationType::Subscription => unimplemented!(),
         }
-        while let Some(result) = futures.next().await {
+        while let Some(ExecutorFutResult {
+            result,
+            mut next_executors,
+        }) = futures.next().await
+        {
             match result {
                 Ok(output) => {
+                    // Ingesting data first to propagate errors.
                     let boundaries = self.response.ingest(output);
-                    let executors = self.generate_executors(boundaries);
-                    for executor in executors {
-                        futures.push(Box::pin(make_send_on_wasm(executor.execute())));
+
+                    // Hack to ensure we don't execute any subsequent mutation root fields if a
+                    // previous one failed and the error propagated up to the root `data` field.
+                    if self.response.root_response_object_id().is_some() {
+                        if let Some(executor) = next_executors.pop_front() {
+                            futures.push(Box::pin(make_send_on_wasm(async move {
+                                ExecutorFutResult {
+                                    result: executor.execute().await,
+                                    next_executors,
+                                }
+                            })));
+                        }
+                        let executors = self.generate_executors(boundaries);
+                        for executor in executors {
+                            futures.push(Box::pin(make_send_on_wasm(
+                                executor.execute().map(ExecutorFutResult::from),
+                            )));
+                        }
                     }
                 }
                 Err(err) => {
@@ -79,9 +124,11 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         &mut self,
         boundaries: Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)>,
     ) -> Vec<Executor<'ctx>> {
+        // Ordering of the executors MUST match the plan boundary order for mutation root fields.
         let mut executors = vec![];
-        for (boundary, response_objects) in boundaries {
-            match self.planner.generate_plans(boundary, &response_objects) {
+        for (plan_boundary, response_boundary) in boundaries {
+            let query_path = plan_boundary.query_path.clone();
+            match self.planner.generate_plans(plan_boundary, &response_boundary) {
                 Ok(plans) => {
                     for plan in plans {
                         let resolver = self.engine.schema.walker().walk(plan.resolver_id);
@@ -115,11 +162,28 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                     }
                 }
                 Err(err) => {
-                    self.response.push_error(err);
+                    self.push_planning_error(query_path, err);
                 }
             }
         }
         executors
+    }
+
+    fn push_planning_error(&mut self, query_path: QueryPath, err: PlanningError) {
+        self.response.push_error(GraphqlError {
+            message: err.to_string(),
+            locations: vec![],
+            path: None,
+            extensions: BTreeMap::from([(
+                "queryPath".into(),
+                serde_json::Value::Array(
+                    query_path
+                        .into_iter()
+                        .map(|key| self.operation.response_keys[*key].into())
+                        .collect(),
+                ),
+            )]),
+        })
     }
 
     // ugly... should be sent back through a stream to support defer.
@@ -129,5 +193,19 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             self.operation.response_keys.clone(),
             ExecutionMetadata::build(self.operation),
         )
+    }
+}
+
+struct ExecutorFutResult<'ctx> {
+    result: ExecutorResult<ExecutorOutput>,
+    next_executors: VecDeque<Executor<'ctx>>,
+}
+
+impl From<ExecutorResult<ExecutorOutput>> for ExecutorFutResult<'static> {
+    fn from(result: ExecutorResult<ExecutorOutput>) -> Self {
+        Self {
+            result,
+            next_executors: VecDeque::new(),
+        }
     }
 }

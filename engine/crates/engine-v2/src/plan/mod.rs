@@ -13,7 +13,7 @@ mod planner;
 pub use attribution::*;
 pub use expectation::*;
 pub use ids::*;
-pub use planner::Planner;
+pub use planner::{Planner, PlanningError};
 
 #[derive(Debug)]
 pub struct Plan {
@@ -48,6 +48,7 @@ pub struct PlanOutput {
 #[derive(Debug)]
 pub struct PlanBoundary {
     pub selection_set_type: SelectionSetType,
+    pub query_path: QueryPath,
     /// A child plan isn't entirely planned yet. We only ensure that any `@requires` of children
     /// will be provided by the parent. Its actual output is only planned once we have the
     /// ResponseObjectRoots.
@@ -57,8 +58,7 @@ pub struct PlanBoundary {
 #[derive(Debug)]
 pub struct ChildPlan {
     pub id: PlanId,
-    pub path: QueryPath,
     pub resolver_id: ResolverId,
     pub input_selection_set: ReadSelectionSet,
-    pub providable: FlatSelectionSet<EntityType>,
+    pub root_selection_set: FlatSelectionSet<EntityType>,
 }

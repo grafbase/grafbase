@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, sync::atomic::Ordering};
+use std::{fmt, sync::atomic::Ordering};
 
 use serde::{
     de::{DeserializeSeed, IgnoredAny, SeqAccess, Visitor},
@@ -72,7 +72,7 @@ where
                                 .into_iter()
                                 .collect(),
                             path: Some(self.path.clone()),
-                            extensions: HashMap::with_capacity(0),
+                            ..Default::default()
                         });
                     }
                     // Discarding the rest of the sequence.
