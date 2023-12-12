@@ -84,7 +84,7 @@ Options:
           The name or GitHub URL of the template to use for the new project
 
   -g, --graph <GRAPH>
-          What graph type (federated or single) to initialize the project with
+          What graph type (federated or standalone) to initialize the project with
 
           Possible values:
           - federated: Creates a federated graph
