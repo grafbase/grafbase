@@ -215,7 +215,7 @@ Options:
 
 ### `check`
 
-Check a graph or a subgraph for validation, composition and breaking change errors
+Check a graph for validation, composition and breaking change errors
 
 ```
 Usage: grafbase check [OPTIONS] <PROJECT_REF>
