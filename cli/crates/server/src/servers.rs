@@ -1,7 +1,7 @@
 use crate::atomics::{REGISTRY_PARSED_EPOCH_OFFSET_MILLIS, WORKER_PORT};
 use crate::consts::{
-    ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
-    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, TS_NODE_SCRIPT_PATH,
+    ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS,
+    GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, TS_NODE_SCRIPT_PATH,
 };
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
@@ -533,19 +533,39 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
         std::fs::create_dir_all(generated_schemas_dir).map_err(ServerError::SchemaParserError)?;
     }
 
+    let module_type = project
+        .package_json_path
+        .as_deref()
+        .and_then(ModuleType::from_package_json)
+        .unwrap_or_default();
+
     let config_parser_path = environment
         .user_dot_grafbase_path
         .join(SCHEMA_PARSER_DIR)
-        .join(CONFIG_PARSER_SCRIPT);
+        .join(match module_type {
+            ModuleType::CommonJS => CONFIG_PARSER_SCRIPT_CJS,
+            ModuleType::Esm => CONFIG_PARSER_SCRIPT_ESM,
+        });
 
     let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT_PATH);
 
-    let args = [
-        ts_node_path.as_path(),
-        config_parser_path.as_path(),
-        ts_config_path,
-        &generated_config_path,
-    ];
+    let args = match module_type {
+        ModuleType::CommonJS => vec![
+            ts_node_path.to_string_lossy().to_string(),
+            config_parser_path.to_string_lossy().to_string(),
+            ts_config_path.to_string_lossy().to_string(),
+            generated_config_path.to_string_lossy().to_string(),
+        ],
+        ModuleType::Esm => vec![
+            ts_node_path.to_string_lossy().to_string(),
+            "--compilerOptions".to_string(),
+            r#"{"module": "esnext", "moduleResolution": "node", "esModuleInterop": true}"#.to_string(),
+            "--esm".to_string(),
+            config_parser_path.to_string_lossy().to_string(),
+            ts_config_path.to_string_lossy().to_string(),
+            generated_config_path.to_string_lossy().to_string(),
+        ],
+    };
 
     export_embedded_files()?;
     validate_node().await?;
@@ -654,4 +674,22 @@ where
         }
     }
     Err(ServerError::AvailablePortMiniflare)
+}
+
+#[derive(Default)]
+enum ModuleType {
+    #[default]
+    CommonJS,
+    Esm,
+}
+
+impl ModuleType {
+    pub fn from_package_json(package_json: &Path) -> Option<ModuleType> {
+        let value = serde_json::from_slice::<serde_json::Value>(&std::fs::read(package_json).ok()?).ok()?;
+        if value["type"].as_str()? == "module" {
+            Some(ModuleType::Esm)
+        } else {
+            Some(ModuleType::CommonJS)
+        }
+    }
 }
