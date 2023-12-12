@@ -130,7 +130,7 @@ Options:
 
 ### `start`
 
-Run your Grafbase project locally in production mode
+Run your Grafbase project in production mode
 
 ```
 Usage: grafbase start [OPTIONS]
