@@ -101,7 +101,6 @@ Usage: grafbase create [OPTIONS]
 Options:
   -n, --name <NAME>       The name to use for the new project
   -a, --account <SLUG>    The slug of the account in which the new project should be created
-  -r, --regions <REGION>  The regions in which the database for the new project should be created
 ```
 
 ### `link`
