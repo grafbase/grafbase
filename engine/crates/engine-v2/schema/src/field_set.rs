@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::{FieldId, SchemaWalker};
+use crate::FieldId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldSet {
@@ -97,7 +97,7 @@ impl FieldSet {
                 Ordering::Equal => {
                     items.push(FieldSetItem {
                         field_id: left.field_id,
-                        selection_set: Self::merge(&left.selection_set, &right.selection_set),
+                        subselection: Self::merge(&left.subselection, &right.subselection),
                     });
                     l += 1;
                     r += 1;
@@ -119,26 +119,5 @@ impl FieldSet {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldSetItem {
     pub field_id: FieldId,
-    pub selection_set: FieldSet,
-}
-
-impl<'a> std::fmt::Debug for SchemaWalker<'a, &'a FieldSet> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("FieldSet")
-            .field(&self.inner.items.iter().map(|item| self.walk(item)).collect::<Vec<_>>())
-            .finish()
-    }
-}
-
-impl<'a> std::fmt::Debug for SchemaWalker<'a, &'a FieldSetItem> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if !self.inner.selection_set.is_empty() {
-            f.debug_struct("FieldSetItem")
-                .field("name", &self.walk(self.inner.field_id).name())
-                .field("selection_set", &self.walk(&self.inner.selection_set))
-                .finish()
-        } else {
-            self.walk(self.inner.field_id).name().fmt(f)
-        }
-    }
+    pub subselection: FieldSet,
 }

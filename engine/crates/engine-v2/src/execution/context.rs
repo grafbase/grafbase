@@ -32,8 +32,8 @@ impl<'ctx> ExecutionContext<'ctx> {
         'ctx: 'p,
     {
         self.walker
-            .with_ext(PlanExt {
-                attibution: &output.attribution,
+            .with_plan(PlanExt {
+                attribution: &output.attribution,
                 variables: self.variables,
             })
             .walk(output)
@@ -49,13 +49,13 @@ impl<'ctx> ExecutionContext<'ctx> {
         'ctx: 'a,
     {
         ResponseObjectWriter::new(
-            self.walker.with_ext(PlanExt {
-                attibution: &output.attribution,
+            self.walker.with_plan(PlanExt {
+                attribution: &output.attribution,
                 variables: self.variables,
             }),
             data_part,
+            output,
             boundary_item,
-            &output.expectation,
         )
     }
 

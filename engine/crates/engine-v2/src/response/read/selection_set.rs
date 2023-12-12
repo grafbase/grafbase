@@ -1,6 +1,4 @@
-use schema::FieldId;
-
-use crate::response::BoundResponseKey;
+use crate::response::ResponseEdge;
 
 /// Selection set used to read data from the response.
 /// Used for plan inputs.
@@ -11,22 +9,18 @@ pub struct ReadSelectionSet {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadField {
-    pub bound_response_key: BoundResponseKey,
-    pub field_id: FieldId,
+    pub edge: ResponseEdge,
+    pub name: String,
     pub subselection: ReadSelectionSet,
 }
 
 impl ReadSelectionSet {
-    pub fn empty() -> Self {
-        Self { items: vec![] }
-    }
-
     pub fn len(&self) -> usize {
         self.items.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &ReadField> {
-        self.items.iter()
+    pub fn extend_disjoint(&mut self, other: Self) {
+        self.items.extend(other.items);
     }
 }
 

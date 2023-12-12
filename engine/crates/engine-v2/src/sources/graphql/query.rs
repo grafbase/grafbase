@@ -12,8 +12,8 @@ use crate::{
     execution::ExecutionContext,
     plan::{PlanId, PlanOutput},
     request::{
-        PlanExt, PlanField, PlanFieldArgument, PlanFragmentSpread, PlanInlineFragment, PlanOperationWalker,
-        PlanSelection, SelectionSet, SelectionSetType,
+        PlanField, PlanFieldArgument, PlanFragmentSpread, PlanInlineFragment, PlanOperationWalker, PlanSelection,
+        PlanSelectionSet,
     },
     response::ResponseBoundaryObjectsView,
 };
@@ -127,15 +127,14 @@ impl<'a> FederationEntityQuery<'a> {
                 .extend(builder.write_operation_arguments_without_parenthesis(ctx, &mut query)?);
         }
         query.push(')');
-        let type_name = match operation.selection_set().ty() {
-            SelectionSetType::Object(id) => ctx.schema().walk(id).name(),
-            SelectionSetType::Interface(id) => ctx.schema().walk(id).name(),
-            SelectionSetType::Union(id) => ctx.schema().walk(id).name(),
-        };
+        let type_name = operation.selection_set().ty().name();
         query.push_str(" {");
         query.push_str(&format!("\n\t_entities(representations: ${var_name}) {{"));
+        query.push_str("\n\t\t__typename");
         query.push_str(&format!("\n\t\t... on {type_name} {selection_set}\t}}"));
         query.push_str("\n}");
+
+        builder.write_fragments(&mut query);
 
         Ok(FederationEntityQuery { query, variables })
     }
@@ -205,20 +204,13 @@ impl QueryBuilder {
         ));
     }
 
-    fn write_selection_set<'a>(
-        &mut self,
-        buffer: &mut Buffer,
-        selection_set: impl SelectionSet<'a, PlanExt<'a>>,
-    ) -> Result<(), Error> {
+    fn write_selection_set(&mut self, buffer: &mut Buffer, selection_set: PlanSelectionSet<'_>) -> Result<(), Error> {
         buffer.write_str(" {\n")?;
         buffer.indent += 1;
         let n = buffer.len();
-        match selection_set.ty() {
-            SelectionSetType::Object(_) => (),
+        if !selection_set.ty().is_object() {
             // We always need to know the concrete object.
-            SelectionSetType::Interface(_) | SelectionSetType::Union(_) => {
-                buffer.indent_write("__typename\n")?;
-            }
+            buffer.indent_write("__typename\n")?;
         }
         for selection in selection_set {
             match selection {
@@ -271,22 +263,18 @@ impl QueryBuilder {
     }
 
     fn write_field(&mut self, buffer: &mut Buffer, field: PlanField<'_>) -> Result<(), Error> {
-        // Ignoring meta fields.
-        if let Some(definition) = field.definition().as_field() {
-            // GraphQL resolvers support aliases so we must use the final response key.
-            let name = definition.name();
-            let response_key = field.response_key_str();
-            if response_key == name {
-                buffer.indent_write(name)?;
-            } else {
-                buffer.indent_write(&format!("{response_key}: {name}"))?;
-            }
-            self.write_arguments(buffer, definition.bound_arguments())?;
-            if let Some(selection_set) = field.selection_set() {
-                self.write_selection_set(buffer, selection_set)?;
-            } else {
-                buffer.push('\n');
-            }
+        let response_key = field.response_key_str();
+        let name = field.name();
+        if response_key == name {
+            buffer.indent_write(name)?;
+        } else {
+            buffer.indent_write(&format!("{response_key}: {name}"))?;
+        }
+        self.write_arguments(buffer, field.bound_arguments())?;
+        if let Some(selection_set) = field.selection_set() {
+            self.write_selection_set(buffer, selection_set)?;
+        } else {
+            buffer.push('\n');
         }
         Ok(())
     }

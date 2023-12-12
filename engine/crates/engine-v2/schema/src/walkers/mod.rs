@@ -3,6 +3,7 @@ use crate::{Names, Schema};
 mod definition;
 mod r#enum;
 mod field;
+mod field_set;
 mod input_object;
 mod input_value;
 mod interface;
@@ -13,7 +14,8 @@ mod r#type;
 mod union;
 
 pub use definition::DefinitionWalker;
-pub use field::FieldWalker;
+pub use field::{FieldResolverWalker, FieldWalker};
+pub use field_set::{FieldSetItemWalker, FieldSetWalker};
 pub use input_object::InputObjectWalker;
 pub use input_value::InputValueWalker;
 pub use interface::InterfaceWalker;
@@ -26,19 +28,20 @@ pub use union::UnionWalker;
 
 #[derive(Clone, Copy)]
 pub struct SchemaWalker<'a, I> {
-    pub(crate) inner: I,
+    // 'wrapped' instead of 'inner' to avoid confusion with TypeWalker.inner()
+    pub(crate) wrapped: I,
     pub(crate) schema: &'a Schema,
     pub(crate) names: &'a dyn Names,
 }
 
 impl<'a, I> SchemaWalker<'a, I> {
-    pub fn new(inner: I, schema: &'a Schema, names: &'a dyn Names) -> Self {
-        Self { inner, schema, names }
+    pub fn new(wrapped: I, schema: &'a Schema, names: &'a dyn Names) -> Self {
+        Self { wrapped, schema, names }
     }
 
-    pub fn walk<Other>(self, inner: Other) -> SchemaWalker<'a, Other> {
+    pub fn walk<Other>(self, wrapped: Other) -> SchemaWalker<'a, Other> {
         SchemaWalker {
-            inner,
+            wrapped,
             schema: self.schema,
             names: self.names,
         }
@@ -50,11 +53,11 @@ where
     Schema: std::ops::Index<Id>,
 {
     pub fn get(&self) -> &'a <Schema as std::ops::Index<Id>>::Output {
-        &self.schema[self.inner]
+        &self.schema[self.wrapped]
     }
 
     pub fn id(&self) -> Id {
-        self.inner
+        self.wrapped
     }
 }
 
@@ -64,7 +67,7 @@ where
 {
     type Target = <Schema as std::ops::Index<Id>>::Output;
     fn deref(&self) -> &Self::Target {
-        &self.schema[self.inner]
+        &self.schema[self.wrapped]
     }
 }
 

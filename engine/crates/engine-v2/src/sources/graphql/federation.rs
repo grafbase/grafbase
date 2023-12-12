@@ -4,8 +4,9 @@ use serde::de::DeserializeSeed;
 
 use crate::{
     execution::ExecutionContext,
-    plan::{EntityType, PlanOutput},
-    response::{ExecutorOutput, ResponseBoundaryItem},
+    plan::PlanOutput,
+    request::EntityType,
+    response::{ExecutorOutput, GraphqlError, ResponseBoundaryItem},
     sources::{Executor, ExecutorError, ExecutorResult, ResolverInput},
 };
 
@@ -81,23 +82,36 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
             })
             .await?
             .bytes;
-        let errors = deserialize::GraphqlResponseSeed::new(
+        let err_path = Some(
+            self.response_boundary[0]
+                .response_path
+                .child(self.ctx.walker.walk(self.plan_output.root_fields[0]).bound_response_key),
+        );
+        let mut upstream_errors = vec![];
+        let result = deserialize::GraphqlResponseSeed::new(
+            err_path.clone(),
+            &mut upstream_errors,
             deserialize::EntitiesDataSeed {
                 ctx: self.ctx,
                 response_boundary: &self.response_boundary,
                 output: &mut self.output,
                 plan_output: &self.plan_output,
             },
-            Some(
-                self.response_boundary[0]
-                    .response_path
-                    .child(self.ctx.walker.walk(self.plan_output.fields[0]).bound_response_key),
-            ),
         )
-        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))
-        .expect("All errors have been handled.");
+        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes));
 
-        self.output.push_errors(errors);
+        if !upstream_errors.is_empty() {
+            self.output.push_errors(upstream_errors);
+        } else if let Err(err) = result {
+            // Only adding this if no other more precise errors were added.
+            if !self.output.has_errors() {
+                self.output.push_error(GraphqlError {
+                    message: format!("Upstream response error: {err}"),
+                    path: err_path,
+                    ..Default::default()
+                });
+            }
+        }
 
         Ok(self.output)
     }

@@ -1,10 +1,12 @@
-mod arbitrary;
-mod grouped;
+mod collected;
+mod undetermined;
 
-use arbitrary::*;
-pub(crate) use grouped::*;
+use std::borrow::Cow;
+
+pub(crate) use collected::*;
 use schema::ObjectId;
 use serde::de::DeserializeSeed;
+use undetermined::*;
 
 use super::SeedContext;
 use crate::{
@@ -26,33 +28,48 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for SelectionSetSeed<'ctx, 'parent
     where
         D: serde::Deserializer<'de>,
     {
-        let (maybe_boundary_id, response_object) = match self.expected {
-            ExpectedSelectionSet::Grouped(expected) => {
-                let maybe_boundary_id = expected.maybe_boundary_id;
-                let object = ObjectFieldsSeed {
+        let (boundary_ids, response_object) = match self.expected {
+            ExpectedSelectionSet::Collected(expected) => {
+                let object = CollectedFieldsSeed {
                     ctx: self.ctx,
                     path: self.path,
                     expected,
                 }
                 .deserialize(deserializer)?;
-                (maybe_boundary_id, object)
+                (Cow::Borrowed(&expected.boundary_ids), object)
             }
-            ExpectedSelectionSet::Arbitrary(expected) => {
-                let maybe_boundary_id = expected.maybe_boundary_id;
-                let object = ArbitraryFieldsSeed {
+            ExpectedSelectionSet::Undetermined(id) => {
+                let expected = &self.ctx.expectations[*id];
+                let boundary_ids = expected.maybe_boundary_id.into_iter().collect();
+                let object = UndeterminedFieldsSeed {
                     ctx: self.ctx,
                     path: self.path,
-                    expected,
+                    ty: expected.ty,
+                    selection_set_ids: Cow::Owned(vec![*id]),
                 }
                 .deserialize(deserializer)?;
-                (maybe_boundary_id, object)
+                (Cow::Owned(boundary_ids), object)
+            }
+            ExpectedSelectionSet::MergedUndetermined { ty, selection_set_ids } => {
+                let boundary_ids = selection_set_ids
+                    .iter()
+                    .filter_map(|id| self.ctx.expectations[*id].maybe_boundary_id)
+                    .collect();
+                let object = UndeterminedFieldsSeed {
+                    ctx: self.ctx,
+                    path: self.path,
+                    ty: *ty,
+                    selection_set_ids: Cow::Borrowed(selection_set_ids),
+                }
+                .deserialize(deserializer)?;
+                (Cow::Owned(boundary_ids), object)
             }
         };
         let mut data = self.ctx.data.borrow_mut();
         let object_id = response_object.object_id;
         let id = data.push_object(response_object);
-        if let Some(boundary_id) = maybe_boundary_id {
-            data[boundary_id].push(ResponseBoundaryItem {
+        for boundary_id in boundary_ids.iter() {
+            data[*boundary_id].push(ResponseBoundaryItem {
                 response_object_id: id,
                 response_path: self.path.clone(),
                 object_id,
@@ -145,7 +162,7 @@ impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
                 ctx,
                 root,
             } => Err(serde::de::Error::custom(format!(
-                "Could not infer object: discriminant key: '{}' wasn't found for type named '{}'",
+                "Upstream response error: Could not infer object. Discriminant key '{}' wasn't found for type named '{}'.",
                 discriminant_key,
                 ctx.walker.schema().walk(schema::Definition::from(root)).name()
             ))),
@@ -155,7 +172,7 @@ impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
                 ctx,
                 root,
             } => Err(serde::de::Error::custom(format!(
-                "Could not infer object: unknown discriminant '{}' (key: '{}') for type named '{}'",
+                "Upstream response error: Could not infer object. Unknown discriminant '{}' (key: '{}') for type named '{}'.",
                 discriminant,
                 discriminant_key,
                 ctx.walker.schema().walk(schema::Definition::from(root)).name()

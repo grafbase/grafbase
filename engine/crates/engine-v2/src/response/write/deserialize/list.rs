@@ -13,7 +13,7 @@ use crate::{
 
 pub(super) struct ListSeed<'ctx, 'parent, F> {
     pub path: &'parent ResponsePath,
-    pub definition_id: BoundAnyFieldDefinitionId,
+    pub definition_id: Option<BoundAnyFieldDefinitionId>,
     pub ctx: &'parent SeedContext<'ctx>,
     pub seed_builder: F,
 }
@@ -66,7 +66,11 @@ where
                     if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
                         self.ctx.data.borrow_mut().push_error(GraphqlError {
                             message: err.to_string(),
-                            locations: vec![self.ctx.walker.walk(self.definition_id).name_location()],
+                            locations: self
+                                .definition_id
+                                .map(|id| self.ctx.walker.walk(id).name_location())
+                                .into_iter()
+                                .collect(),
                             path: Some(self.path.clone()),
                             extensions: HashMap::with_capacity(0),
                         });

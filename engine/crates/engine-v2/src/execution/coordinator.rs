@@ -124,7 +124,10 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
 
     // ugly... should be sent back through a stream to support defer.
     pub fn into_response(self) -> Response {
-        self.response
-            .build(self.engine.schema.clone(), ExecutionMetadata::build(self.operation))
+        self.response.build(
+            self.engine.schema.clone(),
+            self.operation.response_keys.clone(),
+            ExecutionMetadata::build(self.operation),
+        )
     }
 }

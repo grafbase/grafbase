@@ -1,8 +1,9 @@
+use schema::Schema;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::response::{
-    GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys, ResponseObject, ResponsePath,
-    ResponseValue,
+    path::UnpackedResponseEdge, GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys,
+    ResponseObject, ResponsePath, ResponseValue,
 };
 
 impl serde::Serialize for crate::Response {
@@ -18,6 +19,7 @@ impl serde::Serialize for crate::Response {
                     map.serialize_entry(
                         "errors",
                         &SerializableErrors {
+                            schema: Some(&data.schema),
                             keys: &data.keys,
                             errors,
                         },
@@ -34,6 +36,7 @@ impl serde::Serialize for crate::Response {
                     map.serialize_entry(
                         "errors",
                         &SerializableErrors {
+                            schema: None,
                             keys: &empty_keys,
                             errors,
                         },
@@ -46,6 +49,7 @@ impl serde::Serialize for crate::Response {
 }
 
 struct SerializableErrors<'a> {
+    schema: Option<&'a Schema>,
     keys: &'a ResponseKeys,
     errors: &'a [GraphqlError],
 }
@@ -57,13 +61,18 @@ impl<'a> serde::Serialize for SerializableErrors<'a> {
     {
         let mut seq = serializer.serialize_seq(Some(self.errors.len()))?;
         for error in self.errors {
-            seq.serialize_element(&SerializableError { keys: self.keys, error })?;
+            seq.serialize_element(&SerializableError {
+                schema: self.schema,
+                keys: self.keys,
+                error,
+            })?;
         }
         seq.end()
     }
 }
 
 struct SerializableError<'a> {
+    schema: Option<&'a Schema>,
     keys: &'a ResponseKeys,
     error: &'a GraphqlError,
 }
@@ -88,7 +97,14 @@ impl<'a> serde::Serialize for SerializableError<'a> {
             map.serialize_entry("locations", &self.error.locations)?;
         }
         if let Some(ref path) = self.error.path {
-            map.serialize_entry("path", &SerializableResponsePath { keys: self.keys, path })?;
+            map.serialize_entry(
+                "path",
+                &SerializableResponsePath {
+                    schema: self.schema,
+                    keys: self.keys,
+                    path,
+                },
+            )?;
         }
         if !self.error.extensions.is_empty() {
             map.serialize_entry("extensions", &self.error.extensions)?;
@@ -98,6 +114,7 @@ impl<'a> serde::Serialize for SerializableError<'a> {
 }
 
 struct SerializableResponsePath<'a> {
+    schema: Option<&'a Schema>,
     keys: &'a ResponseKeys,
     path: &'a ResponsePath,
 }
@@ -108,10 +125,19 @@ impl<'a> serde::Serialize for SerializableResponsePath<'a> {
         S: serde::Serializer,
     {
         let mut seq = serializer.serialize_seq(Some(self.path.len()))?;
-        for segment in self.path.iter() {
-            match segment.try_into_bound_response_key() {
-                Ok(key) => seq.serialize_element(&self.keys[key])?,
-                Err(index) => seq.serialize_element(&index)?,
+        for edge in self.path.iter() {
+            match edge.unpack() {
+                UnpackedResponseEdge::Index(index) => seq.serialize_element(&index)?,
+                UnpackedResponseEdge::BoundResponseKey(key) => seq.serialize_element(&self.keys[key.into()])?,
+                UnpackedResponseEdge::ExtraField(id) => {
+                    if let Some(schema) = self.schema {
+                        seq.serialize_element(&format!("<extra field: {}>", schema.walker().walk(id).name()))?
+                    } else {
+                        // Shouldn't happen, as schema is only optional for RequestErrors which
+                        // can't have a path, even less an extra field.
+                        seq.serialize_element(&"<extra field: ???>")?
+                    }
+                }
             }
         }
         seq.end()
@@ -149,14 +175,15 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(self.object.fields.len()))?;
-        // Thanks to the BoundResponsKey starting with the position and the fields being a BTreeMap
+        // Thanks to the BoundResponseKey starting with the position and the fields being a BTreeMap
         // we're ensuring the fields are serialized in the order they appear in the query.
         for (&key, value) in &self.object.fields {
-            if key.is_internal() {
-                // internal fields are all at the end.
+            let UnpackedResponseEdge::BoundResponseKey(key) = key.unpack() else {
+                // Bound response keys are always first, anything after are extra fields which
+                // don't need to be serialized.
                 break;
-            }
-            map.serialize_key(&self.data.keys[key])?;
+            };
+            map.serialize_key(&self.data.keys[key.into()])?;
             match value {
                 ResponseValue::Null => map.serialize_value(&serde_json::Value::Null)?,
                 ResponseValue::Boolean { value, .. } => map.serialize_value(value)?,

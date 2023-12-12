@@ -5,7 +5,7 @@ use schema::InputValueId;
 
 use crate::request::BoundFieldArgument;
 
-use super::{HasVariables, OperationWalker};
+use super::{OperationWalker, PlanExt};
 
 pub type BoundFieldArgumentWalker<'a, Extension = ()> =
     OperationWalker<'a, &'a BoundFieldArgument, InputValueId, Extension>;
@@ -13,21 +13,20 @@ pub type BoundFieldArgumentWalker<'a, Extension = ()> =
 impl<'a, E> BoundFieldArgumentWalker<'a, E> {
     // Value in the query, before variable resolution.
     pub fn query_value(&self) -> &engine_value::Value {
-        &self.inner.value
+        &self.wrapped.value
     }
+}
 
-    pub fn resolved_value(&self) -> ConstValue
-    where
-        E: HasVariables,
-    {
+impl<'a> BoundFieldArgumentWalker<'a, PlanExt<'a>> {
+    pub fn resolved_value(&self) -> ConstValue {
         // not really efficient, but works.
-        self.inner
+        self.wrapped
             .value
             .clone()
             .into_const_with::<()>(|name| {
                 Ok(self
                     .ext
-                    .variables()
+                    .variables
                     .get(&name)
                     .expect("Would have failed at validation")
                     .value
@@ -42,7 +41,7 @@ impl<'a, E> Deref for BoundFieldArgumentWalker<'a, E> {
     type Target = schema::InputValueWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
-        &self.schema
+        &self.schema_walker
     }
 }
 

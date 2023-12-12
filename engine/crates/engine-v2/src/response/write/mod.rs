@@ -6,13 +6,14 @@ mod writer;
 use std::{collections::BTreeMap, sync::Arc};
 
 pub use ids::*;
+use itertools::Either;
 pub use manual::*;
 use schema::Schema;
 pub use writer::*;
 
 use super::{
-    BoundResponseKey, ExecutionMetadata, GraphqlError, InitialResponse, ResponseBoundaryItem, ResponseData,
-    ResponseKeys, ResponseObject, ResponsePath, ResponseValue,
+    ExecutionMetadata, GraphqlError, InitialResponse, ResponseBoundaryItem, ResponseData, ResponseEdge, ResponseKeys,
+    ResponseObject, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
     plan::{PlanBoundary, PlanBoundaryId},
@@ -33,7 +34,6 @@ impl ResponseDataPart {
 }
 
 pub(crate) struct ResponseBuilder {
-    pub(super) keys: ResponseKeys,
     // will be None if an error propagated up to the root.
     pub(super) root: Option<ResponseObjectId>,
     parts: Vec<ResponseDataPart>,
@@ -53,7 +53,6 @@ impl ResponseBuilder {
             fields: BTreeMap::new(),
         });
         Self {
-            keys: operation.response_keys.clone(),
             root: Some(root_id),
             parts: vec![builder.data_part],
             errors: vec![],
@@ -92,11 +91,11 @@ impl ResponseBuilder {
         self.errors.push(error.into());
     }
 
-    pub fn build(self, schema: Arc<Schema>, metadata: ExecutionMetadata) -> Response {
+    pub fn build(self, schema: Arc<Schema>, keys: Arc<ResponseKeys>, metadata: ExecutionMetadata) -> Response {
         Response::Initial(InitialResponse {
             data: ResponseData {
                 schema,
-                keys: self.keys,
+                keys,
                 root: self.root,
                 parts: self.parts,
             },
@@ -114,15 +113,22 @@ impl ResponseBuilder {
             return;
         };
         let mut last_nullable: Option<ResponseValueId> = None;
-        let mut previous: Result<ResponseObjectId, ResponseListId> = Ok(root);
-        for segment in path.iter() {
-            let (unique_id, value) = match (previous, segment.try_into_bound_response_key()) {
-                (Ok(object_id), Ok(key)) => {
-                    let unique_id = ResponseValueId::ObjectField { object_id, key };
-                    let value = self[object_id].fields.get(&key);
+        let mut previous: Either<ResponseObjectId, ResponseListId> = Either::Left(root);
+        for edge in path.iter() {
+            let (unique_id, value) = match (previous, edge.unpack()) {
+                (Either::Left(object_id), UnpackedResponseEdge::BoundResponseKey(key)) => {
+                    let edge = ResponseEdge::from(key);
+                    let unique_id = ResponseValueId::ObjectField { object_id, edge };
+                    let value = self[object_id].fields.get(&edge);
                     (unique_id, value)
                 }
-                (Err(list_id), Err(index)) => {
+                (Either::Left(object_id), UnpackedResponseEdge::ExtraField(field_id)) => {
+                    let edge = ResponseEdge::from(field_id);
+                    let unique_id = ResponseValueId::ObjectField { object_id, edge };
+                    let value = self[object_id].fields.get(&edge);
+                    (unique_id, value)
+                }
+                (Either::Right(list_id), UnpackedResponseEdge::Index(index)) => {
                     let unique_id = ResponseValueId::ListItem { list_id, index };
                     let value = self[list_id].get(index);
                     (unique_id, value)
@@ -141,21 +147,21 @@ impl ResponseBuilder {
                     if *nullable {
                         last_nullable = Some(unique_id);
                     }
-                    previous = Ok(*id);
+                    previous = Either::Left(*id);
                 }
                 ResponseValue::List { id, nullable } => {
                     if *nullable {
                         last_nullable = Some(unique_id);
                     }
-                    previous = Err(*id);
+                    previous = Either::Right(*id);
                 }
                 _ => break,
             }
         }
         if let Some(last_nullable) = last_nullable {
             match last_nullable {
-                ResponseValueId::ObjectField { object_id, key } => {
-                    self[object_id].fields.insert(key, ResponseValue::Null);
+                ResponseValueId::ObjectField { object_id, edge } => {
+                    self[object_id].fields.insert(edge, ResponseValue::Null);
                 }
                 ResponseValueId::ListItem { list_id, index } => {
                     self[list_id][index] = ResponseValue::Null;
@@ -170,7 +176,7 @@ impl ResponseBuilder {
 pub enum ResponseValueId {
     ObjectField {
         object_id: ResponseObjectId,
-        key: BoundResponseKey,
+        edge: ResponseEdge,
     },
     ListItem {
         list_id: ResponseListId,
@@ -214,6 +220,10 @@ impl ExecutorOutput {
     pub fn push_error_to_propagate(&mut self, path: ResponsePath) {
         self.errors_to_propagate.push(path);
     }
+
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
 }
 
 impl std::ops::Index<PlanBoundaryId> for ExecutorOutput {
@@ -232,5 +242,5 @@ impl std::ops::IndexMut<PlanBoundaryId> for ExecutorOutput {
 
 pub struct ResponseObjectUpdate {
     pub id: ResponseObjectId,
-    pub fields: BTreeMap<BoundResponseKey, ResponseValue>,
+    pub fields: BTreeMap<ResponseEdge, ResponseValue>,
 }

@@ -1,7 +1,7 @@
 use std::fmt;
 
 use serde::{
-    de::{DeserializeSeed, MapAccess, SeqAccess, Visitor},
+    de::{DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor},
     Deserializer,
 };
 
@@ -53,7 +53,7 @@ impl<'de, 'a> Visitor<'de> for EntitiesDataSeed<'a> {
                     map.next_value_seed(seed)?;
                 }
                 _ => {
-                    map.next_value::<serde::de::IgnoredAny>()?;
+                    map.next_value::<IgnoredAny>()?;
                 }
             }
         }
@@ -93,11 +93,11 @@ impl<'de, 'a> Visitor<'de> for EntitiesSeed<'a> {
         let mut index = 0;
         loop {
             if index >= self.response_boundary.len() {
-                if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+                if seq.next_element::<IgnoredAny>()?.is_some() {
                     self.output.push_error(ExecutorError::Internal(
                         "Received more entities than expected".to_string(),
                     ));
-                    while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
+                    while seq.next_element::<IgnoredAny>()?.is_some() {}
                 }
                 break;
             }
@@ -110,7 +110,7 @@ impl<'de, 'a> Visitor<'de> for EntitiesSeed<'a> {
                 }
                 Ok(None) => break,
                 Err(err) => {
-                    while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
+                    while seq.next_element::<IgnoredAny>()?.is_some() {}
                     return Err(err);
                 }
             }

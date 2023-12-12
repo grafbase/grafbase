@@ -91,16 +91,16 @@ impl From<Config> for Schema {
             let mut root_fields = vec![];
             let walker = schema.walker();
             for field in walker.walk(schema.root_operation_types.query).fields() {
-                root_fields.push(field.inner);
+                root_fields.push(field.wrapped);
             }
             if let Some(mutation) = schema.root_operation_types.mutation {
                 for field in walker.walk(mutation).fields() {
-                    root_fields.push(field.inner);
+                    root_fields.push(field.wrapped);
                 }
             }
             if let Some(subscription) = schema.root_operation_types.subscription {
                 for field in walker.walk(subscription).fields() {
-                    root_fields.push(field.inner);
+                    root_fields.push(field.wrapped);
                 }
             }
             root_fields.sort_unstable();
@@ -390,7 +390,7 @@ impl From<federated_graph::FieldSetItem> for FieldSetItem {
     fn from(selection: federated_graph::FieldSetItem) -> Self {
         FieldSetItem {
             field_id: selection.field.into(),
-            selection_set: selection.subselection.into_iter().map(Into::into).collect(),
+            subselection: selection.subselection.into_iter().map(Into::into).collect(),
         }
     }
 }

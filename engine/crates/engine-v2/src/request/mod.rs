@@ -1,11 +1,13 @@
 mod bind;
 mod flat;
-mod ids;
+pub mod ids;
 mod parse;
 mod path;
 mod selection_set;
 mod variable;
 mod walkers;
+
+use std::sync::Arc;
 
 pub use bind::BindResult;
 pub use engine_parser::{types::OperationType, Pos};
@@ -30,7 +32,7 @@ pub struct Operation {
     pub root_selection_set_id: BoundSelectionSetId,
     pub selection_sets: Vec<BoundSelectionSet>,
     pub fields: Vec<BoundField>,
-    pub response_keys: ResponseKeys,
+    pub response_keys: Arc<ResponseKeys>,
     pub fragment_definitions: Vec<BoundFragmentDefinition>,
     pub field_definitions: Vec<BoundAnyFieldDefinition>,
     pub variable_definitions: Vec<VariableDefinition>,
@@ -46,7 +48,7 @@ impl Operation {
 
     pub fn walker_with<'op, 'schema, E>(
         &'op self,
-        schema: SchemaWalker<'schema, ()>,
+        schema_walker: SchemaWalker<'schema, ()>,
         ext: E,
     ) -> OperationWalker<'op, (), (), E>
     where
@@ -54,9 +56,9 @@ impl Operation {
     {
         OperationWalker {
             operation: self,
-            schema,
+            schema_walker,
             ext,
-            inner: (),
+            wrapped: (),
         }
     }
 }

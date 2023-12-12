@@ -82,34 +82,34 @@ impl<'a> serde::Serialize for SerializableFilteredResponseObject<'a> {
             map.serialize_value(value)?;
         }
         for selection in self.selection_set {
-            map.serialize_key(self.schema.walk(selection.field_id).name())?;
-            match self
-                .response_object
-                .find(selection.bound_response_key)
-                .unwrap_or(&ResponseValue::Null)
-            {
-                ResponseValue::Null => map.serialize_value(&serde_json::Value::Null)?,
-                ResponseValue::Boolean { value, .. } => map.serialize_value(value)?,
-                ResponseValue::Int { value, .. } => map.serialize_value(value)?,
-                ResponseValue::Float { value, .. } => map.serialize_value(value)?,
-                ResponseValue::String { value, .. } => map.serialize_value(&value)?,
-                ResponseValue::StringId { id, .. } => map.serialize_value(&self.schema[*id])?,
-                ResponseValue::BigInt { value, .. } => map.serialize_value(value)?,
-                ResponseValue::List { id, .. } => map.serialize_value(&SerializableFilteredResponseList {
-                    schema: self.schema,
-                    response: self.response,
-                    response_list: &self.response[*id],
-                    selection_set: &selection.subselection,
-                    extra_constant_fields: self.extra_constant_fields,
-                })?,
-                ResponseValue::Object { id, .. } => map.serialize_value(&SerializableFilteredResponseObject {
-                    schema: self.schema,
-                    response: self.response,
-                    response_object: &self.response[*id],
-                    selection_set: &selection.subselection,
-                    extra_constant_fields: self.extra_constant_fields,
-                })?,
-                ResponseValue::Json { value, .. } => map.serialize_value(value)?,
+            map.serialize_key(&selection.name)?;
+            if let Some(value) = self.response_object.find(selection.edge) {
+                match value {
+                    ResponseValue::Null => map.serialize_value(&serde_json::Value::Null)?,
+                    ResponseValue::Boolean { value, .. } => map.serialize_value(value)?,
+                    ResponseValue::Int { value, .. } => map.serialize_value(value)?,
+                    ResponseValue::Float { value, .. } => map.serialize_value(value)?,
+                    ResponseValue::String { value, .. } => map.serialize_value(&value)?,
+                    ResponseValue::StringId { id, .. } => map.serialize_value(&self.schema[*id])?,
+                    ResponseValue::BigInt { value, .. } => map.serialize_value(value)?,
+                    ResponseValue::List { id, .. } => map.serialize_value(&SerializableFilteredResponseList {
+                        schema: self.schema,
+                        response: self.response,
+                        response_list: &self.response[*id],
+                        selection_set: &selection.subselection,
+                        extra_constant_fields: self.extra_constant_fields,
+                    })?,
+                    ResponseValue::Object { id, .. } => map.serialize_value(&SerializableFilteredResponseObject {
+                        schema: self.schema,
+                        response: self.response,
+                        response_object: &self.response[*id],
+                        selection_set: &selection.subselection,
+                        extra_constant_fields: self.extra_constant_fields,
+                    })?,
+                    ResponseValue::Json { value, .. } => map.serialize_value(value)?,
+                }
+            } else {
+                map.serialize_value(&serde_json::Value::Null)?
             }
         }
 
