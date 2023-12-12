@@ -28,7 +28,7 @@ export { type AuthorizerContext } from './authorizer/context'
 
 export { graph }
 
-/** @deprecated use `graph.Single()` instead */
+/** @deprecated use `graph.Standalone()` instead */
 export const g = graph.Standalone()
 
 dotenv.config({
