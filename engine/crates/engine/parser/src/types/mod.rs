@@ -43,13 +43,19 @@ pub enum OperationType {
     Subscription,
 }
 
-impl Display for OperationType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
+impl AsRef<str> for OperationType {
+    fn as_ref(&self) -> &str {
+        match self {
             Self::Query => "query",
             Self::Mutation => "mutation",
             Self::Subscription => "subscription",
-        })
+        }
+    }
+}
+
+impl Display for OperationType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_ref())
     }
 }
 
