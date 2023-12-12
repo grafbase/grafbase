@@ -51,7 +51,7 @@ const profile = g.type('Profile', {
 
 // finally we export the default config
 export default config({
-  schema: g,
+  graph: g,
 })
 ```
 
@@ -71,6 +71,18 @@ type User @model {
 ```
 
 The above SDL is now used when starting the dev.
+
+## Federated Graphs
+
+A federated graph can be defined as follows:
+
+```typescript
+import { graph, config } from '@grafbase/sdk'
+
+export default config({
+  graph: g.Federated(),
+})
+```
 
 ## Types
 
