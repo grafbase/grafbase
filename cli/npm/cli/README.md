@@ -88,7 +88,7 @@ Options:
 
           Possible values:
           - federated: Creates a federated graph
-          - single:    Creates a single graph
+          - single:    Creates a standalone graph
 ```
 
 ### `create`
