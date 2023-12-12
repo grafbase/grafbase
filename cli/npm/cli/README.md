@@ -224,6 +224,6 @@ Arguments:
   <PROJECT_REF>  Project reference following the format "account/project@branch"
 
 Options:
-      --name <SUBGRAPH_NAME>  The name of the subgraph to check. This argument is always required in a federated graph context, and it should not be used in a single graph context
+      --name <SUBGRAPH_NAME>  The name of the subgraph to check. This argument is always required in a federated graph context, and it should not be used in a standalone graph context
       --schema <SCHEMA>       The path to the GraphQL schema to check. If this is not provided, the schema will be read from STDIN
 ```
