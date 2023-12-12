@@ -107,3 +107,30 @@ fn dev(#[case] use_dev: bool) {
     assert_eq!(dot_get!(updated_todo_list, "status", String), "IN_PROGRESS");
     assert_eq!(dot_get_opt!(updated_todo_list, "tags", Vec<String>), None);
 }
+
+#[cfg(not(target_os = "windows"))]
+#[test]
+fn dev_with_esm_project() {
+    let mut env = Environment::init();
+
+    env.write_json_file_to_project(
+        "package.json",
+        &json!({
+          "name": "test",
+          "version": "1.0.0",
+          "description": "",
+          "type": "module", // This is the important part for this test
+          "main": "index.js",
+          "keywords": [],
+          "author": "",
+          "license": "ISC"
+        }),
+    );
+    env.grafbase_init(GraphType::Single);
+    env.prepare_ts_config_dependencies();
+
+    env.grafbase_dev();
+
+    let client = env.create_client().with_api_key();
+    client.poll_endpoint(30, 300);
+}
