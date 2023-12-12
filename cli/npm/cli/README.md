@@ -30,7 +30,7 @@ SUBCOMMANDS:
     introspect   Introspect a subgraph endpoint and print its schema
     subgraphs    List subgraphs
     schema       Fetch a federated graph or a subgraph
-    publish      Publish a subgraph to a federated graph
+    publish      Publish a subgraph schema
     check        Check a graph or a subgraph for validation, composition and breaking change errors
 ```
 
