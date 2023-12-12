@@ -77,7 +77,7 @@ Usage: grafbase init [OPTIONS] [NAME]
 
 Arguments:
   [NAME]
-          The name of the project to create
+          The name of the project to initialize
 
 Options:
   -t, --template <TEMPLATE>
