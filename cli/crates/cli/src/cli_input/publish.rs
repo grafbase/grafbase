@@ -10,11 +10,6 @@ use url::Url;
             .required(true)
             .args(&["dev", "project_ref"])
     ),
-    group(
-        ArgGroup::new("dev-or-schema")
-            .required(true)
-            .args(&["dev", "schema_path"])
-    )
 )]
 pub struct PublishCommand {
     #[arg(help = ProjectRef::ARG_DESCRIPTION)]
