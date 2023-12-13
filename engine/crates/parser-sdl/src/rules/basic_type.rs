@@ -42,7 +42,8 @@ impl<'a> Visitor<'a> for BasicType {
         let directives = &type_definition.node.directives;
 
         if ["Query", "Mutation"].contains(&type_definition.node.name.node.as_str())
-            | directives.iter().any(|directive| directive.is_model())
+            || directives.iter().any(|directive| directive.is_model())
+            || type_definition.node.extend
         {
             return;
         }

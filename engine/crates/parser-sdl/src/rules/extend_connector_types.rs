@@ -157,21 +157,52 @@ mod tests {
             .expect("StripeCustomer to have an email field after parsing");
     }
 
-    #[rstest::rstest]
-    // Technically there's nothing wrong with this first one, but I'd expect it to not work well,
-    // so want to make sure it errors
-    #[case::extending_native_type(r#"
+    #[test]
+    fn types_from_resolvers_of_extended_connector_types_can_be_extended() {
+        let output = futures::executor::block_on(crate::parse(
+            r#"
         extend schema @openapi(name: "Stripe", namespace: true, schema: "http://example.com")
 
-        extend type Foo {
-            foo: String! @resolver(name: "hello")
+        extend type StripeCustomer {
+            email: String @resolver(name: "email")
+            location: Place @resolver(name: "customer/location")
         }
-        type Foo {
-            bar: String
+
+        extend type Place {
+            annualPrecipitations: Int @resolver(name: "place/annualPrecipitations")
         }
-    "#, &[
-        "Type `Foo` is present multiple times."
-    ])]
+
+        type Place {
+            id: ID!
+            name: String
+        }
+
+        extend type Place {
+            squareMeterPrice: Int @resolver(name: "place/squareMeterPrice")
+        }
+        "#,
+            &HashMap::new(),
+            false,
+            &FakeConnectorParser,
+        ));
+
+        let registry = output.unwrap().registry;
+
+        registry
+            .types
+            .get("StripeCustomer")
+            .unwrap()
+            .field_by_name("location")
+            .expect("StripeCustomer to have a location field after parsing");
+
+        let place = registry.types.get("Place").unwrap();
+
+        place.field_by_name("annualPrecipitations").unwrap();
+        place.field_by_name("squareMeterPrice").unwrap();
+        place.field_by_name("name").unwrap();
+    }
+
+    #[rstest::rstest]
     #[case::extend_missing_type(r#"
         extend schema @openapi(name: "Stripe", namespace: true, schema: "http://example.com")
 

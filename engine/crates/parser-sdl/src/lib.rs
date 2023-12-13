@@ -338,7 +338,7 @@ fn parse_relations<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>
 }
 
 fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
-    let mut rules = rules::visitor::VisitorNil
+    let mut first_pass_rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
@@ -349,7 +349,6 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(InputObjectVisitor)
         .with(BasicType)
         .with(ExtendQueryAndMutationTypes)
-        .with(ExtendConnectorTypes)
         .with(EnumType)
         .with(ScalarHydratation)
         .with(MongoDBTypeDirective)
@@ -363,7 +362,11 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(SubgraphDirectiveVisitor)
         .with(AllSubgraphsDirectiveVisitor);
 
-    visit(&mut rules, ctx, schema);
+    visit(&mut first_pass_rules, ctx, schema);
+
+    let mut second_pass_rules = rules::visitor::VisitorNil.with(ExtendConnectorTypes);
+
+    visit(&mut second_pass_rules, ctx, schema);
 }
 
 /// Visitors that require all user-defined types to be parsed already.
