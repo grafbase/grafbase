@@ -318,12 +318,6 @@ pub fn reload<P: AsRef<Path>>(path: P) {
     );
 }
 
-pub fn project_reset() {
-    watercolor::output!(r#"✨ Successfully reset your project!"#, @BrightBlue);
-    #[cfg(target_family = "unix")]
-    watercolor::output!(r#"If you have a running 'grafbase dev' instance in this project, it will need to be restarted for this change to take effect"#, @BrightBlue);
-}
-
 pub fn login(url: &str) {
     println!(
         "Please continue by opening the following URL:\n{}\n",
