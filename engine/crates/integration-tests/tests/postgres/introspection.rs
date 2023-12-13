@@ -3,6 +3,480 @@ use indoc::indoc;
 use integration_tests::postgres::{introspect_namespaced_postgres, introspect_postgres};
 
 #[test]
+fn table_with_generated_always_identity_primary_key() {
+    let response = introspect_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+            )    
+        "#};
+
+        api.execute_sql(schema).await;
+    });
+
+    let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        type Mutation {
+          """
+            Delete a unique User by a field or combination of fields
+          """
+          userDelete(by: UserByInput!): UserDeletePayload
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
+          """
+            Create a User
+          """
+          userCreate(input: UserCreateInput!): UserCreatePayload
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
+        type Query {
+          """
+            Query a single User by a field
+          """
+          user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
+        }
+
+        type User {
+          id: Int!
+        }
+
+        input UserByInput {
+          id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        input UserCreateInput
+
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
+        }
+
+        type UserReturning {
+          id: Int!
+        }
+
+        input UserUpdateInput
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+    "#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn table_with_generated_by_default_identity_primary_key() {
+    let response = introspect_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY
+            )    
+        "#};
+
+        api.execute_sql(schema).await;
+    });
+
+    let expected = expect![[r#"
+        """
+          Search filter input for Int type.
+        """
+        input IntSearchFilterInput {
+          """
+            The value is exactly the one given
+          """ eq: Int
+          """
+            The value is not the one given
+          """ ne: Int
+          """
+            The value is greater than the one given
+          """ gt: Int
+          """
+            The value is less than the one given
+          """ lt: Int
+          """
+            The value is greater than, or equal to the one given
+          """ gte: Int
+          """
+            The value is less than, or equal to the one given
+          """ lte: Int
+          """
+            The value is in the given array of values
+          """ in: [Int]
+          """
+            The value is not in the given array of values
+          """ nin: [Int]
+          not: IntSearchFilterInput
+        }
+
+        """
+          Update input for Int type.
+        """
+        input IntUpdateInput {
+          """
+            Replaces the value of a field with the specified value.
+          """ set: Int
+          """
+            Increments the value of the field by the specified amount.
+          """ increment: Int
+          """
+            Decrements the value of the field by the specified amount.
+          """ decrement: Int
+          """
+            Multiplies the value of the field by the specified amount.
+          """ multiply: Int
+          """
+            Divides the value of the field with the given value.
+          """ divide: Int
+        }
+
+        type Mutation {
+          """
+            Delete a unique User by a field or combination of fields
+          """
+          userDelete(by: UserByInput!): UserDeletePayload
+          """
+            Delete multiple rows of User by a filter
+          """
+          userDeleteMany(filter: UserMutationCollection!): UserDeleteManyPayload
+          """
+            Create a User
+          """
+          userCreate(input: UserCreateInput!): UserCreatePayload
+          """
+            Create multiple Users
+          """
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
+          """
+            Update a unique User
+          """
+          userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
+          """
+            Update multiple Users
+          """
+          userUpdateMany(filter: UserMutationCollection!, input: UserUpdateInput!): UserUpdateManyPayload
+        }
+
+        enum OrderByDirection {
+          ASC
+          DESC
+        }
+
+        type PageInfo {
+          hasPreviousPage: Boolean!
+          hasNextPage: Boolean!
+          startCursor: String
+          endCursor: String
+        }
+
+        type Query {
+          """
+            Query a single User by a field
+          """
+          user(by: UserByInput!): User
+          """
+            Paginated query to fetch the whole list of User
+          """
+          userCollection(filter: UserCollection, first: Int, last: Int, before: String, after: String, orderBy: [UserOrderByInput]): UserConnection
+        }
+
+        type User {
+          id: Int!
+        }
+
+        input UserByInput {
+          id: Int
+        }
+
+        input UserCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserCollection]
+        }
+
+        type UserConnection {
+          edges: [UserEdge]!
+          pageInfo: PageInfo!
+        }
+
+        input UserCreateInput {
+          id: Int
+        }
+
+        type UserCreateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserCreatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeleteManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserDeletePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserEdge {
+          node: User!
+          cursor: String!
+        }
+
+        input UserMutationCollection {
+          id: IntSearchFilterInput
+          """
+            All of the filters must match
+          """ ALL: [UserMutationCollection]
+          """
+            None of the filters must match
+          """ NONE: [UserMutationCollection]
+          """
+            At least one of the filters must match
+          """ ANY: [UserMutationCollection]
+        }
+
+        input UserOrderByInput {
+          id: OrderByDirection
+        }
+
+        type UserReturning {
+          id: Int!
+        }
+
+        input UserUpdateInput {
+          id: IntUpdateInput
+        }
+
+        type UserUpdateManyPayload {
+          """
+            Returned items from the mutation.
+          """
+          returning: [UserReturning]!
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        type UserUpdatePayload {
+          """
+            Returned item from the mutation.
+          """
+          returning: UserReturning
+          """
+            The number of rows mutated.
+          """
+          rowCount: Int!
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+    "#]];
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn table_with_serial_primary_key() {
     let response = introspect_postgres(|api| async move {
         let schema = indoc! {r#"

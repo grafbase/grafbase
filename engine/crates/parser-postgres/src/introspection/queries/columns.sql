@@ -6,7 +6,8 @@ SELECT columns.table_schema                         AS schema,
        columns.udt_schema                           AS type_schema,
        columns.data_type = 'ARRAY'                  AS is_array,
        pg_attrdef.adbin IS NOT NULL                 AS has_default,
-       columns.is_nullable = 'YES'                  AS is_nullable
+       columns.is_nullable = 'YES'                  AS is_nullable,
+       columns.identity_generation                  AS identity_generation
 
 FROM information_schema.columns columns
 

@@ -15,7 +15,7 @@ fn two_identity() {
 
         let mutation = indoc! {r"
             mutation {
-              userCreateMany(input: [{ id: 1 }, { id: 2 }]) {
+              userCreateMany(input: [{ id: 7 }, { id: 8 }]) {
                 returning { id }
                 rowCount
               }
@@ -35,10 +35,10 @@ fn two_identity() {
             "userCreateMany": {
               "returning": [
                 {
-                  "id": 1
+                  "id": 7
                 },
                 {
-                  "id": 2
+                  "id": 8
                 }
               ],
               "rowCount": 2

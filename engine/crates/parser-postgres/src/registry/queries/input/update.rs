@@ -9,7 +9,7 @@ pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, out
     let input_type_name = input_ctx.update_input_name(table.client_name());
 
     output_ctx.with_input_type(&input_type_name, table.id(), |builder| {
-        for column in table.columns() {
+        for column in table.columns().filter(|column| column.allows_user_input()) {
             let mut client_type: Cow<'static, str> = column
                 .graphql_base_type(None)
                 .expect("non-supported types are filtered before reaching this")

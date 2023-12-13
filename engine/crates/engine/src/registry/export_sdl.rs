@@ -235,15 +235,20 @@ impl Registry {
                 if description.is_some() {
                     writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
-                write!(sdl, "input {name} ").ok();
-                writeln!(sdl, "{{").ok();
-                for field in input_fields.values() {
-                    if let Some(description) = field.description.as_deref() {
-                        writeln!(sdl, "\t\"\"\"\n\t{description}\n\t\"\"\"").ok();
+                write!(sdl, "input {name}").ok();
+
+                if !input_fields.is_empty() {
+                    writeln!(sdl, " {{").ok();
+                    for field in input_fields.values() {
+                        if let Some(description) = field.description.as_deref() {
+                            writeln!(sdl, "\t\"\"\"\n\t{description}\n\t\"\"\"").ok();
+                        }
+                        writeln!(sdl, "\t{}", export_input_value(field)).ok();
                     }
-                    writeln!(sdl, "\t{}", export_input_value(field)).ok();
+                    writeln!(sdl, "}}").ok();
+                } else {
+                    writeln!(sdl).ok();
                 }
-                writeln!(sdl, "}}").ok();
             }
             MetaType::Union(UnionType {
                 name,
