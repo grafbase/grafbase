@@ -1,5 +1,6 @@
 use grafbase_sql_ast::ast::{
-    json_build_object, Aliasable, Column, CommonTableExpression, Insert, MultiRowInsert, Query, Select, SingleRowInsert,
+    default_value, json_build_object, Aliasable, Column, CommonTableExpression, Insert, MultiRowInsert, Query, Select,
+    SingleRowInsert,
 };
 
 use crate::registry::resolvers::postgres::context::{
@@ -82,6 +83,7 @@ fn create_insert<'a>(ctx: &'a PostgresContext, input: CreateInputIterator<'a>) -
     for input in input {
         match input {
             CreateInputItem::Column(column, value) => insert.value(column.database_name(), value),
+            CreateInputItem::DefaultValue(column) => insert.value(column.database_name(), default_value()),
         }
     }
 

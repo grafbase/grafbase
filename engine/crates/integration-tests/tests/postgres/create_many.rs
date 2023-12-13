@@ -3,7 +3,7 @@ use indoc::indoc;
 use integration_tests::postgres::query_postgres;
 
 #[test]
-fn two_identity() {
+fn two_identity_by_default() {
     let response = query_postgres(|api| async move {
         let schema = indoc! {r#"
             CREATE TABLE "User" (
@@ -39,6 +39,53 @@ fn two_identity() {
                 },
                 {
                   "id": 8
+                }
+              ],
+              "rowCount": 2
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn two_identity_always() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+            )
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let mutation = indoc! {r"
+            mutation {
+              userCreateMany(input: [{}, {}]) {
+                returning { id }
+                rowCount
+              }
+            }
+        "};
+
+        let result = api.execute(mutation).await;
+
+        assert_eq!(2, api.row_count("User").await);
+
+        result
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCreateMany": {
+              "returning": [
+                {
+                  "id": 1
+                },
+                {
+                  "id": 2
                 }
               ],
               "rowCount": 2
