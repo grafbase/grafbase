@@ -179,6 +179,18 @@ export class AuthRules {
   }
 }
 
+export interface FederatedAuthParams {
+  providers?: FixedLengthArray<AuthProvider, 1>
+  rules: FederatedAuthRuleF
+}
+
+export type FederatedAuthRuleF = (rules: FederatedAuthRules) => any
+
+export interface FederatedAuthRules {
+  public(): null
+  private(): null
+}
+
 export interface AuthParams {
   providers?: FixedLengthArray<AuthProvider, 1>
   rules: AuthRuleF

@@ -30,6 +30,7 @@ export interface DeprecatedGraphConfigInput {
  */
 export interface FederatedGraphConfigInput {
   graph: FederatedGraph
+  auth?: AuthParams
 }
 
 /**
@@ -70,12 +71,18 @@ export class GraphConfig {
 
 export class FederatedGraphConfig {
   private graph: FederatedGraph
+  private readonly auth?: Authentication
 
   constructor(input: FederatedGraphConfigInput) {
     this.graph = input.graph
+    if (input.auth) {
+      this.auth = new Authentication(input.auth)
+    }
   }
 
   public toString(): string {
-    return this.graph.toString()
+    const graph = this.graph.toString()
+    const auth = this.auth ? this.auth.toString() : ''
+    return `${auth}${graph}`
   }
 }
