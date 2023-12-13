@@ -1,0 +1,27 @@
+---
+source: cli/crates/cli/tests/owner.rs
+assertion_line: 389
+expression: user_created
+---
+{
+  "data": {
+    "userCreate": {
+      "user": null
+    }
+  },
+  "errors": [
+    {
+      "locations": [
+        {
+          "column": 5,
+          "line": 3
+        }
+      ],
+      "message": "An internal error happened",
+      "path": [
+        "userCreate",
+        "user"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+---
+source: cli/crates/cli/tests/auth.rs
+assertion_line: 623
+expression: "client.gql::<Value>(AUTH_CREATE_MUTATION).await"
+---
+{
+  "data": {
+    "todoCreate": {
+      "__typename": "TodoCreatePayload",
+      "todo": null
+    }
+  },
+  "errors": [
+    {
+      "locations": [
+        {
+          "column": 5,
+          "line": 4
+        }
+      ],
+      "message": "An internal error happened",
+      "path": [
+        "todoCreate",
+        "todo"
+      ]
+    }
+  ]
+}
