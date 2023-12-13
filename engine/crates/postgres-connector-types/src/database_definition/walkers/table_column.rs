@@ -3,7 +3,9 @@ use std::borrow::Cow;
 use inflector::Inflector;
 
 use super::{TableWalker, Walker};
-use crate::database_definition::{names::StringId, ColumnType, DatabaseType, TableColumn, TableColumnId};
+use crate::database_definition::{
+    names::StringId, table_column::IdentityGeneration, ColumnType, DatabaseType, TableColumn, TableColumnId,
+};
 
 /// Definition of a column located in a table.
 pub type TableColumnWalker<'a> = Walker<'a, TableColumnId>;
@@ -66,12 +68,21 @@ impl<'a> TableColumnWalker<'a> {
 
     /// True, if the column has a default value defined.
     pub fn has_default(self) -> bool {
-        self.get().has_default()
+        self.get().has_default() || self.identity_generation().is_some()
     }
 
     /// True, if the column is an array.
     pub fn is_array(self) -> bool {
         self.get().is_array()
+    }
+
+    /// True, if user can define the column value manually.
+    pub fn allows_user_input(self) -> bool {
+        !matches!(self.identity_generation(), Some(IdentityGeneration::Always))
+    }
+
+    fn identity_generation(self) -> Option<IdentityGeneration> {
+        self.get().identity_generation()
     }
 
     fn get(self) -> &'a TableColumn<StringId> {

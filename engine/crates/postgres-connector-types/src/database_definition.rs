@@ -29,7 +29,7 @@ pub use r#enum::Enum;
 use relations::Relations;
 use serde::{Deserialize, Serialize};
 pub use table::Table;
-pub use table_column::TableColumn;
+pub use table_column::{IdentityGeneration, TableColumn};
 pub use unique_constraint::{ConstraintType, UniqueConstraint};
 pub use unique_constraint_column::UniqueConstraintColumn;
 pub use walkers::{
@@ -193,6 +193,7 @@ impl DatabaseDefinition {
             nullable: column.nullable(),
             has_default: column.has_default(),
             is_array: column.is_array(),
+            identity_generation: column.identity_generation,
         });
 
         id

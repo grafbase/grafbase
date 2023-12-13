@@ -9,7 +9,7 @@ pub(crate) fn register(input_ctx: &InputContext<'_>, table: TableWalker<'_>, out
     let input_type_name = input_ctx.create_input_name(table.client_name());
 
     output_ctx.with_input_type(&input_type_name, table.id(), move |builder| {
-        for column in table.columns() {
+        for column in table.columns().filter(|column| column.allows_user_input()) {
             let r#type = column
                 .graphql_type(input_ctx.namespace())
                 .expect("non-supported types are filtered out at this point");

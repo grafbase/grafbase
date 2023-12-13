@@ -1,8 +1,27 @@
 use postgres_connector_types::{
-    database_definition::{ColumnType, DatabaseDefinition, ScalarType, TableColumn},
+    database_definition::{self, ColumnType, DatabaseDefinition, ScalarType, TableColumn},
     transport::{Transport, TransportExt},
 };
 use serde::Deserialize;
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub enum IdentityGeneration {
+    /// Cannot insert a custom value to the column, always generated.
+    #[serde(rename = "ALWAYS")]
+    Always,
+    /// Can optionally insert a custom value to the column, by default generated.
+    #[serde(rename = "BY DEFAULT")]
+    ByDefault,
+}
+
+impl From<IdentityGeneration> for database_definition::IdentityGeneration {
+    fn from(value: IdentityGeneration) -> Self {
+        match value {
+            IdentityGeneration::Always => Self::Always,
+            IdentityGeneration::ByDefault => Self::ByDefault,
+        }
+    }
+}
 
 #[derive(Debug, Deserialize)]
 struct Row {
@@ -15,6 +34,7 @@ struct Row {
     is_array: bool,
     has_default: bool,
     is_nullable: bool,
+    identity_generation: Option<IdentityGeneration>,
 }
 
 pub(super) async fn introspect<T>(transport: &T, database_definition: &mut DatabaseDefinition) -> crate::Result<()>
@@ -53,6 +73,10 @@ where
         column.set_nullable(row.is_nullable);
         column.set_has_default(row.has_default);
         column.set_is_array(row.is_array);
+
+        if let Some(identity_generation) = row.identity_generation {
+            column.set_identity_generation(identity_generation);
+        }
 
         database_definition.push_table_column(column);
     }
