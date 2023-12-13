@@ -43,7 +43,12 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
     }
 
     pub async fn execute(&mut self) {
-        let mut futures = FuturesUnordered::<BoxFuture<'_, ExecutorFutResult<'ctx>>>::new();
+        let mut futures = FuturesUnordered::<BoxFuture<'_, ExecutorFutResult>>::new();
+        // Mutation root fields need to be executed sequentially. So we're tracking for each
+        // executor whether it was for one and if so execute the next executor in the queue.
+        // Keeping the queue outside of the FuturesUnordered also ensures the future is static
+        // which wasm target somehow required. (not entirely sure why though)
+        let mut mutation_root_fields_executors = VecDeque::<Executor<'ctx>>::new();
         let response_boundary = vec![ResponseBoundaryItem {
             response_object_id: self
                 .response
@@ -67,13 +72,13 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             },
             OperationType::Mutation => match self.planner.generate_root_plan_boundary() {
                 Ok(plan_boundary) => {
-                    let mut executors =
+                    mutation_root_fields_executors =
                         VecDeque::from(self.generate_executors(vec![(plan_boundary, response_boundary)]));
-                    if let Some(executor) = executors.pop_front() {
+                    if let Some(executor) = mutation_root_fields_executors.pop_front() {
                         futures.push(Box::pin(make_send_on_wasm(async move {
                             ExecutorFutResult {
                                 result: executor.execute().await,
-                                next_executors: executors,
+                                is_mutation_root_field: true,
                             }
                         })));
                     }
@@ -86,7 +91,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         }
         while let Some(ExecutorFutResult {
             result,
-            mut next_executors,
+            is_mutation_root_field,
         }) = futures.next().await
         {
             match result {
@@ -97,13 +102,15 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                     // Hack to ensure we don't execute any subsequent mutation root fields if a
                     // previous one failed and the error propagated up to the root `data` field.
                     if self.response.root_response_object_id().is_some() {
-                        if let Some(executor) = next_executors.pop_front() {
-                            futures.push(Box::pin(make_send_on_wasm(async move {
-                                ExecutorFutResult {
-                                    result: executor.execute().await,
-                                    next_executors,
-                                }
-                            })));
+                        if is_mutation_root_field {
+                            if let Some(executor) = mutation_root_fields_executors.pop_front() {
+                                futures.push(Box::pin(make_send_on_wasm(async move {
+                                    ExecutorFutResult {
+                                        result: executor.execute().await,
+                                        is_mutation_root_field: true,
+                                    }
+                                })));
+                            }
                         }
                         let executors = self.generate_executors(boundaries);
                         for executor in executors {
@@ -196,16 +203,16 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
     }
 }
 
-struct ExecutorFutResult<'ctx> {
+struct ExecutorFutResult {
     result: ExecutorResult<ExecutorOutput>,
-    next_executors: VecDeque<Executor<'ctx>>,
+    is_mutation_root_field: bool,
 }
 
-impl From<ExecutorResult<ExecutorOutput>> for ExecutorFutResult<'static> {
+impl From<ExecutorResult<ExecutorOutput>> for ExecutorFutResult {
     fn from(result: ExecutorResult<ExecutorOutput>) -> Self {
         Self {
             result,
-            next_executors: VecDeque::new(),
+            is_mutation_root_field: false,
         }
     }
 }
