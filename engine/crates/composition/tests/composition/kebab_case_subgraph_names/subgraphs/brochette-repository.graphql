@@ -1,0 +1,20 @@
+type Kebab @key(fields: "id") {
+  id: ID!
+  meatType: String
+  vegetables: [String]
+  breadType: String
+}
+
+type Brochette @key(fields: "id") {
+  id: ID!
+  meatType: String
+  marinade: String
+  servedWith: String
+}
+
+extend type Query {
+  kebabs: [Kebab]
+  kebab(id: ID!): Kebab
+  brochettes: [Brochette]
+  brochette(id: ID!): Brochette
+}

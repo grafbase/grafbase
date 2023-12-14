@@ -1,0 +1,11 @@
+type Kushi @key(fields: "id") {
+  id: ID!
+  meatType: String
+  sauce: String
+  stickMaterial: String
+}
+
+extend type Query {
+  kushis: [Kushi]
+  kushi(id: ID!): Kushi
+}

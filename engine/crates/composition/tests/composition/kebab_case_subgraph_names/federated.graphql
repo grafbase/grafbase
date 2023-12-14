@@ -1,0 +1,69 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    BROCHETTE_REPOSITORY @join__graph(name: "brochette-repository", url: "http://example.com/brochette-repository")
+    KUSHI_STORE @join__graph(name: "kushi-store", url: "http://example.com/kushi-store")
+    SCHASCHLIK_SERVICE @join__graph(name: "schaschlik-service", url: "http://example.com/schaschlik-service")
+}
+
+type Kebab
+    @join__type(graph: BROCHETTE_REPOSITORY, key: "id")
+{
+    id: ID! @join__field(graph: BROCHETTE_REPOSITORY)
+    meatType: String @join__field(graph: BROCHETTE_REPOSITORY)
+    vegetables: [String] @join__field(graph: BROCHETTE_REPOSITORY)
+    breadType: String @join__field(graph: BROCHETTE_REPOSITORY)
+}
+
+type Brochette
+    @join__type(graph: BROCHETTE_REPOSITORY, key: "id")
+{
+    id: ID! @join__field(graph: BROCHETTE_REPOSITORY)
+    meatType: String @join__field(graph: BROCHETTE_REPOSITORY)
+    marinade: String @join__field(graph: BROCHETTE_REPOSITORY)
+    servedWith: String @join__field(graph: BROCHETTE_REPOSITORY)
+}
+
+type Query {
+    kebabs: [Kebab] @join__field(graph: BROCHETTE_REPOSITORY)
+    kebab(id: ID!): Kebab @join__field(graph: BROCHETTE_REPOSITORY)
+    brochettes: [Brochette] @join__field(graph: BROCHETTE_REPOSITORY)
+    brochette(id: ID!): Brochette @join__field(graph: BROCHETTE_REPOSITORY)
+    kushis: [Kushi] @join__field(graph: KUSHI_STORE)
+    kushi(id: ID!): Kushi @join__field(graph: KUSHI_STORE)
+    schaschliks: [Schaschlik] @join__field(graph: SCHASCHLIK_SERVICE)
+    schaschlik(id: ID!): Schaschlik @join__field(graph: SCHASCHLIK_SERVICE)
+}
+
+type Kushi
+    @join__type(graph: KUSHI_STORE, key: "id")
+{
+    id: ID! @join__field(graph: KUSHI_STORE)
+    meatType: String @join__field(graph: KUSHI_STORE)
+    sauce: String @join__field(graph: KUSHI_STORE)
+    stickMaterial: String @join__field(graph: KUSHI_STORE)
+}
+
+type Schaschlik
+    @join__type(graph: SCHASCHLIK_SERVICE, key: "id")
+{
+    id: ID! @join__field(graph: SCHASCHLIK_SERVICE)
+    meatType: String @join__field(graph: SCHASCHLIK_SERVICE)
+    spices: [String] @join__field(graph: SCHASCHLIK_SERVICE)
+    originCountry: String @join__field(graph: SCHASCHLIK_SERVICE)
+}

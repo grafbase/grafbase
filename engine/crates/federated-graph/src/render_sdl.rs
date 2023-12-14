@@ -478,8 +478,13 @@ struct GraphEnumVariantName<'a>(&'a str);
 impl Display for GraphEnumVariantName<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for char in self.0.chars() {
-            for upcased in char.to_uppercase() {
-                f.write_char(upcased)?;
+            match char {
+                '-' | '_' | ' ' => f.write_char('_')?,
+                other => {
+                    for char in other.to_uppercase() {
+                        f.write_char(char)?;
+                    }
+                }
             }
         }
 
