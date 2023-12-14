@@ -3,8 +3,6 @@ name: cli
 on:
   workflow_dispatch:
   pull_request:
-    paths-ignore:
-      - '**/*.md'
   push:
     tags:
       - 'cli-*'
@@ -57,6 +55,7 @@ jobs:
               - 'engine/**/*'
               - '.github/workflows/cli.yml'
               - '.github/actions/**/*'
+              - '!**/*.md'
 
   lint:
     needs: [detect-change-type]
