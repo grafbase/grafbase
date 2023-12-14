@@ -2806,7 +2806,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-federated-graph"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-graphql-parser 6.0.11",
  "async-graphql-value 6.0.11",
