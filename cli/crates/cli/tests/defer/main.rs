@@ -23,7 +23,6 @@ extend type Query {
 }
 "#;
 
-#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn defer_multipart_test() {
     // Tests that deferring with a multipart transport works..
