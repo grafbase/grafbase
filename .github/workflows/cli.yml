@@ -58,20 +58,6 @@ jobs:
               - '.github/workflows/cli.yml'
               - '.github/actions/**/*'
 
-  prettier:
-    needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: buildjet-8vcpu-ubuntu-2204
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v3
-
-      - name: Run prettier on workspace
-        shell: bash
-        run: |
-          cd cli
-          npx prettier --check .
-
   lint:
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
