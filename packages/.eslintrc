@@ -1,0 +1,7 @@
+{
+  "root": true,
+  "extends": ["grafbase"],
+  "rules": {
+    "turbo/no-undeclared-env-vars": "off"
+  }
+}
