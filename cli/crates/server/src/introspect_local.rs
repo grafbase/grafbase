@@ -1,6 +1,6 @@
 use crate::{
+    config::{build_config, ParsingResponse},
     errors::ServerError,
-    servers::{run_schema_parser, ParsingResponse},
 };
 
 pub enum IntrospectLocalOutput {
@@ -16,7 +16,7 @@ pub async fn introspect_local() -> Result<IntrospectLocalOutput, ServerError> {
         registry,
         detected_udfs: _,
         federated_graph_config,
-    } = run_schema_parser(&env, None).await?;
+    } = build_config(&env, None).await?;
 
     let is_federated = federated_graph_config.is_some();
 

@@ -1,10 +1,9 @@
-use crate::atomics::{REGISTRY_PARSED_EPOCH_OFFSET_MILLIS, WORKER_PORT};
-use crate::consts::{
-    ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS,
-    GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, TS_NODE_SCRIPT_PATH,
-};
+use crate::atomics::WORKER_PORT;
+use crate::config::{build_config, ParsingResponse};
+use crate::consts::{ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE};
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
+use crate::node::validate_node;
 use crate::types::{ServerMessage, ASSETS_GZIP};
 use crate::udf_builder::install_wrangler;
 use crate::{bridge, errors::ServerError};
@@ -12,28 +11,22 @@ use crate::{error_server, proxy};
 use bridge::BridgeState;
 use common::consts::MAX_PORT;
 use common::consts::{GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
-use common::environment::{Environment, Project, SchemaLocation};
-use common::types::UdfKind;
+use common::environment::{Environment, Project};
 use engine::registry::Registry;
 use flate2::read::GzDecoder;
 use futures_util::FutureExt;
 use sha2::Digest;
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env;
+use std::fs;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
-use std::{fs, process::Stdio};
 use tokio::net::TcpListener;
-use tokio::process::Command;
 use tokio::sync::broadcast::{self, channel};
 use tokio::sync::mpsc::UnboundedSender;
-use version_compare::Version;
-use which::which;
 
 const EVENT_BUS_BOUND: usize = 5;
 
@@ -59,7 +52,7 @@ impl ProductionServer {
             registry,
             detected_udfs,
             federated_graph_config,
-        } = run_schema_parser(&environment_variables, None).await?;
+        } = build_config(&environment_variables, None).await?;
         let registry = Arc::new(registry);
 
         let (bridge_app, bridge_state) =
@@ -264,7 +257,7 @@ async fn spawn_servers(
         registry,
         mut detected_udfs,
         federated_graph_config,
-    } = match run_schema_parser(&environment_variables, Some(event_bus)).await {
+    } = match build_config(&environment_variables, Some(event_bus)).await {
         Ok(parsing_response) => parsing_response,
         Err(error) => {
             let _: Result<_, _> = message_sender.send(ServerMessage::CompilationError(error.to_string()));
@@ -430,208 +423,6 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     Ok(())
 }
 
-#[derive(Debug, Clone)]
-pub struct DetectedUdf {
-    pub udf_name: String,
-    pub udf_kind: UdfKind,
-    pub fresh: bool,
-}
-
-pub struct ParsingResponse {
-    pub(crate) registry: Registry,
-    pub(crate) detected_udfs: Vec<DetectedUdf>,
-    pub(crate) federated_graph_config: Option<parser_sdl::federation::FederatedGraphConfig>,
-}
-
-// schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environment
-// and due to schema-parser not being open source
-pub(crate) async fn run_schema_parser(
-    environment_variables: &HashMap<String, String>,
-    event_bus: Option<broadcast::Sender<Event>>,
-) -> Result<ParsingResponse, ServerError> {
-    trace!("parsing schema");
-    let project = Project::get();
-
-    let schema_path = match project.schema_path.location() {
-        SchemaLocation::TsConfig(ref ts_config_path) => {
-            let written_schema_path = parse_and_generate_config_from_ts(ts_config_path).await?;
-
-            // broadcast
-            if let Some(bus) = event_bus {
-                let path = std::path::PathBuf::from(written_schema_path.clone()).into_boxed_path();
-                bus.send(Event::NewSdlFromTsConfig(path)).ok();
-            }
-
-            Cow::Owned(written_schema_path)
-        }
-        SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
-    };
-    let schema = tokio::fs::read_to_string(Path::new(schema_path.as_ref()))
-        .await
-        .map_err(ServerError::SchemaParserError)?;
-
-    let crate::parser::ParserResult {
-        registry,
-        required_udfs,
-        federated_graph_config,
-    } = crate::parser::parse_schema(&schema, environment_variables).await?;
-
-    let offset = REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.load(Ordering::Acquire);
-    let registry_mtime = SystemTime::UNIX_EPOCH.checked_add(Duration::from_millis(offset));
-    let detected_resolvers = futures_util::future::join_all(required_udfs.into_iter().map(|(udf_kind, udf_name)| {
-        // Last file to be written to in the build process.
-        let wrangler_toml_path = project
-            .udfs_build_artifact_path(udf_kind)
-            .join(&udf_name)
-            .join("wrangler.toml");
-        async move {
-            let wrangler_toml_mtime = tokio::fs::metadata(&wrangler_toml_path)
-                .await
-                .ok()
-                .map(|metadata| metadata.modified().expect("must be supported"));
-            let fresh = registry_mtime
-                .zip(wrangler_toml_mtime)
-                .map(|(registry_mtime, wrangler_toml_mtime)| wrangler_toml_mtime > registry_mtime)
-                .unwrap_or_default();
-            DetectedUdf {
-                udf_name,
-                udf_kind,
-                fresh,
-            }
-        }
-    }))
-    .await;
-
-    REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.store(
-        u64::try_from(
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_millis(),
-        )
-        .unwrap(),
-        Ordering::Release,
-    );
-
-    Ok(ParsingResponse {
-        registry,
-        detected_udfs: detected_resolvers,
-        federated_graph_config,
-    })
-}
-
-/// Parses a TypeScript Grafbase configuration and generates a GraphQL schema
-/// file to the filesystem, returning a path to the generated file.
-async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ServerError> {
-    let environment = Environment::get();
-    let project = Project::get();
-
-    let generated_schemas_dir = project.dot_grafbase_directory_path.join(GENERATED_SCHEMAS_DIR);
-    let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
-
-    if !generated_schemas_dir.exists() {
-        std::fs::create_dir_all(generated_schemas_dir).map_err(ServerError::SchemaParserError)?;
-    }
-
-    let module_type = project
-        .package_json_path
-        .as_deref()
-        .and_then(ModuleType::from_package_json)
-        .unwrap_or_default();
-
-    let config_parser_path = environment
-        .user_dot_grafbase_path
-        .join(SCHEMA_PARSER_DIR)
-        .join(match module_type {
-            ModuleType::CommonJS => CONFIG_PARSER_SCRIPT_CJS,
-            ModuleType::Esm => CONFIG_PARSER_SCRIPT_ESM,
-        });
-
-    let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT_PATH);
-
-    let args = match module_type {
-        ModuleType::CommonJS => vec![
-            ts_node_path.to_string_lossy().to_string(),
-            config_parser_path.to_string_lossy().to_string(),
-            ts_config_path.to_string_lossy().to_string(),
-            generated_config_path.to_string_lossy().to_string(),
-        ],
-        ModuleType::Esm => vec![
-            ts_node_path.to_string_lossy().to_string(),
-            "--compilerOptions".to_string(),
-            r#"{"module": "esnext", "moduleResolution": "node", "esModuleInterop": true}"#.to_string(),
-            "--esm".to_string(),
-            config_parser_path.to_string_lossy().to_string(),
-            ts_config_path.to_string_lossy().to_string(),
-            generated_config_path.to_string_lossy().to_string(),
-        ],
-    };
-
-    export_embedded_files()?;
-    validate_node().await?;
-    let node_command = Command::new("node")
-        .args(args)
-        .stderr(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .map_err(ServerError::SchemaParserError)?;
-
-    let output = node_command
-        .wait_with_output()
-        .await
-        .map_err(ServerError::SchemaParserError)?;
-
-    if !output.status.success() {
-        let msg = String::from_utf8_lossy(&output.stderr);
-        return Err(ServerError::LoadTsConfig(msg.into_owned()));
-    }
-
-    let generated_config_path = generated_config_path.to_str().ok_or(ServerError::ProjectPath)?;
-
-    trace!("Generated configuration in {}.", generated_config_path);
-
-    Ok(generated_config_path.to_string())
-}
-
-async fn get_node_version_string() -> Result<String, ServerError> {
-    let output = Command::new("node")
-        .arg("--version")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|_| ServerError::CheckNodeVersion)?
-        .wait_with_output()
-        .await
-        .map_err(|_| ServerError::CheckNodeVersion)?;
-
-    let node_version_string = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-
-    Ok(node_version_string)
-}
-
-async fn validate_node() -> Result<(), ServerError> {
-    trace!("validating Node.js version");
-    trace!("minimal supported Node.js version: {}", MIN_NODE_VERSION);
-
-    which("node").map_err(|_| ServerError::NodeInPath)?;
-
-    let node_version_string = get_node_version_string().await?;
-
-    trace!("installed node version: {}", node_version_string);
-
-    let node_version = Version::from(&node_version_string).ok_or(ServerError::CheckNodeVersion)?;
-    let min_version = Version::from(MIN_NODE_VERSION).expect("must be valid");
-
-    if node_version >= min_version {
-        Ok(())
-    } else {
-        Err(ServerError::OutdatedNode(
-            node_version_string,
-            MIN_NODE_VERSION.to_owned(),
-        ))
-    }
-}
-
 pub async fn get_listener_for_random_port() -> Result<(std::net::TcpListener, u16), ServerError> {
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
         .await
@@ -674,22 +465,4 @@ where
         }
     }
     Err(ServerError::AvailablePortMiniflare)
-}
-
-#[derive(Default)]
-enum ModuleType {
-    #[default]
-    CommonJS,
-    Esm,
-}
-
-impl ModuleType {
-    pub fn from_package_json(package_json: &Path) -> Option<ModuleType> {
-        let value = serde_json::from_slice::<serde_json::Value>(&std::fs::read(package_json).ok()?).ok()?;
-        if value["type"].as_str()? == "module" {
-            Some(ModuleType::Esm)
-        } else {
-            Some(ModuleType::CommonJS)
-        }
-    }
 }

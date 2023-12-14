@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 
+use crate::config::DetectedUdf;
 use crate::errors::UdfBuildError;
-use crate::servers::DetectedUdf;
 use crate::types::ServerMessage;
 use crate::udf_builder::udf_url_path;
 
