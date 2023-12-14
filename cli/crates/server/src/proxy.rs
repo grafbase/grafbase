@@ -1,6 +1,8 @@
 #![allow(unused)]
 
 use crate::atomics::WORKER_PORT;
+use crate::event::EventSender;
+use crate::servers::PortSelection;
 use crate::{
     errors::ServerError,
     event::{wait_for_event, Event},
@@ -15,11 +17,13 @@ use axum::{
     Router,
 };
 use common::environment::Environment;
+use futures_util::FutureExt;
 use handlebars::Handlebars;
 use hyper::{client::HttpConnector, StatusCode};
 use hyper::{http::HeaderValue, Method, Request};
 use serde_json::json;
 use sqlx::query;
+use std::future::IntoFuture;
 use std::net::Shutdown;
 use std::time::Duration;
 use std::{
@@ -27,6 +31,7 @@ use std::{
     sync::atomic::Ordering,
 };
 use tokio::signal;
+use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
@@ -38,7 +43,23 @@ struct ProxyState {
     client: Client,
 }
 
-pub async fn start(listener: TcpListener, event_bus: tokio::sync::broadcast::Sender<Event>) -> Result<(), ServerError> {
+pub struct ProxyHandle {
+    pub port: u16,
+    handle: JoinHandle<Result<(), ServerError>>,
+}
+
+pub async fn start(port: PortSelection, event_bus: EventSender) -> Result<ProxyHandle, ServerError> {
+    let listener = port.into_listener().await?;
+    let port = listener.local_addr().expect("must have a local addr").port();
+    let handle = tokio::spawn(start_inner(listener, event_bus));
+
+    // TODO: need a way to shut this down....
+    // Also need a way to gracefully fail, it's not very godo right now...
+
+    Ok(ProxyHandle { port, handle })
+}
+
+async fn start_inner(listener: TcpListener, event_bus: EventSender) -> Result<(), ServerError> {
     let port = listener.local_addr().expect("must have a local addr").port();
     trace!("starting pathfinder at port {port}");
 
@@ -163,5 +184,15 @@ async fn graphql_inner(
                 }
             }
         };
+    }
+}
+
+impl IntoFuture for ProxyHandle {
+    type Output = Result<Result<(), ServerError>, tokio::task::JoinError>;
+
+    type IntoFuture = JoinHandle<Result<(), ServerError>>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        self.handle
     }
 }

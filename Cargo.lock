@@ -2698,6 +2698,7 @@ dependencies = [
  "serde_json",
  "strum",
  "thiserror",
+ "tokio",
  "ulid",
 ]
 
@@ -2743,6 +2744,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
+ "tokio-util",
  "tower-http",
  "tracing",
  "typed-resolvers",

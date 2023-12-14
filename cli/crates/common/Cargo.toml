@@ -20,6 +20,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
 strum = { version = "0.25", features = ["derive"] }
 thiserror = "1"
+tokio.workspace = true
 ulid = { version = "1", features = ["serde"] }
 
 common-types = { path = "../../../engine/crates/common-types" }

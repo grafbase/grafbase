@@ -37,6 +37,8 @@ pub enum LogEventType {
     NestedEvent(NestedRequestScopedMessage),
 }
 
+pub type MessageSender = tokio::sync::mpsc::UnboundedSender<ServerMessage>;
+
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
     Ready {

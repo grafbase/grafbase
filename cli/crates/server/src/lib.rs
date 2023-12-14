@@ -42,4 +42,4 @@ pub mod types;
 
 pub use dump_config::dump_config;
 pub use introspect_local::{introspect_local, IntrospectLocalOutput};
-pub use servers::{export_embedded_files, start, ProductionServer};
+pub use servers::{export_embedded_files, start, PortSelection, ProductionServer};

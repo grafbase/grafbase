@@ -3,13 +3,15 @@ use crate::bridge::log::log_event_endpoint;
 use crate::bridge::udf::invoke_udf_endpoint;
 use crate::config::DetectedUdf;
 use crate::errors::ServerError;
-use crate::event::{wait_for_event, Event};
-use crate::types::ServerMessage;
+use crate::types::MessageSender;
 use axum::{routing::post, Router};
 use common::environment::Project;
 
 use tokio::fs;
+use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
+use std::future::IntoFuture;
 use std::net::TcpListener;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -17,7 +19,7 @@ use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 
 pub struct HandlerState {
-    pub message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+    pub message_sender: MessageSender,
     pub udf_runtime: UdfRuntime,
     pub tracing: bool,
     pub registry: Arc<engine::Registry>,
@@ -37,10 +39,10 @@ impl BridgeState for Arc<HandlerState> {
 }
 
 pub async fn build_router(
-    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+    message_sender: MessageSender,
     registry: Arc<engine::Registry>,
     tracing: bool,
-) -> Result<(Router, impl BridgeState), ServerError> {
+) -> Result<(Router, Arc<HandlerState>), ServerError> {
     let project = Project::get();
 
     let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
@@ -66,28 +68,22 @@ pub async fn build_router(
         .route("/log-event", post(log_event_endpoint))
         .with_state(handler_state.clone())
         .layer(TraceLayer::new_for_http());
+
     Ok((router, handler_state))
 }
 
-pub async fn start(
+pub async fn spawn(
     tcp_listener: TcpListener,
-    port: u16,
-    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
-    event_bus: tokio::sync::broadcast::Sender<Event>,
+    message_sender: MessageSender,
+    cancel_token: CancellationToken,
     registry: Arc<engine::Registry>,
     tracing: bool,
-) -> Result<(), ServerError> {
-    trace!("starting bridge at port {port}");
+) -> Result<JoinHandle<Result<(), hyper::Error>>, ServerError> {
     let (router, ..) = build_router(message_sender, registry, tracing).await?;
 
     let server = axum::Server::from_tcp(tcp_listener)?
         .serve(router.into_make_service())
-        .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
-            event.should_restart_servers()
-        }));
+        .with_graceful_shutdown(cancel_token.cancelled_owned());
 
-    event_bus.send(Event::BridgeReady).expect("cannot fail");
-    server.await?;
-
-    Ok(())
+    Ok(tokio::spawn(server.into_future()))
 }

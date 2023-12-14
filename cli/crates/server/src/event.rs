@@ -1,6 +1,11 @@
 use std::path::{Path, PathBuf};
 use tokio::sync::broadcast::Receiver;
 
+pub type EventSender = tokio::sync::broadcast::Sender<Event>;
+pub type EventReceiver = tokio::sync::broadcast::Sender<Event>;
+
+// TODO: much of this can go away I think
+
 /// server lifecycle related events
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Event {

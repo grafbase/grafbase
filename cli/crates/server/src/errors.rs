@@ -12,6 +12,8 @@ use std::path::PathBuf;
 use thiserror::Error;
 use tokio::task::JoinError;
 
+use crate::config::ConfigError;
+use crate::node::NodeError;
 use crate::udf_builder::JavaScriptPackageManager;
 
 #[derive(Error, Debug)]
@@ -32,6 +34,8 @@ pub enum JavascriptPackageManagerComamndError {
     #[error("{0} failed with output:\n{1}")]
     OutputError(JavaScriptPackageManager, String),
 }
+
+// TODO: clean up unused variants
 
 #[derive(Error, Debug)]
 pub enum ServerError {
@@ -190,6 +194,12 @@ pub enum ServerError {
 
     #[error("Error in gateway initialization: {0}")]
     GatewayError(String),
+
+    #[error(transparent)]
+    ConfigError(#[from] ConfigError),
+
+    #[error(transparent)]
+    NodeError(#[from] NodeError),
 }
 
 #[derive(Debug, Error)]

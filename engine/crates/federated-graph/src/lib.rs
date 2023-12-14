@@ -14,7 +14,7 @@ mod from_sdl;
 #[cfg(feature = "from_sdl")]
 pub use from_sdl::from_sdl;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub enum FederatedGraph {
     V1(FederatedGraphV1),
 }

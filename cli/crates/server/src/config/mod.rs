@@ -1,33 +1,33 @@
 use std::{
     borrow::Cow,
     collections::HashMap,
-    path::Path,
+    path::{Path, PathBuf},
     process::Stdio,
     sync::atomic::Ordering,
     time::{Duration, SystemTime},
 };
 
 use common::{
-    consts::GRAFBASE_SCHEMA_FILE_NAME,
+    consts::{GENERATED_SCHEMAS_DIR, GRAFBASE_SCHEMA_FILE_NAME},
     environment::{Environment, Project, SchemaLocation},
 };
 use common_types::UdfKind;
 use engine::Registry;
+use futures_util::stream::BoxStream;
 use tokio::{process::Command, sync::broadcast};
 
 use crate::{
     atomics::REGISTRY_PARSED_EPOCH_OFFSET_MILLIS,
-    consts::{
-        CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, GENERATED_SCHEMAS_DIR, SCHEMA_PARSER_DIR,
-        TS_NODE_SCRIPT_PATH,
-    },
-    errors::ServerError,
+    consts::{CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, SCHEMA_PARSER_DIR, TS_NODE_SCRIPT_PATH},
     event::Event,
-    export_embedded_files,
     node::validate_node,
 };
 
+mod actor;
+mod error;
 mod parser;
+
+pub use self::{actor::ConfigActor, error::ConfigError};
 
 #[derive(Debug, Clone)]
 pub struct DetectedUdf {
@@ -36,19 +36,26 @@ pub struct DetectedUdf {
     pub fresh: bool,
 }
 
-pub struct ParsingResponse {
+#[derive(Clone, Debug)]
+pub struct Config {
     pub(crate) registry: Registry,
     pub(crate) detected_udfs: Vec<DetectedUdf>,
     pub(crate) federated_graph_config: Option<parser_sdl::federation::FederatedGraphConfig>,
+
+    // The file that triggered this change (if any)
+    pub(crate) triggering_file: Option<PathBuf>,
 }
+
+pub type ConfigStream = BoxStream<'static, Config>;
 
 /// Builds the configuration for the current project.
 ///
-/// Either by building & running grafbase.config.ts or parsing grafbase.schema
+/// Either by buildinv & running grafbase.config.ts or parsing grafbase.schema
 pub(crate) async fn build_config(
     environment_variables: &HashMap<String, String>,
     event_bus: Option<broadcast::Sender<Event>>,
-) -> Result<ParsingResponse, ServerError> {
+    triggering_file: Option<PathBuf>,
+) -> Result<Config, ConfigError> {
     trace!("parsing schema");
     let project = Project::get();
 
@@ -64,11 +71,9 @@ pub(crate) async fn build_config(
 
             Cow::Owned(written_schema_path)
         }
-        SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
+        SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ConfigError::ProjectPath)?),
     };
-    let schema = tokio::fs::read_to_string(Path::new(schema_path.as_ref()))
-        .await
-        .map_err(ServerError::SchemaParserError)?;
+    let schema = tokio::fs::read_to_string(Path::new(schema_path.as_ref())).await?;
 
     let parser::ParserResult {
         registry,
@@ -113,16 +118,17 @@ pub(crate) async fn build_config(
         Ordering::Release,
     );
 
-    Ok(ParsingResponse {
+    Ok(Config {
         registry,
         detected_udfs: detected_resolvers,
         federated_graph_config,
+        triggering_file,
     })
 }
 
 /// Parses a TypeScript Grafbase configuration and generates a GraphQL schema
 /// file to the filesystem, returning a path to the generated file.
-async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ServerError> {
+async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ConfigError> {
     let environment = Environment::get();
     let project = Project::get();
 
@@ -130,7 +136,7 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
     let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
 
     if !generated_schemas_dir.exists() {
-        std::fs::create_dir_all(generated_schemas_dir).map_err(ServerError::SchemaParserError)?;
+        std::fs::create_dir_all(generated_schemas_dir)?;
     }
 
     let module_type = project
@@ -167,26 +173,21 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
         ],
     };
 
-    export_embedded_files()?;
     validate_node().await?;
     let node_command = Command::new("node")
         .args(args)
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
-        .spawn()
-        .map_err(ServerError::SchemaParserError)?;
+        .spawn()?;
 
-    let output = node_command
-        .wait_with_output()
-        .await
-        .map_err(ServerError::SchemaParserError)?;
+    let output = node_command.wait_with_output().await?;
 
     if !output.status.success() {
         let msg = String::from_utf8_lossy(&output.stderr);
-        return Err(ServerError::LoadTsConfig(msg.into_owned()));
+        return Err(ConfigError::LoadTsConfig(msg.into_owned()));
     }
 
-    let generated_config_path = generated_config_path.to_str().ok_or(ServerError::ProjectPath)?;
+    let generated_config_path = generated_config_path.to_str().ok_or(ConfigError::ProjectPath)?;
 
     trace!("Generated configuration in {}.", generated_config_path);
 
