@@ -1,0 +1,11 @@
+type Schaschlik @key(fields: "id") {
+  id: ID!
+  meatType: String
+  spices: [String]
+  originCountry: String
+}
+
+extend type Query {
+  schaschliks: [Schaschlik]
+  schaschlik(id: ID!): Schaschlik
+}
