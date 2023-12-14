@@ -1,6 +1,9 @@
 use schema::{FieldId, FieldWalker};
 
-use super::{BoundAnyFieldDefinitionWalker, BoundFieldArgumentWalker, OperationWalker, PlanExt, PlanSelectionSet};
+use super::{
+    BoundAnyFieldDefinitionWalker, BoundFieldArgumentWalker, BoundSelectionSetWalker, OperationWalker, PlanExt,
+    PlanSelectionSet,
+};
 use crate::{
     plan::ExtraFieldId,
     request::{BoundFieldDefinition, BoundFieldId},
@@ -15,6 +18,12 @@ impl<'a, E: Copy> BoundFieldWalker<'a, E> {
 
     pub fn definition(&self) -> BoundAnyFieldDefinitionWalker<'a, E> {
         self.walk_with(self.definition_id, ())
+    }
+}
+
+impl<'a> BoundFieldWalker<'a, ()> {
+    pub fn selection_set(&self) -> Option<BoundSelectionSetWalker<'a>> {
+        self.selection_set_id.map(|id| self.walk(id))
     }
 }
 

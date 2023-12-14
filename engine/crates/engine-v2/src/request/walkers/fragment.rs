@@ -1,4 +1,4 @@
-use super::{type_condition_name, OperationWalker, PlanExt, PlanSelectionSet};
+use super::{type_condition_name, BoundSelectionSetWalker, OperationWalker, PlanExt, PlanSelectionSet};
 use crate::request::{BoundFragmentDefinitionId, BoundFragmentSpread};
 
 pub type BoundFragmentSpreadWalker<'a, Extension = ()> = OperationWalker<'a, &'a BoundFragmentSpread, (), Extension>;
@@ -14,6 +14,12 @@ impl<'a, E> std::ops::Deref for BoundFragmentSpreadWalker<'a, E> {
 impl<'a, E: Copy> BoundFragmentSpreadWalker<'a, E> {
     pub fn fragment(&self) -> BoundFragmentDefinitionWalker<'a, E> {
         self.walk_with(self.wrapped.fragment_id, ())
+    }
+}
+
+impl<'a> BoundFragmentSpreadWalker<'a, ()> {
+    pub fn selection_set(&self) -> BoundSelectionSetWalker<'a> {
+        self.walk(self.wrapped.selection_set_id)
     }
 }
 

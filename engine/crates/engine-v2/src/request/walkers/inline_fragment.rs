@@ -1,4 +1,4 @@
-use super::{type_condition_name, OperationWalker, PlanExt, PlanSelectionSet};
+use super::{type_condition_name, BoundSelectionSetWalker, OperationWalker, PlanExt, PlanSelectionSet};
 use crate::request::BoundInlineFragment;
 
 pub type BoundInlineFragmentWalker<'a, Extension = ()> = OperationWalker<'a, &'a BoundInlineFragment, (), Extension>;
@@ -16,6 +16,12 @@ impl<'a, E: Copy> BoundInlineFragmentWalker<'a, E> {
         self.wrapped
             .type_condition
             .map(|cond| type_condition_name(self.schema_walker, cond))
+    }
+}
+
+impl<'a> BoundInlineFragmentWalker<'a, ()> {
+    pub fn selection_set(&self) -> BoundSelectionSetWalker<'a> {
+        self.walk(self.wrapped.selection_set_id)
     }
 }
 
