@@ -29,7 +29,7 @@ impl AsyncClient {
             playground_endpoint,
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(1))
-                .timeout(Duration::from_secs(5))
+                .timeout(Duration::from_secs(20))
                 .build()
                 .unwrap(),
             snapshot: None,

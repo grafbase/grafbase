@@ -12,27 +12,35 @@ use utils::{async_client::AsyncClient, environment::Environment};
 
 use crate::utils::consts::AUTH_QUERY_TODOS;
 
+const SCHEMA: &str = r#"
+type Todo {
+    id: ID!
+    title: String
+}
+
+extend type Query {
+    todoCollection(first: Int!): [Todo!]! @resolver(name: "todos")
+}
+"#;
+
+const SCHEMA: &str = r#"
+type Todo {
+    id: ID!
+    title: String
+}
+
+extend type Query {
+    todoCollection(first: Int!): [Todo!]! @resolver(name: "todos")
+}
+"#;
+
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn defer_multipart_test() {
     // Tests that deferring with a multipart transport works..
 
-    let schema = "type Todo @model { title: String }";
     let mut env = Environment::init_async().await;
-    let client = start_grafbase(&mut env, schema).await;
-
-    let response = client
-        .gql::<Value>(
-            r#"
-                mutation {
-                    one: todoCreate(input: {title: "Defer Things"}) { todo { id } }
-                    two: todoCreate(input: {title: "Defer Things"}) { todo { id } }
-                }
-            "#,
-        )
-        .await;
-
-    assert!(dot_get_opt!(response, "errors", Vec<Value>).is_none(), "{response:?}");
+    let client = start_grafbase(&mut env, SCHEMA).await;
 
     let response = client
         .gql::<Value>(
@@ -40,20 +48,14 @@ async fn defer_multipart_test() {
                     query {
                         todoCollection(first: 1) {
                             __typename
-                            edges {
-                                node {
-                                    title
-                                }
-                            }
+                            id
+                            title
                         }
                         ... @defer {
                             deferred: todoCollection(first: 10) {
                                 __typename
-                                edges {
-                                    node {
-                                        title
-                                    }
-                                }
+                                id
+                                title
                             }
                         }
                     }
@@ -81,36 +83,30 @@ async fn defer_multipart_test() {
     [
       {
         "data": {
-          "todoCollection": {
-            "__typename": "TodoConnection",
-            "edges": [
-              {
-                "node": {
-                  "title": "Defer Things"
-                }
-              }
-            ]
-          }
+          "todoCollection": [
+            {
+              "__typename": "Todo",
+              "id": "1",
+              "title": "Defer Things"
+            }
+          ]
         },
         "hasNext": true
       },
       {
         "data": {
-          "deferred": {
-            "__typename": "TodoConnection",
-            "edges": [
-              {
-                "node": {
-                  "title": "Defer Things"
-                }
-              },
-              {
-                "node": {
-                  "title": "Defer Things"
-                }
-              }
-            ]
-          }
+          "deferred": [
+            {
+              "__typename": "Todo",
+              "id": "1",
+              "title": "Defer Things"
+            },
+            {
+              "__typename": "Todo",
+              "id": "2",
+              "title": "Defer Things"
+            }
+          ]
         },
         "hasNext": false,
         "path": []
@@ -119,25 +115,10 @@ async fn defer_multipart_test() {
     "###);
 }
 
-#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn defer_sse_test() {
-    let schema = "type Todo @model { title: String }";
     let mut env = Environment::init_async().await;
-    let client = start_grafbase(&mut env, schema).await;
-
-    let response = client
-        .gql::<Value>(
-            r#"
-                mutation {
-                    one: todoCreate(input: {title: "Defer Things"}) { todo { id } }
-                    two: todoCreate(input: {title: "Defer Things"}) { todo { id } }
-                }
-            "#,
-        )
-        .await;
-
-    assert!(dot_get_opt!(response, "errors", Vec<Value>).is_none(), "{response:?}");
+    let client = start_grafbase(&mut env, SCHEMA).await;
 
     let events = client
         .gql::<Value>(
@@ -145,20 +126,14 @@ async fn defer_sse_test() {
                     query {
                         todoCollection(first: 1) {
                             __typename
-                            edges {
-                                node {
-                                    title
-                                }
-                            }
+                            title
+                            id
                         }
                         ... @defer {
                             deferred: todoCollection(first: 10) {
                                 __typename
-                                edges {
-                                    node {
-                                        title
-                                    }
-                                }
+                                title
+                                id
                             }
                         }
                     }
@@ -187,7 +162,7 @@ async fn defer_sse_test() {
         Message(
             Event {
                 event: "next",
-                data: "{\"data\":{\"todoCollection\":{\"__typename\":\"TodoConnection\",\"edges\":[{\"node\":{\"title\":\"Defer Things\"}}]}},\"hasNext\":true}",
+                data: "{\"data\":{\"todoCollection\":[{\"__typename\":\"Todo\",\"title\":\"Defer Things\",\"id\":\"1\"}]},\"hasNext\":true}",
                 id: "",
                 retry: None,
             },
@@ -195,7 +170,7 @@ async fn defer_sse_test() {
         Message(
             Event {
                 event: "next",
-                data: "{\"data\":{\"deferred\":{\"__typename\":\"TodoConnection\",\"edges\":[{\"node\":{\"title\":\"Defer Things\"}},{\"node\":{\"title\":\"Defer Things\"}}]}},\"path\":[],\"hasNext\":false}",
+                data: "{\"data\":{\"deferred\":[{\"__typename\":\"Todo\",\"title\":\"Defer Things\",\"id\":\"1\"},{\"__typename\":\"Todo\",\"title\":\"Defer Things\",\"id\":\"2\"}]},\"path\":[],\"hasNext\":false}",
                 id: "",
                 retry: None,
             },
@@ -309,6 +284,18 @@ async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> Async
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);
     env.grafbase_dev_watch();
+    env.write_file(
+        "resolvers/todos.js",
+        r#"
+            export default function Resolver(_, {first}) {
+                const data = [
+                    {"id": "1", "title": "Defer Things"},
+                    {"id": "2", "title": "Defer Things"},
+                ];
+                return data.slice(0, first);
+            }
+    "#,
+    );
 
     let client = env.create_async_client().with_api_key();
 
