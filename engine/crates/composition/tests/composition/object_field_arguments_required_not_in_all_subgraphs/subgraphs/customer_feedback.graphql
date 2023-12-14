@@ -1,0 +1,23 @@
+extend schema
+    @link(
+        url: "https://specs.apollo.dev/federation/v2.3",
+        import: ["@shareable", "@key"]
+     )
+
+type Query {
+  findVendorByLocation(location: String!, cornDogType: String!): [Vendor!]
+}
+
+type Vendor @key(fields: "id") {
+  id: ID!
+  name: String! @shareable
+  location: String! @shareable
+  details(includeBadRatings: Boolean, withNeighbors: Boolean!, weighedAverage: Boolean!): VendorDetails @shareable
+}
+
+type VendorDetails @shareable {
+  averageRating: Float
+  bestSellingCornDog: String
+  customerComments: [String]
+}
+

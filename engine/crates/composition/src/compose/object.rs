@@ -36,6 +36,17 @@ pub(super) fn merge_field_arguments<'a>(
         start = end;
 
         if !intersection.contains(&argument_name) {
+            if let Some((_, required)) = arguments.iter().find(|(_name, arg)| arg.r#type().is_required()) {
+                required_argument_not_in_intersection_error(
+                    fields,
+                    *required,
+                    parent_definition_name,
+                    field_name,
+                    argument_name,
+                    ctx,
+                );
+            }
+
             continue;
         }
 
@@ -76,6 +87,30 @@ pub(super) fn merge_field_arguments<'a>(
     }
 
     arguments_ir
+}
+
+fn required_argument_not_in_intersection_error(
+    fields: &[FieldWalker<'_>],
+    required_arg: subgraphs::FieldArgumentWalker<'_>,
+    parent_definition_name: StringId,
+    field_name: StringId,
+    argument_name: StringId,
+    ctx: &mut Context<'_>,
+) {
+    let subgraph_where_required = required_arg.field().parent_definition().subgraph().name().as_str();
+    let subgraphs_where_missing = fields
+        .iter()
+        .filter(|field| field.argument_by_name(argument_name).is_none())
+        .map(|field| field.parent_definition().subgraph().name().as_str())
+        .collect::<Vec<_>>();
+    ctx.diagnostics.push_fatal(format!(
+        "The argument `{}.{}({}:)` is required in {} but missing in {}.",
+        ctx.subgraphs.walk(parent_definition_name).as_str(),
+        ctx.subgraphs.walk(field_name).as_str(),
+        ctx.subgraphs.walk(argument_name).as_str(),
+        subgraph_where_required,
+        subgraphs_where_missing.join(", "),
+    ));
 }
 
 pub(super) fn compose_object_fields<'a>(
