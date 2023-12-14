@@ -25,12 +25,6 @@ pub enum NestedRequestScopedMessage {
         body: Option<String>,
         content_type: Option<String>,
     },
-    SqlQuery {
-        successful: bool,
-        sql: String,
-        duration: std::time::Duration,
-        body: Option<String>,
-    },
 }
 
 #[derive(Clone, Debug)]

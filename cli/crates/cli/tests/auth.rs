@@ -31,6 +31,7 @@ use crate::utils::consts::{
 const JWT_ISSUER_URL: &str = "https://some.issuer.test";
 const JWT_SECRET: &str = "topsecret";
 
+#[ignore]
 #[test]
 fn jwt_provider() {
     let mut env = Environment::init();
@@ -267,6 +268,7 @@ async fn set_up_jwks<F: Fn(&Url) -> HashMap<String, String>>(
     }
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn oidc_without_token_should_only_allow_introspection() {
     let set_up = set_up_oidc().await;
@@ -280,6 +282,7 @@ async fn oidc_without_token_should_only_allow_introspection() {
     insta::assert_json_snapshot!("introspection", set_up.client.gql::<Value>(INTROSPECTION_QUERY).await);
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn oidc_token_with_valid_group_should_work() {
     let set_up = set_up_oidc().await;
@@ -297,6 +300,7 @@ async fn oidc_token_with_valid_group_should_work() {
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn oidc_with_path_with_trailing_slash_should_work() {
     let set_up = set_up_oidc_with_path(Some("some/path/")).await;
@@ -313,6 +317,7 @@ async fn oidc_with_path_with_trailing_slash_should_work() {
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn oidc_with_path_without_trailing_slash_should_work() {
     let set_up = set_up_oidc_with_path(Some("some/path")).await;
@@ -329,6 +334,7 @@ async fn oidc_with_path_without_trailing_slash_should_work() {
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn oidc_token_with_wrong_group_should_fail() {
     let set_up = set_up_oidc().await;
@@ -350,6 +356,7 @@ async fn oidc_token_with_wrong_group_should_fail() {
     );
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn oidc_token_with_wrong_kid_should_fail() {
     let set_up = set_up_oidc().await;
@@ -367,6 +374,7 @@ async fn oidc_token_with_wrong_kid_should_fail() {
     assert_eq!(error, Some("Unauthorized".to_string()));
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn jwks_issuer_token_with_valid_group_should_work() {
     let set_up = set_up_jwks(AUTH_JWKS_PROVIDER_WITH_ISSUER_SCHEMA, JWKS_PATH, |issuer_url: &Url| {
@@ -387,6 +395,7 @@ async fn jwks_issuer_token_with_valid_group_should_work() {
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn jwks_endoint_token_with_valid_group_should_work() {
     const ENDPOINT_PATH: &str = "custom/jwks.json";
@@ -415,6 +424,7 @@ async fn jwks_endoint_token_with_valid_group_should_work() {
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
     const ENDPOINT_PATH: &str = "custom/jwks.json";
@@ -446,6 +456,7 @@ async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn public_global() {
     let mut env = Environment::init_async().await;
@@ -462,6 +473,7 @@ async fn public_global() {
     insta::assert_json_snapshot!("public_global", resp);
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn public_type() {
     let mut env = Environment::init_async().await;
@@ -483,6 +495,7 @@ const RESOLVER_CONTENT: &str = r#"export default function Resolver(parent, args,
     return "Lorem ipsum dolor sit amet";
 }"#;
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn type_field_resolver_mixed() {
     let mut env = Environment::init_async().await;
@@ -523,6 +536,7 @@ async fn type_field_resolver_mixed() {
     );
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn entrypoint_query_field_resolver() {
     let mut env = Environment::init_async().await;
@@ -562,6 +576,7 @@ async fn entrypoint_query_field_resolver() {
     }
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn entrypoint_mutation_field_resolver_mixed() {
     let mut env = Environment::init_async().await;
@@ -602,6 +617,7 @@ async fn entrypoint_mutation_field_resolver_mixed() {
     }
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn authorizer_with_no_headers_should_work() {
     let mut env = Environment::init_async().await;
@@ -626,6 +642,7 @@ async fn authorizer_with_no_headers_should_work() {
     );
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn authorizer_with_headers_should_work() {
     let mut env = Environment::init_async().await;
@@ -650,6 +667,7 @@ async fn authorizer_with_headers_should_work() {
     );
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn authorizer_with_public_access_should_work() {
     let mut env = Environment::init_async().await;

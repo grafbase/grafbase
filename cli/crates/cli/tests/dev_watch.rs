@@ -7,6 +7,7 @@ use serde_json::Value;
 use utils::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
 use utils::environment::Environment;
 
+#[ignore]
 #[test]
 fn dev_watch() {
     let mut env = Environment::init();

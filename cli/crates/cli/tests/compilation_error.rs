@@ -9,6 +9,7 @@ use utils::consts::{
 };
 use utils::environment::Environment;
 
+#[ignore]
 #[test]
 fn compilation_error_schema() {
     let mut env = Environment::init();
@@ -39,6 +40,7 @@ fn compilation_error_schema() {
     client.snapshot();
 }
 
+#[ignore]
 #[test]
 fn compilation_error_resolvers() {
     let mut env = Environment::init();

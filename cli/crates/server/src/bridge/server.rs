@@ -1,22 +1,13 @@
-use super::consts::{DATABASE_FILE, DATABASE_URL_PREFIX, PREPARE};
-use super::types::{Mutation, Operation, Record};
 use super::udf::UdfRuntime;
-use crate::bridge::errors::ApiError;
 use crate::bridge::log::log_event_endpoint;
-use crate::bridge::search::search_endpoint;
-use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
 use crate::bridge::udf::invoke_udf_endpoint;
 use crate::config::DetectedUdf;
 use crate::errors::ServerError;
 use crate::event::{wait_for_event, Event};
 use crate::types::ServerMessage;
-use axum::extract::State;
-use axum::Json;
-use axum::{http::StatusCode, routing::post, Router};
+use axum::{routing::post, Router};
 use common::environment::Project;
 
-use sqlx::query::{Query, QueryAs};
-use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use tokio::fs;
 
 use std::net::TcpListener;
@@ -26,89 +17,20 @@ use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 
 pub struct HandlerState {
-    pub pool: SqlitePool,
     pub message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
     pub udf_runtime: UdfRuntime,
     pub tracing: bool,
     pub registry: Arc<engine::Registry>,
 }
 
-async fn query_endpoint(
-    State(handler_state): State<Arc<HandlerState>>,
-    Json(payload): Json<Operation>,
-) -> Result<Json<Vec<Record>>, ApiError> {
-    trace!("request\n\n{:#?}\n", payload);
-
-    let template = query_as::<_, Record>(&payload.sql);
-
-    let result = payload
-        .iter_variables()
-        .fold(template, QueryAs::bind)
-        .fetch_all(&handler_state.as_ref().pool)
-        .await
-        .map_err(|error| {
-            error!("query error: {error}");
-            error
-        })?;
-
-    trace!("response\n\n{:#?}\n", result);
-
-    Ok(Json(result))
-}
-
-async fn mutation_endpoint(
-    State(handler_state): State<Arc<HandlerState>>,
-    Json(payload): Json<Mutation>,
-) -> Result<StatusCode, ApiError> {
-    trace!("request\n\n{:#?}\n", payload);
-
-    if payload.mutations.is_empty() {
-        return Ok(StatusCode::OK);
-    };
-
-    let mut transaction = handler_state.as_ref().pool.begin().await.map_err(|error| {
-        error!("transaction start error: {error}");
-        error
-    })?;
-
-    for operation in payload.mutations {
-        let template = query(&operation.sql);
-
-        let query = operation.iter_variables().fold(template, Query::bind);
-
-        query.execute(&mut *transaction).await.map_err(|error| {
-            error!("mutation error: {error}");
-            match operation.kind {
-                Some(OperationKind::Constraint(Constraint {
-                    kind: ConstraintKind::Unique,
-                    ..
-                })) => ApiError::from_error_and_operation(error, operation),
-                None => error.into(),
-            }
-        })?;
-    }
-
-    transaction.commit().await.map_err(|error| {
-        error!("transaction commit error: {error}");
-        error
-    })?;
-
-    Ok(StatusCode::OK)
-}
-
 // Not great, but I don't want to expose HandlerState and nor do I want to change everything now...
 #[async_trait::async_trait]
 pub trait BridgeState: Send + Sync {
     async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>, parallelism: NonZeroUsize) -> Result<(), ServerError>;
-    async fn close(&self) -> ();
 }
 
 #[async_trait::async_trait]
 impl BridgeState for Arc<HandlerState> {
-    async fn close(&self) -> () {
-        self.pool.close().await;
-    }
-
     async fn build_all_udfs(&self, udfs: Vec<DetectedUdf>, parallelism: NonZeroUsize) -> Result<(), ServerError> {
         Ok(self.udf_runtime.build_all(udfs, parallelism).await?)
     }
@@ -131,25 +53,8 @@ pub async fn build_router(
         Err(error) => return Err(ServerError::ReadDatabaseDir(error)),
     }
 
-    let database_file = project.database_directory_path.join(DATABASE_FILE);
-
-    let db_url = match database_file.to_str() {
-        Some(db_file) => format!("{DATABASE_URL_PREFIX}{db_file}"),
-        None => return Err(ServerError::ProjectPath),
-    };
-
-    if !Sqlite::database_exists(&db_url).await? {
-        trace!("creating SQLite database");
-        Sqlite::create_database(&db_url).await?;
-    }
-
-    let pool = SqlitePoolOptions::new().connect(&db_url).await?;
-
-    query(PREPARE).execute(&pool).await?;
-
     let udf_runtime = UdfRuntime::new(environment_variables, registry.clone(), tracing, message_sender.clone());
     let handler_state = Arc::new(HandlerState {
-        pool,
         message_sender,
         udf_runtime,
         tracing,
@@ -157,9 +62,6 @@ pub async fn build_router(
     });
 
     let router = Router::new()
-        .route("/query", post(query_endpoint))
-        .route("/mutation", post(mutation_endpoint))
-        .route("/search", post(search_endpoint))
         .route("/invoke-udf", post(invoke_udf_endpoint))
         .route("/log-event", post(log_event_endpoint))
         .with_state(handler_state.clone())
@@ -176,7 +78,7 @@ pub async fn start(
     tracing: bool,
 ) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
-    let (router, handler_state) = build_router(message_sender, registry, tracing).await?;
+    let (router, ..) = build_router(message_sender, registry, tracing).await?;
 
     let server = axum::Server::from_tcp(tcp_listener)?
         .serve(router.into_make_service())
@@ -187,6 +89,5 @@ pub async fn start(
     event_bus.send(Event::BridgeReady).expect("cannot fail");
     server.await?;
 
-    handler_state.close().await;
     Ok(())
 }

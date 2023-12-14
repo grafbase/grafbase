@@ -15,8 +15,6 @@ pub enum SubCommand {
     Completions(CompletionsCommand),
     /// Sets up the current or a new project for Grafbase
     Init(InitCommand),
-    /// Resets the local database for the current project
-    Reset,
     /// Logs into your Grafbase account
     Login,
     /// Logs out of your Grafbase account
@@ -63,7 +61,6 @@ impl SubCommand {
                     project_branch: None,
                     ..
                 })
-                | Self::Reset
                 | Self::Start(_)
                 | Self::Build(_)
                 | Self::Unlink
@@ -88,7 +85,6 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Check(_)
             | SubCommand::Subgraphs(_)
             | SubCommand::Introspect(_)
-            | SubCommand::Reset
             | SubCommand::Login
             | SubCommand::Logout
             | SubCommand::Deploy

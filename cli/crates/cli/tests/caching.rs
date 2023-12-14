@@ -16,6 +16,7 @@ fn header<'r>(response: &'r reqwest::Response, name: &'static str) -> Option<&'r
     response.headers().get(name).map(|header| header.to_str().unwrap())
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn global_caching() {
     let mut env = Environment::init_async().await;
@@ -52,6 +53,7 @@ async fn global_caching() {
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn model_and_field_caching() {
     let mut env = Environment::init_async().await;
@@ -100,6 +102,8 @@ async fn model_and_field_caching() {
     assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("HIT"));
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 }
+
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn no_cache_on_non_cahced_field() {
     let mut env = Environment::init_async().await;
@@ -131,6 +135,7 @@ async fn no_cache_on_non_cahced_field() {
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn no_cache_on_mutations() {
     let mut env = Environment::init_async().await;
@@ -175,6 +180,7 @@ async fn no_cache_on_mutations() {
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn no_cache_on_same_query_different_variables() {
     let mut env = Environment::init_async().await;
@@ -229,6 +235,7 @@ async fn no_cache_on_same_query_different_variables() {
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn no_cache_header_when_caching_is_not_used() {
     let mut env = Environment::init_async().await;

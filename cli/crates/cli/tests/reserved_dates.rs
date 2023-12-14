@@ -9,6 +9,7 @@ use chrono::{DateTime, Duration, Utc};
 use serde_json::{json, Value};
 use utils::environment::Environment;
 
+#[ignore]
 #[test]
 fn reserved_dates() {
     // TODO: Create simpler client setup (one-line)

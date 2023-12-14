@@ -18,6 +18,7 @@ mod global {
         use json_dotpath::DotPaths;
         use serde_json::{json, Value};
 
+        #[ignore]
         #[test]
         fn entity_should_be_visible_only_to_the_owner() {
             let mut env = Environment::init();
@@ -117,6 +118,7 @@ mod global {
             );
         }
 
+        #[ignore]
         #[test]
         fn owner_create_group_all_should_work() {
             let mut env = Environment::init();
@@ -194,6 +196,7 @@ mod global {
             );
         }
 
+        #[ignore]
         #[test]
         fn group_should_supercede_owner_when_listing_entities() {
             let mut env = Environment::init();
@@ -283,6 +286,7 @@ mod global {
         use json_dotpath::DotPaths;
         use serde_json::{json, Value};
 
+        #[ignore]
         #[test]
         fn get_by_id_should_be_filtered_by_the_owner() {
             let mut env = Environment::init();
@@ -327,6 +331,7 @@ mod global {
             );
         }
 
+        #[ignore]
         #[test]
         fn get_by_email_should_be_filtered_by_the_owner() {
             let mut env = Environment::init();
@@ -367,6 +372,7 @@ mod global {
             );
         }
 
+        #[ignore]
         #[test]
         fn test_linking() {
             let mut env = Environment::init();

@@ -7,6 +7,7 @@ use serde_json::{json, Value};
 use utils::consts::{LENGTH_CREATE_MUTATION, LENGTH_SCHEMA, LENGTH_UPDATE_MUTATION};
 use utils::environment::Environment;
 
+#[ignore]
 #[test]
 fn length() {
     let mut env = Environment::init();

@@ -6,6 +6,7 @@ use backend::project::GraphType;
 use serde_json::Value;
 use utils::environment::Environment;
 
+#[ignore]
 #[test]
 fn default_directive() {
     let mut env = Environment::init();

@@ -2,7 +2,7 @@
 mod utils;
 
 use utils::environment::Environment;
-
+#[ignore]
 #[test]
 #[cfg(not(target_os = "windows"))]
 fn start_with_ts_config() {

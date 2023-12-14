@@ -19,7 +19,6 @@ impl Display for AccountSelection {
 pub struct CreateArguments<'a> {
     pub account_slug: &'a str,
     pub name: &'a str,
-    pub regions: &'a [String],
 }
 
 #[tokio::main]
@@ -44,7 +43,7 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .ok_or(CliError::NoAccountFound)?
         .id;
 
-    let domains = create::create(&account_id, arguments.name, arguments.regions)
+    let domains = create::create(&account_id, arguments.name)
         .await
         .map_err(CliError::BackendApiError)?;
 
@@ -89,7 +88,7 @@ async fn interactive() -> Result<(), CliError> {
         .map_err(handle_inquire_error)?;
 
     if confirm {
-        let domains = create::create(&selected_account.id, &project_name, &[])
+        let domains = create::create(&selected_account.id, &project_name)
             .await
             .map_err(CliError::BackendApiError)?;
 

@@ -12,6 +12,7 @@ use utils::{async_client::AsyncClient, environment::Environment};
 
 use crate::utils::consts::AUTH_QUERY_TODOS;
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn defer_multipart_test() {
     // Tests that deferring with a multipart transport works..
@@ -118,6 +119,7 @@ async fn defer_multipart_test() {
     "###);
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn defer_sse_test() {
     let schema = "type Todo @model { title: String }";
@@ -220,6 +222,7 @@ const JWT_SCHEMA: &str = r#"
 const JWT_ISSUER_URL: &str = "https://some.issuer.test";
 const JWT_SECRET: &str = "topsecret";
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn test_auth_with_multipart() {
     let mut env = Environment::init_async().await;
@@ -253,6 +256,7 @@ async fn test_auth_with_multipart() {
     assert!(error.contains("Unauthorized"), "error: {error:#?}");
 }
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn test_auth_with_sse() {
     // Tests that authentication with the SSE transport works..

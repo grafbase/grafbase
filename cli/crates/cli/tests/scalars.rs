@@ -52,6 +52,7 @@ fn error_matching(pattern: &str) -> Result<Value, Regex> {
 // There's no point in splitting test cases
 #[allow(clippy::too_many_lines)]
 #[test]
+#[ignore]
 fn scalars() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);

@@ -267,6 +267,7 @@ enum JavaScriptPackageManager {
         }
     "#))
 )]
+#[ignore]
 fn test_field_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
@@ -467,6 +468,7 @@ fn test_field_resolver(
         ),
     ],
 )]
+#[ignore]
 fn test_query_mutation_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,

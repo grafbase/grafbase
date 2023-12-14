@@ -413,13 +413,6 @@ impl Environment {
         .unwrap();
     }
 
-    pub fn grafbase_reset(&mut self) {
-        cmd!(cargo_bin("grafbase"), "reset")
-            .dir(&self.directory_path)
-            .run()
-            .unwrap();
-    }
-
     pub fn grafbase_dev_watch(&mut self) {
         let command = cmd!(
             cargo_bin("grafbase"),

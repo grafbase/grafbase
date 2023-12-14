@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use utils::consts::{COERCION_CREATE_DUMMY, COERCION_SCHEMA};
 use utils::environment::Environment;
 
+#[ignore]
 #[test]
 fn coercion() {
     let mut env = Environment::init();

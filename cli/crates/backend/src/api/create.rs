@@ -63,11 +63,7 @@ pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn create(
-    account_id: &str,
-    project_slug: &str,
-    database_regions: &[String],
-) -> Result<Vec<String>, ApiError> {
+pub async fn create(account_id: &str, project_slug: &str) -> Result<Vec<String>, ApiError> {
     let project = Project::get();
 
     match project.dot_grafbase_directory_path.try_exists() {
@@ -83,7 +79,7 @@ pub async fn create(
     let operation = ProjectCreate::build(ProjectCreateArguments {
         input: ProjectCreateInput {
             account_id: Id::new(account_id),
-            database_regions,
+            database_regions: &[],
             project_slug,
             project_root_path: project
                 .schema_path

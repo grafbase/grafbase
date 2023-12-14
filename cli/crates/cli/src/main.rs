@@ -19,7 +19,6 @@ mod output;
 mod panic_hook;
 mod prompts;
 mod publish;
-mod reset;
 mod schema;
 mod start;
 mod subgraphs;
@@ -40,7 +39,6 @@ use crate::{
     login::login,
     logout::logout,
     logs::logs,
-    reset::reset,
     start::start,
     unlink::unlink,
 };
@@ -113,7 +111,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
             )
         }
         SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.graph),
-        SubCommand::Reset => reset(),
         SubCommand::Login => login(),
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),

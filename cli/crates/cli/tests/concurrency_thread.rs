@@ -8,6 +8,7 @@ use serde_json::Value;
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
 
+#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn concurrency_thread() {
     let mut env = Environment::init_async().await;
