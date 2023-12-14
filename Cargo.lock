@@ -2779,7 +2779,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-composition"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "async-graphql-parser 6.0.11",
  "async-graphql-value 6.0.11",
