@@ -23,17 +23,6 @@ extend type Query {
 }
 "#;
 
-const SCHEMA: &str = r#"
-type Todo {
-    id: ID!
-    title: String
-}
-
-extend type Query {
-    todoCollection(first: Int!): [Todo!]! @resolver(name: "todos")
-}
-"#;
-
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn defer_multipart_test() {
