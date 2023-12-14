@@ -1,6 +1,6 @@
 use crate::{
+    config::{build_config, ParsingResponse},
     errors::ServerError,
-    servers::{run_schema_parser, ParsingResponse},
 };
 
 #[tokio::main]
@@ -11,7 +11,7 @@ pub async fn dump_config(cli_version: String) -> Result<String, ServerError> {
         registry,
         detected_udfs: _,
         federated_graph_config: _,
-    } = run_schema_parser(&env, None).await?;
+    } = build_config(&env, None).await?;
 
     serde_json::to_string(&RegistryWithVersion { cli_version, registry }).map_err(ServerError::SchemaParserResultJson)
 }

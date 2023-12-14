@@ -17,7 +17,7 @@ pub struct ParserResult {
 }
 
 /// Transform the input schema into a Registry
-pub async fn parse_schema(schema: &str, environment: &HashMap<String, String>) -> Result<ParserResult, ServerError> {
+pub async fn parse_sdl(schema: &str, environment: &HashMap<String, String>) -> Result<ParserResult, ServerError> {
     let connector_parsers = ConnectorParsers {
         http_client: reqwest::Client::new(),
     };
