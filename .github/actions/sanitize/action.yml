@@ -4,11 +4,11 @@ description: Run cargo fmt, clippy, test
 inputs:
   lint:
     required: false
-    default: "true"
+    default: 'true'
     description: To run fmt/clippy or not to run
   test:
     required: false
-    default: "true"
+    default: 'true'
     description: To run test or not to run
 
 runs:
