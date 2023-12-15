@@ -5,6 +5,7 @@ mod flat;
 mod fragment;
 mod inline_fragment;
 mod plan;
+mod plan_selection_set;
 mod selection_set;
 mod variables;
 
@@ -20,6 +21,7 @@ pub use flat::*;
 pub use fragment::*;
 pub use inline_fragment::*;
 pub use plan::*;
+pub use plan_selection_set::*;
 use schema::SchemaWalker;
 pub use selection_set::*;
 pub use variables::*;
@@ -110,7 +112,7 @@ impl<'a, W, I, E> OperationWalker<'a, W, I, E> {
         }
     }
 
-    pub fn with_plan<E2>(&self, plan: E2) -> OperationWalker<'a, W, I, E2>
+    pub fn with_ext<E2>(&self, ext: E2) -> OperationWalker<'a, W, I, E2>
     where
         W: Copy,
         I: Copy,
@@ -118,7 +120,7 @@ impl<'a, W, I, E> OperationWalker<'a, W, I, E> {
         OperationWalker {
             operation: self.operation,
             schema_walker: self.schema_walker,
-            ext: plan,
+            ext,
             wrapped: self.wrapped,
         }
     }
