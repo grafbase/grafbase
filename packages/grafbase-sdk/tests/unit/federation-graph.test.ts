@@ -45,4 +45,34 @@ describe('Federation config', () => {
       "
     `)
   })
+
+  it('supports cache configuration', () => {
+    const cfg = config({
+      graph: graph.Federated({
+        cache: {
+          rules: [
+            {
+              types: 'Query',
+              maxAge: 60
+            }
+          ]
+        }
+      })
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "
+      extend schema
+        @graph(type: federated)
+      extend schema
+        @cache(rules: [
+          {
+            types: "Query",
+            maxAge: 60
+          }
+        ])
+      
+      "
+    `)
+  })
 })

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
+use config::latest::{CacheConfigTarget, Config};
+
+use super::*;
 // All of that should be in federated_graph actually.
 use super::sources::*;
-use super::*;
-
-use config::latest::Config;
 
 #[allow(clippy::panic)]
 impl From<Config> for Schema {
@@ -39,6 +39,7 @@ impl From<Config> for Schema {
                 ..Default::default()
             },
             default_headers: config.default_headers.into_iter().map(Into::into).collect(),
+            cache_configs: vec![],
         };
 
         schema.strings.extend(config.strings);
@@ -51,12 +52,19 @@ impl From<Config> for Schema {
         for object in graph.objects {
             let object_id = ObjectId::from(schema.objects.len());
             let keys = object.resolvable_keys;
+            let cache_config = config
+                .cache_config
+                .get(&CacheConfigTarget::Object(federated_graph::ObjectId(object_id.into())))
+                .map(|config| schema.insert_cache_config(config));
+
             schema.objects.push(Object {
                 name: object.name.into(),
                 description: None,
                 interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
                 composed_directives: object.composed_directives.into_iter().map(Into::into).collect(),
+                cache_config,
             });
+
             for key in keys {
                 let resolver_id = ResolverId::from(schema.resolvers.len());
                 let subgraph_id = key.subgraph_id.into();
@@ -186,6 +194,10 @@ impl From<Config> for Schema {
                 composed_directives: field.composed_directives.into_iter().map(Into::into).collect(),
                 is_deprecated: false,
                 deprecation_reason: None,
+                cache_config: config
+                    .cache_config
+                    .get(&CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
+                    .map(|config| schema.insert_cache_config(config)),
             };
             schema.fields.push(field);
         }
@@ -264,6 +276,7 @@ impl From<federated_graph::Object> for Object {
             description: None,
             interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
             composed_directives: object.composed_directives.into_iter().map(Into::into).collect(),
+            cache_config: Default::default(),
         }
     }
 }
@@ -435,6 +448,20 @@ impl Schema {
     fn update_subgraph_config(&mut self, id: federated_graph::SubgraphId, config: config::latest::SubgraphConfig) {
         let subgraph = &mut self.data_sources.federation[id.into()];
         subgraph.headers = config.headers.into_iter().map(Into::into).collect()
+    }
+
+    fn insert_cache_config(&mut self, cache_config: &config::latest::CacheConfig) -> CacheConfigId {
+        let new_config: CacheConfig = cache_config.into();
+
+        for (i, existing_config) in self.cache_configs.iter().enumerate() {
+            if *existing_config == new_config {
+                return CacheConfigId::from(i);
+            }
+        }
+
+        self.cache_configs.push(new_config);
+
+        CacheConfigId::from(self.cache_configs.len() - 1)
     }
 }
 

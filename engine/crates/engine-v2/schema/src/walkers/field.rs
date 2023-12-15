@@ -1,5 +1,5 @@
 use super::{resolver::ResolverWalker, SchemaWalker};
-use crate::{FieldId, FieldResolver, FieldSet, InputValueWalker, TypeWalker};
+use crate::{CacheConfig, FieldId, FieldResolver, FieldSet, InputValueWalker, TypeWalker};
 
 pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
@@ -44,6 +44,10 @@ impl<'a> FieldWalker<'a> {
 
     pub fn ty(self) -> TypeWalker<'a> {
         self.walk(self.type_id)
+    }
+
+    pub fn cache_config(&self) -> Option<CacheConfig> {
+        self.cache_config.map(|cache_config_id| self.schema[cache_config_id])
     }
 }
 

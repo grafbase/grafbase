@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+pub use crate::cache_config::{CacheConfig, CacheConfigTarget};
 use federated_graph::{FederatedGraphV1, SubgraphId};
 
 /// Configuration for a federated graph
@@ -14,6 +15,10 @@ pub struct Config {
 
     /// Additional configuration for our subgraphs
     pub subgraph_configs: BTreeMap<SubgraphId, SubgraphConfig>,
+
+    /// Caching configuration
+    #[serde(default)]
+    pub cache_config: BTreeMap<CacheConfigTarget, CacheConfig>,
 }
 
 /// Additional configuration for a particular subgraph
@@ -39,7 +44,7 @@ pub enum HeaderValue {
     Static(StringId),
 }
 
-#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize)]
 pub struct StringId(pub usize);
 
 impl std::ops::Index<StringId> for Config {

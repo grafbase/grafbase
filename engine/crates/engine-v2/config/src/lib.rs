@@ -2,6 +2,7 @@ use federated_graph::FederatedGraphV1;
 
 // The specific version modules should be kept private, users of this crate
 // should only access types via `latest`
+mod cache_config;
 mod v2;
 
 /// The latest version of the configuration.
@@ -38,6 +39,7 @@ impl VersionedConfig {
                 headers: Default::default(),
                 default_headers: Default::default(),
                 subgraph_configs: Default::default(),
+                cache_config: Default::default(),
             },
             VersionedConfig::V2(latest) => latest,
         }

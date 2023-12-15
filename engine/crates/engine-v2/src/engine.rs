@@ -37,6 +37,7 @@ impl Engine {
             Ok(variables) => variables,
             Err(errors) => return Response::from_errors(errors, ExecutionMetadata::build(&operation)),
         };
+
         let mut executor = ExecutorCoordinator::new(self, &operation, &variables, &headers);
         executor.execute().await;
         executor.into_response()
@@ -44,7 +45,7 @@ impl Engine {
 
     async fn prepare(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {
         let unbound_operation = parse_operation(request)?;
-        let operation = Operation::bind(&self.schema, unbound_operation)?;
+        let operation = Operation::build(&self.schema, unbound_operation)?;
         Ok(operation)
     }
 }

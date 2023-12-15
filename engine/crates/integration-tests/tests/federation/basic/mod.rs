@@ -3,6 +3,7 @@
 //! This file shouldn't have much federation specific stuff in it, mostly just checking
 //! that our engine supports all the things a normal GraphQL server should.
 
+mod caching;
 mod fragments;
 mod headers;
 mod mutation;

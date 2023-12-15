@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+mod cache;
 mod conversion;
 mod field_set;
 mod ids;
@@ -8,6 +9,7 @@ mod resolver;
 pub mod sources;
 mod walkers;
 
+pub use cache::*;
 pub use field_set::*;
 pub use ids::*;
 pub use names::Names;
@@ -50,6 +52,8 @@ pub struct Schema {
     headers: Vec<Header>,
 
     default_headers: Vec<HeaderId>,
+
+    cache_configs: Vec<CacheConfig>,
 }
 
 #[derive(Default)]
@@ -172,6 +176,7 @@ pub struct Object {
     pub interfaces: Vec<InterfaceId>,
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+    pub cache_config: Option<CacheConfigId>,
 }
 
 #[derive(PartialOrd, Ord, PartialEq, Eq)]
@@ -198,6 +203,8 @@ pub struct Field {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
+
+    pub cache_config: Option<CacheConfigId>,
 }
 
 #[derive(Debug)]
