@@ -191,10 +191,16 @@ pub struct FederatedGraphCompositionError {
     pub messages: Vec<String>,
 }
 
+#[derive(cynic::QueryFragment, Debug)]
+pub struct BranchDoesNotExistError {
+    pub __typename: String,
+}
+
 #[derive(cynic::InlineFragments, Debug)]
 pub enum PublishPayload {
     PublishSuccess(PublishSuccess),
     FederatedGraphCompositionError(FederatedGraphCompositionError),
+    BranchDoesNotExistError(BranchDoesNotExistError),
     #[cynic(fallback)]
     Unknown(String),
 }

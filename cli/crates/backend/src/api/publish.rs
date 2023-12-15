@@ -2,7 +2,10 @@ use super::{
     client::create_client,
     consts::API_URL,
     errors::ApiError,
-    graphql::mutations::{FederatedGraphCompositionError, PublishPayload, SubgraphCreateArguments, SubgraphPublish},
+    graphql::mutations::{
+        BranchDoesNotExistError, FederatedGraphCompositionError, PublishPayload, SubgraphCreateArguments,
+        SubgraphPublish,
+    },
 };
 use cynic::{http::ReqwestExt, MutationBuilder};
 
@@ -34,6 +37,9 @@ pub async fn publish(
         Some(PublishPayload::PublishSuccess(_)) => Ok(Ok(())),
         Some(PublishPayload::FederatedGraphCompositionError(FederatedGraphCompositionError { messages })) => {
             Ok(Err(messages.clone()))
+        }
+        Some(PublishPayload::BranchDoesNotExistError(BranchDoesNotExistError { .. })) => {
+            Ok(Err(vec!["Provided branch does not exist in the project.".to_owned()]))
         }
         _ => Err(ApiError::PublishError(format!("API error:\n\n{result:#?}",))),
     }
