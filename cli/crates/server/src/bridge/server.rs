@@ -8,10 +8,7 @@ use axum::{routing::post, Router};
 use common::environment::Project;
 
 use tokio::fs;
-use tokio::task::JoinHandle;
-use tokio_util::sync::CancellationToken;
 
-use std::future::IntoFuture;
 use std::net::TcpListener;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -72,18 +69,19 @@ pub async fn build_router(
     Ok((router, handler_state))
 }
 
-pub async fn spawn(
+pub async fn start(
     tcp_listener: TcpListener,
     message_sender: MessageSender,
-    cancel_token: CancellationToken,
     registry: Arc<engine::Registry>,
+    start_signal: tokio::sync::oneshot::Sender<()>,
     tracing: bool,
-) -> Result<JoinHandle<Result<(), hyper::Error>>, ServerError> {
+) -> Result<(), ServerError> {
     let (router, ..) = build_router(message_sender, registry, tracing).await?;
 
-    let server = axum::Server::from_tcp(tcp_listener)?
-        .serve(router.into_make_service())
-        .with_graceful_shutdown(cancel_token.cancelled_owned());
+    let server = axum::Server::from_tcp(tcp_listener)?.serve(router.into_make_service());
 
-    Ok(tokio::spawn(server.into_future()))
+    start_signal.send(()).ok();
+    server.await?;
+
+    Ok(())
 }

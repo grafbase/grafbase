@@ -5,4 +5,4 @@ mod udf;
 
 pub mod errors;
 
-pub use server::{build_router, spawn, BridgeState};
+pub use server::{build_router, start, BridgeState};

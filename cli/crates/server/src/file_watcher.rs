@@ -10,14 +10,47 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast::error::RecvError;
+use tokio::task::JoinSet;
 
 const FILE_WATCHER_INTERVAL: Duration = Duration::from_secs(1);
+
+pub struct Watcher {
+    join_set: tokio::task::JoinSet<Result<(), ServerError>>,
+    receiver: tokio::sync::broadcast::Receiver<PathBuf>,
+}
+
+impl Watcher {
+    pub async fn start<P>(path: P) -> Result<Watcher, ServerError>
+    where
+        P: AsRef<Path> + Send + 'static,
+    {
+        start_watcher(path).await
+    }
+
+    pub fn file_changes(&self) -> ChangeStream {
+        ChangeStream {
+            receiver: self.receiver.resubscribe(),
+        }
+    }
+
+    pub async fn shutdown(mut self) -> Result<(), ServerError> {
+        self.join_set.abort_all();
+        match self.join_set.join_next().await {
+            Some(Ok(result)) => result,
+            Some(Err(join_error)) => {
+                join_error.into_panic();
+                Ok(())
+            }
+            None => unreachable!(),
+        }
+    }
+}
 
 pub struct ChangeStream {
     receiver: tokio::sync::broadcast::Receiver<PathBuf>,
 }
 
-pub async fn start_watcher<P>(path: P) -> Result<ChangeStream, ServerError>
+async fn start_watcher<P>(path: P) -> Result<Watcher, ServerError>
 where
     P: AsRef<Path> + Send + 'static,
 {
@@ -35,9 +68,10 @@ where
 
     let (change_sender, change_receiver) = tokio::sync::broadcast::channel(128);
 
-    // TODO: use the JoinHandle somewhere?
-    tokio::spawn(async move {
-        // Move the debouncer into this task
+    let mut join_set = JoinSet::new();
+
+    join_set.spawn(async move {
+        // Move the debouncer into the task so it doesn't get dropped
         #[allow(unused)]
         let debouncer = debouncer;
 
@@ -61,7 +95,7 @@ where
 
                         if change_sender.send(relative_path).is_err() {
                             // Receiver has been dropped so we should shut down
-                            return;
+                            return Ok(());
                         };
                     }
                 }
@@ -72,17 +106,17 @@ where
                         .find(|error| error.paths.contains(&path.as_ref().to_owned()))
                     {
                         // an error with the root path, non recoverable
-                        return; //  Err(ServerError::FileWatcher(error));
-                                // TODO: Figure out error reporting
+                        return Err(ServerError::FileWatcher(error));
                     }
                     // errors for specific files, ignored
                 }
-                None => return,
+                None => return Ok(()),
             }
         }
     });
 
-    Ok(ChangeStream {
+    Ok(Watcher {
+        join_set,
         receiver: change_receiver,
     })
 }

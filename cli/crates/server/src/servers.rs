@@ -1,7 +1,7 @@
 use crate::atomics::WORKER_PORT;
 use crate::config::{build_config, Config, ConfigActor};
 use crate::consts::{ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE};
-use crate::file_watcher::{self};
+use crate::file_watcher::Watcher;
 use crate::node::validate_node;
 use crate::types::{MessageSender, ServerMessage, ASSETS_GZIP};
 use crate::udf_builder::install_wrangler;
@@ -14,20 +14,18 @@ use common::consts::{GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project};
 use engine::registry::Registry;
 use flate2::read::GzDecoder;
-use futures_util::FutureExt;
+use futures_util::StreamExt;
 use sha2::Digest;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::future::IntoFuture;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio_stream::StreamExt;
-use tokio_util::sync::CancellationToken;
+use tokio::task::JoinSet;
 
 pub struct ProductionServer {
     registry: Arc<Registry>,
@@ -166,123 +164,114 @@ pub async fn start(
     export_embedded_files()?;
     create_project_dot_grafbase_directory()?;
 
-    let file_changes = if watch {
-        Some(file_watcher::start_watcher(project.path.clone()).await?)
+    let watcher = if watch {
+        Some(Watcher::start(project.path.clone()).await?)
     } else {
         None
     };
 
+    let file_changes = watcher.as_ref().map(Watcher::file_changes);
     let config = ConfigActor::new(file_changes.clone(), message_sender.clone()).await;
+    let is_federated = is_config_federated(&config, message_sender.clone()).await?;
 
-    let mut config_stream = config.result_stream();
-    let mut cancel_token = CancellationToken::new();
+    if is_federated {
+        let proxy_handle = proxy::start(port).await?;
 
-    let mut is_federated = None;
-    while let Some(config) = config_stream.next().await {
-        cancel_token.cancel();
-        cancel_token = CancellationToken::new();
+        let worker_port = get_random_port_unchecked().await?;
+        WORKER_PORT.store(worker_port, Ordering::Relaxed);
 
-        match config {
-            Ok(config) => {
-                is_federated = Some(config.federated_graph_config.is_some());
-                break;
-            }
-            Err(error) => {
-                start_error_server(error.to_string(), &message_sender, cancel_token.clone()).await?;
-            }
-        }
-    }
+        message_sender
+            .send(ServerMessage::Ready {
+                listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
+                port: proxy_handle.port,
+                is_federated: true,
+            })
+            .ok();
 
-    let Some(is_federated) = is_federated else {
-        todo!("errors")
-    };
-
-    if !is_federated {
+        federated_dev::run(worker_port, false, config.into_federated_config_receiver())
+            .await
+            .map_err(|error| ServerError::GatewayError(error.to_string()))?;
+    } else {
         if let Some(file_changes) = file_changes {
             crate::codegen_server::start_codegen_worker(file_changes, config.config_stream(), message_sender.clone())
                 .expect("Invariant violation: codegen worker started twice.");
         }
 
-        return standalone_dev(port, message_sender, config, tracing).await;
+        standalone_dev(port, message_sender, config, tracing).await?;
     }
 
-    let proxy_handle = proxy::start(port).await?;
+    if let Some(watcher) = watcher {
+        // Shutdown the watcher - any errors that occurred in the watcher should end up raised here
+        watcher.shutdown().await?;
+    }
 
-    let worker_port = get_random_port_unchecked().await?;
-    WORKER_PORT.store(worker_port, Ordering::Relaxed);
-
-    message_sender
-        .send(ServerMessage::Ready {
-            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
-            port: proxy_handle.port,
-            is_federated: true,
-        })
-        .ok();
-
-    federated_dev::run(worker_port, false, config.into_federated_config_receiver())
-        .await
-        .map_err(|error| ServerError::GatewayError(error.to_string()))
-
-    // Ok so the orignal dev requires both a watch config & details of whether UDFs need rebuilt
-    // (which currently just means "did a file other than tsconfig/sdl change")
-    //
-    // codegen worker above needs to know about resolver changes and SDL changes.
-    // - for resolvers we can hook into the "did a file other than tsconfig/sdl change"
-    // - for the SDL changes we can just watch the config.
-    //   new config implies new SDL, regardless of route.
-
-    // The federated dev just requires the watched config.
+    Ok(())
 }
 
-async fn start_error_server(
+async fn is_config_federated(config: &ConfigActor, message_sender: MessageSender) -> Result<bool, ServerError> {
+    let mut config_stream = config.result_stream();
+
+    let mut join_set = JoinSet::new();
+    while let Some(config) = config_stream.next().await {
+        join_set.shutdown().await;
+        match config {
+            Ok(config) => {
+                return Ok(config.federated_graph_config.is_some());
+            }
+            Err(error) => {
+                join_set.spawn(handle_config_error(error.to_string(), message_sender.clone()));
+            }
+        }
+    }
+
+    // We should only get here if the watcher had a problem.
+    // Just return false and let the rest of the mechanisms deal with it
+    Ok(false)
+}
+
+async fn handle_config_error(
     error: String,
-    message_sender: &tokio::sync::mpsc::UnboundedSender<ServerMessage>,
-    cancel_token: CancellationToken,
+    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
 ) -> Result<(), ServerError> {
     message_sender.send(ServerMessage::CompilationError(error.clone())).ok();
     let worker_port = get_random_port_unchecked().await?;
     WORKER_PORT.store(worker_port, Ordering::Relaxed);
-    tokio::spawn(async move { error_server::start(worker_port, error, cancel_token).await }).await??;
-    Ok(())
+    error_server::start(worker_port, error).await
 }
 
 async fn standalone_dev(
     port: PortSelection,
     message_sender: MessageSender,
-    config: ConfigActor,
+    mut config: ConfigActor,
     tracing: bool,
 ) -> Result<(), ServerError> {
     let proxy_handle = proxy::start(port).await?;
     let proxy_port = proxy_handle.port;
-    let proxy_future = proxy_handle.into_future().fuse();
 
-    let mut config = config.result_stream();
-
-    let mut cancel_token = CancellationToken::new();
-
-    while let Some(config) = config.next().await {
-        cancel_token.cancel();
-        cancel_token = CancellationToken::new();
-        match config {
-            Ok(config) => {
-                // TODO: this needs spawned.
-                spawn_servers(
-                    proxy_port,
-                    message_sender.clone(),
-                    cancel_token.clone(),
-                    config,
-                    tracing,
-                )
-                .await?;
-            }
+    loop {
+        let mut join_set = match config.current_result() {
+            Ok(config) => spawn_servers(proxy_port, message_sender.clone(), config, tracing).await?,
             Err(error) => {
-                start_error_server(error.to_string(), &message_sender, cancel_token.clone()).await?;
+                let mut set = JoinSet::new();
+                set.spawn(handle_config_error(error.to_string(), message_sender.clone()));
+                set
+            }
+        };
+
+        tokio::select! {
+            result = config.changed() => {
+                if result.is_err() {
+                    // Watcher died - return and let the parent deal with it
+                    return Ok(());
+                }
+            }
+            result = join_set.join_next() => {
+                result.expect("this set should not be empty")??;
             }
         }
-        tracing::trace!("waiting next config");
-    }
 
-    todo!("error probably?")
+        join_set.shutdown().await;
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -290,13 +279,10 @@ async fn standalone_dev(
 async fn spawn_servers(
     proxy_port: u16,
     message_sender: MessageSender,
-    cancel_token: CancellationToken,
     config: Config,
     tracing: bool,
-) -> Result<(), ServerError> {
-    // let bridge_event_bus = event_bus.clone();
-
-    // let receiver = event_bus.subscribe();
+) -> Result<JoinSet<Result<(), ServerError>>, ServerError> {
+    let mut join_set = JoinSet::new();
 
     let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
 
@@ -343,36 +329,40 @@ async fn spawn_servers(
                 .and_then(|stripped| String::from_utf8(stripped).ok())
                 .unwrap_or_else(|| error.to_string());
 
-            return start_error_server(error, &message_sender, cancel_token).await;
+            join_set.spawn(handle_config_error(error, message_sender.clone()));
+            return Ok(join_set);
         }
     }
 
-    // TODO: Maybe join_set these.
-    // Might let us get rid of the cancel_token as well tbh...
-    let (bridge_handle, bridge_port) = {
+    let bridge_port = {
         let (listen, port) = get_listener_for_random_port().await?;
         let registry = Arc::clone(&registry);
         let message_sender = message_sender.clone();
-        let cancel_token = cancel_token.clone();
+        let (start_sender, started) = tokio::sync::oneshot::channel();
+
         trace!("starting bridge at port {port}");
-        let handle = bridge::spawn(listen, message_sender, cancel_token, registry, tracing).await?;
+        join_set.spawn(bridge::start(listen, message_sender, registry, start_sender, tracing));
+
+        if started.await.is_err() {
+            // The error is in the join_set which the layer above should listen for.
+            return Ok(join_set);
+        }
+
         trace!("bridge ready");
-        (handle, port)
+
+        port
     };
 
-    let gateway = {
-        let app = gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
+    let gateway_server = axum::Server::bind(&"127.0.0.1:0".parse().unwrap()).serve(
+        gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
             .await
             .map_err(|error| ServerError::GatewayError(error.to_string()))?
-            .into_router();
+            .into_router()
+            .into_make_service(),
+    );
 
-        // run it with hyper on localhost:3000
-        let server = axum::Server::bind(&"127.0.0.1:0".parse().unwrap()).serve(app.into_make_service());
-
-        WORKER_PORT.store(server.local_addr().port(), Ordering::Relaxed);
-        let server = server.with_graceful_shutdown(cancel_token.cancelled_owned());
-        tokio::spawn(server.into_future())
-    };
+    WORKER_PORT.store(gateway_server.local_addr().port(), Ordering::Relaxed);
+    join_set.spawn(async move { Ok(gateway_server.await?) });
 
     message_sender
         .send(ServerMessage::Ready {
@@ -382,15 +372,7 @@ async fn spawn_servers(
         })
         .ok();
 
-    // TODO: Somehow handle results from things...
-    // tokio::select! {
-    //     result = gateway => {
-    //         result.map_err(|err| ServerError::MiniflareError(err.to_string()))??;
-    //     },
-    //     bridge_handle_result = bridge_handle => { bridge_handle_result??; }
-    // }
-
-    Ok(())
+    Ok(join_set)
 }
 
 pub fn export_embedded_files() -> Result<(), ServerError> {

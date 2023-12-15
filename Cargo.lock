@@ -2744,7 +2744,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
- "tokio-util",
  "tower-http",
  "tracing",
  "typed-resolvers",

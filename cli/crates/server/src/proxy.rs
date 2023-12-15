@@ -183,6 +183,7 @@ async fn graphql_inner(
     }
 }
 
+// TODO: do we even need this?
 impl IntoFuture for ProxyHandle {
     type Output = Result<Result<(), ServerError>, tokio::task::JoinError>;
 

@@ -47,6 +47,16 @@ impl ConfigActor {
         ConfigActor { receiver }
     }
 
+    pub fn current_result(&self) -> Result<Config, ConfigError> {
+        self.receiver.borrow().clone()
+    }
+
+    /// A future that resolves when the config next changes
+    pub async fn changed(&mut self) -> Result<(), watch::error::RecvError> {
+        self.receiver.changed().await
+    }
+
+    /// A stream of the config results, including the current value.
     pub fn result_stream(&self) -> impl Stream<Item = Result<Config, ConfigError>> {
         WatchStream::new(self.receiver.clone())
     }

@@ -35,8 +35,6 @@ pub enum JavascriptPackageManagerComamndError {
     OutputError(JavaScriptPackageManager, String),
 }
 
-// TODO: clean up unused variants
-
 #[derive(Error, Debug)]
 pub enum ServerError {
     /// returned if the directory cannot be read
@@ -194,12 +192,11 @@ pub enum ServerError {
 
     #[error("Error in gateway initialization: {0}")]
     GatewayError(String),
+    // #[error(transparent)]
+    // ConfigError(#[from] ConfigError),
 
-    #[error(transparent)]
-    ConfigError(#[from] ConfigError),
-
-    #[error(transparent)]
-    NodeError(#[from] NodeError),
+    // #[error(transparent)]
+    // NodeError(#[from] NodeError),
 }
 
 #[derive(Debug, Error)]
@@ -297,5 +294,27 @@ impl IntoResponse for ServerError {
         }));
 
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
+}
+
+impl From<ConfigError> for ServerError {
+    fn from(value: ConfigError) -> Self {
+        match value {
+            ConfigError::Io(inner) => ServerError::ParseSchema(inner),
+            ConfigError::ProjectPath => ServerError::ProjectPath,
+            ConfigError::ParseSchema(inner) => ServerError::ParseSchema(inner),
+            ConfigError::NodeError(inner) => inner.into(),
+            ConfigError::LoadTsConfig(inner) => ServerError::LoadTsConfig(inner),
+        }
+    }
+}
+
+impl From<NodeError> for ServerError {
+    fn from(value: NodeError) -> Self {
+        match value {
+            NodeError::NodeInPath => ServerError::NodeInPath,
+            NodeError::OutdatedNode(one, two) => ServerError::OutdatedNode(one, two),
+            NodeError::CheckNodeVersion => ServerError::CheckNodeVersion,
+        }
     }
 }
