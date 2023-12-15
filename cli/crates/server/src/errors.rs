@@ -192,11 +192,6 @@ pub enum ServerError {
 
     #[error("Error in gateway initialization: {0}")]
     GatewayError(String),
-    // #[error(transparent)]
-    // ConfigError(#[from] ConfigError),
-
-    // #[error(transparent)]
-    // NodeError(#[from] NodeError),
 }
 
 #[derive(Debug, Error)]

@@ -27,7 +27,7 @@ use std::{
     sync::atomic::Ordering,
 };
 use tokio::signal;
-use tokio::task::JoinHandle;
+use tokio::task::{JoinError, JoinHandle, JoinSet};
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
@@ -41,18 +41,16 @@ struct ProxyState {
 
 pub struct ProxyHandle {
     pub port: u16,
-    handle: JoinHandle<Result<(), ServerError>>,
+    set: JoinSet<Result<(), ServerError>>,
 }
 
 pub async fn start(port: PortSelection) -> Result<ProxyHandle, ServerError> {
     let listener = port.into_listener().await?;
     let port = listener.local_addr().expect("must have a local addr").port();
-    let handle = tokio::spawn(start_inner(listener));
+    let mut set = JoinSet::new();
+    let handle = set.spawn(start_inner(listener));
 
-    // TODO: need a way to shut this down....
-    // Also need a way to gracefully fail, it's not very godo right now...
-
-    Ok(ProxyHandle { port, handle })
+    Ok(ProxyHandle { port, set })
 }
 
 async fn start_inner(listener: TcpListener) -> Result<(), ServerError> {
@@ -183,13 +181,8 @@ async fn graphql_inner(
     }
 }
 
-// TODO: do we even need this?
-impl IntoFuture for ProxyHandle {
-    type Output = Result<Result<(), ServerError>, tokio::task::JoinError>;
-
-    type IntoFuture = JoinHandle<Result<(), ServerError>>;
-
-    fn into_future(self) -> Self::IntoFuture {
-        self.handle
+impl ProxyHandle {
+    pub async fn join(&mut self) -> Option<Result<Result<(), ServerError>, JoinError>> {
+        self.set.join_next().await
     }
 }

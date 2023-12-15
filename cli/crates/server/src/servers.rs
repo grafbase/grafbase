@@ -175,22 +175,7 @@ pub async fn start(
     let is_federated = is_config_federated(&config, message_sender.clone()).await?;
 
     if is_federated {
-        let proxy_handle = proxy::start(port).await?;
-
-        let worker_port = get_random_port_unchecked().await?;
-        WORKER_PORT.store(worker_port, Ordering::Relaxed);
-
-        message_sender
-            .send(ServerMessage::Ready {
-                listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
-                port: proxy_handle.port,
-                is_federated: true,
-            })
-            .ok();
-
-        federated_dev::run(worker_port, false, config.into_federated_config_receiver())
-            .await
-            .map_err(|error| ServerError::GatewayError(error.to_string()))?;
+        federated_dev(port, message_sender, config).await?;
     } else {
         if let Some(file_changes) = file_changes {
             crate::codegen_server::start_codegen_worker(file_changes, config.config_stream(), message_sender.clone())
@@ -203,6 +188,36 @@ pub async fn start(
     if let Some(watcher) = watcher {
         // Shutdown the watcher - any errors that occurred in the watcher should end up raised here
         watcher.shutdown().await?;
+    }
+
+    Ok(())
+}
+
+async fn federated_dev(
+    port: PortSelection,
+    message_sender: MessageSender,
+    config: ConfigActor,
+) -> Result<(), ServerError> {
+    let mut proxy_handle = proxy::start(port).await?;
+    let worker_port = get_random_port_unchecked().await?;
+    WORKER_PORT.store(worker_port, Ordering::Relaxed);
+    message_sender
+        .send(ServerMessage::Ready {
+            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
+            port: proxy_handle.port,
+            is_federated: true,
+        })
+        .ok();
+
+    let server = federated_dev::run(worker_port, false, config.into_federated_config_receiver());
+
+    tokio::select! {
+        result = proxy_handle.join() => {
+            result.unwrap()??;
+        },
+        result = server => {
+            result.map_err(|error| ServerError::GatewayError(error.to_string()))?;
+        }
     }
 
     Ok(())
@@ -245,7 +260,7 @@ async fn standalone_dev(
     mut config: ConfigActor,
     tracing: bool,
 ) -> Result<(), ServerError> {
-    let proxy_handle = proxy::start(port).await?;
+    let mut proxy_handle = proxy::start(port).await?;
     let proxy_port = proxy_handle.port;
 
     loop {
@@ -267,6 +282,11 @@ async fn standalone_dev(
             }
             result = join_set.join_next() => {
                 result.expect("this set should not be empty")??;
+            }
+            result = proxy_handle.join() => {
+                result.unwrap()??;
+                // if the proxy is dead we should exit.
+                return Ok(())
             }
         }
 
