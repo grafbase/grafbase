@@ -227,6 +227,15 @@ impl ExecutorOutput {
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
+
+    /// Deserialization will generate a bunch of errors for missing fields, wrong type etc.
+    /// Those won't be relevant if upstream returned errors. So this method can be used to entirely
+    /// replace accumulated errors with upstream ones. Error paths to propagate are still kept.
+    /// Ideally they shouldn't, but currently we don't propagate errors correctly in the
+    /// coordinator.
+    pub fn replace_errors(&mut self, upstream_errors: Vec<GraphqlError>) {
+        self.errors = upstream_errors;
+    }
 }
 
 impl std::ops::Index<PlanBoundaryId> for ExecutorOutput {

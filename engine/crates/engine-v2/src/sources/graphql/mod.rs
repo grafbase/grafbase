@@ -86,7 +86,7 @@ impl<'ctx> GraphqlExecutor<'ctx> {
         .deserialize(&mut serde_json::Deserializer::from_slice(&bytes));
 
         if !upstream_errors.is_empty() {
-            self.output.push_errors(upstream_errors);
+            self.output.replace_errors(upstream_errors);
         } else if let Err(err) = result {
             // Only adding this if no other more precise errors were added.
             if !self.output.has_errors() {
