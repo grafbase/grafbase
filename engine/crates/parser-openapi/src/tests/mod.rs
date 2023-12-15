@@ -207,6 +207,21 @@ fn test_greenlake_schema() {
 }
 
 #[test]
+fn test_netlify_schema() {
+    init_tracing();
+
+    let metadata = ApiMetadata {
+        url: None,
+        query_naming: QueryNamingStrategy::OperationId,
+        ..metadata("netlify", false)
+    };
+
+    let registry = build_registry("test_data/netlify.json", Format::Json, metadata).unwrap();
+
+    insta::assert_snapshot!(registry.export_sdl(false));
+}
+
+#[test]
 fn test_stripe_discrimnator_detection() {
     let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe", true)).unwrap();
     let discriminators = registry
