@@ -29,7 +29,6 @@ mod consts;
 mod dump_config;
 mod environment;
 mod error_server;
-mod event;
 mod file_watcher;
 mod introspect_local;
 mod node;

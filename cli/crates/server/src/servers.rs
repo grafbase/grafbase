@@ -1,7 +1,6 @@
 use crate::atomics::WORKER_PORT;
 use crate::config::{build_config, Config, ConfigActor};
 use crate::consts::{ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE};
-use crate::event::Event;
 use crate::file_watcher::{self};
 use crate::node::validate_node;
 use crate::types::{MessageSender, ServerMessage, ASSETS_GZIP};
@@ -27,11 +26,8 @@ use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::sync::broadcast::{self, channel};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
-
-const EVENT_BUS_BOUND: usize = 5;
 
 pub struct ProductionServer {
     registry: Arc<Registry>,
@@ -55,7 +51,7 @@ impl ProductionServer {
             detected_udfs,
             federated_graph_config,
             ..
-        } = build_config(&environment_variables, None, None).await?;
+        } = build_config(&environment_variables, None).await?;
         let registry = Arc::new(registry);
 
         let (bridge_app, bridge_state) =
@@ -170,15 +166,13 @@ pub async fn start(
     export_embedded_files()?;
     create_project_dot_grafbase_directory()?;
 
-    let (event_bus, receiver) = channel::<Event>(EVENT_BUS_BOUND);
-
     let file_changes = if watch {
         Some(file_watcher::start_watcher(project.path.clone()).await?)
     } else {
         None
     };
 
-    let config = ConfigActor::new(file_changes.clone(), event_bus.clone(), message_sender.clone()).await;
+    let config = ConfigActor::new(file_changes.clone(), message_sender.clone()).await;
 
     let mut config_stream = config.result_stream();
     let mut cancel_token = CancellationToken::new();
@@ -209,10 +203,10 @@ pub async fn start(
                 .expect("Invariant violation: codegen worker started twice.");
         }
 
-        return standalone_dev(port, message_sender, event_bus, config, tracing).await;
+        return standalone_dev(port, message_sender, config, tracing).await;
     }
 
-    let proxy_handle = proxy::start(port, event_bus.clone()).await?;
+    let proxy_handle = proxy::start(port).await?;
 
     let worker_port = get_random_port_unchecked().await?;
     WORKER_PORT.store(worker_port, Ordering::Relaxed);
@@ -255,11 +249,10 @@ async fn start_error_server(
 async fn standalone_dev(
     port: PortSelection,
     message_sender: MessageSender,
-    event_bus: broadcast::Sender<Event>,
     config: ConfigActor,
     tracing: bool,
 ) -> Result<(), ServerError> {
-    let proxy_handle = proxy::start(port, event_bus.clone()).await?;
+    let proxy_handle = proxy::start(port).await?;
     let proxy_port = proxy_handle.port;
     let proxy_future = proxy_handle.into_future().fuse();
 

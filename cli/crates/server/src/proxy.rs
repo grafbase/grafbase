@@ -1,12 +1,8 @@
 #![allow(unused)]
 
 use crate::atomics::WORKER_PORT;
-use crate::event::EventSender;
+use crate::errors::ServerError;
 use crate::servers::PortSelection;
-use crate::{
-    errors::ServerError,
-    event::{wait_for_event, Event},
-};
 use axum::routing::head;
 use axum::{
     body::{Body, HttpBody},
@@ -48,10 +44,10 @@ pub struct ProxyHandle {
     handle: JoinHandle<Result<(), ServerError>>,
 }
 
-pub async fn start(port: PortSelection, event_bus: EventSender) -> Result<ProxyHandle, ServerError> {
+pub async fn start(port: PortSelection) -> Result<ProxyHandle, ServerError> {
     let listener = port.into_listener().await?;
     let port = listener.local_addr().expect("must have a local addr").port();
-    let handle = tokio::spawn(start_inner(listener, event_bus));
+    let handle = tokio::spawn(start_inner(listener));
 
     // TODO: need a way to shut this down....
     // Also need a way to gracefully fail, it's not very godo right now...
@@ -59,7 +55,7 @@ pub async fn start(port: PortSelection, event_bus: EventSender) -> Result<ProxyH
     Ok(ProxyHandle { port, handle })
 }
 
-async fn start_inner(listener: TcpListener, event_bus: EventSender) -> Result<(), ServerError> {
+async fn start_inner(listener: TcpListener) -> Result<(), ServerError> {
     let port = listener.local_addr().expect("must have a local addr").port();
     trace!("starting pathfinder at port {port}");
 

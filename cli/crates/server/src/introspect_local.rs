@@ -16,7 +16,7 @@ pub async fn introspect_local() -> Result<IntrospectLocalOutput, ServerError> {
         registry,
         federated_graph_config,
         ..
-    } = build_config(&env, None, None).await?;
+    } = build_config(&env, None).await?;
 
     let is_federated = federated_graph_config.is_some();
 

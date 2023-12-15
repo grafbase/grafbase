@@ -14,12 +14,11 @@ use common::{
 use common_types::UdfKind;
 use engine::Registry;
 use futures_util::stream::BoxStream;
-use tokio::{process::Command, sync::broadcast};
+use tokio::process::Command;
 
 use crate::{
     atomics::REGISTRY_PARSED_EPOCH_OFFSET_MILLIS,
     consts::{CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, SCHEMA_PARSER_DIR, TS_NODE_SCRIPT_PATH},
-    event::Event,
     node::validate_node,
 };
 
@@ -53,7 +52,6 @@ pub type ConfigStream = BoxStream<'static, Config>;
 /// Either by buildinv & running grafbase.config.ts or parsing grafbase.schema
 pub(crate) async fn build_config(
     environment_variables: &HashMap<String, String>,
-    event_bus: Option<broadcast::Sender<Event>>,
     triggering_file: Option<PathBuf>,
 ) -> Result<Config, ConfigError> {
     trace!("parsing schema");
@@ -62,12 +60,6 @@ pub(crate) async fn build_config(
     let schema_path = match project.schema_path.location() {
         SchemaLocation::TsConfig(ref ts_config_path) => {
             let written_schema_path = parse_and_generate_config_from_ts(ts_config_path).await?;
-
-            // broadcast
-            if let Some(bus) = event_bus {
-                let path = std::path::PathBuf::from(written_schema_path.clone()).into_boxed_path();
-                bus.send(Event::NewSdlFromTsConfig(path)).ok();
-            }
 
             Cow::Owned(written_schema_path)
         }

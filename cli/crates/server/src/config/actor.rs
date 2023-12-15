@@ -1,28 +1,23 @@
 use common::channels::constant_watch_receiver;
-use futures_util::{stream::BoxStream, Stream};
+use futures_util::Stream;
 use tokio::sync::watch;
 use tokio_stream::{wrappers::WatchStream, StreamExt};
 
 use crate::{
-    event::EventSender,
     file_watcher::ChangeStream,
     types::{MessageSender, ServerMessage},
 };
 
-use super::{Config, ConfigError};
+use super::{Config, ConfigError, ConfigStream};
 
 pub struct ConfigActor {
     receiver: watch::Receiver<Result<Config, ConfigError>>,
 }
 
 impl ConfigActor {
-    pub async fn new(
-        files: Option<ChangeStream>,
-        event_bus: EventSender, // TODO: Do we really need the event_bus?  Not sure.
-        message_sender: MessageSender,
-    ) -> Self {
+    pub async fn new(files: Option<ChangeStream>, message_sender: MessageSender) -> Self {
         let variables = crate::environment::variables().collect();
-        let initial_value = super::build_config(&variables, Some(event_bus.clone()), None).await;
+        let initial_value = super::build_config(&variables, None).await;
 
         let Some(mut files) = files else {
             // If we don't have a watcher stream then we're not in watch mode
@@ -39,7 +34,7 @@ impl ConfigActor {
                 tracing::trace!("got next change in config worker");
                 message_sender.send(ServerMessage::Reload(next.clone())).ok();
 
-                let next_result = super::build_config(&variables, Some(event_bus.clone()), Some(next)).await;
+                let next_result = super::build_config(&variables, Some(next)).await;
 
                 if sender.send(next_result).is_err() {
                     // Channel is closed, so shut down
@@ -90,5 +85,3 @@ impl ConfigActor {
         result_receiver
     }
 }
-
-pub type ConfigStream = BoxStream<'static, Config>;
