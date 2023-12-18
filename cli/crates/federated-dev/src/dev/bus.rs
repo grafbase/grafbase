@@ -12,16 +12,16 @@ pub(crate) use refresh::RefreshBus;
 use crate::{dev::composer::Subgraph, error::Error};
 use async_graphql_parser::types::ServiceDocument;
 use graphql_composition::FederatedGraph;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use url::Url;
 
 use super::{admin::Header, refresher::RefreshMessage, router::RouterResult};
 
 /// A channel to send composed federated graph, typically to a router.
-pub(crate) type GraphSender = mpsc::Sender<Option<FederatedGraph>>;
+pub(crate) type GraphSender = watch::Sender<Option<FederatedGraph>>;
 
 /// A channel to receive a composed federated graph, typically for a router.
-pub(crate) type GraphReceiver = mpsc::Receiver<Option<FederatedGraph>>;
+pub(crate) type GraphReceiver = watch::Receiver<Option<FederatedGraph>>;
 
 /// A channel to send a refresh message with a collection of graphs.
 pub(crate) type RefreshSender = mpsc::Sender<Vec<RefreshMessage>>;

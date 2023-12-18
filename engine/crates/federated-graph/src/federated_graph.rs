@@ -9,7 +9,7 @@
 /// Does not guarantee:
 ///
 /// - The ordering of items inside each `Vec`.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct FederatedGraphV1 {
     pub subgraphs: Vec<Subgraph>,
 
@@ -34,7 +34,7 @@ pub struct FederatedGraphV1 {
     pub field_types: Vec<FieldType>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct RootOperationTypes {
     pub query: ObjectId,
     pub mutation: Option<ObjectId>,
@@ -47,13 +47,13 @@ impl std::fmt::Debug for FederatedGraphV1 {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Subgraph {
     pub name: StringId,
     pub url: StringId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Object {
     pub name: StringId,
 
@@ -69,13 +69,13 @@ pub struct Object {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct ObjectField {
     pub object_id: ObjectId,
     pub field_id: FieldId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Key {
     /// The subgraph that can resolve the entity with the fields in [Key::fields].
     pub subgraph_id: SubgraphId,
@@ -89,13 +89,13 @@ pub struct Key {
 
 pub type FieldSet = Vec<FieldSetItem>;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldSetItem {
     pub field: FieldId,
     pub subselection: FieldSet,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Field {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
@@ -123,7 +123,7 @@ pub struct Field {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldArgument {
     pub name: StringId,
     pub type_id: FieldTypeId,
@@ -160,7 +160,7 @@ pub enum Definition {
     InputObject(InputObjectId),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq, Clone)]
 pub struct FieldType {
     pub kind: Definition,
 
@@ -185,14 +185,14 @@ pub enum ListWrapper {
 }
 
 /// Represents an `@provides` directive on a field in a subgraph.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldProvides {
     pub subgraph_id: SubgraphId,
     pub fields: FieldSet,
 }
 
 /// Represents an `@requires` directive on a field in a subgraph.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldRequires {
     pub subgraph_id: SubgraphId,
     pub fields: FieldSet,
@@ -213,7 +213,7 @@ pub enum OverrideSource {
     Missing(StringId),
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Interface {
     pub name: StringId,
 
@@ -229,13 +229,13 @@ pub struct Interface {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct InterfaceField {
     pub interface_id: InterfaceId,
     pub field_id: FieldId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Enum {
     pub name: StringId,
     pub values: Vec<EnumValue>,
@@ -247,7 +247,7 @@ pub struct Enum {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct EnumValue {
     pub value: StringId,
 
@@ -258,7 +258,7 @@ pub struct EnumValue {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Union {
     pub name: StringId,
     pub members: Vec<ObjectId>,
@@ -270,7 +270,7 @@ pub struct Union {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Scalar {
     pub name: StringId,
 
@@ -281,7 +281,7 @@ pub struct Scalar {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct InputObject {
     pub name: StringId,
     pub fields: Vec<InputObjectField>,
@@ -293,7 +293,7 @@ pub struct InputObject {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct InputObjectField {
     pub name: StringId,
     pub field_type_id: FieldTypeId,

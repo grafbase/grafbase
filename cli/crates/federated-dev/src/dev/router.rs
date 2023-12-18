@@ -1,25 +1,25 @@
 use std::sync::Arc;
 
+use crate::ConfigReceiver;
+
 use super::bus::{GraphReceiver, RequestReceiver, ResponseSender};
 use engine::RequestHeaders;
 use engine_v2::{Engine, EngineRuntime};
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
-use graphql_composition::FederatedGraph;
-use parser_sdl::federation::FederatedGraphConfig;
-use tokio_stream::wrappers::ReceiverStream;
+use tokio_stream::wrappers::{ReceiverStream, WatchStream};
 
 pub(crate) struct Router {
-    graph_bus: GraphReceiver,
+    graph: GraphReceiver,
     request_bus: RequestReceiver,
     engine: Option<Arc<Engine>>,
-    config: FederatedGraphConfig,
+    config: ConfigReceiver,
 }
 
 impl Router {
-    pub fn new(graph_bus: GraphReceiver, request_bus: RequestReceiver, config: FederatedGraphConfig) -> Self {
+    pub fn new(graph: GraphReceiver, request_bus: RequestReceiver, config: ConfigReceiver) -> Self {
         Self {
-            graph_bus,
+            graph,
             request_bus,
             engine: None,
             config,
@@ -29,19 +29,25 @@ impl Router {
     pub async fn handler(mut self) {
         log::trace!("starting the router handler");
 
-        let streams: [RouterStream; 2] = [
-            Box::pin(ReceiverStream::new(self.graph_bus).map(RouterMessage::Graph)),
+        let streams: [RouterStream; 3] = [
             Box::pin(ReceiverStream::new(self.request_bus).map(RouterMessage::request)),
+            Box::pin(WatchStream::new(self.graph.clone()).map(|_| RouterMessage::GraphUpdated)),
+            Box::pin(WatchStream::new(self.config.clone()).map(|_| RouterMessage::ConfigUpdated)),
         ];
 
         let mut stream = streams.merge();
 
         while let Some(message) = stream.next().await {
             match (message, self.engine.as_ref()) {
-                (RouterMessage::Graph(graph), _) => {
-                    log::trace!("router got a new graph");
+                (RouterMessage::GraphUpdated, _) => {
+                    log::trace!("router received a graph update");
 
-                    self.engine = graph.map(|graph| new_engine(&self.config, graph));
+                    self.engine = new_engine(&self.graph, &self.config)
+                }
+                (RouterMessage::ConfigUpdated, _) => {
+                    log::trace!("router received a config update");
+
+                    self.engine = new_engine(&self.graph, &self.config)
                 }
                 (RouterMessage::Request(request, headers, response_sender), Some(engine)) => {
                     log::trace!("router got a new request with an existing engine");
@@ -58,15 +64,17 @@ impl Router {
     }
 }
 
-fn new_engine(config: &FederatedGraphConfig, graph: FederatedGraph) -> Arc<Engine> {
-    let config = engine_config_builder::build_config(config, graph);
+fn new_engine(graph: &GraphReceiver, config: &ConfigReceiver) -> Option<Arc<Engine>> {
+    let graph = graph.borrow().clone()?;
 
-    Arc::new(Engine::new(
+    let config = engine_config_builder::build_config(&config.borrow(), graph);
+
+    Some(Arc::new(Engine::new(
         config.into_latest().into(),
         EngineRuntime {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         },
-    ))
+    )))
 }
 
 async fn run_request(
@@ -79,7 +87,8 @@ async fn run_request(
 }
 
 enum RouterMessage {
-    Graph(Option<FederatedGraph>),
+    GraphUpdated,
+    ConfigUpdated,
     Request(engine::Request, RequestHeaders, ResponseSender),
 }
 

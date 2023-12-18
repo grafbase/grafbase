@@ -6,7 +6,7 @@ use itertools::Itertools;
 use parser_sdl::{GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective};
 use postgres_connector_types::transport::TcpTransport;
 
-use crate::errors::ServerError;
+use super::ConfigError;
 
 // Contract between this crate and CLI
 // #[derive(serde::Serialize)]
@@ -17,7 +17,7 @@ pub struct ParserResult {
 }
 
 /// Transform the input schema into a Registry
-pub async fn parse_sdl(schema: &str, environment: &HashMap<String, String>) -> Result<ParserResult, ServerError> {
+pub async fn parse_sdl(schema: &str, environment: &HashMap<String, String>) -> Result<ParserResult, ConfigError> {
     let connector_parsers = ConnectorParsers {
         http_client: reqwest::Client::new(),
     };
@@ -30,12 +30,12 @@ pub async fn parse_sdl(schema: &str, environment: &HashMap<String, String>) -> R
         // FIXME: Revisit the `true` once we have settled on how to handle the migration story in the CLI.
     } = parser_sdl::parse(schema, environment, true, &connector_parsers)
         .await
-        .map_err(|e| ServerError::ParseSchema(e.to_string()))?;
+        .map_err(|e| ConfigError::ParseSchema(e.to_string()))?;
 
     // apply global caching rules
     global_cache_rules
         .apply(&mut registry)
-        .map_err(|e| ServerError::ParseSchema(e.into_iter().join("\n")))?;
+        .map_err(|e| ConfigError::ParseSchema(e.into_iter().join("\n")))?;
 
     Ok(ParserResult {
         registry,

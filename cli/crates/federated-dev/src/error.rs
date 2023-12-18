@@ -2,7 +2,7 @@ use std::fmt;
 
 use async_graphql::{SimpleObject, Union};
 use graphql_composition::Diagnostics;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 
 /// The error enum for the crate.
 #[derive(Union, Debug, thiserror::Error)]
@@ -26,6 +26,12 @@ impl<T> From<mpsc::error::SendError<T>> for Error {
 
 impl From<oneshot::error::RecvError> for Error {
     fn from(value: oneshot::error::RecvError) -> Self {
+        Self::internal(value.to_string())
+    }
+}
+
+impl<T> From<watch::error::SendError<T>> for Error {
+    fn from(value: watch::error::SendError<T>) -> Self {
         Self::internal(value.to_string())
     }
 }

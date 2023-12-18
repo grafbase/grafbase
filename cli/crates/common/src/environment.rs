@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GRAFBASE_DIRECTORY_NAME};
+use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GENERATED_SCHEMAS_DIR, GRAFBASE_DIRECTORY_NAME};
 use crate::types::UdfKind;
 use crate::{
     consts::{
@@ -157,6 +157,16 @@ impl Project {
         let reader = BufReader::new(file);
         serde_json::from_reader(reader)
             .map_err(|err| CommonError::RegistryDeserialization(self.registry_path.clone(), err))
+    }
+
+    pub fn sdl_location(&self) -> PathBuf {
+        match self.schema_path.location() {
+            SchemaLocation::TsConfig(_) => self
+                .dot_grafbase_directory_path
+                .join(GENERATED_SCHEMAS_DIR)
+                .join(GRAFBASE_SCHEMA_FILE_NAME),
+            SchemaLocation::Graphql(path) => path.clone(),
+        }
     }
 }
 

@@ -1,20 +1,20 @@
 use crate::atomics::WORKER_PORT;
-use crate::config::{build_config, ParsingResponse};
+use crate::config::{build_config, Config, ConfigActor};
 use crate::consts::{ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE};
-use crate::event::{wait_for_event, wait_for_event_and_match, Event};
-use crate::file_watcher::start_watcher;
+use crate::file_watcher::Watcher;
 use crate::node::validate_node;
-use crate::types::{ServerMessage, ASSETS_GZIP};
+use crate::types::{MessageSender, ServerMessage, ASSETS_GZIP};
 use crate::udf_builder::install_wrangler;
 use crate::{bridge, errors::ServerError};
 use crate::{error_server, proxy};
 use bridge::BridgeState;
+use common::channels::constant_watch_receiver;
 use common::consts::MAX_PORT;
 use common::consts::{GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project};
 use engine::registry::Registry;
 use flate2::read::GzDecoder;
-use futures_util::FutureExt;
+use futures_util::StreamExt;
 use sha2::Digest;
 use std::collections::HashMap;
 use std::env;
@@ -25,32 +25,30 @@ use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::sync::broadcast::{self, channel};
-use tokio::sync::mpsc::UnboundedSender;
-
-const EVENT_BUS_BOUND: usize = 5;
+use tokio::task::JoinSet;
 
 pub struct ProductionServer {
     registry: Arc<Registry>,
     bridge_app: axum::Router,
     environment_variables: HashMap<String, String>,
-    message_sender: UnboundedSender<ServerMessage>,
+    message_sender: MessageSender,
     federated_graph_config: Option<parser_sdl::federation::FederatedGraphConfig>,
 }
 
 impl ProductionServer {
     pub async fn build(
-        message_sender: UnboundedSender<ServerMessage>,
+        message_sender: MessageSender,
         parallelism: NonZeroUsize,
         tracing: bool,
     ) -> Result<Self, ServerError> {
         create_project_dot_grafbase_directory()?;
 
         let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
-        let ParsingResponse {
+        let Config {
             registry,
             detected_udfs,
             federated_graph_config,
+            ..
         } = build_config(&environment_variables, None).await?;
         let registry = Arc::new(registry);
 
@@ -97,13 +95,13 @@ impl ProductionServer {
     pub async fn serve(self, listen_address: IpAddr, port: u16) -> Result<(), ServerError> {
         let is_federated = self.federated_graph_config.is_some();
 
-        if let Some(config) = &self.federated_graph_config {
+        if let Some(config) = self.federated_graph_config {
             let _ = self.message_sender.send(ServerMessage::Ready {
                 listen_address,
                 port,
                 is_federated,
             });
-            return federated_dev::run(port, true, config.clone())
+            return federated_dev::run(port, true, constant_watch_receiver(config))
                 .await
                 .map_err(|error| ServerError::GatewayError(error.to_string()));
         }
@@ -155,11 +153,10 @@ impl ProductionServer {
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
 pub async fn start(
-    port: u16,
-    search: bool,
+    port: PortSelection,
     watch: bool,
     tracing: bool,
-    message_sender: UnboundedSender<ServerMessage>,
+    message_sender: MessageSender,
 ) -> Result<(), ServerError> {
     let project = Project::get();
 
@@ -167,116 +164,154 @@ pub async fn start(
     export_embedded_files()?;
     create_project_dot_grafbase_directory()?;
 
-    let (event_bus, receiver) = channel::<Event>(EVENT_BUS_BOUND);
-
-    if watch {
-        let watch_event_bus = event_bus.clone();
-        crate::codegen_server::start_codegen_worker(receiver, message_sender.clone())
-            .expect("Invariant violation: codegen worker started twice.");
-
-        tokio::select! {
-            result = start_watcher(project.path.clone(), move |path| {
-                let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
-                watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
-            }) => { result }
-            result = server_loop(port, search, message_sender, event_bus, tracing) => { result }
-        }
+    let watcher = if watch {
+        Some(Watcher::start(project.path.clone()).await?)
     } else {
-        server_loop(port, search, message_sender, event_bus, tracing).await
+        None
+    };
+
+    let file_changes = watcher.as_ref().map(Watcher::file_changes);
+    let config = ConfigActor::new(file_changes.clone(), message_sender.clone()).await;
+    let is_federated = is_config_federated(&config, message_sender.clone()).await?;
+
+    if is_federated {
+        federated_dev(port, message_sender, config).await?;
+    } else {
+        if let Some(file_changes) = file_changes {
+            crate::codegen_server::start_codegen_worker(file_changes, config.config_stream(), message_sender.clone())
+                .expect("Invariant violation: codegen worker started twice.");
+        }
+
+        standalone_dev(port, message_sender, config, tracing).await?;
     }
+
+    if let Some(watcher) = watcher {
+        // Shutdown the watcher - any errors that occurred in the watcher should end up raised here
+        watcher.shutdown().await?;
+    }
+
+    Ok(())
 }
 
-async fn server_loop(
-    port: u16,
-    search: bool,
-    message_sender: UnboundedSender<ServerMessage>,
-    event_bus: broadcast::Sender<Event>,
-    tracing: bool,
+async fn federated_dev(
+    port: PortSelection,
+    message_sender: MessageSender,
+    config: ConfigActor,
 ) -> Result<(), ServerError> {
-    let proxy_event_bus = event_bus.clone();
-    let proxy_error_event_bus = event_bus.clone();
-    let listener = find_listener_for_available_port(search, port).await?;
-    let proxy_port = listener.local_addr().expect("must have a local addr").port();
-    let proxy_handle = tokio::spawn(async move {
-        if let Err(error) = proxy::start(listener, proxy_event_bus).await {
-            proxy_error_event_bus.send(Event::ProxyError).expect("must succeed");
-            Err(error)
-        } else {
-            Ok(())
-        }
-    })
-    .fuse();
-    let mut path_changed = None;
+    let mut proxy_handle = proxy::start(port).await?;
+    let worker_port = get_random_port_unchecked().await?;
+    WORKER_PORT.store(worker_port, Ordering::Relaxed);
+    message_sender
+        .send(ServerMessage::Ready {
+            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
+            port: proxy_handle.port,
+            is_federated: true,
+        })
+        .ok();
 
-    loop {
-        let receiver = event_bus.subscribe();
+    let server = federated_dev::run(worker_port, false, config.into_federated_config_receiver());
 
-        tokio::select! {
-            result = spawn_servers(proxy_port, message_sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
-                result?;
-            }
-            path = wait_for_event_and_match(receiver, |event| match event {
-                Event::Reload(path) => Some(path),
-                Event::NewSdlFromTsConfig(_) |
-                Event::BridgeReady |
-                Event::ProxyError => None,
-            }) => {
-                trace!("reload");
-                let _: Result<_, _> = message_sender.send(ServerMessage::Reload(path.clone()));
-                path_changed = Some(path);
-            }
-            () = wait_for_event(event_bus.subscribe(), |event| *event == Event::ProxyError) => { break; }
+    tokio::select! {
+        result = proxy_handle.join() => {
+            result.unwrap()??;
+        },
+        result = server => {
+            result.map_err(|error| ServerError::GatewayError(error.to_string()))?;
         }
     }
-    proxy_handle.await?
+
+    Ok(())
+}
+
+async fn is_config_federated(config: &ConfigActor, message_sender: MessageSender) -> Result<bool, ServerError> {
+    let mut config_stream = config.result_stream();
+
+    let mut join_set = JoinSet::new();
+    while let Some(config) = config_stream.next().await {
+        join_set.shutdown().await;
+        match config {
+            Ok(config) => {
+                return Ok(config.federated_graph_config.is_some());
+            }
+            Err(error) => {
+                join_set.spawn(handle_config_error(error.to_string(), message_sender.clone()));
+            }
+        }
+    }
+
+    // We should only get here if the watcher had a problem.
+    // Just return false and let the rest of the mechanisms deal with it
+    Ok(false)
+}
+
+async fn handle_config_error(
+    error: String,
+    message_sender: tokio::sync::mpsc::UnboundedSender<ServerMessage>,
+) -> Result<(), ServerError> {
+    message_sender.send(ServerMessage::CompilationError(error.clone())).ok();
+    let worker_port = get_random_port_unchecked().await?;
+    WORKER_PORT.store(worker_port, Ordering::Relaxed);
+    error_server::start(worker_port, error).await
+}
+
+async fn standalone_dev(
+    port: PortSelection,
+    message_sender: MessageSender,
+    mut config: ConfigActor,
+    tracing: bool,
+) -> Result<(), ServerError> {
+    let mut proxy_handle = proxy::start(port).await?;
+    let proxy_port = proxy_handle.port;
+
+    loop {
+        let mut join_set = match config.current_result() {
+            Ok(config) => spawn_servers(proxy_port, message_sender.clone(), config, tracing).await?,
+            Err(error) => {
+                let mut set = JoinSet::new();
+                set.spawn(handle_config_error(error.to_string(), message_sender.clone()));
+                set
+            }
+        };
+
+        tokio::select! {
+            result = config.changed() => {
+                if result.is_err() {
+                    // Watcher died - return and let the parent deal with it
+                    return Ok(());
+                }
+            }
+            result = join_set.join_next() => {
+                result.expect("this set should not be empty")??;
+            }
+            result = proxy_handle.join() => {
+                result.unwrap()??;
+                // if the proxy is dead we should exit.
+                return Ok(())
+            }
+        }
+
+        join_set.shutdown().await;
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(config))]
 async fn spawn_servers(
     proxy_port: u16,
-    message_sender: UnboundedSender<ServerMessage>,
-    event_bus: broadcast::Sender<Event>,
-    path_changed: Option<&Path>,
+    message_sender: MessageSender,
+    config: Config,
     tracing: bool,
-) -> Result<(), ServerError> {
-    let bridge_event_bus = event_bus.clone();
-
-    let receiver = event_bus.subscribe();
+) -> Result<JoinSet<Result<(), ServerError>>, ServerError> {
+    let mut join_set = JoinSet::new();
 
     let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
 
-    let worker_port = get_random_port_unchecked().await?;
-
-    WORKER_PORT.store(worker_port, Ordering::Relaxed);
-
-    let ParsingResponse {
+    let Config {
         registry,
         mut detected_udfs,
-        federated_graph_config,
-    } = match build_config(&environment_variables, Some(event_bus)).await {
-        Ok(parsing_response) => parsing_response,
-        Err(error) => {
-            let _: Result<_, _> = message_sender.send(ServerMessage::CompilationError(error.to_string()));
-            tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
-                .await??;
-            return Ok(());
-        }
-    };
-
-    let is_federated = federated_graph_config.is_some();
-
-    if let Some(config) = federated_graph_config {
-        let _: Result<_, _> = message_sender.send(ServerMessage::Ready {
-            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
-            port: proxy_port,
-            is_federated,
-        });
-
-        return federated_dev::run(worker_port, false, config)
-            .await
-            .map_err(|error| ServerError::GatewayError(error.to_string()));
-    }
+        triggering_file: path_changed,
+        federated_graph_config: _,
+    } = config;
 
     let registry = Arc::new(registry);
     // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
@@ -304,61 +339,60 @@ async fn spawn_servers(
     } else {
         validate_node().await?;
         if let Err(error) = install_wrangler(environment, tracing).await {
-            let _: Result<_, _> = message_sender.send(ServerMessage::CompilationError(error.to_string()));
+            message_sender
+                .send(ServerMessage::CompilationError(error.to_string()))
+                .ok();
+
             // TODO consider disabling colored output from wrangler
             let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
                 .ok()
                 .and_then(|stripped| String::from_utf8(stripped).ok())
                 .unwrap_or_else(|| error.to_string());
-            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
-            return Ok(());
+
+            join_set.spawn(handle_config_error(error, message_sender.clone()));
+            return Ok(join_set);
         }
     }
 
-    let (mut bridge_handle, bridge_port) = {
-        let (listern, port) = get_listener_for_random_port().await?;
+    let bridge_port = {
+        let (listen, port) = get_listener_for_random_port().await?;
         let registry = Arc::clone(&registry);
         let message_sender = message_sender.clone();
-        let handle = tokio::spawn(async move {
-            bridge::start(listern, port, message_sender, bridge_event_bus, registry, tracing).await
-        })
-        .fuse();
-        (handle, port)
+        let (start_sender, started) = tokio::sync::oneshot::channel();
+
+        trace!("starting bridge at port {port}");
+        join_set.spawn(bridge::start(listen, message_sender, registry, start_sender, tracing));
+
+        if started.await.is_err() {
+            // The error is in the join_set which the layer above should listen for.
+            return Ok(join_set);
+        }
+
+        trace!("bridge ready");
+
+        port
     };
 
-    let gateway = {
-        let app = gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
+    let gateway_server = axum::Server::bind(&"127.0.0.1:0".parse().unwrap()).serve(
+        gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
             .await
             .map_err(|error| ServerError::GatewayError(error.to_string()))?
-            .into_router();
+            .into_router()
+            .into_make_service(),
+    );
 
-        // run it with hyper on localhost:3000
-        let server = axum::Server::bind(&"127.0.0.1:0".parse().unwrap()).serve(app.into_make_service());
-        WORKER_PORT.store(server.local_addr().port(), Ordering::Relaxed);
-        server
-    };
+    WORKER_PORT.store(gateway_server.local_addr().port(), Ordering::Relaxed);
+    join_set.spawn(async move { Ok(gateway_server.await?) });
 
-    trace!("waiting for bridge ready");
-    tokio::select! {
-        () = wait_for_event(receiver, |event| *event == Event::BridgeReady) => (),
-        result = &mut bridge_handle => {result??; return Ok(());}
-    };
-    trace!("bridge ready");
+    message_sender
+        .send(ServerMessage::Ready {
+            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
+            port: proxy_port,
+            is_federated: false,
+        })
+        .ok();
 
-    let _: Result<_, _> = message_sender.send(ServerMessage::Ready {
-        listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
-        port: proxy_port,
-        is_federated,
-    });
-
-    tokio::select! {
-        result = gateway => {
-            result.map_err(|err| ServerError::MiniflareError(err.to_string()))?;
-        },
-        bridge_handle_result = bridge_handle => { bridge_handle_result??; }
-    }
-
-    Ok(())
+    Ok(join_set)
 }
 
 pub fn export_embedded_files() -> Result<(), ServerError> {
@@ -435,19 +469,24 @@ pub async fn get_random_port_unchecked() -> Result<u16, ServerError> {
     Ok(listener.local_addr().map_err(|_| ServerError::AvailablePort)?.port())
 }
 
-/// determines if a port or port range are available
-pub async fn find_listener_for_available_port(
-    search: bool,
-    start_port: u16,
-) -> Result<std::net::TcpListener, ServerError> {
-    if search {
-        find_listener_for_available_port_in_range(start_port..MAX_PORT).await
-    } else {
-        TcpListener::bind((Ipv4Addr::LOCALHOST, start_port))
-            .await
-            .map_err(|_| ServerError::PortInUse(start_port))?
-            .into_std()
-            .map_err(|_| ServerError::PortInUse(start_port))
+#[derive(Debug, Clone, Copy)]
+pub enum PortSelection {
+    Automatic { starting_at: u16 },
+    Specific(u16),
+}
+
+impl PortSelection {
+    pub async fn into_listener(self) -> Result<std::net::TcpListener, ServerError> {
+        match self {
+            PortSelection::Automatic { starting_at } => {
+                find_listener_for_available_port_in_range(starting_at..MAX_PORT).await
+            }
+            PortSelection::Specific(port) => TcpListener::bind((Ipv4Addr::LOCALHOST, port))
+                .await
+                .map_err(|_| ServerError::PortInUse(port))?
+                .into_std()
+                .map_err(|_| ServerError::PortInUse(port)),
+        }
     }
 }
 

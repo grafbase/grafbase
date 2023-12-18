@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::config::DetectedUdf;
 use crate::errors::UdfBuildError;
-use crate::types::ServerMessage;
+use crate::types::{MessageSender, ServerMessage};
 use crate::udf_builder::udf_url_path;
 
 use axum::extract::State;
@@ -75,7 +75,7 @@ pub struct UdfRuntime {
     environment_variables: HashMap<String, String>,
     registry: Arc<engine::Registry>,
     tracing: bool,
-    message_sender: UnboundedSender<ServerMessage>,
+    message_sender: MessageSender,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -111,7 +111,7 @@ impl UdfRuntime {
         environment_variables: HashMap<String, String>,
         registry: Arc<engine::Registry>,
         tracing: bool,
-        message_sender: UnboundedSender<ServerMessage>,
+        message_sender: MessageSender,
     ) -> Self {
         Self {
             udf_workers: Mutex::default(),
