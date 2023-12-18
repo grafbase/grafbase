@@ -56,7 +56,6 @@ fn build_cache_config(
                     cache_config.insert(
                         CacheConfigTarget::Object(object_id),
                         CacheConfig {
-                            public: cache_control.public,
                             max_age: cache_control.max_age,
                             stale_while_revalidate: cache_control.stale_while_revalidate,
                         },
@@ -68,7 +67,6 @@ fn build_cache_config(
                     cache_config.insert(
                         CacheConfigTarget::Field(field_id),
                         CacheConfig {
-                            public: cache_control.public,
                             max_age: cache_control.max_age,
                             stale_while_revalidate: cache_control.stale_while_revalidate,
                         },
