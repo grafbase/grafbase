@@ -1,5 +1,4 @@
 import { Model } from './model'
-import { RelationDefinition, RelationRef } from './relation'
 import { Enum, EnumShape } from './enum'
 import { Type, TypeExtension, TypeFields } from './type'
 import { ReferenceDefinition } from './typedefs/reference'
@@ -22,7 +21,6 @@ import { EnumDefinition } from './typedefs/enum'
 import { Input, InputFields } from './input_type'
 import { InputDefinition } from './typedefs/input'
 import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
-import { DynamoDBModel, ModelFields } from './connector/dynamodb/model'
 import { PostgresAPI, PartialPostgresAPI } from './connector/postgres'
 import { FederatedGraphHeaders } from './federated/headers'
 
@@ -98,25 +96,6 @@ export class Graph {
     const finalDatasource = datasource.finalize(params?.namespace)
 
     this.datasources.push(finalDatasource)
-  }
-
-  /**
-   * Add a new model to the schema.
-   *
-   * @deprecated The Grafbase database is deprecated and will be sunset soon. Use connectors like Postgres or MongoDB instead.
-   *
-   * @param name - The name of the model.
-   * @param fields - The fields to be included.
-   */
-  public model(name: string, fields: ModelFields): DynamoDBModel {
-    const model = Object.entries(fields).reduce(
-      (model, [name, definition]) => model.field(name, definition),
-      new DynamoDBModel(name)
-    )
-
-    this.models.push(model)
-
-    return model
   }
 
   /**
@@ -363,15 +342,6 @@ export class Graph {
    */
   public bigint(): BigIntDefinition {
     return new BigIntDefinition(FieldType.BigInt)
-  }
-
-  /**
-   * Create a new relation field.
-   *
-   * @param ref - A model to be referred. Takes either a model or a closure resolving to a model.
-   */
-  public relation(ref: RelationRef): RelationDefinition {
-    return new RelationDefinition(ref)
   }
 
   /**

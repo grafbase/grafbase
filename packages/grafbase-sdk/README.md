@@ -46,12 +46,12 @@ const g = graph.Standalone()
 // types are generated with the `type` method,
 // followed by the name and fields.
 const profile = g.type('Profile', {
-  address: g.string(),
+  address: g.string()
 })
 
 // finally we export the default config
 export default config({
-  graph: g,
+  graph: g
 })
 ```
 
@@ -80,7 +80,7 @@ A federated graph can be defined as follows:
 import { graph, config } from '@grafbase/sdk'
 
 export default config({
-  graph: g.Federated(),
+  graph: g.Federated()
 })
 ```
 
@@ -90,7 +90,7 @@ Types are generated with the `type` method:
 
 ```typescript
 g.type('Profile', {
-  address: g.string(),
+  address: g.string()
 })
 ```
 
@@ -108,7 +108,7 @@ An enum can be used as a field type with the `enumRef` method:
 const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
 g.type('User', {
-  favoriteFruit: g.enumRef(e),
+  favoriteFruit: g.enumRef(e)
 })
 ```
 
@@ -119,12 +119,12 @@ const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
 // this works
 g.type('User', {
-  favoriteFruit: g.enumRef(e).default('Oranges'),
+  favoriteFruit: g.enumRef(e).default('Oranges')
 })
 
 // this gives a compiler error
 g.type('User', {
-  favoriteFruit: g.enumRef(e).default('Bananas'),
+  favoriteFruit: g.enumRef(e).default('Bananas')
 })
 ```
 
@@ -136,7 +136,7 @@ Queries are generated with the `query` method, mutations with the `mutation` met
 g.query('greet', {
   args: { name: g.string().optional() },
   returns: g.string(),
-  resolver: 'hello',
+  resolver: 'hello'
 })
 
 const input = g.input('CheckoutSessionInput', { name: g.string() })
@@ -145,7 +145,7 @@ const output = g.type('CheckoutSessionOutput', { successful: g.boolean() })
 g.mutation('checkout', {
   args: { input: g.inputRef(input) },
   returns: g.ref(output),
-  resolver: 'checkout',
+  resolver: 'checkout'
 })
 ```
 
@@ -156,11 +156,11 @@ Unions can be done using the `union` method:
 ```typescript
 const user = g.type('User', {
   name: g.string(),
-  age: g.int().optional(),
+  age: g.int().optional()
 })
 
 const address = g.type('Address', {
-  street: g.string().optional(),
+  street: g.string().optional()
 })
 
 g.union('UserOrAddress', { user, address })
@@ -175,12 +175,12 @@ const produce = g.interface('Produce', {
   name: g.string(),
   quantity: g.int(),
   price: g.float(),
-  nutrients: g.string().optional().list().optional(),
+  nutrients: g.string().optional().list().optional()
 })
 
 g.type('Fruit', {
   isSeedless: g.boolean().optional(),
-  ripenessIndicators: g.string().optional().list().optional(),
+  ripenessIndicators: g.string().optional().list().optional()
 }).implements(produce)
 ```
 
@@ -212,7 +212,7 @@ const fruits = g.enumType('Fruits', ['Apples', 'Oranges'])
 
 // then use it e.g. in a model
 g.model('User', {
-  favoriteFruit: g.enum(fruits),
+  favoriteFruit: g.enum(fruits)
 })
 ```
 
@@ -222,11 +222,11 @@ Referencing a type is with the `ref` method:
 
 ```typescript
 const profile = g.type('Profile', {
-  address: g.string(),
+  address: g.string()
 })
 
 g.model('User', {
-  profile: g.ref(profile),
+  profile: g.ref(profile)
 })
 ```
 
@@ -236,7 +236,7 @@ By default the generated fields are _required_. To make them optional is with th
 
 ```typescript
 const user = g.type('User', {
-  posts: g.string().optional(),
+  posts: g.string().optional()
 })
 ```
 
@@ -246,7 +246,7 @@ List fields can be done with the `list` method:
 
 ```typescript
 const user = g.type('User', {
-  names: g.string().list(),
+  names: g.string().list()
 })
 ```
 
@@ -254,7 +254,7 @@ By default, the list or list items are _required_. To make the items nullable, c
 
 ```typescript
 const user = g.type('User', {
-  names: g.string().optional().list(),
+  names: g.string().optional().list()
 })
 ```
 
@@ -262,7 +262,7 @@ To make the list itself optional, call the `optional` method to the list type:
 
 ```typescript
 const user = g.type('User', {
-  names: g.string().list().optional(),
+  names: g.string().list().optional()
 })
 ```
 
@@ -272,7 +272,7 @@ Unique field can be defined to certain types of fields with the `unique` method:
 
 ```typescript
 const user = g.type('User', {
-  name: g.string().unique(),
+  name: g.string().unique()
 })
 ```
 
@@ -281,7 +281,7 @@ Additional unique scope can be given as a parameter:
 ```typescript
 const user = g.type('User', {
   name: g.string().unique(['email']),
-  email: g.string(),
+  email: g.string()
 })
 ```
 
@@ -291,7 +291,7 @@ Certain field types can have a limited length:
 
 ```typescript
 const user = g.type('User', {
-  name: g.string().length({ min: 1, max: 255 }),
+  name: g.string().length({ min: 1, max: 255 })
 })
 ```
 
@@ -302,7 +302,7 @@ Default values for certain field types can be given with the `default` method. T
 ```typescript
 const user = g.type('User', {
   name: g.string().default('meow'),
-  age: g.int().default(11),
+  age: g.int().default(11)
 })
 ```
 
@@ -356,11 +356,11 @@ const contentful = connector.GraphQL('Contentful', {
     headers.set('Authorization', `Bearer ${g.env('CONTENTFUL_API_KEY')}`)
     headers.set('Method', 'POST')
     headers.set('x-api-key', { forward: 'x-api-key' })
-  },
+  }
 })
 
 const github = connector.GraphQL('GitHub', {
-  url: 'https://api.github.com/graphql',
+  url: 'https://api.github.com/graphql'
 })
 ```
 
@@ -380,7 +380,7 @@ const mongodb = connector.MongoDB('MongoDB', {
   url: 'https://data.mongodb-api.com/app/data-test/endpoint/data/v1',
   apiKey: 'SOME_KEY',
   dataSource: 'data',
-  database: 'tables',
+  database: 'tables'
 })
 
 // Models must be added manually for this connector.
@@ -411,7 +411,7 @@ Optional fields:
 ```typescript
 // first create the provider
 const clerk = auth.OpenIDConnect({
-  issuer: g.env('ISSUER_URL'),
+  issuer: g.env('ISSUER_URL')
 })
 
 // add it to the config with the rules
@@ -421,8 +421,8 @@ const cfg = config({
     providers: [clerk],
     rules: (rules) => {
       rules.private()
-    },
-  },
+    }
+  }
 })
 ```
 
@@ -441,7 +441,7 @@ Optional fields:
 ```typescript
 const derp = auth.JWT({
   issuer: g.env('ISSUER_URL'),
-  secret: g.env('JWT_SECRET'),
+  secret: g.env('JWT_SECRET')
 })
 ```
 
@@ -461,7 +461,7 @@ A JWKS provider has to define _either_ `issuer` or `jwksEndpoint`
 
 ```typescript
 const derp = auth.JWKS({
-  issuer: g.env('ISSUER_URL'),
+  issuer: g.env('ISSUER_URL')
 })
 ```
 
@@ -473,7 +473,7 @@ Required fields:
 
 ```typescript
 const authorizer = auth.Authorizer({
-  name: 'custom-auth',
+  name: 'custom-auth'
 })
 ```
 
@@ -487,7 +487,6 @@ Everywhere where one can define authentication rules, it happens through a lambd
 {
   rules: (rules) => {
     rules.private().read()
-    rules.owner().create()
     rules.groups(['admin', 'root']).delete()
   }
 }
@@ -499,7 +498,7 @@ Global rules are defined through the auth definition in the configuration.
 
 ```typescript
 const clerk = auth.OpenIDConnect({
-  issuer: g.env('ISSUER_URL'),
+  issuer: g.env('ISSUER_URL')
 })
 
 const cfg = config({
@@ -508,8 +507,8 @@ const cfg = config({
     providers: [clerk],
     rules: (rules) => {
       rules.private()
-    },
-  },
+    }
+  }
 })
 ```
 
@@ -524,39 +523,39 @@ config({
     rules: [
       {
         types: 'Query',
-        maxAge: 60,
+        maxAge: 60
       },
       {
         types: ['GitHub', 'Strava'],
         maxAge: 60,
-        staleWhileRevalidate: 60,
+        staleWhileRevalidate: 60
       },
       {
         types: [{ name: 'Query' }, { name: 'GitHub', fields: ['name'] }],
-        maxAge: 60,
-      },
-    ],
-  },
+        maxAge: 60
+      }
+    ]
+  }
 })
 
 g.model('User', {
-  name: g.string().optional(),
+  name: g.string().optional()
 }).cache({
   maxAge: 60,
   staleWhileRevalidate: 60,
-  mutationInvalidation: 'entity',
+  mutationInvalidation: 'entity'
 })
 
 g.type('User', {
-  name: g.string().optional(),
+  name: g.string().optional()
 }).cache({
   maxAge: 60,
   staleWhileRevalidate: 60,
-  mutationInvalidation: 'type',
+  mutationInvalidation: 'type'
 })
 
 g.model('User', {
-  name: g.string().cache({ maxAge: 60, staleWhileRevalidate: 60 }),
+  name: g.string().cache({ maxAge: 60, staleWhileRevalidate: 60 })
 })
 ```
 
@@ -568,15 +567,15 @@ To extend a type that is defined in the Grafbase schema, define the type first a
 
 ```ts
 const user = g.type('User', {
-  name: g.string(),
+  name: g.string()
 })
 
 g.extend(user, {
   myField: {
     args: { myArg: g.string() },
     returns: g.string(),
-    resolver: 'file',
-  },
+    resolver: 'file'
+  }
 })
 ```
 
@@ -587,8 +586,8 @@ g.extend('StripeCustomer', {
   myField: {
     args: { myArg: g.string() },
     returns: g.string(),
-    resolver: 'file',
-  },
+    resolver: 'file'
+  }
 })
 ```
 
@@ -601,7 +600,7 @@ const github = connector.GraphQL('GitHub', {
   url: 'https://api.github.com/graphql',
   headers: (headers) => {
     headers.set('Authorization', `Bearer ${g.env('GITHUB_TOKEN')}`)
-  },
+  }
 })
 ```
 
