@@ -31,7 +31,6 @@ impl ConfigActor {
 
         tokio::spawn(async move {
             while let Some(next) = files.next().await {
-                tracing::trace!("got next change in config worker");
                 message_sender.send(ServerMessage::Reload(next.clone())).ok();
 
                 let next_result = super::build_config(&variables, Some(next)).await;

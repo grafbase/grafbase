@@ -1,37 +1,41 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
+use std::time::Duration;
+
 use backend::project::GraphType;
 use serde_json::Value;
-use utils::consts::{
-    COMPILATION_ERROR_QUERY, COMPILATION_ERROR_RESOLVER_QUERY, COMPILATION_ERROR_RESOLVER_SCHEMA,
-    COMPILATION_ERROR_SCHEMA, DEFAULT_QUERY, DEFAULT_SCHEMA,
-};
 use utils::environment::Environment;
 
-#[ignore]
+const SCHEMA: &str = r#"
+extend type Query {
+    hello: String! @resolver(name: "hello")
+}
+"#;
+
 #[test]
 fn compilation_error_schema() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
-    env.write_schema(COMPILATION_ERROR_SCHEMA);
+    env.write_schema("type Xyz e");
 
     env.grafbase_dev_watch();
     let mut client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
-    let response = client.gql::<Value>(COMPILATION_ERROR_QUERY).send();
+    let response = client.gql::<Value>("query { hello }").send();
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
 
     client.snapshot();
 
-    env.write_schema(DEFAULT_SCHEMA);
+    env.write_schema(SCHEMA);
+    env.write_resolver("hello.js", "export default function Resolver() { return 'hello'; }");
 
     client.poll_endpoint_for_changes(30, 300);
 
-    let response = client.gql::<Value>(DEFAULT_QUERY).send();
+    let response = client.gql::<Value>("query { hello }").send();
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 
@@ -40,56 +44,81 @@ fn compilation_error_schema() {
     client.snapshot();
 }
 
-#[ignore]
+#[test]
+fn post_startup_compilation_error() {
+    let mut env = Environment::init();
+    env.grafbase_init(GraphType::Single);
+    env.write_schema("");
+
+    env.grafbase_dev_watch();
+    let mut client = env.create_client().with_api_key();
+    client.poll_endpoint(30, 300);
+
+    env.write_schema("type Xyz e");
+
+    client.snapshot();
+    client.poll_endpoint(30, 300);
+
+    let response = client.gql::<Value>("query { hello }").send();
+    let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
+
+    assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
+
+    env.write_schema(SCHEMA);
+
+    client.snapshot();
+    client.poll_endpoint(30, 300);
+}
+
 #[test]
 fn compilation_error_resolvers() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
-    env.write_schema(COMPILATION_ERROR_RESOLVER_SCHEMA);
+    env.write_schema(SCHEMA);
     env.write_resolver(
-        "return-title.js",
+        "hello.js",
         r"
             export xyz {
-                return parent.title;
+                return 'hello';
             }
         ",
     );
 
     // For now without watching before we investigate the issue.
-    env.grafbase_dev();
+    env.grafbase_dev_watch();
 
-    let client = env
+    let mut client = env
         .create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build())
         .with_api_key();
     client.poll_endpoint(30, 300);
 
-    let response = client.gql::<Value>(COMPILATION_ERROR_RESOLVER_QUERY).send();
+    let response = client.gql::<Value>("query { hello }").send();
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
 
-    // FIXME: Uncomment after we figure out the weird race with file change modification.
-    /*
     client.snapshot();
 
     env.write_resolver(
-        "return-title.js",
+        "hello.js",
         r#"
-            export default function Resolver({ parent, args, context, info }) {
-                return parent.title;
+            export default function Resolver() {
+                return "hello";
             }
         "#,
     );
 
-    client.poll_endpoint_for_changes(30, 300);
+    // File watcher is on a 1 second debounce so we need to give it a chance to do its thing
+    // We're not changing the schema this time so we can't just poll for changes to that
+    std::thread::sleep(Duration::from_secs(3));
 
-    let response = client.gql::<Value>(COMPILATION_ERROR_RESOLVER_QUERY).send();
+    let response = client.gql::<Value>("query { hello }").send();
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 
     assert!(errors.is_none());
 
-    client.snapshot();
-    */
+    let hello: String = dot_get!(response, "data.hello");
+    assert_eq!(hello, "hello");
 }

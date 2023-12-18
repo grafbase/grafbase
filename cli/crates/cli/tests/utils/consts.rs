@@ -117,12 +117,6 @@ pub const OWNER_TWITTER_TWEET_CREATE: &str = include_str!("../graphql/owner/glob
 pub const OWNER_TWITTER_USER_AND_TWEETS_GET_BY_ID: &str =
     include_str!("../graphql/owner/global/twitter/user-and-tweets-get-by-id.graphql");
 
-pub const COMPILATION_ERROR_SCHEMA: &str = include_str!("../graphql/compilation_error/schema.graphql");
-pub const COMPILATION_ERROR_QUERY: &str = include_str!("../graphql/compilation_error/query.graphql");
-pub const COMPILATION_ERROR_RESOLVER_SCHEMA: &str =
-    include_str!("../graphql/compilation_error/resolver-schema.graphql");
-pub const COMPILATION_ERROR_RESOLVER_QUERY: &str = include_str!("../graphql/compilation_error/resolver-query.graphql");
-
 pub const BATCH_SCHEMA: &str = include_str!("../graphql/batch/schema.graphql");
 pub const BATCH_CREATE: &str = include_str!("../graphql/batch/create.graphql");
 pub const BATCH_UPDATE: &str = include_str!("../graphql/batch/update.graphql");

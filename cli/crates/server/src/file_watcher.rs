@@ -79,8 +79,6 @@ where
         loop {
             match notify_receiver.recv().await {
                 Some(Ok(events)) => {
-                    tracing::debug!("Events: {events:?}");
-
                     // for the purposes of display, we need the last non ignored event
                     if let Some(event) = events
                         .into_iter()
