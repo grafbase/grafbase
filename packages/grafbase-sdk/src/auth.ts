@@ -29,7 +29,7 @@ export type AuthOperation =
 /**
  * A list of supported authentication strategies.
  */
-export type AuthStrategy = 'public' | 'private' | 'owner' | AuthGroups
+export type AuthStrategy = 'public' | 'private' | AuthGroups
 
 /**
  * A builder to greate auth groups.
@@ -136,17 +136,6 @@ export class AuthRules {
    */
   public private(): AuthRule {
     const rule = new AuthRule('private')
-
-    this.rules.push(rule)
-
-    return rule
-  }
-
-  /**
-   * Allow access to the owner only.
-   */
-  public owner(): AuthRule {
-    const rule = new AuthRule('owner')
 
     this.rules.push(rule)
 
