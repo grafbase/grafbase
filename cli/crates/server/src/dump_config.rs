@@ -1,5 +1,5 @@
 use crate::{
-    config::{build_config, ParsingResponse},
+    config::{build_config, Config},
     errors::ServerError,
 };
 
@@ -7,11 +7,7 @@ use crate::{
 pub async fn dump_config(cli_version: String) -> Result<String, ServerError> {
     let env = crate::environment::variables().collect();
 
-    let ParsingResponse {
-        registry,
-        detected_udfs: _,
-        federated_graph_config: _,
-    } = build_config(&env, None).await?;
+    let Config { registry, .. } = build_config(&env, None).await?;
 
     serde_json::to_string(&RegistryWithVersion { cli_version, registry }).map_err(ServerError::SchemaParserResultJson)
 }

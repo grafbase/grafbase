@@ -9,11 +9,12 @@ use axum::{
 };
 use common::environment::Environment;
 use handlebars::Handlebars;
-use parser_sdl::federation::FederatedGraphConfig;
 use serde_json::json;
 use std::time::Duration;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::cors::CorsLayer;
+
+use crate::ConfigReceiver;
 
 use self::{
     bus::{AdminBus, ComposeBus, RefreshBus, RequestSender},
@@ -38,10 +39,10 @@ struct ProxyState {
     request_sender: RequestSender,
 }
 
-pub(super) async fn run(port: u16, expose: bool, config: FederatedGraphConfig) -> Result<(), crate::Error> {
+pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Result<(), crate::Error> {
     log::trace!("starting the federated dev server");
 
-    let (graph_sender, graph_receiver) = mpsc::channel(16);
+    let (graph_sender, graph_receiver) = watch::channel(None);
     let (refresh_sender, refresh_receiver) = mpsc::channel(16);
     let (compose_sender, compose_receiver) = mpsc::channel(16);
     let (request_sender, request_receiver) = mpsc::channel(16);

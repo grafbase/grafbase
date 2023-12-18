@@ -1,0 +1,871 @@
+---
+source: engine/crates/parser-openapi/src/tests/mod.rs
+expression: registry.export_sdl(false)
+---
+type Mutation {
+	createSite(configureDns: Boolean, input: NetlifySiteSetupInput!): NetlifySite
+	updateSite(siteId: String!, input: NetlifySiteSetupInput!): NetlifySite
+	provisionSiteTLSCertificate(siteId: String!, caCertificates: String, key: String, certificate: String): NetlifySniCertificate
+	createEnvVars(accountId: String!, siteId: String, input: [NetlifyCreateEnvVarsInput!]): [NetlifyEnvVar!]
+	updateEnvVar(key: String!, accountId: String!, siteId: String, input: NetlifyUpdateEnvVarInput): NetlifyEnvVar
+	setEnvVarValue(key: String!, accountId: String!, siteId: String, input: NetlifySetEnvVarValueInput): NetlifyEnvVar
+	createSiteAsset(siteId: String!, visibility: String, contentType: String!, size: Int!, name: String!): NetlifyAssetSignature
+	updateSiteAsset(assetId: String!, siteId: String!, state: String!): NetlifyAsset
+	createSiteSnippet(siteId: String!, input: NetlifySnippetInput!): NetlifySnippet
+	createSiteBuildHook(siteId: String!, input: NetlifyBuildHookSetupInput!): NetlifyBuildHook
+	createSiteDeploy(siteId: String!, latestPublished: Boolean, branch: String, state: NetlifyCreateSiteDeployState, production: Boolean, deployPreviews: Boolean, title: String, input: NetlifyDeployFilesInput!): NetlifyDeploy
+	updateSiteDeploy(deployId: String!, siteId: String!, input: NetlifyDeployFilesInput!): NetlifyDeploy
+	cancelSiteDeploy(deployId: String!): NetlifyDeploy
+	restoreSiteDeploy(deployId: String!, siteId: String!): NetlifyDeploy
+	createSiteBuild(siteId: String!, input: NetlifyBuildSetupInput!): NetlifyBuild
+	unlinkSiteRepo(siteId: String!): NetlifySite
+	configureDNSForSite(siteId: String!): [NetlifyDnsZone!]
+	lockDeploy(deployId: String!): NetlifyDeploy
+	unlockDeploy(deployId: String!): NetlifyDeploy
+	uploadDeployFile(path: String!, deployId: String!, size: Int): NetlifyFile
+	uploadDeployFunction(name: String!, deployId: String!, size: Int, invocationMode: String, runtime: String): NetlifyFunction
+	createHookBySiteId(siteId: String!, input: NetlifyHookInput!): NetlifyHook
+	updateHook(hookId: String!, input: NetlifyHookInput!): NetlifyHook
+	enableHook(hookId: String!): NetlifyHook
+	createTicket(clientId: String!): NetlifyTicket
+	exchangeTicket(ticketId: String!): NetlifyAccessToken
+	createDeployKey: NetlifyDeployKey
+	createSiteInTeam(accountSlug: String!, configureDns: Boolean, input: NetlifySiteSetupInput!): NetlifySite
+	addMemberToAccount(accountSlug: String!, input: NetlifyAccountAddMemberSetupInput!): [NetlifyMember!]
+	updateAccountMember(memberId: String!, accountSlug: String!, input: NetlifyAccountUpdateMemberSetupInput!): NetlifyMember
+	createAccount(input: NetlifyAccountSetupInput!): NetlifyAccountMembership
+	updateAccount(accountId: String!, input: NetlifyAccountUpdateSetupInput!): NetlifyAccountMembership
+	createServiceInstance(addon: String!, siteId: String!, input: JSON!): NetlifyServiceInstance
+	createSplitTest(siteId: String!, input: NetlifySplitTestSetupInput!): NetlifySplitTest
+	updateSplitTest(splitTestId: String!, siteId: String!, input: NetlifySplitTestSetupInput!): NetlifySplitTest
+	createDnsZone(input: NetlifyDnsZoneSetupInput!): NetlifyDnsZone
+	transferDnsZone(zoneId: String!, transferUserId: String!, transferAccountId: String!, accountId: String!): NetlifyDnsZone
+	createDnsRecord(zoneId: String!, input: NetlifyDnsRecordCreateInput!): NetlifyDnsRecord
+}
+type NetlifyAccessToken {
+	createdAt: String
+	userEmail: String
+	userId: String
+	accessToken: String
+	id: String
+}
+input NetlifyAccountAddMemberSetupInput {
+	email: String
+	role: NetlifyAccountAddMemberSetupRole
+}
+enum NetlifyAccountAddMemberSetupRole {
+	OWNER
+	COLLABORATOR
+	CONTROLLER
+}
+type NetlifyAccountMembership {
+	updatedAt: String
+	createdAt: String
+	rolesAllowed: [String!]
+	ownerIds: [String!]
+	typeId: String
+	typeName: String
+	paymentMethodId: String
+	billingPeriod: String
+	billingDetails: String
+	billingEmail: String
+	billingName: String
+	capabilities: NetlifyAccountMembershipCapabilities
+	type: String
+	slug: String
+	name: String
+	id: String
+}
+type NetlifyAccountMembershipCapabilities {
+	collaborators: NetlifyAccountUsageCapability
+	sites: NetlifyAccountUsageCapability
+}
+input NetlifyAccountSetupInput {
+	extraSeatsBlock: Int
+	period: NetlifyAccountSetupPeriod
+	paymentMethodId: String
+	typeId: String!
+	name: String!
+}
+enum NetlifyAccountSetupPeriod {
+	MONTHLY
+	YEARLY
+}
+type NetlifyAccountType {
+	yearlySeatsAddonDollarPrice: Int
+	monthlySeatsAddonDollarPrice: Int
+	yearlyDollarPrice: Int
+	monthlyDollarPrice: Int
+	capabilities: JSON
+	description: String
+	name: String
+	id: String
+}
+input NetlifyAccountUpdateMemberSetupInput {
+	siteIds: [String!]
+	siteAccess: NetlifyAccountUpdateMemberSetupSiteAccess
+	role: NetlifyAccountUpdateMemberSetupRole
+}
+enum NetlifyAccountUpdateMemberSetupRole {
+	OWNER
+	COLLABORATOR
+	CONTROLLER
+}
+enum NetlifyAccountUpdateMemberSetupSiteAccess {
+	ALL
+	NONE
+	SELECTED
+}
+input NetlifyAccountUpdateSetupInput {
+	billingDetails: String
+	billingEmail: String
+	billingName: String
+	extraSeatsBlock: Int
+	typeId: String
+	slug: String
+	name: String
+}
+type NetlifyAccountUsageCapability {
+	used: Int
+	included: Int
+}
+type NetlifyAsset {
+	updatedAt: String
+	createdAt: String
+	size: Int
+	visibility: String
+	key: String
+	url: String
+	contentType: String
+	state: String
+	name: String
+	creatorId: String
+	siteId: String
+	id: String
+}
+type NetlifyAssetForm {
+	fields: JSON
+	url: String
+}
+type NetlifyAssetPublicSignature {
+	url: String
+}
+type NetlifyAssetSignature {
+	asset: NetlifyAsset
+	form: NetlifyAssetForm
+}
+type NetlifyAuditLog {
+	payload: NetlifyAuditLogPayload
+	accountId: String
+	id: String
+}
+type NetlifyAuditLogPayload {
+	logType: String
+	timestamp: String
+	action: String
+	actorEmail: String
+	actorName: String
+	actorId: String
+}
+type NetlifyBuild {
+	createdAt: String
+	error: String
+	done: Boolean
+	sha: String
+	deployId: String
+	id: String
+}
+type NetlifyBuildHook {
+	createdAt: String
+	siteId: String
+	url: String
+	branch: String
+	title: String
+	id: String
+}
+input NetlifyBuildHookSetupInput {
+	branch: String
+	title: String
+}
+input NetlifyBuildSetupInput {
+	clearCache: Boolean
+	image: String
+}
+type NetlifyBuildStatus {
+	minutes: NetlifyBuildStatusMinutes
+	buildCount: Int
+	enqueued: Int
+	pendingConcurrency: Int
+	active: Int
+}
+type NetlifyBuildStatusMinutes {
+	includedMinutesWithPacks: String
+	includedMinutes: String
+	lastUpdatedAt: String
+	periodEndDate: String
+	periodStartDate: String
+	previous: Int
+	currentAverageSec: Int
+	current: Int
+}
+input NetlifyCreateEnvVarsInput {
+	isSecret: Boolean
+	values: [NetlifyEnvVarValueInput!]!
+	scopes: [NetlifyCreateEnvVarsScopes!]
+	key: String
+}
+enum NetlifyCreateEnvVarsScopes {
+	BUILDS
+	FUNCTIONS
+	RUNTIME
+	POST_PROCESSING
+}
+enum NetlifyCreateSiteDeployState {
+	NEW
+	PENDING_REVIEW
+	ACCEPTED
+	REJECTED
+	ENQUEUED
+	BUILDING
+	UPLOADING
+	UPLOADED
+	PREPARING
+	PREPARED
+	PROCESSING
+	PROCESSED
+	READY
+	ERROR
+	RETRYING
+}
+type NetlifyDeploy {
+	functionSchedules: [NetlifyFunctionSchedule!]
+	framework: String
+	siteCapabilities: NetlifyDeploySiteCapabilities
+	reviewUrl: String
+	locked: Boolean
+	context: String
+	title: String
+	publishedAt: String
+	updatedAt: String
+	createdAt: String
+	skipped: Boolean
+	commitUrl: String
+	commitRef: String
+	branch: String
+	errorMessage: String
+	requiredFunctions: [String!]
+	required: [String!]
+	draft: Boolean
+	reviewId: Float
+	screenshotUrl: String
+	deploySslUrl: String
+	deployUrl: String
+	adminUrl: String
+	sslUrl: String
+	url: String
+	name: String
+	state: String
+	buildId: String
+	userId: String
+	siteId: String
+	id: String
+}
+input NetlifyDeployFilesInput {
+	frameworkVersion: String
+	framework: String
+	branch: String
+	functionsConfig: JSON
+	functionSchedules: [NetlifyFunctionScheduleInput!]!
+	functions: JSON
+	async: Boolean
+	draft: Boolean
+	files: JSON
+}
+input NetlifyDeployInput {
+	functionSchedules: [NetlifyFunctionScheduleInput!]!
+	framework: String
+	siteCapabilities: NetlifyDeploySiteCapabilitiesInput
+	reviewUrl: String
+	locked: Boolean
+	context: String
+	title: String
+	publishedAt: String
+	updatedAt: String
+	createdAt: String
+	skipped: Boolean
+	commitUrl: String
+	commitRef: String
+	branch: String
+	errorMessage: String
+	requiredFunctions: [String!]
+	required: [String!]
+	draft: Boolean
+	reviewId: Float
+	screenshotUrl: String
+	deploySslUrl: String
+	deployUrl: String
+	adminUrl: String
+	sslUrl: String
+	url: String
+	name: String
+	state: String
+	buildId: String
+	userId: String
+	siteId: String
+	id: String
+}
+type NetlifyDeployKey {
+	createdAt: String
+	publicKey: String
+	id: String
+}
+type NetlifyDeploySiteCapabilities {
+	largeMediaEnabled: Boolean
+}
+input NetlifyDeploySiteCapabilitiesInput {
+	largeMediaEnabled: Boolean
+}
+type NetlifyDeployedBranch {
+	sslUrl: String
+	url: String
+	slug: String
+	name: String
+	deployId: String
+	id: String
+}
+type NetlifyDnsRecord {
+	managed: Boolean
+	tag: String
+	flag: Int
+	siteId: String
+	dnsZoneId: String
+	priority: Int
+	ttl: Int
+	value: String
+	type: String
+	hostname: String
+	id: String
+}
+input NetlifyDnsRecordCreateInput {
+	tag: String
+	flag: Int
+	port: Int
+	weight: Int
+	priority: Int
+	ttl: Int
+	value: String
+	hostname: String
+	type: String
+}
+type NetlifyDnsZone {
+	dedicated: Boolean
+	ipv6Enabled: Boolean
+	domain: String
+	accountName: String
+	accountSlug: String
+	siteId: String
+	accountId: String
+	dnsServers: [String!]
+	records: [NetlifyDnsRecord!]
+	updatedAt: String
+	createdAt: String
+	userId: String
+	supportedRecordTypes: [String!]
+	errors: [String!]
+	name: String
+	id: String
+}
+input NetlifyDnsZoneSetupInput {
+	name: String
+	siteId: String
+	accountSlug: String
+}
+type NetlifyEnvVar {
+	updatedBy: NetlifyEnvVarUser
+	updatedAt: String
+	isSecret: Boolean
+	values: [NetlifyEnvVarValue!]
+	scopes: [NetlifyEnvVarScopes!]
+	key: String
+}
+enum NetlifyEnvVarScopes {
+	BUILDS
+	FUNCTIONS
+	RUNTIME
+	POST_PROCESSING
+}
+type NetlifyEnvVarUser {
+	avatarUrl: String
+	email: String
+	fullName: String
+	id: String
+}
+type NetlifyEnvVarValue {
+	contextParameter: String
+	context: NetlifyEnvVarValueContext
+	value: String
+	id: String
+}
+enum NetlifyEnvVarValueContext {
+	ALL
+	DEV
+	BRANCH_DEPLOY
+	DEPLOY_PREVIEW
+	PRODUCTION
+	BRANCH
+}
+input NetlifyEnvVarValueInput {
+	contextParameter: String
+	context: NetlifyEnvVarValueContext
+	value: String
+	id: String
+}
+type NetlifyFile {
+	size: Int
+	mimeType: String
+	sha: String
+	path: String
+	id: String
+}
+type NetlifyForm {
+	createdAt: String
+	fields: [JSON!]
+	submissionCount: Int
+	paths: [String!]
+	name: String
+	siteId: String
+	id: String
+}
+type NetlifyFunction {
+	sha: String
+	name: String
+	id: String
+}
+type NetlifyFunctionSchedule {
+	cron: String
+	name: String
+}
+input NetlifyFunctionScheduleInput {
+	cron: String
+	name: String
+}
+enum NetlifyGetEnvVarsContextName {
+	ALL
+	DEV
+	BRANCH_DEPLOY
+	DEPLOY_PREVIEW
+	PRODUCTION
+}
+enum NetlifyGetEnvVarsScope {
+	BUILDS
+	FUNCTIONS
+	RUNTIME
+	POST_PROCESSING
+}
+enum NetlifyGetSiteEnvVarsContextName {
+	ALL
+	DEV
+	BRANCH_DEPLOY
+	DEPLOY_PREVIEW
+	PRODUCTION
+}
+enum NetlifyGetSiteEnvVarsScope {
+	BUILDS
+	FUNCTIONS
+	RUNTIME
+	POST_PROCESSING
+}
+type NetlifyHook {
+	disabled: Boolean
+	updatedAt: String
+	createdAt: String
+	data: JSON
+	event: String
+	type: String
+	siteId: String
+	id: String
+}
+input NetlifyHookInput {
+	disabled: Boolean
+	updatedAt: String
+	createdAt: String
+	data: JSON
+	event: String
+	type: String
+	siteId: String
+	id: String
+}
+type NetlifyHookType {
+	fields: [JSON!]
+	events: [String!]
+	name: String
+}
+enum NetlifyListSiteDeploysState {
+	NEW
+	PENDING_REVIEW
+	ACCEPTED
+	REJECTED
+	ENQUEUED
+	BUILDING
+	UPLOADING
+	UPLOADED
+	PREPARING
+	PREPARED
+	PROCESSING
+	PROCESSED
+	READY
+	ERROR
+	RETRYING
+}
+enum NetlifyListSitesFilter {
+	ALL
+	OWNER
+	GUEST
+}
+type NetlifyMember {
+	role: String
+	avatar: String
+	email: String
+	fullName: String
+	id: String
+}
+type NetlifyPaymentMethod {
+	updatedAt: String
+	createdAt: String
+	data: NetlifyPaymentMethodData
+	state: String
+	type: String
+	methodName: String
+	id: String
+}
+type NetlifyPaymentMethodData {
+	email: String
+	last4: String
+	cardType: String
+}
+type NetlifyRepoInfo {
+	stopBuilds: Boolean
+	installationId: Int
+	env: JSON
+	repoUrl: String
+	privateLogs: Boolean
+	publicRepo: Boolean
+	allowedBranches: [String!]
+	cmd: String
+	functionsDir: String
+	dir: String
+	repoBranch: String
+	repoPath: String
+	deployKeyId: String
+	provider: String
+	id: Int
+}
+input NetlifyRepoInfoInput {
+	stopBuilds: Boolean
+	installationId: Int
+	env: JSON
+	repoUrl: String
+	privateLogs: Boolean
+	publicRepo: Boolean
+	allowedBranches: [String!]
+	cmd: String
+	functionsDir: String
+	dir: String
+	repoBranch: String
+	repoPath: String
+	deployKeyId: String
+	provider: String
+	id: Int
+}
+type NetlifyService {
+	updatedAt: String
+	createdAt: String
+	environments: [String!]
+	manifestUrl: String
+	icon: String
+	tags: [String!]
+	events: [JSON!]
+	description: String
+	longDescription: String
+	servicePath: String
+	slug: String
+	name: String
+	id: String
+}
+type NetlifyServiceInstance {
+	updatedAt: String
+	createdAt: String
+	authUrl: String
+	snippets: [JSON!]
+	env: JSON
+	serviceName: String
+	servicePath: String
+	serviceSlug: String
+	externalAttributes: JSON
+	config: JSON
+	url: String
+	id: String
+}
+enum NetlifySetEnvVarValueContext {
+	ALL
+	DEV
+	BRANCH_DEPLOY
+	DEPLOY_PREVIEW
+	PRODUCTION
+	BRANCH
+}
+input NetlifySetEnvVarValueInput {
+	value: String
+	contextParameter: String
+	context: NetlifySetEnvVarValueContext
+}
+type NetlifySite {
+	functionsRegion: String
+	prerender: String
+	buildImage: String
+	defaultHooksData: NetlifySiteSetupDefaultHooksData
+	idDomain: String
+	buildSettings: NetlifyRepoInfo
+	processingSettings: NetlifySiteSetupProcessingSettings
+	capabilities: JSON
+	deployHook: String
+	gitProvider: String
+	accountSlug: String
+	accountName: String
+	publishedDeploy: NetlifyDeploy
+	deployUrl: String
+	managedDns: Boolean
+	forceSsl: Boolean
+	ssl: Boolean
+	sessionId: String
+	userId: String
+	updatedAt: String
+	createdAt: String
+	screenshotUrl: String
+	adminUrl: String
+	sslUrl: String
+	url: String
+	notificationEmail: String
+	password: String
+	deployPreviewCustomDomain: String
+	branchDeployCustomDomain: String
+	domainAliases: [String!]
+	customDomain: String
+	name: String
+	plan: String
+	state: String
+	id: String
+}
+type NetlifySiteFunction {
+	provider: String
+	logType: String
+	id: String
+	functions: [JSON!]
+	createdAt: String
+	branch: String
+}
+type NetlifySiteSetupDefaultHooksData {
+	accessToken: String
+}
+input NetlifySiteSetupDefaultHooksDataInput {
+	accessToken: String
+}
+type NetlifySiteSetupHtmlProcessingSettings {
+	prettyUrls: Boolean
+}
+input NetlifySiteSetupHtmlProcessingSettingsInput {
+	prettyUrls: Boolean
+}
+input NetlifySiteSetupInput {
+	userId: String
+	url: String
+	updatedAt: String
+	state: String
+	sslUrl: String
+	ssl: Boolean
+	sessionId: String
+	screenshotUrl: String
+	repo: NetlifyRepoInfoInput!
+	publishedDeploy: NetlifyDeployInput!
+	processingSettings: NetlifySiteSetupProcessingSettingsInput
+	prerender: String
+	plan: String
+	password: String
+	notificationEmail: String
+	name: String
+	managedDns: Boolean
+	idDomain: String
+	id: String
+	gitProvider: String
+	functionsRegion: String
+	forceSsl: Boolean
+	domainAliases: [String!]
+	deployUrl: String
+	deployPreviewCustomDomain: String
+	deployHook: String
+	defaultHooksData: NetlifySiteSetupDefaultHooksDataInput
+	customDomain: String
+	createdAt: String
+	capabilities: JSON
+	buildSettings: NetlifyRepoInfoInput!
+	buildImage: String
+	branchDeployCustomDomain: String
+	adminUrl: String
+	accountSlug: String
+	accountName: String
+}
+type NetlifySiteSetupProcessingSettings {
+	html: NetlifySiteSetupHtmlProcessingSettings
+}
+input NetlifySiteSetupProcessingSettingsInput {
+	html: NetlifySiteSetupHtmlProcessingSettingsInput
+}
+type NetlifySniCertificate {
+	expiresAt: String
+	updatedAt: String
+	createdAt: String
+	domains: [String!]
+	state: String
+}
+type NetlifySnippet {
+	goalPosition: String
+	goal: String
+	generalPosition: String
+	general: String
+	title: String
+	siteId: String
+	id: Int
+}
+input NetlifySnippetInput {
+	goalPosition: String
+	goal: String
+	generalPosition: String
+	general: String
+	title: String
+	siteId: String
+	id: Int
+}
+type NetlifySplitTest {
+	unpublishedAt: String
+	updatedAt: String
+	createdAt: String
+	active: Boolean
+	branches: [JSON!]
+	path: String
+	name: String
+	siteId: String
+	id: String
+}
+input NetlifySplitTestSetupInput {
+	branchTests: JSON
+}
+type NetlifySubmission {
+	siteUrl: String
+	createdAt: String
+	data: JSON
+	body: String
+	summary: String
+	company: String
+	lastName: String
+	firstName: String
+	name: String
+	email: String
+	number: Int
+	id: String
+}
+type NetlifyTicket {
+	createdAt: String
+	authorized: Boolean
+	clientId: String
+	id: String
+}
+input NetlifyUpdateEnvVarInput {
+	isSecret: Boolean
+	values: [NetlifyEnvVarValueInput!]!
+	scopes: [NetlifyUpdateEnvVarScopes!]
+	key: String
+}
+enum NetlifyUpdateEnvVarScopes {
+	BUILDS
+	FUNCTIONS
+	RUNTIME
+	POST_PROCESSING
+}
+type NetlifyUser {
+	onboardingProgress: NetlifyUserOnboardingProgress
+	loginProviders: [String!]
+	lastLogin: String
+	createdAt: String
+	siteCount: Int
+	affiliateId: String
+	email: String
+	avatarUrl: String
+	fullName: String
+	uid: String
+	id: String
+}
+type NetlifyUserOnboardingProgress {
+	slides: String
+}
+type Query {
+	listSites(perPage: Int, page: Int, filter: NetlifyListSitesFilter, name: String): [NetlifySite!]
+	site(siteId: String!): NetlifySite
+	showSiteTLSCertificate(siteId: String!): NetlifySniCertificate
+	envVars(accountId: String!, siteId: String, scope: NetlifyGetEnvVarsScope, contextName: NetlifyGetEnvVarsContextName): [NetlifyEnvVar!]
+	siteEnvVars(siteId: String!, scope: NetlifyGetSiteEnvVarsScope, contextName: NetlifyGetSiteEnvVarsContextName): [NetlifyEnvVar!]
+	envVar(key: String!, accountId: String!, siteId: String): NetlifyEnvVar
+	searchSiteFunctions(siteId: String!, filter: String): [NetlifySiteFunction!]
+	listSiteForms(siteId: String!): [NetlifyForm!]
+	listSiteSubmissions(siteId: String!, perPage: Int, page: Int): [NetlifySubmission!]
+	listSiteFiles(siteId: String!): [NetlifyFile!]
+	listSiteAssets(siteId: String!): [NetlifyAsset!]
+	siteAssetInfo(assetId: String!, siteId: String!): NetlifyAsset
+	siteAssetPublicSignature(assetId: String!, siteId: String!): NetlifyAssetPublicSignature
+	siteFileByPathName(filePath: String!, siteId: String!): NetlifyFile
+	listSiteSnippets(siteId: String!): [NetlifySnippet!]
+	siteSnippet(snippetId: String!, siteId: String!): NetlifySnippet
+	siteMetadata(siteId: String!): JSON
+	listSiteBuildHooks(siteId: String!): [NetlifyBuildHook!]
+	siteBuildHook(id: String!, siteId: String!): NetlifyBuildHook
+	listSiteDeploys(siteId: String!, latestPublished: Boolean, branch: String, state: NetlifyListSiteDeploysState, production: Boolean, deployPreviews: Boolean, perPage: Int, page: Int): [NetlifyDeploy!]
+	siteDeploy(deployId: String!, siteId: String!): NetlifyDeploy
+	listSiteBuilds(siteId: String!, perPage: Int, page: Int): [NetlifyBuild!]
+	listSiteDeployedBranches(siteId: String!): [NetlifyDeployedBranch!]
+	siteBuild(buildId: String!): NetlifyBuild
+	accountBuildStatus(accountId: String!): [NetlifyBuildStatus!]
+	dnsforSite(siteId: String!): [NetlifyDnsZone!]
+	deploy(deployId: String!): NetlifyDeploy
+	listFormSubmissions(formId: String!, perPage: Int, page: Int): [NetlifySubmission!]
+	listHooksBySiteId(siteId: String!): [NetlifyHook!]
+	hook(hookId: String!): NetlifyHook
+	listHookTypes: [NetlifyHookType!]
+	showTicket(ticketId: String!): NetlifyTicket
+	listDeployKeys: [NetlifyDeployKey!]
+	deployKey(keyId: String!): NetlifyDeployKey
+	listSitesForAccount(accountSlug: String!, perPage: Int, page: Int, name: String): [NetlifySite!]
+	listMembersForAccount(accountSlug: String!): [NetlifyMember!]
+	accountMember(memberId: String!, accountSlug: String!): NetlifyMember
+	listPaymentMethodsForUser: [NetlifyPaymentMethod!]
+	listAccountTypesForUser: [NetlifyAccountType!]
+	listAccountsForUser: [NetlifyAccountMembership!]
+	account(accountId: String!): [NetlifyAccountMembership!]
+	listAccountAuditEvents(accountId: String!, perPage: Int, page: Int, logType: String, query: String): [NetlifyAuditLog!]
+	listFormSubmission(submissionId: String!, perPage: Int, page: Int, query: String): [NetlifySubmission!]
+	listServiceInstancesForSite(siteId: String!): [NetlifyServiceInstance!]
+	showServiceInstance(instanceId: String!, addon: String!, siteId: String!): NetlifyServiceInstance
+	services(search: String): [NetlifyService!]
+	showService(addonName: String!): NetlifyService
+	showServiceManifest(addonName: String!): JSON
+	currentUser: [NetlifyUser!]
+	splitTests(siteId: String!): NetlifySplitTest
+	splitTest(splitTestId: String!, siteId: String!): NetlifySplitTest
+	dnsZones(accountSlug: String): NetlifyDnsZone
+	dnsZone(zoneId: String!): NetlifyDnsZone
+	dnsRecords(zoneId: String!): NetlifyDnsRecord
+	individualDnsRecord(dnsRecordId: String!, zoneId: String!): NetlifyDnsRecord
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

@@ -29,7 +29,6 @@ mod consts;
 mod dump_config;
 mod environment;
 mod error_server;
-mod event;
 mod file_watcher;
 mod introspect_local;
 mod node;
@@ -42,4 +41,4 @@ pub mod types;
 
 pub use dump_config::dump_config;
 pub use introspect_local::{introspect_local, IntrospectLocalOutput};
-pub use servers::{export_embedded_files, start, ProductionServer};
+pub use servers::{export_embedded_files, start, PortSelection, ProductionServer};

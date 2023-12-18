@@ -3,6 +3,7 @@ use crate::output::report;
 use crate::CliError;
 use backend::types::{LogEventType, ServerMessage};
 use common::utils::get_thread_panic_message;
+use server::PortSelection;
 use std::sync::Once;
 use std::thread;
 
@@ -28,7 +29,15 @@ pub fn dev(
     trace!("attempting to start server");
     let (message_sender, mut message_receiver) = tokio::sync::mpsc::unbounded_channel::<ServerMessage>();
 
-    let server = server::start(external_port, search, watch, tracing, message_sender);
+    let port = if search {
+        PortSelection::Automatic {
+            starting_at: external_port,
+        }
+    } else {
+        PortSelection::Specific(external_port)
+    };
+
+    let server = server::start(port, watch, tracing, message_sender);
     let reporter = async move {
         report::listen_to_federated_dev_events().await;
 

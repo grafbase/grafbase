@@ -365,7 +365,7 @@ impl Ref {
     }
 
     pub(super) fn v3_request_body(name: &str) -> Ref {
-        Ref(format!("#/components/request_bodies/{name}"))
+        Ref(format!("#/components/requestBodies/{name}"))
     }
 
     pub(super) fn v3_parameter(name: &str) -> Ref {

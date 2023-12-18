@@ -12,6 +12,8 @@ use std::path::PathBuf;
 use thiserror::Error;
 use tokio::task::JoinError;
 
+use crate::config::ConfigError;
+use crate::node::NodeError;
 use crate::udf_builder::JavaScriptPackageManager;
 
 #[derive(Error, Debug)]
@@ -287,5 +289,27 @@ impl IntoResponse for ServerError {
         }));
 
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
+}
+
+impl From<ConfigError> for ServerError {
+    fn from(value: ConfigError) -> Self {
+        match value {
+            ConfigError::Io(inner) => ServerError::ParseSchema(inner),
+            ConfigError::ProjectPath => ServerError::ProjectPath,
+            ConfigError::ParseSchema(inner) => ServerError::ParseSchema(inner),
+            ConfigError::NodeError(inner) => inner.into(),
+            ConfigError::LoadTsConfig(inner) => ServerError::LoadTsConfig(inner),
+        }
+    }
+}
+
+impl From<NodeError> for ServerError {
+    fn from(value: NodeError) -> Self {
+        match value {
+            NodeError::NodeInPath => ServerError::NodeInPath,
+            NodeError::OutdatedNode(one, two) => ServerError::OutdatedNode(one, two),
+            NodeError::CheckNodeVersion => ServerError::CheckNodeVersion,
+        }
     }
 }

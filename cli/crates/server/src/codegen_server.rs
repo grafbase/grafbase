@@ -1,31 +1,37 @@
-use crate::{event::Event, types::ServerMessage};
+use std::{
+    ffi, fs,
+    path::{Path, PathBuf},
+    sync::OnceLock,
+};
+
 use common::environment::{Project, SchemaLocation};
-use std::{ffi, fs, path::Path, sync::OnceLock};
-use tokio::{
-    sync::{broadcast, mpsc::UnboundedSender},
-    task::JoinHandle,
+use tokio::task::JoinHandle;
+use tokio_stream::StreamExt;
+
+use crate::{
+    config::ConfigStream,
+    file_watcher::ChangeStream,
+    types::{MessageSender, ServerMessage},
 };
 
 static CODEGEN_WORKER_HANDLE: OnceLock<JoinHandle<()>> = OnceLock::new();
 
 /// Spawns the background worker responsible for generating TS type definitions for resolvers.
 pub(crate) fn start_codegen_worker(
-    server_events: broadcast::Receiver<Event>,
-    event_sender: UnboundedSender<ServerMessage>,
+    file_changes: ChangeStream,
+    config_changes: ConfigStream,
+    message_sender: MessageSender,
 ) -> Result<(), ()> {
-    let handle = tokio::spawn(async move { codegen_worker_loop(server_events, event_sender).await });
+    let handle = tokio::spawn(async move { codegen_worker_loop(file_changes, config_changes, message_sender).await });
     CODEGEN_WORKER_HANDLE.set(handle).map_err(|_| ())
 }
 
-async fn codegen_worker_loop(
-    mut server_events: broadcast::Receiver<Event>,
-    event_sender: UnboundedSender<ServerMessage>,
-) {
+async fn codegen_worker_loop(file_changes: ChangeStream, config_changes: ConfigStream, message_sender: MessageSender) {
     let project = Project::get();
-    let resolvers_path = project.udfs_source_path(common_types::UdfKind::Resolver);
     let schema_path = &project.schema_path;
-    let mut last_seen_sdl = None;
     let generated_ts_resolver_types_path = project.generated_directory_path().join("index.ts");
+
+    let mut last_seen_sdl = None;
 
     // Try generating types on start up.
     if let SchemaLocation::Graphql(schema_path) = schema_path.location() {
@@ -34,46 +40,42 @@ async fn codegen_worker_loop(
         }
     }
 
-    loop {
-        match server_events.recv().await {
-            Err(_err) => {
-                break; // channel is broken, we might as well stop trying
-            }
-            Ok(Event::Reload(path)) => {
-                let path = path.canonicalize().unwrap_or(path);
-                match schema_path.location() {
-                    SchemaLocation::Graphql(schema_path) if path == schema_path.as_path() => {
-                        // The SDL schema was edited. Regenerate types.
+    let _ = tokio::join!(
+        tokio::spawn(type_generate_loop(config_changes, generated_ts_resolver_types_path)),
+        tokio::spawn(resolver_check_loop(file_changes, message_sender, last_seen_sdl))
+    );
+}
 
-                        let Some(sdl) = read_sdl(&path, &mut last_seen_sdl) else {
-                            continue;
-                        };
+async fn type_generate_loop(mut config_changes: ConfigStream, destination_path: PathBuf) {
+    let sdl_location = Project::get().sdl_location();
+    let sdl_location = sdl_location.to_str().expect("utf8 paths");
 
-                        generate_ts_resolver_types(sdl, &generated_ts_resolver_types_path);
-                    }
-                    _ if path.extension() == Some(ffi::OsStr::new("ts"))
-                        && path.ancestors().any(|ancestor| ancestor == resolvers_path) =>
-                    {
-                        // A resolver changed, check it.
-                        let Some(sdl) = last_seen_sdl.as_deref() else {
-                            continue;
-                        };
-                        if let Err(err) = typed_resolvers::check_resolver(sdl, &path) {
-                            event_sender
-                                .send(ServerMessage::CompilationError(format!("{err:?}")))
-                                .ok();
-                        }
-                    }
-                    _ => (),
-                };
+    while (config_changes.next().await).is_some() {
+        generate_ts_resolver_types(sdl_location, &destination_path)
+    }
+}
+
+async fn resolver_check_loop(
+    mut file_changes: ChangeStream,
+    message_sender: MessageSender,
+    last_seen_sdl: Option<String>,
+) {
+    let project = Project::get();
+    let resolvers_path = project.udfs_source_path(common_types::UdfKind::Resolver);
+
+    while let Some(path) = file_changes.next().await {
+        if path.extension() == Some(ffi::OsStr::new("ts"))
+            && path.ancestors().any(|ancestor| ancestor == resolvers_path)
+        {
+            // A resolver changed, check it.
+            let Some(sdl) = last_seen_sdl.as_deref() else {
+                continue;
+            };
+            if let Err(err) = typed_resolvers::check_resolver(sdl, &path) {
+                message_sender
+                    .send(ServerMessage::CompilationError(format!("{err:?}")))
+                    .ok();
             }
-            Ok(Event::NewSdlFromTsConfig(path)) => {
-                let Some(sdl) = read_sdl(&path, &mut last_seen_sdl) else {
-                    continue;
-                };
-                generate_ts_resolver_types(sdl, &generated_ts_resolver_types_path);
-            }
-            Ok(_) => {}
         }
     }
 }
