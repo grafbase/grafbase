@@ -31,11 +31,7 @@ impl Merge<CacheConfig> for CacheConfig {
 
 impl Merge<Option<CacheConfig>> for Option<CacheConfig> {
     fn merge(self, right: Option<CacheConfig>) -> Option<CacheConfig> {
-        self
-            .and_then(|left| right
-                .map(|right| left.merge(right))
-                .or(Some(left))
-            )
+        self.and_then(|left| right.map(|right| left.merge(right)).or(Some(left)))
             .or(right)
     }
 }

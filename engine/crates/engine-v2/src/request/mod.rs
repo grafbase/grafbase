@@ -91,9 +91,8 @@ impl Operation {
                         match field_type.inner {
                             Definition::Object(object_id) => {
                                 let object = &schema[object_id];
-                                let object_cache_config = object
-                                    .cache_config
-                                    .map(|cache_control_id| schema[cache_control_id]);
+                                let object_cache_config =
+                                    object.cache_config.map(|cache_control_id| schema[cache_control_id]);
 
                                 object_cache_config.merge(field_cache_config)
                             }
