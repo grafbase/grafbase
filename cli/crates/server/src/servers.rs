@@ -3,6 +3,7 @@ use crate::config::{build_config, Config, ConfigActor};
 use crate::consts::{ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE};
 use crate::file_watcher::Watcher;
 use crate::node::validate_node;
+use crate::proxy::ProxyHandle;
 use crate::types::{MessageSender, ServerMessage, ASSETS_GZIP};
 use crate::udf_builder::install_wrangler;
 use crate::{bridge, errors::ServerError};
@@ -164,6 +165,8 @@ pub async fn start(
     export_embedded_files()?;
     create_project_dot_grafbase_directory()?;
 
+    let proxy = proxy::start(port).await?;
+
     let watcher = if watch {
         Some(Watcher::start(project.path.clone()).await?)
     } else {
@@ -175,14 +178,14 @@ pub async fn start(
     let is_federated = is_config_federated(&config, message_sender.clone()).await?;
 
     if is_federated {
-        federated_dev(port, message_sender, config).await?;
+        federated_dev(proxy, message_sender, config).await?;
     } else {
         if let Some(file_changes) = file_changes {
             crate::codegen_server::start_codegen_worker(file_changes, config.config_stream(), message_sender.clone())
                 .expect("Invariant violation: codegen worker started twice.");
         }
 
-        standalone_dev(port, message_sender, config, tracing).await?;
+        standalone_dev(proxy, message_sender, config, tracing).await?;
     }
 
     if let Some(watcher) = watcher {
@@ -194,17 +197,16 @@ pub async fn start(
 }
 
 async fn federated_dev(
-    port: PortSelection,
+    mut proxy: ProxyHandle,
     message_sender: MessageSender,
     config: ConfigActor,
 ) -> Result<(), ServerError> {
-    let mut proxy_handle = proxy::start(port).await?;
     let worker_port = get_random_port_unchecked().await?;
     WORKER_PORT.store(worker_port, Ordering::Relaxed);
     message_sender
         .send(ServerMessage::Ready {
             listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
-            port: proxy_handle.port,
+            port: proxy.port,
             is_federated: true,
         })
         .ok();
@@ -212,7 +214,7 @@ async fn federated_dev(
     let server = federated_dev::run(worker_port, false, config.into_federated_config_receiver());
 
     tokio::select! {
-        result = proxy_handle.join() => {
+        result = proxy.join() => {
             result.unwrap()??;
         },
         result = server => {
@@ -255,17 +257,14 @@ async fn handle_config_error(
 }
 
 async fn standalone_dev(
-    port: PortSelection,
+    mut proxy: ProxyHandle,
     message_sender: MessageSender,
     mut config: ConfigActor,
     tracing: bool,
 ) -> Result<(), ServerError> {
-    let mut proxy_handle = proxy::start(port).await?;
-    let proxy_port = proxy_handle.port;
-
     loop {
         let mut join_set = match config.current_result() {
-            Ok(config) => spawn_servers(proxy_port, message_sender.clone(), config, tracing).await?,
+            Ok(config) => spawn_servers(proxy.port, message_sender.clone(), config, tracing).await?,
             Err(error) => {
                 let mut set = JoinSet::new();
                 set.spawn(handle_config_error(error.to_string(), message_sender.clone()));
@@ -283,7 +282,7 @@ async fn standalone_dev(
             result = join_set.join_next() => {
                 result.expect("this set should not be empty")??;
             }
-            result = proxy_handle.join() => {
+            result = proxy.join() => {
                 result.unwrap()??;
                 // if the proxy is dead we should exit.
                 return Ok(())

@@ -1,9 +1,0 @@
-query {
-  todoListCollection(first: 100) {
-    edges {
-      node {
-        id
-      }
-    }
-  }
-}

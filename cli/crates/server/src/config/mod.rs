@@ -49,7 +49,7 @@ pub type ConfigStream = BoxStream<'static, Config>;
 
 /// Builds the configuration for the current project.
 ///
-/// Either by buildinv & running grafbase.config.ts or parsing grafbase.schema
+/// Either by building & running grafbase.config.ts or parsing grafbase.schema
 pub(crate) async fn build_config(
     environment_variables: &HashMap<String, String>,
     triggering_file: Option<PathBuf>,

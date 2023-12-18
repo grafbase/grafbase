@@ -1,20 +1,28 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
+use std::time::Duration;
+
 use backend::project::GraphType;
-use json_dotpath::DotPaths;
 use serde_json::Value;
-use utils::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
 use utils::environment::Environment;
 
-#[ignore]
 #[test]
 fn dev_watch() {
     let mut env = Environment::init();
 
     env.grafbase_init(GraphType::Single);
 
-    env.write_schema(format!("extend schema @experimental(codegen: true)\n{DEFAULT_SCHEMA}"));
+    env.write_schema(
+        r#"
+        extend schema @experimental(codegen: true)
+
+        extend type Query {
+            hello: String! @resolver(name: "hello")
+        }
+        "#,
+    );
+    env.write_resolver("hello.js", "export default function Resolver() { return 'hello'; }");
 
     env.grafbase_dev_watch();
 
@@ -22,30 +30,44 @@ fn dev_watch() {
 
     client.poll_endpoint(30, 300);
 
-    let response = client.gql::<Value>(DEFAULT_QUERY).send();
+    let response = client.gql::<Value>("query { hello }").send();
 
-    let todo_list_collection: Value = dot_get!(response, "data.todoListCollection.edges");
-
-    assert!(todo_list_collection.is_array());
-    assert!(!todo_list_collection.dot_has_checked("<").unwrap());
+    let hello: String = dot_get!(response, "data.hello");
+    assert_eq!(hello, "hello");
 
     client.snapshot();
 
-    env.append_to_schema(UPDATED_SCHEMA);
+    env.write_schema(
+        r#"
+        extend schema @experimental(codegen: true)
+
+        extend type Query {
+            hello: String! @resolver(name: "hello")
+            helloAgain: String! @resolver(name: "hello")
+        }
+        "#,
+    );
 
     client.poll_endpoint_for_changes(30, 300);
 
-    client.gql::<Value>(UPDATED_MUTATION).send();
+    let response = client.gql::<Value>("query { helloAgain }").send();
 
-    let response = client.gql::<Value>(UPDATED_QUERY).send();
+    let hello: String = dot_get!(response, "data.helloAgain");
+    assert_eq!(hello, "hello");
 
-    let user_id: String = dot_get!(response, "data.userCollection.edges.0.node.id");
-    let user_birthday: String = dot_get!(response, "data.userCollection.edges.0.node.birthday");
-    let user_verified: String = dot_get!(response, "data.userCollection.edges.0.node.verified");
+    // Update the resolver, check that causes changes
+    env.write_resolver("hello.js", "export default function Resolver() { return 'bye'; }");
+    // File watcher is on a 1 second debounce so we need to give it a chance to do its thing
+    // We're not changing the schema this time so we can't just poll for changes to that
+    std::thread::sleep(Duration::from_secs(3));
 
-    assert!(user_id.starts_with("user_"));
-    assert!(user_birthday.ends_with('Z'));
-    assert_eq!(user_verified, "VERIFIED");
+    let response = client.gql::<Value>("query { hello helloAgain }").send();
+
+    let hello: String = dot_get!(response, "data.hello");
+    assert_eq!(hello, "bye");
+
+    let hello: String = dot_get!(response, "data.helloAgain");
+    assert_eq!(hello, "bye");
 
     {
         // Check that the TS resolver types are being generated.
