@@ -490,8 +490,6 @@ impl PortSelection {
     }
 }
 
-/// determines if a port or port range are available
-
 /// finds an available port within a range
 pub async fn find_listener_for_available_port_in_range<R>(range: R) -> Result<std::net::TcpListener, ServerError>
 where
