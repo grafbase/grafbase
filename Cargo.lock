@@ -2002,6 +2002,8 @@ version = "0.1.0"
 dependencies = [
  "graphql-federated-graph",
  "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

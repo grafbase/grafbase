@@ -65,3 +65,51 @@ impl std::ops::Index<HeaderId> for Config {
         &self.headers[index.0]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::v2::{CacheConfig, CacheConfigTarget, Config};
+    use federated_graph::{FederatedGraphV1, FieldId, ObjectId, RootOperationTypes};
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn make_sure_we_can_deserialize_the_config() {
+        let mut cache_config = BTreeMap::<CacheConfigTarget, CacheConfig>::new();
+        cache_config.insert(
+            CacheConfigTarget::Field(FieldId(0)),
+            CacheConfig {
+                max_age: 0,
+                stale_while_revalidate: 0,
+            },
+        );
+
+        let config = Config {
+            graph: FederatedGraphV1 {
+                subgraphs: vec![],
+                root_operation_types: RootOperationTypes {
+                    query: ObjectId(0),
+                    mutation: None,
+                    subscription: None,
+                },
+                objects: vec![],
+                object_fields: vec![],
+                interfaces: vec![],
+                interface_fields: vec![],
+                fields: vec![],
+                enums: vec![],
+                unions: vec![],
+                scalars: vec![],
+                input_objects: vec![],
+                strings: vec![],
+                field_types: vec![],
+            },
+            strings: vec![],
+            headers: vec![],
+            default_headers: vec![],
+            subgraph_configs: Default::default(),
+            cache_config,
+        };
+
+        println!("{}", serde_json::json!(config));
+    }
+}
