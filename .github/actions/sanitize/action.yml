@@ -4,11 +4,11 @@ description: Run cargo fmt, clippy, test
 inputs:
   lint:
     required: false
-    default: "true"
+    default: 'true'
     description: To run fmt/clippy or not to run
   test:
     required: false
-    default: "true"
+    default: 'true'
     description: To run test or not to run
 
 runs:
@@ -52,4 +52,4 @@ runs:
       name: cargo nextest
       shell: bash
       run: |
-        CARGO_BUILD_JOBS=4 RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci
+        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci
