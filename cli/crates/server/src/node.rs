@@ -17,7 +17,7 @@ pub enum NodeError {
     OutdatedNode(String, String),
 
     /// returned if the installed version of node could not be retreived
-    #[error("Could not retrive the installed version of Node.js")]
+    #[error("Could not retrieve the installed version of Node.js")]
     CheckNodeVersion,
 }
 
