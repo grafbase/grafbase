@@ -52,4 +52,4 @@ runs:
       name: cargo nextest
       shell: bash
       run: |
-        CARGO_BUILD_JOBS=4 RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci
+        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci
