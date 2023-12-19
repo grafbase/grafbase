@@ -10,7 +10,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-axum = "0.7"
+axum.workspace = true
 async-compression = { version = "0.4", features = ["gzip", "tokio"] }
 async-tar = "0.4"
 # https://github.com/zkat/cacache-rs/commit/d39e83801dc4f1e6479dacd50dcf1372658a598f

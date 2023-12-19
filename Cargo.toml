@@ -31,7 +31,7 @@ repository = "https://github.com/grafbase/grafbase"
 [workspace.dependencies]
 again = "0.1"
 async-trait = "0.1"
-axum = "0.7"
+axum = "0.6"
 base64 = "0.21"
 bitflags = "2"
 bytes = "1"
