@@ -6,7 +6,7 @@ use common::consts::{
     GRAFBASE_SDK_PACKAGE_VERSION, GRAFBASE_TS_CONFIG_FILE_NAME,
 };
 use common::environment::{self, Project};
-use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
+use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use reqwest::{header, Client};
 use reqwest_middleware::ClientBuilder;
 use serde::Deserialize;
@@ -356,15 +356,17 @@ async fn stream_github_archive<'a>(
 ) -> Result<(), BackendError> {
     // not using the common environment since it's not initialized here
     // if the OS does not have a cache path or it is not UTF-8, we don't cache the download
-    let cache_directory = dirs::cache_dir().and_then(|path| path.join("grafbase").to_str().map(ToOwned::to_owned));
+    let cache_directory_path = dirs::cache_dir().map(|path| path.join("grafbase"));
 
     let mut client_builder = ClientBuilder::new(Client::new());
 
-    if let Some(cache_directory) = cache_directory {
+    if let Some(cache_directory_path) = cache_directory_path {
         client_builder = client_builder.with(Cache(HttpCache {
             mode: CacheMode::Default,
-            manager: CACacheManager { path: cache_directory },
-            options: None,
+            manager: CACacheManager {
+                path: cache_directory_path,
+            },
+            options: HttpCacheOptions::default(),
         }));
     }
 

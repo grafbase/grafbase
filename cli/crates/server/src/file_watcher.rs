@@ -98,11 +98,8 @@ where
                     }
                 }
 
-                Some(Err(errors)) => {
-                    if let Some(error) = errors
-                        .into_iter()
-                        .find(|error| error.paths.contains(&path.as_ref().to_owned()))
-                    {
+                Some(Err(error)) => {
+                    if error.paths.contains(&path.as_ref().to_owned()) {
                         // an error with the root path, non recoverable
                         return Err(ServerError::FileWatcher(error));
                     }

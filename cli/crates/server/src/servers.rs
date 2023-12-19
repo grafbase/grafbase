@@ -343,9 +343,8 @@ async fn spawn_servers(
                 .ok();
 
             // TODO consider disabling colored output from wrangler
-            let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
+            let error = String::from_utf8(strip_ansi_escapes::strip(error.to_string().as_bytes()))
                 .ok()
-                .and_then(|stripped| String::from_utf8(stripped).ok())
                 .unwrap_or_else(|| error.to_string());
 
             join_set.spawn(handle_config_error(error, message_sender.clone()));
