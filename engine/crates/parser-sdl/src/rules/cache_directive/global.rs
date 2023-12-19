@@ -69,7 +69,7 @@ pub struct CacheRule {
     pub access_scopes: Option<BTreeSet<CacheAccessScopeWrapper>>,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum GlobalCacheTarget<'a> {
     /// Type name
     Type(Cow<'a, str>),
@@ -77,7 +77,7 @@ pub enum GlobalCacheTarget<'a> {
     Field(Cow<'a, str>, Cow<'a, str>),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct GlobalCacheRules<'a>(HashMap<GlobalCacheTarget<'a>, CacheControl>);
 
 impl<'a> Deref for GlobalCacheRules<'a> {

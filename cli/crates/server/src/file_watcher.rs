@@ -11,6 +11,8 @@ use std::time::Duration;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::task::JoinSet;
+use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
+use tokio_stream::wrappers::BroadcastStream;
 
 const FILE_WATCHER_INTERVAL: Duration = Duration::from_secs(1);
 
@@ -117,6 +119,10 @@ where
 }
 
 impl ChangeStream {
+    pub fn into_stream(self) -> impl futures_util::Stream<Item = Result<PathBuf, BroadcastStreamRecvError>> {
+        BroadcastStream::new(self.receiver)
+    }
+
     pub async fn next(&mut self) -> Option<PathBuf> {
         loop {
             match self.receiver.recv().await {

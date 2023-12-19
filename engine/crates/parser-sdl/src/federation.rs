@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use crate::GlobalCacheRules;
 use engine::registry::ConnectorHeaderValue;
 
 /// Configuration for a federated graph
@@ -8,6 +9,8 @@ pub struct FederatedGraphConfig {
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
 
     pub default_headers: Vec<(String, SubgraphHeaderValue)>,
+
+    pub global_cache_rules: GlobalCacheRules<'static>,
 }
 
 /// Configuration for a subgraph of the current federated graph

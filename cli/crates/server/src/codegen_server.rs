@@ -6,7 +6,7 @@ use std::{
 
 use common::environment::{Project, SchemaLocation};
 use tokio::task::JoinHandle;
-use tokio_stream::StreamExt;
+use tokio_stream::{wrappers::errors::BroadcastStreamRecvError, StreamExt};
 
 use crate::{
     config::ConfigStream,
@@ -22,14 +22,21 @@ pub(crate) fn start_codegen_worker(
     config_changes: ConfigStream,
     message_sender: MessageSender,
 ) -> Result<(), ()> {
-    let handle = tokio::spawn(async move { codegen_worker_loop(file_changes, config_changes, message_sender).await });
+    let handle = tokio::spawn(async move { codegen_worker_task(file_changes, config_changes, message_sender).await });
     CODEGEN_WORKER_HANDLE.set(handle).map_err(|_| ())
 }
 
-async fn codegen_worker_loop(file_changes: ChangeStream, config_changes: ConfigStream, message_sender: MessageSender) {
+enum CodegenIncomingEvent {
+    ConfigChange,
+    FileChange(Result<PathBuf, BroadcastStreamRecvError>),
+}
+
+async fn codegen_worker_task(file_changes: ChangeStream, config_changes: ConfigStream, message_sender: MessageSender) {
     let project = Project::get();
     let schema_path = &project.schema_path;
     let generated_ts_resolver_types_path = project.generated_directory_path().join("index.ts");
+    let sdl_location = project.sdl_location();
+    let resolvers_path = project.udfs_source_path(common_types::UdfKind::Resolver);
 
     let mut last_seen_sdl = None;
 
@@ -40,49 +47,40 @@ async fn codegen_worker_loop(file_changes: ChangeStream, config_changes: ConfigS
         }
     }
 
-    let _ = tokio::join!(
-        tokio::spawn(type_generate_loop(config_changes, generated_ts_resolver_types_path)),
-        tokio::spawn(resolver_check_loop(file_changes, message_sender, last_seen_sdl))
-    );
-}
+    let mut stream = config_changes
+        .map(|_| CodegenIncomingEvent::ConfigChange)
+        .merge(file_changes.into_stream().map(CodegenIncomingEvent::FileChange));
 
-async fn type_generate_loop(mut config_changes: ConfigStream, destination_path: PathBuf) {
-    let sdl_location = Project::get().sdl_location();
-    let sdl_location = sdl_location.to_str().expect("utf8 paths");
-
-    while (config_changes.next().await).is_some() {
-        generate_ts_resolver_types(sdl_location, &destination_path)
-    }
-}
-
-async fn resolver_check_loop(
-    mut file_changes: ChangeStream,
-    message_sender: MessageSender,
-    last_seen_sdl: Option<String>,
-) {
-    let project = Project::get();
-    let resolvers_path = project.udfs_source_path(common_types::UdfKind::Resolver);
-
-    while let Some(path) = file_changes.next().await {
-        if path.extension() == Some(ffi::OsStr::new("ts"))
-            && path.ancestors().any(|ancestor| ancestor == resolvers_path)
-        {
-            // A resolver changed, check it.
-            let Some(sdl) = last_seen_sdl.as_deref() else {
-                continue;
-            };
-            if let Err(err) = typed_resolvers::check_resolver(sdl, &path) {
-                message_sender
-                    .send(ServerMessage::CompilationError(format!("{err:?}")))
-                    .ok();
+    while let Some(next) = stream.next().await {
+        match next {
+            CodegenIncomingEvent::ConfigChange => {
+                if let Some(sdl) = read_sdl(&sdl_location, &mut last_seen_sdl) {
+                    generate_ts_resolver_types(sdl, &generated_ts_resolver_types_path);
+                };
             }
-        }
+            CodegenIncomingEvent::FileChange(Ok(path)) => {
+                if path.extension() == Some(ffi::OsStr::new("ts"))
+                    && path.ancestors().any(|ancestor| ancestor == resolvers_path)
+                {
+                    // A resolver changed, check it.
+                    let Some(sdl) = last_seen_sdl.as_ref() else {
+                        continue;
+                    };
+                    if let Err(err) = typed_resolvers::check_resolver(sdl, &path) {
+                        message_sender
+                            .send(ServerMessage::CompilationError(format!("{err:?}")))
+                            .ok();
+                    }
+                }
+            }
+            CodegenIncomingEvent::FileChange(Err(_)) => (),
+        };
     }
 }
 
 fn read_sdl<'a>(path: &Path, last_seen_sdl: &'a mut Option<String>) -> Option<&'a str> {
     let sdl = fs::read_to_string(path).ok()?;
-    *last_seen_sdl = Some(sdl);
+    last_seen_sdl.replace(sdl);
     last_seen_sdl.as_deref()
 }
 

@@ -38,6 +38,7 @@ impl VersionedConfig {
                 headers: Default::default(),
                 default_headers: Default::default(),
                 subgraph_configs: Default::default(),
+                cache: Default::default(),
             },
             VersionedConfig::V2(latest) => latest,
         }

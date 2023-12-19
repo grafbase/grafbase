@@ -2087,7 +2087,10 @@ name = "engine-v2-config"
 version = "0.1.0"
 dependencies = [
  "graphql-federated-graph",
+ "insta",
  "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

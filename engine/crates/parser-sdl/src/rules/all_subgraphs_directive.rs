@@ -91,6 +91,18 @@ mod tests {
                     headers: [{name: "Other", value: "Bar"}]
                 )
                 @graph(type: federated)
+            extend schema
+                @cache(rules: [
+                    {
+                        maxAge: 10,
+                        types: [
+                            {
+                                name: "TypeName",
+                                fields: []
+                            }
+                        ]
+                    }
+                ])
         "#;
 
         let result = to_parse_result_with_variables(schema, &HashMap::new()).unwrap();
@@ -125,6 +137,19 @@ mod tests {
                         ),
                     ),
                 ],
+                global_cache_rules: GlobalCacheRules(
+                    {
+                        Type(
+                            "TypeName",
+                        ): CacheControl {
+                            public: false,
+                            max_age: 10,
+                            stale_while_revalidate: 0,
+                            invalidation_policy: None,
+                            access_scopes: None,
+                        },
+                    },
+                ),
             },
         )
         "###);
