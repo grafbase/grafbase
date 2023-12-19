@@ -5,8 +5,9 @@ mod directives;
 mod enums;
 mod fields;
 mod nested_key_fields;
+mod schema_definitions;
 
-use self::{directives::*, nested_key_fields::ingest_nested_key_fields};
+use self::{directives::*, nested_key_fields::ingest_nested_key_fields, schema_definitions::*};
 use crate::{
     subgraphs::{self, DefinitionId, DefinitionKind, DirectiveSiteId, SubgraphId},
     Subgraphs,
@@ -17,11 +18,13 @@ use async_graphql_value::ConstValue;
 pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
     let subgraph_id = subgraphs.push_subgraph(name, url);
 
+    let root_type_matcher = ingest_schema_definition(document);
+
     let directive_matcher = ingest_directive_definitions(document, |error| {
         subgraphs.push_ingestion_diagnostic(subgraph_id, error);
     });
 
-    ingest_top_level_definitions(subgraph_id, document, subgraphs, &directive_matcher);
+    ingest_top_level_definitions(subgraph_id, document, subgraphs, &directive_matcher, &root_type_matcher);
     ingest_definition_bodies(subgraph_id, document, subgraphs, &directive_matcher);
     ingest_nested_key_fields(subgraph_id, subgraphs);
 
@@ -35,6 +38,7 @@ fn ingest_top_level_definitions(
     document: &ast::ServiceDocument,
     subgraphs: &mut Subgraphs,
     directive_matcher: &DirectiveMatcher<'_>,
+    root_type_matcher: &RootTypeMatcher<'_>,
 ) {
     for definition in &document.definitions {
         match definition {
@@ -49,13 +53,33 @@ fn ingest_top_level_definitions(
                 let directives = subgraphs.new_directive_site();
 
                 let definition_id = match &type_definition.node.kind {
-                    ast::TypeKind::Object(_) => subgraphs.push_definition(
-                        subgraph_id,
-                        type_name,
-                        DefinitionKind::Object,
-                        description,
-                        directives,
-                    ),
+                    ast::TypeKind::Object(_) => {
+                        let definition_id = subgraphs.push_definition(
+                            subgraph_id,
+                            type_name,
+                            DefinitionKind::Object,
+                            description,
+                            directives,
+                        );
+
+                        match root_type_matcher.match_name(type_name) {
+                            RootTypeMatch::Query => {
+                                subgraphs.set_query_type(subgraph_id, definition_id);
+                            }
+                            RootTypeMatch::Mutation => {
+                                subgraphs.set_mutation_type(subgraph_id, definition_id);
+                            }
+                            RootTypeMatch::Subscription => {
+                                subgraphs.set_subscription_type(subgraph_id, definition_id);
+                            }
+                            RootTypeMatch::NotRootButHasDefaultRootName => {
+                                subgraphs.push_ingestion_diagnostic(subgraph_id, format!("The {type_name} type has the default name for a root but is itself not a root. This is not valid in a federation context."));
+                            }
+                            RootTypeMatch::NotRoot => (),
+                        }
+
+                        definition_id
+                    }
                     ast::TypeKind::Interface(_interface_type) => subgraphs.push_definition(
                         subgraph_id,
                         type_name,

@@ -20,11 +20,11 @@ enum join__Graph {
     STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
 }
 
-type Query {
-    getMammoth: Mammoth @join__field(graph: mangrove, overrides: "steppe")
-}
-
 type Mammoth {
     weightGrams: Int @join__field(graph: mangrove, overrides: "steppe")
     tuskLength: Int
+}
+
+type Query {
+    getMammoth: Mammoth @join__field(graph: mangrove, overrides: "steppe")
 }

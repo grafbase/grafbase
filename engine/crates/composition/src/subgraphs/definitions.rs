@@ -3,11 +3,6 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DefinitionId(pub(super) usize);
 
-impl DefinitionId {
-    pub(crate) const MIN: DefinitionId = DefinitionId(usize::MIN);
-    pub(crate) const MAX: DefinitionId = DefinitionId(usize::MAX);
-}
-
 // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
 #[derive(Default, Debug)]
 pub(crate) struct Definitions {
@@ -124,8 +119,12 @@ impl<'a> DefinitionWalker<'a> {
         self.definition().description.map(|id| self.walk(id))
     }
 
+    pub(crate) fn subgraph_id(self) -> SubgraphId {
+        self.definition().subgraph_id
+    }
+
     pub(crate) fn subgraph(self) -> SubgraphWalker<'a> {
-        self.walk(self.definition().subgraph_id)
+        self.subgraphs.walk_subgraph(self.subgraph_id())
     }
 
     pub(crate) fn directives(self) -> DirectiveSiteWalker<'a> {
@@ -135,9 +134,9 @@ impl<'a> DefinitionWalker<'a> {
 
 impl<'a> SubgraphWalker<'a> {
     pub(crate) fn definitions(self) -> impl Iterator<Item = DefinitionWalker<'a>> {
-        let subgraph_id = self.id;
+        let (subgraph_id, _) = self.id;
         let definitions = &self.subgraphs.definitions.definitions;
-        let start = definitions.partition_point(|def| def.subgraph_id < self.id);
+        let start = definitions.partition_point(|def| def.subgraph_id < subgraph_id);
         let subgraph_definitions = definitions[start..]
             .iter()
             .take_while(move |def| def.subgraph_id == subgraph_id);
@@ -152,7 +151,7 @@ impl<'a> SubgraphWalker<'a> {
             .interface_impls
             .iter()
             .filter(move |(implementee, _implementer)| *implementee == interface_name)
-            .filter_map(move |(_, implementer)| self.subgraphs.definition_names.get(&(*implementer, self.id)))
+            .filter_map(move |(_, implementer)| self.subgraphs.definition_names.get(&(*implementer, self.id.0)))
             .map(move |id| self.walk(*id))
     }
 }

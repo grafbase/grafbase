@@ -1,0 +1,22 @@
+type Query {
+  wasteCollectionPoints(city: String!): [CollectionPoint]
+  wasteStatistics(city: String!): WasteStats
+}
+
+type CollectionPoint {
+  id: ID!
+  address: String
+  type: String
+  openingHours: String
+}
+
+type WasteStats {
+  city: String
+  totalWasteCollected: Float
+  wasteTypeBreakdown: [WasteTypeBreakdown]
+}
+
+type WasteTypeBreakdown {
+  type: String
+  amount: Float
+}

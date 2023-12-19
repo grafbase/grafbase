@@ -21,10 +21,6 @@ enum join__Graph {
     PERFORMANCE @join__graph(name: "performance", url: "http://example.com/performance")
 }
 
-type Query {
-    getRollerCoaster(id: ID!): RollerCoaster
-}
-
 type RollerCoaster {
     id: ID!
     name: String!
@@ -39,4 +35,8 @@ type HistoricalData {
     year: Int! @join__field(graph: HISTORY)
     visitors: Int! @join__field(graph: HISTORY)
     incidents: Int! @join__field(graph: HISTORY)
+}
+
+type Query {
+    getRollerCoaster(id: ID!): RollerCoaster
 }

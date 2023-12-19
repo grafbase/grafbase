@@ -6,6 +6,7 @@ mod fields;
 mod input_object;
 mod interface;
 mod object;
+mod roots;
 mod scalar;
 
 pub(crate) use self::context::Context as ComposeContext;
@@ -41,10 +42,7 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
         }
     });
 
-    if !ctx.has_query_type() {
-        ctx.diagnostics
-            .push_fatal("The root `Query` object is not defined in any subgraph.".to_owned());
-    }
+    roots::merge_root_fields(ctx);
 }
 
 fn merge_object_definitions<'a>(
@@ -92,7 +90,8 @@ fn merge_object_definitions<'a>(
     let description = definitions.iter().find_map(|def| def.description());
     let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
-    let object_id = ctx.insert_object(first.name(), description, composed_directives);
+    let object_name = ctx.insert_string(first.name().id);
+    let object_id = ctx.insert_object(object_name, description, composed_directives);
 
     for key in definitions
         .iter()
@@ -106,9 +105,9 @@ fn merge_object_definitions<'a>(
         object::validate_shareable_object_fields_match(definitions, ctx);
     }
 
-    ctx.subgraphs.iter_field_groups(first.name().id, |fields| {
+    fields::for_each_field_group(definitions, |fields| {
         let Some(first) = fields.first() else { return };
-        object::compose_object_fields(is_shareable, *first, fields, ctx);
+        object::compose_object_fields(object_id, is_shareable, *first, fields, ctx);
     });
 }
 
@@ -117,7 +116,7 @@ fn merge_union_definitions(
     first_union: &DefinitionWalker<'_>,
     definitions: &[DefinitionWalker<'_>],
 ) {
-    let union_name = first_union.name();
+    let union_name = ctx.insert_string(first_union.name().id);
 
     let is_inaccessible = definitions
         .iter()
@@ -132,6 +131,7 @@ fn merge_union_definitions(
         .flat_map(|def| ctx.subgraphs.iter_union_members(def.id))
     {
         let member = first_union.walk(member);
-        ctx.insert_union_member(union_name.id, member.name().id);
+        let member_name = ctx.insert_string(member.name().id);
+        ctx.insert_union_member(union_name, member_name);
     }
 }

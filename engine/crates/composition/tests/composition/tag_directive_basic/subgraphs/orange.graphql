@@ -1,5 +1,5 @@
-type Query @tag(name: "orangeQuery") @shareable {
-  tags(filter: String @tag(name: "orangeTagsFilter")): [String] @tag(name: "orangeField")
+type Query @tag(name: "orangeQuery") {
+  tags(filter: String @tag(name: "orangeTagsFilter")): [String] @tag(name: "orangeField") @shareable
 }
 
 interface HasId @tag(name: "orangeInterface") {

@@ -1,0 +1,26 @@
+schema {
+  query: WasteManagementQuery
+}
+
+type WasteManagementQuery {
+  recyclingCenters(city: String!): [RecyclingCenter]
+  hazardousWasteData(city: String!): HazardousWasteStats
+}
+
+type RecyclingCenter {
+  id: ID!
+  address: String
+  materialsAccepted: [String]
+  operatingHours: String
+}
+
+type HazardousWasteStats {
+  city: String
+  totalHazardousWaste: Float
+  categoryBreakdown: [HazardousCategoryBreakdown]
+}
+
+type HazardousCategoryBreakdown {
+  category: String
+  amount: Float
+}

@@ -88,6 +88,8 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
                 write_field(field.field_id, graph, &mut sdl)?;
             }
             writeln!(sdl, "}}\n")?;
+        } else {
+            sdl.push_str("\n\n");
         }
     }
 

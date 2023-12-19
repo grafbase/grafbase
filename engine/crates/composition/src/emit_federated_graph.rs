@@ -40,12 +40,28 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_fields(mem::take(&mut ir.fields), &mut ctx);
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.resolvable_keys, &mut ctx);
+    push_object_fields_from_interface_entities(&ir.object_fields_from_entity_interfaces, &mut ctx);
 
     federated::FederatedGraph::V1(out)
 }
 
+fn push_object_fields_from_interface_entities(
+    object_fields_from_entity_interfaces: &BTreeSet<(federated::StringId, federated::FieldId)>,
+    ctx: &mut Context<'_>,
+) {
+    for (object_name, field_id) in object_fields_from_entity_interfaces {
+        let federated::Definition::Object(object_id) = ctx.definitions[object_name] else {
+            continue;
+        };
+        ctx.push_object_field(object_id, *field_id);
+    }
+}
+
 fn emit_interface_impls(ctx: &mut Context<'_>) {
     for (implementee, implementer) in ctx.subgraphs.iter_interface_impls() {
+        let implementer = ctx.insert_string(ctx.subgraphs.walk(implementer));
+        let implementee = ctx.insert_string(ctx.subgraphs.walk(implementee));
+
         let federated::Definition::Interface(implementee) = ctx.definitions[&implementee] else {
             continue;
         };
@@ -81,7 +97,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
     )> = Vec::new();
 
     for FieldIr {
-        parent_name,
+        parent_definition,
         field_name,
         field_type,
         arguments,
@@ -125,9 +141,10 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                 for (subgraph_id, definition, provides) in provides.iter().filter_map(|field_id| {
                     let field = ctx.subgraphs.walk_field(*field_id);
                     field.directives().provides().map(|provides| {
+                        let field_type_name = ctx.insert_string(field.r#type().type_name());
                         (
-                            federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
-                            ctx.definitions[&field.r#type().type_name().id],
+                            federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
+                            ctx.definitions[&field_type_name],
                             provides,
                         )
                     })
@@ -139,7 +156,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                     let field = ctx.subgraphs.walk_field(*field_id);
                     field.directives().requires().map(|provides| {
                         (
-                            federated::SubgraphId(field.parent_definition().subgraph().id.idx()),
+                            federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
                             provides,
                         )
                     })
@@ -150,7 +167,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
                 id
             };
 
-        match ctx.definitions[&parent_name] {
+        match parent_definition {
             parent @ federated::Definition::Object(object_id) => {
                 let field_id = push_field(ctx, parent, composed_directives);
                 ctx.push_object_field(object_id, field_id);
@@ -186,7 +203,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
     }
 }
 
-fn emit_union_members(ir_members: &BTreeSet<(subgraphs::StringId, subgraphs::StringId)>, ctx: &mut Context<'_>) {
+fn emit_union_members(ir_members: &BTreeSet<(federated::StringId, federated::StringId)>, ctx: &mut Context<'_>) {
     for (union_name, members) in &ir_members.iter().group_by(|(union_name, _)| union_name) {
         let federated::Definition::Union(union_id) = ctx.definitions[union_name] else {
             continue;
@@ -212,7 +229,7 @@ fn emit_keys(keys: &[KeyIr], ctx: &mut Context<'_>) {
         let key = ctx.subgraphs.walk(*key_id);
         let selection = attach_selection(key.fields(), *parent, ctx);
         let key = federated::Key {
-            subgraph_id: federated::SubgraphId(key.parent_definition().subgraph().id.idx()),
+            subgraph_id: federated::SubgraphId(key.parent_definition().subgraph_id().idx()),
             fields: selection,
             is_interface_object: *is_interface_object,
         };

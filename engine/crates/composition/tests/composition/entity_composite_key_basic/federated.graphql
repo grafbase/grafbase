@@ -21,14 +21,6 @@ enum join__Graph {
     STUDENTS @join__graph(name: "students", url: "http://example.com/students")
 }
 
-type Query {
-    courses: [Course] @join__field(graph: COURSES)
-    course(id: ID!): Course @join__field(graph: COURSES)
-    courseRating(courseId: ID!): [CourseRating] @join__field(graph: RATINGS)
-    students: [Student] @join__field(graph: STUDENTS)
-    student(id: ID!): Student @join__field(graph: STUDENTS)
-}
-
 type Course
     @join__type(graph: COURSES, key: "id")
     @join__type(graph: STUDENTS, key: "id")
@@ -66,4 +58,12 @@ type Student
     id: ID! @join__field(graph: STUDENTS)
     name: String @join__field(graph: STUDENTS)
     enrollments: [Enrollment] @join__field(graph: STUDENTS)
+}
+
+type Query {
+    courses: [Course] @join__field(graph: COURSES)
+    course(id: ID!): Course @join__field(graph: COURSES)
+    courseRating(courseId: ID!): [CourseRating] @join__field(graph: RATINGS)
+    students: [Student] @join__field(graph: STUDENTS)
+    student(id: ID!): Student @join__field(graph: STUDENTS)
 }

@@ -32,15 +32,6 @@ type Bird @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
     notes: String @deprecated(reason: "Field is obsolete due to new data model.")
 }
 
-type Query {
-    birds: [Bird] @join__field(graph: BIRDWATCH_BASIC)
-    bird(id: ID!): Bird @join__field(graph: BIRDWATCH_BASIC)
-    birdObservations(filters: BirdObservationFilters): [BirdObservation] @join__field(graph: OBSERVATIONS)
-    birdObservation(observationID: ID!): BirdObservation @join__field(graph: OBSERVATIONS)
-    birdSightings: [BirdSighting] @join__field(graph: SIGHTINGS)
-    birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting @join__field(graph: SIGHTINGS)
-}
-
 type BirdObservation {
     bird: Bird! @join__field(graph: OBSERVATIONS)
     observationID: ID! @join__field(graph: OBSERVATIONS)
@@ -59,6 +50,15 @@ type BirdSighting @deprecated(reason: "we haven't seen any birds in a while :(")
     sightingID: ID! @join__field(graph: SIGHTINGS)
     observer: String! @join__field(graph: SIGHTINGS)
     weatherConditions: String @join__field(graph: SIGHTINGS)
+}
+
+type Query {
+    birds: [Bird] @join__field(graph: BIRDWATCH_BASIC)
+    bird(id: ID!): Bird @join__field(graph: BIRDWATCH_BASIC)
+    birdObservations(filters: BirdObservationFilters): [BirdObservation] @join__field(graph: OBSERVATIONS)
+    birdObservation(observationID: ID!): BirdObservation @join__field(graph: OBSERVATIONS)
+    birdSightings: [BirdSighting] @join__field(graph: SIGHTINGS)
+    birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting @join__field(graph: SIGHTINGS)
 }
 
 enum ObserverType {

@@ -39,17 +39,6 @@ type Brochette
     servedWith: String @join__field(graph: BROCHETTE_REPOSITORY)
 }
 
-type Query {
-    kebabs: [Kebab] @join__field(graph: BROCHETTE_REPOSITORY)
-    kebab(id: ID!): Kebab @join__field(graph: BROCHETTE_REPOSITORY)
-    brochettes: [Brochette] @join__field(graph: BROCHETTE_REPOSITORY)
-    brochette(id: ID!): Brochette @join__field(graph: BROCHETTE_REPOSITORY)
-    kushis: [Kushi] @join__field(graph: KUSHI_STORE)
-    kushi(id: ID!): Kushi @join__field(graph: KUSHI_STORE)
-    schaschliks: [Schaschlik] @join__field(graph: SCHASCHLIK_SERVICE)
-    schaschlik(id: ID!): Schaschlik @join__field(graph: SCHASCHLIK_SERVICE)
-}
-
 type Kushi
     @join__type(graph: KUSHI_STORE, key: "id")
 {
@@ -66,4 +55,15 @@ type Schaschlik
     meatType: String @join__field(graph: SCHASCHLIK_SERVICE)
     spices: [String] @join__field(graph: SCHASCHLIK_SERVICE)
     originCountry: String @join__field(graph: SCHASCHLIK_SERVICE)
+}
+
+type Query {
+    kebabs: [Kebab] @join__field(graph: BROCHETTE_REPOSITORY)
+    kebab(id: ID!): Kebab @join__field(graph: BROCHETTE_REPOSITORY)
+    brochettes: [Brochette] @join__field(graph: BROCHETTE_REPOSITORY)
+    brochette(id: ID!): Brochette @join__field(graph: BROCHETTE_REPOSITORY)
+    kushis: [Kushi] @join__field(graph: KUSHI_STORE)
+    kushi(id: ID!): Kushi @join__field(graph: KUSHI_STORE)
+    schaschliks: [Schaschlik] @join__field(graph: SCHASCHLIK_SERVICE)
+    schaschlik(id: ID!): Schaschlik @join__field(graph: SCHASCHLIK_SERVICE)
 }

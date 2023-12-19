@@ -1,5 +1,5 @@
-type Query @tag(name: "appleQuery") @shareable {
-  tags(filter: String @tag(name: "appleTagsFilter")): [String] @tag(name: "appleField")
+type Query @tag(name: "appleQuery") {
+  tags(filter: String @tag(name: "appleTagsFilter")): [String] @tag(name: "appleField") @shareable
 }
 
 interface HasId @tag(name: "appleInterface") {

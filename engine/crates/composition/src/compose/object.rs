@@ -65,7 +65,7 @@ pub(super) fn merge_field_arguments<'a>(
         let argument_is_inaccessible = || arguments.iter().any(|(_, arg)| arg.directives().inaccessible());
         let argument_type_is_inaccessible = arguments.iter().any(|(_, arg)| {
             arg.r#type()
-                .definition(arg.field().parent_definition().subgraph().id)
+                .definition(arg.field().parent_definition().subgraph_id())
                 .map(|def| def.directives().inaccessible())
                 .unwrap_or(false)
         });
@@ -114,12 +114,12 @@ fn required_argument_not_in_intersection_error(
 }
 
 pub(super) fn compose_object_fields<'a>(
+    parent_definition: federated::ObjectId,
     object_is_shareable: bool,
     first: FieldWalker<'a>,
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
 ) {
-    let parent_name = first.parent_definition().name();
     let field_name = first.name();
 
     if !object_is_shareable
@@ -174,7 +174,7 @@ pub(super) fn compose_object_fields<'a>(
         !field.directives().inaccessible()
             && field
                 .r#type()
-                .definition(field.parent_definition().subgraph().id)
+                .definition(field.parent_definition().subgraph_id())
                 .filter(|parent| parent.directives().inaccessible())
                 .is_some()
     }) {
@@ -199,7 +199,7 @@ pub(super) fn compose_object_fields<'a>(
     let resolvable_in = fields
         .first()
         .filter(|_| fields.len() == 1)
-        .map(|field| federated::SubgraphId(field.parent_definition().subgraph().id.idx()));
+        .map(|field| federated::SubgraphId(field.parent_definition().subgraph_id().idx()));
 
     let provides = fields
         .iter()
@@ -225,7 +225,7 @@ pub(super) fn compose_object_fields<'a>(
     };
 
     ctx.insert_field(ir::FieldIr {
-        parent_name: parent_name.id,
+        parent_definition: federated::Definition::Object(parent_definition),
         field_name: field_name.id,
         field_type,
         arguments,
@@ -269,7 +269,7 @@ fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<f
         }
 
         overrides.push(federated::Override {
-            graph: federated::SubgraphId(field_subgraph.id.idx()),
+            graph: federated::SubgraphId(field_subgraph.subgraph_id().idx()),
             from: ctx
                 .subgraphs
                 .iter_subgraphs()

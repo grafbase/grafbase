@@ -1,0 +1,11 @@
+type Query {
+  almondFarms: [AlmondFarm]
+}
+
+type AlmondFarm {
+  id: ID!
+  name: String
+  location: Location
+  size: Float # in hectares
+  productionVolume: Float # in metric tons per year
+}

@@ -40,17 +40,17 @@ type Teletubby
     mood: Mood @join__field(graph: TELETUBBYREPOSITORY)
 }
 
-type Query {
-    getActivity(name: String!): Activity @join__field(graph: ACTIVITIES)
-    getEpisode(title: String!): Episode @join__field(graph: EPISODES)
-    getTeletubby(name: String!): Teletubby @join__field(graph: TELETUBBYREPOSITORY)
-}
-
 type Episode {
     title: String! @join__field(graph: EPISODES)
     duration: Int! @join__field(graph: EPISODES)
     featuredTeletubby: Teletubby! @join__field(graph: EPISODES)
     featuredToys: [FavoriteToy!] @join__field(graph: EPISODES)
+}
+
+type Query {
+    getActivity(name: String!): Activity @join__field(graph: ACTIVITIES)
+    getEpisode(title: String!): Episode @join__field(graph: EPISODES)
+    getTeletubby(name: String!): Teletubby @join__field(graph: TELETUBBYREPOSITORY)
 }
 
 enum FavoriteToy {

@@ -7,7 +7,8 @@ pub(super) fn merge_interface_definitions<'a>(
 ) {
     let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
     let interface_description = definitions.iter().find_map(|def| def.description());
-    ctx.insert_interface(first.name(), interface_description, composed_directives);
+    let interface_name = ctx.insert_string(first.name().id);
+    let interface_id = ctx.insert_interface(interface_name, interface_description, composed_directives);
 
     let mut all_fields: Vec<(StringId, _)> = definitions
         .iter()
@@ -35,7 +36,7 @@ pub(super) fn merge_interface_definitions<'a>(
         };
 
         ctx.insert_field(ir::FieldIr {
-            parent_name: first.name().id,
+            parent_definition: federated::Definition::Interface(interface_id),
             field_name: field.name().id,
             field_type,
             arguments: Vec::new(),
