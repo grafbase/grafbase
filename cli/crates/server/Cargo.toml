@@ -49,7 +49,7 @@ tempfile = "3"
 thiserror = "1"
 tokio = { workspace = true, features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync", "io-util"] }
-tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
+tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 version-compare = "0.1"
 which = "4"

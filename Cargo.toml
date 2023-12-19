@@ -54,6 +54,7 @@ strum = "0.25"
 tar = { git = "https://github.com/obmarg/tar-rs.git", rev = "bffee32190d531c03d806680daebd89cb1544be1" }
 thiserror = "1"
 tokio = "1"
+tower-http = "0.4"
 url = "2"
 uuid = "1"
 ulid = "1"

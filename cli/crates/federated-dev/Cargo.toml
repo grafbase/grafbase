@@ -27,7 +27,7 @@ serde_json.workspace = true
 thiserror = "1.0.51"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 tokio-stream = "0.1"
-tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
+tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 url = "2.5.0"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.51.0" }
