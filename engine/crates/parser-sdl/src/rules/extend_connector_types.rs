@@ -112,12 +112,27 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
             .map(|field| (field.name.clone(), field))
             .collect::<Vec<_>>();
 
+        let is_external = ExternalDirective::from_directives(&type_definition.directives, ctx).is_some();
+        let is_shareable = ShareableDirective::from_directives(&type_definition.directives, ctx).is_some();
+
+        super::basic_type::handle_key_directives(&type_definition.directives, type_name, ctx);
+
         let mut registry = ctx.registry.borrow_mut();
-        let Some(MetaType::Object(registry::ObjectType { fields, .. })) = registry.types.get_mut(type_name) else {
+
+        let Some(MetaType::Object(registry::ObjectType {
+            fields,
+            shareable,
+            external,
+            ..
+        })) = registry.types.get_mut(type_name)
+        else {
             drop(registry);
             ctx.report_error(vec![type_definition.pos], format!("Type '{type_name}' does not exist"));
             return;
         };
+
+        *shareable |= is_shareable;
+        *external |= is_external;
 
         fields.extend(extended_fields);
     }
@@ -157,21 +172,106 @@ mod tests {
             .expect("StripeCustomer to have an email field after parsing");
     }
 
-    #[rstest::rstest]
-    // Technically there's nothing wrong with this first one, but I'd expect it to not work well,
-    // so want to make sure it errors
-    #[case::extending_native_type(r#"
+    #[test]
+    fn types_from_resolvers_of_extended_connector_types_can_be_extended() {
+        let output = futures::executor::block_on(crate::parse(
+            r#"
         extend schema @openapi(name: "Stripe", namespace: true, schema: "http://example.com")
 
-        extend type Foo {
-            foo: String! @resolver(name: "hello")
+        extend type StripeCustomer {
+            email: String @resolver(name: "email")
+            location: Place @resolver(name: "customer/location")
         }
-        type Foo {
-            bar: String
+
+        extend type Place {
+            annualPrecipitations: Int @resolver(name: "place/annualPrecipitations")
         }
-    "#, &[
-        "Type `Foo` is present multiple times."
-    ])]
+
+        type Place {
+            id: ID!
+            name: String
+        }
+
+        extend type Place {
+            squareMeterPrice: Int @resolver(name: "place/squareMeterPrice")
+        }
+        "#,
+            &HashMap::new(),
+            false,
+            &FakeConnectorParser,
+        ));
+
+        let registry = output.unwrap().registry;
+
+        registry
+            .types
+            .get("StripeCustomer")
+            .unwrap()
+            .field_by_name("location")
+            .expect("StripeCustomer to have a location field after parsing");
+
+        let place = registry.types.get("Place").unwrap();
+
+        place.field_by_name("annualPrecipitations").unwrap();
+        place.field_by_name("squareMeterPrice").unwrap();
+        place.field_by_name("name").unwrap();
+    }
+
+    #[test]
+    fn types_from_resolvers_of_extended_connector_types_can_be_extended_with_directives() {
+        let output = futures::executor::block_on(crate::parse(
+            r#"
+        extend schema @openapi(name: "Stripe", namespace: true, schema: "http://example.com")
+
+        extend type StripeCustomer {
+            email: String @resolver(name: "email")
+            location: Place @resolver(name: "customer/location") @shareable
+        }
+
+        extend type Place @shareable {
+            annualPrecipitations: Int @resolver(name: "place/annualPrecipitations") @external
+        }
+
+        type Place @external {
+            id: ID!
+            name: String @shareable
+        }
+
+        extend type Place {
+            squareMeterPrice: Int @resolver(name: "place/squareMeterPrice") @shareable
+        }
+        "#,
+            &HashMap::new(),
+            false,
+            &FakeConnectorParser,
+        ));
+
+        let registry = output.unwrap().registry;
+
+        let location = registry
+            .types
+            .get("StripeCustomer")
+            .unwrap()
+            .field_by_name("location")
+            .expect("StripeCustomer to have a location field after parsing");
+        assert!(location.shareable);
+
+        let place = registry.types.get("Place").unwrap();
+        let place_object = place.object().unwrap();
+        assert!(place_object.shareable);
+        assert!(place_object.external);
+
+        let annual_precipitations = place.field_by_name("annualPrecipitations").unwrap();
+        assert!(annual_precipitations.external);
+
+        let square_meter_price = place.field_by_name("squareMeterPrice").unwrap();
+        assert!(square_meter_price.shareable);
+
+        let name = place.field_by_name("name").unwrap();
+        assert!(name.shareable);
+    }
+
+    #[rstest::rstest]
     #[case::extend_missing_type(r#"
         extend schema @openapi(name: "Stripe", namespace: true, schema: "http://example.com")
 

@@ -42,7 +42,8 @@ impl<'a> Visitor<'a> for BasicType {
         let directives = &type_definition.node.directives;
 
         if ["Query", "Mutation"].contains(&type_definition.node.name.node.as_str())
-            | directives.iter().any(|directive| directive.is_model())
+            || directives.iter().any(|directive| directive.is_model())
+            || type_definition.node.extend
         {
             return;
         }
@@ -130,43 +131,7 @@ impl<'a> Visitor<'a> for BasicType {
         // final schema.
         add_input_type_non_primitive(ctx, object, &type_name);
 
-        // We also need to parse any @key directives
-        let key_directives = directives
-            .iter()
-            .filter(|directive| directive.node.name.node == "key")
-            .collect::<Vec<_>>();
-
-        let (oks, errors) = key_directives
-            .into_iter()
-            .map(|directive| {
-                Ok((
-                    directive.pos,
-                    parse_directive::<KeyDirective>(directive, ctx.variables)?,
-                ))
-            })
-            .partition_result::<Vec<_>, Vec<_>, _, _>();
-
-        ctx.append_errors(errors);
-
-        ctx.append_errors(validate_keys(&oks, {
-            let registry = ctx.registry.borrow();
-            let Some(MetaType::Object(object)) = registry.types.get(&type_name) else {
-                // Apparently this can happen in the face of duplicate types.
-                // Which is annoying but ok
-                return;
-            };
-            object.clone()
-        }));
-
-        for (_, directive) in oks {
-            ctx.registry
-                .borrow_mut()
-                .federation_entities
-                .entry(type_name.clone())
-                .or_default()
-                .keys
-                .push(directive.into_key());
-        }
+        handle_key_directives(directives, &type_name, ctx)
     }
 }
 
@@ -177,6 +142,50 @@ impl KeyDirective {
             (false, _) => FederationKey::unresolvable(self.fields.0),
             (_, Some(select)) => FederationKey::join(self.fields.0, select.to_join_resolver()),
         }
+    }
+}
+
+pub(super) fn handle_key_directives(
+    directives: &[Positioned<engine_parser::types::ConstDirective>],
+    type_name: &str,
+    ctx: &mut VisitorContext<'_>,
+) {
+    // We also need to parse any @key directives
+    let key_directives = directives
+        .iter()
+        .filter(|directive| directive.node.name.node == "key")
+        .collect::<Vec<_>>();
+
+    let (oks, errors) = key_directives
+        .into_iter()
+        .map(|directive| {
+            Ok((
+                directive.pos,
+                parse_directive::<KeyDirective>(directive, ctx.variables)?,
+            ))
+        })
+        .partition_result::<Vec<_>, Vec<_>, _, _>();
+
+    ctx.append_errors(errors);
+
+    ctx.append_errors(validate_keys(&oks, {
+        let registry = ctx.registry.borrow();
+        let Some(MetaType::Object(object)) = registry.types.get(type_name) else {
+            // Apparently this can happen in the face of duplicate types.
+            // Which is annoying but ok
+            return;
+        };
+        object.clone()
+    }));
+
+    for (_, directive) in oks {
+        ctx.registry
+            .borrow_mut()
+            .federation_entities
+            .entry(type_name.to_owned())
+            .or_default()
+            .keys
+            .push(directive.into_key());
     }
 }
 

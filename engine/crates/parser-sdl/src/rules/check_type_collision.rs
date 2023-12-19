@@ -23,6 +23,11 @@ impl<'a> Visitor<'a> for CheckTypeCollision {
     fn enter_type_definition(&mut self, ctx: &mut VisitorContext<'a>, type_definition: &'a Positioned<TypeDefinition>) {
         let ty = &type_definition.node;
         let name = ty.name.node.to_string();
+
+        if ty.extend {
+            return;
+        }
+
         if !self.type_pokedex.insert(name) {
             ctx.report_error(
                 vec![type_definition.pos],
