@@ -112,22 +112,6 @@ g.type('User', {
 })
 ```
 
-Default values are checked against the given variants:
-
-```ts
-const e = g.enum('Fruits', ['Apples', 'Oranges'])
-
-// this works
-g.type('User', {
-  favoriteFruit: g.enumRef(e).default('Oranges')
-})
-
-// this gives a compiler error
-g.type('User', {
-  favoriteFruit: g.enumRef(e).default('Bananas')
-})
-```
-
 ## Queries and Mutations
 
 Queries are generated with the `query` method, mutations with the `mutation` method:
@@ -292,17 +276,6 @@ Certain field types can have a limited length:
 ```typescript
 const user = g.type('User', {
   name: g.string().length({ min: 1, max: 255 })
-})
-```
-
-## Defaults
-
-Default values for certain field types can be given with the `default` method. The default parameters are type-checked to fit the field type:
-
-```typescript
-const user = g.type('User', {
-  name: g.string().default('meow'),
-  age: g.int().default(11)
 })
 ```
 
