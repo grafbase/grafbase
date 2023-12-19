@@ -16,7 +16,7 @@ graphql-federated-graph = { path = "../federated-graph", version = "0.2.0" }
 async-graphql-parser = "6"
 async-graphql-value = "6"
 indexmap = "2"
-itertools = "0.11.0"
+itertools = "0.12.0"
 
 [dev-dependencies]
 datatest-stable = "0.2.3"

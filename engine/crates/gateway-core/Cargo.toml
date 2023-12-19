@@ -32,7 +32,7 @@ log = { path = "../log" }
 bytes = { workspace = true }
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs.git", branch = "fix-multipart-mixed" }
 async-sse = "5"
-headers = "0.3"
+headers = "0.4"
 mime = "0.3"
 
 [dev-dependencies]

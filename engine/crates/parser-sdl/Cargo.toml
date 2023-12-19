@@ -33,7 +33,7 @@ tuple = "0.5"
 futures = "0.3"
 nom = "7"
 Inflector = { version = "0.11", default-features = false }
-colored = "2.0.4"
+colored = "2.1.0"
 indexmap.workspace = true
 
 [dev-dependencies]

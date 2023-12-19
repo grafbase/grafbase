@@ -2,7 +2,7 @@
   "author": "",
   "description": "",
   "devDependencies": {
-    "@grafbase/sdk": "~0.12.0"
+    "@grafbase/sdk": "~0.13.0"
   },
   "keywords": [],
   "license": "ISC",

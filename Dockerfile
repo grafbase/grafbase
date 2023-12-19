@@ -1,5 +1,5 @@
 # Build
-FROM rust:1.73-alpine3.18 AS build
+FROM rust:1.74-alpine3.18 AS build
 
 WORKDIR /grafbase
 
@@ -24,7 +24,7 @@ WORKDIR /grafbase
 RUN cargo build -p grafbase --release
 
 # Run
-FROM alpine:3.18
+FROM alpine:3.19
 
 WORKDIR /grafbase
 

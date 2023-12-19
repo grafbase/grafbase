@@ -10,17 +10,17 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-axum = "0.6"
+axum = "0.7"
 async-compression = { version = "0.4", features = ["gzip", "tokio"] }
 async-tar = "0.4"
 # https://github.com/zkat/cacache-rs/commit/d39e83801dc4f1e6479dacd50dcf1372658a598f
 # breaks the Linux musl build because the `reflink` dependency does not compile for that target.
-cacache = "=11.1.0"
+cacache = "=11.7.1"
 chrono = "0.4"
 const_format = { version = "0.2", features = ["rust_1_64"] }
 cynic = { version = "3", features = ["http-reqwest"] }
 dirs = "5"
-http-cache-reqwest = "0.7"
+http-cache-reqwest = "0.12"
 reqwest = { version = "0.11", features = [
     "rustls-tls",
     "stream",
@@ -30,12 +30,12 @@ reqwest-middleware = "0.2"
 serde = "1"
 serde_json = "1"
 tar = "0.4"
-tempfile = "3.4"
+tempfile = "3.8"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["tokio-util"] }
 tokio-util = { version = "0.7", features = ["futures-io", "compat"] }
-tower-http = { version = "0.4", features = ["trace"] }
+tower-http = { version = "0.5", features = ["trace"] }
 ulid = "1"
 url = "2"
 urlencoding = "2"

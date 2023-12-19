@@ -9,15 +9,15 @@
     "types": "tsc --noEmit"
   },
   "dependencies": {
-    "@pathfinder-ide/react": "0.2.6",
+    "@pathfinder-ide/react": "0.3.3",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@types/react": "18.2.35",
-    "@types/react-dom": "18.2.14",
+    "@types/react": "18.2.45",
+    "@types/react-dom": "18.2.18",
     "@vitejs/plugin-react": "^4.0.0",
-    "typescript": "5.2.2",
-    "vite": "4.5.0"
+    "typescript": "5.3.3",
+    "vite": "4.5.1"
   }
 }
