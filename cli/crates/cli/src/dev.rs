@@ -49,7 +49,6 @@ pub fn dev(
         let mut message_group_buffer = std::collections::HashMap::new();
 
         while let Some(message) = message_receiver.recv().await {
-            dbg!(message_group_buffer.len());
             match message {
                 ServerMessage::Ready { port, is_federated, .. } => {
                     READY.call_once(|| {

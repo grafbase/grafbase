@@ -532,8 +532,6 @@ async fn invoke(
         ApiError::UdfInvocation
     })?;
 
-    dbg!(log_entries.len());
-
     let mut messages = vec![];
 
     for UdfMessage {
