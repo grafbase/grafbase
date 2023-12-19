@@ -36,8 +36,8 @@ worker.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
-rustls = "0.21.9"
-rustls-native-certs = "0.6.3"
+rustls = "0.22.1"
+rustls-native-certs = "0.7.0"
 # https://github.com/sfackler/rust-postgres/pull/1067
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase" }
-tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls" }
+tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", branch = "grafbase-tokio-postgres" }

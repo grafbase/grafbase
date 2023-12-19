@@ -60,7 +60,7 @@ where
 
     let handle = Handle::current();
 
-    let mut debouncer = new_debouncer(FILE_WATCHER_INTERVAL, None, move |res| {
+    let mut debouncer = new_debouncer(FILE_WATCHER_INTERVAL, move |res| {
         handle.block_on(async { notify_sender.send(res).await.expect("must be open") });
     })?;
 
@@ -98,11 +98,8 @@ where
                     }
                 }
 
-                Some(Err(errors)) => {
-                    if let Some(error) = errors
-                        .into_iter()
-                        .find(|error| error.paths.contains(&path.as_ref().to_owned()))
-                    {
+                Some(Err(error)) => {
+                    if error.paths.contains(&path.as_ref().to_owned()) {
                         // an error with the root path, non recoverable
                         return Err(ServerError::FileWatcher(error));
                     }

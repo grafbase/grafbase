@@ -22,12 +22,12 @@ fslock = "0.2"
 futures-util = { workspace = true }
 handlebars = "4"
 hyper = { version = "0.14", features = ["tcp"] }
-itertools = "0.11"
+itertools = "0.12"
 log = "0.4"
 notify = { version = "6", default-features = false, features = [
   "macos_fsevent",
 ] }
-notify-debouncer-mini = { version = "0.3", default-features = false }
+notify-debouncer-mini = { version = "0.4", default-features = false }
 path-slash = "0.2"
 reqwest = { version = "0.11", features = [
   "rustls-tls",
@@ -42,14 +42,14 @@ sqlx = { version = "0.7", features = [
   "sqlite",
   "json",
 ] }
-strip-ansi-escapes = "0.1"
+strip-ansi-escapes = "0.2"
 strum = { version = "0.25", features = ["derive"] }
 tar.workspace = true
 tempfile = "3"
 thiserror = "1"
 tokio = { workspace = true, features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync", "io-util"] }
-tower-http = { version = "0.4", features = ["cors", "fs", "trace"] }
+tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 version-compare = "0.1"
 which = "4"

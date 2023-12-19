@@ -19,7 +19,7 @@ tokio = { workspace = true }
 rusoto_core = "0.48"
 bytes = "1"
 serde_json = "1"
-tower-http = { version = "0.4", features = ["cors"] }
+tower-http = { workspace = true, features = ["cors"] }
 ulid = "1"
 # hyper = "0.14"
 
