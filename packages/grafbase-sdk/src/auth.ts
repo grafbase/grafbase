@@ -168,10 +168,14 @@ export class AuthRules {
   }
 }
 
-export interface AuthParams {
+type RequireAtLeastOne<T> = {
+  [K in keyof T]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<keyof T, K>>>
+}[keyof T]
+
+export type AuthParams = RequireAtLeastOne<{
   providers?: FixedLengthArray<AuthProvider, 1>
   rules?: AuthRuleF
-}
+}>
 
 export class Authentication {
   private providers?: FixedLengthArray<AuthProvider, 1>
