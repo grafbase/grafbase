@@ -4,6 +4,7 @@ use engine_v2::Engine;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::mocks::graphql::StateMutationSchema;
 use integration_tests::{federation::EngineV2Ext, mocks::graphql::FakeGithubSchema, runtime, MockGraphQlServer};
+use std::time::Duration;
 
 #[test]
 fn test_basic_query_caching() {
@@ -29,7 +30,7 @@ fn test_basic_query_caching() {
         assert_eq!(
             response.metadata.cache_config,
             Some(engine_v2::CacheConfig {
-                max_age: 10,
+                max_age: Duration::from_secs(10),
                 ..Default::default()
             })
         );
@@ -76,7 +77,7 @@ fn test_field_caching() {
         assert_eq!(
             response.metadata.cache_config,
             Some(engine_v2::CacheConfig {
-                max_age: 10,
+                max_age: Duration::from_secs(10),
                 ..Default::default()
             })
         );
@@ -120,7 +121,7 @@ fn test_object_caching() {
         assert_eq!(
             response.metadata.cache_config,
             Some(engine_v2::CacheConfig {
-                max_age: 10,
+                max_age: Duration::from_secs(10),
                 ..Default::default()
             })
         );
@@ -222,7 +223,7 @@ fn test_min_object_field_caching() {
         assert_eq!(
             response.metadata.cache_config,
             Some(engine_v2::CacheConfig {
-                max_age: 5,
+                max_age: Duration::from_secs(5),
                 ..Default::default()
             })
         );
@@ -233,7 +234,7 @@ fn test_min_object_field_caching() {
         assert_eq!(
             response.metadata.cache_config,
             Some(engine_v2::CacheConfig {
-                max_age: 10,
+                max_age: Duration::from_secs(10),
                 ..Default::default()
             })
         );

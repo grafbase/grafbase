@@ -53,16 +53,14 @@ impl Operation {
                 .cache_config
                 .map(|cache_config_id| schema[cache_config_id]);
 
-            let selection_cache_config = operation
+            let selection_set_cache_config = operation
                 .walker_with(schema.walker(), ())
                 .walk(operation.root_selection_set_id)
-                .iter()
-                .filter_map(|bound_selection| {
-                    Self::traverse_bound_selection_for_caching(schema, &operation, bound_selection)
-                })
+                .into_iter()
+                .filter_map(|bound_selection| Self::traverse_bound_selection_for_caching(schema, bound_selection))
                 .reduce(|a, b| a.merge(b));
 
-            operation.cache_config = root_cache_config.merge(selection_cache_config);
+            operation.cache_config = root_cache_config.merge(selection_set_cache_config);
         }
 
         Ok(operation)
@@ -76,70 +74,58 @@ impl Operation {
     // selected fields
     fn traverse_bound_selection_for_caching(
         schema: &Schema,
-        operation: &Operation,
-        bound_selection: &BoundSelection,
+        bound_selection_walker: BoundSelectionWalker<'_>,
     ) -> Option<CacheConfig> {
-        match bound_selection {
-            BoundSelection::Field(bounded_field_id) => {
-                let bound_field = operation[*bounded_field_id];
-                let bound_field_definition = &operation[bound_field.definition_id];
+        match bound_selection_walker {
+            BoundSelectionWalker::Field(bounded_field_walker) => {
+                let bounded_field_definition = bounded_field_walker.definition().get();
 
-                let field_cache_config: Option<CacheConfig> =
-                    if let BoundAnyFieldDefinition::Field(field) = bound_field_definition {
-                        let field_walker = schema.walker().walk(field.field_id);
+                let bounded_field_cache_config = match bounded_field_definition {
+                    BoundAnyFieldDefinition::Field(bounded_field_definition) => {
+                        let field_walker = schema.walker().walk(bounded_field_definition.field_id);
                         let field_cache_config = field_walker.cache_config();
-                        let field_type = &schema[field_walker.type_id];
+                        let field_type = field_walker.ty().get();
 
-                        match field_type.inner {
+                        let object_field_cache_config = match field_type.inner {
                             Definition::Object(object_id) => {
-                                let object = &schema[object_id];
+                                let object = field_walker.walk(object_id).get();
                                 let object_cache_config =
                                     object.cache_config.map(|cache_control_id| schema[cache_control_id]);
 
                                 object_cache_config.merge(field_cache_config)
                             }
-                            _ => field_cache_config,
-                        }
-                    } else {
-                        None
-                    };
+                            _ => None,
+                        };
 
-                if let Some(selection_set_id) = bound_field.selection_set_id {
-                    let selection_set_cache_config = operation[selection_set_id]
-                        .items
-                        .iter()
-                        .filter_map(|bound_selection| {
-                            Self::traverse_bound_selection_for_caching(schema, operation, bound_selection)
-                        })
-                        .reduce(|a, b| a.merge(b));
+                        field_cache_config.merge(object_field_cache_config)
+                    }
+                    BoundAnyFieldDefinition::TypeName(_) => None,
+                };
 
-                    field_cache_config.merge(selection_set_cache_config)
-                } else {
-                    field_cache_config
-                }
+                let bounded_field_selection_set_cache_config =
+                    bounded_field_walker.selection_set().and_then(|selection_set_walker| {
+                        let selection_set_cache_config = selection_set_walker
+                            .into_iter()
+                            .filter_map(|bound_selection| {
+                                Self::traverse_bound_selection_for_caching(schema, bound_selection)
+                            })
+                            .reduce(|a, b| a.merge(b));
+
+                        bounded_field_cache_config.merge(selection_set_cache_config)
+                    });
+
+                bounded_field_cache_config.merge(bounded_field_selection_set_cache_config)
             }
-            BoundSelection::FragmentSpread(spread) => {
-                let selection_set = &operation[spread.selection_set_id];
-
-                selection_set
-                    .items
-                    .iter()
-                    .filter_map(|bound_selection| {
-                        Self::traverse_bound_selection_for_caching(schema, operation, bound_selection)
-                    })
-                    .reduce(|a, b| a.merge(b))
-            }
-            BoundSelection::InlineFragment(inline) => {
-                let selection_set = &operation[inline.selection_set_id];
-
-                selection_set
-                    .items
-                    .iter()
-                    .filter_map(|bound_selection| {
-                        Self::traverse_bound_selection_for_caching(schema, operation, bound_selection)
-                    })
-                    .reduce(|a, b| a.merge(b))
-            }
+            BoundSelectionWalker::InlineFragment(inline) => inline
+                .selection_set()
+                .into_iter()
+                .filter_map(|bound_selection| Self::traverse_bound_selection_for_caching(schema, bound_selection))
+                .reduce(|a, b| a.merge(b)),
+            BoundSelectionWalker::FragmentSpread(spread) => spread
+                .selection_set()
+                .into_iter()
+                .filter_map(|bound_selection| Self::traverse_bound_selection_for_caching(schema, bound_selection))
+                .reduce(|a, b| a.merge(b)),
         }
     }
 

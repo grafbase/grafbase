@@ -111,7 +111,6 @@ mod tests {
             cache_config,
         };
 
-
         insta::assert_json_snapshot!(serde_json::json!(config), @r###"
         {
           "cache_config": {

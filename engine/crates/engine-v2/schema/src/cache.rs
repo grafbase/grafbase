@@ -37,8 +37,8 @@ impl From<&config::latest::CacheConfig> for CacheConfig {
 
 #[cfg(test)]
 mod test {
-    use std::time::Duration;
     use super::{CacheConfig, Merge};
+    use std::time::Duration;
 
     #[test]
     fn test_merge() {
