@@ -202,7 +202,8 @@ impl<'a, Kv: KvStore> Client<'a, Kv> {
         let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
         let rsa = StrongAlg(rsa);
         let token = rsa
-            .validate_integrity::<CustomClaims>(&token, &pub_key)
+            .validator(&pub_key)
+            .validate(&token)
             .map_err(VerificationError::Integrity)?;
 
         self.verify_claims(token.claims(), Some(expected_issuer))
@@ -276,7 +277,8 @@ impl<'a, Kv: KvStore> Client<'a, Kv> {
         let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
         let rsa = StrongAlg(rsa);
         let token = rsa
-            .validate_integrity::<CustomClaims>(&token, &pub_key)
+            .validator(&pub_key)
+            .validate(&token)
             .map_err(VerificationError::Integrity)?;
 
         self.verify_claims(token.claims(), expected_issuer)
@@ -307,13 +309,16 @@ impl<'a, Kv: KvStore> Client<'a, Kv> {
 
         let token = match token.algorithm() {
             "HS256" => Hs256
-                .validate_integrity::<CustomClaims>(&token, &Hs256Key::from(key))
+                .validator(&Hs256Key::from(key))
+                .validate(&token)
                 .map_err(VerificationError::Integrity),
             "HS384" => Hs384
-                .validate_integrity::<CustomClaims>(&token, &Hs384Key::from(key))
+                .validator(&Hs384Key::from(key))
+                .validate(&token)
                 .map_err(VerificationError::Integrity),
             "HS512" => Hs512
-                .validate_integrity::<CustomClaims>(&token, &Hs512Key::from(key))
+                .validator(&Hs512Key::from(key))
+                .validate(&token)
                 .map_err(VerificationError::Integrity),
             other => {
                 return Err(VerificationError::UnsupportedAlgorithm {
