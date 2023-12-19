@@ -60,7 +60,7 @@ fn merge_intersection<'a>(
     composed_directives: Vec<federated::Directive>,
     ctx: &mut Context<'a>,
 ) {
-    let description = definitions.iter().find_map(|def| def.description());
+    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
     let mut intersection: Vec<StringId> = first.enum_values().map(|value| value.name().id).collect();
     let mut scratch = HashSet::new();
 
@@ -77,7 +77,7 @@ fn merge_intersection<'a>(
         ));
     }
 
-    let enum_id = ctx.insert_enum(first.name(), description, composed_directives);
+    let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
 
     for value in intersection {
         let sites = definitions
@@ -85,7 +85,7 @@ fn merge_intersection<'a>(
             .filter_map(|enm| enm.enum_value_by_name(value))
             .map(|value| value.directives());
         let composed_directives = collect_composed_directives(sites, ctx);
-        ctx.insert_enum_value(enum_id, first.walk(value), None, composed_directives);
+        ctx.insert_enum_value(enum_id, first.walk(value).as_str(), None, composed_directives);
     }
 }
 
@@ -95,8 +95,8 @@ fn merge_union<'a>(
     composed_directives: Vec<federated::Directive>,
     ctx: &mut Context<'a>,
 ) {
-    let description = definitions.iter().find_map(|def| def.description());
-    let enum_id = ctx.insert_enum(first.name(), description, composed_directives);
+    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
+    let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
     let mut all_values: Vec<(StringId, _)> = definitions
         .iter()
         .flat_map(|def| def.enum_values().map(|value| (value.name().id, value.directives().id)))
@@ -114,7 +114,7 @@ fn merge_union<'a>(
             .map(|(_, directives)| first.walk(*directives));
         let composed_directives = collect_composed_directives(sites, ctx);
 
-        ctx.insert_enum_value(enum_id, first.walk(name), None, composed_directives);
+        ctx.insert_enum_value(enum_id, first.walk(name).as_str(), None, composed_directives);
 
         start = end;
     }
@@ -138,8 +138,8 @@ fn merge_exactly_matching<'a>(
         }
     }
 
-    let description = definitions.iter().find_map(|def| def.description());
-    let enum_id = ctx.insert_enum(first.name(), description, composed_directives);
+    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
+    let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
 
     for value in expected {
         let sites = definitions
@@ -147,7 +147,7 @@ fn merge_exactly_matching<'a>(
             .filter_map(|enm| enm.enum_value_by_name(value))
             .map(|value| value.directives());
         let composed_directives = collect_composed_directives(sites, ctx);
-        ctx.insert_enum_value(enum_id, first.walk(value), None, composed_directives);
+        ctx.insert_enum_value(enum_id, first.walk(value).as_str(), None, composed_directives);
     }
 }
 

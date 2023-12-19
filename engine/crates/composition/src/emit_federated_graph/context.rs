@@ -1,5 +1,5 @@
 use super::field_types_map::FieldTypesMap;
-use crate::{composition_ir as ir, subgraphs, VecExt};
+use crate::{composition_ir as ir, subgraphs};
 use graphql_federated_graph as federated;
 use std::collections::HashMap;
 
@@ -31,11 +31,7 @@ impl<'a> Context<'a> {
 
     /// Subgraphs string -> federated graph string.
     pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
-        *self
-            .strings_ir
-            .map
-            .entry(string.id)
-            .or_insert_with(|| federated::StringId(self.out.strings.push_return_idx(string.as_str().to_owned())))
+        self.strings_ir.insert(string.as_str())
     }
 
     pub(crate) fn push_object_field(&mut self, object_id: federated::ObjectId, field_id: federated::FieldId) {
@@ -52,5 +48,11 @@ impl<'a> Context<'a> {
         self.out
             .interface_fields
             .push(federated::InterfaceField { interface_id, field_id });
+    }
+}
+
+impl Drop for Context<'_> {
+    fn drop(&mut self) {
+        self.out.strings = std::mem::take(&mut self.strings_ir).into_federated_strings();
     }
 }

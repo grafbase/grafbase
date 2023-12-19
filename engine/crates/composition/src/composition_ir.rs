@@ -1,4 +1,4 @@
-use crate::{subgraphs, VecExt};
+use crate::subgraphs;
 use graphql_federated_graph as federated;
 use std::collections::{BTreeSet, HashMap};
 
@@ -35,32 +35,9 @@ pub(crate) struct CompositionIr {
     pub(crate) union_members: BTreeSet<(federated::StringId, federated::StringId)>,
     pub(crate) resolvable_keys: Vec<KeyIr>,
 
-    /// Fields on implementers of an interface entity's implementers that are contributed by other
-    /// subgraphs.
+    /// Fields of an interface entity that are contributed by other subgraphs and must be added to
+    /// the interface's implementers in the federated schema"
     pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, federated::FieldId)>,
-}
-
-impl CompositionIr {
-    pub(crate) fn insert_resolvable_key(
-        &mut self,
-        parent: federated::Definition,
-        key_id: subgraphs::KeyId,
-        is_interface_object: bool,
-    ) {
-        self.resolvable_keys.push(KeyIr {
-            parent,
-            key_id,
-            is_interface_object,
-        });
-    }
-
-    pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
-        self.strings.insert(string)
-    }
-
-    pub(crate) fn insert_static_str(&mut self, string: &'static str) -> federated::StringId {
-        self.strings.insert_static_str(string)
-    }
 }
 
 pub(crate) struct FieldIr {
@@ -94,24 +71,21 @@ pub(crate) struct ArgumentIr {
 
 #[derive(Default)]
 pub(crate) struct StringsIr {
-    pub(crate) map: HashMap<subgraphs::StringId, federated::StringId>,
-    pub(crate) static_str_map: HashMap<&'static str, federated::StringId>,
-    pub(crate) strings: Vec<String>,
+    strings: indexmap::IndexSet<String>,
 }
 
 impl StringsIr {
-    pub(crate) fn insert_static_str(&mut self, string: &'static str) -> federated::StringId {
-        *self
-            .static_str_map
-            .entry(string)
-            .or_insert_with(|| federated::StringId(self.strings.push_return_idx(string.to_owned())))
+    pub(crate) fn insert(&mut self, string: &str) -> federated::StringId {
+        let idx = self
+            .strings
+            .get_index_of(string)
+            .unwrap_or_else(|| self.strings.insert_full(string.to_owned()).0);
+
+        federated::StringId(idx)
     }
 
-    pub(crate) fn insert(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
-        *self
-            .map
-            .entry(string.id)
-            .or_insert_with(|| federated::StringId(self.strings.push_return_idx(string.as_str().to_owned())))
+    pub(crate) fn into_federated_strings(self) -> Vec<String> {
+        self.strings.into_iter().collect()
     }
 }
 

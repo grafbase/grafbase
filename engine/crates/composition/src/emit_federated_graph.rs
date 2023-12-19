@@ -20,7 +20,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         unions: mem::take(&mut ir.unions),
         scalars: mem::take(&mut ir.scalars),
         input_objects: mem::take(&mut ir.input_objects),
-        strings: mem::take(&mut ir.strings.strings),
+        strings: Vec::new(),
         subgraphs: vec![],
         root_operation_types: RootOperationTypes {
             query: ir.query_type.unwrap(),
@@ -41,6 +41,8 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.resolvable_keys, &mut ctx);
     push_object_fields_from_interface_entities(&ir.object_fields_from_entity_interfaces, &mut ctx);
+
+    drop(ctx);
 
     federated::FederatedGraph::V1(out)
 }

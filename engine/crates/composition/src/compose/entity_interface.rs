@@ -61,7 +61,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
     }
 
-    let description = interface_def.description();
+    let description = interface_def.description().map(|d| d.as_str());
     let interface_name = ctx.insert_string(interface_name.id);
     let interface_id = ctx.insert_interface(interface_name, description, composed_directives);
 

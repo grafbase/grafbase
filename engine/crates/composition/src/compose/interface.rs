@@ -6,7 +6,7 @@ pub(super) fn merge_interface_definitions<'a>(
     definitions: &[DefinitionWalker<'a>],
 ) {
     let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
-    let interface_description = definitions.iter().find_map(|def| def.description());
+    let interface_description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
     let interface_name = ctx.insert_string(first.name().id);
     let interface_id = ctx.insert_interface(interface_name, interface_description, composed_directives);
 
