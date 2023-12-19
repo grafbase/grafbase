@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use schema::{Definition, DefinitionWalker};
+use schema::{CacheConfig, Definition, DefinitionWalker, Merge};
 
 use super::{BoundFieldWalker, BoundFragmentSpreadWalker, BoundInlineFragmentWalker, OperationWalker};
 use crate::request::{BoundSelection, BoundSelectionSetId, SelectionSetType};
@@ -11,6 +11,31 @@ pub type SelectionSetTypeWalker<'a, Extension = ()> = OperationWalker<'a, Select
 impl<'a, E> BoundSelectionSetWalker<'a, E> {
     pub fn ty(&self) -> SelectionSetTypeWalker<'a, ()> {
         self.with_ext(()).walk_with(self.ty, Definition::from(self.ty))
+    }
+}
+
+impl<'a> BoundSelectionSetWalker<'a, ()> {
+    // this merely traverses the selection set recursively and merge all cache_config present in the
+    // selected fields
+    pub fn cache_config(&self) -> Option<CacheConfig> {
+        (*self)
+            .into_iter()
+            .filter_map(|selection| match selection {
+                BoundSelectionWalker::Field(field) => {
+                    let cache_config = field.definition().as_field().and_then(|definition| {
+                        definition
+                            .cache_config()
+                            .merge(definition.ty().inner().as_object().and_then(|obj| obj.cache_config()))
+                    });
+                    let selection_set_cache_config = field
+                        .selection_set()
+                        .and_then(|selection_set| selection_set.cache_config());
+                    cache_config.merge(selection_set_cache_config)
+                }
+                BoundSelectionWalker::InlineFragment(inline) => inline.selection_set().cache_config(),
+                BoundSelectionWalker::FragmentSpread(spread) => spread.selection_set().cache_config(),
+            })
+            .reduce(|a, b| a.merge(b))
     }
 }
 
