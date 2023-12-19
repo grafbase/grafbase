@@ -3242,7 +3242,7 @@ dependencies = [
  "hyper",
  "rustls 0.21.9",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.24.1",
 ]
 
 [[package]]
@@ -5228,7 +5228,7 @@ dependencies = [
  "system-configuration",
  "tokio",
  "tokio-native-tls",
- "tokio-rustls",
+ "tokio-rustls 0.24.1",
  "tokio-util",
  "tower-service",
  "url",
@@ -7048,14 +7048,15 @@ dependencies = [
 [[package]]
 name = "tokio-postgres-rustls"
 version = "0.10.0"
-source = "git+https://github.com/grafbase/tokio-postgres-rustls#51e2f7455fe643bb8b8b133877ebe98dd4691e9e"
+source = "git+https://github.com/grafbase/tokio-postgres-rustls?branch=grafbase-tokio-postgres#08348e18cf8822801094c1e0369b5d7bc390cca8"
 dependencies = [
  "futures",
  "ring 0.16.20",
- "rustls 0.21.9",
+ "rustls 0.22.1",
+ "rustls-pki-types",
  "tokio",
  "tokio-postgres",
- "tokio-rustls",
+ "tokio-rustls 0.25.0",
 ]
 
 [[package]]
@@ -7065,6 +7066,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c28327cf380ac148141087fbfb9de9d7bd4e84ab5d2c28fbc911d753de8a7081"
 dependencies = [
  "rustls 0.21.9",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-rustls"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "775e0c0f0adb3a2f22a00c4745d728b479985fc15ee7ca6a2608388c5569860f"
+dependencies = [
+ "rustls 0.22.1",
+ "rustls-pki-types",
  "tokio",
 ]
 

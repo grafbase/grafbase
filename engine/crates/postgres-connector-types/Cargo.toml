@@ -40,4 +40,4 @@ rustls = "0.22.1"
 rustls-native-certs = "0.7.0"
 # https://github.com/sfackler/rust-postgres/pull/1067
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase" }
-tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls" }
+tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", branch = "grafbase-tokio-postgres" }
